@@ -15,23 +15,31 @@ export type Colony = {
 	buildQueueId: number | null;
 };
 
+/**
+ * Where an observation came from: a parsed save (complete) or the companion mod's monthly
+ * game.log lines (stockpile and net income only — the other fields are null/empty).
+ */
+export type SourceKind = 'save' | 'log';
+
 /** One observed state of the player's empire at one game date. */
 export type Snapshot = {
+	kind: SourceKind;
 	campaign: string;
 	date: string; // game date as the save writes it, "2200.01.01"
 	fingerprint: string;
-	countryId: number;
+	countryId: number | null;
 	empireName: string;
-	pops: number;
+	pops: number | null;
 	stockpile: Resources;
-	income: Resources; // budget.current_month, summed over sources
-	expenses: Resources;
+	income: Resources | null; // budget.current_month, summed over sources
+	expenses: Resources | null;
 	balance: Resources;
 	colonies: Colony[];
 };
 
 export type TimelineNode = {
 	id: number;
+	kind: SourceKind;
 	campaign: string;
 	date: string;
 	fingerprint: string;

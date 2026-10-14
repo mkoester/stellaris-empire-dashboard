@@ -1,6 +1,6 @@
 import { readFile, readdir, stat } from 'node:fs/promises';
 import { basename, dirname, join, relative, sep } from 'node:path';
-import { record, type Db } from './db.ts';
+import { record, type Db, type Recorded } from './db.ts';
 import { readSave, toSnapshot } from './save.ts';
 
 // Ingests saves from the game's `save games/` folder: everything already there at start (oldest
@@ -12,7 +12,7 @@ import { readSave, toSnapshot } from './save.ts';
 // failed with EMFILE under the macOS sandbox). A file counts as written once its size and mtime
 // are unchanged for one poll interval.
 
-export type Ingested = { nodeId: number; isNew: boolean; file: string };
+export type Ingested = Recorded & { file: string };
 
 export async function ingestFile(db: Db, root: string, file: string): Promise<Ingested> {
 	const snap = toSnapshot(await readSave(await readFile(file)), campaignOf(root, file));

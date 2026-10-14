@@ -1,0 +1,6 @@
+# this = country. on_actions merge additively; vanilla's monthly events keep firing.
+on_monthly_pulse_country = {
+	events = {
+		sdash.1
+	}
+}

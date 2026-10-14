@@ -45,6 +45,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
 	return {
+		kind: 'save',
 		campaign,
 		date: raw.date,
 		fingerprint: `${raw.tick}:${raw.randomCount}`,

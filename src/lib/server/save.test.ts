@@ -97,7 +97,7 @@ describe.skipIf(!real)('real save', () => {
 		expect(s.date).toMatch(/^\d{4}\.\d{2}\.\d{2}$/);
 		expect(s.empireName).not.toBe('');
 		expect(Object.keys(s.stockpile).length).toBeGreaterThan(3);
-		expect(Object.keys(s.income).length).toBeGreaterThan(3);
+		expect(Object.keys(s.income ?? {}).length).toBeGreaterThan(3);
 		expect(s.colonies.length).toBeGreaterThan(0);
 		console.log(JSON.stringify({ ...s, colonies: s.colonies.slice(0, 3) }, null, 1));
 	}, 30_000);

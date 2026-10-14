@@ -1,16 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { path, place } from './timeline.ts';
-import type { TimelineNode } from './types.ts';
+import type { SourceKind, TimelineNode } from './types.ts';
 
-const node = (id: number, date: string, parentId: number | null, campaign = 'c'): TimelineNode => ({
+const node = (
+	id: number,
+	date: string,
+	parentId: number | null,
+	campaign = 'c',
+	kind: SourceKind = 'save'
+): TimelineNode => ({
 	id,
+	kind,
 	campaign,
 	date,
 	fingerprint: `f${id}`,
 	parentId,
 	ambiguous: false
 });
-const obs = (date: string, fingerprint = 'new', campaign = 'c') => ({
+const obs = (date: string, fingerprint = 'new', campaign = 'c', kind: SourceKind = 'save') => ({
+	kind,
 	campaign,
 	date,
 	fingerprint
@@ -78,6 +86,23 @@ describe('place', () => {
 			kind: 'child',
 			parentId: 4,
 			ambiguous: false
+		});
+	});
+
+	it('merges the mod line and the autosave of the same moment into one node', () => {
+		const t = [node(1, '2200.01.01', null), node(2, '2200.02.01', 1, 'c', 'log')];
+		expect(place(t, 2, obs('2200.02.01', 'save-fp'))).toEqual({ kind: 'merge', nodeId: 2 });
+		// the other order: autosave first, mod line second
+		expect(place(tree, 3, obs('2202.01.01', 'log-fp', 'c', 'log'))).toEqual({
+			kind: 'merge',
+			nodeId: 3
+		});
+	});
+
+	it('does not merge two saves of the same date — that is a reload', () => {
+		expect(place(tree, 3, obs('2202.01.01', 'other-save'))).toMatchObject({
+			kind: 'child',
+			ambiguous: true
 		});
 	});
 

@@ -1,0 +1,44 @@
+namespace = sdash
+
+# Monthly, for human players only: write stockpile and income of every resource to game.log,
+# then an end marker so the reader knows the month is complete.
+# Resource keys from 4.5.2 common/strategic_resources/00_strategic_resources.txt.
+country_event = {
+	id = sdash.1
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		sdash_log_resource = { RES = energy }
+		sdash_log_resource = { RES = minerals }
+		sdash_log_resource = { RES = food }
+		sdash_log_resource = { RES = physics_research }
+		sdash_log_resource = { RES = society_research }
+		sdash_log_resource = { RES = engineering_research }
+		sdash_log_resource = { RES = influence }
+		sdash_log_resource = { RES = unity }
+		sdash_log_resource = { RES = trade }
+		sdash_log_resource = { RES = consumer_goods }
+		sdash_log_resource = { RES = alloys }
+		sdash_log_resource = { RES = volatile_motes }
+		sdash_log_resource = { RES = exotic_gases }
+		sdash_log_resource = { RES = rare_crystals }
+		sdash_log_resource = { RES = sr_living_metal }
+		sdash_log_resource = { RES = sr_zro }
+		sdash_log_resource = { RES = sr_dark_matter }
+		sdash_log_resource = { RES = nanites }
+		sdash_log_resource = { RES = minor_artifacts }
+		sdash_log_resource = { RES = astral_threads }
+		sdash_log_resource = { RES = biomass }
+		sdash_log_resource = { RES = menace }
+		sdash_log_resource = { RES = integrity }
+		sdash_log_resource = { RES = advanced_logic }
+		sdash_log_resource = { RES = feral_insight }
+		sdash_log_resource = { RES = entropy_crystals }
+		log = "SDASH|1|[GetDate]|end"
+	}
+}

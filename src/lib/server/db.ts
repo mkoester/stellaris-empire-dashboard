@@ -1,18 +1,32 @@
 import { DatabaseSync } from 'node:sqlite';
 import { path, place } from '#lib/timeline.ts';
-import type { Snapshot, TimelineNode } from '#lib/types.ts';
+import type { Resources, Snapshot, SourceKind, TimelineNode } from '#lib/types.ts';
 
-// The dashboard's own store: the save graph plus one snapshot per node. Everything in it can be
-// rebuilt from saves, so there are no migrations — delete the file when the schema changes.
+// The dashboard's own store: the save graph plus one snapshot per node. It is a cache of what the
+// game wrote, so there are no migrations: a schema change bumps SCHEMA and the tables are rebuilt
+// (saves are re-ingested on start; past mod lines and manual parent corrections are lost).
+
+const SCHEMA = '2';
 
 export type Db = DatabaseSync;
 
 export function openDb(file: string): Db {
 	const db = new DatabaseSync(file);
+	db.exec('CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+	const version = db.prepare("SELECT value FROM state WHERE key = 'schema'").get() as
+		{ value: string } | undefined;
+	if (version?.value !== SCHEMA) {
+		db.exec(`
+			DROP TABLE IF EXISTS snapshot;
+			DROP TABLE IF EXISTS node;
+			DELETE FROM state;
+		`);
+	}
 	db.exec(`
 		PRAGMA journal_mode = WAL;
 		CREATE TABLE IF NOT EXISTS node (
 			id          INTEGER PRIMARY KEY,
+			kind        TEXT NOT NULL,
 			campaign    TEXT NOT NULL,
 			date        TEXT NOT NULL,
 			fingerprint TEXT NOT NULL,
@@ -26,13 +40,14 @@ export function openDb(file: string): Db {
 			node_id INTEGER PRIMARY KEY REFERENCES node(id),
 			json    TEXT NOT NULL
 		);
-		CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 	`);
+	db.prepare("INSERT OR REPLACE INTO state (key, value) VALUES ('schema', ?)").run(SCHEMA);
 	return db;
 }
 
 type NodeRow = {
 	id: number;
+	kind: SourceKind;
 	campaign: string;
 	date: string;
 	fingerprint: string;
@@ -42,6 +57,7 @@ type NodeRow = {
 
 const toNode = (r: NodeRow): TimelineNode => ({
 	id: r.id,
+	kind: r.kind,
 	campaign: r.campaign,
 	date: r.date,
 	fingerprint: r.fingerprint,
@@ -59,30 +75,71 @@ export function headId(db: Db): number | null {
 	return row ? Number(row.value) : null;
 }
 
+/** The campaign currently being played, i.e. the head's; null before the first observation. */
+export function headCampaign(db: Db): string | null {
+	const id = headId(db);
+	return nodes(db).find((n) => n.id === id)?.campaign ?? null;
+}
+
 function setHead(db: Db, id: number) {
 	db.prepare("INSERT OR REPLACE INTO state (key, value) VALUES ('head', ?)").run(String(id));
 }
 
-/** Adds a snapshot to the graph (or recognises it) and makes it the head. */
+function snapshotOf(db: Db, nodeId: number): Snapshot {
+	const row = db.prepare('SELECT json FROM snapshot WHERE node_id = ?').get(nodeId) as {
+		json: string;
+	};
+	return JSON.parse(row.json) as Snapshot;
+}
+
+export type Recorded = {
+	nodeId: number;
+	isNew: boolean;
+	/** Resources whose mod-reported net income disagrees with the save's balance (merges only). */
+	mismatches: string[];
+};
+
+/** Adds an observation to the graph (or recognises it, or merges it) and makes it the head. */
 export function record(
 	db: Db,
 	snap: Snapshot,
 	source: string,
 	loadedFrom: number | null = null
-): { nodeId: number; isNew: boolean } {
+): Recorded {
 	const placement = place(nodes(db), headId(db), snap, loadedFrom);
 	if (placement.kind === 'duplicate') {
 		setHead(db, placement.nodeId);
-		return { nodeId: placement.nodeId, isNew: false };
+		return { nodeId: placement.nodeId, isNew: false, mismatches: [] };
 	}
+	if (placement.kind === 'merge') {
+		const existing = snapshotOf(db, placement.nodeId);
+		const [save, log] = snap.kind === 'save' ? [snap, existing] : [existing, snap];
+		db.prepare("UPDATE node SET kind = 'save', fingerprint = ?, source = ? WHERE id = ?").run(
+			save.fingerprint,
+			snap.kind === 'save' ? source : sourceOf(db, placement.nodeId),
+			placement.nodeId
+		);
+		db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
+			JSON.stringify(save),
+			placement.nodeId
+		);
+		setHead(db, placement.nodeId);
+		return {
+			nodeId: placement.nodeId,
+			isNew: false,
+			mismatches: compareBalances(log.balance, save.balance)
+		};
+	}
+
 	db.exec('BEGIN');
 	try {
 		const { lastInsertRowid } = db
 			.prepare(
-				`INSERT INTO node (campaign, date, fingerprint, parent_id, ambiguous, source, observed_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?)`
+				`INSERT INTO node (kind, campaign, date, fingerprint, parent_id, ambiguous, source, observed_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 			)
 			.run(
+				snap.kind,
 				snap.campaign,
 				snap.date,
 				snap.fingerprint,
@@ -98,18 +155,35 @@ export function record(
 		);
 		setHead(db, nodeId);
 		db.exec('COMMIT');
-		return { nodeId, isNew: true };
+		return { nodeId, isNew: true, mismatches: [] };
 	} catch (e) {
 		db.exec('ROLLBACK');
 		throw e;
 	}
 }
 
+function sourceOf(db: Db, nodeId: number): string {
+	return (db.prepare('SELECT source FROM node WHERE id = ?').get(nodeId) as { source: string })
+		.source;
+}
+
+/**
+ * The mod reports `export_resource_income_to_variable`, assumed to be net income. Where the save
+ * has a balance for the same moment the two must agree; a mismatch means the assumption is wrong.
+ */
+export function compareBalances(
+	fromLog: Resources,
+	fromSave: Resources,
+	tolerance = 0.05
+): string[] {
+	return Object.keys(fromSave)
+		.filter((k) => k in fromLog && Math.abs(fromLog[k] - fromSave[k]) > tolerance)
+		.map((k) => `${k}: mod ${fromLog[k]} vs save ${fromSave[k]}`);
+}
+
 /** Snapshots root → node: the history of the branch that node is on. */
 export function history(db: Db, nodeId: number): Snapshot[] {
-	const ids = path(nodes(db), nodeId).map((n) => n.id);
-	const get = db.prepare('SELECT json FROM snapshot WHERE node_id = ?');
-	return ids.map((id) => JSON.parse((get.get(id) as { json: string }).json) as Snapshot);
+	return path(nodes(db), nodeId).map((n) => snapshotOf(db, n.id));
 }
 
 /** Manual correction of a guessed parent. Refuses to create a cycle. */

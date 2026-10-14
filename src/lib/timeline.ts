@@ -1,12 +1,13 @@
-import type { TimelineNode } from './types.ts';
+import type { SourceKind, TimelineNode } from './types.ts';
 
 // The save graph. Every observed state is a node; loading an older save makes the next
 // observation a child of an older node, i.e. a branch. Pure functions over the node list.
 
-export type Observation = { campaign: string; date: string; fingerprint: string };
+export type Observation = { kind: SourceKind; campaign: string; date: string; fingerprint: string };
 
 export type Placement =
 	| { kind: 'duplicate'; nodeId: number }
+	| { kind: 'merge'; nodeId: number }
 	| { kind: 'child'; parentId: number | null; ambiguous: boolean };
 
 /**
@@ -22,9 +23,14 @@ export function place(
 	const same = nodes.find((n) => n.fingerprint === obs.fingerprint && n.campaign === obs.campaign);
 	if (same) return { kind: 'duplicate', nodeId: same.id };
 
-	if (loadedFrom !== null) return { kind: 'child', parentId: loadedFrom, ambiguous: false };
-
 	const head = nodes.find((n) => n.id === headId && n.campaign === obs.campaign);
+	// The mod's monthly line and the autosave describe the same moment from two sources — one node,
+	// or the second would look like a reload.
+	if (head && head.date === obs.date && head.kind !== obs.kind) {
+		return { kind: 'merge', nodeId: head.id };
+	}
+
+	if (loadedFrom !== null) return { kind: 'child', parentId: loadedFrom, ambiguous: false };
 	if (!head) {
 		// First observation of this campaign, or a switch from another one: attach to its newest
 		// earlier node, if any — the player continued that campaign from somewhere.

@@ -25,17 +25,40 @@ tree.
 ```sh
 DASHBOARD_DB=<dir>/dashboard.sqlite \
 STELLARIS_SAVE_DIR="<Stellaris user dir>/save games" \
+STELLARIS_GAME_LOG="<Stellaris user dir>/logs/game.log" \
 pnpm dev --host 127.0.0.1
 ```
 
-The DB is a cache of the saves: delete it to rebuild from scratch (the save graph is re-guessed
-from mtime order, manual parent corrections are lost). `STELLARIS_TEST_SAVE=<.sav>` enables the
-real-save test in `save.test.ts`.
+`STELLARIS_GAME_LOG` is opt-in: set it when the companion mod is enabled. The DB is a cache of
+what the game wrote: delete it to rebuild from the saves (the save graph is re-guessed from mtime
+order; manual parent corrections and past mod months are lost). A schema change bumps `SCHEMA` in
+`db.ts`, which rebuilds it automatically. `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test
+in `save.test.ts`.
 
 **How it works:** `watch.ts` polls the save folder (first backfill in mtime order, then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
 `zip.ts` and queries the gamestate with jomini → `db.ts` places the snapshot in the save graph via
-`timeline.ts` and records it → `/api/events` tells open pages to reload.
+`timeline.ts` and records it → `/api/events` tells open pages to reload. In parallel, `feed.ts`
+follows `game.log` from its current end and turns the mod's monthly lines into partial snapshots
+(stockpile and net income) of the campaign being played.
+
+**Two sources, one moment:** an autosave and the mod's line for the same date are merged into one
+node (`place()` → `merge`), otherwise the second would look like a reload. The merge compares the
+mod's income with the save's balance and logs `mod and save disagree on net income` on a mismatch.
+
+## Companion mod (`mod/dashboard_feed`)
+
+Every month, for human players, one `game.log` line per resource:
+`SDASH|1|<date>|<resource>|<stockpile>|<monthly income>`, then `SDASH|1|<date>|end`. The format is
+shared with `feed.ts` — change both together and bump the `1`. Built from 4.5.2's own docs
+(`logs/script_documentation/effects.log`): `export_resource_stockpile_to_variable`,
+`export_resource_income_to_variable`, `[Scope.var]` and `[GetDate]` in loc. Loc commands inside a
+scripted effect are written `\\[...]` (vanilla `99_advanced_documentation.txt`). The resource list
+equals `common/strategic_resources/00_strategic_resources.txt` (26 keys) — re-diff on game updates.
+
+It changes the checksum: no achievements while enabled. Register it on Linux with
+`scripts/link-mod-proton.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace
+root, launcher closed).
 
 ### Sandbox notes (Claude Code on the Mac)
 
@@ -65,8 +88,13 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
 
 - **Build queue items**: `construction.item_mgr.items` was empty in the only save available; the
   colony table has no queue column until a mid-game save shows the shape.
-- **`continue_game.json` on load**: if the game rewrites it when a save is *loaded*, it names the
+- **`continue_game.json` on load**: if the game rewrites it when a save is _loaded_, it names the
   branch point exactly — `place()` already takes that as `loadedFrom`, nothing feeds it yet.
 - **Autosave interval**: `settings.txt` has `autosave=4`; which interval that means is unverified.
-- **Companion mod** (`mod/`, monthly `log` lines into `game.log`) and **hint rules**: not started.
+- **Companion mod, never loaded in game.** First run decides three guesses, each failing loudly
+  rather than silently: `[GetDate]` prints `YYYY.MM.DD` (else `feed.ts` reports "unexpected date
+  format"), variables print as plain numbers (else "malformed SDASH line", e.g. for `1.2K`), and
+  `export_resource_income_to_variable` is _net_ income (else the merge logs "disagree on net
+  income" at the first autosave).
+- **Hint rules**: not started.
 - Cross-check the parsed numbers against the in-game UI.

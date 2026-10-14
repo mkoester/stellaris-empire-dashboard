@@ -40,7 +40,8 @@
 					...Object.keys(series.lines).map((label, i) => ({
 						label,
 						stroke: palette[i % palette.length],
-						width: 1.5
+						width: 1.5,
+						spanGaps: true
 					}))
 				]
 			};
