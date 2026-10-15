@@ -14,7 +14,15 @@ export type { GameData };
 export type Upcoming = {
 	date: string; // when it is due, "2200.09.01"
 	months: number; // from the snapshot's date
-	kind: 'research' | 'tradition' | 'agenda' | 'construction' | 'shipyard' | 'ship' | 'election';
+	kind:
+		| 'research'
+		| 'tradition'
+		| 'agenda'
+		| 'construction'
+		| 'shipyard'
+		| 'ship'
+		| 'colonization'
+		| 'election';
 	what: string;
 	detail: string;
 	exact: boolean; // false: estimated from costs the save does not hold
@@ -224,6 +232,26 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 				planetId: c.planetId
 			}))
 		);
+
+	// Colonies being settled: done at COLONY_POPS_REQUIRED (100) pops, growing COLONY_MONTHLY_GROWTH
+	// (3) a month before modifiers — measured from the save before when it shows the colony too.
+	for (const c of latest.colonies.filter((c) => c.colonizing)) {
+		const before = previous?.colonies.find((p) => p.planetId === c.planetId && p.colonizing);
+		const rate = before && elapsed > 0 ? (c.pops - before.pops) / elapsed : 3;
+		if (!(rate > 0)) continue;
+		const when = due(latest.date, 100 - c.pops, rate);
+		if (when)
+			out.push({
+				...when,
+				kind: 'colonization',
+				what: c.name,
+				tint: 'colonization',
+				detail: `${fmt(c.pops)} / 100 colonists · +${rate.toFixed(1)}/month${before ? '' : ' (base rate)'}`,
+				exact: false,
+				act: false, // the game announces a finished colony
+				planetId: c.planetId
+			});
+	}
 
 	// Civilian ships, by the same rules: ⚠ when nothing is queued after the current order; an idle
 	// ship is due now.

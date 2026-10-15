@@ -173,6 +173,9 @@ deposit_holder | orbitable } }`, queue in `order`, **no arrival date**: `movemen
   `current_order = { automate_fleet_order = { sub_order = { <task>_order = {…} } settings_survey
 construct_mining_stations … = yes/no } }` — the task is the sub-order. `auto_movement` is
   something else (a move order's "go to planet" target).
+- New colonies: listed in `controlled_colonies` from landing on; `colonizing_species` while being
+  settled; done at `COLONY_POPS_REQUIRED` = 100 pops, growing `COLONY_MONTHLY_GROWTH` = 3/month
+  before modifiers. Name `NEW_COLONY_NAME_<n>` = "$NAME$ Prime" … "Decimus".
 - Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
   (adopt and finish entries included), `tradition_categories`; perks `country.ascension_perks`.
 - Manual saves: a save with the same date as the head but another state continues the head (a

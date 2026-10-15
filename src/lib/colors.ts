@@ -21,7 +21,8 @@ const COLORS: Record<string, string> = {
 	agenda: '#e09a1f', // the game's highlight orange (§H)
 	election: '#8f6ad8', // politics: influence
 	construction: '#d0403a', // built with minerals
-	ship: '#4f94b5' // civilian ships: the game's sensor blue
+	ship: '#4f94b5', // civilian ships: the game's sensor blue
+	colonization: '#36a862' // a new world: the society green
 };
 
 export const colorOf = (key: string): string | undefined => COLORS[key];

@@ -664,6 +664,8 @@ function playerColonies(raw: RawSave): Colony[] {
 			planetId,
 			name: planet ? displayName(planet.name) : `colony ${colonyId}`,
 			designation: String(c.final_designation ?? ''),
+			// still being settled: `colonizing_species`; done at COLONY_POPS_REQUIRED (100) pops
+			colonizing: c.colonizing_species !== undefined,
 			pops: num(c.num_sapient_pops),
 			employed: num(c.employable_pops) - num(c.civilian),
 			civilians: num(c.civilian),
@@ -846,6 +848,12 @@ export function displayName(name: Raw): string {
 				.pop() ?? '';
 		return `${ordinal(n)} ${kind.charAt(0)}${kind.slice(1).toLowerCase()}`;
 	}
+	// New colonies: `NEW_COLONY_NAME_<n>` = "$NAME$ Prime" … "$NAME$ Decimus" (localisation, 4.5.2).
+	const colony = /^NEW_COLONY_NAME_(\d+)$/.exec(key);
+	if (colony && Array.isArray(name?.variables)) {
+		const base = name.variables.map((v: Raw) => displayName(v.value)).join(' ');
+		return `${base} ${COLONY_SUFFIX[Number(colony[1]) - 1] ?? colony[1]}`;
+	}
 	// Templates with variables — `%ADJECTIVE%`, `PLANET_NAME_FORMAT` (PARENT + NUMERAL: "Barnards
 	// Star I"), `PREFIX_NAME_FORMAT` (ship: "UNS Jordan"), `STAR_NAME_1_OF_1` — read as their parts.
 	if (Array.isArray(name?.variables)) {
@@ -868,6 +876,18 @@ function resources(obj: Raw): Resources {
 	return out;
 }
 
+const COLONY_SUFFIX = [
+	'Prime',
+	'Secundus',
+	'Tertius',
+	'Quartus',
+	'Quintus',
+	'Sextus',
+	'Septimus',
+	'Octantus',
+	'Novantus',
+	'Decimus'
+];
 const ordinal = (n: number) =>
 	`${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')}`;
 const num = (v: Raw) => (typeof v === 'number' ? v : 0);

@@ -206,7 +206,12 @@
 					<tr>
 						<td class="p-1">
 							{#if c.planetId >= 0}
-								<a class="underline" href={planetHref(c.planetId)}>{c.name}</a>
+								<a class="underline" href={planetHref(c.planetId)}>{c.name}</a
+								>{#if c.colonizing}&nbsp;<span
+										class="text-xs text-green-700"
+										title="being settled: complete at 100 colonists"
+										>colonizing {fmt(c.pops)}/100</span
+									>{/if}
 							{:else}
 								{c.name}
 							{/if}

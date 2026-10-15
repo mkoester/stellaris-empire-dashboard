@@ -148,6 +148,7 @@ describe('toSnapshot', () => {
 				planetId: 21,
 				name: 'Dar-Hesh',
 				designation: 'col_capital',
+				colonizing: false,
 				pops: 4800,
 				employed: 3300,
 				civilians: 1500,
@@ -632,6 +633,12 @@ describe('helpers', () => {
 			})
 		).toBe('Armstrong');
 		expect(displayName({ key: 'HUMAN1_CHR_Gabriela' })).toBe('Gabriela');
+		expect(
+			displayName({
+				key: 'NEW_COLONY_NAME_1',
+				variables: [{ key: 'NAME', value: { key: 'NAME_Alpha_Centauri' } }]
+			})
+		).toBe('Alpha Centauri Prime');
 	});
 });
 

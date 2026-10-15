@@ -244,3 +244,27 @@ describe('upcoming civilian ships', () => {
 		]);
 	});
 });
+
+describe('upcoming colonization', () => {
+	it('dates a colony being settled from its colonists (Alpha Centauri Prime, 2202.07)', () => {
+		const colony = (pops: number) => ({
+			planetId: 159,
+			name: 'Alpha Centauri Prime',
+			colonizing: true,
+			pops,
+			buildQueue: [],
+			buildSlots: 1
+		});
+		const prev = snap('2202.06.01', progress(0, 0), {
+			colonies: [colony(1)]
+		} as unknown as Partial<Snapshot>);
+		const now = snap('2202.07.01', progress(0, 0), {
+			colonies: [colony(4)]
+		} as unknown as Partial<Snapshot>);
+		const [e] = upcoming(now, prev, data).filter((e) => e.kind === 'colonization');
+		expect(e).toMatchObject({ what: 'Alpha Centauri Prime', months: 32, act: false });
+		expect(upcoming(now, null, data).find((e) => e.kind === 'colonization')!.detail).toContain(
+			'base rate'
+		);
+	});
+});

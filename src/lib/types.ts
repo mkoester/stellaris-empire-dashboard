@@ -6,6 +6,7 @@ export type Colony = {
 	planetId: number;
 	name: string;
 	designation: string;
+	colonizing: boolean; // being settled; complete at 100 pops
 	pops: number;
 	employed: number; // employable pops minus civilians (the save has no direct count)
 	civilians: number; // pops without a job (the 4.x "civilian" stratum)
