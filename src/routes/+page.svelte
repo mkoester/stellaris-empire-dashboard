@@ -39,10 +39,10 @@
 
 	<div class="grid gap-4 lg:grid-cols-2">
 		{#key data.tip}
-			<Chart title="Pops" series={data.charts.pops} />
-			<Chart title="Net per month" series={data.charts.balance} />
-			<Chart title="Stockpile" series={data.charts.stockpile} />
-			<Chart title="Income per month" series={data.charts.income} />
+			<Chart title="Pops" series={data.charts.pops} range={data.xRange} />
+			<Chart title="Net per month" series={data.charts.balance} range={data.xRange} />
+			<Chart title="Stockpile" series={data.charts.stockpile} range={data.xRange} />
+			<Chart title="Income per month" series={data.charts.income} range={data.xRange} />
 		{/key}
 	</div>
 

@@ -67,7 +67,8 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		income: null,
 		expenses: null,
 		balance: m.balance,
-		colonies: []
+		colonies: [],
+		endGameYear: null
 	};
 }
 

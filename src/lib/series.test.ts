@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gameYear, popSeries, resourceSeries } from './series.ts';
+import { gameYear, popSeries, resourceSeries, xRange } from './series.ts';
 import type { Snapshot } from './types.ts';
 
 const s = (date: string, stockpile: Record<string, number>) =>
@@ -26,5 +26,18 @@ describe('series with mod-feed months', () => {
 		const log = { date: '2200.02.01', pops: null, income: null } as unknown as Snapshot;
 		expect(popSeries([save, log]).lines.pops).toEqual([10, null]);
 		expect(resourceSeries([save, log], (x) => x.income).lines.energy).toEqual([3, null]);
+	});
+});
+
+describe('xRange', () => {
+	const at = (date: string) => ({ date }) as Snapshot;
+
+	it('shows the last 20 years and one ahead', () => {
+		expect(xRange([at('2200.01.01'), at('2250.07.01')])).toEqual([2230.5, 2251.5]);
+	});
+
+	it('never starts before 2200', () => {
+		expect(xRange([at('2205.01.01')])).toEqual([2200, 2206]);
+		expect(xRange([])).toEqual([2200, 2201]);
 	});
 });

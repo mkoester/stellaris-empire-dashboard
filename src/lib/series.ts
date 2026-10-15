@@ -12,6 +12,17 @@ export function gameYear(date: string): number {
 
 export type Series = { x: number[]; lines: Record<string, (number | null)[]> };
 
+/** Every game starts on 2200.01.01. */
+export const START_YEAR = 2200;
+const YEARS_BACK = 20;
+const YEARS_AHEAD = 1;
+
+/** Default x-axis window: the last 20 years (never before the start) and one year ahead. */
+export function xRange(history: Snapshot[]): [number, number] {
+	const last = history.length ? gameYear(history[history.length - 1].date) : START_YEAR;
+	return [Math.max(START_YEAR, last - YEARS_BACK), last + YEARS_AHEAD];
+}
+
 /** One line per resource that appears anywhere in the history; 0 where a reported map lacks it. */
 export function resourceSeries(
 	history: Snapshot[],

@@ -8,6 +8,7 @@ const raw: RawSave = {
 	randomCount: 123,
 	countryId: 0,
 	empireName: 'Yastun Devourers',
+	endGameStart: 150,
 	country: {
 		num_sapient_pops: 5000,
 		controlled_colonies: [7, 9],
@@ -41,6 +42,11 @@ describe('toSnapshot', () => {
 
 	it('takes identity from date, tick and RNG counter', () => {
 		expect(s).toMatchObject({ campaign: 'camp', date: '2210.03.01', fingerprint: '3700:123' });
+	});
+
+	it('dates the end game from the galaxy setting, and leaves it unknown when absent', () => {
+		expect(s.endGameYear).toBe(2350);
+		expect(toSnapshot({ ...raw, endGameStart: null }, 'camp').endGameYear).toBeNull();
 	});
 
 	it('reads stockpile and sums budget sources per resource', () => {
@@ -99,6 +105,7 @@ describe.skipIf(!real)('real save', () => {
 		expect(Object.keys(s.stockpile).length).toBeGreaterThan(3);
 		expect(Object.keys(s.income ?? {}).length).toBeGreaterThan(3);
 		expect(s.colonies.length).toBeGreaterThan(0);
+		expect(s.endGameYear).toBeGreaterThan(2200);
 		console.log(JSON.stringify({ ...s, colonies: s.colonies.slice(0, 3) }, null, 1));
 	}, 30_000);
 });

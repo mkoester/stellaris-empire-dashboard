@@ -1,7 +1,7 @@
 import { getDb } from '#lib/server/app.ts';
 import { headId, history, nodes } from '#lib/server/db.ts';
 import { path } from '#lib/timeline.ts';
-import { popSeries, resourceSeries } from '#lib/series.ts';
+import { popSeries, resourceSeries, xRange } from '#lib/series.ts';
 
 // Shows the branch ending at ?node=<id>, or at the head (the state last seen from the game).
 export function load({ url }) {
@@ -19,6 +19,7 @@ export function load({ url }) {
 		isHead: tip === headId(db),
 		latest,
 		guessedLinks: path(all, tip).filter((n) => n.ambiguous).length,
+		xRange: xRange(snaps),
 		charts: {
 			pops: popSeries(snaps),
 			stockpile: resourceSeries(snaps, (s) => s.stockpile),

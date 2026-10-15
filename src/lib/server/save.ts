@@ -1,5 +1,6 @@
 import { Jomini } from 'jomini';
 import type { Colony, Resources, Snapshot } from '#lib/types.ts';
+import { START_YEAR } from '#lib/series.ts';
 import { readZipEntry } from './zip.ts';
 
 // Save → Snapshot. `querySave` is the only part touching jomini; everything after it is pure and
@@ -19,6 +20,7 @@ export type RawSave = {
 	colonies: Record<string, Raw>;
 	planets: Record<string, Raw>;
 	empireName: string;
+	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -37,7 +39,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			country: q.at(`/country/${countryId}`),
 			colonies: q.at('/colony') ?? {},
 			planets: q.at('/planets/planet') ?? {},
-			empireName: String(meta.name ?? '')
+			empireName: String(meta.name ?? ''),
+			endGameStart: numOrNull(q.at('/galaxy/end_game_start'))
 		};
 	});
 }
@@ -56,7 +59,8 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		income: sumSources(budget.income),
 		expenses: sumSources(budget.expenses),
 		balance: sumSources(budget.balance),
-		colonies: playerColonies(raw)
+		colonies: playerColonies(raw),
+		endGameYear: raw.endGameStart === null ? null : START_YEAR + raw.endGameStart
 	};
 }
 
@@ -113,5 +117,6 @@ function resources(obj: Raw): Resources {
 }
 
 const num = (v: Raw) => (typeof v === 'number' ? v : 0);
+const numOrNull = (v: Raw) => (typeof v === 'number' ? v : null);
 const list = (v: Raw): number[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]).map(Number);
 const first = (v: Raw) => (Array.isArray(v) ? v[0] : v);

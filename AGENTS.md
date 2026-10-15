@@ -82,6 +82,9 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
 - Build queues: `construction.queue_mgr.queues.<id> = { owner location type }` (`planet`, `army`,
   `starbase`, `combined`); items live in `construction.item_mgr.items` — **shape not yet seen**
   (empty in a 2200.01.01 save).
+- Game length: top-level `galaxy = { mid_game_start=100 end_game_start=200 victory_year=300 }`,
+  years after the 2200.01.01 start (small/default galaxy). Stored as `Snapshot.endGameYear` — the
+  outer bound for zooming out, once zoom exists.
 - Identity of a game state (`Snapshot.fingerprint`): `tick` + `random_count`, both top-level.
 
 ## Open (needs a running game on Linux)
@@ -96,5 +99,7 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
   format"), variables print as plain numbers (else "malformed SDASH line", e.g. for `1.2K`), and
   `export_resource_income_to_variable` is _net_ income (else the merge logs "disagree on net
   income" at the first autosave).
+- **Chart zoom and pan**: wanted — the default window (`xRange`: last 20 years, 1 ahead) should
+  zoom out/in and shift. Not started.
 - **Hint rules**: not started.
 - Cross-check the parsed numbers against the in-game UI.

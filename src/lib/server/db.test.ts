@@ -18,7 +18,8 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	income: {},
 	expenses: {},
 	balance: {},
-	colonies: []
+	colonies: [],
+	endGameYear: null
 });
 
 describe('db', () => {

@@ -35,6 +35,8 @@ export type Snapshot = {
 	expenses: Resources | null;
 	balance: Resources;
 	colonies: Colony[];
+	/** Year the end game starts (galaxy setting); null from the mod feed, which does not know it. */
+	endGameYear: number | null;
 };
 
 export type TimelineNode = {

@@ -4,7 +4,8 @@
 	import type uPlot from 'uplot';
 	import type { Series } from './series.ts';
 
-	let { title, series }: { title: string; series: Series } = $props();
+	let { title, series, range }: { title: string; series: Series; range: [number, number] } =
+		$props();
 
 	let el: HTMLDivElement;
 	let plot: uPlot | undefined;
@@ -33,7 +34,7 @@
 			const opts: uPlot.Options = {
 				width: el.clientWidth,
 				height: 220,
-				scales: { x: { time: false } },
+				scales: { x: { time: false, range: () => range } },
 				axes: [{ values: (_u, ticks) => ticks.map((t) => String(Math.floor(t))) }, {}],
 				series: [
 					{ label: 'year', value: (_u, v) => (v == null ? '' : v.toFixed(2)) },
