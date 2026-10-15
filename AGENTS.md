@@ -44,6 +44,10 @@ pnpm dev --host 127.0.0.1
 costs and the cost defines — regenerate it after a game update (`../stellaris-data-extraction/AGENTS.md`).
 `STELLARIS_GAME_LOG` is opt-in: set it when the companion mod is enabled.
 
+**One watcher per process.** `app.ts` keeps its state on `globalThis`: Vite re-imports server
+modules on edits, and a second watcher once re-read the saves, moved the head back and filed the
+next autosave as a branch (2201.06 under 2201.04).
+
 **The DB is history, not a cache.** The game keeps only its last 5 autosaves (`autosave_*` rotate),
 so snapshots of deleted saves exist nowhere else — never delete the DB or drop its tables.
 
@@ -123,6 +127,12 @@ market_buy|market_sell resource country } amount } }`.
   Jobs: `colony.pop_jobs` lists ids into top-level `pop_jobs.<id> = { type workforce max_workforce
 pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − workforce`
   (`-1` = unlimited, civilian). Every colony also carries empty placeholder jobs (servant, purge, …).
+- Districts (4.x): `colony.districts` → `districts.<id> = { type level zones }` — **`level` is the
+  number built**; `zones.<id> = { type buildings }` (4294967295 = no zone); `buildings.<id> =
+{ type position }`. **Not in the save: district caps and free building slots** — caps come from
+  deposits' `planet_modifier` (`district_*_max_add`; Earth's give farming 5 / generator 6 / mining 7
+  vs. the game's 8 / 8 / 7, so more sources apply), game-start scripts and more; zone slots from
+  `max_buildings`, `districts_per_building` and planet-wide `zone_building_slots_add`.
 - Pop groups: `colony.pop_groups` → top-level `pop_groups.<id> = { key = { species category } size
 happiness }`. **`happiness` is omitted for some groups** (rulers, specialists at 2200.05) —
   treated as unknown, not 0.
@@ -183,6 +193,8 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
   load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.
   The variables also land in every save. Needs the mod running (no achievements).
+- **District caps and free slots via the mod**: the `free_district_slots` trigger (colony scope)
+  can be exported with `export_trigger_value_to_variable`; no trigger for free building slots found.
 - **`continue_game.json` on load**: if the game rewrites it when a save is _loaded_, it names the
   branch point exactly — `place()` already takes that as `loadedFrom`, nothing feeds it yet.
 - **Companion mod, never loaded in game.** First run decides three guesses, each failing loudly

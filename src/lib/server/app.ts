@@ -13,26 +13,35 @@ import { watchSaves } from './watch.ts';
 // DASHBOARD_DB, STELLARIS_SAVE_DIR and STELLARIS_DATA_DB (the extraction's SQLite) are required — a default pointing at a real location fails
 // quietly against the wrong tree. STELLARIS_GAME_LOG is opt-in: set it when the mod is enabled.
 
-export const updates = new EventEmitter();
+// Kept on globalThis: Vite re-imports this module when a server file changes in dev, and a fresh
+// module-level copy would start a second watcher on the same DB (seen: it re-read the saves and
+// moved the head back, so the next autosave was filed as a branch) and a second event bus that
+// open pages never hear.
+type State = {
+	updates: EventEmitter;
+	starting?: Promise<void>;
+	db?: Db;
+	gameData?: GameData;
+	explanations?: Explanations;
+};
+const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
+const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter() });
 
-let db: Db | undefined;
-
-let gameData: GameData | undefined;
-let explanations: Explanations | undefined;
+export const updates = state.updates;
 
 export function getExplanations(): Explanations {
-	if (!explanations) throw new Error('dashboard not started');
-	return explanations;
+	if (!state.explanations) throw new Error('dashboard not started');
+	return state.explanations;
 }
 
 export function getGameData(): GameData {
-	if (!gameData) throw new Error('dashboard not started');
-	return gameData;
+	if (!state.gameData) throw new Error('dashboard not started');
+	return state.gameData;
 }
 
 export function getDb(): Db {
-	if (!db) throw new Error('dashboard not started');
-	return db;
+	if (!state.db) throw new Error('dashboard not started');
+	return state.db;
 }
 
 function required(name: string): string {
@@ -47,14 +56,18 @@ function recorded(r: Recorded, source: string) {
 	updates.emit('update', r.nodeId);
 }
 
-export async function start() {
-	if (db) return;
+/** Starts once per process; later calls (re-imports, a second init) get the same start-up. */
+export function start(): Promise<void> {
+	return (state.starting ??= run());
+}
+
+async function run() {
 	const dbFile = required('DASHBOARD_DB');
 	const saveDir = required('STELLARIS_SAVE_DIR');
-	gameData = loadGameData(required('STELLARIS_DATA_DB'));
-	explanations = loadExplanations(required('STELLARIS_DATA_DB'));
+	state.gameData = loadGameData(required('STELLARIS_DATA_DB'));
+	state.explanations = loadExplanations(required('STELLARIS_DATA_DB'));
 	mkdirSync(dirname(dbFile), { recursive: true });
-	const store = (db = openDb(dbFile));
+	const store = (state.db = openDb(dbFile));
 
 	await watchSaves(store, saveDir, {
 		onIngest: (r) => recorded(r, r.file),
