@@ -87,6 +87,11 @@
 		<Chart title="Pops" series={data.charts.pops} range={data.xRange} right={['open jobs']} />
 		<Chart title="Stability" series={data.charts.stability} range={data.xRange} />
 		<Chart
+			title="Pops per month: growth and migration"
+			series={data.charts.growth}
+			range={data.xRange}
+		/>
+		<Chart
 			title="Happiness %"
 			series={data.charts.happiness}
 			range={data.xRange}

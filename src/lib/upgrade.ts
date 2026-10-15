@@ -42,6 +42,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	designation: '',
 	colonizing: false,
+	growth: null,
 	pops: 0,
 	employed: 0,
 	civilians: 0,

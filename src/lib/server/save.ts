@@ -666,6 +666,7 @@ function playerColonies(raw: RawSave): Colony[] {
 			designation: String(c.final_designation ?? ''),
 			// still being settled: `colonizing_species`; done at COLONY_POPS_REQUIRED (100) pops
 			colonizing: c.colonizing_species !== undefined,
+			growth: colonyGrowth(c.last_month_growth_data),
 			pops: num(c.num_sapient_pops),
 			employed: num(c.employable_pops) - num(c.civilian),
 			civilians: num(c.civilian),
@@ -692,6 +693,34 @@ function playerColonies(raw: RawSave): Colony[] {
 			upkeep: resources(c.upkeep)
 		};
 	});
+}
+
+/**
+ * `colony.last_month_growth_data = { growth_and_size = { growth } current_month_growth_details =
+ * { key = { GROWTH_CAT_… } value = { … } } species = { … categories = { key value } } }`.
+ * Detail values are amounts; emigration counts against the colony (Earth 2204.07: growth 3,
+ * emigration 18 → −15), so it is stored negative.
+ */
+export function colonyGrowth(g: Raw) {
+	if (!g || typeof g !== 'object' || g.growth_and_size === undefined) return null;
+	const pairs = (o: Raw): [string, number][] => {
+		const keys = items(o?.key);
+		const values = items(o?.value);
+		return keys
+			.map((k, i) => [String(k), values[i]] as [string, Raw])
+			.filter(([, v]) => v !== undefined) as [string, number][];
+	};
+	const by = Object.fromEntries(
+		pairs(g.current_month_growth_details).map(([k, v]) => {
+			const cause = k.replace(/^GROWTH_CAT_/, '').toLowerCase();
+			return [cause, cause === 'emigration' ? -num(v) : num(v)];
+		})
+	);
+	const byStratum: Record<string, number> = {};
+	for (const sp of items(g.species))
+		for (const [cat, v] of pairs(sp?.value?.categories))
+			byStratum[cat] = (byStratum[cat] ?? 0) + num((v as Raw)?.growth);
+	return { net: num(g.growth_and_size.growth), by, byStratum };
 }
 
 /**

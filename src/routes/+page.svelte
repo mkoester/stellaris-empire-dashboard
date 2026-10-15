@@ -13,6 +13,7 @@
 	import Edicts from '#lib/panels/Edicts.svelte';
 	import Expansion from '#lib/panels/Expansion.svelte';
 	import Leaders from '#lib/panels/Leaders.svelte';
+	import Migration from '#lib/panels/Migration.svelte';
 	import FleetMovement from '#lib/panels/FleetMovement.svelte';
 	import Traditions from '#lib/panels/Traditions.svelte';
 	import CivilianShips from '#lib/panels/CivilianShips.svelte';
@@ -188,6 +189,7 @@
 					<th class="p-1">Planet</th>
 					<th class="p-1">Designation</th>
 					<th class="p-1 text-right">Pops</th>
+					<th class="p-1 text-right" title="last month: growth, migration, …">±/mo</th>
 					<th class="p-1 text-right">Employed</th>
 					<th class="p-1 text-right">Civilians</th>
 					<th class="p-1 text-right">Open jobs</th>
@@ -218,6 +220,18 @@
 						</td>
 						<td class="p-1">{pretty(c.designation)}</td>
 						<td class="p-1 text-right">{fmt(c.pops)}</td>
+						<td
+							class="p-1 text-right {(c.growth?.net ?? 0) < 0
+								? 'text-red-600'
+								: (c.growth?.net ?? 0) > 0
+									? 'text-green-600'
+									: ''}"
+							title={c.growth
+								? Object.entries(c.growth.by)
+										.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
+										.join(', ')
+								: ''}>{c.growth ? (c.growth.net > 0 ? '+' : '') + fmt(c.growth.net) : ''}</td
+						>
 						<td class="p-1 text-right">{fmt(c.employed)}</td>
 						<td class="p-1 text-right">{fmt(c.civilians)}</td>
 						<td class="p-1 text-right">
@@ -242,7 +256,7 @@
 					<!-- second row: districts built and the buildings per zone -->
 					<tr class="border-b border-gray-200 text-xs dark:border-gray-800">
 						<td></td>
-						<td class="p-1 pb-2" colspan="13">
+						<td class="p-1 pb-2" colspan="14">
 							<DistrictSummary districts={c.districtList} names={data.names} />
 						</td>
 					</tr>
@@ -277,6 +291,7 @@
 		/>
 		<Edicts edicts={data.edicts} explain={data.explain} />
 		<Sectors sectors={data.latest.sectors ?? []} />
+		<Migration colonies={data.latest.colonies} />
 		<AutomationSummary
 			defaults={data.latest.defaultAutomation ?? []}
 			blocked={data.latest.automationBlocked ?? []}

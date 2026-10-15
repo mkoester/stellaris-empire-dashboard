@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
 	buildQueue,
+	colonyGrowth,
 	colonyJobs,
 	displayName,
 	envoys,
@@ -149,6 +150,7 @@ describe('toSnapshot', () => {
 				name: 'Dar-Hesh',
 				designation: 'col_capital',
 				colonizing: false,
+				growth: null,
 				pops: 4800,
 				employed: 3300,
 				civilians: 1500,
@@ -281,6 +283,44 @@ describe('colonyJobs', () => {
 			],
 			openJobs: 100
 		});
+	});
+});
+
+describe('colonyGrowth', () => {
+	it('reads last month by cause, emigration against the colony (Earth, 2204.07)', () => {
+		expect(
+			colonyGrowth({
+				growth_and_size: { month_start_size: 5431, growth: -15 },
+				species: {
+					key: 2365587457,
+					value: {
+						categories: {
+							key: ['civilian', 'ruler', 'specialist', 'worker'],
+							value: [{ growth: -14 }, { growth: 0 }, { growth: -1 }, { growth: 0 }]
+						}
+					}
+				},
+				current_month_growth_details: {
+					key: ['GROWTH_CAT_EMIGRATION', 'GROWTH_CAT_GROWTH', 'GROWTH_CAT_PROMOTION'],
+					value: [18, 3, 0]
+				}
+			})
+		).toEqual({
+			net: -15,
+			by: { emigration: -18, growth: 3, promotion: 0 },
+			byStratum: { civilian: -14, ruler: 0, specialist: -1, worker: 0 }
+		});
+	});
+
+	it('reads a single detail and a single stratum (the new colony)', () => {
+		expect(
+			colonyGrowth({
+				growth_and_size: { growth: 18 },
+				species: { value: { categories: { key: 'worker', value: { growth: 18 } } } },
+				current_month_growth_details: { key: 'GROWTH_CAT_IMMIGRATION', value: 18 }
+			})
+		).toEqual({ net: 18, by: { immigration: 18 }, byStratum: { worker: 18 } });
+		expect(colonyGrowth(undefined)).toBeNull();
 	});
 });
 

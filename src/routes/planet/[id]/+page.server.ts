@@ -42,6 +42,23 @@ export function load({ url, params }) {
 				'open jobs': (c) => openJobs(c).open
 			}),
 			stability: colonySeries(snaps, planetId, { stability: (c) => c.stability }),
+			// last month's change in pops by cause (growth, immigration, emigration, …) and net
+			growth: colonySeries(snaps, planetId, {
+				net: (c) => c.growth?.net ?? null,
+				...Object.fromEntries(
+					[
+						...new Set(
+							snaps.flatMap((s) =>
+								s.colonies
+									.filter((c) => c.planetId === planetId)
+									.flatMap((c) => Object.keys(c.growth?.by ?? {}))
+							)
+						)
+					]
+						.sort()
+						.map((cause) => [cause, (c: Colony) => c.growth?.by[cause] ?? (c.growth ? 0 : null)])
+				)
+			}),
 			// Happiness in %, overall and per stratum; a stratum the save gives none for is a gap.
 			happiness: colonySeries(snaps, planetId, {
 				happiness: (c) => pct(c.happiness),
