@@ -1,6 +1,8 @@
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
+	CivilianShip,
+	ShipOrder,
 	ColonyDistrict,
 	MegaShipyard,
 	Station,
@@ -141,6 +143,8 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			military: num(raw.country?.military_power)
 		},
 		fleets: militaryFleets(raw),
+		idleLeaders: idleLeaders(raw),
+		civilianShips: civilianShips(raw),
 		edicts: items(raw.country?.edicts)
 			.map((e) => e?.edict)
 			.filter((e) => typeof e === 'string'),
@@ -173,6 +177,91 @@ function ownLeaders(raw: Pick<RawSave, 'country' | 'leaders'>): Raw[] {
 	return list(raw.country?.owned_leaders)
 		.map((id) => raw.leaders[String(id)])
 		.filter((l) => l && typeof l === 'object');
+}
+
+/**
+ * Hired leaders without a post: no `location` (ship, planet, envoy assignment) and no
+ * `council_location`. The ruler sits in neither and is left out; so are envoys (see envoys()).
+ */
+export function idleLeaders(raw: Pick<RawSave, 'country' | 'leaders'>) {
+	return list(raw.country?.owned_leaders).flatMap((id) => {
+		const l = raw.leaders[String(id)];
+		if (!l || typeof l !== 'object' || l.class === 'envoy' || id === num(raw.country?.ruler))
+			return [];
+		if (l.location !== undefined || l.council_location !== undefined) return [];
+		return [{ id, class: String(l.class), name: leaderName(l.name) }];
+	});
+}
+
+/** `name = { full_names = { key=… } }` (or a list of parts) → "Mncedisi Iweala". */
+function leaderName(name: Raw): string {
+	const full = name?.full_names ?? name;
+	const parts = Array.isArray(full) ? full : [full];
+	return parts
+		.map((p) => displayName(p))
+		.filter(Boolean)
+		.join(' ');
+}
+
+/**
+ * Civilian fleets (`country.fleets_manager.owned_fleets`: science, construction, colony ships)
+ * with `current_order = { <kind>_order = { … progress } }`, the queued `order = { … }` and, while
+ * travelling, `movement_manager.path.date` as arrival. Order targets: `planet`, `deposit_holder`
+ * (type 0 = planet) or `orbitable.planet`. Progress units differ by kind and are interpreted in
+ * #lib/ships.ts.
+ */
+export function civilianShips(
+	raw: Pick<
+		RawSave,
+		'country' | 'fleets' | 'ships' | 'shipDesigns' | 'planets' | 'leaders' | 'date'
+	>
+): CivilianShip[] {
+	const planetName = (id: Raw) =>
+		id === undefined ? null : displayName(raw.planets[String(id)]?.name) || null;
+	const order = ([key, o]: [string, Raw]): ShipOrder => {
+		const design = raw.shipDesigns[String(o?.ship_design?.design)];
+		return {
+			kind: key.replace(/_order$/, ''),
+			target: planetName(
+				o?.planet ??
+					(num(o?.deposit_holder?.type) === 0 ? o?.deposit_holder?.id : undefined) ??
+					o?.orbitable?.planet
+			),
+			progress: typeof o?.progress === 'number' ? o.progress : null,
+			orderId: typeof o?.order_id === 'number' ? o.order_id : null,
+			...(design ? { size: String(first(design.growth_stages)?.ship_size ?? '') } : {})
+		};
+	};
+	const scientistOn = new Map<number, string>();
+	for (const id of list(raw.country?.owned_leaders)) {
+		const l = raw.leaders[String(id)];
+		if (l?.location?.type === 'ship') scientistOn.set(num(l.location.id), leaderName(l.name));
+	}
+	return items(raw.country?.fleets_manager?.owned_fleets).flatMap((o) => {
+		const f = raw.fleets[String(o?.fleet)];
+		const cls = String(f?.ship_class ?? '');
+		if (!f || cls === 'shipclass_military' || /starbase|station/.test(cls)) return [];
+		const current = Object.entries(f.current_order ?? {})[0];
+		const queued = Object.entries(f.order ?? {}).flatMap(([k, v]) =>
+			items(v).map((x) => [k, x] as [string, Raw])
+		);
+		const path = f.movement_manager?.path?.date;
+		const moving = f.movement_manager?.state !== 'move_idle';
+		return [
+			{
+				fleetId: Number(o.fleet),
+				name: displayName(f.name),
+				kind: cls.replace(/^shipclass_/, ''),
+				leader:
+					list(f.ships)
+						.map((s) => scientistOn.get(s))
+						.find(Boolean) ?? null,
+				order: current ? order(current) : null,
+				queue: queued.map(order),
+				arrival: moving && typeof path === 'string' && path >= raw.date ? path : null
+			}
+		];
+	});
 }
 
 export const countBy = (keys: string[]): Record<string, number> =>
@@ -665,14 +754,18 @@ export function displayName(name: Raw): string {
 				.pop() ?? '';
 		return `${ordinal(n)} ${kind.charAt(0)}${kind.slice(1).toLowerCase()}`;
 	}
-	// Templates with variables — `%ADJECTIVE%`, `PLANET_NAME_FORMAT` (PARENT + NUMERAL:
-	// "Barnards Star I") — read as their parts.
-	if ((key.startsWith('%') || key === 'PLANET_NAME_FORMAT') && Array.isArray(name?.variables)) {
-		return name.variables.map((v: Raw) => displayName(v.value)).join(' ');
+	// Templates with variables — `%ADJECTIVE%`, `PLANET_NAME_FORMAT` (PARENT + NUMERAL: "Barnards
+	// Star I"), `PREFIX_NAME_FORMAT` (ship: "UNS Jordan"), `STAR_NAME_1_OF_1` — read as their parts.
+	if (Array.isArray(name?.variables)) {
+		return name.variables
+			.filter((v: Raw) => v?.key !== 'PREFIX') // the ship prefix ("UNS") is localisation only
+			.map((v: Raw) => displayName(v.value))
+			.filter(Boolean)
+			.join(' ');
 	}
 	return key
 		.replace(/^(SPEC|NAME|PRESCRIPTED)_/, '')
-		.replace(/^[A-Z0-9]+_SHIP_/, '') // name-list ship names: HUMAN1_SHIP_Byzantium
+		.replace(/^[A-Z0-9]+_(SHIP|CHR)_/, '') // name lists: HUMAN1_SHIP_Byzantium, HUMAN1_CHR_Gabriela
 		.replace(/_(planet|system|star)$/, '')
 		.replaceAll('_', ' ');
 }

@@ -45,6 +45,25 @@ export type Score = {
 
 export type Fleet = { name: string; ships: number; power: number };
 
+/** A ship order: what (`research_anomaly`, `survey_planet`, `build_orbital_station`, …), where, how far. */
+export type ShipOrder = {
+	kind: string;
+	target: string | null;
+	progress: number | null;
+	orderId: number | null;
+	size?: string; // build orders: the ship size being built (starbase_outpost, mining_station, …)
+};
+
+export type CivilianShip = {
+	fleetId: number;
+	name: string;
+	kind: string; // science_ship, constructor, colonizer, …
+	leader: string | null;
+	order: ShipOrder | null; // null: idle
+	queue: ShipOrder[];
+	arrival: string | null; // while travelling: when the current path arrives
+};
+
 export type SpeciesInfo = { id: string; name: string; cls: string; traits: string[]; pops: number };
 
 export type Sector = { name: string; type: string; systems: number; colonies: number };
@@ -155,6 +174,8 @@ export type Snapshot = {
 	planetBudget: BudgetSource[] | null; // the budget's planet_* and pop_* sources
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
+	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
+	civilianShips: CivilianShip[] | null; // science, construction, colony ships with their orders
 	edicts: string[] | null; // active edicts (keys)
 	species: SpeciesInfo[] | null; // species with pops in the empire
 	sectors: Sector[] | null;

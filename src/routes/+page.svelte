@@ -13,6 +13,7 @@
 	import Edicts from '#lib/panels/Edicts.svelte';
 	import Expansion from '#lib/panels/Expansion.svelte';
 	import Leaders from '#lib/panels/Leaders.svelte';
+	import CivilianShips from '#lib/panels/CivilianShips.svelte';
 	import Score from '#lib/panels/Score.svelte';
 	import ResearchTiers from '#lib/panels/ResearchTiers.svelte';
 	import Sectors from '#lib/panels/Sectors.svelte';
@@ -255,7 +256,7 @@
 
 	<div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
 		{#if data.latest.score}<Score score={data.latest.score} />{/if}
-		<Leaders leaders={data.latest.leaders ?? {}} />
+		<Leaders leaders={data.latest.leaders ?? {}} idle={data.latest.idleLeaders ?? []} />
 		<Ships
 			ships={data.latest.ships ?? []}
 			fleets={data.latest.fleets ?? []}
@@ -270,6 +271,14 @@
 	</div>
 
 	<div class="mt-6 grid items-start gap-6 2xl:grid-cols-2">
+		<CivilianShips
+			ships={data.latest.civilianShips ?? []}
+			due={Object.fromEntries(
+				data.upcoming.flatMap((e) =>
+					e.fleetId !== undefined ? [[e.fleetId, (e.exact ? '' : '≈ ') + e.date]] : []
+				)
+			)}
+		/>
 		<Starbases stations={data.latest.stations ?? []} date={data.latest.date} />
 		<Shipyards
 			stations={data.latest.stations ?? []}

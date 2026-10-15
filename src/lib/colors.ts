@@ -20,7 +20,8 @@ const COLORS: Record<string, string> = {
 	// events without a resource of their own
 	agenda: '#e09a1f', // the game's highlight orange (§H)
 	election: '#8f6ad8', // politics: influence
-	construction: '#d0403a' // built with minerals
+	construction: '#d0403a', // built with minerals
+	ship: '#4f94b5' // civilian ships: the game's sensor blue
 };
 
 export const colorOf = (key: string): string | undefined => COLORS[key];

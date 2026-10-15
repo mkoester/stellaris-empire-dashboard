@@ -81,6 +81,8 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		planetBudget: null,
 		score: null,
 		fleets: null,
+		idleLeaders: null,
+		civilianShips: null,
 		edicts: null,
 		species: null,
 		sectors: null,

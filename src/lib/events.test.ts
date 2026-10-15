@@ -190,3 +190,49 @@ describe('upcoming shipyards', () => {
 		]);
 	});
 });
+
+describe('upcoming civilian ships', () => {
+	const order = (progress: number) => ({
+		kind: 'research_anomaly',
+		target: 'Proxima Centauri b',
+		progress,
+		orderId: 41
+	});
+	const ship = (progress: number, queue = 1) => ({
+		fleetId: 1,
+		name: 'Armstrong',
+		kind: 'science_ship',
+		leader: null,
+		order: order(progress),
+		queue: Array(queue).fill({
+			kind: 'survey_planet',
+			target: 'Barnards Star IV',
+			progress: 0,
+			orderId: 42
+		}),
+		arrival: null
+	});
+	const idle = {
+		fleetId: 9,
+		name: 'Taiwan',
+		kind: 'colonizer',
+		leader: null,
+		order: null,
+		queue: [],
+		arrival: null
+	};
+
+	it('dates the current order from the measured rate and flags idle ships', () => {
+		const prev = snap('2202.04.01', progress(0, 0), {
+			civilianShips: [ship(37.2)]
+		} as Partial<Snapshot>);
+		const now = snap('2202.05.01', progress(0, 0), {
+			civilianShips: [ship(73.2, 6), idle]
+		} as Partial<Snapshot>);
+		const rows = upcoming(now, prev, data).filter((e) => e.kind === 'ship');
+		expect(rows.map((e) => [e.what, e.date, e.queuedAfter, e.act])).toEqual([
+			['colonizer idle', '2202.05.01', 0, true],
+			['anomaly Proxima Centauri b', '2202.05.23', 6, false]
+		]);
+	});
+});

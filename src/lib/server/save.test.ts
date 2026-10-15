@@ -606,6 +606,17 @@ describe('helpers', () => {
 				]
 			})
 		).toBe('Barnards Star I');
+		// a ship: name and prefix; the prefix text ("UNS") lives in localisation only
+		expect(
+			displayName({
+				key: 'PREFIX_NAME_FORMAT',
+				variables: [
+					{ key: 'NAME', value: { key: 'HUMAN1_SHIP_Armstrong' } },
+					{ key: 'PREFIX', value: { key: 'PRESCRIPTED_ship_prefix_humans1' } }
+				]
+			})
+		).toBe('Armstrong');
+		expect(displayName({ key: 'HUMAN1_CHR_Gabriela' })).toBe('Gabriela');
 	});
 });
 

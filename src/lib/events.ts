@@ -1,3 +1,4 @@
+import { monthsLeft, orderLabel, orderRate } from './ships.ts';
 import type { QueueItem, Snapshot } from './types.ts';
 
 // Upcoming events of the empire: when current research, the next tradition, the council agenda,
@@ -13,7 +14,7 @@ export type { GameData };
 export type Upcoming = {
 	date: string; // when it is due, "2200.09.01"
 	months: number; // from the snapshot's date
-	kind: 'research' | 'tradition' | 'agenda' | 'construction' | 'shipyard' | 'election';
+	kind: 'research' | 'tradition' | 'agenda' | 'construction' | 'shipyard' | 'ship' | 'election';
 	what: string;
 	detail: string;
 	exact: boolean; // false: estimated from costs the save does not hold
@@ -26,6 +27,7 @@ export type Upcoming = {
 	// traditions, agendas and elections it announces itself)
 	act: boolean;
 	queuedAfter?: number; // construction: items still waiting when this one is done
+	fleetId?: number; // civilian ship rows
 };
 
 /**
@@ -222,6 +224,28 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 				planetId: c.planetId
 			}))
 		);
+
+	// Civilian ships, by the same rules: ⚠ when nothing is queued after the current order; an idle
+	// ship is due now.
+	for (const s of latest.civilianShips ?? []) {
+		const left = monthsLeft(s, orderRate(s, previous, elapsed), (d) =>
+			monthsBetween(latest.date, d)
+		);
+		if (left === null) continue;
+		const days = Math.round(left * 30);
+		out.push({
+			date: fromDays(toDays(latest.date) + days),
+			months: days / 30,
+			kind: 'ship',
+			what: s.order ? orderLabel(s.order) : `${s.kind.replaceAll('_', ' ')} idle`,
+			tint: 'ship',
+			detail: `${s.name} · ${s.kind.replaceAll('_', ' ')}`,
+			exact: s.order === null,
+			act: s.queue.length === 0,
+			queuedAfter: s.queue.length,
+			fleetId: s.fleetId
+		});
+	}
 
 	// Shipyards, by the same rules: a starbase's ship queue, and a Mega Shipyard's when found.
 	const ship = (item: QueueItem) => ({
