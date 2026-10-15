@@ -61,8 +61,14 @@ export function loadGameData(file: string): GameData {
 			// Blockers are named "Blocker Sprawling Slums" in the data; the game shows "Sprawling Slums".
 			names: Object.fromEntries(
 				rows<{ key: string; name: string }>(
-					'SELECT key, name FROM building WHERE name IS NOT NULL UNION ALL SELECT key, name FROM deposit WHERE name IS NOT NULL'
+					`SELECT key, name FROM building WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM deposit WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM district WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM zone WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name.replace(/^Blocker /, '')])
+			),
+			blockers: rows<{ key: string }>('SELECT key FROM deposit WHERE is_blocker = 1').map(
+				(r) => r.key
 			),
 			defines: Object.fromEntries(
 				rows<{ key: string; value: number }>('SELECT key, value FROM game_define').map((r) => [

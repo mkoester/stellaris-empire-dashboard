@@ -13,6 +13,10 @@ export type Colony = {
 	freeHousing: number;
 	freeAmenities: number;
 	districts: number;
+	districtList: ColonyDistrict[]; // per district type: built, zones and their buildings
+	planetClass: string;
+	planetSize: number;
+	deposits: string[]; // deposit types on the planet, blockers included
 	buildQueue: QueueItem[];
 	buildSlots: number; // items the planet builds at once (queue `simultaneous`; >1 for wilderness, arkships, mods)
 	jobs: ColonyJob[];
@@ -58,6 +62,13 @@ export type ExpansionPlanet = {
 
 /** One budget source of pops (a job, a stratum's upkeep, buildings, …) for the month. */
 export type BudgetSource = { source: string; income: Resources; expenses: Resources };
+
+/** A district type on a colony: how many are built, its zones (specialisations) and their buildings. */
+export type ColonyDistrict = {
+	type: string;
+	built: number;
+	zones: { type: string; buildings: string[] }[];
+};
 
 /** One job on a colony. Positions null: unlimited (civilian). */
 export type ColonyJob = { type: string; pops: number; filled: number; positions: number | null };
@@ -173,7 +184,8 @@ export type GameData = {
 	speciesClasses: Record<string, { name: string; archetype: string | null }>;
 	archetypes: Record<string, { points: number; maxTraits: number }>;
 	planetClasses: Record<string, { name: string; colonizable: boolean }>;
-	names: Record<string, string>; // display names of buildings and deposits (build queue items)
+	names: Record<string, string>; // display names of buildings, deposits, districts and zones
+	blockers: string[]; // deposit keys that are blockers
 };
 
 /** One modifier as the game files give it, labelled from modifier_label. */

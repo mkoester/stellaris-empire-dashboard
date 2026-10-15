@@ -1,6 +1,7 @@
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
+	ColonyDistrict,
 	MegaShipyard,
 	Station,
 	Colony,
@@ -39,6 +40,9 @@ export type RawSave = {
 	construction: Raw;
 	deposits: Record<string, Raw>;
 	starbases: Record<string, Raw>; // starbase_mgr.starbases
+	districtsDb: Record<string, Raw>; // top-level districts, zones and buildings (4.x)
+	zones: Record<string, Raw>;
+	buildings: Record<string, Raw>;
 	megastructures: Record<string, Raw>;
 	empireName: string;
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
@@ -88,6 +92,9 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			sectors: q.at('/sectors') ?? {},
 			speciesDb: q.at('/species_db') ?? {},
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
+			districtsDb: q.at('/districts') ?? {},
+			zones: q.at('/zones') ?? {},
+			buildings: q.at('/buildings') ?? {},
 			megastructures: q.at('/megastructures') ?? {},
 			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
 		};
@@ -476,7 +483,12 @@ function playerColonies(raw: RawSave): Colony[] {
 			stability: num(c.stability),
 			freeHousing: num(c.free_housing),
 			freeAmenities: num(c.free_amenities),
-			districts: list(c.districts).length,
+			...colonyDistricts(raw, list(c.districts)),
+			planetClass: String(planet?.planet_class ?? ''),
+			planetSize: num(planet?.planet_size),
+			deposits: list(planet?.deposits)
+				.map((d) => raw.deposits[String(d)]?.type)
+				.filter((d) => typeof d === 'string'),
 			buildQueue:
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
 			buildSlots:
@@ -491,6 +503,38 @@ function playerColonies(raw: RawSave): Colony[] {
 			upkeep: resources(c.upkeep)
 		};
 	});
+}
+
+/**
+ * `colony.districts` → `districts.<id> = { type level zones }`: `level` is how many of the type
+ * are built (Earth 2201: city 3, generator 3, mining 2, farming 4 — as the planet view shows);
+ * `zones.<id> = { type buildings }` (4294967295 = no zone), `buildings.<id> = { type position }`.
+ * District caps and free slots are computed by the game and not in the save.
+ */
+export function colonyDistricts(
+	raw: Pick<RawSave, 'districtsDb' | 'zones' | 'buildings'>,
+	ids: number[]
+): { districts: number; districtList: ColonyDistrict[] } {
+	const districtList = ids.flatMap((id) => {
+		const d = raw.districtsDb[String(id)];
+		if (!d || typeof d !== 'object') return [];
+		return [
+			{
+				type: String(d.type),
+				built: num(d.level),
+				zones: list(d.zones)
+					.map((z) => raw.zones[String(z)])
+					.filter((z) => z && typeof z === 'object')
+					.map((z) => ({
+						type: String(z.type),
+						buildings: list(z.buildings)
+							.map((b) => raw.buildings[String(b)]?.type)
+							.filter((b) => typeof b === 'string')
+					}))
+			}
+		];
+	});
+	return { districts: districtList.reduce((n, d) => n + d.built, 0), districtList };
 }
 
 /**

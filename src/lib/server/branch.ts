@@ -33,10 +33,17 @@ export function branch(url: URL) {
 	const empirePops = Object.fromEntries(empireJobs.map((r) => [r.type, r.pops]));
 	return {
 		upcoming: last ? upcoming(last, saves.at(-2) ?? null, getGameData()) : [],
-		// Display names of what the build queues hold (buildings, blockers).
+		// Display names of what the colonies hold: queue items, districts, zones, buildings.
 		names: Object.fromEntries(
 			colonies
-				.flatMap((c) => c.buildQueue.map((q) => q.name))
+				.flatMap((c) => [
+					...c.buildQueue.map((q) => q.name),
+					...c.deposits,
+					...c.districtList.flatMap((d) => [
+						d.type,
+						...d.zones.flatMap((z) => [z.type, ...z.buildings])
+					])
+				])
 				.filter((k) => getGameData().names[k])
 				.map((k) => [k, getGameData().names[k]])
 		),
@@ -44,6 +51,7 @@ export function branch(url: URL) {
 			colonies.map((c) => [c.planetId, withFlows(jobRows(c.jobs, info), flows, empirePops)])
 		),
 		empireJobs,
+		blockers: getGameData().blockers.filter((k) => colonies.some((c) => c.deposits.includes(k))),
 		tip,
 		isHead: tip === headId(db),
 		snaps,

@@ -8,6 +8,7 @@
 	import { openJobs } from '#lib/jobs.ts';
 	import Resources from '#lib/Resources.svelte';
 	import Upcoming from '#lib/Upcoming.svelte';
+	import DistrictSummary from '#lib/DistrictSummary.svelte';
 	import AutomationSummary from '#lib/panels/AutomationSummary.svelte';
 	import Edicts from '#lib/panels/Edicts.svelte';
 	import Expansion from '#lib/panels/Expansion.svelte';
@@ -193,7 +194,7 @@
 			<tbody>
 				{#each data.latest.colonies as c (c.planetId + ':' + c.name)}
 					{@const jobs = openJobs(c)}
-					<tr class="border-b border-gray-200 dark:border-gray-800">
+					<tr>
 						<td class="p-1">
 							{#if c.planetId >= 0}
 								<a class="underline" href={planetHref(c.planetId)}>{c.name}</a>
@@ -223,6 +224,13 @@
 						<td class="p-1"
 							>{c.automation.enabled ? automationSummary(c.automation.settings) : 'off'}</td
 						>
+					</tr>
+					<!-- second row: districts built and the buildings per zone -->
+					<tr class="border-b border-gray-200 text-xs dark:border-gray-800">
+						<td></td>
+						<td class="p-1 pb-2" colspan="13">
+							<DistrictSummary districts={c.districtList} names={data.names} />
+						</td>
 					</tr>
 				{/each}
 			</tbody>

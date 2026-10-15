@@ -4,6 +4,8 @@
 	import Chart from '#lib/Chart.svelte';
 	import Flows from '#lib/Flows.svelte';
 	import Jobs from '#lib/Jobs.svelte';
+	import Districts from '#lib/panels/Districts.svelte';
+	import PlanetInfo from '#lib/panels/PlanetInfo.svelte';
 	import { automationRows } from '#lib/automation.ts';
 	import { net } from '#lib/flows.ts';
 	import { fmt, nameOf, pretty } from '#lib/format.ts';
@@ -85,6 +87,16 @@
 </div>
 
 {#if data.colony}
+	<div class="mt-6 grid items-start gap-6 lg:grid-cols-[auto_1fr]">
+		<PlanetInfo
+			colony={data.colony}
+			names={data.names}
+			blockers={data.blockers}
+			classNames={data.classNames}
+		/>
+		<Districts districts={data.colony.districtList} names={data.names} />
+	</div>
+
 	<h2 class="mt-6 mb-2 text-xl font-semibold">Jobs</h2>
 	<Jobs rows={data.jobRows} explain={data.explain} />
 

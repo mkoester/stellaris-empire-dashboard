@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { getExplanations } from '#lib/server/app.ts';
+import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { openJobs } from '#lib/jobs.ts';
@@ -25,6 +25,9 @@ export function load({ url, params }) {
 		name: named ? colonyAt(named)!.name : `planet ${planetId}`,
 		colony: colonyAt(b.latest) ?? null,
 		jobRows: b.jobs[planetId] ?? [],
+		classNames: Object.fromEntries(
+			Object.entries(getGameData().planetClasses).map(([k, v]) => [k, v.name])
+		),
 		explain: pick(
 			getExplanations(),
 			(b.jobs[planetId] ?? []).map((j) => `job:${j.type}`)

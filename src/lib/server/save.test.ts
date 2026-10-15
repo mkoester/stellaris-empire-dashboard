@@ -44,6 +44,21 @@ const raw: RawSave = {
 	speciesDb: {},
 	starbases: {},
 	megastructures: {},
+	// as in the 2201.06.01 save: a city district with a filled Government Zone and an empty one
+	districtsDb: {
+		'1': { type: 'district_city', level: 3, zones: [0, 1] },
+		'2': { type: 'district_generator', level: 2, zones: 4294967295 },
+		'3': { type: 'district_mining', level: 0 },
+		'4': { type: 'district_farming', level: 1 }
+	},
+	zones: {
+		'0': { type: 'zone_default', buildings: [0, 2] },
+		'1': { type: 'zone_research_unity' }
+	},
+	buildings: {
+		'0': { type: 'building_capital', position: 0 },
+		'2': { type: 'building_holo_theatres' }
+	},
 	country: {
 		num_sapient_pops: 5000,
 		empire_size: 50,
@@ -139,7 +154,22 @@ describe('toSnapshot', () => {
 				stability: 75.2,
 				freeHousing: 0,
 				freeAmenities: 0,
-				districts: 3,
+				planetClass: '',
+				planetSize: 0,
+				deposits: [],
+				districts: 5,
+				districtList: [
+					{
+						type: 'district_city',
+						built: 3,
+						zones: [
+							{ type: 'zone_default', buildings: ['building_capital', 'building_holo_theatres'] },
+							{ type: 'zone_research_unity', buildings: [] }
+						]
+					},
+					{ type: 'district_generator', built: 2, zones: [] },
+					{ type: 'district_mining', built: 0, zones: [] }
+				],
 				buildQueue: [
 					{ kind: 'district', name: 'district_city', progress: 83, needed: 600 },
 					{ kind: 'clear_deposit_blocker', name: 'd_decrepit_dwellings', progress: 90, needed: 120 }
