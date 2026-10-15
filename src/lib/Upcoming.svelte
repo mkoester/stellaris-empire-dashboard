@@ -60,8 +60,7 @@
 						<td class="p-1">
 							<InfoPopup explanation={e.ref ? explain[e.ref] : undefined}
 								>{e.kind === 'construction' ? nameOf(names, e.what) : e.what}</InfoPopup
-							>{#if e.queuedAfter !== undefined}
-								<span
+							>{#if e.queuedAfter !== undefined}&nbsp;<span
 									title="{e.queuedAfter} other item{e.queuedAfter === 1
 										? ''
 										: 's'} in the queue after it">(+{e.queuedAfter})</span

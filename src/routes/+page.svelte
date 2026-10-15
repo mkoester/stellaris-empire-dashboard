@@ -206,8 +206,7 @@
 						<td class="p-1 text-right">{fmt(c.employed)}</td>
 						<td class="p-1 text-right">{fmt(c.civilians)}</td>
 						<td class="p-1 text-right">
-							{fmt(jobs.open)}{#if jobs.reserved}
-								<span
+							{fmt(jobs.open)}{#if jobs.reserved}&nbsp;<span
 									class="cursor-help text-gray-500"
 									title="{jobs.reserved} open enforcer job{jobs.reserved === 1
 										? ''
