@@ -15,6 +15,8 @@
 	import Score from '#lib/panels/Score.svelte';
 	import ResearchTiers from '#lib/panels/ResearchTiers.svelte';
 	import Sectors from '#lib/panels/Sectors.svelte';
+	import Shipyards from '#lib/panels/Shipyards.svelte';
+	import Starbases from '#lib/panels/Starbases.svelte';
 	import Ships from '#lib/panels/Ships.svelte';
 	import SpeciesPanel from '#lib/panels/Species.svelte';
 	import { colorOf } from '#lib/colors.ts';
@@ -261,6 +263,13 @@
 	</div>
 
 	<div class="mt-6 grid items-start gap-6 2xl:grid-cols-2">
+		<Starbases stations={data.latest.stations ?? []} date={data.latest.date} />
+		<Shipyards
+			stations={data.latest.stations ?? []}
+			megas={data.latest.megaShipyards ?? []}
+			researched={data.latest.progress?.researched ?? []}
+			date={data.latest.date}
+		/>
 		<ResearchTiers tiers={data.tiers} />
 		<SpeciesPanel species={data.species} explain={data.explain} />
 		<Expansion planets={data.expansion} />

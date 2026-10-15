@@ -5,6 +5,8 @@ import {
 	colonyJobs,
 	displayName,
 	envoys,
+	megaShipyards,
+	stations,
 	expansion,
 	hops,
 	militaryFleets,
@@ -40,6 +42,8 @@ const raw: RawSave = {
 	systems: {},
 	sectors: {},
 	speciesDb: {},
+	starbases: {},
+	megastructures: {},
 	country: {
 		num_sapient_pops: 5000,
 		empire_size: 50,
@@ -436,6 +440,109 @@ describe('empire overview', () => {
 				traits: ['trait_organic', 'trait_adaptive'],
 				pops: 3711
 			}
+		]);
+	});
+});
+
+describe('stations', () => {
+	// Shapes as in the 2200.12.01 save: the Sol starport with a shipyard, two ships queued.
+	const raw = {
+		countryId: 0,
+		deposits: {},
+		systems: { '380': { name: { key: 'NAME_Sol' }, starbases: 0 } },
+		starbases: {
+			'0': {
+				level: 'starbase_level_starport',
+				modules: { '0': 'shipyard', '1': 'solar_panel_network' },
+				buildings: { '0': 'crew_quarters' },
+				build_queue: 2,
+				shipyard_build_queue: 3
+			},
+			'9': { level: 'starbase_level_outpost', build_queue: 50 } // someone else's
+		},
+		shipDesigns: {
+			'2009': {
+				name: { key: 'HUMAN1_SHIP_Byzantium' },
+				growth_stages: [{ ship_size: 'colonizer' }]
+			},
+			'2197': {
+				name: { key: 'S Empty', literal: true },
+				growth_stages: [{ ship_size: 'corvette' }]
+			}
+		},
+		construction: {
+			queue_mgr: {
+				queues: {
+					'2': { owner: 0, location: { type: 0, id: 0 }, simultaneous: 1, type: 'starbase' },
+					'3': {
+						owner: 0,
+						location: { type: 0, id: 0 },
+						simultaneous: 1,
+						type: 'ships',
+						items: [7, 8]
+					},
+					'50': { owner: 4, location: { type: 0, id: 9 }, type: 'starbase' },
+					'60': {
+						owner: 0,
+						location: { type: 5, id: 12 },
+						simultaneous: 2,
+						type: 'ships',
+						items: []
+					}
+				}
+			},
+			item_mgr: {
+				items: {
+					'7': {
+						progress: 77,
+						progress_needed: 360,
+						buildable_colony_ship: { ship_design_implementation: { design: 2009 } }
+					},
+					'8': {
+						progress: 0,
+						progress_needed: 60,
+						buildable_ship: { ship_design_implementation: { design: 2197 } }
+					}
+				}
+			}
+		},
+		megastructures: {
+			'12': { type: 'mega_shipyard_3', owner: 0, coordinate: { origin: 380 } },
+			'13': { type: 'mega_shipyard_1', owner: 4 }
+		}
+	};
+
+	it('lists own starbases with their queues, the shipyard and its ships named by size and design', () => {
+		expect(stations(raw)).toEqual([
+			{
+				id: 0,
+				system: 'Sol',
+				level: 'starport',
+				modules: ['shipyard', 'solar_panel_network'],
+				buildings: ['crew_quarters'],
+				queue: [],
+				slots: 1,
+				shipyard: {
+					slots: 1,
+					queue: [
+						{
+							kind: 'colony_ship',
+							name: 'colonizer',
+							design: 'Byzantium',
+							progress: 77,
+							needed: 360
+						},
+						{ kind: 'ship', name: 'corvette', design: 'S Empty', progress: 0, needed: 60 }
+					]
+				},
+				arkship: false
+			}
+		]);
+	});
+
+	it('lists own mega shipyards, with a ships queue located at them if there is one', () => {
+		expect(megaShipyards(raw)).toEqual([
+			{ id: 12, type: 'mega_shipyard_3', system: 'Sol', queue: [], slots: 2 }
 		]);
 	});
 });

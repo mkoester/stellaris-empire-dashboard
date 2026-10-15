@@ -85,6 +85,8 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		species: null,
 		sectors: null,
 		expansion: null,
+		stations: null,
+		megaShipyards: null,
 		progress: null
 	};
 }

@@ -62,10 +62,33 @@ export type BudgetSource = { source: string; income: Resources; expenses: Resour
 /** One job on a colony. Positions null: unlimited (civilian). */
 export type ColonyJob = { type: string; pops: number; filled: number; positions: number | null };
 
+/** A starbase: its own build queue (modules, buildings) and, with a shipyard, the ship queue. */
+export type Station = {
+	id: number;
+	system: string;
+	level: string; // outpost, starport, starhold, star fortress, citadel
+	modules: string[];
+	buildings: string[];
+	queue: QueueItem[];
+	slots: number;
+	shipyard: { queue: QueueItem[]; slots: number } | null; // null: no shipyard module
+	arkship: boolean;
+};
+
+/** A Mega Shipyard; `stage` from its type (mega_shipyard_0…3, _restored). */
+export type MegaShipyard = {
+	id: number;
+	type: string;
+	system: string;
+	queue: QueueItem[] | null; // null: no ship queue found for it
+	slots: number;
+};
+
 /** One entry of a planet's build queue, in queue order. */
 export type QueueItem = {
 	kind: string; // from buildable_<kind>: district, building, army, clear_deposit_blocker, …
-	name: string; // what is built: district/building key, army type, blocker deposit type
+	name: string; // what is built: district/building key, army type, blocker deposit type, ship size
+	design?: string; // ships: the design's name
 	progress: number;
 	needed: number;
 };
@@ -124,6 +147,8 @@ export type Snapshot = {
 	species: SpeciesInfo[] | null; // species with pops in the empire
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
+	stations: Station[] | null; // starbases with their queues and shipyards
+	megaShipyards: MegaShipyard[] | null;
 	progress: Progress | null; // null from the mod feed
 };
 

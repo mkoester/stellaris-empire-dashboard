@@ -1,6 +1,8 @@
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
+	MegaShipyard,
+	Station,
 	Colony,
 	ExpansionPlanet,
 	Fleet,
@@ -36,6 +38,8 @@ export type RawSave = {
 	planets: Record<string, Raw>;
 	construction: Raw;
 	deposits: Record<string, Raw>;
+	starbases: Record<string, Raw>; // starbase_mgr.starbases
+	megastructures: Record<string, Raw>;
 	empireName: string;
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
 	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
@@ -83,6 +87,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			systems: q.at('/galactic_object') ?? {},
 			sectors: q.at('/sectors') ?? {},
 			speciesDb: q.at('/species_db') ?? {},
+			starbases: q.at('/starbase_mgr/starbases') ?? {},
+			megastructures: q.at('/megastructures') ?? {},
 			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
 		};
 	});
@@ -134,6 +140,8 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		species: speciesInfo(raw),
 		sectors: sectors(raw),
 		expansion: expansion(raw),
+		stations: stations(raw),
+		megaShipyards: megaShipyards(raw),
 		marketOrders: marketOrders(raw.monthlyTrades, raw.countryId),
 		progress: progress(raw)
 	};
@@ -194,6 +202,91 @@ export function shipCounts(
 		}
 	}
 	return [...counts.values()];
+}
+
+const queueSlots = (raw: Pick<RawSave, 'construction'>, queueId: Raw) =>
+	num(raw.construction?.queue_mgr?.queues?.[String(queueId)]?.simultaneous) || 1;
+
+/**
+ * The country's starbases: those whose `starbase` construction queue it owns (the starbase itself
+ * names no owner). `build_queue` holds modules and buildings, `shipyard_build_queue` ships —
+ * present only with a shipyard module. The system comes from `galactic_object.<id>.starbases`.
+ */
+export function stations(
+	raw: Pick<
+		RawSave,
+		'countryId' | 'construction' | 'deposits' | 'shipDesigns' | 'starbases' | 'systems'
+	>
+): Station[] {
+	const systemOf = new Map<number, string>();
+	for (const sys of Object.values(raw.systems))
+		for (const sb of list(sys?.starbases)) systemOf.set(sb, displayName(sys.name));
+	const queues = Object.values(raw.construction?.queue_mgr?.queues ?? {});
+	const own = new Set(
+		queues
+			.filter(
+				(q: Raw) => q?.owner === raw.countryId && q.type === 'starbase' && q.location?.type === 0
+			)
+			.map((q: Raw) => Number(q.location.id))
+	);
+	return [...own].flatMap((id) => {
+		const sb = raw.starbases[String(id)];
+		if (!sb || typeof sb !== 'object') return [];
+		const modules = Object.values(sb.modules ?? {}).map(String);
+		return [
+			{
+				id,
+				system: systemOf.get(id) ?? '',
+				level: String(sb.level ?? '').replace(/^starbase_level_/, ''),
+				modules,
+				buildings: Object.values(sb.buildings ?? {}).map(String),
+				queue: sb.build_queue !== undefined ? buildQueue(raw, Number(sb.build_queue)) : [],
+				slots: queueSlots(raw, sb.build_queue),
+				shipyard:
+					sb.shipyard_build_queue !== undefined &&
+					(modules.includes('shipyard') || modules.some((m) => m.startsWith('arkship')))
+						? {
+								queue: buildQueue(raw, Number(sb.shipyard_build_queue)),
+								slots: queueSlots(raw, sb.shipyard_build_queue)
+							}
+						: null,
+				arkship:
+					String(sb.level ?? '').includes('arkship') || String(sb.type ?? '').includes('arkship')
+			}
+		];
+	});
+}
+
+/**
+ * The country's Mega Shipyards (`megastructures.<id> = { type owner … }`). Not yet seen in a save:
+ * its ship queue is taken to be a `ships` queue located at the megastructure (any location type
+ * but planet and starbase) — unverified, `queue: null` when none is found.
+ */
+export function megaShipyards(
+	raw: Pick<
+		RawSave,
+		'countryId' | 'construction' | 'deposits' | 'shipDesigns' | 'megastructures' | 'systems'
+	>
+): MegaShipyard[] {
+	const queues = Object.entries(raw.construction?.queue_mgr?.queues ?? {});
+	return Object.entries(raw.megastructures)
+		.filter(([, m]) => m && typeof m === 'object' && m.owner === raw.countryId)
+		.filter(([, m]) => String(m.type).startsWith('mega_shipyard'))
+		.map(([id, m]) => {
+			const q = queues.find(
+				([, x]: [string, Raw]) =>
+					x?.type === 'ships' &&
+					Number(x.location?.id) === Number(id) &&
+					![0, 2].includes(num(x.location?.type))
+			);
+			return {
+				id: Number(id),
+				type: String(m.type),
+				system: displayName(raw.systems[String(m.coordinate?.origin)]?.name),
+				queue: q ? buildQueue(raw, Number(q[0])) : null,
+				slots: q ? queueSlots(raw, q[0]) : 1
+			};
+		});
 }
 
 /** Military fleets with ship count and power (`fleet.military_power`). */
@@ -463,7 +556,7 @@ export function colonyJobs(popJobs: Record<string, Raw>, ids: number[]) {
  * builds in a single `buildable_<kind> = { … }` block.
  */
 export function buildQueue(
-	raw: Pick<RawSave, 'construction' | 'deposits'>,
+	raw: Pick<RawSave, 'construction' | 'deposits'> & Partial<Pick<RawSave, 'shipDesigns'>>,
 	queueId: number
 ): QueueItem[] {
 	const queue = raw.construction?.queue_mgr?.queues?.[String(queueId)];
@@ -474,11 +567,23 @@ export function buildQueue(
 		if (!key) return [];
 		const kind = key.slice('buildable_'.length);
 		const what = item[key] ?? {};
+		// Ships (and colony ships) name no type, only a design: shown by its size and name.
+		const design = raw.shipDesigns?.[String(what.ship_design_implementation?.design)];
 		const name =
 			kind === 'clear_deposit_blocker'
 				? String(raw.deposits[String(what.deposit)]?.type ?? 'blocker')
-				: String(Object.values(what).find((v) => typeof v === 'string') ?? kind);
-		return [{ kind, name, progress: num(item.progress), needed: num(item.progress_needed) }];
+				: design
+					? String(first(design.growth_stages)?.ship_size ?? kind)
+					: String(Object.values(what).find((v) => typeof v === 'string') ?? kind);
+		return [
+			{
+				kind,
+				name,
+				...(design ? { design: displayName(design.name) } : {}),
+				progress: num(item.progress),
+				needed: num(item.progress_needed)
+			}
+		];
 	});
 }
 
@@ -515,6 +620,7 @@ export function displayName(name: Raw): string {
 	}
 	return key
 		.replace(/^(SPEC|NAME|PRESCRIPTED)_/, '')
+		.replace(/^[A-Z0-9]+_SHIP_/, '') // name-list ship names: HUMAN1_SHIP_Byzantium
 		.replace(/_(planet|system|star)$/, '')
 		.replaceAll('_', ' ');
 }

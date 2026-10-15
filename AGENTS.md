@@ -141,6 +141,14 @@ happiness }`. **`happiness` is omitted for some groups** (rulers, specialists at
   stored** (base 10 + councilors, multipliers); species `species_db.<id> = { name class traits }`,
   pops via `pop_groups.key.species`; trait budget from `species_archetype` (base only); sectors
   `country.sectors.owned` → `sectors.<id> = { name systems type }`.
+- Starbases: `starbase_mgr.starbases.<id> = { level modules buildings build_queue
+shipyard_build_queue station }` — **no owner field**; the country's are those whose `starbase`
+  queue it owns. System via `galactic_object.<id>.starbases`. Ship queue items name only a design
+  (`ship_design.<id>.{name, growth_stages[0].ship_size}`). Capital ships (titan, colossus,
+  juggernaut) need a citadel with `capital_yards`, an arkship's `arkship_capital_shipyard`, or a
+  finished Mega Shipyard, plus the tech (`*_possible_construction` in
+  `scripted_triggers/07_scripted_triggers_ships.txt`). Mega Shipyards: `megastructures.<id> =
+{ type owner }` — not yet seen in a save, so how its ship queue is located is a guess.
 - Expansion: `country.surveyed_deposit_holders = { { type=0 id=<planet> } }`; systems
   `galactic_object.<id> = { name planet hyperlane = { to length } colonies }`. The game's list
   differs from the class rule (`pc_barren` is `colonizable = no`, yet Mars is offered — terraforming).
