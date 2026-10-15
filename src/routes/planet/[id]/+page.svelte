@@ -33,6 +33,10 @@
 			.map((e) => (e.exact ? '' : '≈ ') + e.date)
 	);
 
+	const settled = $derived(
+		data.upcoming.find((e) => e.kind === 'colonization' && e.planetId === data.planetId)
+	);
+
 	const back = $derived(resolve(data.isHead ? '/' : `/?node=${data.tip}`));
 </script>
 
@@ -42,6 +46,14 @@
 		<h1 class="text-2xl font-bold">{data.name}</h1>
 		{#if data.colony}
 			<span>{pretty(data.colony.designation)}</span>
+			{#if data.colony.colonizing}
+				<!-- being settled: complete at 100 colonists; due date from Upcoming -->
+				<span class="text-green-700" title={settled?.detail ?? ''}>
+					colonizing <b>{fmt(data.colony.pops)} / 100</b>{settled
+						? ` · done ${settled.exact ? '' : '≈ '}${settled.date}`
+						: ''}
+				</span>
+			{/if}
 		{/if}
 		<a class="underline" href={back}>empire</a>
 	</div>
