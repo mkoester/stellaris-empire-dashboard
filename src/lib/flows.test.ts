@@ -19,13 +19,15 @@ describe('flows', () => {
 			{ source: 'planet_buildings', income: {}, expenses: { energy: 11 } },
 			{ source: 'planet_artisans', income: { consumer_goods: 47 }, expenses: { minerals: 25 } }
 		]);
-		expect(rows.map((r) => r.label)).toEqual(['artisans', 'workers (pops)', 'buildings', 'total']);
+		expect(rows.map((r) => r.label)).toEqual([
+			'artisans',
+			'workers (pops)',
+			'buildings',
+			'total basic',
+			'total advanced'
+		]);
 		expect(rows[0].flows).toEqual({ consumer_goods: 47, minerals: -25 });
-		expect(rows[3].flows).toEqual({
-			consumer_goods: 42.05,
-			minerals: -25,
-			trade: 3.6,
-			energy: -11
-		});
+		expect(rows[3].flows).toEqual({ minerals: -25, trade: 3.6, energy: -11 });
+		expect(rows[4].flows).toEqual({ consumer_goods: 42.05 });
 	});
 });

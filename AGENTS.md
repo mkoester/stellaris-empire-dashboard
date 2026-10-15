@@ -104,7 +104,7 @@ market_buy|market_sell resource country } amount } }`.
 pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − workforce`
   (`-1` = unlimited, civilian). Every colony also carries empty placeholder jobs (servant, purge, …).
 - Pop groups: `colony.pop_groups` → top-level `pop_groups.<id> = { key = { species category } size
-  happiness }`. **`happiness` is omitted for some groups** (rulers, specialists at 2200.05) —
+happiness }`. **`happiness` is omitted for some groups** (rulers, specialists at 2200.05) —
   treated as unknown, not 0.
 - Automation: `colony.automation = { enabled settings = { "planet_automation_…" } }` lists the
   settings **on** (Earth 2200.05: crime + four the panel hides for this empire);
@@ -112,7 +112,8 @@ pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − wo
   `automation_resources.<country> = { "energy" … }` read as the **disallowed** resources (empty at
   2200.04, all listed after the player unticked all).
 - Leaders: **`country.owned_leaders`**, not `leaders.*.country` — that also matches the recruitment
-  pool (19 vs. 7). Ships: `country.fleets_manager.owned_fleets` → `fleet.<id>.{ship_class, ships}`
+  pool (19 vs. 7). Leader capacity is **per class**, base `@base_leader_cap = 3`
+  (`common/leader_classes`), raised by `country_<class>_cap_add`; the result is not in the save. Ships: `country.fleets_manager.owned_fleets` → `fleet.<id>.{ship_class, ships}`
   → `ships.<id>.ship_design_implementation.design` → `ship_design.<id>.growth_stages[0].ship_size`.
 - Budget sources: `planet_<job>` (job output and inputs), `pop_category_<stratum>` (pop upkeep and
   trade), `planet_pops_traits` (food), `planet_buildings`, `planet_districts_*`.

@@ -84,7 +84,9 @@
 				>
 			{/if}
 			{#if data.latest.envoys}
-				<span>envoys <b>{data.latest.envoys.used} / {data.latest.envoys.total}</b></span>
+				<span title="envoys on an assignment / all envoys"
+					>envoys working <b>{data.latest.envoys.used} / {data.latest.envoys.total}</b></span
+				>
 			{/if}
 			{#if data.latest.navalUsed !== null}
 				<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
@@ -206,9 +208,19 @@
 	<div class="mt-6 grid gap-6 md:grid-cols-3">
 		<section>
 			<h2 class="mb-2 text-xl font-semibold">Leaders</h2>
-			{#each Object.entries(data.latest.leaders ?? {}).sort() as [cls, n] (cls)}
-				<div>{cls} <b>{n}</b></div>
+			<!-- Base capacity per class: @base_leader_cap = 3 (common/leader_classes, 4.5.2). Techs and
+			     civics raise it (country_<class>_cap_add); the save does not hold the result. -->
+			{#each Object.entries(data.latest.leaders ?? {})
+				.filter(([c]) => c !== 'envoy')
+				.sort() as [cls, n] (cls)}
+				<div title="base capacity 3; modifiers not included">
+					{cls} <b class={n > 3 ? 'text-red-600' : ''}>{n} / 3</b>
+				</div>
 			{/each}
+			<!-- envoys last and apart: they come with the government, nobody hires them -->
+			{#if data.latest.leaders?.envoy}
+				<div class="mt-3">envoy <b>{data.latest.leaders.envoy}</b></div>
+			{/if}
 		</section>
 		<section>
 			<h2 class="mb-2 text-xl font-semibold">Ships</h2>

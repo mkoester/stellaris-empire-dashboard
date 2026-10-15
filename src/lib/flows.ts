@@ -1,3 +1,4 @@
+import { splitByGroup } from './resourceGroups.ts';
 import type { BudgetSource, Resources } from './types.ts';
 
 // Pop and planet budget sources as readable rows: `planet_farmers` → "farmers",
@@ -32,5 +33,9 @@ export function budgetRows(sources: BudgetSource[]) {
 		}))
 		.sort((a, b) => a.rank - b.rank || a.label.localeCompare(b.label));
 	const total = rows.reduce<Resources>((sum, r) => net(sum, net({}, r.flows)), {});
-	return [...rows, { label: 'total', flows: total, strong: true }];
+	// The total is long; one row per resource group keeps it readable.
+	return [
+		...rows,
+		...splitByGroup(total).map((g) => ({ label: `total ${g.name}`, flows: g.flows, strong: true }))
+	];
 }
