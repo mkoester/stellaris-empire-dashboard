@@ -7,12 +7,17 @@ import { colonySeries, xRange } from '#lib/series.ts';
 export function load({ url, params }) {
 	const b = branch(url);
 	const planetId = Number(params.id);
-	const colony = b?.latest.colonies.find((c) => c.planetId === planetId);
-	if (!b || !colony) error(404, 'not a colony of yours at this point of the game');
+	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
+	// Not 404 when the planet is not (yet) a colony on this branch: the page keeps following the
+	// empire pane and shows whatever history there is.
+	const colonyAt = (s: (typeof snaps)[number]) => s.colonies.find((c) => c.planetId === planetId);
+	const named = snaps.findLast(colonyAt);
 	return {
 		...rest,
-		colony,
+		planetId,
+		name: named ? colonyAt(named)!.name : `planet ${planetId}`,
+		colony: colonyAt(b.latest) ?? null,
 		xRange: xRange(snaps),
 		charts: {
 			pops: colonySeries(snaps, planetId, {

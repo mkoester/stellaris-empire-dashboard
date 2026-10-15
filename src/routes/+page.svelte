@@ -2,11 +2,16 @@
 	import { resolve } from '$app/paths';
 	import Chart from '#lib/Chart.svelte';
 	import { fmt, pretty } from '#lib/format.ts';
-	import { followGame } from '#lib/live.ts';
+	import { announceBranch, followGame, postBranch } from '#lib/live.ts';
 	import type { Colony } from '#lib/types.ts';
 
 	let { data } = $props();
 	followGame(() => data.empty || data.isHead);
+
+	// Planet pages in other panes follow the branch shown here.
+	const shown = () => (data.empty || data.isHead ? null : data.tip);
+	announceBranch(shown);
+	$effect(() => postBranch(shown()));
 
 	// Stay on the same branch when opening a planet.
 	const planetHref = (planetId: number) =>
