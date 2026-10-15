@@ -1,5 +1,5 @@
 import { Jomini } from 'jomini';
-import type { Colony, QueueItem, Resources, Snapshot } from '#lib/types.ts';
+import type { Colony, Progress, QueueItem, Resources, Snapshot } from '#lib/types.ts';
 import { START_YEAR } from '#lib/series.ts';
 import { readZipEntry } from './zip.ts';
 
@@ -23,6 +23,7 @@ export type RawSave = {
 	deposits: Record<string, Raw>;
 	empireName: string;
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
+	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -44,7 +45,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			construction: q.at('/construction'),
 			deposits: q.at('/deposit') ?? {},
 			empireName: String(meta.name ?? ''),
-			endGameStart: numOrNull(q.at('/galaxy/end_game_start'))
+			endGameStart: numOrNull(q.at('/galaxy/end_game_start')),
+			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
 		};
 	});
 }
@@ -70,7 +72,37 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			typeof raw.country?.starbase_capacity === 'number'
 				? { used: num(raw.country.starbase_capacity_used), capacity: raw.country.starbase_capacity }
 				: null,
-		navalUsed: numOrNull(raw.country?.used_naval_capacity)
+		navalUsed: numOrNull(raw.country?.used_naval_capacity),
+		progress: progress(raw)
+	};
+}
+
+const RESEARCH_AREAS = ['physics', 'society', 'engineering'];
+
+/**
+ * country.tech_status.<area>_queue holds the tech being researched first; the council agenda
+ * sits in country.government. `traditions` is a guess (none adopted in the saves seen so far).
+ */
+export function progress(raw: Pick<RawSave, 'country' | 'galaxy'>): Progress {
+	const c = raw.country ?? {};
+	const agenda = c.government?.council_agenda;
+	return {
+		research: RESEARCH_AREAS.flatMap((area) => {
+			const current = first(c.tech_status?.[`${area}_queue`]);
+			return current?.technology
+				? [{ area, tech: String(current.technology), progress: num(current.progress) }]
+				: [];
+		}),
+		agenda:
+			typeof agenda === 'string' && agenda !== ''
+				? { key: agenda, progress: num(c.government?.council_agenda_progress) }
+				: null,
+		traditionsTaken: Array.isArray(c.traditions) ? c.traditions.length : 0,
+		nextElection: typeof c.next_election === 'string' ? c.next_election : null,
+		costSettings: {
+			technology: numOrNull(raw.galaxy?.technology) ?? 1,
+			traditions: numOrNull(raw.galaxy?.traditions) ?? 1
+		}
 	};
 }
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Chart from '#lib/Chart.svelte';
+	import Upcoming from '#lib/Upcoming.svelte';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { announceBranch, followGame, postBranch } from '#lib/live.ts';
 	import type { Colony } from '#lib/types.ts';
@@ -53,7 +54,10 @@
 		{/if}
 	</header>
 
-	<div class="grid gap-4 lg:grid-cols-2">
+	<h2 class="mb-2 text-xl font-semibold">Upcoming</h2>
+	<Upcoming events={data.upcoming} node={data.isHead ? null : data.tip} />
+
+	<div class="mt-6 grid gap-4 lg:grid-cols-2">
 		{#key data.tip}
 			<Chart title="Empire size" series={data.charts.empireSize} range={data.xRange} yMin={50} />
 			<Chart title="Pops" series={data.charts.pops} range={data.xRange} />

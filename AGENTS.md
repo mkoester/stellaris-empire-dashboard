@@ -26,9 +26,12 @@ tree.
 DASHBOARD_DB=<dir>/dashboard.sqlite \
 STELLARIS_SAVE_DIR="<Stellaris user dir>/save games" \
 STELLARIS_GAME_LOG="<Stellaris user dir>/logs/game.log" \
+STELLARIS_DATA_DB=<workspace>/stellaris-data-extraction/sqlite/stellaris.sqlite \
 pnpm dev --host 127.0.0.1
 ```
 
+`STELLARIS_DATA_DB` is the extraction's SQLite, read once at start for tech/agenda names and base
+costs and the cost defines — regenerate it after a game update (`../stellaris-data-extraction/AGENTS.md`).
 `STELLARIS_GAME_LOG` is opt-in: set it when the companion mod is enabled. The DB is a cache of
 what the game wrote: delete it to rebuild from the saves (the save graph is re-guessed from mtime
 order; manual parent corrections and past mod months are lost). A schema change bumps `SCHEMA` in
@@ -41,6 +44,12 @@ a file is read once its size and mtime hold still for one interval) → `save.ts
 `timeline.ts` and records it → `/api/events` tells open pages to reload. In parallel, `feed.ts`
 follows `game.log` from its current end and turns the mod's monthly lines into partial snapshots
 (stockpile and net income) of the campaign being played.
+
+**Upcoming events** (`events.ts`, pure): research per field, next tradition, council agenda, build
+queue items and the next election, sorted by due date. Rates are *measured* — progress between the
+branch's two latest saves, so every speed bonus counts — and costs are base costs from the data DB
+scaled by empire size and the galaxy sliders. Checked against the game at 2200.04.01: research
+53/71/108 months, tradition 2200.09.01 exact; the agenda is 164 vs. the game's 163 (rounding).
 
 **Two sources, one moment:** an autosave and the mod's line for the same date are merged into one
 node (`place()` → `merge`), otherwise the second would look like a reload. The merge compares the
@@ -95,6 +104,10 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   `used_naval_capacity`; research per field is `physics|society|engineering_research` in the
   budget income. Not stored: naval capacity cap, envoy slots (envoys are `leaders.<id>` with
   `class="envoy"`; an idle one has `job="bureaucrat"` — assigned shape not yet seen).
+- Progress: `country.tech_status.<area>_queue = { { progress technology date } }` (research points,
+  not percent); `country.government.council_agenda` + `council_agenda_progress`;
+  `country.next_election`; galaxy cost sliders `galaxy.technology`, `galaxy.traditions`. Tech costs
+  in game were ×1.05 of the extracted base (source unconfirmed, `TECH_COST_OBSERVED_FACTOR`).
 - Identity of a game state (`Snapshot.fingerprint`): `tick` + `random_count`, both top-level.
 
 ## Open (needs a running game on Linux)
@@ -108,5 +121,7 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   income" at the first autosave).
 - **Chart zoom and pan**: wanted — the default window (`xRange`: last 20 years, 1 ahead) should
   zoom out/in and shift. Not started.
+- **Traditions taken**: read from `country.traditions` (list) — a guess, no save with an adopted
+  tradition seen yet. Wrong means the second tradition's cost stays at 300.
 - **Hint rules**: not started.
 - Cross-check the parsed numbers against the in-game UI.

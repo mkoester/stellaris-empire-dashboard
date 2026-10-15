@@ -1,6 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { buildQueue, displayName, readSave, sumSources, toSnapshot, type RawSave } from './save.ts';
+import {
+	buildQueue,
+	displayName,
+	progress,
+	readSave,
+	sumSources,
+	toSnapshot,
+	type RawSave
+} from './save.ts';
 
 const raw: RawSave = {
 	date: '2210.03.01',
@@ -9,6 +17,7 @@ const raw: RawSave = {
 	countryId: 0,
 	empireName: 'Yastun Devourers',
 	endGameStart: 150,
+	galaxy: { technology: 1.25, traditions: 1 },
 	country: {
 		num_sapient_pops: 5000,
 		empire_size: 50,
@@ -117,6 +126,40 @@ describe('buildQueue', () => {
 	});
 });
 
+describe('progress', () => {
+	// Shapes as in the 2200.04.01 save of the UNE 3 campaign.
+	const country = {
+		tech_status: {
+			physics_queue: [{ progress: 42.79314, technology: 'tech_physics_1', date: '2200.01.01' }],
+			society_queue: [{ progress: 56.56, technology: 'tech_planetary_unification' }]
+		},
+		government: { council_agenda: 'agenda_unlock_slot', council_agenda_progress: 126 },
+		next_election: '2210.01.01'
+	};
+
+	it('reads current research, agenda, election and the galaxy cost sliders', () => {
+		expect(progress({ country, galaxy: raw.galaxy })).toEqual({
+			research: [
+				{ area: 'physics', tech: 'tech_physics_1', progress: 42.79314 },
+				{ area: 'society', tech: 'tech_planetary_unification', progress: 56.56 }
+			],
+			agenda: { key: 'agenda_unlock_slot', progress: 126 },
+			traditionsTaken: 0,
+			nextElection: '2210.01.01',
+			costSettings: { technology: 1.25, traditions: 1 }
+		});
+	});
+
+	it('has no agenda and default sliders when the save has none', () => {
+		expect(progress({ country: {}, galaxy: undefined })).toMatchObject({
+			research: [],
+			agenda: null,
+			nextElection: null,
+			costSettings: { technology: 1, traditions: 1 }
+		});
+	});
+});
+
 describe('helpers', () => {
 	it('sumSources ignores non-numeric values', () => {
 		expect(sumSources({ a: { energy: 1, x: 'no' }, b: { energy: 2 } })).toEqual({ energy: 3 });
@@ -150,6 +193,7 @@ describe.skipIf(!real)('real save', () => {
 		expect(s.endGameYear).toBeGreaterThan(2200);
 		expect(s.empireSize).toBeGreaterThan(0);
 		expect(s.starbases?.capacity).toBeGreaterThan(0);
+		expect(s.progress?.research.length).toBe(3);
 		console.log(JSON.stringify({ ...s, colonies: s.colonies.slice(0, 3) }, null, 1));
 	}, 30_000);
 });

@@ -22,7 +22,8 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	endGameYear: null,
 	empireSize: null,
 	starbases: null,
-	navalUsed: null
+	navalUsed: null,
+	progress: null
 });
 
 describe('db', () => {

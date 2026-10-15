@@ -20,6 +20,13 @@
 		);
 	});
 
+	// Due dates of this planet's queue, from the shared upcoming list (same order as the queue).
+	const done = $derived(
+		data.upcoming
+			.filter((e) => e.planetId === data.planetId)
+			.map((e) => (e.exact ? '' : '≈ ') + e.date)
+	);
+
 	const back = $derived(resolve(data.isHead ? '/' : `/?node=${data.tip}`));
 </script>
 
@@ -46,6 +53,7 @@
 						<td class="p-1">{pretty(item.name)}</td>
 						<td class="p-1 text-gray-500">{pretty(item.kind)}</td>
 						<td class="p-1 text-right">{fmt(item.progress)} / {fmt(item.needed)}</td>
+						<td class="p-1 text-right">{done[i] ?? ''}</td>
 					</tr>
 				{/each}
 			</tbody>

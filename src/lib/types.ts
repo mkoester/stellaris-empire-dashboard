@@ -30,6 +30,15 @@ export type QueueItem = {
  */
 export type SourceKind = 'save' | 'log';
 
+/** What the empire is working towards; the inputs of the upcoming-events list. */
+export type Progress = {
+	research: { area: string; tech: string; progress: number }[]; // one per field being researched
+	agenda: { key: string; progress: number } | null; // council agenda being prepared
+	traditionsTaken: number; // adopted traditions, adoptions and finishers included
+	nextElection: string | null;
+	costSettings: { technology: number; traditions: number }; // galaxy setup sliders
+};
+
 /** One observed state of the player's empire at one game date. */
 export type Snapshot = {
 	kind: SourceKind;
@@ -51,6 +60,7 @@ export type Snapshot = {
 	empireSize: number | null;
 	starbases: { used: number; capacity: number } | null;
 	navalUsed: number | null;
+	progress: Progress | null; // null from the mod feed
 };
 
 export type TimelineNode = {
