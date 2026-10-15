@@ -4,7 +4,9 @@ import { branch } from '#lib/server/branch.ts';
 import { pretty } from '#lib/format.ts';
 import { traitBudget } from '#lib/species.ts';
 import { techTiers } from '#lib/techTiers.ts';
+import { adoptedTrees } from '#lib/traditions.ts';
 import {
+	agendaSeries,
 	fieldSeries,
 	popSeries,
 	researchSeries,
@@ -28,8 +30,15 @@ export function load({ url }) {
 			...(latest.species ?? []).flatMap((s) => s.traits.map((t) => `trait:${t}`)),
 			...(latest.edicts ?? []).map((e) => `edict:${e}`),
 			...b.upcoming.flatMap((e) => (e.ref ? [e.ref] : [])),
-			...b.empireJobs.map((j) => `job:${j.type}`)
+			...b.empireJobs.map((j) => `job:${j.type}`),
+			...(latest.traditions ?? []).map((k) => `tradition:${k}`),
+			...(latest.ascensionPerks ?? []).map((k) => `perk:${k}`)
 		]),
+		trees: adoptedTrees(latest.traditions ?? [], data),
+		perks: (latest.ascensionPerks ?? []).map((key) => ({
+			key,
+			name: data.perks[key] ?? pretty(key)
+		})),
 		// Researched techs per field and tier, at the latest full save.
 		tiers: techTiers(b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [], data.techs),
 		// Overview panels, named from the game data.
@@ -51,6 +60,7 @@ export function load({ url }) {
 		xRange: xRange(snaps),
 		charts: {
 			pops: popSeries(snaps),
+			agenda: agendaSeries(snaps),
 			score: fieldSeries(snaps, {
 				score: (s) => s.score?.score ?? null,
 				economy: (s) => s.score?.economy ?? null,

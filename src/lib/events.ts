@@ -228,9 +228,7 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 	// Civilian ships, by the same rules: ⚠ when nothing is queued after the current order; an idle
 	// ship is due now.
 	for (const s of latest.civilianShips ?? []) {
-		const left = monthsLeft(s, orderRate(s, previous, elapsed), (d) =>
-			monthsBetween(latest.date, d)
-		);
+		const left = monthsLeft(s, orderRate(s, previous, elapsed));
 		if (left === null) continue;
 		const days = Math.round(left * 30);
 		out.push({

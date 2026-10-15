@@ -96,3 +96,25 @@ export function colonySeries(
 		)
 	};
 }
+
+/**
+ * Council agenda progress over time and the gain per month since the save before (same agenda;
+ * a gap where the agenda changed or no earlier save exists).
+ */
+export function agendaSeries(history: Snapshot[]): Series {
+	const saves = history.map((s) => (s.progress?.agenda ? s : null));
+	return {
+		x: history.map((s) => gameYear(s.date)),
+		lines: {
+			progress: saves.map((s) => s?.progress?.agenda?.progress ?? null),
+			'per month': saves.map((s, i) => {
+				const before = saves.slice(0, i).findLast((p) => p !== null && p.date < (s?.date ?? ''));
+				const a = s?.progress?.agenda;
+				const b = before?.progress?.agenda;
+				if (!s || !a || !b || a.key !== b.key) return null;
+				const months = (gameYear(s.date) - gameYear(before.date)) * 12;
+				return months > 0 ? Math.round(((a.progress - b.progress) / months) * 10) / 10 : null;
+			})
+		}
+	};
+}

@@ -13,6 +13,8 @@
 	import Edicts from '#lib/panels/Edicts.svelte';
 	import Expansion from '#lib/panels/Expansion.svelte';
 	import Leaders from '#lib/panels/Leaders.svelte';
+	import FleetMovement from '#lib/panels/FleetMovement.svelte';
+	import Traditions from '#lib/panels/Traditions.svelte';
 	import CivilianShips from '#lib/panels/CivilianShips.svelte';
 	import Score from '#lib/panels/Score.svelte';
 	import ResearchTiers from '#lib/panels/ResearchTiers.svelte';
@@ -161,6 +163,12 @@
 			<Chart title="Pops" series={data.charts.pops} range={data.xRange} />
 			<Chart title="Score and power" series={data.charts.score} range={data.xRange} />
 			<Chart
+				title="Council agenda"
+				series={data.charts.agenda}
+				range={data.xRange}
+				right={['per month']}
+			/>
+			<Chart
 				title="Research per month"
 				series={data.charts.research}
 				range={data.xRange}
@@ -271,6 +279,21 @@
 	</div>
 
 	<div class="mt-6 grid items-start gap-6 2xl:grid-cols-2">
+		<Traditions trees={data.trees} perks={data.perks} explain={data.explain} />
+		<FleetMovement
+			fleets={[
+				...(data.latest.fleets ?? []).map((f) => ({
+					name: f.name,
+					kind: 'military',
+					route: f.route
+				})),
+				...(data.latest.civilianShips ?? []).map((s) => ({
+					name: s.name,
+					kind: s.kind.replaceAll('_', ' '),
+					route: s.route
+				}))
+			]}
+		/>
 		<CivilianShips
 			ships={data.latest.civilianShips ?? []}
 			due={Object.fromEntries(

@@ -164,11 +164,13 @@ shipyard_build_queue station }` — **no owner field**; the country's are those 
   differs from the class rule (`pc_barren` is `colonizable = no`, yet Mars is offered — terraforming).
 - Idle leaders: no `location` and no `council_location` — except the ruler (`country.ruler`) and
   envoys. Civilian fleets: `current_order = { <kind>_order = { progress order_id planet |
-deposit_holder | orbitable } }`, queue in `order`, travel end in `movement_manager.path.date`
-  (state ≠ `move_idle`). Progress: anomalies count to 100 (+1.2/day ≈ the 80-day row of
+deposit_holder | orbitable } }`, queue in `order`, **no arrival date**: `movement_manager.path.date` is not
+  one (a fleet in flight had 2200.09.16 in 2202.05); routes are counted in jumps instead. Progress: anomalies count to 100 (+1.2/day ≈ the 80-day row of
   `SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS`), station builds count days to the size's `base_buildtime`
   (outpost 360); surveys assumed to 100 — unconfirmed. Names are templates: `PREFIX_NAME_FORMAT`
   (the `PREFIX` "UNS" is localisation only), `HUMAN1_CHR_<first>` / `HUMAN1_SHIP_<name>`.
+- Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
+  (adopt and finish entries included), `tradition_categories`; perks `country.ascension_perks`.
 - Manual saves: a save with the same date as the head but another state continues the head (a
   manual save after the autosave); only an earlier date counts as a reload.
 - Budget sources: `planet_<job>` (job output and inputs), `pop_category_<stratum>` (pop upkeep and

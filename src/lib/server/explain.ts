@@ -121,6 +121,34 @@ export function loadExplanations(file: string): Explanations {
 				]
 			};
 
+		// Traditions and ascension perks: modifiers in tradition_modifier (owner_key = key).
+		for (const t of rows<{
+			key: string;
+			name: string | null;
+			description: string | null;
+			tooltip: string | null;
+		}>('SELECT key, name, description, tooltip FROM tradition'))
+			out[`tradition:${t.key}`] = {
+				title: t.name ?? pretty(t.key),
+				description: t.description,
+				modifiers: ownedMods.get(t.key) ?? [],
+				text: t.tooltip,
+				facts: []
+			};
+		for (const p of rows<{
+			key: string;
+			name: string | null;
+			description: string | null;
+			tooltip: string | null;
+		}>('SELECT key, name, description, tooltip FROM ascension_perk'))
+			out[`perk:${p.key}`] = {
+				title: p.name ?? pretty(p.key),
+				description: p.description,
+				modifiers: ownedMods.get(p.key) ?? [],
+				text: p.tooltip,
+				facts: []
+			};
+
 		const jobMods = grouped(
 			'SELECT job_key AS owner, modifier AS key, value FROM job_modifier ORDER BY sort_order'
 		);

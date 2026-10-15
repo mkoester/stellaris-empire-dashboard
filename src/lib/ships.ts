@@ -45,15 +45,10 @@ export function orderRate(ship: CivilianShip, previous: Snapshot | null, monthsE
 	return (now.progress - before.progress) / monthsElapsed;
 }
 
-/** Months until the current order is done: arrival for travel, else total − progress at the rate. */
-export function monthsLeft(
-	ship: CivilianShip,
-	rate: number | null,
-	monthsTo: (date: string) => number
-) {
+/** Months until the current order is done: total − progress at the rate (travel: unknown). */
+export function monthsLeft(ship: CivilianShip, rate: number | null) {
 	const o = ship.order;
 	if (!o) return 0;
-	if (o.kind === 'orbit_planet') return ship.arrival ? monthsTo(ship.arrival) : null;
 	const total = orderTotal(o);
 	if (total === null || o.progress === null || !(rate && rate > 0)) return null;
 	return Math.max(total - o.progress, 0) / rate;

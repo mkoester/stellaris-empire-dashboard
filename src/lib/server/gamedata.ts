@@ -70,6 +70,17 @@ export function loadGameData(file: string): GameData {
 			blockers: rows<{ key: string }>('SELECT key FROM deposit WHERE is_blocker = 1').map(
 				(r) => r.key
 			),
+			traditionTrees: traditionTrees(
+				rows<{ key: string; name: string | null }>('SELECT key, name FROM tradition_category'),
+				rows<{ key: string; name: string | null; category_key: string; role: string }>(
+					'SELECT key, name, category_key, role FROM tradition ORDER BY sort_order'
+				)
+			),
+			perks: Object.fromEntries(
+				rows<{ key: string; name: string | null }>('SELECT key, name FROM ascension_perk').map(
+					(r) => [r.key, r.name ?? r.key]
+				)
+			),
 			defines: Object.fromEntries(
 				rows<{ key: string; value: number }>('SELECT key, value FROM game_define').map((r) => [
 					r.key,
@@ -80,4 +91,21 @@ export function loadGameData(file: string): GameData {
 	} finally {
 		db.close();
 	}
+}
+
+function traditionTrees(
+	trees: { key: string; name: string | null }[],
+	traditions: { key: string; name: string | null; category_key: string; role: string }[]
+): GameData['traditionTrees'] {
+	return Object.fromEntries(
+		trees.map((tree) => [
+			tree.key,
+			{
+				name: tree.name ?? tree.key,
+				traditions: traditions
+					.filter((t) => t.category_key === tree.key)
+					.map((t) => ({ key: t.key, name: t.name ?? t.key, role: t.role }))
+			}
+		])
+	);
 }

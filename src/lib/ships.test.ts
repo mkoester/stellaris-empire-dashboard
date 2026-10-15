@@ -10,7 +10,7 @@ const ship = (progress: number, orderId = 41): CivilianShip => ({
 	leader: 'Mncedisi Iweala',
 	order: { kind: 'research_anomaly', target: 'Proxima Centauri b', progress, orderId },
 	queue: [{ kind: 'survey_planet', target: 'Barnards Star IV', progress: 0, orderId: 42 }],
-	arrival: null
+	route: { at: 'Sol', moving: false, stops: [] }
 });
 const prev = (s: CivilianShip) => ({ civilianShips: [s] }) as unknown as Snapshot;
 
@@ -36,7 +36,7 @@ describe('ships', () => {
 	it('measures the rate for the same order and estimates what is left', () => {
 		const rate = orderRate(ship(73.2), prev(ship(37.2)), 1);
 		expect(rate).toBeCloseTo(36);
-		expect(monthsLeft(ship(73.2), rate, () => 0)).toBeCloseTo(26.8 / 36);
+		expect(monthsLeft(ship(73.2), rate)).toBeCloseTo(26.8 / 36);
 		expect(orderRate(ship(5, 99), prev(ship(37.2)), 1)).toBeNull(); // a new order
 	});
 

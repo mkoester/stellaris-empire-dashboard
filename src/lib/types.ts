@@ -43,7 +43,17 @@ export type Score = {
 	military: number;
 };
 
-export type Fleet = { name: string; ships: number; power: number };
+export type Fleet = { name: string; ships: number; power: number; route: Route };
+
+/**
+ * Where a fleet is and which systems its orders take it to (current order first, then the queue),
+ * with hyperlane jumps counted from where it is. The save holds no arrival dates.
+ */
+export type Route = {
+	at: string;
+	moving: boolean;
+	stops: { system: string; jumps: number | null; unexplored: boolean }[];
+};
 
 /** A ship order: what (`research_anomaly`, `survey_planet`, `build_orbital_station`, …), where, how far. */
 export type ShipOrder = {
@@ -61,7 +71,7 @@ export type CivilianShip = {
 	leader: string | null;
 	order: ShipOrder | null; // null: idle
 	queue: ShipOrder[];
-	arrival: string | null; // while travelling: when the current path arrives
+	route: Route; // where it is and where its orders take it
 };
 
 export type SpeciesInfo = { id: string; name: string; cls: string; traits: string[]; pops: number };
@@ -175,6 +185,8 @@ export type Snapshot = {
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
+	traditions: string[] | null; // adopted traditions, in pick order (adopt and finish included)
+	ascensionPerks: string[] | null;
 	civilianShips: CivilianShip[] | null; // science, construction, colony ships with their orders
 	edicts: string[] | null; // active edicts (keys)
 	species: SpeciesInfo[] | null; // species with pops in the empire
@@ -207,6 +219,11 @@ export type GameData = {
 	archetypes: Record<string, { points: number; maxTraits: number }>;
 	planetClasses: Record<string, { name: string; colonizable: boolean }>;
 	names: Record<string, string>; // display names of buildings, deposits, districts and zones
+	traditionTrees: Record<
+		string,
+		{ name: string; traditions: { key: string; name: string; role: string }[] }
+	>;
+	perks: Record<string, string>; // ascension perk names
 	blockers: string[]; // deposit keys that are blockers
 };
 

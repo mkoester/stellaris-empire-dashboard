@@ -429,6 +429,8 @@ describe('empire overview', () => {
 
 	it('names fleets from their %SEQ% template and keeps military ones', () => {
 		const fleets = militaryFleets({
+			planets: { '2669': { coordinate: { origin: 135 } } },
+			systems,
 			country: { fleets_manager: { owned_fleets: [{ fleet: 1 }, { fleet: 3 }] } },
 			fleets: {
 				'1': { ship_class: 'shipclass_science_ship', ships: 1 },
@@ -436,6 +438,8 @@ describe('empire overview', () => {
 					ship_class: 'shipclass_military',
 					ships: [3, 4, 5],
 					military_power: 176.625,
+					movement_manager: { coordinate: { origin: 380 }, state: 'move_system' },
+					current_order: { orbit_planet_order: { orbitable: { planet: 2669 } } },
 					name: {
 						key: '%SEQ%',
 						variables: [
@@ -446,7 +450,18 @@ describe('empire overview', () => {
 				}
 			}
 		});
-		expect(fleets).toEqual([{ name: '1st Fleet', ships: 3, power: 176.625 }]);
+		expect(fleets).toEqual([
+			{
+				name: '1st Fleet',
+				ships: 3,
+				power: 176.625,
+				route: {
+					at: 'Sol',
+					moving: true,
+					stops: [{ system: 'Sirius', jumps: 1, unexplored: true }]
+				}
+			}
+		]);
 	});
 
 	it('sums pops per species over the colonies and names prescripted species', () => {

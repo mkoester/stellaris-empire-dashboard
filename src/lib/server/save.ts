@@ -1,6 +1,7 @@
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
+	Route,
 	CivilianShip,
 	ShipOrder,
 	ColonyDistrict,
@@ -144,6 +145,8 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		},
 		fleets: militaryFleets(raw),
 		idleLeaders: idleLeaders(raw),
+		traditions: items(raw.country?.traditions).map(String),
+		ascensionPerks: items(raw.country?.ascension_perks).map(String),
 		civilianShips: civilianShips(raw),
 		edicts: items(raw.country?.edicts)
 			.map((e) => e?.edict)
@@ -206,14 +209,14 @@ function leaderName(name: Raw): string {
 /**
  * Civilian fleets (`country.fleets_manager.owned_fleets`: science, construction, colony ships)
  * with `current_order = { <kind>_order = { … progress } }`, the queued `order = { … }` and, while
- * travelling, `movement_manager.path.date` as arrival. Order targets: `planet`, `deposit_holder`
+ * travelling, the route (see route()). Order targets: `planet`, `deposit_holder`
  * (type 0 = planet) or `orbitable.planet`. Progress units differ by kind and are interpreted in
  * #lib/ships.ts.
  */
 export function civilianShips(
 	raw: Pick<
 		RawSave,
-		'country' | 'fleets' | 'ships' | 'shipDesigns' | 'planets' | 'leaders' | 'date'
+		'country' | 'fleets' | 'ships' | 'shipDesigns' | 'planets' | 'leaders' | 'date' | 'systems'
 	>
 ): CivilianShip[] {
 	const planetName = (id: Raw) =>
@@ -245,8 +248,6 @@ export function civilianShips(
 		const queued = Object.entries(f.order ?? {}).flatMap(([k, v]) =>
 			items(v).map((x) => [k, x] as [string, Raw])
 		);
-		const path = f.movement_manager?.path?.date;
-		const moving = f.movement_manager?.state !== 'move_idle';
 		return [
 			{
 				fleetId: Number(o.fleet),
@@ -258,7 +259,7 @@ export function civilianShips(
 						.find(Boolean) ?? null,
 				order: current ? order(current) : null,
 				queue: queued.map(order),
-				arrival: moving && typeof path === 'string' && path >= raw.date ? path : null
+				route: route(raw, f)
 			}
 		];
 	});
@@ -385,15 +386,61 @@ export function megaShipyards(
 		});
 }
 
-/** Military fleets with ship count and power (`fleet.military_power`). */
-export function militaryFleets(raw: Pick<RawSave, 'country' | 'fleets'>): Fleet[] {
+/**
+ * A fleet's route: its system (`movement_manager.coordinate.origin`) and the systems of its order
+ * targets — current order, then the queue — with jumps counted along the hyperlanes.
+ * `movement_manager.path.date` is no arrival date (a fleet in flight had one two years past).
+ */
+export function route(raw: Pick<RawSave, 'planets' | 'systems' | 'country'>, f: Raw): Route {
+	// systems the country's ships have been to (`country.visited_objects`); the rest is unexplored
+	const visited = new Set(list(raw.country?.visited_objects));
+	const here = f?.movement_manager?.coordinate?.origin;
+	const systemOf = (o: Raw) => {
+		const planet =
+			o?.planet ??
+			o?.orbitable?.planet ??
+			(num(o?.deposit_holder?.type) === 0 ? o?.deposit_holder?.id : undefined);
+		return planet === undefined ? undefined : raw.planets[String(planet)]?.coordinate?.origin;
+	};
+	const orders = [
+		...Object.values(f?.current_order ?? {}),
+		...Object.values(f?.order ?? {}).flatMap((v) => items(v))
+	];
+	const systems = orders
+		.map(systemOf)
+		.filter((s) => s !== undefined)
+		.filter((s, i, all) => i === 0 || s !== all[i - 1]);
+	let from = here;
+	let total: number | null = 0;
+	const stops = systems.map((sys) => {
+		const leg = hops(raw.systems, from).get(Number(sys));
+		total = total === null || leg === undefined ? null : total + leg;
+		from = sys;
+		return {
+			system: displayName(raw.systems[String(sys)]?.name),
+			jumps: total,
+			unexplored: !visited.has(Number(sys))
+		};
+	});
+	return {
+		at: displayName(raw.systems[String(here)]?.name),
+		moving: f?.movement_manager?.state !== undefined && f.movement_manager.state !== 'move_idle',
+		stops
+	};
+}
+
+/** Military fleets with ship count, power (`fleet.military_power`) and route. */
+export function militaryFleets(
+	raw: Pick<RawSave, 'country' | 'fleets' | 'planets' | 'systems'>
+): Fleet[] {
 	return items(raw.country?.fleets_manager?.owned_fleets)
 		.map((o) => raw.fleets[String(o?.fleet)])
 		.filter((f) => f && typeof f === 'object' && f.ship_class === 'shipclass_military')
 		.map((f) => ({
 			name: displayName(f.name),
 			ships: list(f.ships).length,
-			power: num(f.military_power)
+			power: num(f.military_power),
+			route: route(raw, f)
 		}));
 }
 

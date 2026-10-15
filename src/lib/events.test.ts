@@ -29,6 +29,8 @@ const data: GameData = {
 	planetClasses: {},
 	names: {},
 	blockers: [],
+	traditionTrees: {},
+	perks: {},
 	defines: {
 		EMPIRE_SIZE_BASE: 100,
 		EMPIRE_SIZE_TECH_COST_PENALTY: 0.002,
@@ -210,7 +212,7 @@ describe('upcoming civilian ships', () => {
 			progress: 0,
 			orderId: 42
 		}),
-		arrival: null
+		route: { at: 'Sol', moving: false, stops: [] }
 	});
 	const idle = {
 		fleetId: 9,
@@ -219,7 +221,7 @@ describe('upcoming civilian ships', () => {
 		leader: null,
 		order: null,
 		queue: [],
-		arrival: null
+		route: { at: 'Sol', moving: false, stops: [] }
 	};
 
 	it('dates the current order from the measured rate and flags idle ships', () => {
