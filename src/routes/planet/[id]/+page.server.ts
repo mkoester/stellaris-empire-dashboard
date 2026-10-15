@@ -1,6 +1,9 @@
 import { error } from '@sveltejs/kit';
 import { branch } from '#lib/server/branch.ts';
 import { colonySeries, xRange } from '#lib/series.ts';
+import type { Colony } from '#lib/types.ts';
+
+const pct = (v: number | null) => (v === null ? null : Math.round(v * 1000) / 10);
 
 // One colony over the branch's history. Months from the mod feed carry no colony data and show
 // as gaps; so do months before the planet was colonised.
@@ -28,6 +31,16 @@ export function load({ url, params }) {
 				'open jobs': (c) => c.openJobs
 			}),
 			stability: colonySeries(snaps, planetId, { stability: (c) => c.stability }),
+			// Happiness in %, overall and per stratum; a stratum the save gives none for is a gap.
+			happiness: colonySeries(snaps, planetId, {
+				happiness: (c) => pct(c.happiness),
+				...Object.fromEntries(
+					['ruler', 'specialist', 'worker', 'civilian'].map((cat) => [
+						cat,
+						(c: Colony) => pct(c.strata?.find((s) => s.category === cat)?.happiness ?? null)
+					])
+				)
+			}),
 			free: colonySeries(snaps, planetId, {
 				'free housing': (c) => c.freeHousing,
 				'free amenities': (c) => c.freeAmenities

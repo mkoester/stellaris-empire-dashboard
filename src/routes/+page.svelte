@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Chart from '#lib/Chart.svelte';
+	import Flows from '#lib/Flows.svelte';
 	import Jobs from '#lib/Jobs.svelte';
+	import { automationRows } from '#lib/automation.ts';
+	import { budgetRows } from '#lib/flows.ts';
 	import Resources from '#lib/Resources.svelte';
 	import Upcoming from '#lib/Upcoming.svelte';
 	import { colorOf } from '#lib/colors.ts';
@@ -17,6 +20,14 @@
 	const shown = () => (data.empty || data.isHead ? null : data.tip);
 	announceBranch(shown);
 	$effect(() => postBranch(shown()));
+
+	const pct = (v: number | null) => (v === null ? '–' : `${Math.round(v * 100)}%`);
+	const automationOn = (on: string[]) =>
+		automationRows(on)
+			.filter((r) => r.on)
+			.map((r) => r.name)
+			.join(', ') || 'none';
+	const shipGroups = ['military', 'civilian', 'station'] as const;
 
 	const events = $derived(data.empty ? [] : data.upcoming);
 	// Research per field (physics, society, engineering), then tradition, then agenda.
@@ -145,10 +156,12 @@
 					<th class="p-1 text-right">Civilians</th>
 					<th class="p-1 text-right">Open jobs</th>
 					<th class="p-1 text-right">Stability</th>
+					<th class="p-1 text-right">Happiness</th>
 					<th class="p-1 text-right">Free housing</th>
 					<th class="p-1 text-right">Free amenities</th>
 					<th class="p-1 text-right">Districts</th>
 					<th class="p-1 text-right">Build queue</th>
+					<th class="p-1">Automation</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -167,10 +180,13 @@
 						<td class="p-1 text-right">{fmt(c.civilians)}</td>
 						<td class="p-1 text-right">{fmt(c.openJobs)}</td>
 						<td class="p-1 text-right">{fmt(c.stability)}</td>
+						<td class="p-1 text-right">{pct(c.happiness)}</td>
 						<td class="p-1 text-right">{fmt(c.freeHousing)}</td>
 						<td class="p-1 text-right">{fmt(c.freeAmenities)}</td>
 						<td class="p-1 text-right">{c.districts}</td>
 						<td class="p-1 text-right">{queue(c)}</td>
+						<td class="p-1">{c.automation.enabled ? automationOn(c.automation.settings) : 'off'}</td
+						>
 					</tr>
 				{/each}
 			</tbody>
@@ -179,4 +195,47 @@
 
 	<h2 class="mt-6 mb-2 text-xl font-semibold">Jobs</h2>
 	<Jobs rows={data.empireJobs} />
+
+	<h2 class="mt-6 mb-2 text-xl font-semibold">Pops' resources per month</h2>
+	<p class="mb-2 text-sm text-gray-500">
+		What jobs produce and use, and what pops and buildings cost — the budget's planet and pop
+		sources.
+	</p>
+	<Flows rows={budgetRows(data.latest.planetBudget ?? [])} />
+
+	<div class="mt-6 grid gap-6 md:grid-cols-3">
+		<section>
+			<h2 class="mb-2 text-xl font-semibold">Leaders</h2>
+			{#each Object.entries(data.latest.leaders ?? {}).sort() as [cls, n] (cls)}
+				<div>{cls} <b>{n}</b></div>
+			{/each}
+		</section>
+		<section>
+			<h2 class="mb-2 text-xl font-semibold">Ships</h2>
+			{#each shipGroups as g (g)}
+				{@const ships = (data.latest.ships ?? []).filter((s) => s.group === g)}
+				{#if ships.length}
+					<div class="mt-1 text-gray-500">{g}</div>
+					{#each ships as s (s.size)}
+						<div>{pretty(s.size)} <b>{s.count}</b></div>
+					{/each}
+				{/if}
+			{/each}
+		</section>
+		<section>
+			<h2 class="mb-2 text-xl font-semibold">Automation</h2>
+			<div>
+				new colonies start with:
+				<b>{automationOn(data.latest.defaultAutomation ?? [])}</b>
+			</div>
+			<div>
+				may not spend:
+				{#each data.latest.automationBlocked ?? [] as r (r)}
+					<span class="mr-2" style:color={colorOf(r)}>{pretty(r)}</span>
+				{:else}
+					<b>nothing blocked</b>
+				{/each}
+			</div>
+		</section>
+	</div>
 {/if}

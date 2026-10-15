@@ -6,7 +6,7 @@ import type { Resources, Snapshot, SourceKind, TimelineNode } from '#lib/types.t
 // game wrote, so there are no migrations: a schema change bumps SCHEMA and the tables are rebuilt
 // (saves are re-ingested on start; past mod lines and manual parent corrections are lost).
 
-const SCHEMA = '11';
+const SCHEMA = '13';
 
 export type Db = DatabaseSync;
 

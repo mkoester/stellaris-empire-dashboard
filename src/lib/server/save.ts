@@ -1,8 +1,11 @@
 import { Jomini } from 'jomini';
 import type {
+	BudgetSource,
 	Colony,
 	ColonyJob,
 	MarketOrder,
+	ShipCount,
+	Stratum,
 	Progress,
 	QueueItem,
 	Resources,
@@ -35,6 +38,11 @@ export type RawSave = {
 	leaders: Record<string, Raw>;
 	monthlyTrades: Raw; // market.monthly_trades: every country's standing orders
 	popJobs: Record<string, Raw>; // top-level pop_jobs, referenced from colony.pop_jobs
+	popGroups: Record<string, Raw>; // top-level pop_groups, referenced from colony.pop_groups
+	fleets: Record<string, Raw>;
+	ships: Record<string, Raw>;
+	shipDesigns: Record<string, Raw>;
+	automationResources: Raw; // top-level automation_resources.<country>: disallowed resources
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -60,6 +68,11 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			leaders: q.at('/leaders') ?? {},
 			monthlyTrades: q.at('/market/monthly_trades'),
 			popJobs: q.at('/pop_jobs') ?? {},
+			popGroups: q.at('/pop_groups') ?? {},
+			fleets: q.at('/fleet') ?? {},
+			ships: q.at('/ships') ?? {},
+			shipDesigns: q.at('/ship_design') ?? {},
+			automationResources: q.at(`/automation_resources/${countryId}`),
 			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
 		};
 	});
@@ -89,7 +102,14 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 				? { used: num(raw.country.starbase_capacity_used), capacity: raw.country.starbase_capacity }
 				: null,
 		navalUsed: numOrNull(raw.country?.used_naval_capacity),
-		envoys: envoys(raw.leaders, raw.countryId),
+		envoys: envoys(ownLeaders(raw)),
+		leaders: countBy(ownLeaders(raw).map((l) => String(l.class))),
+		ships: shipCounts(raw),
+		defaultAutomation: items(raw.country?.default_planet_automation_settings).map(String),
+		// Read as disallowed: empty at 2200.04 with every resource allowed, all of them listed at
+		// 2200.05 after the player unticked all (in-game screenshot).
+		automationBlocked: items(raw.automationResources).map(String),
+		planetBudget: planetBudget(budget),
 		marketOrders: marketOrders(raw.monthlyTrades, raw.countryId),
 		progress: progress(raw)
 	};
@@ -106,11 +126,69 @@ export function marketOrders(trades: Raw, countryId: number): MarketOrder[] {
 		}));
 }
 
-/** The country's envoys; one is in use while it has a `location = { assignment=… }`. */
-export function envoys(leaders: Record<string, Raw>, countryId: number) {
-	const own = Object.values(leaders).filter(
-		(l) => l?.class === 'envoy' && Number(l.country) === countryId
+/**
+ * The country's leaders: `country.owned_leaders`. Filtering `leaders` by `country` would also
+ * count the recruitment pool (19 instead of 7 at 2200.05).
+ */
+function ownLeaders(raw: Pick<RawSave, 'country' | 'leaders'>): Raw[] {
+	return list(raw.country?.owned_leaders)
+		.map((id) => raw.leaders[String(id)])
+		.filter((l) => l && typeof l === 'object');
+}
+
+export const countBy = (keys: string[]): Record<string, number> =>
+	keys.reduce<Record<string, number>>((acc, k) => ({ ...acc, [k]: (acc[k] ?? 0) + 1 }), {});
+
+/**
+ * Ships of the country's fleets (`country.fleets_manager.owned_fleets`), by the design's size;
+ * the fleet's `ship_class` tells military (`shipclass_military`), stations (starbases, mining and
+ * research stations) and the rest, civilian.
+ */
+export function shipCounts(
+	raw: Pick<RawSave, 'country' | 'fleets' | 'ships' | 'shipDesigns'>
+): ShipCount[] {
+	const counts = new Map<string, ShipCount>();
+	for (const owned of items(raw.country?.fleets_manager?.owned_fleets)) {
+		const fleet = raw.fleets[String(owned?.fleet)];
+		if (!fleet || typeof fleet !== 'object') continue;
+		const cls = String(fleet.ship_class ?? '');
+		const group =
+			cls === 'shipclass_military'
+				? 'military'
+				: /starbase|station/.test(cls)
+					? 'station'
+					: 'civilian';
+		for (const shipId of list(fleet.ships)) {
+			const design =
+				raw.shipDesigns[String(raw.ships[String(shipId)]?.ship_design_implementation?.design)];
+			const size = String(
+				first(design?.growth_stages)?.ship_size ?? design?.ship_size ?? 'unknown'
+			);
+			const key = `${group}:${size}`;
+			const c = counts.get(key) ?? { group, size, count: 0 };
+			counts.set(key, { ...c, count: c.count + 1 });
+		}
+	}
+	return [...counts.values()];
+}
+
+/** The budget's per-source flows for pops and planets: jobs (`planet_<job>`), strata (`pop_category_*`), … */
+export function planetBudget(month: Raw): BudgetSource[] {
+	const sources = new Set(
+		[...Object.keys(month?.income ?? {}), ...Object.keys(month?.expenses ?? {})].filter((k) =>
+			/^(planet_|pop_)/.test(k)
+		)
 	);
+	return [...sources].map((source) => ({
+		source,
+		income: resources(month.income?.[source]),
+		expenses: resources(month.expenses?.[source])
+	}));
+}
+
+/** The country's envoys; one is in use while it has a `location = { assignment=… }`. */
+export function envoys(leaders: Raw[]) {
+	const own = leaders.filter((l) => l?.class === 'envoy');
 	return {
 		used: own.filter((l) => l.location?.assignment !== undefined).length,
 		total: own.length
@@ -169,9 +247,46 @@ function playerColonies(raw: RawSave): Colony[] {
 			districts: list(c.districts).length,
 			buildQueue:
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
-			...colonyJobs(raw.popJobs, list(c.pop_jobs))
+			...colonyJobs(raw.popJobs, list(c.pop_jobs)),
+			...strata(raw.popGroups, list(c.pop_groups)),
+			automation: {
+				enabled: c.automation?.enabled === true || c.automation?.enabled === 'yes',
+				settings: items(c.automation?.settings).map(String)
+			},
+			produces: resources(c.produces),
+			upkeep: resources(c.upkeep)
 		};
 	});
+}
+
+/**
+ * `pop_groups.<id> = { key = { species category } size happiness }`, summed per stratum. Groups
+ * without `happiness` (the save omits it for some) count towards size but not the average.
+ */
+export function strata(popGroups: Record<string, Raw>, ids: number[]) {
+	const by = new Map<string, { size: number; known: number; weighted: number }>();
+	for (const id of ids) {
+		const g = popGroups[String(id)];
+		if (!g || typeof g !== 'object' || !(num(g.size) > 0)) continue;
+		const cat = String(g.key?.category ?? 'unknown');
+		const s = by.get(cat) ?? { size: 0, known: 0, weighted: 0 };
+		const known = typeof g.happiness === 'number';
+		by.set(cat, {
+			size: s.size + num(g.size),
+			known: s.known + (known ? num(g.size) : 0),
+			weighted: s.weighted + (known ? num(g.size) * g.happiness : 0)
+		});
+	}
+	const list: Stratum[] = [...by].map(([category, s]) => ({
+		category,
+		size: s.size,
+		happiness: s.known > 0 ? s.weighted / s.known : null
+	}));
+	const known = [...by.values()].reduce((n, s) => n + s.known, 0);
+	return {
+		strata: list,
+		happiness: known > 0 ? [...by.values()].reduce((n, s) => n + s.weighted, 0) / known : null
+	};
 }
 
 /**

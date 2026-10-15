@@ -101,8 +101,21 @@ market_buy|market_sell resource country } amount } }`.
   `employable_pops` counts all pops able to work, _not_ the employed: employed is
   `employable_pops - civilian` (Earth 2200.04: 5207 − 1905 = 3302; its `pop_jobs` sum to 3300).
   Jobs: `colony.pop_jobs` lists ids into top-level `pop_jobs.<id> = { type workforce max_workforce
-  pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − workforce`
+pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − workforce`
   (`-1` = unlimited, civilian). Every colony also carries empty placeholder jobs (servant, purge, …).
+- Pop groups: `colony.pop_groups` → top-level `pop_groups.<id> = { key = { species category } size
+  happiness }`. **`happiness` is omitted for some groups** (rulers, specialists at 2200.05) —
+  treated as unknown, not 0.
+- Automation: `colony.automation = { enabled settings = { "planet_automation_…" } }` lists the
+  settings **on** (Earth 2200.05: crime + four the panel hides for this empire);
+  `country.default_planet_automation_settings` for new colonies; top-level
+  `automation_resources.<country> = { "energy" … }` read as the **disallowed** resources (empty at
+  2200.04, all listed after the player unticked all).
+- Leaders: **`country.owned_leaders`**, not `leaders.*.country` — that also matches the recruitment
+  pool (19 vs. 7). Ships: `country.fleets_manager.owned_fleets` → `fleet.<id>.{ship_class, ships}`
+  → `ships.<id>.ship_design_implementation.design` → `ship_design.<id>.growth_stages[0].ship_size`.
+- Budget sources: `planet_<job>` (job output and inputs), `pop_category_<stratum>` (pop upkeep and
+  trade), `planet_pops_traits` (food), `planet_buildings`, `planet_districts_*`.
 - Autosaves: `autosave=4` in `settings.txt` gave one per month (2200.02/03/04.01, observed).
 - Build queues: `construction.queue_mgr.queues.<id> = { owner location type items={…} }` (`planet`,
   `army`, `starbase`, `ships`, `combined`); a planet's own queue is `planets.planet.<id>.build_queue`,

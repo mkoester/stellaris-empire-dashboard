@@ -2,7 +2,10 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Chart from '#lib/Chart.svelte';
+	import Flows from '#lib/Flows.svelte';
 	import Jobs from '#lib/Jobs.svelte';
+	import { automationRows } from '#lib/automation.ts';
+	import { net } from '#lib/flows.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followBranch, followGame } from '#lib/live.ts';
 
@@ -66,6 +69,7 @@
 	{#key data.tip}
 		<Chart title="Pops" series={data.charts.pops} range={data.xRange} right={['open jobs']} />
 		<Chart title="Stability" series={data.charts.stability} range={data.xRange} />
+		<Chart title="Happiness %" series={data.charts.happiness} range={data.xRange} />
 		<Chart title="Free housing and amenities" series={data.charts.free} range={data.xRange} />
 		<Chart title="Districts" series={data.charts.districts} range={data.xRange} />
 	{/key}
@@ -74,4 +78,24 @@
 {#if data.colony}
 	<h2 class="mt-6 mb-2 text-xl font-semibold">Jobs</h2>
 	<Jobs rows={data.jobRows} />
+
+	<h2 class="mt-6 mb-2 text-xl font-semibold">Resources per month</h2>
+	<Flows
+		rows={[
+			{ label: 'output', flows: data.colony.produces },
+			{ label: 'upkeep', flows: net({}, data.colony.upkeep) },
+			{ label: 'net', flows: net(data.colony.produces, data.colony.upkeep), strong: true }
+		]}
+	/>
+
+	<h2 class="mt-6 mb-2 text-xl font-semibold">Automation</h2>
+	{#if !data.colony.automation.enabled}
+		<p>Off.</p>
+	{:else}
+		<ul>
+			{#each automationRows(data.colony.automation.settings) as r (r.key)}
+				<li class={r.on ? '' : 'text-gray-500'}>{r.on ? '☑' : '☐'} {r.name}</li>
+			{/each}
+		</ul>
+	{/if}
 {/if}

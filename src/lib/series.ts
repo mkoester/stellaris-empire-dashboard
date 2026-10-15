@@ -71,7 +71,7 @@ export function researchSeries(history: Snapshot[]): Series {
 export function colonySeries(
 	history: Snapshot[],
 	planetId: number,
-	fields: Record<string, (c: Colony) => number>
+	fields: Record<string, (c: Colony) => number | null>
 ): Series {
 	const colony = (s: Snapshot) => s.colonies.find((c) => c.planetId === planetId);
 	return {

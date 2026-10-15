@@ -5,6 +5,9 @@ import {
 	colonyJobs,
 	displayName,
 	envoys,
+	planetBudget,
+	shipCounts,
+	strata,
 	marketOrders,
 	progress,
 	readSave,
@@ -24,6 +27,11 @@ const raw: RawSave = {
 	leaders: {},
 	monthlyTrades: undefined,
 	popJobs: {},
+	popGroups: {},
+	fleets: {},
+	ships: {},
+	shipDesigns: {},
+	automationResources: undefined,
 	country: {
 		num_sapient_pops: 5000,
 		empire_size: 50,
@@ -125,7 +133,12 @@ describe('toSnapshot', () => {
 					{ kind: 'clear_deposit_blocker', name: 'd_decrepit_dwellings', progress: 90, needed: 120 }
 				],
 				jobs: [],
-				openJobs: 0
+				openJobs: 0,
+				strata: [],
+				happiness: null,
+				automation: { enabled: false, settings: [] },
+				produces: {},
+				upkeep: {}
 			},
 			expect.objectContaining({ planetId: -1, name: 'colony 9', districts: 1, buildQueue: [] })
 		]);
@@ -225,19 +238,76 @@ describe('colonyJobs', () => {
 });
 
 describe('envoys', () => {
-	it("counts the country's envoys and those on an assignment", () => {
-		const leaders = {
-			'1': { class: 'envoy', country: 0 },
-			'2': {
-				class: 'envoy',
-				country: 0,
-				location: { type: 'first_contact_system', assignment: 'first_contact' }
-			},
-			'3': { class: 'scientist', country: 0, location: { assignment: 'research' } },
-			'4': { class: 'envoy', country: 7, location: { assignment: 'first_contact' } },
-			'5': 'none'
+	it('counts envoys and those on an assignment', () => {
+		const own = [
+			{ class: 'envoy' },
+			{ class: 'envoy', location: { type: 'first_contact_system', assignment: 'first_contact' } },
+			{ class: 'scientist', location: { assignment: 'research' } }
+		];
+		expect(envoys(own)).toEqual({ used: 1, total: 2 });
+	});
+});
+
+describe('strata', () => {
+	it('sums pop groups per stratum, happiness weighted by size', () => {
+		const groups = {
+			'1': { key: { category: 'civilian' }, size: 1911, happiness: 0.95 },
+			'2': { key: { category: 'worker' }, size: 1800, happiness: 0.5 },
+			'3': { key: { category: 'worker' }, size: 200, happiness: 1 },
+			'4': { key: { category: 'ruler' }, size: 0, happiness: 1 },
+			'5': { key: { category: 'specialist' }, size: 1299 }
 		};
-		expect(envoys(leaders, 0)).toEqual({ used: 1, total: 2 });
+		const r = strata(groups, [1, 2, 3, 4, 5, 99]);
+		expect(r.strata).toEqual([
+			{ category: 'civilian', size: 1911, happiness: 0.95 },
+			{ category: 'worker', size: 2000, happiness: 0.55 },
+			{ category: 'specialist', size: 1299, happiness: null }
+		]);
+		expect(r.happiness).toBeCloseTo((1911 * 0.95 + 2000 * 0.55) / 3911);
+		expect(strata({}, []).happiness).toBeNull();
+	});
+});
+
+describe('shipCounts', () => {
+	it('counts ships by design size, grouped by the fleet class', () => {
+		const counts = shipCounts({
+			country: { fleets_manager: { owned_fleets: [{ fleet: 0 }, { fleet: 1 }, { fleet: 3 }] } },
+			fleets: {
+				'0': { ship_class: 'shipclass_starbase', ships: 0 },
+				'1': { ship_class: 'shipclass_science_ship', ships: [1] },
+				'3': { ship_class: 'shipclass_military', ships: [3, 4, 5] }
+			},
+			ships: Object.fromEntries(
+				[0, 1, 3, 4, 5].map((id) => [
+					id,
+					{ ship_design_implementation: { design: id === 0 ? 17 : id === 1 ? 20 : 30 } }
+				])
+			),
+			shipDesigns: {
+				'17': { growth_stages: [{ ship_size: 'starbase_starport' }] },
+				'20': { growth_stages: [{ ship_size: 'science' }] },
+				'30': { growth_stages: [{ ship_size: 'corvette' }] }
+			}
+		});
+		expect(counts).toEqual([
+			{ group: 'station', size: 'starbase_starport', count: 1 },
+			{ group: 'civilian', size: 'science', count: 1 },
+			{ group: 'military', size: 'corvette', count: 3 }
+		]);
+	});
+});
+
+describe('planetBudget', () => {
+	it('keeps the planet and pop sources with their income and expenses', () => {
+		expect(
+			planetBudget({
+				income: { planet_artisans: { consumer_goods: 47 }, country_base: { energy: 20 } },
+				expenses: { planet_artisans: { minerals: 25 }, pop_category_workers: { consumer_goods: 5 } }
+			})
+		).toEqual([
+			{ source: 'planet_artisans', income: { consumer_goods: 47 }, expenses: { minerals: 25 } },
+			{ source: 'pop_category_workers', income: {}, expenses: { consumer_goods: 5 } }
+		]);
 	});
 });
 
@@ -276,6 +346,20 @@ describe.skipIf(!real)('real save', () => {
 		expect(s.starbases?.capacity).toBeGreaterThan(0);
 		expect(s.progress?.research.length).toBe(3);
 		expect(s.envoys?.total).toBeGreaterThan(0);
+		expect(Object.values(s.leaders ?? {}).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
+		expect(s.ships?.length).toBeGreaterThan(0);
+		expect(s.colonies[0].happiness).toBeGreaterThan(0);
+		console.log(
+			JSON.stringify({
+				leaders: s.leaders,
+				ships: s.ships,
+				envoys: s.envoys,
+				happiness: s.colonies[0].happiness,
+				strata: s.colonies[0].strata,
+				automation: s.colonies[0].automation,
+				defaults: s.defaultAutomation
+			})
+		);
 		console.log(JSON.stringify({ ...s, colonies: s.colonies.slice(0, 3) }, null, 1));
 	}, 30_000);
 });

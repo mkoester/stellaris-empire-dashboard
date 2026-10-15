@@ -93,6 +93,8 @@
 				height: 220,
 				scales: {
 					x: { time: false, range: () => range },
+					// The right axis (e.g. open jobs) spans at least 0–50, so small changes stay small.
+					right: { range: (_u, _min, max) => [0, Math.max(50, max)] },
 					...(yMin === undefined
 						? {}
 						: { y: { range: (_u, _min, max) => [yMin, Math.max(max, yMin) * 1.1] } })

@@ -74,6 +74,11 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		navalUsed: null,
 		envoys: null,
 		marketOrders: [],
+		leaders: null,
+		ships: null,
+		defaultAutomation: null,
+		automationBlocked: null,
+		planetBudget: null,
 		progress: null
 	};
 }

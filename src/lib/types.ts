@@ -16,7 +16,21 @@ export type Colony = {
 	buildQueue: QueueItem[];
 	jobs: ColonyJob[];
 	openJobs: number; // unfilled positions, summed over the colony's jobs
+	strata: Stratum[]; // pops and happiness per stratum (worker, specialist, …)
+	happiness: number | null; // 0–1, pops-weighted over the strata
+	automation: { enabled: boolean; settings: string[] };
+	produces: Resources; // the colony's monthly output and upkeep, as the planet view sums them
+	upkeep: Resources;
 };
+
+/** happiness null: the save left it out (rulers and specialists at 2200.05) — unknown, not 0. */
+export type Stratum = { category: string; size: number; happiness: number | null };
+
+/** Ships by size (corvette, science, …) in one group. */
+export type ShipCount = { group: 'military' | 'civilian' | 'station'; size: string; count: number };
+
+/** One budget source of pops (a job, a stratum's upkeep, buildings, …) for the month. */
+export type BudgetSource = { source: string; income: Resources; expenses: Resources };
 
 /** One job on a colony. Positions null: unlimited (civilian). */
 export type ColonyJob = { type: string; pops: number; filled: number; positions: number | null };
@@ -70,6 +84,12 @@ export type Snapshot = {
 	navalUsed: number | null;
 	envoys: { used: number; total: number } | null;
 	marketOrders: MarketOrder[]; // standing monthly buy/sell orders
+	// Null from the mod feed:
+	leaders: Record<string, number> | null; // by class
+	ships: ShipCount[] | null;
+	defaultAutomation: string[] | null; // automation settings new colonies start with
+	automationBlocked: string[] | null; // resources planet automation may not spend
+	planetBudget: BudgetSource[] | null; // the budget's planet_* and pop_* sources
 	progress: Progress | null; // null from the mod feed
 };
 
