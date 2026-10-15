@@ -9,6 +9,7 @@ const data: GameData = {
 		tech_planetary_unification: { name: 'Societal Unification', cost: 1000 }
 	},
 	agendas: { agenda_unlock_slot: { name: 'Expand The Council', cost: 7000 } },
+	jobs: {},
 	defines: {
 		EMPIRE_SIZE_BASE: 100,
 		EMPIRE_SIZE_TECH_COST_PENALTY: 0.002,

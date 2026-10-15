@@ -1,4 +1,5 @@
 import { upcoming } from '#lib/events.ts';
+import { jobRows } from '#lib/jobs.ts';
 import { getDb, getGameData } from './app.ts';
 import { headId, history, nodes } from './db.ts';
 import { path } from '#lib/timeline.ts';
@@ -19,6 +20,14 @@ export function branch(url: URL) {
 	const last = saves.at(-1);
 	return {
 		upcoming: last ? upcoming(last, saves.at(-2) ?? null, getGameData()) : [],
+		// Jobs worked, per colony and summed over the empire, at the latest full save.
+		jobs: Object.fromEntries(
+			(last?.colonies ?? []).map((c) => [c.planetId, jobRows(c.jobs, getGameData().jobs)])
+		),
+		empireJobs: jobRows(
+			(last?.colonies ?? []).flatMap((c) => c.jobs),
+			getGameData().jobs
+		),
 		tip,
 		isHead: tip === headId(db),
 		snaps,

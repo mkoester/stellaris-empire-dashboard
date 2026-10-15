@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
 	buildQueue,
+	colonyJobs,
 	displayName,
 	envoys,
 	marketOrders,
@@ -22,6 +23,7 @@ const raw: RawSave = {
 	galaxy: { technology: 1.25, traditions: 1 },
 	leaders: {},
 	monthlyTrades: undefined,
+	popJobs: {},
 	country: {
 		num_sapient_pops: 5000,
 		empire_size: 50,
@@ -121,7 +123,9 @@ describe('toSnapshot', () => {
 				buildQueue: [
 					{ kind: 'district', name: 'district_city', progress: 83, needed: 600 },
 					{ kind: 'clear_deposit_blocker', name: 'd_decrepit_dwellings', progress: 90, needed: 120 }
-				]
+				],
+				jobs: [],
+				openJobs: 0
 			},
 			expect.objectContaining({ planetId: -1, name: 'colony 9', districts: 1, buildQueue: [] })
 		]);
@@ -181,6 +185,42 @@ describe('marketOrders', () => {
 			{ kind: 'buy', resource: 'minerals', amount: 42 }
 		]);
 		expect(marketOrders(undefined, 0)).toEqual([]);
+	});
+});
+
+describe('colonyJobs', () => {
+	// Shapes as in the 2200.04.01 save (Earth's pop_jobs).
+	const popJobs = {
+		'299': {
+			type: 'civilian',
+			workforce: 1906,
+			max_workforce: -1,
+			pop_groups: [{ pop_group: 1, amount: 1907 }]
+		},
+		'300': { type: 'servant', workforce: -1, max_workforce: -1, pop_groups: [{}] },
+		'326': {
+			type: 'farmer',
+			workforce: 800,
+			max_workforce: 800,
+			pop_groups: [{ pop_group: 1, amount: 800 }]
+		},
+		'327': {
+			type: 'miner',
+			workforce: 300,
+			max_workforce: 400,
+			pop_groups: { pop_group: 1, amount: 300 }
+		}
+	};
+
+	it('lists worked jobs, skips placeholders and sums open positions', () => {
+		expect(colonyJobs(popJobs, [299, 300, 326, 327, 999])).toEqual({
+			jobs: [
+				{ type: 'civilian', pops: 1907, filled: 1906, positions: null },
+				{ type: 'farmer', pops: 800, filled: 800, positions: 800 },
+				{ type: 'miner', pops: 300, filled: 300, positions: 400 }
+			],
+			openJobs: 100
+		});
 	});
 });
 

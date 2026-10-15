@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Chart from '#lib/Chart.svelte';
+	import Jobs from '#lib/Jobs.svelte';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followBranch, followGame } from '#lib/live.ts';
 
@@ -63,9 +64,14 @@
 
 <div class="grid gap-4 lg:grid-cols-2">
 	{#key data.tip}
-		<Chart title="Pops" series={data.charts.pops} range={data.xRange} />
+		<Chart title="Pops" series={data.charts.pops} range={data.xRange} right={['open jobs']} />
 		<Chart title="Stability" series={data.charts.stability} range={data.xRange} />
 		<Chart title="Free housing and amenities" series={data.charts.free} range={data.xRange} />
 		<Chart title="Districts" series={data.charts.districts} range={data.xRange} />
 	{/key}
 </div>
+
+{#if data.colony}
+	<h2 class="mt-6 mb-2 text-xl font-semibold">Jobs</h2>
+	<Jobs rows={data.jobRows} />
+{/if}

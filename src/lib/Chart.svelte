@@ -15,13 +15,15 @@
 		series,
 		range,
 		yMin,
-		markers = []
+		markers = [],
+		right = []
 	}: {
 		title: string;
 		series: Series;
 		range: [number, number];
 		yMin?: number;
 		markers?: Marker[];
+		right?: string[]; // lines drawn against a second y-axis on the right
 	} = $props();
 
 	let el: HTMLDivElement;
@@ -100,13 +102,15 @@
 						incrs: [1 / 12, 2 / 12, 3 / 12, 6 / 12, 1, 2, 5, 10, 20, 50],
 						values: (_u, ticks) => ticks.map(gameMonth)
 					},
-					{}
+					{},
+					...(right.length ? [{ scale: 'right', side: 1, grid: { show: false } }] : [])
 				],
 				series: [
 					{ label: 'date', value: (_u, v) => (v == null ? '' : gameMonth(v)) },
 					...Object.keys(series.lines).map((label, i) => ({
 						label: label.replaceAll('_', ' '),
 						stroke: colorOf(label) ?? palette[i % palette.length],
+						...(right.includes(label) ? { scale: 'right' } : {}),
 						dash: dashes[i % dashes.length],
 						width: 1.5,
 						spanGaps: true

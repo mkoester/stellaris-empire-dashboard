@@ -1,5 +1,13 @@
 import { Jomini } from 'jomini';
-import type { Colony, MarketOrder, Progress, QueueItem, Resources, Snapshot } from '#lib/types.ts';
+import type {
+	Colony,
+	ColonyJob,
+	MarketOrder,
+	Progress,
+	QueueItem,
+	Resources,
+	Snapshot
+} from '#lib/types.ts';
 import { START_YEAR } from '#lib/series.ts';
 import { readZipEntry } from './zip.ts';
 
@@ -26,6 +34,7 @@ export type RawSave = {
 	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
 	leaders: Record<string, Raw>;
 	monthlyTrades: Raw; // market.monthly_trades: every country's standing orders
+	popJobs: Record<string, Raw>; // top-level pop_jobs, referenced from colony.pop_jobs
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -50,6 +59,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			endGameStart: numOrNull(q.at('/galaxy/end_game_start')),
 			leaders: q.at('/leaders') ?? {},
 			monthlyTrades: q.at('/market/monthly_trades'),
+			popJobs: q.at('/pop_jobs') ?? {},
 			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
 		};
 	});
@@ -158,9 +168,38 @@ function playerColonies(raw: RawSave): Colony[] {
 			freeAmenities: num(c.free_amenities),
 			districts: list(c.districts).length,
 			buildQueue:
-				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : []
+				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
+			...colonyJobs(raw.popJobs, list(c.pop_jobs))
 		};
 	});
+}
+
+/**
+ * `pop_jobs.<id> = { type workforce max_workforce pop_groups = { { pop_group amount } } }`.
+ * `max_workforce` -1 means unlimited (civilian); jobs nobody works and that have no positions are
+ * the placeholders every colony carries (servant, purge, …) and are left out.
+ */
+export function colonyJobs(popJobs: Record<string, Raw>, ids: number[]) {
+	const jobs: ColonyJob[] = ids.flatMap((id) => {
+		const j = popJobs[String(id)];
+		if (!j || typeof j !== 'object') return [];
+		const pops = items(j.pop_groups).reduce((sum: number, g: Raw) => sum + num(g?.amount), 0);
+		const max = num(j.max_workforce);
+		if (pops === 0 && max <= 0) return [];
+		return [
+			{
+				type: String(j.type),
+				pops,
+				filled: Math.max(num(j.workforce), 0),
+				positions: max > 0 ? max : null
+			}
+		];
+	});
+	const openJobs = jobs.reduce(
+		(sum, j) => sum + (j.positions === null ? 0 : Math.max(j.positions - j.filled, 0)),
+		0
+	);
+	return { jobs, openJobs };
 }
 
 /**
@@ -222,5 +261,6 @@ function resources(obj: Raw): Resources {
 
 const num = (v: Raw) => (typeof v === 'number' ? v : 0);
 const numOrNull = (v: Raw) => (typeof v === 'number' ? v : null);
+const items = (v: Raw): Raw[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]);
 const list = (v: Raw): number[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]).map(Number);
 const first = (v: Raw) => (Array.isArray(v) ? v[0] : v);

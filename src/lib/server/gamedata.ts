@@ -19,6 +19,11 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, name, cost FROM council_agenda'
 				).map((r) => [r.key, { name: r.name ?? r.key, cost: r.cost }])
 			),
+			jobs: Object.fromEntries(
+				rows<{ key: string; name: string | null; category: string | null }>(
+					'SELECT key, name, category FROM job'
+				).map((r) => [r.key, { name: r.name ?? r.key, category: r.category }])
+			),
 			defines: Object.fromEntries(
 				rows<{ key: string; value: number }>('SELECT key, value FROM game_define').map((r) => [
 					r.key,

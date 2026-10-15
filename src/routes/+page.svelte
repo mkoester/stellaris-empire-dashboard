@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Chart from '#lib/Chart.svelte';
+	import Jobs from '#lib/Jobs.svelte';
 	import Resources from '#lib/Resources.svelte';
 	import Upcoming from '#lib/Upcoming.svelte';
 	import { colorOf } from '#lib/colors.ts';
@@ -142,6 +143,7 @@
 					<th class="p-1 text-right">Pops</th>
 					<th class="p-1 text-right">Employed</th>
 					<th class="p-1 text-right">Civilians</th>
+					<th class="p-1 text-right">Open jobs</th>
 					<th class="p-1 text-right">Stability</th>
 					<th class="p-1 text-right">Free housing</th>
 					<th class="p-1 text-right">Free amenities</th>
@@ -163,6 +165,7 @@
 						<td class="p-1 text-right">{fmt(c.pops)}</td>
 						<td class="p-1 text-right">{fmt(c.employed)}</td>
 						<td class="p-1 text-right">{fmt(c.civilians)}</td>
+						<td class="p-1 text-right">{fmt(c.openJobs)}</td>
 						<td class="p-1 text-right">{fmt(c.stability)}</td>
 						<td class="p-1 text-right">{fmt(c.freeHousing)}</td>
 						<td class="p-1 text-right">{fmt(c.freeAmenities)}</td>
@@ -173,4 +176,7 @@
 			</tbody>
 		</table>
 	</div>
+
+	<h2 class="mt-6 mb-2 text-xl font-semibold">Jobs</h2>
+	<Jobs rows={data.empireJobs} />
 {/if}

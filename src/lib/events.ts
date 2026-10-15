@@ -11,6 +11,7 @@ export type GameData = {
 	techs: Record<string, { name: string; cost: number | null }>;
 	agendas: Record<string, { name: string; cost: number | null }>;
 	defines: Record<string, number>;
+	jobs: Record<string, { name: string; category: string | null }>;
 };
 
 export type Upcoming = {

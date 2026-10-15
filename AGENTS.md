@@ -35,7 +35,10 @@ costs and the cost defines — regenerate it after a game update (`../stellaris-
 `STELLARIS_GAME_LOG` is opt-in: set it when the companion mod is enabled. The DB is a cache of
 what the game wrote: delete it to rebuild from the saves (the save graph is re-guessed from mtime
 order; manual parent corrections and past mod months are lost). A schema change bumps `SCHEMA` in
-`db.ts`, which rebuilds it automatically. `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test
+`db.ts`, which rebuilds it automatically. **Bump it for every change to what a snapshot stores — again even
+if it was already bumped earlier in the same session:** a running dev server may have rebuilt at the
+first bump, and a second shape change under the same number keeps the stale snapshots (the page
+then 500s on the missing field). `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test
 in `save.test.ts`.
 
 **How it works:** `watch.ts` polls the save folder (first backfill in mtime order, then every 2 s;
@@ -92,11 +95,14 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
   **The market's standing orders are booked apart** in `trade_income|trade_expenses|trade_balance`
   (`monthly_trades.<resource>`); the game's top bar includes them (2200.04: energy 118 − 80 = +38).
   The orders themselves: top-level `market.monthly_trades = { { trade_data = { trade_type=
-  market_buy|market_sell resource country } amount } }`.
+market_buy|market_sell resource country } amount } }`.
 - Colonies: since 4.x a top-level `colony=` section, referenced from `planets.planet.<id>.colony`.
   Holds pops, housing, amenities, stability, `final_designation`, districts, buildings.
   `employable_pops` counts all pops able to work, _not_ the employed: employed is
   `employable_pops - civilian` (Earth 2200.04: 5207 − 1905 = 3302; its `pop_jobs` sum to 3300).
+  Jobs: `colony.pop_jobs` lists ids into top-level `pop_jobs.<id> = { type workforce max_workforce
+  pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − workforce`
+  (`-1` = unlimited, civilian). Every colony also carries empty placeholder jobs (servant, purge, …).
 - Autosaves: `autosave=4` in `settings.txt` gave one per month (2200.02/03/04.01, observed).
 - Build queues: `construction.queue_mgr.queues.<id> = { owner location type items={…} }` (`planet`,
   `army`, `starbase`, `ships`, `combined`); a planet's own queue is `planets.planet.<id>.build_queue`,

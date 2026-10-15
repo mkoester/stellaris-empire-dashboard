@@ -14,7 +14,12 @@ export type Colony = {
 	freeAmenities: number;
 	districts: number;
 	buildQueue: QueueItem[];
+	jobs: ColonyJob[];
+	openJobs: number; // unfilled positions, summed over the colony's jobs
 };
+
+/** One job on a colony. Positions null: unlimited (civilian). */
+export type ColonyJob = { type: string; pops: number; filled: number; positions: number | null };
 
 /** One entry of a planet's build queue, in queue order. */
 export type QueueItem = {

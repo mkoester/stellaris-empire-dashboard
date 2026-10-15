@@ -18,12 +18,14 @@ export function load({ url, params }) {
 		planetId,
 		name: named ? colonyAt(named)!.name : `planet ${planetId}`,
 		colony: colonyAt(b.latest) ?? null,
+		jobRows: b.jobs[planetId] ?? [],
 		xRange: xRange(snaps),
 		charts: {
 			pops: colonySeries(snaps, planetId, {
 				pops: (c) => c.pops,
 				employed: (c) => c.employed,
-				civilians: (c) => c.civilians
+				civilians: (c) => c.civilians,
+				'open jobs': (c) => c.openJobs
 			}),
 			stability: colonySeries(snaps, planetId, { stability: (c) => c.stability }),
 			free: colonySeries(snaps, planetId, {
