@@ -19,7 +19,10 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	expenses: {},
 	balance: {},
 	colonies: [],
-	endGameYear: null
+	endGameYear: null,
+	empireSize: null,
+	starbases: null,
+	navalUsed: null
 });
 
 describe('db', () => {

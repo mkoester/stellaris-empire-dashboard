@@ -4,8 +4,14 @@
 	import type uPlot from 'uplot';
 	import type { Series } from './series.ts';
 
-	let { title, series, range }: { title: string; series: Series; range: [number, number] } =
-		$props();
+	// yMin: a floor the value cannot go below (empire size starts at 50), so the axis does not
+	// spend its height on impossible values.
+	let {
+		title,
+		series,
+		range,
+		yMin
+	}: { title: string; series: Series; range: [number, number]; yMin?: number } = $props();
 
 	let el: HTMLDivElement;
 	let plot: uPlot | undefined;
@@ -34,7 +40,12 @@
 			const opts: uPlot.Options = {
 				width: el.clientWidth,
 				height: 220,
-				scales: { x: { time: false, range: () => range } },
+				scales: {
+					x: { time: false, range: () => range },
+					...(yMin === undefined
+						? {}
+						: { y: { range: (_u, _min, max) => [yMin, Math.max(max, yMin) * 1.1] } })
+				},
 				axes: [{ values: (_u, ticks) => ticks.map((t) => String(Math.floor(t))) }, {}],
 				series: [
 					{ label: 'year', value: (_u, v) => (v == null ? '' : v.toFixed(2)) },

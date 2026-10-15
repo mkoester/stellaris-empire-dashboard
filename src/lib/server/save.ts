@@ -60,7 +60,13 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		expenses: sumSources(budget.expenses),
 		balance: sumSources(budget.balance),
 		colonies: playerColonies(raw),
-		endGameYear: raw.endGameStart === null ? null : START_YEAR + raw.endGameStart
+		endGameYear: raw.endGameStart === null ? null : START_YEAR + raw.endGameStart,
+		empireSize: numOrNull(raw.country?.empire_size),
+		starbases:
+			typeof raw.country?.starbase_capacity === 'number'
+				? { used: num(raw.country.starbase_capacity_used), capacity: raw.country.starbase_capacity }
+				: null,
+		navalUsed: numOrNull(raw.country?.used_naval_capacity)
 	};
 }
 

@@ -1,7 +1,7 @@
 import { getDb } from '#lib/server/app.ts';
 import { headId, history, nodes } from '#lib/server/db.ts';
 import { path } from '#lib/timeline.ts';
-import { popSeries, resourceSeries, xRange } from '#lib/series.ts';
+import { popSeries, researchSeries, resourceSeries, scalarSeries, xRange } from '#lib/series.ts';
 
 // Shows the branch ending at ?node=<id>, or at the head (the state last seen from the game).
 export function load({ url }) {
@@ -22,6 +22,8 @@ export function load({ url }) {
 		xRange: xRange(snaps),
 		charts: {
 			pops: popSeries(snaps),
+			empireSize: scalarSeries(snaps, 'empire size', (s) => s.empireSize),
+			research: researchSeries(snaps),
 			stockpile: resourceSeries(snaps, (s) => s.stockpile),
 			balance: resourceSeries(snaps, (s) => s.balance),
 			income: resourceSeries(snaps, (s) => s.income)

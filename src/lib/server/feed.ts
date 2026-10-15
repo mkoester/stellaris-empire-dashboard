@@ -68,7 +68,10 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		expenses: null,
 		balance: m.balance,
 		colonies: [],
-		endGameYear: null
+		endGameYear: null,
+		empireSize: null,
+		starbases: null,
+		navalUsed: null
 	};
 }
 

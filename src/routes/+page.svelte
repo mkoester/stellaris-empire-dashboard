@@ -26,6 +26,15 @@
 	<header class="mb-4 flex flex-wrap items-baseline gap-x-4">
 		<h1 class="text-2xl font-bold">{data.latest.empireName}</h1>
 		<span class="text-lg">{data.latest.date}</span>
+		{#if data.latest.empireSize !== null}
+			<span>empire size <b>{fmt(data.latest.empireSize)}</b></span>
+		{/if}
+		{#if data.latest.starbases}
+			<span>starbases <b>{data.latest.starbases.used} / {data.latest.starbases.capacity}</b></span>
+		{/if}
+		{#if data.latest.navalUsed !== null}
+			<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
+		{/if}
 		<a class="underline" href={resolve('/timeline')}>save graph</a>
 		{#if !data.isHead}
 			<a class="underline" href={resolve('/')}>back to the current game</a>
@@ -39,7 +48,9 @@
 
 	<div class="grid gap-4 lg:grid-cols-2">
 		{#key data.tip}
+			<Chart title="Empire size" series={data.charts.empireSize} range={data.xRange} yMin={50} />
 			<Chart title="Pops" series={data.charts.pops} range={data.xRange} />
+			<Chart title="Research per month" series={data.charts.research} range={data.xRange} />
 			<Chart title="Net per month" series={data.charts.balance} range={data.xRange} />
 			<Chart title="Stockpile" series={data.charts.stockpile} range={data.xRange} />
 			<Chart title="Income per month" series={data.charts.income} range={data.xRange} />

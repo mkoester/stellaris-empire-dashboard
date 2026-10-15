@@ -37,6 +37,11 @@ export type Snapshot = {
 	colonies: Colony[];
 	/** Year the end game starts (galaxy setting); null from the mod feed, which does not know it. */
 	endGameYear: number | null;
+	// Top-bar counters; null from the mod feed. Their caps' counterparts that the save does not
+	// store (naval capacity, envoy slots) are computed by the game and not available here.
+	empireSize: number | null;
+	starbases: { used: number; capacity: number } | null;
+	navalUsed: number | null;
 };
 
 export type TimelineNode = {

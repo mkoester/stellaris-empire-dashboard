@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gameYear, popSeries, resourceSeries, xRange } from './series.ts';
+import { gameYear, popSeries, researchSeries, resourceSeries, xRange } from './series.ts';
 import type { Snapshot } from './types.ts';
 
 const s = (date: string, stockpile: Record<string, number>) =>
@@ -39,5 +39,19 @@ describe('xRange', () => {
 	it('never starts before 2200', () => {
 		expect(xRange([at('2205.01.01')])).toEqual([2200, 2206]);
 		expect(xRange([])).toEqual([2200, 2201]);
+	});
+});
+
+describe('researchSeries', () => {
+	it('keeps the three research fields of income, gaps where income is unknown', () => {
+		const h = [
+			{ date: '2200.01.01', income: { energy: 9, physics_research: 14, society_research: 18 } },
+			{ date: '2200.02.01', income: null }
+		] as unknown as Snapshot[];
+		expect(researchSeries(h).lines).toEqual({
+			engineering_research: [0, null],
+			physics_research: [14, null],
+			society_research: [18, null]
+		});
 	});
 });

@@ -37,6 +37,22 @@ export function resourceSeries(
 	};
 }
 
-export function popSeries(history: Snapshot[]): Series {
-	return { x: history.map((s) => gameYear(s.date)), lines: { pops: history.map((s) => s.pops) } };
+/** One line from one number per snapshot. */
+export function scalarSeries(
+	history: Snapshot[],
+	label: string,
+	pick: (s: Snapshot) => number | null
+): Series {
+	return { x: history.map((s) => gameYear(s.date)), lines: { [label]: history.map(pick) } };
+}
+
+export const popSeries = (history: Snapshot[]) => scalarSeries(history, 'pops', (s) => s.pops);
+
+const RESEARCH = ['physics_research', 'society_research', 'engineering_research'];
+
+/** Monthly research per field, from the budget's income (the top bar's +14/+18/+14). */
+export function researchSeries(history: Snapshot[]): Series {
+	return resourceSeries(history, (s) =>
+		s.income === null ? null : Object.fromEntries(RESEARCH.map((k) => [k, s.income![k] ?? 0]))
+	);
 }

@@ -11,6 +11,10 @@ const raw: RawSave = {
 	endGameStart: 150,
 	country: {
 		num_sapient_pops: 5000,
+		empire_size: 50,
+		starbase_capacity: 5,
+		starbase_capacity_used: 1,
+		used_naval_capacity: 15,
 		controlled_colonies: [7, 9],
 		modules: { standard_economy_module: { resources: { energy: 1200, minerals: 300 } } },
 		budget: {
@@ -54,6 +58,10 @@ describe('toSnapshot', () => {
 		expect(s.income).toEqual({ energy: 15, food: 2 });
 		expect(s.expenses).toEqual({ energy: 4, alloys: 1 });
 		expect(s.pops).toBe(5000);
+	});
+
+	it('reads the top-bar counters', () => {
+		expect(s).toMatchObject({ empireSize: 50, starbases: { used: 1, capacity: 5 }, navalUsed: 15 });
 	});
 
 	it('lists controlled colonies, joined to their planet when there is one', () => {
@@ -106,6 +114,8 @@ describe.skipIf(!real)('real save', () => {
 		expect(Object.keys(s.income ?? {}).length).toBeGreaterThan(3);
 		expect(s.colonies.length).toBeGreaterThan(0);
 		expect(s.endGameYear).toBeGreaterThan(2200);
+		expect(s.empireSize).toBeGreaterThan(0);
+		expect(s.starbases?.capacity).toBeGreaterThan(0);
 		console.log(JSON.stringify({ ...s, colonies: s.colonies.slice(0, 3) }, null, 1));
 	}, 30_000);
 });

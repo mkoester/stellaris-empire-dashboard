@@ -79,12 +79,17 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
 - Monthly flows: `country.<id>.budget.current_month|last_month.income|expenses.<source>.<resource>`.
 - Colonies: since 4.x a top-level `colony=` section, referenced from `planets.planet.<id>.colony`.
   Holds pops, housing, amenities, stability, `final_designation`, districts, buildings.
+- Autosaves: `autosave=4` in `settings.txt` gave one per month (2200.02/03/04.01, observed).
 - Build queues: `construction.queue_mgr.queues.<id> = { owner location type }` (`planet`, `army`,
   `starbase`, `combined`); items live in `construction.item_mgr.items` — **shape not yet seen**
   (empty in a 2200.01.01 save).
 - Game length: top-level `galaxy = { mid_game_start=100 end_game_start=200 victory_year=300 }`,
   years after the 2200.01.01 start (small/default galaxy). Stored as `Snapshot.endGameYear` — the
   outer bound for zooming out, once zoom exists.
+- Top bar: `country.<id>.empire_size` (50 at start), `starbase_capacity_used` / `starbase_capacity`,
+  `used_naval_capacity`; research per field is `physics|society|engineering_research` in the
+  budget income. Not stored: naval capacity cap, envoy slots (envoys are `leaders.<id>` with
+  `class="envoy"`; an idle one has `job="bureaucrat"` — assigned shape not yet seen).
 - Identity of a game state (`Snapshot.fingerprint`): `tick` + `random_count`, both top-level.
 
 ## Open (needs a running game on Linux)
@@ -93,7 +98,6 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
   colony table has no queue column until a mid-game save shows the shape.
 - **`continue_game.json` on load**: if the game rewrites it when a save is _loaded_, it names the
   branch point exactly — `place()` already takes that as `loadedFrom`, nothing feeds it yet.
-- **Autosave interval**: `settings.txt` has `autosave=4`; which interval that means is unverified.
 - **Companion mod, never loaded in game.** First run decides three guesses, each failing loudly
   rather than silently: `[GetDate]` prints `YYYY.MM.DD` (else `feed.ts` reports "unexpected date
   format"), variables print as plain numbers (else "malformed SDASH line", e.g. for `1.2K`), and
