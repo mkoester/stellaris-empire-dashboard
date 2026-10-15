@@ -16,6 +16,16 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
 
 Cross-project conventions come from the OKF vault; workspace rules from `../CLAUDE.md`.
 
+## Goals (from the start, mkMac2017)
+
+- A second screen next to the running game: the state of the empire at a glance, and its history.
+- **Going back in time must not break it.** Loading an older save starts a new timeline (a branch
+  of the save graph) instead of overwriting history, and one can **switch between timelines**
+  (`/timeline`, `?node=`; planet pages follow the empire page).
+- Today a reload's branch point is a _guess_ when time goes backwards (marked, correctable on
+  `/timeline`). To make it exact, the companion mod could write a timeline identifier to the log —
+  see "Open".
+
 ## Running it
 
 Runs on the machine the game runs on (Linux/Proton) and binds to `127.0.0.1`. Paths are required
@@ -32,14 +42,18 @@ pnpm dev --host 127.0.0.1
 
 `STELLARIS_DATA_DB` is the extraction's SQLite, read once at start for tech/agenda names and base
 costs and the cost defines — regenerate it after a game update (`../stellaris-data-extraction/AGENTS.md`).
-`STELLARIS_GAME_LOG` is opt-in: set it when the companion mod is enabled. The DB is a cache of
-what the game wrote: delete it to rebuild from the saves (the save graph is re-guessed from mtime
-order; manual parent corrections and past mod months are lost). A schema change bumps `SCHEMA` in
-`db.ts`, which rebuilds it automatically. **Bump it for every change to what a snapshot stores — again even
-if it was already bumped earlier in the same session:** a running dev server may have rebuilt at the
-first bump, and a second shape change under the same number keeps the stale snapshots (the page
-then 500s on the missing field). `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test
-in `save.test.ts`.
+`STELLARIS_GAME_LOG` is opt-in: set it when the companion mod is enabled.
+
+**The DB is history, not a cache.** The game keeps only its last 5 autosaves (`autosave_*` rotate),
+so snapshots of deleted saves exist nowhere else — never delete the DB or drop its tables.
+
+- **A new snapshot field needs a default in `upgrade()` (`src/lib/upgrade.ts`)**, which brings
+  stored snapshots to the current shape on read. Saves still on disk refresh their snapshot on
+  every start (a re-read save replaces its stored reading).
+- `SCHEMA` in `db.ts` versions the _tables_ only; bumping it drops all history. Change the tables
+  with a migration instead.
+
+`STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`.
 
 **How it works:** `watch.ts` polls the save folder (first backfill in mtime order, then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
@@ -156,6 +170,10 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
 
 ## Open (needs a running game on Linux)
 
+- **Exact branch points via the mod**: each month the mod rolls a random id and keeps the previous
+  one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
+  load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.
+  The variables also land in every save. Needs the mod running (no achievements).
 - **`continue_game.json` on load**: if the game rewrites it when a save is _loaded_, it names the
   branch point exactly — `place()` already takes that as `loadedFrom`, nothing feeds it yet.
 - **Companion mod, never loaded in game.** First run decides three guesses, each failing loudly

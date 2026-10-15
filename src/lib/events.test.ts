@@ -20,6 +20,7 @@ const data: GameData = {
 	speciesClasses: {},
 	archetypes: {},
 	planetClasses: {},
+	names: {},
 	defines: {
 		EMPIRE_SIZE_BASE: 100,
 		EMPIRE_SIZE_TECH_COST_PENALTY: 0.002,

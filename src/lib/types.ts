@@ -147,6 +147,7 @@ export type GameData = {
 	speciesClasses: Record<string, { name: string; archetype: string | null }>;
 	archetypes: Record<string, { points: number; maxTraits: number }>;
 	planetClasses: Record<string, { name: string; colonizable: boolean }>;
+	names: Record<string, string>; // display names of buildings and deposits (build queue items)
 };
 
 /** One modifier as the game files give it, labelled from modifier_label. */

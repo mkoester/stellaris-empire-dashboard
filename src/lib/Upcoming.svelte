@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { colorOf } from './colors.ts';
-	import { pretty } from './format.ts';
+	import { nameOf } from './format.ts';
 	import InfoPopup from './InfoPopup.svelte';
 	import type { Upcoming } from './events.ts';
 	import type { Explanation } from './types.ts';
@@ -10,8 +10,14 @@
 	let {
 		events,
 		node,
-		explain = {}
-	}: { events: Upcoming[]; node: number | null; explain?: Record<string, Explanation> } = $props();
+		explain = {},
+		names = {}
+	}: {
+		events: Upcoming[];
+		node: number | null;
+		explain?: Record<string, Explanation>;
+		names?: Record<string, string>;
+	} = $props();
 
 	const planetHref = (planetId: number) =>
 		node === null
@@ -46,7 +52,7 @@
 						<td class="p-1 text-right whitespace-nowrap">{inMonths(e.months)}</td>
 						<td class="p-1">
 							<InfoPopup explanation={e.ref ? explain[e.ref] : undefined}
-								>{e.kind === 'construction' ? pretty(e.what) : e.what}</InfoPopup
+								>{e.kind === 'construction' ? nameOf(names, e.what) : e.what}</InfoPopup
 							>
 						</td>
 						<td class="p-1 opacity-75">{e.kind}</td>

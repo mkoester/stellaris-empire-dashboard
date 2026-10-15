@@ -33,6 +33,13 @@ export function branch(url: URL) {
 	const empirePops = Object.fromEntries(empireJobs.map((r) => [r.type, r.pops]));
 	return {
 		upcoming: last ? upcoming(last, saves.at(-2) ?? null, getGameData()) : [],
+		// Display names of what the build queues hold (buildings, blockers).
+		names: Object.fromEntries(
+			colonies
+				.flatMap((c) => c.buildQueue.map((q) => q.name))
+				.filter((k) => getGameData().names[k])
+				.map((k) => [k, getGameData().names[k]])
+		),
 		jobs: Object.fromEntries(
 			colonies.map((c) => [c.planetId, withFlows(jobRows(c.jobs, info), flows, empirePops)])
 		),

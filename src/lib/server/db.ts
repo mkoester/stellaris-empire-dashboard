@@ -1,10 +1,13 @@
 import { DatabaseSync } from 'node:sqlite';
 import { path, place } from '#lib/timeline.ts';
+import { upgrade } from '#lib/upgrade.ts';
 import type { Resources, Snapshot, SourceKind, TimelineNode } from '#lib/types.ts';
 
-// The dashboard's own store: the save graph plus one snapshot per node. It is a cache of what the
-// game wrote, so there are no migrations: a schema change bumps SCHEMA and the tables are rebuilt
-// (saves are re-ingested on start; past mod lines and manual parent corrections are lost).
+// The dashboard's own store: the save graph plus one snapshot per node. It is **history, not a
+// cache**: the game keeps only its last few autosaves, so most snapshots can no longer be rebuilt.
+// - A new snapshot field needs a default in `upgrade()` (#lib/upgrade.ts), which brings stored
+//   snapshots up to date on read; saves still on disk refresh theirs on every start.
+// - SCHEMA versions the *tables* only. Bumping it drops everything, history included.
 
 const SCHEMA = '15';
 
@@ -89,7 +92,7 @@ function snapshotOf(db: Db, nodeId: number): Snapshot {
 	const row = db.prepare('SELECT json FROM snapshot WHERE node_id = ?').get(nodeId) as {
 		json: string;
 	};
-	return JSON.parse(row.json) as Snapshot;
+	return upgrade(JSON.parse(row.json));
 }
 
 export type Recorded = {
@@ -108,6 +111,12 @@ export function record(
 ): Recorded {
 	const placement = place(nodes(db), headId(db), snap, loadedFrom);
 	if (placement.kind === 'duplicate') {
+		// Seen before: a save read by a newer dashboard has more fields — keep the fresh reading.
+		if (snap.kind === 'save')
+			db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
+				JSON.stringify(snap),
+				placement.nodeId
+			);
 		setHead(db, placement.nodeId);
 		return { nodeId: placement.nodeId, isNew: false, mismatches: [] };
 	}

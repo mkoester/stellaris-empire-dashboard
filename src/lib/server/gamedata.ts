@@ -58,6 +58,12 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, name, colonizable FROM planet_class'
 				).map((r) => [r.key, { name: r.name ?? r.key, colonizable: r.colonizable === 1 }])
 			),
+			// Blockers are named "Blocker Sprawling Slums" in the data; the game shows "Sprawling Slums".
+			names: Object.fromEntries(
+				rows<{ key: string; name: string }>(
+					'SELECT key, name FROM building WHERE name IS NOT NULL UNION ALL SELECT key, name FROM deposit WHERE name IS NOT NULL'
+				).map((r) => [r.key, r.name.replace(/^Blocker /, '')])
+			),
 			defines: Object.fromEntries(
 				rows<{ key: string; value: number }>('SELECT key, value FROM game_define').map((r) => [
 					r.key,

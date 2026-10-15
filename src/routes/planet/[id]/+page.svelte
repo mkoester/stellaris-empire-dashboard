@@ -6,7 +6,7 @@
 	import Jobs from '#lib/Jobs.svelte';
 	import { automationRows } from '#lib/automation.ts';
 	import { net } from '#lib/flows.ts';
-	import { fmt, pretty } from '#lib/format.ts';
+	import { fmt, nameOf, pretty } from '#lib/format.ts';
 	import { followBranch, followGame } from '#lib/live.ts';
 
 	let { data } = $props();
@@ -57,7 +57,7 @@
 			<tbody>
 				{#each data.colony.buildQueue as item, i (i)}
 					<tr class="border-b border-gray-200 dark:border-gray-800">
-						<td class="p-1">{pretty(item.name)}</td>
+						<td class="p-1">{nameOf(data.names, item.name)}</td>
 						<td class="p-1 text-gray-500">{pretty(item.kind)}</td>
 						<td class="p-1 text-right">{fmt(item.progress)} / {fmt(item.needed)}</td>
 						<td class="p-1 text-right">{done[i] ?? ''}</td>

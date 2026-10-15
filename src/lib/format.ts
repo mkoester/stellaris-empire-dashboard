@@ -8,3 +8,6 @@ export const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionD
  */
 export const pretty = (key: string) =>
 	key.replace(/^(col|district|building|d|sr)_/, '').replaceAll('_', ' ');
+
+/** A game key by its display name when the data has one, else readable. */
+export const nameOf = (names: Record<string, string>, key: string) => names[key] ?? pretty(key);

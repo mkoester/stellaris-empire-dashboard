@@ -131,3 +131,29 @@ describe('schema', () => {
 		expect(nodes(openDb(file))).toHaveLength(1); // and a current one survives reopening
 	});
 });
+
+describe('history', () => {
+	it('keeps a snapshot an older dashboard stored and reads it in the current shape', () => {
+		const db = openDb(':memory:');
+		const { nodeId } = record(db, snap('2200.02.01', 'a'), 't');
+		// as stored before jobs, market orders etc. existed — its save file long deleted
+		const old = {
+			kind: 'save',
+			campaign: 'c',
+			date: '2200.02.01',
+			fingerprint: 'a',
+			colonies: [{ planetId: 3, name: 'Earth' }]
+		};
+		db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(JSON.stringify(old), nodeId);
+		const [s] = history(db, nodeId);
+		expect(s.marketOrders).toEqual([]);
+		expect(s.colonies[0]).toMatchObject({ name: 'Earth', jobs: [], happiness: null });
+	});
+
+	it('refreshes the snapshot when a save is read again', () => {
+		const db = openDb(':memory:');
+		const { nodeId } = record(db, snap('2200.02.01', 'a', 1), 't');
+		record(db, snap('2200.02.01', 'a', 7), 't');
+		expect(history(db, nodeId)[0].stockpile.energy).toBe(7);
+	});
+});

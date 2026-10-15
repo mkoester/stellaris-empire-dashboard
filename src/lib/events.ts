@@ -175,7 +175,7 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 				kind: 'construction',
 				what: item.name,
 				tint: 'construction',
-				detail: `${c.name} · ${item.kind}`,
+				detail: `${c.name} · ${item.kind.replaceAll('_', ' ')}`,
 				exact: i === 0,
 				planetId: c.planetId
 			});

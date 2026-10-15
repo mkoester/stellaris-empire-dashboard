@@ -18,7 +18,7 @@
 	import Ships from '#lib/panels/Ships.svelte';
 	import SpeciesPanel from '#lib/panels/Species.svelte';
 	import { colorOf } from '#lib/colors.ts';
-	import { fmt, pretty } from '#lib/format.ts';
+	import { fmt, nameOf, pretty } from '#lib/format.ts';
 	import { gameYear } from '#lib/series.ts';
 	import { announceBranch, followGame, postBranch } from '#lib/live.ts';
 	import type { Colony } from '#lib/types.ts';
@@ -68,7 +68,7 @@
 	const queue = (c: Colony) =>
 		c.buildQueue.length === 0
 			? '∅'
-			: pretty(c.buildQueue[0].name) +
+			: nameOf(data.empty ? {} : data.names, c.buildQueue[0].name) +
 				(c.buildQueue.length > 1 ? ` (+${c.buildQueue.length - 1})` : '');
 </script>
 
@@ -144,7 +144,12 @@
 	/>
 
 	<h2 class="mb-2 text-xl font-semibold">Upcoming</h2>
-	<Upcoming events={data.upcoming} node={data.isHead ? null : data.tip} explain={data.explain} />
+	<Upcoming
+		events={data.upcoming}
+		node={data.isHead ? null : data.tip}
+		explain={data.explain}
+		names={data.names}
+	/>
 
 	<div class="mt-6 grid gap-4 lg:grid-cols-2">
 		{#key data.tip}
