@@ -17,9 +17,25 @@
 	$effect(() => postBranch(shown()));
 
 	const events = $derived(data.empty ? [] : data.upcoming);
+	// Research per field (physics, society, engineering), then tradition, then agenda.
+	const headerOrder = [
+		'physics_research',
+		'society_research',
+		'engineering_research',
+		'unity',
+		'agenda'
+	];
 	const headerProgress = $derived(
-		events.filter((e) => e.kind === 'tradition' || e.kind === 'agenda')
+		headerOrder.flatMap((tint) => events.filter((e) => e.tint === tint && e.total))
 	);
+	const headerLabel = (e: (typeof events)[number]) =>
+		e.kind === 'research'
+			? `next ${e.tint.replace('_research', '')} research`
+			: e.kind === 'tradition'
+				? 'next tradition'
+				: 'agenda';
+	const percent = (e: (typeof events)[number]) =>
+		`${Math.min(100, Math.floor((100 * e.done!) / e.total!))}%`;
 	const researchMarkers = $derived(
 		events
 			.filter((e) => e.kind === 'research')
@@ -58,10 +74,12 @@
 		{#if data.latest.navalUsed !== null}
 			<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
 		{/if}
-		{#each headerProgress as e (e.kind)}
-			<span style:color={colorOf(e.tint)}>
-				{e.kind === 'tradition' ? 'next tradition' : 'agenda'}
-				<b>{fmt(e.done!)} / {fmt(e.total!)}</b> ≈ {e.date}
+		{#each headerProgress as e (e.tint)}
+			<span
+				style:color={colorOf(e.tint)}
+				title="{e.what}: {fmt(e.done!)} / {fmt(e.total!)}, ≈ {e.date}"
+			>
+				{headerLabel(e)} <b>{percent(e)}</b> ≈ {Math.round(e.months)} mo
 			</span>
 		{/each}
 		<a class="underline" href={resolve('/timeline')}>save graph</a>
