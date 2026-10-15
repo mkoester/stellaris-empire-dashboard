@@ -8,6 +8,6 @@
 	<title>Empire dashboard</title>
 </svelte:head>
 
-<main class="mx-auto max-w-7xl p-4">
+<main class="mx-auto max-w-[96rem] p-4">
 	{@render children()}
 </main>

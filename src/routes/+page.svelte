@@ -195,15 +195,21 @@
 		</table>
 	</div>
 
-	<h2 class="mt-6 mb-2 text-xl font-semibold">Jobs</h2>
-	<Jobs rows={data.empireJobs} />
-
-	<h2 class="mt-6 mb-2 text-xl font-semibold">Pops' resources per month</h2>
-	<p class="mb-2 text-sm text-gray-500">
-		What jobs produce and use, and what pops and buildings cost — the budget's planet and pop
-		sources.
-	</p>
-	<Flows rows={budgetRows(data.latest.planetBudget ?? [])} />
+	<!-- side by side once both fit (about 1250 px), stacked in a split-view half -->
+	<div class="mt-6 grid items-start gap-6 2xl:grid-cols-2">
+		<section>
+			<h2 class="mb-2 text-xl font-semibold">Jobs</h2>
+			<Jobs rows={data.empireJobs} />
+		</section>
+		<section>
+			<h2 class="mb-2 text-xl font-semibold">Pops' resources per month</h2>
+			<p class="mb-2 text-sm text-gray-500">
+				What jobs produce and use, and what pops and buildings cost — the budget's planet and pop
+				sources.
+			</p>
+			<Flows rows={budgetRows(data.latest.planetBudget ?? [])} />
+		</section>
+	</div>
 
 	<div class="mt-6 grid gap-6 md:grid-cols-3">
 		<section>

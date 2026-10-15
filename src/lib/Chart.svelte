@@ -15,6 +15,7 @@
 		series,
 		range,
 		yMin,
+		yMax,
 		markers = [],
 		right = []
 	}: {
@@ -22,6 +23,7 @@
 		series: Series;
 		range: [number, number];
 		yMin?: number;
+		yMax?: number; // a fixed top, e.g. 100 for percentages
 		markers?: Marker[];
 		right?: string[]; // lines drawn against a second y-axis on the right
 	} = $props();
@@ -95,9 +97,13 @@
 					x: { time: false, range: () => range },
 					// The right axis (e.g. open jobs) spans at least 0–50, so small changes stay small.
 					right: { range: (_u, _min, max) => [0, Math.max(50, max)] },
-					...(yMin === undefined
+					...(yMin === undefined && yMax === undefined
 						? {}
-						: { y: { range: (_u, _min, max) => [yMin, Math.max(max, yMin) * 1.1] } })
+						: {
+								y: {
+									range: (_u, min, max) => [yMin ?? min, yMax ?? Math.max(max, yMin ?? max) * 1.1]
+								}
+							})
 				},
 				axes: [
 					{

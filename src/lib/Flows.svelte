@@ -1,29 +1,11 @@
 <script lang="ts">
-	import { colorOf } from './colors.ts';
-	import { fmt, pretty } from './format.ts';
-	import { byTopBar } from './resourceGroups.ts';
+	import ResourceChips from './ResourceChips.svelte';
 	import type { Resources } from './types.ts';
 
-	// Rows of resource flows per month: what is used (−) first, then what is produced (+), each
-	// resource in its colour, in the top bar's order.
+	// Rows of resource flows per month: what is used first, then what is produced. Total rows
+	// (`strong`) are not split: their net values span both columns in a fixed order.
 	let { rows }: { rows: { label: string; flows: Resources; strong?: boolean }[] } = $props();
-
-	const part = (flows: Resources, sign: 1 | -1): [string, number][] =>
-		Object.entries(flows)
-			.filter(([, v]) => v * sign >= 0.05)
-			.sort(([a], [b]) => byTopBar(a, b));
 </script>
-
-{#snippet chips(list: [string, number][])}
-	{#each list as [k, v] (k)}
-		<span class="mr-3 whitespace-nowrap"
-			><span class={v < 0 ? 'text-red-600' : 'text-green-600'}
-				>{v < 0 ? '−' : '+'}{fmt(Math.abs(v))}</span
-			>
-			<span style:color={colorOf(k)}>{pretty(k)}</span></span
-		>
-	{/each}
-{/snippet}
 
 <table class="text-left text-sm">
 	<thead>
@@ -37,8 +19,12 @@
 		{#each rows as r (r.label)}
 			<tr class="border-b border-gray-200 dark:border-gray-800" class:font-semibold={r.strong}>
 				<td class="p-1 pr-4 whitespace-nowrap">{r.label}</td>
-				<td class="p-1 pr-4">{@render chips(part(r.flows, -1))}</td>
-				<td class="p-1">{@render chips(part(r.flows, 1))}</td>
+				{#if r.strong}
+					<td class="p-1" colspan="2"><ResourceChips flows={r.flows} /></td>
+				{:else}
+					<td class="p-1 pr-4"><ResourceChips flows={r.flows} sign={-1} /></td>
+					<td class="p-1"><ResourceChips flows={r.flows} sign={1} /></td>
+				{/if}
 			</tr>
 		{/each}
 	</tbody>

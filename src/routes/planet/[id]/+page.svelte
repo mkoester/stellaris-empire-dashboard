@@ -69,7 +69,13 @@
 	{#key data.tip}
 		<Chart title="Pops" series={data.charts.pops} range={data.xRange} right={['open jobs']} />
 		<Chart title="Stability" series={data.charts.stability} range={data.xRange} />
-		<Chart title="Happiness %" series={data.charts.happiness} range={data.xRange} />
+		<Chart
+			title="Happiness %"
+			series={data.charts.happiness}
+			range={data.xRange}
+			yMin={0}
+			yMax={100}
+		/>
 		<Chart title="Free housing and amenities" series={data.charts.free} range={data.xRange} />
 		<Chart title="Districts" series={data.charts.districts} range={data.xRange} />
 	{/key}
