@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { getExplanations } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
+import { openJobs } from '#lib/jobs.ts';
 import { colonySeries, xRange } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
 
@@ -34,7 +35,8 @@ export function load({ url, params }) {
 				pops: (c) => c.pops,
 				employed: (c) => c.employed,
 				civilians: (c) => c.civilians,
-				'open jobs': (c) => c.openJobs
+				// enforcer posts left to crime automation do not count, as in the colony table
+				'open jobs': (c) => openJobs(c).open
 			}),
 			stability: colonySeries(snaps, planetId, { stability: (c) => c.stability }),
 			// Happiness in %, overall and per stratum; a stratum the save gives none for is a gap.

@@ -5,6 +5,7 @@
 	import Jobs from '#lib/Jobs.svelte';
 	import { automationSummary } from '#lib/automation.ts';
 	import { budgetRows } from '#lib/flows.ts';
+	import { openJobs } from '#lib/jobs.ts';
 	import Resources from '#lib/Resources.svelte';
 	import Upcoming from '#lib/Upcoming.svelte';
 	import AutomationSummary from '#lib/panels/AutomationSummary.svelte';
@@ -184,6 +185,7 @@
 			</thead>
 			<tbody>
 				{#each data.latest.colonies as c (c.planetId + ':' + c.name)}
+					{@const jobs = openJobs(c)}
 					<tr class="border-b border-gray-200 dark:border-gray-800">
 						<td class="p-1">
 							{#if c.planetId >= 0}
@@ -196,7 +198,16 @@
 						<td class="p-1 text-right">{fmt(c.pops)}</td>
 						<td class="p-1 text-right">{fmt(c.employed)}</td>
 						<td class="p-1 text-right">{fmt(c.civilians)}</td>
-						<td class="p-1 text-right">{fmt(c.openJobs)}</td>
+						<td class="p-1 text-right">
+							{fmt(jobs.open)}{#if jobs.reserved}
+								<span
+									class="cursor-help text-gray-500"
+									title="{jobs.reserved} open enforcer job{jobs.reserved === 1
+										? ''
+										: 's'} not counted: crime automation fills them as needed"
+									>({fmt(jobs.reserved)})</span
+								>{/if}
+						</td>
 						<td class="p-1 text-right">{fmt(c.stability)}</td>
 						<td class="p-1 text-right">{pct(c.happiness)}</td>
 						<td class="p-1 text-right">{fmt(c.freeHousing)}</td>

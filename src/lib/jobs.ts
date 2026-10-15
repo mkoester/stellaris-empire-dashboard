@@ -1,4 +1,4 @@
-import type { BudgetSource, ColonyJob, Resources } from './types.ts';
+import type { BudgetSource, Colony, ColonyJob, Resources } from './types.ts';
 
 // Jobs summed over colonies, ordered like the game groups them: rulers, specialists, workers,
 // then civilians and anything else; within a stratum by pops worked.
@@ -83,4 +83,20 @@ export function withFlows(
 			estimated: share < 1
 		};
 	});
+}
+
+/**
+ * Open jobs that call for pops. With crime automation on, the colony fills enforcer posts itself
+ * as crime requires, so their vacancies are not counted — returned apart as `reserved`.
+ */
+export function openJobs(colony: Pick<Colony, 'openJobs' | 'jobs' | 'automation'>) {
+	const crimeAutomation =
+		colony.automation?.enabled === true &&
+		colony.automation.settings.includes('planet_automation_crime');
+	const reserved = crimeAutomation
+		? colony.jobs
+				.filter((j) => j.type === 'enforcer' && j.positions !== null)
+				.reduce((n, j) => n + Math.max(j.positions! - j.filled, 0), 0)
+		: 0;
+	return { open: colony.openJobs - reserved, reserved };
 }

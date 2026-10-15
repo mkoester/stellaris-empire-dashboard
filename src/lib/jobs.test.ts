@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { jobFlows, jobRows, withFlows } from './jobs.ts';
+import { jobFlows, jobRows, openJobs, withFlows } from './jobs.ts';
 import type { BudgetSource } from './types.ts';
 
 describe('jobRows', () => {
@@ -59,5 +59,34 @@ describe('jobFlows', () => {
 		expect(r.flows).toEqual({ food: 25 });
 		expect(r.estimated).toBe(true);
 		expect(withFlows(rows, { farmer: { food: 100 } }, { farmer: 200 })[0].estimated).toBe(false);
+	});
+});
+
+describe('openJobs', () => {
+	// Earth 2200.05: 1 open job, an enforcer post, with crime automation on.
+	const jobs = [
+		{ type: 'enforcer', pops: 99, filled: 99, positions: 100 },
+		{ type: 'miner', pops: 400, filled: 400, positions: 400 },
+		{ type: 'civilian', pops: 1911, filled: 1911, positions: null }
+	];
+	const automation = (enabled: boolean, settings: string[]) => ({ enabled, settings });
+
+	it('sets open enforcer posts apart when crime automation is on', () => {
+		expect(
+			openJobs({ openJobs: 1, jobs, automation: automation(true, ['planet_automation_crime']) })
+		).toEqual({
+			open: 0,
+			reserved: 1
+		});
+	});
+
+	it('counts them when automation or its crime setting is off', () => {
+		expect(
+			openJobs({ openJobs: 1, jobs, automation: automation(false, ['planet_automation_crime']) })
+		).toEqual({
+			open: 1,
+			reserved: 0
+		});
+		expect(openJobs({ openJobs: 1, jobs, automation: automation(true, []) }).reserved).toBe(0);
 	});
 });
