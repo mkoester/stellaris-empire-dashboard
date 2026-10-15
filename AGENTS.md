@@ -79,11 +79,13 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
 - Monthly flows: `country.<id>.budget.current_month|last_month.income|expenses.<source>.<resource>`.
 - Colonies: since 4.x a top-level `colony=` section, referenced from `planets.planet.<id>.colony`.
   Holds pops, housing, amenities, stability, `final_designation`, districts, buildings.
+  `employable_pops` counts all pops able to work, _not_ the employed: employed is
+  `employable_pops - civilian` (Earth 2200.04: 5207 − 1905 = 3302; its `pop_jobs` sum to 3300).
 - Autosaves: `autosave=4` in `settings.txt` gave one per month (2200.02/03/04.01, observed).
 - Build queues: `construction.queue_mgr.queues.<id> = { owner location type items={…} }` (`planet`,
   `army`, `starbase`, `ships`, `combined`); a planet's own queue is `planets.planet.<id>.build_queue`,
   and `items` lists its entries in order. Entries are `construction.item_mgr.items.<id> = { queue
-  progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.04, AI queues):
+progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.04, AI queues):
   `district`, `army`, `ship`, `starbase_building`, `clear_deposit_blocker` (→ `deposit.<id>.type`).
   `building` not yet seen — `save.ts` names it by the block's first string field.
 - Game length: top-level `galaxy = { mid_game_start=100 end_game_start=200 victory_year=300 }`,

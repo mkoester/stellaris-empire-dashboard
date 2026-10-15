@@ -17,7 +17,8 @@ export function load({ url, params }) {
 		charts: {
 			pops: colonySeries(snaps, planetId, {
 				pops: (c) => c.pops,
-				employable: (c) => c.employablePops
+				employed: (c) => c.employed,
+				civilians: (c) => c.civilians
 			}),
 			stability: colonySeries(snaps, planetId, { stability: (c) => c.stability }),
 			free: colonySeries(snaps, planetId, {

@@ -67,7 +67,8 @@
 					<th class="p-1">Planet</th>
 					<th class="p-1">Designation</th>
 					<th class="p-1 text-right">Pops</th>
-					<th class="p-1 text-right">Employable</th>
+					<th class="p-1 text-right">Employed</th>
+					<th class="p-1 text-right">Civilians</th>
 					<th class="p-1 text-right">Stability</th>
 					<th class="p-1 text-right">Free housing</th>
 					<th class="p-1 text-right">Free amenities</th>
@@ -87,7 +88,8 @@
 						</td>
 						<td class="p-1">{pretty(c.designation)}</td>
 						<td class="p-1 text-right">{fmt(c.pops)}</td>
-						<td class="p-1 text-right">{fmt(c.employablePops)}</td>
+						<td class="p-1 text-right">{fmt(c.employed)}</td>
+						<td class="p-1 text-right">{fmt(c.civilians)}</td>
 						<td class="p-1 text-right">{fmt(c.stability)}</td>
 						<td class="p-1 text-right">{fmt(c.freeHousing)}</td>
 						<td class="p-1 text-right">{fmt(c.freeAmenities)}</td>

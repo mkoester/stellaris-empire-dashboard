@@ -28,6 +28,8 @@ const raw: RawSave = {
 	colonies: {
 		'7': {
 			num_sapient_pops: 4800,
+			employable_pops: 4800,
+			civilian: 1500,
 			stability: 75.2,
 			districts: [1, 2, 3],
 			final_designation: 'col_capital'
@@ -92,7 +94,8 @@ describe('toSnapshot', () => {
 				name: 'Dar-Hesh',
 				designation: 'col_capital',
 				pops: 4800,
-				employablePops: 0,
+				employed: 3300,
+				civilians: 1500,
 				stability: 75.2,
 				freeHousing: 0,
 				freeAmenities: 0,

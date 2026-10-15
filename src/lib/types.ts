@@ -7,7 +7,8 @@ export type Colony = {
 	name: string;
 	designation: string;
 	pops: number;
-	employablePops: number;
+	employed: number; // employable pops minus civilians (the save has no direct count)
+	civilians: number; // pops without a job (the 4.x "civilian" stratum)
 	stability: number;
 	freeHousing: number;
 	freeAmenities: number;
