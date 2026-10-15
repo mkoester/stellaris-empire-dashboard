@@ -68,6 +68,8 @@ export type CivilianShip = {
 	fleetId: number;
 	name: string;
 	kind: string; // science_ship, constructor, colonizer, …
+	stance: string | null; // fleet_stance: evasive, passive, aggressive (null: the game's default)
+	automation: string[] | null; // automated: the enabled settings (survey, mining stations, …); null: manual
 	leader: string | null;
 	order: ShipOrder | null; // null: idle
 	queue: ShipOrder[];

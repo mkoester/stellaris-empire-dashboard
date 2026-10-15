@@ -62,6 +62,8 @@ export function monthsLeft(ship: CivilianShip, rate: number | null) {
 export function idleState(ship: CivilianShip): { text: string; act: boolean } {
 	const p = ship.parked;
 	const kind = ship.kind.replaceAll('_', ' ');
+	// automation picks its next task itself
+	if (ship.automation) return { text: `${kind} automated, between tasks`, act: false };
 	if (!p) return { text: `${kind} idle`, act: true };
 	if (ship.kind === 'colonizer' && p.planet && p.planetFree)
 		return p.systemOwned

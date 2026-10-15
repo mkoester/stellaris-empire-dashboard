@@ -204,6 +204,8 @@ describe('upcoming civilian ships', () => {
 		fleetId: 1,
 		name: 'Armstrong',
 		kind: 'science_ship',
+		stance: 'evasive',
+		automation: null,
 		leader: null,
 		order: order(progress),
 		queue: Array(queue).fill({
@@ -219,6 +221,8 @@ describe('upcoming civilian ships', () => {
 		fleetId: 9,
 		name: 'Taiwan',
 		kind: 'colonizer',
+		stance: 'evasive',
+		automation: null,
 		leader: null,
 		order: null,
 		queue: [],

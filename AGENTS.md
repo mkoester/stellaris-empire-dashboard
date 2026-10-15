@@ -169,6 +169,10 @@ deposit_holder | orbitable } }`, queue in `order`, **no arrival date**: `movemen
   `SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS`), station builds count days to the size's `base_buildtime`
   (outpost 360); surveys assumed to 100 — unconfirmed. Names are templates: `PREFIX_NAME_FORMAT`
   (the `PREFIX` "UNS" is localisation only), `HUMAN1_CHR_<first>` / `HUMAN1_SHIP_<name>`.
+- Fleet stance `fleet.fleet_stance` (absent = the default). **Automation is an order**:
+  `current_order = { automate_fleet_order = { sub_order = { <task>_order = {…} } settings_survey
+construct_mining_stations … = yes/no } }` — the task is the sub-order. `auto_movement` is
+  something else (a move order's "go to planet" target).
 - Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
   (adopt and finish entries included), `tradition_categories`; perks `country.ascension_perks`.
 - Manual saves: a save with the same date as the head but another state continues the head (a

@@ -7,6 +7,8 @@ const ship = (progress: number, orderId = 41): CivilianShip => ({
 	fleetId: 1,
 	name: 'Armstrong',
 	kind: 'science_ship',
+	stance: 'evasive',
+	automation: null,
 	leader: 'Mncedisi Iweala',
 	order: { kind: 'research_anomaly', target: 'Proxima Centauri b', progress, orderId },
 	queue: [{ kind: 'survey_planet', target: 'Barnards Star IV', progress: 0, orderId: 42 }],
@@ -59,6 +61,8 @@ describe('idle colony ships', () => {
 	const colonizer = (parked: CivilianShip['parked']): CivilianShip => ({
 		...ship(0),
 		kind: 'colonizer',
+		stance: 'evasive',
+		automation: null,
 		order: null,
 		queue: [],
 		parked
@@ -87,5 +91,18 @@ describe('idle colony ships', () => {
 			text: 'colonizer idle at Alpha Centauri',
 			act: true
 		});
+	});
+});
+
+describe('automated ships', () => {
+	it('never ask to step in: automation picks the next task (Jordan, 2202.06)', () => {
+		const jordan = {
+			...ship(0),
+			kind: 'constructor',
+			order: null,
+			queue: [],
+			automation: ['mining stations', 'research stations']
+		};
+		expect(idleState(jordan)).toEqual({ text: 'constructor automated, between tasks', act: false });
 	});
 });

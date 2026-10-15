@@ -37,9 +37,17 @@
 		<tbody>
 			{#each ships as s (s.fleetId)}
 				<tr class="border-b border-gray-200 align-top dark:border-gray-800">
-					<td class="p-1 whitespace-nowrap"
-						>{s.name} <span class="text-gray-500">{s.kind.replaceAll('_', ' ')}</span></td
-					>
+					<td class="p-1 whitespace-nowrap">
+						{s.name} <span class="text-gray-500">{s.kind.replaceAll('_', ' ')}</span>
+						<div class="text-xs text-gray-500">
+							{[
+								s.stance,
+								s.automation ? `automated: ${s.automation.join(', ') || 'nothing set'}` : 'manual'
+							]
+								.filter(Boolean)
+								.join(' · ')}
+						</div>
+					</td>
 					<td class="p-1">{s.leader ?? ''}</td>
 					<td class="p-1">
 						{#if s.order}{orderLabel(s.order)}{:else}

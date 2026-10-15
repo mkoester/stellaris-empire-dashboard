@@ -7,7 +7,10 @@
 	// The save holds no arrival dates.
 	let { fleets }: { fleets: { name: string; kind: string; route: Route }[] } = $props();
 
-	const shown = $derived(fleets.filter((f) => f.route.moving || f.route.stops.length));
+	// working where they are (0 jumps) is not underway
+	const shown = $derived(
+		fleets.filter((f) => f.route.moving || f.route.stops.some((s) => s.jumps !== 0))
+	);
 	const jumps = (n: number | null) => (n === null ? '? jumps' : n === 1 ? '1 jump' : `${n} jumps`);
 </script>
 

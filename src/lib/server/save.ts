@@ -245,7 +245,13 @@ export function civilianShips(
 		const f = raw.fleets[String(o?.fleet)];
 		const cls = String(f?.ship_class ?? '');
 		if (!f || cls === 'shipclass_military' || /starbase|station/.test(cls)) return [];
-		const current = Object.entries(f.current_order ?? {})[0];
+		// Automation is an order wrapping the actual task: `automate_fleet_order = { sub_order = {…}
+		// settings_survey = yes construct_mining_stations = yes … }`.
+		const top = Object.entries(f.current_order ?? {})[0] as [string, Raw] | undefined;
+		const auto = top?.[0] === 'automate_fleet_order' ? top[1] : null;
+		const current = auto
+			? (Object.entries(auto.sub_order ?? {})[0] as [string, Raw] | undefined)
+			: top;
 		const queued = Object.entries(f.order ?? {}).flatMap(([k, v]) =>
 			items(v).map((x) => [k, x] as [string, Raw])
 		);
@@ -254,6 +260,12 @@ export function civilianShips(
 				fleetId: Number(o.fleet),
 				name: displayName(f.name),
 				kind: cls.replace(/^shipclass_/, ''),
+				stance: typeof f.fleet_stance === 'string' ? f.fleet_stance : null,
+				automation: auto
+					? Object.entries(auto)
+							.filter(([k, v]) => v === true && /^(settings_|construct_|do_)/.test(k))
+							.map(([k]) => k.replace(/^(settings_|construct_|do_)/, '').replaceAll('_', ' '))
+					: null,
 				leader:
 					list(f.ships)
 						.map((s) => scientistOn.get(s))
@@ -433,8 +445,10 @@ export function route(raw: Pick<RawSave, 'planets' | 'systems' | 'country'>, f: 
 			(num(o?.deposit_holder?.type) === 0 ? o?.deposit_holder?.id : undefined);
 		return planet === undefined ? undefined : raw.planets[String(planet)]?.coordinate?.origin;
 	};
+	// an automated fleet's task sits in the automation order's sub_order
+	const unwrap = (o: Raw) => (o?.sub_order ? Object.values(o.sub_order)[0] : o);
 	const orders = [
-		...Object.values(f?.current_order ?? {}),
+		...Object.values(f?.current_order ?? {}).map(unwrap),
 		...Object.values(f?.order ?? {}).flatMap((v) => items(v))
 	];
 	const systems = orders

@@ -240,7 +240,7 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 			detail: `${s.name} · ${s.kind.replaceAll('_', ' ')}`,
 			exact: s.order === null,
 			// an idle ship has no queue to count; whether it needs the player depends on where it waits
-			act: s.order ? s.queue.length === 0 : idleState(s).act,
+			act: s.automation ? false : s.order ? s.queue.length === 0 : idleState(s).act,
 			queuedAfter: s.order ? s.queue.length : undefined,
 			fleetId: s.fleetId
 		});
