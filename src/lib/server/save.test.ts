@@ -165,7 +165,9 @@ describe('progress', () => {
 	const country = {
 		tech_status: {
 			physics_queue: [{ progress: 42.79314, technology: 'tech_physics_1', date: '2200.01.01' }],
-			society_queue: [{ progress: 56.56, technology: 'tech_planetary_unification' }]
+			society_queue: [{ progress: 56.56, technology: 'tech_planetary_unification' }],
+			technology: ['tech_corvettes', 'tech_starbase_1'],
+			level: [1, 1]
 		},
 		government: { council_agenda: 'agenda_unlock_slot', council_agenda_progress: 126 },
 		next_election: '2210.01.01'
@@ -177,6 +179,7 @@ describe('progress', () => {
 				{ area: 'physics', tech: 'tech_physics_1', progress: 42.79314 },
 				{ area: 'society', tech: 'tech_planetary_unification', progress: 56.56 }
 			],
+			researched: ['tech_corvettes', 'tech_starbase_1'],
 			agenda: { key: 'agenda_unlock_slot', progress: 126 },
 			traditionsTaken: 0,
 			nextElection: '2210.01.01',

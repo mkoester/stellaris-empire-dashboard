@@ -10,9 +10,16 @@ export function loadGameData(file: string): GameData {
 		const rows = <T>(sql: string) => db.prepare(sql).all() as T[];
 		return {
 			techs: Object.fromEntries(
-				rows<{ key: string; label: string | null; cost: number | null }>(
-					'SELECT key, label, cost FROM technology'
-				).map((r) => [r.key, { name: r.label ?? r.key, cost: r.cost }])
+				rows<{
+					key: string;
+					label: string | null;
+					cost: number | null;
+					area: string;
+					tier: number | null;
+				}>('SELECT key, label, cost, area, tier FROM technology').map((r) => [
+					r.key,
+					{ name: r.label ?? r.key, cost: r.cost, area: r.area, tier: r.tier }
+				])
 			),
 			agendas: Object.fromEntries(
 				rows<{ key: string; name: string | null; cost: number | null }>(

@@ -81,6 +81,7 @@ export type MarketOrder = { kind: 'buy' | 'sell'; resource: string; amount: numb
 /** What the empire is working towards; the inputs of the upcoming-events list. */
 export type Progress = {
 	research: { area: string; tech: string; progress: number }[]; // one per field being researched
+	researched: string[]; // techs already researched (tech_status.technology)
 	agenda: { key: string; progress: number } | null; // council agenda being prepared
 	traditionsTaken: number; // adopted traditions, adoptions and finishers included
 	nextElection: string | null;
@@ -137,7 +138,7 @@ export type TimelineNode = {
 
 /** Names, costs and rules from the extraction's SQLite (STELLARIS_DATA_DB), loaded once. */
 export type GameData = {
-	techs: Record<string, { name: string; cost: number | null }>;
+	techs: Record<string, { name: string; cost: number | null; area: string; tier: number | null }>;
 	agendas: Record<string, { name: string; cost: number | null }>;
 	defines: Record<string, number>;
 	jobs: Record<string, { name: string; category: string | null }>;

@@ -3,6 +3,7 @@ import { pick } from '#lib/server/explain.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pretty } from '#lib/format.ts';
 import { traitBudget } from '#lib/species.ts';
+import { techTiers } from '#lib/techTiers.ts';
 import {
 	fieldSeries,
 	popSeries,
@@ -29,6 +30,8 @@ export function load({ url }) {
 			...b.upcoming.flatMap((e) => (e.ref ? [e.ref] : [])),
 			...b.empireJobs.map((j) => `job:${j.type}`)
 		]),
+		// Researched techs per field and tier, at the latest full save.
+		tiers: techTiers(b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [], data.techs),
 		// Overview panels, named from the game data.
 		edicts: (latest.edicts ?? []).map((key) => ({
 			key,

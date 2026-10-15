@@ -5,8 +5,13 @@ import type { Progress, Snapshot } from './types.ts';
 // The UNE 3 campaign at 2200.03.01 and 2200.04.01, checked against the in-game screens.
 const data: GameData = {
 	techs: {
-		tech_physics_1: { name: 'Quantum Computing', cost: 1500 },
-		tech_planetary_unification: { name: 'Societal Unification', cost: 1000 }
+		tech_physics_1: { name: 'Quantum Computing', cost: 1500, area: 'physics', tier: 1 },
+		tech_planetary_unification: {
+			name: 'Societal Unification',
+			cost: 1000,
+			area: 'society',
+			tier: 1
+		}
 	},
 	agendas: { agenda_unlock_slot: { name: 'Expand The Council', cost: 7000 } },
 	jobs: {},
@@ -28,6 +33,7 @@ const data: GameData = {
 
 const progress = (physics: number, agenda: number): Progress => ({
 	research: [{ area: 'physics', tech: 'tech_physics_1', progress: physics }],
+	researched: [],
 	agenda: { key: 'agenda_unlock_slot', progress: agenda },
 	traditionsTaken: 0,
 	nextElection: '2210.01.01',

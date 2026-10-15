@@ -349,6 +349,7 @@ export function progress(raw: Pick<RawSave, 'country' | 'galaxy'>): Progress {
 				? [{ area, tech: String(current.technology), progress: num(current.progress) }]
 				: [];
 		}),
+		researched: items(c.tech_status?.technology).filter((t) => typeof t === 'string'),
 		agenda:
 			typeof agenda === 'string' && agenda !== ''
 				? { key: agenda, progress: num(c.government?.council_agenda_progress) }

@@ -12,6 +12,7 @@
 	import Expansion from '#lib/panels/Expansion.svelte';
 	import Leaders from '#lib/panels/Leaders.svelte';
 	import Score from '#lib/panels/Score.svelte';
+	import ResearchTiers from '#lib/panels/ResearchTiers.svelte';
 	import Sectors from '#lib/panels/Sectors.svelte';
 	import Ships from '#lib/panels/Ships.svelte';
 	import SpeciesPanel from '#lib/panels/Species.svelte';
@@ -237,6 +238,7 @@
 	</div>
 
 	<div class="mt-6 grid items-start gap-6 2xl:grid-cols-2">
+		<ResearchTiers tiers={data.tiers} />
 		<SpeciesPanel species={data.species} explain={data.explain} />
 		<Expansion planets={data.expansion} />
 	</div>
