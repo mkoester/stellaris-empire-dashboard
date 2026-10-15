@@ -1,8 +1,15 @@
 <script lang="ts">
-	import { fmt } from './format.ts';
+	import { colorOf } from './colors.ts';
+	import { fmt, pretty } from './format.ts';
 	import type { JobRow } from './jobs.ts';
 
 	let { rows }: { rows: JobRow[] } = $props();
+
+	const signed = (n: number) => (n >= 0 ? '+' : '−') + fmt(Math.abs(n));
+	const flowList = (r: JobRow) =>
+		Object.entries(r.flows ?? {})
+			.filter(([, v]) => Math.abs(v) >= 0.05)
+			.sort(([, a], [, b]) => b - a);
 
 	const open = (r: JobRow) => (r.positions === null ? null : Math.max(r.positions - r.filled, 0));
 </script>
@@ -18,6 +25,7 @@
 				<th class="p-1 text-right">Pops</th>
 				<th class="p-1 text-right">Positions</th>
 				<th class="p-1 text-right">Open</th>
+				<th class="p-1">Per month</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -28,6 +36,14 @@
 					<td class="p-1 text-right">{fmt(r.pops)}</td>
 					<td class="p-1 text-right">{r.positions === null ? '∞' : fmt(r.positions)}</td>
 					<td class="p-1 text-right">{open(r) === null ? '' : fmt(open(r)!)}</td>
+					<td class="p-1" title={r.estimated ? 'share of the empire total by pops' : ''}>
+						{r.estimated ? '≈ ' : ''}{#each flowList(r) as [k, v] (k)}
+							<span class="mr-3 whitespace-nowrap"
+								><span class={v < 0 ? 'text-red-600' : 'text-green-600'}>{signed(v)}</span>
+								<span style:color={colorOf(k)}>{pretty(k)}</span></span
+							>
+						{/each}
+					</td>
 				</tr>
 			{/each}
 		</tbody>

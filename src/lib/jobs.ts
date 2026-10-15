@@ -1,10 +1,15 @@
-import type { ColonyJob } from './types.ts';
+import type { BudgetSource, ColonyJob, Resources } from './types.ts';
 
 // Jobs summed over colonies, ordered like the game groups them: rulers, specialists, workers,
 // then civilians and anything else; within a stratum by pops worked.
 
 export type JobInfo = Record<string, { name: string; category: string | null }>;
-export type JobRow = ColonyJob & { name: string; category: string };
+export type JobRow = ColonyJob & {
+	name: string;
+	category: string;
+	flows?: Resources; // output − inputs per month
+	estimated?: boolean; // flows are a pops share of the empire total
+};
 
 const STRATA = ['ruler', 'specialist', 'worker', 'civilian'];
 
@@ -33,4 +38,49 @@ export function jobRows(jobs: ColonyJob[], info: JobInfo): JobRow[] {
 			category: info[j.type]?.category ?? ''
 		}))
 		.sort((a, b) => rank(a.category) - rank(b.category) || b.pops - a.pops);
+}
+
+/**
+ * Output and inputs per job type from the budget, which books them empire-wide under
+ * `planet_<job>`: the plural of the job's key or name (`planet_farmers` → farmer,
+ * `planet_metallurgists` → foundry "Metallurgist"), sometimes singular (`planet_technician`).
+ */
+export function jobFlows(budget: BudgetSource[], info: JobInfo): Record<string, Resources> {
+	const norm = (s: string) => s.toLowerCase().replace(/s$/, '');
+	// Keys win over names: primitive_farmer is also named "Farmer".
+	const byName = new Map<string, string>();
+	for (const [key, j] of Object.entries(info))
+		if (!byName.has(norm(j.name))) byName.set(norm(j.name), key);
+	for (const key of Object.keys(info)) byName.set(norm(key), key);
+	const out: Record<string, Resources> = {};
+	for (const s of budget) {
+		if (!s.source.startsWith('planet_')) continue;
+		const job = byName.get(norm(s.source.slice('planet_'.length)));
+		if (!job) continue;
+		const flows = { ...s.income };
+		for (const [k, v] of Object.entries(s.expenses)) flows[k] = (flows[k] ?? 0) - v;
+		out[job] = flows;
+	}
+	return out;
+}
+
+/**
+ * Attaches flows to rows. For one planet's rows pass `empirePops` (pops per job empire-wide): the
+ * planet gets its pops share, an estimate unless the planet holds all of that job.
+ */
+export function withFlows(
+	rows: JobRow[],
+	flows: Record<string, Resources>,
+	empirePops?: Record<string, number>
+): JobRow[] {
+	return rows.map((r) => {
+		const f = flows[r.type];
+		if (!f) return r;
+		const share = empirePops ? r.pops / (empirePops[r.type] || r.pops || 1) : 1;
+		return {
+			...r,
+			flows: Object.fromEntries(Object.entries(f).map(([k, v]) => [k, v * share])),
+			estimated: share < 1
+		};
+	});
 }
