@@ -14,6 +14,7 @@ export type Colony = {
 	freeAmenities: number;
 	districts: number;
 	buildQueue: QueueItem[];
+	buildSlots: number; // items the planet builds at once (queue `simultaneous`; >1 for wilderness, arkships, mods)
 	jobs: ColonyJob[];
 	openJobs: number; // unfilled positions, summed over the colony's jobs
 	strata: Stratum[]; // pops and happiness per stratum (worker, specialist, …)

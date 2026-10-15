@@ -43,6 +43,7 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	freeAmenities: 0,
 	districts: 0,
 	buildQueue: [],
+	buildSlots: 1,
 	jobs: [],
 	openJobs: 0,
 	strata: [],

@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { fromDays, toDays, traditionCost, upcoming, type GameData } from './events.ts';
+import {
+	fromDays,
+	scheduleQueue,
+	toDays,
+	traditionCost,
+	upcoming,
+	type GameData
+} from './events.ts';
 import type { Progress, Snapshot } from './types.ts';
 
 // The UNE 3 campaign at 2200.03.01 and 2200.04.01, checked against the in-game screens.
@@ -99,6 +106,7 @@ describe('upcoming', () => {
 				{
 					planetId: 3,
 					name: 'Earth',
+					buildSlots: 1,
 					buildQueue: [
 						{ kind: 'district', name: 'district_city', progress: 90, needed: 120 },
 						{ kind: 'building', name: 'building_x', progress: 0, needed: 60 }
@@ -107,9 +115,9 @@ describe('upcoming', () => {
 			]
 		} as Partial<Snapshot>);
 		const built = upcoming(withQueue, null, data).filter((e) => e.kind === 'construction');
-		expect(built.map((e) => [e.date, e.exact])).toEqual([
-			['2200.05.01', true],
-			['2200.07.01', false]
+		expect(built.map((e) => [e.date, e.exact, e.queuedAfter, e.act])).toEqual([
+			['2200.05.01', true, 1, false], // the next item takes over: information
+			['2200.07.01', false, 0, true] // the queue runs empty: act
 		]);
 	});
 });
@@ -119,5 +127,28 @@ describe('traditionCost', () => {
 		expect(traditionCost(0, 50, 1, data.defines)).toBe(300);
 		expect(traditionCost(1, 50, 1, data.defines)).toBeCloseTo(300 + 8 ** 1.8);
 		expect(traditionCost(0, 150, 1, data.defines)).toBeCloseTo(330);
+	});
+});
+
+describe('scheduleQueue', () => {
+	const item = (left: number) => ({ progress: 0, needed: left });
+
+	it('builds one at a time with one slot', () => {
+		expect(
+			scheduleQueue([item(30), item(60), item(10)], 1).map((p) => [p.doneIn, p.waitingAfter])
+		).toEqual([
+			[30, 2],
+			[90, 1],
+			[100, 0]
+		]);
+	});
+
+	it('fills free slots in queue order with several (wilderness, arkships, mods)', () => {
+		const plan = scheduleQueue([item(30), item(60), item(10)], 2);
+		expect(plan.map((p) => [p.doneIn, p.startsNow, p.waitingAfter])).toEqual([
+			[30, true, 1], // the third item takes its slot
+			[60, true, 0], // nothing left to take this slot
+			[40, false, 0]
+		]);
 	});
 });

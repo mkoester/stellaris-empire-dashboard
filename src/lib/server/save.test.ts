@@ -140,6 +140,7 @@ describe('toSnapshot', () => {
 					{ kind: 'district', name: 'district_city', progress: 83, needed: 600 },
 					{ kind: 'clear_deposit_blocker', name: 'd_decrepit_dwellings', progress: 90, needed: 120 }
 				],
+				buildSlots: 1,
 				jobs: [],
 				openJobs: 0,
 				strata: [],

@@ -44,8 +44,15 @@
 			</thead>
 			<tbody>
 				{#each events as e, i (i)}
-					<!-- the event in its game colour; the numbers in Details stay plain -->
-					<tr class="border-b border-gray-200 dark:border-gray-800" style:color={colorOf(e.tint)}>
+					<!-- the event in its game colour; the numbers in Details stay plain. ⚠ before the kind: a
+					     build slot runs idle (the game does not notify). Construction with other items still
+					     waiting when it is done is dimmed and counts them: "Medical Center (+2)". -->
+					<tr
+						class="border-b border-gray-200 dark:border-gray-800 {e.queuedAfter
+							? 'opacity-50'
+							: ''}"
+						style:color={colorOf(e.tint)}
+					>
 						<td class="p-1 whitespace-nowrap" title={e.exact ? 'exact' : 'estimated'}
 							>{e.exact ? '' : '≈ '}{e.date}</td
 						>
@@ -53,9 +60,20 @@
 						<td class="p-1">
 							<InfoPopup explanation={e.ref ? explain[e.ref] : undefined}
 								>{e.kind === 'construction' ? nameOf(names, e.what) : e.what}</InfoPopup
-							>
+							>{#if e.queuedAfter}
+								<span
+									title="{e.queuedAfter} other item{e.queuedAfter === 1
+										? ''
+										: 's'} in the queue after it">(+{e.queuedAfter})</span
+								>
+							{/if}
 						</td>
-						<td class="p-1 opacity-75">{e.kind}</td>
+						<td class="p-1 whitespace-nowrap opacity-75">
+							{#if e.act}<span
+									title="the build slot runs idle then — the game sends no notification">⚠</span
+								>{/if}
+							{e.kind}
+						</td>
 						<td class="p-1" style="color: CanvasText">
 							{#if e.planetId !== undefined}
 								<a class="underline" href={planetHref(e.planetId)}>{e.detail}</a>

@@ -386,6 +386,8 @@ function playerColonies(raw: RawSave): Colony[] {
 			districts: list(c.districts).length,
 			buildQueue:
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
+			buildSlots:
+				num(raw.construction?.queue_mgr?.queues?.[String(planet?.build_queue)]?.simultaneous) || 1,
 			...colonyJobs(raw.popJobs, list(c.pop_jobs)),
 			...strata(raw.popGroups, list(c.pop_groups)),
 			automation: {

@@ -22,6 +22,10 @@ export type Upcoming = {
 	done?: number; // progress so far, and what is needed, where it is a progress bar
 	total?: number;
 	planetId?: number;
+	// true: a build slot runs idle then — the one case the game sends no notification for (research,
+	// traditions, agendas and elections it announces itself)
+	act: boolean;
+	queuedAfter?: number; // construction: items still waiting when this one is done
 };
 
 /**
@@ -78,6 +82,24 @@ function due(
 	return { date: fromDays(toDays(now) + months * 30), months };
 }
 
+/**
+ * When each queue item is done, with `slots` built at once in queue order: an item starts when a
+ * slot frees. `waitingAfter`: items not yet started when it is done — 0 means its slot then idles.
+ */
+export function scheduleQueue(items: { progress: number; needed: number }[], slots: number) {
+	const free = Array<number>(Math.max(slots, 1)).fill(0); // day each slot is free again
+	const plan = items.map((item) => {
+		const slot = free.indexOf(Math.min(...free));
+		const start = free[slot];
+		free[slot] = start + Math.max(item.needed - item.progress, 0);
+		return { start, doneIn: free[slot], startsNow: start === 0 };
+	});
+	return plan.map((p) => ({
+		...p,
+		waitingAfter: plan.filter((q) => q.start >= p.doneIn && q !== p).length
+	}));
+}
+
 const fmt = (n: number) => n.toLocaleString('en', { maximumFractionDigits: 0 });
 
 /**
@@ -109,6 +131,7 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 			out.push({
 				...when,
 				kind: 'research',
+				act: false,
 				what: tech.name,
 				tint: `${r.area}_research`,
 				ref: `tech:${r.tech}`,
@@ -132,6 +155,7 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 		out.push({
 			...tWhen,
 			kind: 'tradition',
+			act: false,
 			what: 'Next tradition',
 			tint: 'unity',
 			done: unity,
@@ -154,6 +178,7 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 			out.push({
 				...when,
 				kind: 'agenda',
+				act: false,
 				what: agenda.name,
 				tint: 'agenda',
 				ref: `agenda:${p.agenda.key}`,
@@ -164,22 +189,23 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 			});
 	}
 
-	// Build queues: progress counts days; one item at a time, so later items wait for earlier ones.
+	// Build queues: progress counts days. A planet builds `buildSlots` items at once; the rest wait.
 	for (const c of latest.colonies) {
-		let days = 0;
-		c.buildQueue.forEach((item, i) => {
-			days += Math.max(item.needed - item.progress, 0);
+		for (const [i, item] of c.buildQueue.entries()) {
+			const s = scheduleQueue(c.buildQueue, c.buildSlots)[i];
 			out.push({
-				date: fromDays(toDays(latest.date) + days),
-				months: days / 30,
+				date: fromDays(toDays(latest.date) + s.doneIn),
+				months: s.doneIn / 30,
 				kind: 'construction',
 				what: item.name,
 				tint: 'construction',
 				detail: `${c.name} · ${item.kind.replaceAll('_', ' ')}`,
-				exact: i === 0,
-				planetId: c.planetId
+				exact: s.startsNow,
+				planetId: c.planetId,
+				act: s.waitingAfter === 0,
+				queuedAfter: s.waitingAfter
 			});
-		});
+		}
 	}
 
 	if (p.nextElection && toDays(p.nextElection) >= toDays(latest.date))
@@ -187,6 +213,7 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 			date: p.nextElection,
 			months: monthsBetween(latest.date, p.nextElection),
 			kind: 'election',
+			act: false,
 			what: 'Election',
 			tint: 'election',
 			detail: '',
