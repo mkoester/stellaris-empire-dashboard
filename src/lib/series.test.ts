@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	colonySeries,
 	gameMonth,
 	gameYear,
 	popSeries,
@@ -77,5 +78,16 @@ describe('withoutResearch', () => {
 	it('drops the research fields and keeps unknown as unknown', () => {
 		expect(withoutResearch({ energy: 1, physics_research: 14 })).toEqual({ energy: 1 });
 		expect(withoutResearch(null)).toBeNull();
+	});
+});
+
+describe('colonySeries', () => {
+	it('follows one planet, with gaps before colonisation and in mod-feed months', () => {
+		const h = [
+			{ date: '2200.01.01', colonies: [] },
+			{ date: '2200.02.01', colonies: [{ planetId: 7, pops: 100 }] },
+			{ date: '2200.03.01', colonies: [] }
+		] as unknown as Snapshot[];
+		expect(colonySeries(h, 7, { pops: (c) => c.pops }).lines).toEqual({ pops: [null, 100, null] });
 	});
 });

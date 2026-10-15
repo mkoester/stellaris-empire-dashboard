@@ -1,4 +1,4 @@
-import type { Resources, Snapshot } from './types.ts';
+import type { Colony, Resources, Snapshot } from './types.ts';
 
 // Snapshot history → chart columns. Pure, shared by server and page.
 // A value a source does not report (pops and gross income in mod-feed months) is null, which the
@@ -65,4 +65,25 @@ export function researchSeries(history: Snapshot[]): Series {
 	return resourceSeries(history, (s) =>
 		s.income === null ? null : Object.fromEntries(RESEARCH.map((k) => [k, s.income![k] ?? 0]))
 	);
+}
+
+/** One line per field of one colony; null where a snapshot has no such colony (or no colony data). */
+export function colonySeries(
+	history: Snapshot[],
+	planetId: number,
+	fields: Record<string, (c: Colony) => number>
+): Series {
+	const colony = (s: Snapshot) => s.colonies.find((c) => c.planetId === planetId);
+	return {
+		x: history.map((s) => gameYear(s.date)),
+		lines: Object.fromEntries(
+			Object.entries(fields).map(([label, f]) => [
+				label,
+				history.map((s) => {
+					const c = colony(s);
+					return c ? f(c) : null;
+				})
+			])
+		)
+	};
 }

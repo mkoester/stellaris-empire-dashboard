@@ -1,5 +1,5 @@
 import { Jomini } from 'jomini';
-import type { Colony, Resources, Snapshot } from '#lib/types.ts';
+import type { Colony, QueueItem, Resources, Snapshot } from '#lib/types.ts';
 import { START_YEAR } from '#lib/series.ts';
 import { readZipEntry } from './zip.ts';
 
@@ -19,6 +19,8 @@ export type RawSave = {
 	country: Raw;
 	colonies: Record<string, Raw>;
 	planets: Record<string, Raw>;
+	construction: Raw;
+	deposits: Record<string, Raw>;
 	empireName: string;
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
 };
@@ -39,6 +41,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			country: q.at(`/country/${countryId}`),
 			colonies: q.at('/colony') ?? {},
 			planets: q.at('/planets/planet') ?? {},
+			construction: q.at('/construction'),
+			deposits: q.at('/deposit') ?? {},
 			empireName: String(meta.name ?? ''),
 			endGameStart: numOrNull(q.at('/galaxy/end_game_start'))
 		};
@@ -90,8 +94,33 @@ function playerColonies(raw: RawSave): Colony[] {
 			freeHousing: num(c.free_housing),
 			freeAmenities: num(c.free_amenities),
 			districts: list(c.districts).length,
-			buildQueueId: planet?.build_queue !== undefined ? Number(planet.build_queue) : null
+			buildQueue:
+				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : []
 		};
+	});
+}
+
+/**
+ * Items of one construction queue, in its order (`queues.<id>.items`). Each item names what it
+ * builds in a single `buildable_<kind> = { … }` block.
+ */
+export function buildQueue(
+	raw: Pick<RawSave, 'construction' | 'deposits'>,
+	queueId: number
+): QueueItem[] {
+	const queue = raw.construction?.queue_mgr?.queues?.[String(queueId)];
+	const items = raw.construction?.item_mgr?.items ?? {};
+	return list(queue?.items).flatMap((id) => {
+		const item = items[String(id)];
+		const key = item && Object.keys(item).find((k) => k.startsWith('buildable_'));
+		if (!key) return [];
+		const kind = key.slice('buildable_'.length);
+		const what = item[key] ?? {};
+		const name =
+			kind === 'clear_deposit_blocker'
+				? String(raw.deposits[String(what.deposit)]?.type ?? 'blocker')
+				: String(Object.values(what).find((v) => typeof v === 'string') ?? kind);
+		return [{ kind, name, progress: num(item.progress), needed: num(item.progress_needed) }];
 	});
 }
 

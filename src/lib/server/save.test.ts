@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { displayName, readSave, sumSources, toSnapshot, type RawSave } from './save.ts';
+import { buildQueue, displayName, readSave, sumSources, toSnapshot, type RawSave } from './save.ts';
 
 const raw: RawSave = {
 	date: '2210.03.01',
@@ -38,7 +38,28 @@ const raw: RawSave = {
 		'21': { colony: 7, owner: 0, build_queue: 2, name: { key: 'SPEC_Dar-Hesh_planet' } },
 		'22': { owner: 0 },
 		'23': 'none'
-	}
+	},
+	// Shapes as in a 4.5.2 save (2200.04.01, AI empires' queues).
+	construction: {
+		queue_mgr: { queues: { '2': { owner: 0, type: 'planet', items: [5, 4] }, '3': { owner: 0 } } },
+		item_mgr: {
+			items: {
+				'4': {
+					queue: 2,
+					progress: 90,
+					progress_needed: 120,
+					buildable_clear_deposit_blocker: { deposit: 443, planet: 21 }
+				},
+				'5': {
+					queue: 2,
+					progress: 83,
+					progress_needed: 600,
+					buildable_district: { district: 'district_city', planet: 21 }
+				}
+			}
+		}
+	},
+	deposits: { '443': { type: 'd_decrepit_dwellings' } }
 };
 
 describe('toSnapshot', () => {
@@ -76,10 +97,20 @@ describe('toSnapshot', () => {
 				freeHousing: 0,
 				freeAmenities: 0,
 				districts: 3,
-				buildQueueId: 2
+				buildQueue: [
+					{ kind: 'district', name: 'district_city', progress: 83, needed: 600 },
+					{ kind: 'clear_deposit_blocker', name: 'd_decrepit_dwellings', progress: 90, needed: 120 }
+				]
 			},
-			expect.objectContaining({ planetId: -1, name: 'colony 9', districts: 1, buildQueueId: null })
+			expect.objectContaining({ planetId: -1, name: 'colony 9', districts: 1, buildQueue: [] })
 		]);
+	});
+});
+
+describe('buildQueue', () => {
+	it('is empty for a queue without items or an unknown queue', () => {
+		expect(buildQueue(raw, 3)).toEqual([]);
+		expect(buildQueue(raw, 99)).toEqual([]);
 	});
 });
 

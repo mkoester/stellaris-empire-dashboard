@@ -80,9 +80,12 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
 - Colonies: since 4.x a top-level `colony=` section, referenced from `planets.planet.<id>.colony`.
   Holds pops, housing, amenities, stability, `final_designation`, districts, buildings.
 - Autosaves: `autosave=4` in `settings.txt` gave one per month (2200.02/03/04.01, observed).
-- Build queues: `construction.queue_mgr.queues.<id> = { owner location type }` (`planet`, `army`,
-  `starbase`, `combined`); items live in `construction.item_mgr.items` — **shape not yet seen**
-  (empty in a 2200.01.01 save).
+- Build queues: `construction.queue_mgr.queues.<id> = { owner location type items={…} }` (`planet`,
+  `army`, `starbase`, `ships`, `combined`); a planet's own queue is `planets.planet.<id>.build_queue`,
+  and `items` lists its entries in order. Entries are `construction.item_mgr.items.<id> = { queue
+  progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.04, AI queues):
+  `district`, `army`, `ship`, `starbase_building`, `clear_deposit_blocker` (→ `deposit.<id>.type`).
+  `building` not yet seen — `save.ts` names it by the block's first string field.
 - Game length: top-level `galaxy = { mid_game_start=100 end_game_start=200 victory_year=300 }`,
   years after the 2200.01.01 start (small/default galaxy). Stored as `Snapshot.endGameYear` — the
   outer bound for zooming out, once zoom exists.
@@ -94,8 +97,6 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
 
 ## Open (needs a running game on Linux)
 
-- **Build queue items**: `construction.item_mgr.items` was empty in the only save available; the
-  colony table has no queue column until a mid-game save shows the shape.
 - **`continue_game.json` on load**: if the game rewrites it when a save is _loaded_, it names the
   branch point exactly — `place()` already takes that as `loadedFrom`, nothing feeds it yet.
 - **Companion mod, never loaded in game.** First run decides three guesses, each failing loudly

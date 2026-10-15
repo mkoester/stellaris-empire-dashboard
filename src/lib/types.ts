@@ -12,7 +12,15 @@ export type Colony = {
 	freeHousing: number;
 	freeAmenities: number;
 	districts: number;
-	buildQueueId: number | null;
+	buildQueue: QueueItem[];
+};
+
+/** One entry of a planet's build queue, in queue order. */
+export type QueueItem = {
+	kind: string; // from buildable_<kind>: district, building, army, clear_deposit_blocker, …
+	name: string; // what is built: district/building key, army type, blocker deposit type
+	progress: number;
+	needed: number;
 };
 
 /**

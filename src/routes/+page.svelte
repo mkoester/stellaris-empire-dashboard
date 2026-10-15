@@ -1,22 +1,24 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import Chart from '#lib/Chart.svelte';
+	import { fmt, pretty } from '#lib/format.ts';
+	import { followGame } from '#lib/live.ts';
+	import type { Colony } from '#lib/types.ts';
 
 	let { data } = $props();
+	followGame(() => data.empty || data.isHead);
 
-	// Reload whenever the server ingests a save — but only while following the head.
-	onMount(() => {
-		const events = new EventSource('/api/events');
-		events.onmessage = () => {
-			if (data.empty || data.isHead) invalidateAll();
-		};
-		return () => events.close();
-	});
+	// Stay on the same branch when opening a planet.
+	const planetHref = (planetId: number) =>
+		!data.empty && !data.isHead
+			? resolve(`/planet/[id]?node=${data.tip}`, { id: String(planetId) })
+			: resolve('/planet/[id]', { id: String(planetId) });
 
-	const fmt = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 1 });
-	const designation = (d: string) => d.replace(/^col_/, '').replaceAll('_', ' ');
+	const queue = (c: Colony) =>
+		c.buildQueue.length === 0
+			? ''
+			: pretty(c.buildQueue[0].name) +
+				(c.buildQueue.length > 1 ? ` (+${c.buildQueue.length - 1})` : '');
 </script>
 
 {#if data.empty}
@@ -70,19 +72,27 @@
 					<th class="p-1 text-right">Free housing</th>
 					<th class="p-1 text-right">Free amenities</th>
 					<th class="p-1 text-right">Districts</th>
+					<th class="p-1">Build queue</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each data.latest.colonies as c (c.planetId + ':' + c.name)}
 					<tr class="border-b border-gray-200 dark:border-gray-800">
-						<td class="p-1">{c.name}</td>
-						<td class="p-1">{designation(c.designation)}</td>
+						<td class="p-1">
+							{#if c.planetId >= 0}
+								<a class="underline" href={planetHref(c.planetId)}>{c.name}</a>
+							{:else}
+								{c.name}
+							{/if}
+						</td>
+						<td class="p-1">{pretty(c.designation)}</td>
 						<td class="p-1 text-right">{fmt(c.pops)}</td>
 						<td class="p-1 text-right">{fmt(c.employablePops)}</td>
 						<td class="p-1 text-right">{fmt(c.stability)}</td>
 						<td class="p-1 text-right">{fmt(c.freeHousing)}</td>
 						<td class="p-1 text-right">{fmt(c.freeAmenities)}</td>
 						<td class="p-1 text-right">{c.districts}</td>
+						<td class="p-1">{queue(c)}</td>
 					</tr>
 				{/each}
 			</tbody>
