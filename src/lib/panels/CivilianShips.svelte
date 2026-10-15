@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fmt } from '../format.ts';
-	import { orderLabel, orderTotal } from '../ships.ts';
+	import { idleState, orderLabel, orderTotal } from '../ships.ts';
 	import type { CivilianShip, ShipOrder } from '../types.ts';
 	import Panel from './Panel.svelte';
 
@@ -42,7 +42,12 @@
 					>
 					<td class="p-1">{s.leader ?? ''}</td>
 					<td class="p-1">
-						{#if s.order}{orderLabel(s.order)}{:else}<span class="text-amber-600">⚠ idle</span>{/if}
+						{#if s.order}{orderLabel(s.order)}{:else}
+							{@const idle = idleState(s)}
+							<span class={idle.act ? 'text-amber-600' : 'text-gray-500'}
+								>{idle.act ? '⚠ ' : ''}{idle.text}</span
+							>
+						{/if}
 					</td>
 					<td class="p-1 text-right whitespace-nowrap">{s.order ? progress(s.order) : ''}</td>
 					<td class="p-1 whitespace-nowrap">{due[s.fleetId] ?? ''}</td>

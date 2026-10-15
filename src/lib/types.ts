@@ -72,6 +72,14 @@ export type CivilianShip = {
 	order: ShipOrder | null; // null: idle
 	queue: ShipOrder[];
 	route: Route; // where it is and where its orders take it
+	// where an idle ship waits: the planet it orbits (if any), and whether the system is the
+	// country's (a starbase or outpost of its own there)
+	parked: {
+		planet: string | null;
+		planetFree: boolean;
+		system: string;
+		systemOwned: boolean;
+	} | null;
 };
 
 export type SpeciesInfo = { id: string; name: string; cls: string; traits: string[]; pops: number };

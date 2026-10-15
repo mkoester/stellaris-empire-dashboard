@@ -53,3 +53,19 @@ export function monthsLeft(ship: CivilianShip, rate: number | null) {
 	if (total === null || o.progress === null || !(rate && rate > 0)) return null;
 	return Math.max(total - o.progress, 0) / rate;
 }
+
+/**
+ * What an idle ship means. A colony ship either waits at its target on purpose (the system is not
+ * the country's yet), can colonize now (the system became the country's), or sits about with
+ * nothing to do. `act`: the player has to step in — the game does not say so.
+ */
+export function idleState(ship: CivilianShip): { text: string; act: boolean } {
+	const p = ship.parked;
+	const kind = ship.kind.replaceAll('_', ' ');
+	if (!p) return { text: `${kind} idle`, act: true };
+	if (ship.kind === 'colonizer' && p.planet && p.planetFree)
+		return p.systemOwned
+			? { text: `colonize ${p.planet} — ${p.system} is yours now`, act: true }
+			: { text: `waiting at ${p.planet} — ${p.system} not yours yet`, act: false };
+	return { text: `${kind} idle at ${p.system}`, act: true };
+}

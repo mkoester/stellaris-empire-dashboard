@@ -147,7 +147,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		idleLeaders: idleLeaders(raw),
 		traditions: items(raw.country?.traditions).map(String),
 		ascensionPerks: items(raw.country?.ascension_perks).map(String),
-		civilianShips: civilianShips(raw),
+		civilianShips: civilianShips(raw, ownSystems(raw)),
 		edicts: items(raw.country?.edicts)
 			.map((e) => e?.edict)
 			.filter((e) => typeof e === 'string'),
@@ -217,7 +217,8 @@ export function civilianShips(
 	raw: Pick<
 		RawSave,
 		'country' | 'fleets' | 'ships' | 'shipDesigns' | 'planets' | 'leaders' | 'date' | 'systems'
-	>
+	>,
+	ownSystems: Set<number> = new Set()
 ): CivilianShip[] {
 	const planetName = (id: Raw) =>
 		id === undefined ? null : displayName(raw.planets[String(id)]?.name) || null;
@@ -259,10 +260,40 @@ export function civilianShips(
 						.find(Boolean) ?? null,
 				order: current ? order(current) : null,
 				queue: queued.map(order),
-				route: route(raw, f)
+				route: route(raw, f),
+				parked: current ? null : parked(raw, f, ownSystems)
 			}
 		];
 	});
+}
+
+/** Where an idle fleet waits (`movement_manager.orbit.orbitable.planet`, `coordinate.origin`). */
+function parked(raw: Pick<RawSave, 'planets' | 'systems'>, f: Raw, own: Set<number>) {
+	const system = Number(f?.movement_manager?.coordinate?.origin);
+	const planetId = f?.movement_manager?.orbit?.orbitable?.planet;
+	const planet = planetId === undefined ? undefined : raw.planets[String(planetId)];
+	return {
+		planet: planet ? displayName(planet.name) : null,
+		// a planet nobody owns and one could settle: not a star, gas giant or asteroid
+		planetFree:
+			!!planet && planet.owner === undefined && !NOT_ROCKY.test(String(planet.planet_class)),
+		system: displayName(raw.systems[String(system)]?.name),
+		systemOwned: own.has(system)
+	};
+}
+
+/** Systems with a starbase (outposts included) of the country's own. */
+export function ownSystems(
+	raw: Pick<
+		RawSave,
+		'countryId' | 'construction' | 'deposits' | 'shipDesigns' | 'starbases' | 'systems'
+	>
+): Set<number> {
+	const mine = new Set(stations(raw).map((s) => s.id));
+	const out = new Set<number>();
+	for (const [id, sys] of Object.entries(raw.systems))
+		if (list(sys?.starbases).some((sb) => mine.has(sb))) out.add(Number(id));
+	return out;
 }
 
 export const countBy = (keys: string[]): Record<string, number> =>

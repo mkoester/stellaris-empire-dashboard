@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { colorOf } from './colors.ts';
 	import { nameOf } from './format.ts';
@@ -24,11 +25,36 @@
 			? resolve('/planet/[id]', { id: String(planetId) })
 			: resolve(`/planet/[id]?node=${node}`, { id: String(planetId) });
 
+	// "Only what the game doesn't tell me": research, traditions, agendas, elections and
+	// construction with more queued come with game notifications; the ⚠ rows do not. A
+	// per-viewer setting, remembered in this browser.
+	const KEY = 'upcoming-only-unnotified';
+	let onlyUnnotified = $state(false);
+	onMount(() => {
+		try {
+			onlyUnnotified = localStorage.getItem(KEY) === '1';
+		} catch {
+			/* storage unavailable */
+		}
+	});
+	const remember = () => {
+		try {
+			localStorage.setItem(KEY, onlyUnnotified ? '1' : '0');
+		} catch {
+			/* storage unavailable */
+		}
+	};
+	const shown = $derived(onlyUnnotified ? events.filter((e) => e.act) : events);
+
 	const inMonths = (m: number) =>
 		m <= 0 ? 'now' : m < 1 ? `${Math.round(m * 30)} days` : `${Math.round(m)} mo`;
 </script>
 
-{#if events.length === 0}
+<label class="mb-1 block text-sm"
+	><input type="checkbox" bind:checked={onlyUnnotified} onchange={remember} /> only what the game
+	doesn't notify ({events.filter((e) => e.act).length} of {events.length})</label
+>
+{#if shown.length === 0}
 	<p>Nothing scheduled.</p>
 {:else}
 	<div class="overflow-x-auto">
@@ -43,7 +69,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each events as e, i (i)}
+				{#each shown as e, i (i)}
 					<!-- the event in its game colour; the numbers in Details stay plain. ⚠ before the kind: a
 					     build slot runs idle (the game does not notify). Construction with other items still
 					     waiting when it is done is dimmed and counts them: "Medical Center (+2)". -->

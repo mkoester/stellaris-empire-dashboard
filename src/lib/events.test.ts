@@ -212,7 +212,8 @@ describe('upcoming civilian ships', () => {
 			progress: 0,
 			orderId: 42
 		}),
-		route: { at: 'Sol', moving: false, stops: [] }
+		route: { at: 'Sol', moving: false, stops: [] },
+		parked: null
 	});
 	const idle = {
 		fleetId: 9,
@@ -221,7 +222,8 @@ describe('upcoming civilian ships', () => {
 		leader: null,
 		order: null,
 		queue: [],
-		route: { at: 'Sol', moving: false, stops: [] }
+		route: { at: 'Sol', moving: false, stops: [] },
+		parked: null
 	};
 
 	it('dates the current order from the measured rate and flags idle ships', () => {
@@ -233,7 +235,7 @@ describe('upcoming civilian ships', () => {
 		} as Partial<Snapshot>);
 		const rows = upcoming(now, prev, data).filter((e) => e.kind === 'ship');
 		expect(rows.map((e) => [e.what, e.date, e.queuedAfter, e.act])).toEqual([
-			['colonizer idle', '2202.05.01', 0, true],
+			['colonizer idle', '2202.05.01', undefined, true],
 			['anomaly Proxima Centauri b', '2202.05.23', 6, false]
 		]);
 	});

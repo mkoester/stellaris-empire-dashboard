@@ -1,4 +1,4 @@
-import { monthsLeft, orderLabel, orderRate } from './ships.ts';
+import { idleState, monthsLeft, orderLabel, orderRate } from './ships.ts';
 import type { QueueItem, Snapshot } from './types.ts';
 
 // Upcoming events of the empire: when current research, the next tradition, the council agenda,
@@ -235,12 +235,13 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 			date: fromDays(toDays(latest.date) + days),
 			months: days / 30,
 			kind: 'ship',
-			what: s.order ? orderLabel(s.order) : `${s.kind.replaceAll('_', ' ')} idle`,
+			what: s.order ? orderLabel(s.order) : idleState(s).text,
 			tint: 'ship',
 			detail: `${s.name} · ${s.kind.replaceAll('_', ' ')}`,
 			exact: s.order === null,
-			act: s.queue.length === 0,
-			queuedAfter: s.queue.length,
+			// an idle ship has no queue to count; whether it needs the player depends on where it waits
+			act: s.order ? s.queue.length === 0 : idleState(s).act,
+			queuedAfter: s.order ? s.queue.length : undefined,
 			fleetId: s.fleetId
 		});
 	}

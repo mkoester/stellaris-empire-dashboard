@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { monthsLeft, orderLabel, orderRate, orderTotal } from './ships.ts';
+import { idleState, monthsLeft, orderLabel, orderRate, orderTotal } from './ships.ts';
 import type { CivilianShip, Snapshot } from './types.ts';
 
 // UNE 3 at 2202.04.01 and 2202.05.01
@@ -10,7 +10,8 @@ const ship = (progress: number, orderId = 41): CivilianShip => ({
 	leader: 'Mncedisi Iweala',
 	order: { kind: 'research_anomaly', target: 'Proxima Centauri b', progress, orderId },
 	queue: [{ kind: 'survey_planet', target: 'Barnards Star IV', progress: 0, orderId: 42 }],
-	route: { at: 'Sol', moving: false, stops: [] }
+	route: { at: 'Sol', moving: false, stops: [] },
+	parked: null
 });
 const prev = (s: CivilianShip) => ({ civilianShips: [s] }) as unknown as Snapshot;
 
@@ -51,5 +52,40 @@ describe('ships', () => {
 				size: 'starbase_outpost'
 			})
 		).toBe('build starbase outpost Alpha Centauri A');
+	});
+});
+
+describe('idle colony ships', () => {
+	const colonizer = (parked: CivilianShip['parked']): CivilianShip => ({
+		...ship(0),
+		kind: 'colonizer',
+		order: null,
+		queue: [],
+		parked
+	});
+	const at = (systemOwned: boolean, planetFree = true) => ({
+		planet: planetFree ? 'Alpha Centauri III' : 'Earth',
+		planetFree,
+		system: 'Alpha Centauri',
+		systemOwned
+	});
+
+	it('waits on purpose in a system not yet owned (Taiwan, 2202.05)', () => {
+		expect(idleState(colonizer(at(false)))).toEqual({
+			text: 'waiting at Alpha Centauri III — Alpha Centauri not yours yet',
+			act: false
+		});
+	});
+
+	it('asks to colonize once the system is owned', () => {
+		expect(idleState(colonizer(at(true))).act).toBe(true);
+		expect(idleState(colonizer(at(true))).text).toMatch(/^colonize Alpha Centauri III/);
+	});
+
+	it('asks to move a colony ship sitting at home with nothing to settle', () => {
+		expect(idleState(colonizer(at(true, false)))).toEqual({
+			text: 'colonizer idle at Alpha Centauri',
+			act: true
+		});
 	});
 });
