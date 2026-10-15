@@ -135,7 +135,7 @@
 	/>
 
 	<h2 class="mb-2 text-xl font-semibold">Upcoming</h2>
-	<Upcoming events={data.upcoming} node={data.isHead ? null : data.tip} />
+	<Upcoming events={data.upcoming} node={data.isHead ? null : data.tip} explain={data.explain} />
 
 	<div class="mt-6 grid gap-4 lg:grid-cols-2">
 		{#key data.tip}
@@ -208,7 +208,7 @@
 	<div class="mt-6 grid items-start gap-6 2xl:grid-cols-2">
 		<section>
 			<h2 class="mb-2 text-xl font-semibold">Jobs</h2>
-			<Jobs rows={data.empireJobs} />
+			<Jobs rows={data.empireJobs} explain={data.explain} />
 		</section>
 		<section>
 			<h2 class="mb-2 text-xl font-semibold">Pops' resources per month</h2>
@@ -228,7 +228,7 @@
 			fleets={data.latest.fleets ?? []}
 			navalUsed={data.latest.navalUsed}
 		/>
-		<Edicts edicts={data.edicts} />
+		<Edicts edicts={data.edicts} explain={data.explain} />
 		<Sectors sectors={data.latest.sectors ?? []} />
 		<AutomationSummary
 			defaults={data.latest.defaultAutomation ?? []}
@@ -237,7 +237,7 @@
 	</div>
 
 	<div class="mt-6 grid items-start gap-6 2xl:grid-cols-2">
-		<SpeciesPanel species={data.species} />
+		<SpeciesPanel species={data.species} explain={data.explain} />
 		<Expansion planets={data.expansion} />
 	</div>
 {/if}

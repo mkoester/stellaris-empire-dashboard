@@ -147,3 +147,21 @@ export type GameData = {
 	archetypes: Record<string, { points: number; maxTraits: number }>;
 	planetClasses: Record<string, { name: string; colonizable: boolean }>;
 };
+
+/** One modifier as the game files give it, labelled from modifier_label. */
+export type Modifier = {
+	key: string;
+	value: number;
+	label: string | null;
+	positiveIsGood: boolean;
+};
+
+/** What a popup explains about a game object: from the extraction's descriptions and modifiers. */
+export type Explanation = {
+	title: string;
+	description: string | null;
+	modifiers: Modifier[];
+	text: string | null; // effect or tooltip text the game shows besides the modifiers
+	after?: { label: string; modifiers: Modifier[] }; // e.g. an agenda's finish modifier
+	facts: string[]; // short lines: cost, tier, …
+};

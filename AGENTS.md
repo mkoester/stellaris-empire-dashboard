@@ -54,6 +54,12 @@ branch's two latest saves, so every speed bonus counts — and costs are base co
 scaled by empire size and the galaxy sliders. Checked against the game at 2200.04.01: research
 53/71/108 months, tradition 2200.09.01 exact; the agenda is 164 vs. the game's 163 (rounding).
 
+**Popups** (`InfoPopup.svelte`, `server/explain.ts`): traits, edicts, council agendas, techs and
+jobs explained from the extraction DB — descriptions, modifiers (edict/agenda ones live in
+`tradition_modifier`, techs in `technology_modifier`), a few facts. The modifier formatting in
+`modifiers.ts` is **copied from the planner's `src/lib/civics.ts`** — keep the two in step. The
+popup itself is plain CSS: the planner's needs Skeleton UI.
+
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
 events after the game's text colours. Charts and the upcoming list both use them.
 

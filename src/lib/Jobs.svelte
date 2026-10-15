@@ -1,9 +1,11 @@
 <script lang="ts">
 	import ResourceChips from './ResourceChips.svelte';
 	import { fmt } from './format.ts';
+	import InfoPopup from './InfoPopup.svelte';
 	import type { JobRow } from './jobs.ts';
+	import type { Explanation } from './types.ts';
 
-	let { rows }: { rows: JobRow[] } = $props();
+	let { rows, explain = {} }: { rows: JobRow[]; explain?: Record<string, Explanation> } = $props();
 
 	const open = (r: JobRow) => (r.positions === null ? null : Math.max(r.positions - r.filled, 0));
 </script>
@@ -26,7 +28,8 @@
 		<tbody>
 			{#each rows as r (r.type)}
 				<tr class="border-b border-gray-200 dark:border-gray-800">
-					<td class="p-1">{r.name}</td>
+					<td class="p-1"><InfoPopup explanation={explain[`job:${r.type}`]}>{r.name}</InfoPopup></td
+					>
 					<td class="p-1 text-gray-500">{r.category}</td>
 					<td class="p-1 text-right">{fmt(r.pops)}</td>
 					<td class="p-1 text-right">{r.positions === null ? '∞' : fmt(r.positions)}</td>

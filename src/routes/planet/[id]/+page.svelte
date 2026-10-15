@@ -83,7 +83,7 @@
 
 {#if data.colony}
 	<h2 class="mt-6 mb-2 text-xl font-semibold">Jobs</h2>
-	<Jobs rows={data.jobRows} />
+	<Jobs rows={data.jobRows} explain={data.explain} />
 
 	<h2 class="mt-6 mb-2 text-xl font-semibold">Resources per month</h2>
 	<Flows

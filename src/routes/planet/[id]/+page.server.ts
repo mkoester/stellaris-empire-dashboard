@@ -1,5 +1,7 @@
 import { error } from '@sveltejs/kit';
+import { getExplanations } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
+import { pick } from '#lib/server/explain.ts';
 import { colonySeries, xRange } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
 
@@ -22,6 +24,10 @@ export function load({ url, params }) {
 		name: named ? colonyAt(named)!.name : `planet ${planetId}`,
 		colony: colonyAt(b.latest) ?? null,
 		jobRows: b.jobs[planetId] ?? [],
+		explain: pick(
+			getExplanations(),
+			(b.jobs[planetId] ?? []).map((j) => `job:${j.type}`)
+		),
 		xRange: xRange(snaps),
 		charts: {
 			pops: colonySeries(snaps, planetId, {

@@ -5,6 +5,7 @@ import { headCampaign, openDb, record, type Db, type Recorded } from './db.ts';
 import type { GameData } from '#lib/types.ts';
 import { tailLog, toLogSnapshot } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
+import { loadExplanations, type Explanations } from './explain.ts';
 import { watchSaves } from './watch.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
@@ -17,6 +18,12 @@ export const updates = new EventEmitter();
 let db: Db | undefined;
 
 let gameData: GameData | undefined;
+let explanations: Explanations | undefined;
+
+export function getExplanations(): Explanations {
+	if (!explanations) throw new Error('dashboard not started');
+	return explanations;
+}
 
 export function getGameData(): GameData {
 	if (!gameData) throw new Error('dashboard not started');
@@ -45,6 +52,7 @@ export async function start() {
 	const dbFile = required('DASHBOARD_DB');
 	const saveDir = required('STELLARIS_SAVE_DIR');
 	gameData = loadGameData(required('STELLARIS_DATA_DB'));
+	explanations = loadExplanations(required('STELLARIS_DATA_DB'));
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (db = openDb(dbFile));
 

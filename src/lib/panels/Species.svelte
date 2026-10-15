@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { fmt } from '../format.ts';
+	import InfoPopup from '../InfoPopup.svelte';
 	import type { TraitBudget } from '../species.ts';
+	import type { Explanation } from '../types.ts';
 	import Panel from './Panel.svelte';
 
 	type Row = {
@@ -8,10 +10,11 @@
 		name: string;
 		className: string;
 		pops: number;
-		traits: string[];
+		traits: { key: string; name: string }[];
 		budget: TraitBudget | null;
 	};
-	let { species }: { species: Row[] } = $props();
+	let { species, explain = {} }: { species: Row[]; explain?: Record<string, Explanation> } =
+		$props();
 </script>
 
 <Panel
@@ -35,7 +38,11 @@
 					<td class="p-1">{s.name}</td>
 					<td class="p-1 text-gray-500">{s.className}</td>
 					<td class="p-1 text-right">{fmt(s.pops)}</td>
-					<td class="p-1">{s.traits.join(', ')}</td>
+					<td class="p-1">
+						{#each s.traits as t, i (t.key)}{i ? ', ' : ''}<InfoPopup
+								explanation={explain[`trait:${t.key}`]}>{t.name}</InfoPopup
+							>{/each}
+					</td>
 					<td class="p-1 text-right"
 						>{s.budget ? `${s.budget.points} / ${s.budget.maxPoints}` : '?'}</td
 					>

@@ -2,10 +2,16 @@
 	import { resolve } from '$app/paths';
 	import { colorOf } from './colors.ts';
 	import { pretty } from './format.ts';
+	import InfoPopup from './InfoPopup.svelte';
 	import type { Upcoming } from './events.ts';
+	import type { Explanation } from './types.ts';
 
 	// node: the save shown when not following the game, so planet links stay on that branch.
-	let { events, node }: { events: Upcoming[]; node: number | null } = $props();
+	let {
+		events,
+		node,
+		explain = {}
+	}: { events: Upcoming[]; node: number | null; explain?: Record<string, Explanation> } = $props();
 
 	const planetHref = (planetId: number) =>
 		node === null
@@ -38,7 +44,11 @@
 							>{e.exact ? '' : '≈ '}{e.date}</td
 						>
 						<td class="p-1 text-right whitespace-nowrap">{inMonths(e.months)}</td>
-						<td class="p-1">{e.kind === 'construction' ? pretty(e.what) : e.what}</td>
+						<td class="p-1">
+							<InfoPopup explanation={e.ref ? explain[e.ref] : undefined}
+								>{e.kind === 'construction' ? pretty(e.what) : e.what}</InfoPopup
+							>
+						</td>
 						<td class="p-1 opacity-75">{e.kind}</td>
 						<td class="p-1" style="color: CanvasText">
 							{#if e.planetId !== undefined}
