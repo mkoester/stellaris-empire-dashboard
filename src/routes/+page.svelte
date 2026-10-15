@@ -76,42 +76,49 @@
 	<p>Waiting for the first save.</p>
 {:else}
 	<header class="mb-2 flex flex-col gap-1">
+		<!-- the game date always top right; everything else wraps to its left -->
+		<div class="flex items-start gap-4">
+			<div class="flex flex-1 flex-wrap items-baseline gap-x-4">
+				<h1 class="text-2xl font-bold">{data.latest.empireName}</h1>
+				{#if data.latest.score}
+					<span
+						>rank <b>{data.latest.score.rank}</b> · score
+						<b>{fmt(data.latest.score.score)}</b></span
+					>
+				{/if}
+				{#if data.latest.empireSize !== null}
+					<span>empire size <b>{fmt(data.latest.empireSize)}</b></span>
+				{/if}
+				{#if data.latest.starbases}
+					<span
+						>starbases <b>{data.latest.starbases.used} / {data.latest.starbases.capacity}</b></span
+					>
+				{/if}
+				{#if data.latest.envoys}
+					<span title="envoys on an assignment / all envoys"
+						>envoys working <b>{data.latest.envoys.used} / {data.latest.envoys.total}</b></span
+					>
+				{/if}
+				{#if data.latest.navalUsed !== null}
+					<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
+				{/if}
+				<a class="underline" href={resolve('/timeline')}>save graph</a>
+				{#if !data.isHead}
+					<a class="underline" href={resolve('/')}>back to the current game</a>
+				{/if}
+				{#if data.guessedLinks > 0}
+					<span class="text-amber-600">
+						{data.guessedLinks} branch point{data.guessedLinks > 1 ? 's' : ''} guessed — check the save
+						graph
+					</span>
+				{/if}
+			</div>
+			<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
+		</div>
 		<div class="flex flex-wrap items-baseline gap-x-4">
-			<h1 class="text-2xl font-bold">{data.latest.empireName}</h1>
-			<span class="text-lg">{data.latest.date}</span>
-			{#if data.latest.score}
-				<span
-					>rank <b>{data.latest.score.rank}</b> · score <b>{fmt(data.latest.score.score)}</b></span
-				>
-			{/if}
-			{#if data.latest.empireSize !== null}
-				<span>empire size <b>{fmt(data.latest.empireSize)}</b></span>
-			{/if}
-			{#if data.latest.starbases}
-				<span>starbases <b>{data.latest.starbases.used} / {data.latest.starbases.capacity}</b></span
-				>
-			{/if}
-			{#if data.latest.envoys}
-				<span title="envoys on an assignment / all envoys"
-					>envoys working <b>{data.latest.envoys.used} / {data.latest.envoys.total}</b></span
-				>
-			{/if}
-			{#if data.latest.navalUsed !== null}
-				<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
-			{/if}
 			{#each headerProgress.filter((e) => e.kind === 'research') as e (e.tint)}
 				{@render progress(e)}
 			{/each}
-			<a class="underline" href={resolve('/timeline')}>save graph</a>
-			{#if !data.isHead}
-				<a class="underline" href={resolve('/')}>back to the current game</a>
-			{/if}
-			{#if data.guessedLinks > 0}
-				<span class="text-amber-600">
-					{data.guessedLinks} branch point{data.guessedLinks > 1 ? 's' : ''} guessed — check the save
-					graph
-				</span>
-			{/if}
 		</div>
 		<div class="flex flex-wrap items-baseline gap-x-4">
 			{#each headerProgress.filter((e) => e.kind !== 'research') as e (e.tint)}

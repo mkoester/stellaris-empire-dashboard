@@ -34,13 +34,16 @@
 	const back = $derived(resolve(data.isHead ? '/' : `/?node=${data.tip}`));
 </script>
 
-<header class="mb-4 flex flex-wrap items-baseline gap-x-4">
-	<h1 class="text-2xl font-bold">{data.name}</h1>
-	{#if data.colony}
-		<span>{pretty(data.colony.designation)}</span>
-	{/if}
-	<span class="text-lg">{data.latest.date}</span>
-	<a class="underline" href={back}>empire</a>
+<!-- the game date always top right, as on the empire page -->
+<header class="mb-4 flex items-start gap-4">
+	<div class="flex flex-1 flex-wrap items-baseline gap-x-4">
+		<h1 class="text-2xl font-bold">{data.name}</h1>
+		{#if data.colony}
+			<span>{pretty(data.colony.designation)}</span>
+		{/if}
+		<a class="underline" href={back}>empire</a>
+	</div>
+	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
 </header>
 
 {#if !data.colony}
