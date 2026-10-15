@@ -16,7 +16,7 @@
 
 	const queue = (c: Colony) =>
 		c.buildQueue.length === 0
-			? ''
+			? '∅'
 			: pretty(c.buildQueue[0].name) +
 				(c.buildQueue.length > 1 ? ` (+${c.buildQueue.length - 1})` : '');
 </script>
@@ -73,7 +73,7 @@
 					<th class="p-1 text-right">Free housing</th>
 					<th class="p-1 text-right">Free amenities</th>
 					<th class="p-1 text-right">Districts</th>
-					<th class="p-1">Build queue</th>
+					<th class="p-1 text-right">Build queue</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -94,7 +94,7 @@
 						<td class="p-1 text-right">{fmt(c.freeHousing)}</td>
 						<td class="p-1 text-right">{fmt(c.freeAmenities)}</td>
 						<td class="p-1 text-right">{c.districts}</td>
-						<td class="p-1">{queue(c)}</td>
+						<td class="p-1 text-right">{queue(c)}</td>
 					</tr>
 				{/each}
 			</tbody>
