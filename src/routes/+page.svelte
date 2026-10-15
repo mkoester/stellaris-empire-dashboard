@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Chart from '#lib/Chart.svelte';
+	import Resources from '#lib/Resources.svelte';
 	import Upcoming from '#lib/Upcoming.svelte';
 	import { colorOf } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
@@ -59,39 +60,58 @@
 	<h1 class="text-2xl font-bold">Empire dashboard</h1>
 	<p>Waiting for the first save.</p>
 {:else}
-	<header class="mb-4 flex flex-wrap items-baseline gap-x-4">
-		<h1 class="text-2xl font-bold">{data.latest.empireName}</h1>
-		<span class="text-lg">{data.latest.date}</span>
-		{#if data.latest.empireSize !== null}
-			<span>empire size <b>{fmt(data.latest.empireSize)}</b></span>
-		{/if}
-		{#if data.latest.starbases}
-			<span>starbases <b>{data.latest.starbases.used} / {data.latest.starbases.capacity}</b></span>
-		{/if}
-		{#if data.latest.envoys}
-			<span>envoys <b>{data.latest.envoys.used} / {data.latest.envoys.total}</b></span>
-		{/if}
-		{#if data.latest.navalUsed !== null}
-			<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
-		{/if}
-		{#each headerProgress as e (e.tint)}
-			<span
-				style:color={colorOf(e.tint)}
-				title="{e.what}: {fmt(e.done!)} / {fmt(e.total!)}, ≈ {e.date}"
-			>
-				{headerLabel(e)} <b>{percent(e)}</b> ≈ {Math.round(e.months)} mo
-			</span>
-		{/each}
-		<a class="underline" href={resolve('/timeline')}>save graph</a>
-		{#if !data.isHead}
-			<a class="underline" href={resolve('/')}>back to the current game</a>
-		{/if}
-		{#if data.guessedLinks > 0}
-			<span class="text-amber-600">
-				{data.guessedLinks} branch point{data.guessedLinks > 1 ? 's' : ''} guessed — check the save graph
-			</span>
-		{/if}
+	<header class="mb-2 flex flex-col gap-1">
+		<div class="flex flex-wrap items-baseline gap-x-4">
+			<h1 class="text-2xl font-bold">{data.latest.empireName}</h1>
+			<span class="text-lg">{data.latest.date}</span>
+			{#if data.latest.empireSize !== null}
+				<span>empire size <b>{fmt(data.latest.empireSize)}</b></span>
+			{/if}
+			{#if data.latest.starbases}
+				<span>starbases <b>{data.latest.starbases.used} / {data.latest.starbases.capacity}</b></span
+				>
+			{/if}
+			{#if data.latest.envoys}
+				<span>envoys <b>{data.latest.envoys.used} / {data.latest.envoys.total}</b></span>
+			{/if}
+			{#if data.latest.navalUsed !== null}
+				<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
+			{/if}
+			{#each headerProgress.filter((e) => e.kind === 'research') as e (e.tint)}
+				{@render progress(e)}
+			{/each}
+			<a class="underline" href={resolve('/timeline')}>save graph</a>
+			{#if !data.isHead}
+				<a class="underline" href={resolve('/')}>back to the current game</a>
+			{/if}
+			{#if data.guessedLinks > 0}
+				<span class="text-amber-600">
+					{data.guessedLinks} branch point{data.guessedLinks > 1 ? 's' : ''} guessed — check the save
+					graph
+				</span>
+			{/if}
+		</div>
+		<div class="flex flex-wrap items-baseline gap-x-4">
+			{#each headerProgress.filter((e) => e.kind !== 'research') as e (e.tint)}
+				{@render progress(e)}
+			{/each}
+		</div>
 	</header>
+
+	{#snippet progress(e: (typeof events)[number])}
+		<span
+			style:color={colorOf(e.tint)}
+			title="{e.what}: {fmt(e.done!)} / {fmt(e.total!)}, ≈ {e.date}"
+		>
+			{headerLabel(e)} <b>{percent(e)}</b> ≈ {Math.round(e.months)} mo
+		</span>
+	{/snippet}
+
+	<Resources
+		stockpile={data.latest.stockpile}
+		balance={data.latest.balance}
+		orders={data.latest.marketOrders}
+	/>
 
 	<h2 class="mb-2 text-xl font-semibold">Upcoming</h2>
 	<Upcoming events={data.upcoming} node={data.isHead ? null : data.tip} />

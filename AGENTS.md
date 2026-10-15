@@ -89,6 +89,10 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
 - Player: top-level `player = { { name country=<id> } }`.
 - Stockpile: `country.<id>.modules.standard_economy_module.resources`.
 - Monthly flows: `country.<id>.budget.current_month|last_month.income|expenses.<source>.<resource>`.
+  **The market's standing orders are booked apart** in `trade_income|trade_expenses|trade_balance`
+  (`monthly_trades.<resource>`); the game's top bar includes them (2200.04: energy 118 − 80 = +38).
+  The orders themselves: top-level `market.monthly_trades = { { trade_data = { trade_type=
+  market_buy|market_sell resource country } amount } }`.
 - Colonies: since 4.x a top-level `colony=` section, referenced from `planets.planet.<id>.colony`.
   Holds pops, housing, amenities, stability, `final_designation`, districts, buildings.
   `employable_pops` counts all pops able to work, _not_ the employed: employed is

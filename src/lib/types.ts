@@ -30,6 +30,9 @@ export type QueueItem = {
  */
 export type SourceKind = 'save' | 'log';
 
+/** A standing monthly order on the market. */
+export type MarketOrder = { kind: 'buy' | 'sell'; resource: string; amount: number };
+
 /** What the empire is working towards; the inputs of the upcoming-events list. */
 export type Progress = {
 	research: { area: string; tech: string; progress: number }[]; // one per field being researched
@@ -61,6 +64,7 @@ export type Snapshot = {
 	starbases: { used: number; capacity: number } | null;
 	navalUsed: number | null;
 	envoys: { used: number; total: number } | null;
+	marketOrders: MarketOrder[]; // standing monthly buy/sell orders
 	progress: Progress | null; // null from the mod feed
 };
 

@@ -1,5 +1,5 @@
 import { Jomini } from 'jomini';
-import type { Colony, Progress, QueueItem, Resources, Snapshot } from '#lib/types.ts';
+import type { Colony, MarketOrder, Progress, QueueItem, Resources, Snapshot } from '#lib/types.ts';
 import { START_YEAR } from '#lib/series.ts';
 import { readZipEntry } from './zip.ts';
 
@@ -25,6 +25,7 @@ export type RawSave = {
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
 	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
 	leaders: Record<string, Raw>;
+	monthlyTrades: Raw; // market.monthly_trades: every country's standing orders
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -48,6 +49,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			empireName: String(meta.name ?? ''),
 			endGameStart: numOrNull(q.at('/galaxy/end_game_start')),
 			leaders: q.at('/leaders') ?? {},
+			monthlyTrades: q.at('/market/monthly_trades'),
 			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
 		};
 	});
@@ -64,9 +66,11 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		empireName: raw.empireName,
 		pops: num(raw.country?.num_sapient_pops),
 		stockpile: resources(raw.country?.modules?.standard_economy_module?.resources),
-		income: sumSources(budget.income),
-		expenses: sumSources(budget.expenses),
-		balance: sumSources(budget.balance),
+		// The market's automatic monthly trades are booked apart (trade_*); the game's top bar
+		// includes them.
+		income: addResources(sumSources(budget.income), sumSources(budget.trade_income)),
+		expenses: addResources(sumSources(budget.expenses), sumSources(budget.trade_expenses)),
+		balance: addResources(sumSources(budget.balance), sumSources(budget.trade_balance)),
 		colonies: playerColonies(raw),
 		endGameYear: raw.endGameStart === null ? null : START_YEAR + raw.endGameStart,
 		empireSize: numOrNull(raw.country?.empire_size),
@@ -76,8 +80,20 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 				: null,
 		navalUsed: numOrNull(raw.country?.used_naval_capacity),
 		envoys: envoys(raw.leaders, raw.countryId),
+		marketOrders: marketOrders(raw.monthlyTrades, raw.countryId),
 		progress: progress(raw)
 	};
+}
+
+/** `market.monthly_trades = { { trade_data = { trade_type=market_buy|market_sell resource country } amount } }` */
+export function marketOrders(trades: Raw, countryId: number): MarketOrder[] {
+	return (Array.isArray(trades) ? trades : [])
+		.filter((t) => Number(t?.trade_data?.country) === countryId)
+		.map((t) => ({
+			kind: t.trade_data.trade_type === 'market_buy' ? ('buy' as const) : ('sell' as const),
+			resource: String(t.trade_data.resource),
+			amount: num(t.amount)
+		}));
 }
 
 /** The country's envoys; one is in use while it has a `location = { assignment=… }`. */
@@ -177,6 +193,12 @@ export function sumSources(bySource: Raw): Resources {
 	for (const res of Object.values(bySource ?? {})) {
 		for (const [k, v] of Object.entries(resources(res))) out[k] = (out[k] ?? 0) + v;
 	}
+	return out;
+}
+
+export function addResources(a: Resources, b: Resources): Resources {
+	const out = { ...a };
+	for (const [k, v] of Object.entries(b)) out[k] = (out[k] ?? 0) + v;
 	return out;
 }
 

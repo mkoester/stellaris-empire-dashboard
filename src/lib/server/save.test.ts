@@ -4,6 +4,7 @@ import {
 	buildQueue,
 	displayName,
 	envoys,
+	marketOrders,
 	progress,
 	readSave,
 	sumSources,
@@ -20,6 +21,7 @@ const raw: RawSave = {
 	endGameStart: 150,
 	galaxy: { technology: 1.25, traditions: 1 },
 	leaders: {},
+	monthlyTrades: undefined,
 	country: {
 		num_sapient_pops: 5000,
 		empire_size: 50,
@@ -32,7 +34,11 @@ const raw: RawSave = {
 			current_month: {
 				income: { planet_jobs: { energy: 10, food: 2 }, trade_policy: { energy: 5 } },
 				expenses: { ships: { energy: 4, alloys: 1 } },
-				balance: { planet_jobs: { energy: 6 } }
+				balance: { planet_jobs: { energy: 6 } },
+				// automatic market trades, as in the 2200.04.01 save (game top bar: energy +38 = 118 − 80)
+				trade_income: { monthly_trades: { minerals: 42 } },
+				trade_expenses: { monthly_trades: { energy: 80 } },
+				trade_balance: { monthly_trades: { energy: -80, minerals: 42 } }
 			}
 		}
 	},
@@ -89,8 +95,9 @@ describe('toSnapshot', () => {
 
 	it('reads stockpile and sums budget sources per resource', () => {
 		expect(s.stockpile).toEqual({ energy: 1200, minerals: 300 });
-		expect(s.income).toEqual({ energy: 15, food: 2 });
-		expect(s.expenses).toEqual({ energy: 4, alloys: 1 });
+		expect(s.income).toEqual({ energy: 15, food: 2, minerals: 42 });
+		expect(s.expenses).toEqual({ energy: 84, alloys: 1 });
+		expect(s.balance).toEqual({ energy: -74, minerals: 42 });
 		expect(s.pops).toBe(5000);
 	});
 
@@ -159,6 +166,21 @@ describe('progress', () => {
 			nextElection: null,
 			costSettings: { technology: 1, traditions: 1 }
 		});
+	});
+});
+
+describe('marketOrders', () => {
+	it("lists the country's standing orders", () => {
+		const trades = [
+			{ trade_data: { trade_type: 'market_sell', resource: 'energy', country: 0 }, amount: 80 },
+			{ trade_data: { trade_type: 'market_buy', resource: 'minerals', country: 0 }, amount: 42 },
+			{ trade_data: { trade_type: 'market_buy', resource: 'food', country: 5 }, amount: 10 }
+		];
+		expect(marketOrders(trades, 0)).toEqual([
+			{ kind: 'sell', resource: 'energy', amount: 80 },
+			{ kind: 'buy', resource: 'minerals', amount: 42 }
+		]);
+		expect(marketOrders(undefined, 0)).toEqual([]);
 	});
 });
 
