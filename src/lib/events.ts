@@ -1,4 +1,4 @@
-import type { Snapshot } from './types.ts';
+import type { QueueItem, Snapshot } from './types.ts';
 
 // Upcoming events of the empire: when current research, the next tradition, the council agenda,
 // queued construction and the next election are due. Pure; the page shows them as one list.
@@ -13,7 +13,7 @@ export type { GameData };
 export type Upcoming = {
 	date: string; // when it is due, "2200.09.01"
 	months: number; // from the snapshot's date
-	kind: 'research' | 'tradition' | 'agenda' | 'construction' | 'election';
+	kind: 'research' | 'tradition' | 'agenda' | 'construction' | 'shipyard' | 'election';
 	what: string;
 	detail: string;
 	exact: boolean; // false: estimated from costs the save does not hold
@@ -97,6 +97,30 @@ export function scheduleQueue(items: { progress: number; needed: number }[], slo
 	return plan.map((p) => ({
 		...p,
 		waitingAfter: plan.filter((q) => q.start >= p.doneIn && q !== p).length
+	}));
+}
+
+/**
+ * One event per queue item: due when its slot gets to it, ⚠ (`act`) when nothing waits for the
+ * slot afterwards, `queuedAfter` counting what still waits.
+ */
+function queueEvents(
+	date: string,
+	queue: QueueItem[],
+	slots: number,
+	kind: 'construction' | 'shipyard',
+	describe: (item: QueueItem) => Pick<Upcoming, 'what' | 'detail' | 'planetId'>
+): Upcoming[] {
+	const plan = scheduleQueue(queue, slots);
+	return queue.map((item, i) => ({
+		date: fromDays(toDays(date) + plan[i].doneIn),
+		months: plan[i].doneIn / 30,
+		kind,
+		tint: 'construction',
+		exact: plan[i].startsNow,
+		act: plan[i].waitingAfter === 0,
+		queuedAfter: plan[i].waitingAfter,
+		...describe(item)
 	}));
 }
 
@@ -190,23 +214,35 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 	}
 
 	// Build queues: progress counts days. A planet builds `buildSlots` items at once; the rest wait.
-	for (const c of latest.colonies) {
-		for (const [i, item] of c.buildQueue.entries()) {
-			const s = scheduleQueue(c.buildQueue, c.buildSlots)[i];
-			out.push({
-				date: fromDays(toDays(latest.date) + s.doneIn),
-				months: s.doneIn / 30,
-				kind: 'construction',
+	for (const c of latest.colonies)
+		out.push(
+			...queueEvents(latest.date, c.buildQueue, c.buildSlots, 'construction', (item) => ({
 				what: item.name,
-				tint: 'construction',
 				detail: `${c.name} · ${item.kind.replaceAll('_', ' ')}`,
-				exact: s.startsNow,
-				planetId: c.planetId,
-				act: s.waitingAfter === 0,
-				queuedAfter: s.waitingAfter
-			});
-		}
-	}
+				planetId: c.planetId
+			}))
+		);
+
+	// Shipyards, by the same rules: a starbase's ship queue, and a Mega Shipyard's when found.
+	const ship = (item: QueueItem) => ({
+		what: `${item.name.replaceAll('_', ' ')}${item.design ? ` "${item.design}"` : ''}`
+	});
+	for (const s of latest.stations ?? [])
+		if (s.shipyard)
+			out.push(
+				...queueEvents(latest.date, s.shipyard.queue, s.shipyard.slots, 'shipyard', (item) => ({
+					...ship(item),
+					detail: `${s.system} ${s.level}`
+				}))
+			);
+	for (const m of latest.megaShipyards ?? [])
+		if (m.queue)
+			out.push(
+				...queueEvents(latest.date, m.queue, m.slots, 'shipyard', (item) => ({
+					...ship(item),
+					detail: `${m.system} Mega Shipyard`
+				}))
+			);
 
 	if (p.nextElection && toDays(p.nextElection) >= toDays(latest.date))
 		out.push({

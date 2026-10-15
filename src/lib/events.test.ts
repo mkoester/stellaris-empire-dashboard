@@ -152,3 +152,40 @@ describe('scheduleQueue', () => {
 		]);
 	});
 });
+
+describe('upcoming shipyards', () => {
+	it('lists ship queue items by the construction rules', () => {
+		const s = snap('2200.12.01', progress(0, 0), {
+			stations: [
+				{
+					id: 0,
+					system: 'Sol',
+					level: 'starport',
+					modules: ['shipyard'],
+					buildings: [],
+					queue: [],
+					slots: 1,
+					arkship: false,
+					shipyard: {
+						slots: 1,
+						queue: [
+							{
+								kind: 'colony_ship',
+								name: 'colonizer',
+								design: 'Byzantium',
+								progress: 77,
+								needed: 360
+							},
+							{ kind: 'ship', name: 'corvette', progress: 0, needed: 60 }
+						]
+					}
+				}
+			]
+		} as Partial<Snapshot>);
+		const yard = upcoming(s, null, data).filter((e) => e.kind === 'shipyard');
+		expect(yard.map((e) => [e.what, e.date, e.queuedAfter, e.act, e.detail])).toEqual([
+			['colonizer "Byzantium"', '2201.09.14', 1, false, 'Sol starport'],
+			['corvette', '2201.11.14', 0, true, 'Sol starport']
+		]);
+	});
+});
