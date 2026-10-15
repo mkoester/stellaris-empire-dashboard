@@ -2,6 +2,10 @@ import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
 	Colony,
+	ExpansionPlanet,
+	Fleet,
+	Sector,
+	SpeciesInfo,
 	ColonyJob,
 	MarketOrder,
 	ShipCount,
@@ -43,6 +47,9 @@ export type RawSave = {
 	ships: Record<string, Raw>;
 	shipDesigns: Record<string, Raw>;
 	automationResources: Raw; // top-level automation_resources.<country>: disallowed resources
+	systems: Record<string, Raw>; // galactic_object: names, planets, hyperlanes
+	sectors: Record<string, Raw>;
+	speciesDb: Record<string, Raw>;
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -73,6 +80,9 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			ships: q.at('/ships') ?? {},
 			shipDesigns: q.at('/ship_design') ?? {},
 			automationResources: q.at(`/automation_resources/${countryId}`),
+			systems: q.at('/galactic_object') ?? {},
+			sectors: q.at('/sectors') ?? {},
+			speciesDb: q.at('/species_db') ?? {},
 			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
 		};
 	});
@@ -110,6 +120,20 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		// 2200.05 after the player unticked all (in-game screenshot).
 		automationBlocked: items(raw.automationResources).map(String),
 		planetBudget: planetBudget(budget),
+		score: {
+			rank: num(raw.country?.victory_rank),
+			score: num(raw.country?.victory_score),
+			economy: num(raw.country?.economy_power),
+			tech: num(raw.country?.tech_power),
+			military: num(raw.country?.military_power)
+		},
+		fleets: militaryFleets(raw),
+		edicts: items(raw.country?.edicts)
+			.map((e) => e?.edict)
+			.filter((e) => typeof e === 'string'),
+		species: speciesInfo(raw),
+		sectors: sectors(raw),
+		expansion: expansion(raw),
 		marketOrders: marketOrders(raw.monthlyTrades, raw.countryId),
 		progress: progress(raw)
 	};
@@ -170,6 +194,120 @@ export function shipCounts(
 		}
 	}
 	return [...counts.values()];
+}
+
+/** Military fleets with ship count and power (`fleet.military_power`). */
+export function militaryFleets(raw: Pick<RawSave, 'country' | 'fleets'>): Fleet[] {
+	return items(raw.country?.fleets_manager?.owned_fleets)
+		.map((o) => raw.fleets[String(o?.fleet)])
+		.filter((f) => f && typeof f === 'object' && f.ship_class === 'shipclass_military')
+		.map((f) => ({
+			name: displayName(f.name),
+			ships: list(f.ships).length,
+			power: num(f.military_power)
+		}));
+}
+
+/**
+ * Species with pops on the empire's colonies (`pop_groups.key.species` → `species_db`), with
+ * their traits. Names are localisation keys the save does not resolve.
+ */
+export function speciesInfo(
+	raw: Pick<RawSave, 'country' | 'colonies' | 'popGroups' | 'speciesDb'>
+): SpeciesInfo[] {
+	const pops = new Map<string, number>();
+	for (const colonyId of list(raw.country?.controlled_colonies))
+		for (const g of list(raw.colonies[String(colonyId)]?.pop_groups)) {
+			const group = raw.popGroups[String(g)];
+			const sp = group?.key?.species;
+			if (sp !== undefined) pops.set(String(sp), (pops.get(String(sp)) ?? 0) + num(group.size));
+		}
+	return [...pops].map(([id, n]) => {
+		const s = raw.speciesDb[id] ?? {};
+		return {
+			id,
+			name: speciesName(s.name),
+			cls: String(s.class ?? ''),
+			traits: items(s.traits?.trait).map(String),
+			pops: n
+		};
+	});
+}
+
+/** `PRESCRIPTED_species_name_humans1` → `Humans`; other keys as displayName reads them. */
+function speciesName(name: Raw): string {
+	const key = String(name?.key ?? name ?? '');
+	const m = /^PRESCRIPTED_species_name_([a-z_]+?)\d*$/i.exec(key);
+	return m ? m[1].charAt(0).toUpperCase() + m[1].slice(1) : displayName(name);
+}
+
+/** The empire's sectors (`country.sectors.owned` → `sectors.<id>`), colonies counted per system. */
+export function sectors(raw: Pick<RawSave, 'country' | 'sectors' | 'systems'>): Sector[] {
+	return list(raw.country?.sectors?.owned).map((id) => {
+		const s = raw.sectors[String(id)] ?? {};
+		const systems = list(s.systems);
+		return {
+			name: displayName(s.name),
+			type: String(s.type ?? '').replace(/_sector$/, ''),
+			systems: systems.length,
+			colonies: systems.reduce((n, sys) => n + list(raw.systems[String(sys)]?.colonies).length, 0)
+		};
+	});
+}
+
+/** Not planets one could settle: stars, gas giants, asteroids and the like. */
+const NOT_ROCKY =
+	/star$|^pc_(gas_giant|asteroid|ice_asteroid|rare_crystal_asteroid|black_hole|pulsar|neutron_star|shattered|ringworld)/;
+
+/**
+ * Surveyed planets (`country.surveyed_deposit_holders`, type 0 = planet) that are rocky and owned
+ * by nobody, with jumps from the capital's system over `galactic_object.<id>.hyperlane`.
+ * Habitability is left out: which of them the game lists depends on species and terraforming.
+ */
+export function expansion(
+	raw: Pick<RawSave, 'country' | 'planets' | 'systems'>
+): ExpansionPlanet[] {
+	const capitalSystem = raw.planets[String(raw.country?.capital)]?.coordinate?.origin;
+	const jumps = hops(raw.systems, capitalSystem);
+	return items(raw.country?.surveyed_deposit_holders)
+		.filter((h) => num(h?.type) === 0)
+		.map((h) => [Number(h.id), raw.planets[String(h.id)]] as const)
+		.filter(([, p]) => p && typeof p === 'object' && p.owner === undefined)
+		.filter(([, p]) => !NOT_ROCKY.test(String(p.planet_class)))
+		.map(([planetId, p]) => {
+			const sys = p.coordinate?.origin;
+			return {
+				planetId,
+				name: displayName(p.name),
+				planetClass: String(p.planet_class),
+				size: num(p.planet_size),
+				system: displayName(raw.systems[String(sys)]?.name),
+				jumps: jumps.get(Number(sys)) ?? null,
+				modifier: typeof p.planet_modifier === 'string' ? p.planet_modifier : null
+			};
+		})
+		.sort((a, b) => (a.jumps ?? 1e9) - (b.jumps ?? 1e9) || b.size - a.size);
+}
+
+/** Hyperlane jumps from `start` to every reachable system (breadth-first). */
+export function hops(systems: Record<string, Raw>, start: Raw): Map<number, number> {
+	const out = new Map<number, number>();
+	if (start === undefined) return out;
+	let frontier = [Number(start)];
+	out.set(Number(start), 0);
+	for (let d = 1; frontier.length; d++) {
+		const next: number[] = [];
+		for (const s of frontier)
+			for (const lane of items(systems[String(s)]?.hyperlane)) {
+				const to = Number(lane?.to);
+				if (!out.has(to)) {
+					out.set(to, d);
+					next.push(to);
+				}
+			}
+		frontier = next;
+	}
+	return out;
 }
 
 /** The budget's per-source flows for pops and planets: jobs (`planet_<job>`), strata (`pop_category_*`), … */
@@ -359,6 +497,16 @@ export function addResources(a: Resources, b: Resources): Resources {
 /** Readable approximation of a localisation key: `SPEC_Dar-Hesh_planet` → `Dar-Hesh`. */
 export function displayName(name: Raw): string {
 	const key = String(name?.key ?? name ?? '');
+	// `%SEQ%` with fmt (e.g. HUMAN1_FLEET) and num: "1st Fleet".
+	if (key === '%SEQ%' && Array.isArray(name?.variables)) {
+		const v = (k: string) => name.variables.find((x: Raw) => x.key === k)?.value?.key;
+		const n = Number(v('num'));
+		const kind =
+			String(v('fmt') ?? '')
+				.split('_')
+				.pop() ?? '';
+		return `${ordinal(n)} ${kind.charAt(0)}${kind.slice(1).toLowerCase()}`;
+	}
 	if (key.startsWith('%') && Array.isArray(name?.variables)) {
 		return name.variables.map((v: Raw) => displayName(v.value)).join(' ');
 	}
@@ -374,6 +522,8 @@ function resources(obj: Raw): Resources {
 	return out;
 }
 
+const ordinal = (n: number) =>
+	`${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')}`;
 const num = (v: Raw) => (typeof v === 'number' ? v : 0);
 const numOrNull = (v: Raw) => (typeof v === 'number' ? v : null);
 const items = (v: Raw): Raw[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]);

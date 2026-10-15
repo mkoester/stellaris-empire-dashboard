@@ -3,10 +3,18 @@
 	import Chart from '#lib/Chart.svelte';
 	import Flows from '#lib/Flows.svelte';
 	import Jobs from '#lib/Jobs.svelte';
-	import { automationRows } from '#lib/automation.ts';
+	import { automationSummary } from '#lib/automation.ts';
 	import { budgetRows } from '#lib/flows.ts';
 	import Resources from '#lib/Resources.svelte';
 	import Upcoming from '#lib/Upcoming.svelte';
+	import AutomationSummary from '#lib/panels/AutomationSummary.svelte';
+	import Edicts from '#lib/panels/Edicts.svelte';
+	import Expansion from '#lib/panels/Expansion.svelte';
+	import Leaders from '#lib/panels/Leaders.svelte';
+	import Score from '#lib/panels/Score.svelte';
+	import Sectors from '#lib/panels/Sectors.svelte';
+	import Ships from '#lib/panels/Ships.svelte';
+	import SpeciesPanel from '#lib/panels/Species.svelte';
 	import { colorOf } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { gameYear } from '#lib/series.ts';
@@ -22,12 +30,6 @@
 	$effect(() => postBranch(shown()));
 
 	const pct = (v: number | null) => (v === null ? '–' : `${Math.round(v * 100)}%`);
-	const automationOn = (on: string[]) =>
-		automationRows(on)
-			.filter((r) => r.on)
-			.map((r) => r.name)
-			.join(', ') || 'none';
-	const shipGroups = ['military', 'civilian', 'station'] as const;
 
 	const events = $derived(data.empty ? [] : data.upcoming);
 	// Research per field (physics, society, engineering), then tradition, then agenda.
@@ -76,6 +78,11 @@
 		<div class="flex flex-wrap items-baseline gap-x-4">
 			<h1 class="text-2xl font-bold">{data.latest.empireName}</h1>
 			<span class="text-lg">{data.latest.date}</span>
+			{#if data.latest.score}
+				<span
+					>rank <b>{data.latest.score.rank}</b> · score <b>{fmt(data.latest.score.score)}</b></span
+				>
+			{/if}
 			{#if data.latest.empireSize !== null}
 				<span>empire size <b>{fmt(data.latest.empireSize)}</b></span>
 			{/if}
@@ -134,6 +141,7 @@
 		{#key data.tip}
 			<Chart title="Empire size" series={data.charts.empireSize} range={data.xRange} yMin={50} />
 			<Chart title="Pops" series={data.charts.pops} range={data.xRange} />
+			<Chart title="Score and power" series={data.charts.score} range={data.xRange} />
 			<Chart
 				title="Research per month"
 				series={data.charts.research}
@@ -187,7 +195,8 @@
 						<td class="p-1 text-right">{fmt(c.freeAmenities)}</td>
 						<td class="p-1 text-right">{c.districts}</td>
 						<td class="p-1 text-right">{queue(c)}</td>
-						<td class="p-1">{c.automation.enabled ? automationOn(c.automation.settings) : 'off'}</td
+						<td class="p-1"
+							>{c.automation.enabled ? automationSummary(c.automation.settings) : 'off'}</td
 						>
 					</tr>
 				{/each}
@@ -211,49 +220,24 @@
 		</section>
 	</div>
 
-	<div class="mt-6 grid gap-6 md:grid-cols-3">
-		<section>
-			<h2 class="mb-2 text-xl font-semibold">Leaders</h2>
-			<!-- Base capacity per class: @base_leader_cap = 3 (common/leader_classes, 4.5.2). Techs and
-			     civics raise it (country_<class>_cap_add); the save does not hold the result. -->
-			{#each Object.entries(data.latest.leaders ?? {})
-				.filter(([c]) => c !== 'envoy')
-				.sort() as [cls, n] (cls)}
-				<div title="base capacity 3; modifiers not included">
-					{cls} <b class={n > 3 ? 'text-red-600' : ''}>{n} / 3</b>
-				</div>
-			{/each}
-			<!-- envoys last and apart: they come with the government, nobody hires them -->
-			{#if data.latest.leaders?.envoy}
-				<div class="mt-3">envoy <b>{data.latest.leaders.envoy}</b></div>
-			{/if}
-		</section>
-		<section>
-			<h2 class="mb-2 text-xl font-semibold">Ships</h2>
-			{#each shipGroups as g (g)}
-				{@const ships = (data.latest.ships ?? []).filter((s) => s.group === g)}
-				{#if ships.length}
-					<div class="mt-1 text-gray-500">{g}</div>
-					{#each ships as s (s.size)}
-						<div>{pretty(s.size)} <b>{s.count}</b></div>
-					{/each}
-				{/if}
-			{/each}
-		</section>
-		<section>
-			<h2 class="mb-2 text-xl font-semibold">Automation</h2>
-			<div>
-				new colonies start with:
-				<b>{automationOn(data.latest.defaultAutomation ?? [])}</b>
-			</div>
-			<div>
-				may not spend:
-				{#each data.latest.automationBlocked ?? [] as r (r)}
-					<span class="mr-2" style:color={colorOf(r)}>{pretty(r)}</span>
-				{:else}
-					<b>nothing blocked</b>
-				{/each}
-			</div>
-		</section>
+	<div class="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+		{#if data.latest.score}<Score score={data.latest.score} />{/if}
+		<Leaders leaders={data.latest.leaders ?? {}} />
+		<Ships
+			ships={data.latest.ships ?? []}
+			fleets={data.latest.fleets ?? []}
+			navalUsed={data.latest.navalUsed}
+		/>
+		<Edicts edicts={data.edicts} />
+		<Sectors sectors={data.latest.sectors ?? []} />
+		<AutomationSummary
+			defaults={data.latest.defaultAutomation ?? []}
+			blocked={data.latest.automationBlocked ?? []}
+		/>
+	</div>
+
+	<div class="mt-6 grid items-start gap-6 2xl:grid-cols-2">
+		<SpeciesPanel species={data.species} />
+		<Expansion planets={data.expansion} />
 	</div>
 {/if}

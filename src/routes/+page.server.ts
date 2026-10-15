@@ -1,5 +1,9 @@
+import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
+import { pretty } from '#lib/format.ts';
+import { traitBudget } from '#lib/species.ts';
 import {
+	fieldSeries,
 	popSeries,
 	researchSeries,
 	resourceSeries,
@@ -12,12 +16,36 @@ export function load({ url }) {
 	const b = branch(url);
 	if (b === null) return { empty: true as const };
 	const { snaps, ...rest } = b;
+	const data = getGameData();
+	const latest = b.latest;
 	return {
 		empty: false as const,
 		...rest,
+		// Overview panels, named from the game data.
+		edicts: (latest.edicts ?? []).map((key) => ({
+			key,
+			name: data.edicts[key]?.name ?? pretty(key)
+		})),
+		species: (latest.species ?? []).map((s) => ({
+			...s,
+			className: data.speciesClasses[s.cls]?.name ?? s.cls,
+			traits: s.traits.map((t) => pretty(t.replace(/^trait_(pc_)?/, ''))),
+			budget: traitBudget(s, data)
+		})),
+		expansion: (latest.expansion ?? []).map((p) => ({
+			...p,
+			className: data.planetClasses[p.planetClass]?.name ?? pretty(p.planetClass),
+			colonizable: data.planetClasses[p.planetClass]?.colonizable ?? false
+		})),
 		xRange: xRange(snaps),
 		charts: {
 			pops: popSeries(snaps),
+			score: fieldSeries(snaps, {
+				score: (s) => s.score?.score ?? null,
+				economy: (s) => s.score?.economy ?? null,
+				technology: (s) => s.score?.tech ?? null,
+				military: (s) => s.score?.military ?? null
+			}),
 			empireSize: scalarSeries(snaps, 'empire size', (s) => s.empireSize),
 			research: researchSeries(snaps),
 			stockpile: resourceSeries(snaps, (s) => withoutResearch(s.stockpile)),

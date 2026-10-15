@@ -30,6 +30,12 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	defaultAutomation: null,
 	automationBlocked: null,
 	planetBudget: null,
+	score: null,
+	fleets: null,
+	edicts: null,
+	species: null,
+	sectors: null,
+	expansion: null,
 	progress: null
 });
 

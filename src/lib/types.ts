@@ -29,6 +29,32 @@ export type Stratum = { category: string; size: number; happiness: number | null
 /** Ships by size (corvette, science, …) in one group. */
 export type ShipCount = { group: 'military' | 'civilian' | 'station'; size: string; count: number };
 
+/** The victory screen: rank and score, and the three power ratings behind diplomatic weight. */
+export type Score = {
+	rank: number;
+	score: number;
+	economy: number;
+	tech: number;
+	military: number;
+};
+
+export type Fleet = { name: string; ships: number; power: number };
+
+export type SpeciesInfo = { id: string; name: string; cls: string; traits: string[]; pops: number };
+
+export type Sector = { name: string; type: string; systems: number; colonies: number };
+
+/** A surveyed planet nobody owns; jumps from the capital system, null when unreachable. */
+export type ExpansionPlanet = {
+	planetId: number;
+	name: string;
+	planetClass: string;
+	size: number;
+	system: string;
+	jumps: number | null;
+	modifier: string | null;
+};
+
 /** One budget source of pops (a job, a stratum's upkeep, buildings, …) for the month. */
 export type BudgetSource = { source: string; income: Resources; expenses: Resources };
 
@@ -90,6 +116,12 @@ export type Snapshot = {
 	defaultAutomation: string[] | null; // automation settings new colonies start with
 	automationBlocked: string[] | null; // resources planet automation may not spend
 	planetBudget: BudgetSource[] | null; // the budget's planet_* and pop_* sources
+	score: Score | null;
+	fleets: Fleet[] | null; // military fleets
+	edicts: string[] | null; // active edicts (keys)
+	species: SpeciesInfo[] | null; // species with pops in the empire
+	sectors: Sector[] | null;
+	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
 	progress: Progress | null; // null from the mod feed
 };
 
@@ -101,4 +133,17 @@ export type TimelineNode = {
 	fingerprint: string;
 	parentId: number | null;
 	ambiguous: boolean;
+};
+
+/** Names, costs and rules from the extraction's SQLite (STELLARIS_DATA_DB), loaded once. */
+export type GameData = {
+	techs: Record<string, { name: string; cost: number | null }>;
+	agendas: Record<string, { name: string; cost: number | null }>;
+	defines: Record<string, number>;
+	jobs: Record<string, { name: string; category: string | null }>;
+	edicts: Record<string, { name: string }>;
+	traits: Record<string, { cost: number | null }>;
+	speciesClasses: Record<string, { name: string; archetype: string | null }>;
+	archetypes: Record<string, { points: number; maxTraits: number }>;
+	planetClasses: Record<string, { name: string; colonizable: boolean }>;
 };

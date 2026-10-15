@@ -115,6 +115,15 @@ happiness }`. **`happiness` is omitted for some groups** (rulers, specialists at
   pool (19 vs. 7). Leader capacity is **per class**, base `@base_leader_cap = 3`
   (`common/leader_classes`), raised by `country_<class>_cap_add`; the result is not in the save. Ships: `country.fleets_manager.owned_fleets` → `fleet.<id>.{ship_class, ships}`
   → `ships.<id>.ship_design_implementation.design` → `ship_design.<id>.growth_stages[0].ship_size`.
+- Overview: `country.victory_rank|victory_score|economy_power|tech_power|military_power` (the score
+  breakdown is not stored); fleets `fleet.<id>.military_power`, names `%SEQ%` + `fmt`/`num` → "1st
+  Fleet"; active edicts `country.edicts = { { edict … } }` — the **edict fund (10 / 15) is not
+  stored** (base 10 + councilors, multipliers); species `species_db.<id> = { name class traits }`,
+  pops via `pop_groups.key.species`; trait budget from `species_archetype` (base only); sectors
+  `country.sectors.owned` → `sectors.<id> = { name systems type }`.
+- Expansion: `country.surveyed_deposit_holders = { { type=0 id=<planet> } }`; systems
+  `galactic_object.<id> = { name planet hyperlane = { to length } colonies }`. The game's list
+  differs from the class rule (`pc_barren` is `colonizable = no`, yet Mars is offered — terraforming).
 - Budget sources: `planet_<job>` (job output and inputs), `pop_category_<stratum>` (pop upkeep and
   trade), `planet_pops_traits` (food), `planet_buildings`, `planet_districts_*`.
 - Autosaves: `autosave=4` in `settings.txt` gave one per month (2200.02/03/04.01, observed).

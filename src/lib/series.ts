@@ -43,14 +43,23 @@ export function resourceSeries(
 	};
 }
 
+/** One line per field, each one number (or a gap) per snapshot. */
+export function fieldSeries(
+	history: Snapshot[],
+	fields: Record<string, (s: Snapshot) => number | null>
+): Series {
+	return {
+		x: history.map((s) => gameYear(s.date)),
+		lines: Object.fromEntries(Object.entries(fields).map(([label, f]) => [label, history.map(f)]))
+	};
+}
+
 /** One line from one number per snapshot. */
-export function scalarSeries(
+export const scalarSeries = (
 	history: Snapshot[],
 	label: string,
 	pick: (s: Snapshot) => number | null
-): Series {
-	return { x: history.map((s) => gameYear(s.date)), lines: { [label]: history.map(pick) } };
-}
+): Series => fieldSeries(history, { [label]: pick });
 
 export const popSeries = (history: Snapshot[]) => scalarSeries(history, 'pops', (s) => s.pops);
 

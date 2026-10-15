@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import type { GameData } from '#lib/events.ts';
+import type { GameData } from '#lib/types.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -23,6 +23,33 @@ export function loadGameData(file: string): GameData {
 				rows<{ key: string; name: string | null; category: string | null }>(
 					'SELECT key, name, category FROM job'
 				).map((r) => [r.key, { name: r.name ?? r.key, category: r.category }])
+			),
+			edicts: Object.fromEntries(
+				rows<{ key: string; name: string | null }>('SELECT key, name FROM edict').map((r) => [
+					r.key,
+					{ name: r.name ?? r.key }
+				])
+			),
+			traits: Object.fromEntries(
+				rows<{ key: string; cost: number | null }>('SELECT key, cost FROM trait').map((r) => [
+					r.key,
+					{ cost: r.cost }
+				])
+			),
+			speciesClasses: Object.fromEntries(
+				rows<{ key: string; label: string | null; archetype: string | null }>(
+					'SELECT key, label, archetype FROM species_class'
+				).map((r) => [r.key, { name: r.label ?? r.key, archetype: r.archetype }])
+			),
+			archetypes: Object.fromEntries(
+				rows<{ key: string; trait_points: number | null; max_traits: number | null }>(
+					'SELECT key, trait_points, max_traits FROM species_archetype'
+				).map((r) => [r.key, { points: r.trait_points ?? 0, maxTraits: r.max_traits ?? 0 }])
+			),
+			planetClasses: Object.fromEntries(
+				rows<{ key: string; name: string | null; colonizable: number }>(
+					'SELECT key, name, colonizable FROM planet_class'
+				).map((r) => [r.key, { name: r.name ?? r.key, colonizable: r.colonizable === 1 }])
 			),
 			defines: Object.fromEntries(
 				rows<{ key: string; value: number }>('SELECT key, value FROM game_define').map((r) => [

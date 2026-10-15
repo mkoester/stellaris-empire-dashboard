@@ -10,6 +10,11 @@ const data: GameData = {
 	},
 	agendas: { agenda_unlock_slot: { name: 'Expand The Council', cost: 7000 } },
 	jobs: {},
+	edicts: {},
+	traits: {},
+	speciesClasses: {},
+	archetypes: {},
+	planetClasses: {},
 	defines: {
 		EMPIRE_SIZE_BASE: 100,
 		EMPIRE_SIZE_TECH_COST_PENALTY: 0.002,

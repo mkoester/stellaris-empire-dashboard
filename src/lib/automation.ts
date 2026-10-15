@@ -24,3 +24,10 @@ export function automationRows(on: string[]) {
 		.filter(([, s]) => !s.hidden)
 		.map(([key, s]) => ({ key, name: s.name, on: on.includes(key) }));
 }
+
+/** The settings that are on, by name, or "none". */
+export const automationSummary = (on: string[]) =>
+	automationRows(on)
+		.filter((r) => r.on)
+		.map((r) => r.name)
+		.join(', ') || 'none';

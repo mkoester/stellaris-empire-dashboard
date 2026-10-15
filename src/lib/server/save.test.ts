@@ -5,6 +5,11 @@ import {
 	colonyJobs,
 	displayName,
 	envoys,
+	expansion,
+	hops,
+	militaryFleets,
+	sectors,
+	speciesInfo,
 	planetBudget,
 	shipCounts,
 	strata,
@@ -32,6 +37,9 @@ const raw: RawSave = {
 	ships: {},
 	shipDesigns: {},
 	automationResources: undefined,
+	systems: {},
+	sectors: {},
+	speciesDb: {},
 	country: {
 		num_sapient_pops: 5000,
 		empire_size: 50,
@@ -307,6 +315,123 @@ describe('planetBudget', () => {
 		).toEqual([
 			{ source: 'planet_artisans', income: { consumer_goods: 47 }, expenses: { minerals: 25 } },
 			{ source: 'pop_category_workers', income: {}, expenses: { consumer_goods: 5 } }
+		]);
+	});
+});
+
+describe('empire overview', () => {
+	// Shapes as in the 2200.05.01 save: Sol (380) with Earth (3, owned) and Mars (5).
+	const systems = {
+		'380': { name: { key: 'NAME_Sol' }, hyperlane: [{ to: 135 }, { to: 52 }], colonies: [3] },
+		'135': { name: { key: 'NAME_Sirius' }, hyperlane: [{ to: 380 }, { to: 7 }] },
+		'52': { hyperlane: { to: 380 } },
+		'7': { name: { key: 'NAME_Far' }, hyperlane: [{ to: 135 }] }
+	};
+	const planets = {
+		'0': { name: { key: 'NAME_Sol' }, planet_class: 'pc_g_star', coordinate: { origin: 380 } },
+		'3': { planet_class: 'pc_continental', owner: 0, coordinate: { origin: 380 } },
+		'5': {
+			name: { key: 'NAME_Mars' },
+			planet_class: 'pc_barren',
+			planet_size: 13,
+			coordinate: { origin: 380 },
+			planet_modifier: 'pm_mineral_poor'
+		},
+		'9': {
+			name: { key: 'NAME_Faraway' },
+			planet_class: 'pc_ocean',
+			planet_size: 20,
+			coordinate: { origin: 7 }
+		},
+		'10': { planet_class: 'pc_gas_giant', planet_size: 30, coordinate: { origin: 7 } }
+	};
+
+	it('counts hyperlane jumps breadth-first', () => {
+		expect(Object.fromEntries(hops(systems, 380))).toEqual({ '380': 0, '135': 1, '52': 1, '7': 2 });
+	});
+
+	it('lists surveyed, unowned rocky planets nearest first', () => {
+		const country = {
+			capital: 3,
+			surveyed_deposit_holders: [0, 3, 5, 9, 10].map((id) => ({ type: 0, id }))
+		};
+		expect(expansion({ country, planets, systems })).toEqual([
+			{
+				planetId: 5,
+				name: 'Mars',
+				planetClass: 'pc_barren',
+				size: 13,
+				system: 'Sol',
+				jumps: 0,
+				modifier: 'pm_mineral_poor'
+			},
+			{
+				planetId: 9,
+				name: 'Faraway',
+				planetClass: 'pc_ocean',
+				size: 20,
+				system: 'Far',
+				jumps: 2,
+				modifier: null
+			}
+		]);
+	});
+
+	it('reads sectors with their systems and colonies', () => {
+		const r = sectors({
+			country: { sectors: { owned: 0 } },
+			sectors: { '0': { name: { key: 'NAME_Earth' }, systems: [380], type: 'core_sector' } },
+			systems
+		});
+		expect(r).toEqual([{ name: 'Earth', type: 'core', systems: 1, colonies: 1 }]);
+	});
+
+	it('names fleets from their %SEQ% template and keeps military ones', () => {
+		const fleets = militaryFleets({
+			country: { fleets_manager: { owned_fleets: [{ fleet: 1 }, { fleet: 3 }] } },
+			fleets: {
+				'1': { ship_class: 'shipclass_science_ship', ships: 1 },
+				'3': {
+					ship_class: 'shipclass_military',
+					ships: [3, 4, 5],
+					military_power: 176.625,
+					name: {
+						key: '%SEQ%',
+						variables: [
+							{ key: 'fmt', value: { key: 'HUMAN1_FLEET' } },
+							{ key: 'num', value: { key: '1' } }
+						]
+					}
+				}
+			}
+		});
+		expect(fleets).toEqual([{ name: '1st Fleet', ships: 3, power: 176.625 }]);
+	});
+
+	it('sums pops per species over the colonies and names prescripted species', () => {
+		const r = speciesInfo({
+			country: { controlled_colonies: 0 },
+			colonies: { '0': { pop_groups: [1, 2] } },
+			popGroups: {
+				'1': { key: { species: 77 }, size: 1911 },
+				'2': { key: { species: 77 }, size: 1800 }
+			},
+			speciesDb: {
+				'77': {
+					name: { key: 'PRESCRIPTED_species_name_humans1' },
+					class: 'HUM',
+					traits: { trait: ['trait_organic', 'trait_adaptive'] }
+				}
+			}
+		});
+		expect(r).toEqual([
+			{
+				id: '77',
+				name: 'Humans',
+				cls: 'HUM',
+				traits: ['trait_organic', 'trait_adaptive'],
+				pops: 3711
+			}
 		]);
 	});
 });

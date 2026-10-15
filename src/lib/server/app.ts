@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { headCampaign, openDb, record, type Db, type Recorded } from './db.ts';
-import type { GameData } from '#lib/events.ts';
+import type { GameData } from '#lib/types.ts';
 import { tailLog, toLogSnapshot } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
 import { watchSaves } from './watch.ts';

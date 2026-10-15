@@ -7,12 +7,8 @@ import type { Snapshot } from './types.ts';
 // speed bonus is included. Costs are base costs from the game data scaled by what the save knows
 // (empire size, galaxy cost sliders) — other cost modifiers are unknown, hence "estimated".
 
-export type GameData = {
-	techs: Record<string, { name: string; cost: number | null }>;
-	agendas: Record<string, { name: string; cost: number | null }>;
-	defines: Record<string, number>;
-	jobs: Record<string, { name: string; category: string | null }>;
-};
+import type { GameData } from './types.ts';
+export type { GameData };
 
 export type Upcoming = {
 	date: string; // when it is due, "2200.09.01"
