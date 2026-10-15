@@ -162,6 +162,15 @@ shipyard_build_queue station }` — **no owner field**; the country's are those 
 - Expansion: `country.surveyed_deposit_holders = { { type=0 id=<planet> } }`; systems
   `galactic_object.<id> = { name planet hyperlane = { to length } colonies }`. The game's list
   differs from the class rule (`pc_barren` is `colonizable = no`, yet Mars is offered — terraforming).
+- Idle leaders: no `location` and no `council_location` — except the ruler (`country.ruler`) and
+  envoys. Civilian fleets: `current_order = { <kind>_order = { progress order_id planet |
+deposit_holder | orbitable } }`, queue in `order`, travel end in `movement_manager.path.date`
+  (state ≠ `move_idle`). Progress: anomalies count to 100 (+1.2/day ≈ the 80-day row of
+  `SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS`), station builds count days to the size's `base_buildtime`
+  (outpost 360); surveys assumed to 100 — unconfirmed. Names are templates: `PREFIX_NAME_FORMAT`
+  (the `PREFIX` "UNS" is localisation only), `HUMAN1_CHR_<first>` / `HUMAN1_SHIP_<name>`.
+- Manual saves: a save with the same date as the head but another state continues the head (a
+  manual save after the autosave); only an earlier date counts as a reload.
 - Budget sources: `planet_<job>` (job output and inputs), `pop_category_<stratum>` (pop upkeep and
   trade), `planet_pops_traits` (food), `planet_buildings`, `planet_districts_*`.
 - Autosaves: `autosave=4` in `settings.txt` gave one per month (2200.02/03/04.01, observed).

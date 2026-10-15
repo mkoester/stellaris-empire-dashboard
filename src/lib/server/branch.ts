@@ -18,6 +18,9 @@ export function branch(url: URL) {
 	// Events come from the latest full save; the one before it gives the rates.
 	const saves = snaps.filter((s) => s.progress !== null);
 	const last = saves.at(-1);
+	// Rates need time to have passed: the latest save before the last one's date (a manual save
+	// right after the autosave of the same day would give none).
+	const previous = saves.findLast((s) => last !== undefined && s.date < last.date) ?? null;
 	// Jobs worked, per colony and summed over the empire, at the latest full save, with what each
 	// job produces and uses (the budget's per-job sources; a planet gets its pops share).
 	const info = getGameData().jobs;
@@ -32,7 +35,7 @@ export function branch(url: URL) {
 	);
 	const empirePops = Object.fromEntries(empireJobs.map((r) => [r.type, r.pops]));
 	return {
-		upcoming: last ? upcoming(last, saves.at(-2) ?? null, getGameData()) : [],
+		upcoming: last ? upcoming(last, previous, getGameData()) : [],
 		// Display names of what the colonies hold: queue items, districts, zones, buildings.
 		names: Object.fromEntries(
 			colonies

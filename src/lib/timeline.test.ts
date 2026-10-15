@@ -77,8 +77,13 @@ describe('place', () => {
 		expect(place(t, 1, obs('2200.07.01'))).toEqual({ kind: 'child', parentId: 2, ambiguous: true });
 	});
 
-	it('treats an equal date with a different state as a reload', () => {
-		expect(place(tree, 3, obs('2202.01.01'))).toMatchObject({ kind: 'child', ambiguous: true });
+	it('continues the head on the same date with a different state (manual save after the autosave)', () => {
+		// UNE 3, 2202.05.01: the autosave, then a manual save 46 s later after acting while paused
+		expect(place(tree, 3, obs('2202.01.01'))).toEqual({
+			kind: 'child',
+			parentId: 3,
+			ambiguous: false
+		});
 	});
 
 	it('trusts a known loaded save over the heuristics', () => {
@@ -99,10 +104,11 @@ describe('place', () => {
 		});
 	});
 
-	it('does not merge two saves of the same date — that is a reload', () => {
-		expect(place(tree, 3, obs('2202.01.01', 'other-save'))).toMatchObject({
+	it('does not merge two saves of the same date — the later one is its own node', () => {
+		expect(place(tree, 3, obs('2202.01.01', 'other-save'))).toEqual({
 			kind: 'child',
-			ambiguous: true
+			parentId: 3,
+			ambiguous: false
 		});
 	});
 

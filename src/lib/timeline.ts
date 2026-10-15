@@ -37,7 +37,9 @@ export function place(
 		const prior = latestBefore(nodes, obs);
 		return { kind: 'child', parentId: prior?.id ?? null, ambiguous: false };
 	}
-	if (obs.date > head.date) return { kind: 'child', parentId: head.id, ambiguous: false };
+	// Later, or the same day as the head: the game went on (a manual save after the autosave of the
+	// same date is a later state of that day, not a reload).
+	if (obs.date >= head.date) return { kind: 'child', parentId: head.id, ambiguous: false };
 
 	// Time went backwards: the player loaded an older save. Prefer a node on the current branch,
 	// but nothing here proves which save it was — flag it so the UI can offer a correction.
