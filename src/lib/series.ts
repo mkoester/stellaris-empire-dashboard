@@ -12,6 +12,12 @@ export function gameYear(date: string): number {
 
 export type Series = { x: number[]; lines: Record<string, (number | null)[]> };
 
+/** Fractional year → "2203.07" (inverse of gameYear, to the month). */
+export function gameMonth(year: number): string {
+	const months = Math.round(year * 12);
+	return `${Math.floor(months / 12)}.${String((months % 12) + 1).padStart(2, '0')}`;
+}
+
 /** Every game starts on 2200.01.01. */
 export const START_YEAR = 2200;
 const YEARS_BACK = 20;
@@ -49,6 +55,10 @@ export function scalarSeries(
 export const popSeries = (history: Snapshot[]) => scalarSeries(history, 'pops', (s) => s.pops);
 
 const RESEARCH = ['physics_research', 'society_research', 'engineering_research'];
+
+/** The resource charts leave research out — it has its own chart. */
+export const withoutResearch = (r: Resources | null): Resources | null =>
+	r === null ? null : Object.fromEntries(Object.entries(r).filter(([k]) => !RESEARCH.includes(k)));
 
 /** Monthly research per field, from the budget's income (the top bar's +14/+18/+14). */
 export function researchSeries(history: Snapshot[]): Series {

@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import 'uplot/dist/uPlot.min.css';
 	import type uPlot from 'uplot';
-	import type { Series } from './series.ts';
+	import { gameMonth, type Series } from './series.ts';
 
 	// yMin: a floor the value cannot go below (empire size starts at 50), so the axis does not
 	// spend its height on impossible values.
@@ -31,7 +31,13 @@
 		'#8c1f4f'
 	];
 
+	// Lines with equal values (e.g. physics and engineering research at the start) would hide each
+	// other: alternate solid, dashed and dotted so the one underneath still shows.
+	const dashes = [undefined, [6, 4], [2, 3]];
+
 	const data = (s: Series) => [s.x, ...Object.values(s.lines)] as uPlot.AlignedData;
+
+	const showLatest = (u: uPlot) => u.setLegend({ idx: u.data[0].length - 1 });
 
 	onMount(() => {
 		let disposed = false;
@@ -46,16 +52,29 @@
 						? {}
 						: { y: { range: (_u, _min, max) => [yMin, Math.max(max, yMin) * 1.1] } })
 				},
-				axes: [{ values: (_u, ticks) => ticks.map((t) => String(Math.floor(t))) }, {}],
+				axes: [
+					{
+						incrs: [1 / 12, 2 / 12, 3 / 12, 6 / 12, 1, 2, 5, 10, 20, 50],
+						values: (_u, ticks) => ticks.map(gameMonth)
+					},
+					{}
+				],
 				series: [
-					{ label: 'year', value: (_u, v) => (v == null ? '' : v.toFixed(2)) },
+					{ label: 'date', value: (_u, v) => (v == null ? '' : gameMonth(v)) },
 					...Object.keys(series.lines).map((label, i) => ({
-						label,
+						label: label.replaceAll('_', ' '),
 						stroke: palette[i % palette.length],
+						dash: dashes[i % dashes.length],
 						width: 1.5,
 						spanGaps: true
 					}))
-				]
+				],
+				// uPlot shows "--" unless the cursor is over the chart; show the latest values instead.
+				hooks: {
+					ready: [showLatest],
+					setData: [showLatest],
+					setCursor: [(u) => u.cursor.idx == null && showLatest(u)]
+				}
 			};
 			plot = new UPlot(opts, data(series), el);
 		});
@@ -79,3 +98,10 @@
 	<h2 class="mb-1 font-semibold">{title}</h2>
 	<div bind:this={el}></div>
 </section>
+
+<style>
+	/* The x value is the game date, already in the page header; uPlot has no per-series opt-out. */
+	section :global(.u-legend .u-series:first-child) {
+		display: none;
+	}
+</style>

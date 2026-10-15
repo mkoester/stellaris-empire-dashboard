@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { gameYear, popSeries, researchSeries, resourceSeries, xRange } from './series.ts';
+import {
+	gameMonth,
+	gameYear,
+	popSeries,
+	researchSeries,
+	resourceSeries,
+	withoutResearch,
+	xRange
+} from './series.ts';
 import type { Snapshot } from './types.ts';
 
 const s = (date: string, stockpile: Record<string, number>) =>
@@ -53,5 +61,21 @@ describe('researchSeries', () => {
 			physics_research: [14, null],
 			society_research: [18, null]
 		});
+	});
+});
+
+describe('gameMonth', () => {
+	it('labels a fractional year as year.month, robust to float drift', () => {
+		expect(gameMonth(2200)).toBe('2200.01');
+		expect(gameMonth(gameYear('2203.07.01'))).toBe('2203.07');
+		expect(gameMonth(2200 + 11 / 12)).toBe('2200.12');
+		expect(gameMonth(2200 + 3 * (1 / 12))).toBe('2200.04');
+	});
+});
+
+describe('withoutResearch', () => {
+	it('drops the research fields and keeps unknown as unknown', () => {
+		expect(withoutResearch({ energy: 1, physics_research: 14 })).toEqual({ energy: 1 });
+		expect(withoutResearch(null)).toBeNull();
 	});
 });
