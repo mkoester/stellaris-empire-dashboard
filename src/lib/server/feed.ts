@@ -72,6 +72,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		empireSize: null,
 		starbases: null,
 		navalUsed: null,
+		envoys: null,
 		progress: null
 	};
 }

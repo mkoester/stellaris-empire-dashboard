@@ -2,7 +2,11 @@
 	import { onMount } from 'svelte';
 	import 'uplot/dist/uPlot.min.css';
 	import type uPlot from 'uplot';
+	import { colorOf } from './colors.ts';
 	import { gameMonth, type Series } from './series.ts';
+
+	/** A due date drawn on the chart: a line where it falls, or a note at the edge when beyond. */
+	export type Marker = { x: number; tint: string; label: string };
 
 	// yMin: a floor the value cannot go below (empire size starts at 50), so the axis does not
 	// spend its height on impossible values.
@@ -10,8 +14,15 @@
 		title,
 		series,
 		range,
-		yMin
-	}: { title: string; series: Series; range: [number, number]; yMin?: number } = $props();
+		yMin,
+		markers = []
+	}: {
+		title: string;
+		series: Series;
+		range: [number, number];
+		yMin?: number;
+		markers?: Marker[];
+	} = $props();
 
 	let el: HTMLDivElement;
 	let plot: uPlot | undefined;
@@ -36,6 +47,38 @@
 	const dashes = [undefined, [6, 4], [2, 3]];
 
 	const data = (s: Series) => [s.x, ...Object.values(s.lines)] as uPlot.AlignedData;
+
+	function drawMarkers(u: uPlot, px: number) {
+		const { ctx, bbox } = u;
+		const max = u.scales.x.max ?? range[1];
+		let beyond = 0;
+		ctx.save();
+		ctx.font = `${11 * px}px sans-serif`;
+		ctx.textBaseline = 'top';
+		for (const m of markers) {
+			const color = colorOf(m.tint) ?? '#888';
+			ctx.fillStyle = ctx.strokeStyle = color;
+			if (m.x <= max) {
+				const x = u.valToPos(m.x, 'x', true);
+				ctx.setLineDash([4 * px, 3 * px]);
+				ctx.lineWidth = px;
+				ctx.beginPath();
+				ctx.moveTo(x, bbox.top);
+				ctx.lineTo(x, bbox.top + bbox.height);
+				ctx.stroke();
+				ctx.textAlign = 'right';
+				ctx.fillText(m.label, x - 3 * px, bbox.top + 2 * px);
+			} else {
+				ctx.textAlign = 'right';
+				ctx.fillText(
+					`${m.label} ▸`,
+					bbox.left + bbox.width - 2 * px,
+					bbox.top + (2 + 14 * beyond++) * px
+				);
+			}
+		}
+		ctx.restore();
+	}
 
 	const showLatest = (u: uPlot) => u.setLegend({ idx: u.data[0].length - 1 });
 
@@ -63,7 +106,7 @@
 					{ label: 'date', value: (_u, v) => (v == null ? '' : gameMonth(v)) },
 					...Object.keys(series.lines).map((label, i) => ({
 						label: label.replaceAll('_', ' '),
-						stroke: palette[i % palette.length],
+						stroke: colorOf(label) ?? palette[i % palette.length],
 						dash: dashes[i % dashes.length],
 						width: 1.5,
 						spanGaps: true
@@ -73,7 +116,8 @@
 				hooks: {
 					ready: [showLatest],
 					setData: [showLatest],
-					setCursor: [(u) => u.cursor.idx == null && showLatest(u)]
+					setCursor: [(u) => u.cursor.idx == null && showLatest(u)],
+					draw: [(u) => drawMarkers(u, UPlot.pxRatio)]
 				}
 			};
 			plot = new UPlot(opts, data(series), el);

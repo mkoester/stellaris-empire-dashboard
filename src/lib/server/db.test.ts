@@ -23,6 +23,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	empireSize: null,
 	starbases: null,
 	navalUsed: null,
+	envoys: null,
 	progress: null
 });
 

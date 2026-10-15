@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { colorOf } from './colors.ts';
 	import { pretty } from './format.ts';
 	import type { Upcoming } from './events.ts';
 
@@ -31,14 +32,15 @@
 			</thead>
 			<tbody>
 				{#each events as e, i (i)}
-					<tr class="border-b border-gray-200 dark:border-gray-800">
+					<!-- the event in its game colour; the numbers in Details stay plain -->
+					<tr class="border-b border-gray-200 dark:border-gray-800" style:color={colorOf(e.tint)}>
 						<td class="p-1 whitespace-nowrap" title={e.exact ? 'exact' : 'estimated'}
 							>{e.exact ? '' : '≈ '}{e.date}</td
 						>
 						<td class="p-1 text-right whitespace-nowrap">{inMonths(e.months)}</td>
 						<td class="p-1">{e.kind === 'construction' ? pretty(e.what) : e.what}</td>
-						<td class="p-1 text-gray-500">{e.kind}</td>
-						<td class="p-1">
+						<td class="p-1 opacity-75">{e.kind}</td>
+						<td class="p-1" style="color: CanvasText">
 							{#if e.planetId !== undefined}
 								<a class="underline" href={planetHref(e.planetId)}>{e.detail}</a>
 							{:else}

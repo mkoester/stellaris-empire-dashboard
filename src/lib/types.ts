@@ -60,6 +60,7 @@ export type Snapshot = {
 	empireSize: number | null;
 	starbases: { used: number; capacity: number } | null;
 	navalUsed: number | null;
+	envoys: { used: number; total: number } | null;
 	progress: Progress | null; // null from the mod feed
 };
 

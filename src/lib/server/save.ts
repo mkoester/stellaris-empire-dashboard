@@ -24,6 +24,7 @@ export type RawSave = {
 	empireName: string;
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
 	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
+	leaders: Record<string, Raw>;
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -46,6 +47,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			deposits: q.at('/deposit') ?? {},
 			empireName: String(meta.name ?? ''),
 			endGameStart: numOrNull(q.at('/galaxy/end_game_start')),
+			leaders: q.at('/leaders') ?? {},
 			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
 		};
 	});
@@ -73,7 +75,19 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 				? { used: num(raw.country.starbase_capacity_used), capacity: raw.country.starbase_capacity }
 				: null,
 		navalUsed: numOrNull(raw.country?.used_naval_capacity),
+		envoys: envoys(raw.leaders, raw.countryId),
 		progress: progress(raw)
+	};
+}
+
+/** The country's envoys; one is in use while it has a `location = { assignment=… }`. */
+export function envoys(leaders: Record<string, Raw>, countryId: number) {
+	const own = Object.values(leaders).filter(
+		(l) => l?.class === 'envoy' && Number(l.country) === countryId
+	);
+	return {
+		used: own.filter((l) => l.location?.assignment !== undefined).length,
+		total: own.length
 	};
 }
 

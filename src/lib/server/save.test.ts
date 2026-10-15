@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildQueue,
 	displayName,
+	envoys,
 	progress,
 	readSave,
 	sumSources,
@@ -18,6 +19,7 @@ const raw: RawSave = {
 	empireName: 'Yastun Devourers',
 	endGameStart: 150,
 	galaxy: { technology: 1.25, traditions: 1 },
+	leaders: {},
 	country: {
 		num_sapient_pops: 5000,
 		empire_size: 50,
@@ -160,6 +162,23 @@ describe('progress', () => {
 	});
 });
 
+describe('envoys', () => {
+	it("counts the country's envoys and those on an assignment", () => {
+		const leaders = {
+			'1': { class: 'envoy', country: 0 },
+			'2': {
+				class: 'envoy',
+				country: 0,
+				location: { type: 'first_contact_system', assignment: 'first_contact' }
+			},
+			'3': { class: 'scientist', country: 0, location: { assignment: 'research' } },
+			'4': { class: 'envoy', country: 7, location: { assignment: 'first_contact' } },
+			'5': 'none'
+		};
+		expect(envoys(leaders, 0)).toEqual({ used: 1, total: 2 });
+	});
+});
+
 describe('helpers', () => {
 	it('sumSources ignores non-numeric values', () => {
 		expect(sumSources({ a: { energy: 1, x: 'no' }, b: { energy: 2 } })).toEqual({ energy: 3 });
@@ -194,6 +213,7 @@ describe.skipIf(!real)('real save', () => {
 		expect(s.empireSize).toBeGreaterThan(0);
 		expect(s.starbases?.capacity).toBeGreaterThan(0);
 		expect(s.progress?.research.length).toBe(3);
+		expect(s.envoys?.total).toBeGreaterThan(0);
 		console.log(JSON.stringify({ ...s, colonies: s.colonies.slice(0, 3) }, null, 1));
 	}, 30_000);
 });

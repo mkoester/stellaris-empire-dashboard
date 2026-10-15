@@ -46,10 +46,13 @@ follows `game.log` from its current end and turns the mod's monthly lines into p
 (stockpile and net income) of the campaign being played.
 
 **Upcoming events** (`events.ts`, pure): research per field, next tradition, council agenda, build
-queue items and the next election, sorted by due date. Rates are *measured* — progress between the
+queue items and the next election, sorted by due date. Rates are _measured_ — progress between the
 branch's two latest saves, so every speed bonus counts — and costs are base costs from the data DB
 scaled by empire size and the galaxy sliders. Checked against the game at 2200.04.01: research
 53/71/108 months, tradition 2200.09.01 exact; the agenda is 164 vs. the game's 163 (rounding).
+
+**Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
+events after the game's text colours. Charts and the upcoming list both use them.
 
 **Two sources, one moment:** an autosave and the mod's line for the same date are merged into one
 node (`place()` → `merge`), otherwise the second would look like a reload. The merge compares the
@@ -102,8 +105,10 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   outer bound for zooming out, once zoom exists.
 - Top bar: `country.<id>.empire_size` (50 at start), `starbase_capacity_used` / `starbase_capacity`,
   `used_naval_capacity`; research per field is `physics|society|engineering_research` in the
-  budget income. Not stored: naval capacity cap, envoy slots (envoys are `leaders.<id>` with
-  `class="envoy"`; an idle one has `job="bureaucrat"` — assigned shape not yet seen).
+  budget income. Envoys are `leaders.<id>` with `class="envoy"` and `country=<id>`; one is in use
+  while it has `location = { assignment=… }` (seen: `first_contact`). **Not stored: the naval
+  capacity maximum** — only script can read it (`max_naval_capacity` trigger, exportable with
+  `export_trigger_value_to_variable`), i.e. the companion mod.
 - Progress: `country.tech_status.<area>_queue = { { progress technology date } }` (research points,
   not percent); `country.government.council_agenda` + `council_agenda_progress`;
   `country.next_election`; galaxy cost sliders `galaxy.technology`, `galaxy.traditions`. Tech costs

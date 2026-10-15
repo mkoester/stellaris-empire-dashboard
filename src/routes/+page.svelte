@@ -2,7 +2,9 @@
 	import { resolve } from '$app/paths';
 	import Chart from '#lib/Chart.svelte';
 	import Upcoming from '#lib/Upcoming.svelte';
+	import { colorOf } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
+	import { gameYear } from '#lib/series.ts';
 	import { announceBranch, followGame, postBranch } from '#lib/live.ts';
 	import type { Colony } from '#lib/types.ts';
 
@@ -13,6 +15,16 @@
 	const shown = () => (data.empty || data.isHead ? null : data.tip);
 	announceBranch(shown);
 	$effect(() => postBranch(shown()));
+
+	const events = $derived(data.empty ? [] : data.upcoming);
+	const headerProgress = $derived(
+		events.filter((e) => e.kind === 'tradition' || e.kind === 'agenda')
+	);
+	const researchMarkers = $derived(
+		events
+			.filter((e) => e.kind === 'research')
+			.map((e) => ({ x: gameYear(e.date), tint: e.tint, label: `${e.date.slice(0, 7)} ${e.what}` }))
+	);
 
 	// Stay on the same branch when opening a planet.
 	const planetHref = (planetId: number) =>
@@ -40,9 +52,18 @@
 		{#if data.latest.starbases}
 			<span>starbases <b>{data.latest.starbases.used} / {data.latest.starbases.capacity}</b></span>
 		{/if}
+		{#if data.latest.envoys}
+			<span>envoys <b>{data.latest.envoys.used} / {data.latest.envoys.total}</b></span>
+		{/if}
 		{#if data.latest.navalUsed !== null}
 			<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
 		{/if}
+		{#each headerProgress as e (e.kind)}
+			<span style:color={colorOf(e.tint)}>
+				{e.kind === 'tradition' ? 'next tradition' : 'agenda'}
+				<b>{fmt(e.done!)} / {fmt(e.total!)}</b> ≈ {e.date}
+			</span>
+		{/each}
 		<a class="underline" href={resolve('/timeline')}>save graph</a>
 		{#if !data.isHead}
 			<a class="underline" href={resolve('/')}>back to the current game</a>
@@ -61,7 +82,12 @@
 		{#key data.tip}
 			<Chart title="Empire size" series={data.charts.empireSize} range={data.xRange} yMin={50} />
 			<Chart title="Pops" series={data.charts.pops} range={data.xRange} />
-			<Chart title="Research per month" series={data.charts.research} range={data.xRange} />
+			<Chart
+				title="Research per month"
+				series={data.charts.research}
+				range={data.xRange}
+				markers={researchMarkers}
+			/>
 			<Chart title="Net per month" series={data.charts.balance} range={data.xRange} />
 			<Chart title="Stockpile" series={data.charts.stockpile} range={data.xRange} />
 			<Chart title="Income per month" series={data.charts.income} range={data.xRange} />

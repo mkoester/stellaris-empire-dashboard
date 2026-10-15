@@ -20,6 +20,9 @@ export type Upcoming = {
 	what: string;
 	detail: string;
 	exact: boolean; // false: estimated from costs the save does not hold
+	tint: string; // color key (#lib/colors.ts): the resource or research field it is about
+	done?: number; // progress so far, and what is needed, where it is a progress bar
+	total?: number;
 	planetId?: number;
 };
 
@@ -109,6 +112,9 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 				...when,
 				kind: 'research',
 				what: tech.name,
+				tint: `${r.area}_research`,
+				done: r.progress,
+				total: cost,
 				detail: `${r.area} · ${fmt(r.progress)} / ${fmt(cost)} · +${rate.toFixed(1)}/month`,
 				exact: false
 			});
@@ -128,6 +134,9 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 			...tWhen,
 			kind: 'tradition',
 			what: 'Next tradition',
+			tint: 'unity',
+			done: unity,
+			total: tradition,
 			detail: `unity ${fmt(unity)} / ${fmt(tradition)} · +${unityRate.toFixed(1)}/month`,
 			exact: false
 		});
@@ -147,6 +156,9 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 				...when,
 				kind: 'agenda',
 				what: agenda.name,
+				tint: 'agenda',
+				done: p.agenda.progress,
+				total: cost,
 				detail: `council agenda · ${fmt(p.agenda.progress)} / ${fmt(cost)} · +${rate.toFixed(1)}/month`,
 				exact: false
 			});
@@ -162,6 +174,7 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 				months: days / 30,
 				kind: 'construction',
 				what: item.name,
+				tint: 'construction',
 				detail: `${c.name} · ${item.kind}`,
 				exact: i === 0,
 				planetId: c.planetId
@@ -175,6 +188,7 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 			months: monthsBetween(latest.date, p.nextElection),
 			kind: 'election',
 			what: 'Election',
+			tint: 'election',
 			detail: '',
 			exact: true
 		});
