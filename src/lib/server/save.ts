@@ -383,7 +383,13 @@ export function expansion(
 				size: num(p.planet_size),
 				system: displayName(raw.systems[String(sys)]?.name),
 				jumps: jumps.get(Number(sys)) ?? null,
-				modifier: typeof p.planet_modifier === 'string' ? p.planet_modifier : null
+				modifier: typeof p.planet_modifier === 'string' ? p.planet_modifier : null,
+				// `terraforming_candidate` (Mars) or `toxic_terraforming_candidate` (toxic worlds: only
+				// with the right perk, origin or civic), as a permanent timed modifier
+				candidate:
+					items(p.timed_modifier?.items)
+						.map((m) => String(m?.modifier))
+						.find((m) => m.endsWith('terraforming_candidate')) ?? null
 			};
 		})
 		.sort((a, b) => (a.jumps ?? 1e9) - (b.jumps ?? 1e9) || b.size - a.size);
@@ -659,7 +665,9 @@ export function displayName(name: Raw): string {
 				.pop() ?? '';
 		return `${ordinal(n)} ${kind.charAt(0)}${kind.slice(1).toLowerCase()}`;
 	}
-	if (key.startsWith('%') && Array.isArray(name?.variables)) {
+	// Templates with variables — `%ADJECTIVE%`, `PLANET_NAME_FORMAT` (PARENT + NUMERAL:
+	// "Barnards Star I") — read as their parts.
+	if ((key.startsWith('%') || key === 'PLANET_NAME_FORMAT') && Array.isArray(name?.variables)) {
 		return name.variables.map((v: Raw) => displayName(v.value)).join(' ');
 	}
 	return key

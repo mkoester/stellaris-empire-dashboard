@@ -58,6 +58,7 @@ export type ExpansionPlanet = {
 	system: string;
 	jumps: number | null;
 	modifier: string | null;
+	candidate: string | null; // terraforming candidate modifier, if any
 };
 
 /** One budget source of pops (a job, a stratum's upkeep, buildings, …) for the month. */

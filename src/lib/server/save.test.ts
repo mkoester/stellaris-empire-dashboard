@@ -373,7 +373,8 @@ describe('empire overview', () => {
 			planet_class: 'pc_barren',
 			planet_size: 13,
 			coordinate: { origin: 380 },
-			planet_modifier: 'pm_mineral_poor'
+			planet_modifier: 'pm_mineral_poor',
+			timed_modifier: { items: [{ modifier: 'terraforming_candidate', days: -1 }] }
 		},
 		'9': {
 			name: { key: 'NAME_Faraway' },
@@ -401,7 +402,8 @@ describe('empire overview', () => {
 				size: 13,
 				system: 'Sol',
 				jumps: 0,
-				modifier: 'pm_mineral_poor'
+				modifier: 'pm_mineral_poor',
+				candidate: 'terraforming_candidate'
 			},
 			{
 				planetId: 9,
@@ -410,7 +412,8 @@ describe('empire overview', () => {
 				size: 20,
 				system: 'Far',
 				jumps: 2,
-				modifier: null
+				modifier: null,
+				candidate: null
 			}
 		]);
 	});
@@ -594,6 +597,15 @@ describe('helpers', () => {
 				]
 			})
 		).toBe('Yastun Devourers');
+		expect(
+			displayName({
+				key: 'PLANET_NAME_FORMAT',
+				variables: [
+					{ key: 'PARENT', value: { key: 'NAME_Barnards_Star' } },
+					{ key: 'NUMERAL', value: { key: 'I', literal: true } }
+				]
+			})
+		).toBe('Barnards Star I');
 	});
 });
 

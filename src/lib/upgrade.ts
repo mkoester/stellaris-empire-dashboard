@@ -66,6 +66,7 @@ export function upgrade(
 	return {
 		...s,
 		colonies: s.colonies.map((c) => ({ ...COLONY, ...c })),
-		progress: s.progress && { ...s.progress, researched: s.progress.researched ?? [] }
+		progress: s.progress && { ...s.progress, researched: s.progress.researched ?? [] },
+		expansion: s.expansion && s.expansion.map((p) => ({ ...p, candidate: p.candidate ?? null }))
 	};
 }
