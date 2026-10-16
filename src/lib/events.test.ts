@@ -71,6 +71,8 @@ describe('game calendar', () => {
 	it('round-trips dates through 30-day months', () => {
 		expect(fromDays(toDays('2200.04.01'))).toBe('2200.04.01');
 		expect(fromDays(toDays('2200.12.30') + 1)).toBe('2201.01.01');
+		// fractional progress (Alpha Centauri Prime, 2207.03.10): no '2207.03.12.880000000004657'
+		expect(fromDays(toDays('2207.03.10') + 2.88)).toBe('2207.03.13');
 	});
 });
 

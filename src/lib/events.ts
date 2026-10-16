@@ -52,7 +52,9 @@ export function toDays(date: string): number {
 	return (y * 12 + m - 1) * 30 + d - 1;
 }
 
-export function fromDays(days: number): string {
+/** Days → "2207.03.13". Rounds: progress in the save can be fractional (117.12 of 120 days). */
+export function fromDays(fractionalDays: number): string {
+	const days = Math.round(fractionalDays);
 	const months = Math.floor(days / 30);
 	const pad = (n: number) => String(n).padStart(2, '0');
 	return `${Math.floor(months / 12)}.${pad((months % 12) + 1)}.${pad((days % 30) + 1)}`;
