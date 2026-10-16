@@ -35,6 +35,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	sectors: null,
 	expansion: null,
 	stations: null,
+	migration: null,
 	megaShipyards: null,
 	progress: null
 };

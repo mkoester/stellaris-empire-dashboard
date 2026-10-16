@@ -182,6 +182,8 @@ construct_mining_stations … = yes/no } }` — the task is the sub-order. `auto
 current_month_growth_details = { key = { GROWTH_CAT_… } value = { … } } species = { … categories
 } }`. Details are amounts; **emigration counts against the colony** (Earth 2204.07: growth 3,
   emigration 18 → −15), immigration for it; a single entry is a scalar, not a list.
+  **No source→destination pairs**: `/migration` shows exact flows only with one sender or one
+  receiver, else a proportional split marked as estimated (`#lib/migration.ts`).
 - Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
   (adopt and finish entries included), `tradition_categories`; perks `country.ascension_perks`.
 - Manual saves: a save with the same date as the head but another state continues the head (a
@@ -213,6 +215,9 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
 
 ## Open (needs a running game on Linux)
 
+- **Migration treaties, never seen in a save** (2207.03: none, not even between AI empires).
+  `migrationPartners()` takes any relation mentioning "migration" — check the real shape at the
+  first treaty, tighten it, and add the foreign colonies' case to the tests from that save.
 - **Exact branch points via the mod**: each month the mod rolls a random id and keeps the previous
   one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
   load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.

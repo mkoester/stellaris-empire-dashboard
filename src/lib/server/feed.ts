@@ -90,6 +90,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		sectors: null,
 		expansion: null,
 		stations: null,
+		migration: null,
 		megaShipyards: null,
 		progress: null
 	};

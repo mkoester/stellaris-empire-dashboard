@@ -1,6 +1,7 @@
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
+	MigrationColony,
 	Route,
 	CivilianShip,
 	ShipOrder,
@@ -47,6 +48,7 @@ export type RawSave = {
 	zones: Record<string, Raw>;
 	buildings: Record<string, Raw>;
 	megastructures: Record<string, Raw>;
+	countryNames: Record<string, string>; // owners of colonised planets
 	empireName: string;
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
 	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
@@ -71,14 +73,28 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 	const meta = jomini.parseText(readZipEntry(zip, 'meta'), opts);
 	return jomini.parseText(readZipEntry(zip, 'gamestate'), opts, (q) => {
 		const countryId = Number(first(q.at('/player'))?.country ?? 0);
+		const colonies = q.at('/colony') ?? {};
+		const planets = q.at('/planets/planet') ?? {};
+		// names of every empire owning a colony (migration involves foreign colonies too)
+		const owners = new Set(
+			Object.values(planets as Record<string, Raw>)
+				.filter(
+					(p) => p && typeof p === 'object' && p.colony !== undefined && p.owner !== undefined
+				)
+				.map((p) => Number(p.owner))
+		);
+		const countryNames = Object.fromEntries(
+			[...owners].map((id) => [id, displayName(q.at(`/country/${id}/name`))])
+		);
 		return {
 			date: String(q.at('/date')),
 			tick: Number(q.at('/tick') ?? 0),
 			randomCount: Number(q.at('/random_count') ?? 0),
 			countryId,
 			country: q.at(`/country/${countryId}`),
-			colonies: q.at('/colony') ?? {},
-			planets: q.at('/planets/planet') ?? {},
+			colonies,
+			planets,
+			countryNames,
 			construction: q.at('/construction'),
 			deposits: q.at('/deposit') ?? {},
 			empireName: String(meta.name ?? ''),
@@ -155,6 +171,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		sectors: sectors(raw),
 		expansion: expansion(raw),
 		stations: stations(raw),
+		migration: migration(raw),
 		megaShipyards: megaShipyards(raw),
 		marketOrders: marketOrders(raw.monthlyTrades, raw.countryId),
 		progress: progress(raw)
@@ -699,6 +716,59 @@ function playerColonies(raw: RawSave): Colony[] {
 			upkeep: resources(c.upkeep)
 		};
 	});
+}
+
+/**
+ * Last month's migration of every own colony, and of the colonies of empires the country has a
+ * migration treaty with (only they exchange pops with it; other empires migrate among their own
+ * colonies). The save holds per-colony totals (`colonyGrowth`), no source→destination pairs (see
+ * #lib/migration.ts).
+ */
+export function migration(
+	raw: Pick<
+		RawSave,
+		'country' | 'countryId' | 'colonies' | 'planets' | 'systems' | 'countryNames' | 'empireName'
+	>
+): MigrationColony[] {
+	const partners = migrationPartners(raw.country);
+	const out: MigrationColony[] = [];
+	for (const [planetId, p] of Object.entries(raw.planets)) {
+		if (!p || typeof p !== 'object' || p.colony === undefined || p.owner === undefined) continue;
+		const g = colonyGrowth(raw.colonies[String(p.colony)]?.last_month_growth_data);
+		const immigration = g?.by.immigration ?? 0;
+		const emigration = 0 - (g?.by.emigration ?? 0); // stored negative; 0 - x avoids -0
+		const own = Number(p.owner) === raw.countryId;
+		if (!own && (!partners.has(Number(p.owner)) || (immigration === 0 && emigration === 0)))
+			continue;
+		const sys = raw.systems[String(p.coordinate?.origin)];
+		out.push({
+			colonyId: Number(p.colony),
+			planetId: Number(planetId),
+			name: displayName(p.name),
+			ownerId: Number(p.owner),
+			owner: own ? raw.empireName : (raw.countryNames[String(p.owner)] ?? `empire ${p.owner}`),
+			own,
+			system: displayName(sys?.name),
+			x: num(sys?.coordinate?.x),
+			y: num(sys?.coordinate?.y),
+			immigration,
+			emigration
+		});
+	}
+	return out;
+}
+
+/**
+ * Empires with a migration treaty: relations (`country.relations_manager.relation`) that mention a
+ * migration agreement in any form. UNVERIFIED — no treaty seen in a save yet (2207.03: none, not
+ * even between AI empires); check the shape at the first one and tighten this.
+ */
+export function migrationPartners(country: Raw): Set<number> {
+	return new Set(
+		items(country?.relations_manager?.relation)
+			.filter((r) => /migration/i.test(JSON.stringify(r ?? {})))
+			.map((r) => Number(r.country))
+	);
 }
 
 /**

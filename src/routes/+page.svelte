@@ -291,7 +291,7 @@
 		/>
 		<Edicts edicts={data.edicts} explain={data.explain} />
 		<Sectors sectors={data.latest.sectors ?? []} />
-		<Migration colonies={data.latest.colonies} />
+		<Migration colonies={data.latest.colonies} node={data.isHead ? null : data.tip} />
 		<AutomationSummary
 			defaults={data.latest.defaultAutomation ?? []}
 			blocked={data.latest.automationBlocked ?? []}

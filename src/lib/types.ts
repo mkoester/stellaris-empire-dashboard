@@ -119,6 +119,21 @@ export type ColonyDistrict = {
 /** One job on a colony. Positions null: unlimited (civilian). */
 export type ColonyJob = { type: string; pops: number; filled: number; positions: number | null };
 
+/** One colony's migration last month, in pops (both amounts positive). */
+export type MigrationColony = {
+	colonyId: number;
+	planetId: number;
+	name: string;
+	ownerId: number;
+	owner: string; // empire name
+	own: boolean;
+	system: string;
+	x: number; // galaxy map position of its system
+	y: number;
+	immigration: number;
+	emigration: number;
+};
+
 /** A starbase: its own build queue (modules, buildings) and, with a shipyard, the ship queue. */
 export type Station = {
 	id: number;
@@ -209,6 +224,7 @@ export type Snapshot = {
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
 	stations: Station[] | null; // starbases with their queues and shipyards
+	migration: MigrationColony[] | null; // last month, per colony; own colonies always, foreign ones with any
 	megaShipyards: MegaShipyard[] | null;
 	progress: Progress | null; // null from the mod feed
 };

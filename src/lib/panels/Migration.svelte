@@ -1,11 +1,16 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { fmt } from '../format.ts';
 	import type { Colony } from '../types.ts';
 	import Panel from './Panel.svelte';
 
 	// Last month's pop movement between the empire's colonies: who loses pops to emigration, who
 	// gains by immigration, next to natural growth.
-	let { colonies }: { colonies: Colony[] } = $props();
+	// node: the save shown when not following the game, so the details page stays on it
+	let { colonies, node = null }: { colonies: Colony[]; node?: number | null } = $props();
+	const details = $derived(
+		node === null ? resolve('/migration') : resolve(`/migration?node=${node}`)
+	);
 
 	const rows = $derived(
 		colonies
@@ -26,7 +31,9 @@
 	title="Migration"
 	note="Last month, in pops. Emigrants leave for the empire's other colonies."
 >
-	<div class="mb-1">moving: <b>{fmt(total)}</b> a month</div>
+	<div class="mb-1">
+		moving: <b>{fmt(total)}</b> a month · <a class="underline" href={details}>details</a>
+	</div>
 	<table class="text-left text-sm">
 		<thead>
 			<tr class="border-b border-gray-300 dark:border-gray-700">

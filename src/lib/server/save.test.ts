@@ -6,6 +6,7 @@ import {
 	colonyJobs,
 	displayName,
 	envoys,
+	migration,
 	megaShipyards,
 	stations,
 	expansion,
@@ -45,6 +46,7 @@ const raw: RawSave = {
 	speciesDb: {},
 	starbases: {},
 	megastructures: {},
+	countryNames: {},
 	// as in the 2201.06.01 save: a city district with a filled Government Zone and an empty one
 	districtsDb: {
 		'1': { type: 'district_city', level: 3, zones: [0, 1] },
@@ -321,6 +323,59 @@ describe('colonyGrowth', () => {
 			})
 		).toEqual({ net: 18, by: { immigration: 18 }, byStratum: { worker: 18 } });
 		expect(colonyGrowth(undefined)).toBeNull();
+	});
+});
+
+describe('migration', () => {
+	// Shapes as in the 2207.03.10 save, plus a foreign colony as a migration treaty would add one.
+	const growth = (key: string | string[], value: number | number[], net: number) => ({
+		growth_and_size: { growth: net },
+		current_month_growth_details: { key, value }
+	});
+	const raw = {
+		countryId: 0,
+		// a treaty with 11 (shape assumed); 12 is a stranger whose colonies migrate among themselves
+		country: {
+			relations_manager: {
+				relation: [
+					{ owner: 0, country: 11, migration_pact: true },
+					{ owner: 0, country: 12, contact: true }
+				]
+			}
+		},
+		empireName: 'United Nations of Earth 3',
+		countryNames: { '11': 'Tiyanki Matriarchy' },
+		systems: {
+			'380': { name: { key: 'NAME_Sol' }, coordinate: { x: -89, y: 72 } },
+			'52': { name: { key: 'NAME_Alpha_Centauri' }, coordinate: { x: -68, y: 72 } },
+			'7': { name: { key: 'NAME_Far' }, coordinate: { x: 10, y: 5 } }
+		},
+		planets: {
+			'3': { name: { key: 'NAME_Earth' }, colony: 0, owner: 0, coordinate: { origin: 380 } },
+			'159': { name: { key: 'NAME_Prime' }, colony: 33, owner: 0, coordinate: { origin: 52 } },
+			'900': { name: { key: 'NAME_Quiet' }, colony: 40, owner: 11, coordinate: { origin: 7 } },
+			'901': { name: { key: 'NAME_Busy' }, colony: 41, owner: 11, coordinate: { origin: 7 } },
+			'902': { name: { key: 'NAME_Elsewhere' }, colony: 42, owner: 12, coordinate: { origin: 7 } }
+		},
+		colonies: {
+			'0': {
+				last_month_growth_data: growth(['GROWTH_CAT_EMIGRATION', 'GROWTH_CAT_GROWTH'], [18, 3], -15)
+			},
+			'33': { last_month_growth_data: growth('GROWTH_CAT_IMMIGRATION', 18, 18) },
+			'40': { last_month_growth_data: growth('GROWTH_CAT_GROWTH', 2, 2) },
+			'41': { last_month_growth_data: growth('GROWTH_CAT_IMMIGRATION', 5, 5) },
+			'42': { last_month_growth_data: growth('GROWTH_CAT_IMMIGRATION', 9, 9) }
+		}
+	};
+
+	it('lists own colonies always and foreign ones with migration', () => {
+		const rows = migration(raw);
+		expect(rows.map((r) => [r.name, r.owner, r.immigration, r.emigration, r.system])).toEqual([
+			['Earth', 'United Nations of Earth 3', 0, 18, 'Sol'],
+			['Prime', 'United Nations of Earth 3', 18, 0, 'Alpha Centauri'],
+			['Busy', 'Tiyanki Matriarchy', 5, 0, 'Far']
+		]);
+		expect(rows[0]).toMatchObject({ own: true, x: -89, y: 72 });
 	});
 });
 
