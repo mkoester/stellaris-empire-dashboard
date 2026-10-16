@@ -316,6 +316,7 @@
 		/>
 		<CivilianShips
 			ships={data.latest.civilianShips ?? []}
+			totals={data.shipTotals}
 			due={Object.fromEntries(
 				data.upcoming.flatMap((e) =>
 					e.fleetId !== undefined ? [[e.fleetId, (e.exact ? '' : '≈ ') + e.date]] : []

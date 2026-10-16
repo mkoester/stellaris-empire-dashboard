@@ -165,9 +165,11 @@ shipyard_build_queue station }` — **no owner field**; the country's are those 
 - Idle leaders: no `location` and no `council_location` — except the ruler (`country.ruler`) and
   envoys. Civilian fleets: `current_order = { <kind>_order = { progress order_id planet |
 deposit_holder | orbitable } }`, queue in `order`, **no arrival date**: `movement_manager.path.date` is not
-  one (a fleet in flight had 2200.09.16 in 2202.05); routes are counted in jumps instead. Progress: anomalies count to 100 (+1.2/day ≈ the 80-day row of
-  `SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS`), station builds count days to the size's `base_buildtime`
-  (outpost 360); surveys assumed to 100 — unconfirmed. Names are templates: `PREFIX_NAME_FORMAT`
+  one (a fleet in flight had 2200.09.16 in 2202.05); routes are counted in jumps instead. Progress totals, checked against five game years of completed orders:
+  surveys count to 30 (`BASE_SURVEY_TIME`), station builds of every size to 100, anomalies to
+  the `SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS` entry for scientist level vs. anomaly level
+  (`planets.<id>.anomaly` → `anomaly_category.level`; level 2 on 3 → 180). The ship sizes'
+  `base_buildtime` (outpost 360) is **not** a constructor's build time. Names are templates: `PREFIX_NAME_FORMAT`
   (the `PREFIX` "UNS" is localisation only), `HUMAN1_CHR_<first>` / `HUMAN1_SHIP_<name>`.
 - Fleet stance `fleet.fleet_stance` (absent = the default). **Automation is an order**:
   `current_order = { automate_fleet_order = { sub_order = { <task>_order = {…} } settings_survey

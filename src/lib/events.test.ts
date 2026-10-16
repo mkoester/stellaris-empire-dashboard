@@ -31,6 +31,7 @@ const data: GameData = {
 	blockers: [],
 	traditionTrees: {},
 	perks: {},
+	anomalyLevels: { GEN_PLAYGROUND_CAT: 3 },
 	defines: {
 		EMPIRE_SIZE_BASE: 100,
 		EMPIRE_SIZE_TECH_COST_PENALTY: 0.002,
@@ -198,7 +199,8 @@ describe('upcoming civilian ships', () => {
 		kind: 'research_anomaly',
 		target: 'Proxima Centauri b',
 		progress,
-		orderId: 41
+		orderId: 41,
+		anomaly: 'GEN_PLAYGROUND_CAT' // level 3, scientist level 2: 180 days
 	});
 	const ship = (progress: number, queue = 1) => ({
 		fleetId: 1,
@@ -207,6 +209,7 @@ describe('upcoming civilian ships', () => {
 		stance: 'evasive',
 		automation: null,
 		leader: null,
+		leaderLevel: 2,
 		order: order(progress),
 		queue: Array(queue).fill({
 			kind: 'survey_planet',
@@ -240,7 +243,7 @@ describe('upcoming civilian ships', () => {
 		const rows = upcoming(now, prev, data).filter((e) => e.kind === 'ship');
 		expect(rows.map((e) => [e.what, e.date, e.queuedAfter, e.act])).toEqual([
 			['colonizer idle', '2202.05.01', undefined, true],
-			['anomaly Proxima Centauri b', '2202.05.23', 6, false]
+			['anomaly Proxima Centauri b', '2202.07.30', 6, false] // (180 − 73.2) / 36 a month
 		]);
 	});
 });

@@ -233,13 +233,18 @@ export function civilianShips(
 			),
 			progress: typeof o?.progress === 'number' ? o.progress : null,
 			orderId: typeof o?.order_id === 'number' ? o.order_id : null,
-			...(design ? { size: String(first(design.growth_stages)?.ship_size ?? '') } : {})
+			...(design ? { size: String(first(design.growth_stages)?.ship_size ?? '') } : {}),
+			...(key === 'research_anomaly_order' &&
+			typeof raw.planets[String(o?.planet)]?.anomaly === 'string'
+				? { anomaly: String(raw.planets[String(o.planet)].anomaly) }
+				: {})
 		};
 	};
-	const scientistOn = new Map<number, string>();
+	const scientistOn = new Map<number, { name: string; level: number }>();
 	for (const id of list(raw.country?.owned_leaders)) {
 		const l = raw.leaders[String(id)];
-		if (l?.location?.type === 'ship') scientistOn.set(num(l.location.id), leaderName(l.name));
+		if (l?.location?.type === 'ship')
+			scientistOn.set(num(l.location.id), { name: leaderName(l.name), level: num(l.level) });
 	}
 	return items(raw.country?.fleets_manager?.owned_fleets).flatMap((o) => {
 		const f = raw.fleets[String(o?.fleet)];
@@ -249,6 +254,9 @@ export function civilianShips(
 		// settings_survey = yes construct_mining_stations = yes … }`.
 		const top = Object.entries(f.current_order ?? {})[0] as [string, Raw] | undefined;
 		const auto = top?.[0] === 'automate_fleet_order' ? top[1] : null;
+		const scientist = list(f.ships)
+			.map((s) => scientistOn.get(s))
+			.find(Boolean);
 		const current = auto
 			? (Object.entries(auto.sub_order ?? {})[0] as [string, Raw] | undefined)
 			: top;
@@ -266,10 +274,8 @@ export function civilianShips(
 							.filter(([k, v]) => v === true && /^(settings_|construct_|do_)/.test(k))
 							.map(([k]) => k.replace(/^(settings_|construct_|do_)/, '').replaceAll('_', ' '))
 					: null,
-				leader:
-					list(f.ships)
-						.map((s) => scientistOn.get(s))
-						.find(Boolean) ?? null,
+				leader: scientist?.name ?? null,
+				leaderLevel: scientist?.level ?? null,
 				order: current ? order(current) : null,
 				queue: queued.map(order),
 				route: route(raw, f),

@@ -2,15 +2,23 @@ import { describe, expect, it } from 'vitest';
 import { idleState, monthsLeft, orderLabel, orderRate, orderTotal } from './ships.ts';
 import type { CivilianShip, Snapshot } from './types.ts';
 
-// UNE 3 at 2202.04.01 and 2202.05.01
-const ship = (progress: number, orderId = 41): CivilianShip => ({
+// UNE 3: Grissom's anomaly at Xigar V a, 2207.01.01 and 2207.02.01 (done before 2207.03.01)
+const levels = { GEN_PLAYGROUND_CAT: 3 };
+const ship = (progress: number, orderId = 52): CivilianShip => ({
 	fleetId: 1,
 	name: 'Armstrong',
 	kind: 'science_ship',
 	stance: 'evasive',
 	automation: null,
-	leader: 'Mncedisi Iweala',
-	order: { kind: 'research_anomaly', target: 'Proxima Centauri b', progress, orderId },
+	leader: 'Gabriela Rosario',
+	leaderLevel: 2,
+	order: {
+		kind: 'research_anomaly',
+		target: 'Xigar V a',
+		progress,
+		orderId,
+		anomaly: 'GEN_PLAYGROUND_CAT'
+	},
 	queue: [{ kind: 'survey_planet', target: 'Barnards Star IV', progress: 0, orderId: 42 }],
 	route: { at: 'Sol', moving: false, stops: [] },
 	parked: null
@@ -18,33 +26,52 @@ const ship = (progress: number, orderId = 41): CivilianShip => ({
 const prev = (s: CivilianShip) => ({ civilianShips: [s] }) as unknown as Snapshot;
 
 describe('ships', () => {
-	it('knows what orders count to', () => {
-		expect(orderTotal({ kind: 'research_anomaly', target: null, progress: 0, orderId: 1 })).toBe(
-			100
-		);
+	it('knows what orders count to, as completed orders showed', () => {
+		const o = (kind: string, extra = {}) => ({
+			kind,
+			target: null,
+			progress: 0,
+			orderId: 1,
+			...extra
+		});
+		// a level-2 scientist on a level-3 anomaly: one level below → 180 days
 		expect(
-			orderTotal({
-				kind: 'build_orbital_station',
-				target: null,
-				progress: 73,
-				orderId: 6,
-				size: 'starbase_outpost'
-			})
-		).toBe(360);
+			orderTotal(
+				o('research_anomaly', { anomaly: 'GEN_PLAYGROUND_CAT' }),
+				{ leaderLevel: 2 },
+				levels
+			)
+		).toBe(180);
 		expect(
-			orderTotal({ kind: 'orbit_planet', target: null, progress: null, orderId: 0 })
+			orderTotal(
+				o('research_anomaly', { anomaly: 'GEN_PLAYGROUND_CAT' }),
+				{ leaderLevel: 5 },
+				levels
+			)
+		).toBe(80);
+		expect(
+			orderTotal(o('research_anomaly', { anomaly: 'UNKNOWN_CAT' }), { leaderLevel: 2 }, levels)
 		).toBeNull();
+		expect(orderTotal(o('survey_planet'), { leaderLevel: null }, levels)).toBe(30);
+		expect(
+			orderTotal(
+				o('build_orbital_station', { size: 'mining_station' }),
+				{ leaderLevel: null },
+				levels
+			)
+		).toBe(100);
+		expect(orderTotal(o('orbit_planet'), { leaderLevel: null }, levels)).toBeNull();
 	});
 
 	it('measures the rate for the same order and estimates what is left', () => {
-		const rate = orderRate(ship(73.2), prev(ship(37.2)), 1);
+		const rate = orderRate(ship(176.4), prev(ship(140.4)), 1);
 		expect(rate).toBeCloseTo(36);
-		expect(monthsLeft(ship(73.2), rate)).toBeCloseTo(26.8 / 36);
-		expect(orderRate(ship(5, 99), prev(ship(37.2)), 1)).toBeNull(); // a new order
+		expect(monthsLeft(ship(176.4), rate, levels)).toBeCloseTo(3.6 / 36); // done before 03.01 ✓
+		expect(orderRate(ship(5, 99), prev(ship(140.4)), 1)).toBeNull(); // a new order
 	});
 
 	it('labels orders', () => {
-		expect(orderLabel(ship(0).order!)).toBe('anomaly Proxima Centauri b');
+		expect(orderLabel(ship(0).order!)).toBe('anomaly Xigar V a');
 		expect(
 			orderLabel({
 				kind: 'build_orbital_station',

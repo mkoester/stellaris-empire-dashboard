@@ -81,6 +81,11 @@ export function loadGameData(file: string): GameData {
 					(r) => [r.key, r.name ?? r.key]
 				)
 			),
+			anomalyLevels: Object.fromEntries(
+				rows<{ key: string; level: number | null }>('SELECT key, level FROM anomaly_category').map(
+					(r) => [r.key, r.level]
+				)
+			),
 			defines: Object.fromEntries(
 				rows<{ key: string; value: number }>('SELECT key, value FROM game_define').map((r) => [
 					r.key,

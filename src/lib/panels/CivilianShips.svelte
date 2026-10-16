@@ -1,21 +1,24 @@
 <script lang="ts">
 	import { fmt } from '../format.ts';
-	import { idleState, orderLabel, orderTotal } from '../ships.ts';
-	import type { CivilianShip, ShipOrder } from '../types.ts';
+	import { idleState, orderLabel } from '../ships.ts';
+	import type { CivilianShip } from '../types.ts';
 	import Panel from './Panel.svelte';
 
 	// Science, construction and colony ships: the current order with its progress (of the total
 	// where known) and due date (from Upcoming), and what is queued after it.
-	let { ships, due }: { ships: CivilianShip[]; due: Record<number, string> } = $props();
+	// totals: what each ship's current order counts to (#lib/ships.ts orderTotal), by fleet id
+	let {
+		ships,
+		due,
+		totals
+	}: { ships: CivilianShip[]; due: Record<number, string>; totals: Record<number, number | null> } =
+		$props();
 
-	const progress = (o: ShipOrder) => {
-		const total = orderTotal(o);
-		if (o.progress === null) return '';
-		return total === 100
-			? `${Math.floor(o.progress)}%`
-			: total
-				? `${fmt(o.progress)} / ${total} days`
-				: fmt(o.progress);
+	const progress = (s: CivilianShip) => {
+		const p = s.order?.progress;
+		if (p == null) return '';
+		const total = totals[s.fleetId];
+		return total ? `${Math.min(100, Math.floor((100 * p) / total))}%` : fmt(p);
 	};
 </script>
 
@@ -57,7 +60,7 @@
 							>
 						{/if}
 					</td>
-					<td class="p-1 text-right whitespace-nowrap">{s.order ? progress(s.order) : ''}</td>
+					<td class="p-1 text-right whitespace-nowrap">{progress(s)}</td>
 					<td class="p-1 whitespace-nowrap">{due[s.fleetId] ?? ''}</td>
 					<td class="p-1 text-gray-500">
 						{s.queue.map(orderLabel).join(' · ') || (s.order ? 'nothing queued' : '')}

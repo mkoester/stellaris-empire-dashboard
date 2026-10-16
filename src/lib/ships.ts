@@ -2,23 +2,37 @@ import { pretty } from './format.ts';
 import type { CivilianShip, ShipOrder, Snapshot } from './types.ts';
 
 // What civilian ships are doing and when they are done. The save stores an order's progress, not
-// its total; the totals below are read off the game:
-// - research_anomaly counts to 100 (percent): +1.2/day matched the 80-day "2 levels above" row of
-//   SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS (2202.02–05, UNE 3);
-// - survey_planet is taken to count to 100 as well (unconfirmed);
-// - build_orbital_station counts days (+1/day) to the ship size's base_buildtime
-//   (common/ship_sizes, 4.5.2).
+// its total; the totals, checked against completed orders over five game years (UNE 3, 2202–2207):
+// - survey_planet counts to 30 (BASE_SURVEY_TIME, days; bonuses speed the progress) — never
+//   above 29.7 before completion;
+// - build_orbital_station counts to 100 for outposts, mining and research stations alike — last
+//   seen 73–99, never above;
+// - research_anomaly counts to the SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS entry for the scientist's
+//   level against the anomaly's (anomaly_category level): level 2 on a level-3 anomaly → 180, last
+//   seen 176.4 a month before completion.
 // The rate is measured between the two latest saves for the same order, so speed bonuses count.
 
-const BUILD_DAYS: Record<string, number> = {
-	starbase_outpost: 360,
-	mining_station: 720,
-	research_station: 720
-};
+const SURVEY_DAYS = 30;
+const BUILD_TOTAL = 100;
+// SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS (common/defines, 4.5.2): 9 levels above the anomaly … 9 below
+const ANOMALY_DAYS = [
+	20, 24, 30, 35, 45, 55, 65, 80, 100, 120, 180, 300, 540, 720, 1080, 1440, 2160, 2880, 5760
+];
 
-export function orderTotal(o: ShipOrder): number | null {
-	if (o.kind === 'research_anomaly' || o.kind === 'survey_planet') return 100;
-	if (o.kind === 'build_orbital_station') return BUILD_DAYS[o.size ?? ''] ?? null;
+/** What an order counts up to; `levels` are anomaly category levels from the game data. */
+export function orderTotal(
+	o: ShipOrder,
+	ship: Pick<CivilianShip, 'leaderLevel'>,
+	levels: Record<string, number | null>
+): number | null {
+	if (o.kind === 'survey_planet') return SURVEY_DAYS;
+	if (o.kind === 'build_orbital_station') return BUILD_TOTAL;
+	if (o.kind === 'research_anomaly') {
+		const anomaly = o.anomaly ? levels[o.anomaly] : null;
+		if (anomaly == null || ship.leaderLevel === null) return null;
+		const i = 9 + anomaly - ship.leaderLevel; // equal levels sit in the middle
+		return ANOMALY_DAYS[Math.min(Math.max(i, 0), ANOMALY_DAYS.length - 1)];
+	}
 	return null;
 }
 
@@ -46,10 +60,14 @@ export function orderRate(ship: CivilianShip, previous: Snapshot | null, monthsE
 }
 
 /** Months until the current order is done: total − progress at the rate (travel: unknown). */
-export function monthsLeft(ship: CivilianShip, rate: number | null) {
+export function monthsLeft(
+	ship: CivilianShip,
+	rate: number | null,
+	levels: Record<string, number | null>
+) {
 	const o = ship.order;
 	if (!o) return 0;
-	const total = orderTotal(o);
+	const total = orderTotal(o, ship, levels);
 	if (total === null || o.progress === null || !(rate && rate > 0)) return null;
 	return Math.max(total - o.progress, 0) / rate;
 }

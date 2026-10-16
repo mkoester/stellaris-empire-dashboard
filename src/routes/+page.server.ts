@@ -5,6 +5,7 @@ import { pretty } from '#lib/format.ts';
 import { traitBudget } from '#lib/species.ts';
 import { techTiers } from '#lib/techTiers.ts';
 import { adoptedTrees } from '#lib/traditions.ts';
+import { orderTotal } from '#lib/ships.ts';
 import {
 	agendaSeries,
 	fieldSeries,
@@ -34,6 +35,13 @@ export function load({ url }) {
 			...(latest.traditions ?? []).map((k) => `tradition:${k}`),
 			...(latest.ascensionPerks ?? []).map((k) => `perk:${k}`)
 		]),
+		// what each civilian ship's current order counts to (anomalies need the game data's levels)
+		shipTotals: Object.fromEntries(
+			(latest.civilianShips ?? []).map((s) => [
+				s.fleetId,
+				s.order ? orderTotal(s.order, s, data.anomalyLevels) : null
+			])
+		),
 		trees: adoptedTrees(latest.traditions ?? [], data),
 		perks: (latest.ascensionPerks ?? []).map((key) => ({
 			key,

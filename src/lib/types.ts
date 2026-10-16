@@ -66,6 +66,7 @@ export type ShipOrder = {
 	progress: number | null;
 	orderId: number | null;
 	size?: string; // build orders: the ship size being built (starbase_outpost, mining_station, …)
+	anomaly?: string; // anomaly orders: the planet's anomaly category
 };
 
 export type CivilianShip = {
@@ -75,6 +76,7 @@ export type CivilianShip = {
 	stance: string | null; // fleet_stance: evasive, passive, aggressive (null: the game's default)
 	automation: string[] | null; // automated: the enabled settings (survey, mining stations, …); null: manual
 	leader: string | null;
+	leaderLevel: number | null;
 	order: ShipOrder | null; // null: idle
 	queue: ShipOrder[];
 	route: Route; // where it is and where its orders take it
@@ -238,6 +240,7 @@ export type GameData = {
 		{ name: string; traditions: { key: string; name: string; role: string }[] }
 	>;
 	perks: Record<string, string>; // ascension perk names
+	anomalyLevels: Record<string, number | null>; // anomaly category → level
 	blockers: string[]; // deposit keys that are blockers
 };
 
