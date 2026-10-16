@@ -49,6 +49,45 @@ export function ownerColors(rows: MigrationColony[]): Record<number, string> {
 	]);
 }
 
+/** One month's migration rows, for stepping through time. */
+export type Frame = { date: string; rows: MigrationColony[] };
+
+/**
+ * The months with migration data, oldest first. Snapshots from before the migration field are
+ * rebuilt from their colonies' growth; their positions come from the newest snapshot that has
+ * the colony (a planet does not move).
+ */
+export function migrationFrames(history: Snapshot[]): Frame[] {
+	const positions = new Map<number, MigrationColony>();
+	for (const s of history) for (const r of s.migration ?? []) positions.set(r.planetId, r);
+	return history.flatMap((s) => {
+		if (s.migration) return [{ date: s.date, rows: s.migration }];
+		const own = s.colonies.filter((c) => c.growth);
+		if (!own.length) return [];
+		return [
+			{
+				date: s.date,
+				rows: own.map((c) => {
+					const at = positions.get(c.planetId);
+					return {
+						colonyId: at?.colonyId ?? -c.planetId,
+						planetId: c.planetId,
+						name: c.name,
+						ownerId: at?.ownerId ?? -1,
+						owner: s.empireName,
+						own: true,
+						system: at?.system ?? '',
+						x: at?.x ?? 0,
+						y: at?.y ?? 0,
+						immigration: c.growth!.by.immigration ?? 0,
+						emigration: 0 - (c.growth!.by.emigration ?? 0)
+					};
+				})
+			}
+		];
+	});
+}
+
 export type ColonySeries = {
 	key: string;
 	name: string;

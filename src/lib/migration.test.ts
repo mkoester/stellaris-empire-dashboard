@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { flows, migrationHistory, ownerColors, CATEGORICAL, OTHER } from './migration.ts';
+import {
+	flows,
+	migrationFrames,
+	migrationHistory,
+	ownerColors,
+	CATEGORICAL,
+	OTHER
+} from './migration.ts';
 import type { MigrationColony, Snapshot } from './types.ts';
 
 let next = 100;
@@ -83,5 +90,33 @@ describe('migrationHistory', () => {
 		const h = migrationHistory([old, none, now] as unknown as Snapshot[]);
 		expect(h.colonies).toHaveLength(1);
 		expect(h.colonies[0].emigration).toEqual([18, null, 12]);
+	});
+});
+
+describe('migrationFrames', () => {
+	it('keeps months with data, rebuilding old ones from growth with the newest known positions', () => {
+		const earth = { ...row('Earth', 0, 12, 0, 3), x: -6, y: 279, system: 'Sol' };
+		const old = {
+			date: '2206.11.01',
+			empireName: 'UNE',
+			migration: null,
+			colonies: [{ planetId: 3, name: 'Earth', growth: { net: -15, by: { emigration: -18 } } }]
+		};
+		const none = {
+			date: '2206.12.01',
+			empireName: 'UNE',
+			migration: null,
+			colonies: [{ planetId: 3, name: 'Earth', growth: null }]
+		};
+		const now = { date: '2207.03.01', empireName: 'UNE', migration: [earth], colonies: [] };
+		const frames = migrationFrames([old, none, now] as unknown as Snapshot[]);
+		expect(frames.map((f) => f.date)).toEqual(['2206.11.01', '2207.03.01']);
+		expect(frames[0].rows[0]).toMatchObject({
+			name: 'Earth',
+			emigration: 18,
+			x: -6,
+			y: 279,
+			system: 'Sol'
+		});
 	});
 });
