@@ -176,6 +176,10 @@ construct_mining_stations … = yes/no } }` — the task is the sub-order. `auto
 - New colonies: listed in `controlled_colonies` from landing on; `colonizing_species` while being
   settled; done at `COLONY_POPS_REQUIRED` = 100 pops, growing `COLONY_MONTHLY_GROWTH` = 3/month
   before modifiers. Name `NEW_COLONY_NAME_<n>` = "$NAME$ Prime" … "Decimus".
+- Pop growth and migration: `colony.last_month_growth_data = { growth_and_size = { growth }
+current_month_growth_details = { key = { GROWTH_CAT_… } value = { … } } species = { … categories
+} }`. Details are amounts; **emigration counts against the colony** (Earth 2204.07: growth 3,
+  emigration 18 → −15), immigration for it; a single entry is a scalar, not a list.
 - Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
   (adopt and finish entries included), `tradition_categories`; perks `country.ascension_perks`.
 - Manual saves: a save with the same date as the head but another state continues the head (a
