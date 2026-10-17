@@ -38,6 +38,7 @@
 	// west of Sol x −6, Sirius x −30 east of it)
 	const px = (x: number) => PAD + (box.x1 - x) * scale;
 	const py = (y: number) => PAD + (y - box.y0) * scale;
+	const senders = $derived([...new Set(flows.map((f) => f.from.ownerId))]);
 	const max = $derived(Math.max(1, ...flows.map((f) => f.pops)));
 	const arc = (f: Flow) => {
 		const [x1, y1, x2, y2] = [px(f.from.x), py(f.from.y), px(f.to.x), py(f.to.y)];
@@ -63,18 +64,23 @@
 			role="img"
 			aria-label="Migration map"
 		>
+			<!-- one arrowhead per sender colour, 14px whatever the arc's width; refX puts the tip at
+			     the colony dot's edge (r 6 + stroke 2 = 8px ≈ 6 marker units) instead of under it -->
 			<defs>
-				<marker
-					id="arrow"
-					viewBox="0 0 10 10"
-					refX="9"
-					refY="5"
-					markerWidth="5"
-					markerHeight="5"
-					orient="auto-start-reverse"
-				>
-					<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
-				</marker>
+				{#each senders as ownerId (ownerId)}
+					<marker
+						id="arrow-{ownerId}"
+						viewBox="0 0 10 10"
+						refX="16"
+						refY="5"
+						markerWidth="14"
+						markerHeight="14"
+						markerUnits="userSpaceOnUse"
+						orient="auto-start-reverse"
+					>
+						<path d="M 0 0 L 10 5 L 0 10 z" fill={colors[ownerId]} />
+					</marker>
+				{/each}
 			</defs>
 			{#each systems as s (s.id)}
 				{#each s.lanes as to (to)}
@@ -108,8 +114,7 @@
 					stroke-opacity="0.6"
 					stroke-width={Math.max(2, (f.pops / max) * 10)}
 					stroke-dasharray={f.estimated ? '6 4' : undefined}
-					marker-end="url(#arrow)"
-					class="text-gray-600"
+					marker-end="url(#arrow-{f.from.ownerId})"
 					><title
 						>{f.from.name} → {f.to.name}: {fmt(f.pops)} pops/month{f.estimated
 							? ' (estimated)'
