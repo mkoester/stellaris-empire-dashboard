@@ -1,6 +1,7 @@
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
+	KnownSystem,
 	MigrationColony,
 	Route,
 	CivilianShip,
@@ -172,6 +173,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		expansion: expansion(raw),
 		stations: stations(raw),
 		migration: migration(raw),
+		knownSystems: knownSystems(raw, ownSystems(raw)),
 		megaShipyards: megaShipyards(raw),
 		marketOrders: marketOrders(raw.monthlyTrades, raw.countryId),
 		progress: progress(raw)
@@ -371,8 +373,8 @@ const queueSlots = (raw: Pick<RawSave, 'construction'>, queueId: Raw) =>
 	num(raw.construction?.queue_mgr?.queues?.[String(queueId)]?.simultaneous) || 1;
 
 /**
- * The country's starbases: those whose `starbase` construction queue it owns (the starbase itself
- * names no owner). `build_queue` holds modules and buildings, `shipyard_build_queue` ships —
+ * The country's starbases, outposts included: those whose own `build_queue` it owns (the starbase
+ * itself names no owner). `build_queue` holds modules and buildings, `shipyard_build_queue` ships —
  * present only with a shipyard module. The system comes from `galactic_object.<id>.starbases`.
  */
 export function stations(
@@ -384,15 +386,14 @@ export function stations(
 	const systemOf = new Map<number, string>();
 	for (const sys of Object.values(raw.systems))
 		for (const sb of list(sys?.starbases)) systemOf.set(sb, displayName(sys.name));
-	const queues = Object.values(raw.construction?.queue_mgr?.queues ?? {});
-	const own = new Set(
-		queues
-			.filter(
-				(q: Raw) => q?.owner === raw.countryId && q.type === 'starbase' && q.location?.type === 0
-			)
-			.map((q: Raw) => Number(q.location.id))
-	);
-	return [...own].flatMap((id) => {
+	// A starbase is the country's when its own build queue is: the queue's `location.id` is the
+	// starbase's station ship, not the starbase (both 0 for Sol, which hid it; outposts differ).
+	const queues = raw.construction?.queue_mgr?.queues ?? {};
+	const own = Object.keys(raw.starbases).filter((id) => {
+		const sb = raw.starbases[id];
+		return sb && typeof sb === 'object' && queues[String(sb.build_queue)]?.owner === raw.countryId;
+	});
+	return own.map(Number).flatMap((id) => {
 		const sb = raw.starbases[String(id)];
 		if (!sb || typeof sb !== 'object') return [];
 		const modules = Object.values(sb.modules ?? {}).map(String);
@@ -756,6 +757,34 @@ export function migration(
 		});
 	}
 	return out;
+}
+
+/**
+ * Systems the country knows — visited by its ships (`country.visited_objects`) or its own — at
+ * their map positions (`galactic_object.<id>.coordinate`), with the hyperlanes between them (each
+ * listed once, on the lower id).
+ */
+export function knownSystems(
+	raw: Pick<RawSave, 'country' | 'systems'>,
+	own: Set<number>
+): KnownSystem[] {
+	const known = new Set([...list(raw.country?.visited_objects), ...own]);
+	return [...known].flatMap((id) => {
+		const s = raw.systems[String(id)];
+		if (!s || typeof s !== 'object') return [];
+		return [
+			{
+				id,
+				name: displayName(s.name),
+				x: num(s.coordinate?.x),
+				y: num(s.coordinate?.y),
+				owned: own.has(id),
+				lanes: items(s.hyperlane)
+					.map((l) => Number(l?.to))
+					.filter((to) => known.has(to) && to > id)
+			}
+		];
+	});
 }
 
 /**

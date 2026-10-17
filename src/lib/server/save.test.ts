@@ -6,6 +6,7 @@ import {
 	colonyJobs,
 	displayName,
 	envoys,
+	knownSystems,
 	migration,
 	megaShipyards,
 	stations,
@@ -326,6 +327,35 @@ describe('colonyGrowth', () => {
 	});
 });
 
+describe('knownSystems', () => {
+	it('lists visited and own systems with the hyperlanes between them, each once', () => {
+		const systems = {
+			'380': {
+				name: { key: 'NAME_Sol' },
+				coordinate: { x: -6, y: 279 },
+				hyperlane: [{ to: 52 }, { to: 135 }, { to: 9 }]
+			},
+			'52': {
+				name: { key: 'NAME_Alpha_Centauri' },
+				coordinate: { x: 11, y: 296 },
+				hyperlane: [{ to: 380 }]
+			},
+			'135': {
+				name: { key: 'NAME_Sirius' },
+				coordinate: { x: -30, y: 269 },
+				hyperlane: { to: 380 }
+			},
+			'9': { name: { key: 'NAME_Unknown' }, coordinate: { x: 0, y: 0 }, hyperlane: { to: 380 } }
+		};
+		const r = knownSystems({ country: { visited_objects: [380, 52] }, systems }, new Set([135]));
+		expect(r.map((s) => [s.name, s.owned, s.lanes])).toEqual([
+			['Sol', false, []],
+			['Alpha Centauri', false, [380]],
+			['Sirius', true, [380]]
+		]);
+	});
+});
+
 describe('migration', () => {
 	// Shapes as in the 2207.03.10 save, plus a foreign colony as a migration treaty would add one.
 	const growth = (key: string | string[], value: number | number[], net: number) => ({
@@ -593,7 +623,10 @@ describe('stations', () => {
 	const raw = {
 		countryId: 0,
 		deposits: {},
-		systems: { '380': { name: { key: 'NAME_Sol' }, starbases: 0 } },
+		systems: {
+			'380': { name: { key: 'NAME_Sol' }, starbases: 0 },
+			'52': { name: { key: 'NAME_Alpha_Centauri' }, starbases: 42 }
+		},
 		starbases: {
 			'0': {
 				level: 'starbase_level_starport',
@@ -602,7 +635,9 @@ describe('stations', () => {
 				build_queue: 2,
 				shipyard_build_queue: 3
 			},
-			'9': { level: 'starbase_level_outpost', build_queue: 50 } // someone else's
+			'9': { level: 'starbase_level_outpost', build_queue: 50 }, // someone else's
+			// an outpost of the country's: its queue sits at the station ship (16778307), not at 42
+			'42': { level: 'starbase_level_outpost', build_queue: 4195, station: 16778307 }
 		},
 		shipDesigns: {
 			'2009': {
@@ -626,6 +661,7 @@ describe('stations', () => {
 						items: [7, 8]
 					},
 					'50': { owner: 4, location: { type: 0, id: 9 }, type: 'starbase' },
+					'4195': { owner: 0, location: { type: 0, id: 16778307 }, type: 'starbase' },
 					'60': {
 						owner: 0,
 						location: { type: 5, id: 12 },
@@ -679,6 +715,17 @@ describe('stations', () => {
 						{ kind: 'ship', name: 'corvette', design: 'S Empty', progress: 0, needed: 60 }
 					]
 				},
+				arkship: false
+			},
+			{
+				id: 42,
+				system: 'Alpha Centauri',
+				level: 'outpost',
+				modules: [],
+				buildings: [],
+				queue: [],
+				slots: 1,
+				shipyard: null,
 				arkship: false
 			}
 		]);
