@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Snapshot } from '#lib/types.ts';
-import { headId, history, nodes, openDb, record, setParent } from './db.ts';
+import { getSetting, headId, history, nodes, openDb, record, setParent, setSetting } from './db.ts';
 
 const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	kind: 'save',
@@ -137,6 +137,18 @@ describe('schema', () => {
 		record(db, snap('2200.01.01', 'a'), 't');
 		db.close();
 		expect(nodes(openDb(file))).toHaveLength(1); // and a current one survives reopening
+	});
+});
+
+describe('settings', () => {
+	it('survives a schema change that drops the history', () => {
+		const file = join(mkdtempSync(join(tmpdir(), 'db-')), 'd.sqlite');
+		const db = openDb(file);
+		expect(getSetting(db, 'theme')).toBeUndefined();
+		setSetting(db, 'theme', 'dark');
+		db.prepare("UPDATE state SET value = 'old' WHERE key = 'schema'").run();
+		db.close();
+		expect(getSetting(openDb(file), 'theme')).toBe('dark');
 	});
 });
 

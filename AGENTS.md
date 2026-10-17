@@ -78,6 +78,16 @@ jobs explained from the extraction DB — descriptions, modifiers (edict/agenda 
 `modifiers.ts` is **copied from the planner's `src/lib/civics.ts`** — keep the two in step. The
 popup itself is plain CSS: the planner's needs Skeleton UI.
 
+**Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `planets`
+(`/planets` → first colony, `/planet/[id]` with a dropdown) and `migration`; tabs keep `?node=`.
+The `all` tab and custom tabs (`/tab/[id]`) render the same panels by id (`EmpirePanel.svelte`);
+`LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
+goes there and into `EmpirePanel`**. Custom tabs and the theme (`system`/`light`/`dark`) are
+stored server-side in the `setting` table (`PUT /api/settings`), which a `SCHEMA` bump does not
+drop. The theme is a class on `<html>`, put there by `hooks.server.ts` (no flash); `layout.css`
+defines the `dark:` variant on it. Canvases (uPlot) pick axis colours per draw and redraw on
+`onThemeChange` (`#lib/theme.ts`).
+
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
 events after the game's text colours. Charts and the upcoming list both use them.
 
@@ -237,6 +247,7 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   tradition seen yet. Wrong means the second tradition's cost stays at 300.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
-- **Next, the user's plan:** tabs, then a configurable main dashboard.
+- **Next, the user's plan:** a configurable main dashboard (custom tabs pick empire panels now;
+  the migration and planet panels are not pickable yet).
 - **Hint rules**: not started.
 - Cross-check the parsed numbers against the in-game UI.

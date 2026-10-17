@@ -4,6 +4,7 @@
 	import type uPlot from 'uplot';
 	import { colorOf } from './colors.ts';
 	import { gameMonth, type Series } from './series.ts';
+	import { isDark, onThemeChange } from './theme.ts';
 
 	/** A due date drawn on the chart: a line where it falls, or a note at the edge when beyond. */
 	export type Marker = { x: number; tint: string; label: string };
@@ -86,6 +87,11 @@
 
 	const showLatest = (u: uPlot) => u.setLegend({ idx: u.data[0].length - 1 });
 
+	// The canvas draws axes itself (uPlot's default is black): colours by theme, read at each draw.
+	const ink = () => (isDark() ? '#d1d5db' : '#374151');
+	const rule = () => (isDark() ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)');
+	const axis = { stroke: ink, grid: { stroke: rule }, ticks: { stroke: rule } };
+
 	onMount(() => {
 		let disposed = false;
 		import('uplot').then(({ default: UPlot }) => {
@@ -107,11 +113,12 @@
 				},
 				axes: [
 					{
+						...axis,
 						incrs: [1 / 12, 2 / 12, 3 / 12, 6 / 12, 1, 2, 5, 10, 20, 50],
 						values: (_u, ticks) => ticks.map(gameMonth)
 					},
-					{},
-					...(right.length ? [{ scale: 'right', side: 1, grid: { show: false } }] : [])
+					axis,
+					...(right.length ? [{ ...axis, scale: 'right', side: 1, grid: { show: false } }] : [])
 				],
 				series: [
 					{ label: 'date', value: (_u, v) => (v == null ? '' : gameMonth(v)) },
@@ -136,8 +143,10 @@
 		});
 		const resize = new ResizeObserver(() => plot?.setSize({ width: el.clientWidth, height: 220 }));
 		resize.observe(el);
+		const unsubscribe = onThemeChange(() => plot?.redraw());
 		return () => {
 			disposed = true;
+			unsubscribe();
 			resize.disconnect();
 			plot?.destroy();
 		};

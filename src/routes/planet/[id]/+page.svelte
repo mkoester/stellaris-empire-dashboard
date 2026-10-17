@@ -37,13 +37,31 @@
 		data.upcoming.find((e) => e.kind === 'colonization' && e.planetId === data.planetId)
 	);
 
-	const back = $derived(resolve(data.isHead ? '/' : `/?node=${data.tip}`));
+	// The planets tab: pick another colony, staying on the branch shown.
+	const open = (id: string) =>
+		goto(
+			data.isHead
+				? resolve('/planet/[id]', { id })
+				: resolve(`/planet/[id]?node=${data.tip}`, { id })
+		);
 </script>
 
 <!-- the game date always top right, as on the empire page -->
 <header class="mb-4 flex items-start gap-4">
 	<div class="flex flex-1 flex-wrap items-baseline gap-x-4">
-		<h1 class="text-2xl font-bold">{data.name}</h1>
+		<h1 class="text-2xl font-bold">
+			<select
+				class="rounded bg-transparent"
+				value={data.planetId}
+				onchange={(e) => open(e.currentTarget.value)}
+				aria-label="planet shown"
+			>
+				{#if !data.colonies.some((c) => c.planetId === data.planetId)}
+					<option value={data.planetId}>{data.name}</option>
+				{/if}
+				{#each data.colonies as c (c.planetId)}<option value={c.planetId}>{c.name}</option>{/each}
+			</select>
+		</h1>
 		{#if data.colony}
 			<span>{pretty(data.colony.designation)}</span>
 			{#if data.colony.colonizing}
@@ -55,7 +73,6 @@
 				</span>
 			{/if}
 		{/if}
-		<a class="underline" href={back}>empire</a>
 	</div>
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
 </header>

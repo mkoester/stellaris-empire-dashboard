@@ -23,6 +23,10 @@ export function load({ url, params }) {
 		...rest,
 		planetId,
 		name: named ? colonyAt(named)!.name : `planet ${planetId}`,
+		// the dropdown: the colonies at the tip
+		colonies: b.latest.colonies
+			.filter((c) => c.planetId >= 0)
+			.map((c) => ({ planetId: c.planetId, name: c.name })),
 		colony: colonyAt(b.latest) ?? null,
 		jobRows: b.jobs[planetId] ?? [],
 		classNames: Object.fromEntries(

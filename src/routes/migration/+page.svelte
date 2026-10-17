@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { resolve } from '$app/paths';
 	import { followGame } from '#lib/live.ts';
 	import { flows, ownerColors } from '#lib/migration.ts';
 	import MigrationBars from '#lib/panels/MigrationBars.svelte';
@@ -9,8 +8,6 @@
 
 	let { data } = $props();
 	followGame(() => data.isHead);
-
-	const back = $derived(resolve(data.isHead ? '/' : `/?node=${data.tip}`));
 
 	// The month shown by the flow diagram and the map: the latest until the slider is moved; a
 	// reload with new data jumps back to the latest.
@@ -27,7 +24,6 @@
 <header class="mb-4 flex items-start gap-4">
 	<div class="flex flex-1 flex-wrap items-baseline gap-x-4">
 		<h1 class="text-2xl font-bold">Migration</h1>
-		<a class="underline" href={back}>empire</a>
 	</div>
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
 </header>

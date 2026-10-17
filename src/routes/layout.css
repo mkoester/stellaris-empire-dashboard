@@ -1,1 +1,27 @@
 @import 'tailwindcss';
+
+/* The theme is a class on <html> (set on the server from the stored setting): `dark`, `light`, or
+   `system`, which follows the OS. */
+@custom-variant dark {
+	&:where(.dark, .dark *) {
+		@slot;
+	}
+	@media (prefers-color-scheme: dark) {
+		&:where(.system, .system *) {
+			@slot;
+		}
+	}
+}
+
+html.light {
+	color-scheme: light;
+}
+html.dark {
+	color-scheme: dark;
+}
+html.system {
+	color-scheme: light dark;
+}
+body {
+	@apply bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100;
+}

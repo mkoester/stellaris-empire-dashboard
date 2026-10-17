@@ -7,7 +7,8 @@ import type { Resources, Snapshot, SourceKind, TimelineNode } from '#lib/types.t
 // cache**: the game keeps only its last few autosaves, so most snapshots can no longer be rebuilt.
 // - A new snapshot field needs a default in `upgrade()` (#lib/upgrade.ts), which brings stored
 //   snapshots up to date on read; saves still on disk refresh theirs on every start.
-// - SCHEMA versions the *tables* only. Bumping it drops everything, history included.
+// - SCHEMA versions the *tables* only. Bumping it drops everything, history included — except the
+//   viewer's settings (`setting`: theme, custom tabs), which no schema change touches.
 
 const SCHEMA = '15';
 
@@ -15,7 +16,10 @@ export type Db = DatabaseSync;
 
 export function openDb(file: string): Db {
 	const db = new DatabaseSync(file);
-	db.exec('CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+	db.exec(`
+		CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+		CREATE TABLE IF NOT EXISTS setting (key TEXT PRIMARY KEY, json TEXT NOT NULL);
+	`);
 	const version = db.prepare("SELECT value FROM state WHERE key = 'schema'").get() as
 		{ value: string } | undefined;
 	if (version?.value !== SCHEMA) {
@@ -46,6 +50,20 @@ export function openDb(file: string): Db {
 	`);
 	db.prepare("INSERT OR REPLACE INTO state (key, value) VALUES ('schema', ?)").run(SCHEMA);
 	return db;
+}
+
+/** A stored setting, or undefined when never set. */
+export function getSetting(db: Db, key: string): unknown {
+	const row = db.prepare('SELECT json FROM setting WHERE key = ?').get(key) as
+		{ json: string } | undefined;
+	return row ? JSON.parse(row.json) : undefined;
+}
+
+export function setSetting(db: Db, key: string, value: unknown) {
+	db.prepare('INSERT OR REPLACE INTO setting (key, json) VALUES (?, ?)').run(
+		key,
+		JSON.stringify(value)
+	);
 }
 
 type NodeRow = {
