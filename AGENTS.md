@@ -10,7 +10,10 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
 
 - **SvelteKit 3 layout:** no `svelte.config.js` — config goes to `sveltekit({...})` in
   `vite.config.ts`; `tsconfig.json` extends `$app/tsconfig`; `$lib` is gone, import
-  `#lib/<path>.ts` (`imports` in `package.json`).
+  `#lib/<path>.ts` (`imports` in `package.json`). Hook types (`Handle`, `ServerInit`) come from
+  `@sveltejs/kit/hooks`. The typed `resolve()` wants the query written out —
+  ``node ? resolve(`/map?node=${node}`) : resolve('/map')``, not ``resolve(`/map${q}`)`` with `q`
+  maybe empty.
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
   (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14.
 
@@ -57,7 +60,14 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
 - `SCHEMA` in `db.ts` versions the _tables_ only; bumping it drops all history. Change the tables
   with a migration instead.
 
-`STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`.
+`STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`; vitest swallows its
+`console.log` dump unless run with `--silent=false`.
+
+**Checking a change end to end: run against a copy of the DB**, never the real one (history — a
+dev server ingests saves and moves the head). Copy `dashboard.sqlite*` (WAL files included) to a
+temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
+pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
+each command its own network namespace.
 
 **How it works:** `watch.ts` polls the save folder (first backfill in mtime order, then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
@@ -185,6 +195,9 @@ shipyard_build_queue station }` — **no owner field**; the country's are those 
   finished Mega Shipyard, plus the tech (`*_possible_construction` in
   `scripted_triggers/07_scripted_triggers_ships.txt`). Mega Shipyards: `megastructures.<id> =
 { type owner }` — not yet seen in a save, so how its ship queue is located is a guess.
+- Map positions: `galactic_object.<id>.coordinate = { x y }` — the game draws **x growing to the
+  left** and y growing down (2207.03: Alpha Centauri x 11 west of Sol x −6, Sirius x −30 east);
+  `#lib/mapView.ts` flips x.
 - Expansion: `country.surveyed_deposit_holders = { { type=0 id=<planet> } }`; systems
   `galactic_object.<id> = { name planet hyperlane = { to length } colonies }`. The game's list
   differs from the class rule (`pc_barren` is `colonizable = no`, yet Mars is offered — terraforming).
