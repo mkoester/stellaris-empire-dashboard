@@ -235,5 +235,8 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   zoom out/in and shift. Not started.
 - **Traditions taken**: read from `country.traditions` (list) — a guess, no save with an adopted
   tradition seen yet. Wrong means the second tradition's cost stays at 300.
+- **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
+  user picks which to keep, then drop the rest.
+- **Next, the user's plan:** tabs, then a configurable main dashboard.
 - **Hint rules**: not started.
 - Cross-check the parsed numbers against the in-game UI.
