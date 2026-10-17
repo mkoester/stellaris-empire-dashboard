@@ -138,11 +138,22 @@ function queueEvents(
 
 const fmt = (n: number) => n.toLocaleString('en', { maximumFractionDigits: 0 });
 
+/** Month starts passed from one date to another — when monthly-ticking values change. */
+export const monthTicks = (from: string, to: string) => {
+	const index = (d: string) => Number(d.slice(0, 4)) * 12 + Number(d.slice(5, 7));
+	return index(to) - index(from);
+};
+
 /**
- * `latest` is the state shown; `previous` the save before it on the same branch (for rates).
- * Sorted by due date.
+ * `latest` is the state shown; `previous` the save before it on the same branch (for daily rates),
+ * `earlier` all its saves before `latest` (for monthly ones). Sorted by due date.
  */
-export function upcoming(latest: Snapshot, previous: Snapshot | null, data: GameData): Upcoming[] {
+export function upcoming(
+	latest: Snapshot,
+	previous: Snapshot | null,
+	data: GameData,
+	earlier: Snapshot[] = previous ? [previous] : []
+): Upcoming[] {
 	const p = latest.progress;
 	if (!p) return [];
 	const out: Upcoming[] = [];
@@ -204,11 +215,15 @@ export function upcoming(latest: Snapshot, previous: Snapshot | null, data: Game
 	if (p.agenda && agenda?.cost) {
 		const cost =
 			agenda.cost * sizePenalty(latest.empireSize, d.EMPIRE_SIZE_COUNCIL_AGENDA_COST_PENALTY, d);
-		const before = previous?.progress?.agenda;
-		const rate =
-			before?.key === p.agenda.key && elapsed > 0
-				? (p.agenda.progress - before.progress) / elapsed
-				: 0;
+		// Agenda progress moves on the 1st only (2207.02.01 → 03.01: +44, 03.01 → 03.10: 0), so the
+		// rate comes from the last save before a month start, per month start passed.
+		const key = p.agenda.key;
+		const base = earlier.findLast(
+			(s) => s.progress?.agenda?.key === key && monthTicks(s.date, latest.date) >= 1
+		);
+		const rate = base
+			? (p.agenda.progress - base.progress!.agenda!.progress) / monthTicks(base.date, latest.date)
+			: 0;
 		const when = due(latest.date, cost - p.agenda.progress, rate);
 		if (when)
 			out.push({

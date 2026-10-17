@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	fromDays,
+	monthTicks,
 	scheduleQueue,
 	toDays,
 	traditionCost,
@@ -68,6 +69,12 @@ const prev = snap('2200.03.01', progress(28.49205, 84));
 const latest = snap('2200.04.01', progress(42.79314, 126));
 
 describe('game calendar', () => {
+	it('counts the month starts between two dates', () => {
+		expect(monthTicks('2207.03.01', '2207.03.10')).toBe(0);
+		expect(monthTicks('2207.02.01', '2207.03.10')).toBe(1);
+		expect(monthTicks('2206.12.15', '2207.02.01')).toBe(2);
+	});
+
 	it('round-trips dates through 30-day months', () => {
 		expect(fromDays(toDays('2200.04.01'))).toBe('2200.04.01');
 		expect(fromDays(toDays('2200.12.30') + 1)).toBe('2201.01.01');
@@ -94,6 +101,15 @@ describe('upcoming', () => {
 
 	it('dates the agenda from its measured progress (game says 163 months; we round up)', () => {
 		expect(of('agenda')).toMatchObject({ what: 'Expand The Council', months: 164 });
+	});
+
+	it('measures the agenda across month starts: a mid-month save adds no progress', () => {
+		// 2207.03.10 (manual) holds the same progress as the 03.01 autosave
+		const before = snap('2200.03.01', progress(28.49205, 84));
+		const tick = snap('2200.04.01', progress(42.79314, 126));
+		const mid = snap('2200.04.10', progress(47, 126));
+		const agenda = upcoming(mid, tick, data, [before, tick]).find((e) => e.kind === 'agenda');
+		expect(agenda).toMatchObject({ months: 164 });
 	});
 
 	it('includes the election and sorts by date', () => {

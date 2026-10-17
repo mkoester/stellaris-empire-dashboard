@@ -35,7 +35,7 @@ export function branch(url: URL) {
 	);
 	const empirePops = Object.fromEntries(empireJobs.map((r) => [r.type, r.pops]));
 	return {
-		upcoming: last ? upcoming(last, previous, getGameData()) : [],
+		upcoming: last ? upcoming(last, previous, getGameData(), saves.slice(0, -1)) : [],
 		// Display names of what the colonies hold: queue items, districts, zones, buildings.
 		names: Object.fromEntries(
 			colonies
