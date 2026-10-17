@@ -34,7 +34,9 @@
 			(H - 2 * PAD) / Math.max(box.y1 - box.y0, 1)
 		)
 	);
-	const px = (x: number) => PAD + (x - box.x0) * scale;
+	// the game draws save x growing to the left, y growing down (2207.03: Alpha Centauri x 11 sits
+	// west of Sol x −6, Sirius x −30 east of it)
+	const px = (x: number) => PAD + (box.x1 - x) * scale;
 	const py = (y: number) => PAD + (y - box.y0) * scale;
 	const max = $derived(Math.max(1, ...flows.map((f) => f.pops)));
 	const arc = (f: Flow) => {
