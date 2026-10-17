@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { byExpiry, timeLeft } from '../countryModifiers.ts';
+	import Effects from '../Effects.svelte';
 	import { pretty } from '../format.ts';
 	import InfoPopup from '../InfoPopup.svelte';
-	import type { CountryModifier, Explanation } from '../types.ts';
+	import type { TimedModifier, Explanation } from '../types.ts';
 	import Panel from './Panel.svelte';
 
 	// Empire-wide effects from events, agendas, relics, …: `country.timed_modifier`. Named and
@@ -12,7 +13,7 @@
 		date,
 		explain = {}
 	}: {
-		modifiers: (CountryModifier & { name: string | null })[];
+		modifiers: (TimedModifier & { name: string | null })[];
 		date: string;
 		explain?: Record<string, Explanation>;
 	} = $props();
@@ -21,11 +22,14 @@
 
 <Panel title="Empire modifiers">
 	{#each shown as m (m.key)}
-		<div class="flex justify-between gap-3">
-			<InfoPopup explanation={explain[`modifier:${m.key}`]}>{m.name}</InfoPopup>
-			<span class="shrink-0 text-gray-500 tabular-nums" title={m.until ?? ''}
-				>{m.until ? timeLeft(date, m.until) : 'permanent'}</span
-			>
+		<div class="mb-1">
+			<div class="flex justify-between gap-3">
+				<InfoPopup explanation={explain[`modifier:${m.key}`]}>{m.name}</InfoPopup>
+				<span class="shrink-0 text-gray-500 tabular-nums" title={m.until ?? ''}
+					>{m.until ? timeLeft(date, m.until) : 'permanent'}</span
+				>
+			</div>
+			<Effects explanation={explain[`modifier:${m.key}`]} />
 		</div>
 	{:else}
 		<div>none</div>
