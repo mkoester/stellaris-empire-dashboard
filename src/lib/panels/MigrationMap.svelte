@@ -22,9 +22,11 @@
 	} = $props();
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 
-	// The height is a per-viewer convenience, remembered in this browser.
-	const KEY = 'migration-map-height';
-	let height = $state(420);
+	// The height is a per-viewer convenience, remembered in this browser once the viewer resizes
+	// (the outer height then differs from the one set), so a new default reaches everyone else.
+	const KEY = 'migration-map-height-v2';
+	let height = $state(630);
+	let outer = $state(0);
 	let w = $state(0);
 	let h = $state(0);
 	onMount(() => {
@@ -35,9 +37,9 @@
 		}
 	});
 	$effect(() => {
-		if (h === 0) return;
+		if (outer === 0 || outer === height) return;
 		try {
-			localStorage.setItem(KEY, String(h));
+			localStorage.setItem(KEY, String(outer));
 		} catch {
 			/* storage unavailable */
 		}
@@ -132,6 +134,7 @@
 			style="height: {height}px; min-height: 200px"
 			bind:clientWidth={w}
 			bind:clientHeight={h}
+			bind:offsetHeight={outer}
 		>
 			{#if w > 0 && h > 0}
 				<svg
