@@ -111,7 +111,7 @@
 		</tbody>
 	</table>
 
-	<div class="grid gap-6 lg:grid-cols-2">
+	<div class="flex flex-col gap-6">
 		{#if Object.keys(data.basic.lines).length > 0}
 			<Chart
 				title="prices: basic and advanced"
