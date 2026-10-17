@@ -126,6 +126,7 @@ export type KnownSystem = {
 	x: number;
 	y: number;
 	owned: boolean;
+	capital: boolean; // the system of the capital planet (`country.capital`)
 	lanes: number[];
 };
 

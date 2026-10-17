@@ -762,12 +762,13 @@ export function migration(
 /**
  * Systems the country knows — visited by its ships (`country.visited_objects`) or its own — at
  * their map positions (`galactic_object.<id>.coordinate`), with the hyperlanes between them (each
- * listed once, on the lower id).
+ * listed once, on the lower id), and the capital's system marked.
  */
 export function knownSystems(
-	raw: Pick<RawSave, 'country' | 'systems'>,
+	raw: Pick<RawSave, 'country' | 'systems' | 'planets'>,
 	own: Set<number>
 ): KnownSystem[] {
+	const capital = Number(raw.planets[String(raw.country?.capital)]?.coordinate?.origin);
 	const known = new Set([...list(raw.country?.visited_objects), ...own]);
 	return [...known].flatMap((id) => {
 		const s = raw.systems[String(id)];
@@ -779,6 +780,7 @@ export function knownSystems(
 				x: num(s.coordinate?.x),
 				y: num(s.coordinate?.y),
 				owned: own.has(id),
+				capital: id === capital,
 				lanes: items(s.hyperlane)
 					.map((l) => Number(l?.to))
 					.filter((to) => known.has(to) && to > id)

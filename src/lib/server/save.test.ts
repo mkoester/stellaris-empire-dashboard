@@ -347,11 +347,18 @@ describe('knownSystems', () => {
 			},
 			'9': { name: { key: 'NAME_Unknown' }, coordinate: { x: 0, y: 0 }, hyperlane: { to: 380 } }
 		};
-		const r = knownSystems({ country: { visited_objects: [380, 52] }, systems }, new Set([135]));
-		expect(r.map((s) => [s.name, s.owned, s.lanes])).toEqual([
-			['Sol', false, []],
-			['Alpha Centauri', false, [380]],
-			['Sirius', true, [380]]
+		const r = knownSystems(
+			{
+				country: { visited_objects: [380, 52], capital: 3 },
+				systems,
+				planets: { '3': { coordinate: { origin: 380 } } }
+			},
+			new Set([135])
+		);
+		expect(r.map((s) => [s.name, s.owned, s.capital, s.lanes])).toEqual([
+			['Sol', false, true, []],
+			['Alpha Centauri', false, false, [380]],
+			['Sirius', true, false, [380]]
 		]);
 	});
 });

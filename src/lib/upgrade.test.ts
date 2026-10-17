@@ -32,6 +32,12 @@ describe('upgrade', () => {
 		expect(s.progress?.researched).toEqual([]);
 	});
 
+	it('marks no capital on systems stored before the flag existed', () => {
+		const sys = { id: 380, name: 'Sol', x: -6, y: 279, owned: true, lanes: [] };
+		const s = upgrade({ ...old, knownSystems: [sys] } as never);
+		expect(s.knownSystems).toEqual([{ ...sys, capital: false }]);
+	});
+
 	it('leaves a current snapshot as it is', () => {
 		const s = upgrade(old as never);
 		expect(upgrade(s)).toEqual(s);
