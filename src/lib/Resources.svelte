@@ -6,11 +6,18 @@
 
 	// The game's top bar: stockpile and net change per month, in the game's order. Basic resources
 	// always show; strategic ones once the empire has or makes any.
+	// On the galactic market there are no per-empire monthly limits (see market.ts).
 	let {
 		stockpile,
 		balance,
-		orders
-	}: { stockpile: Resources; balance: Resources; orders: MarketOrder[] } = $props();
+		orders,
+		galactic = false
+	}: {
+		stockpile: Resources;
+		balance: Resources;
+		orders: MarketOrder[];
+		galactic?: boolean;
+	} = $props();
 
 	const basic = ['energy', 'minerals', 'food', 'consumer_goods', 'alloys', 'trade'];
 	const last = ['unity', 'influence'];
@@ -48,9 +55,11 @@
 
 {#if orders.length > 0}
 	<div class="-mt-3 mb-4 flex flex-wrap gap-x-4 text-sm">
-		<span class="text-gray-500">market orders / monthly limit (included in the net change):</span>
+		<span class="text-gray-500"
+			>{galactic ? 'galactic market orders' : 'market orders / monthly limit'} (included in the net change):</span
+		>
 		{#each orders as o, i (i)}
-			{@const limit = monthlyLimit(o)}
+			{@const limit = monthlyLimit(o, galactic)}
 			{@const over = limit !== null && o.amount > limit}
 			<span
 				class="whitespace-nowrap"

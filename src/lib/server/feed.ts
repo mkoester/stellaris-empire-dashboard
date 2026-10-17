@@ -74,6 +74,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		navalUsed: null,
 		envoys: null,
 		marketOrders: [],
+		market: null,
 		leaders: null,
 		ships: null,
 		defaultAutomation: null,

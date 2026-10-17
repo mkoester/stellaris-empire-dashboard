@@ -90,7 +90,8 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 
 **Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `colonies`
 (`/colonies` → first colony, `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
-`map` (`/map`, reuses `MigrationMap` — fork it when the two diverge), `migration` and `events`
+`map` (`/map`, reuses `MigrationMap` — fork it when the two diverge), `migration`, `market`
+(`/market`: prices over time and the standing orders, `#lib/market.ts`) and `events`
 (`/events`: the milestone log, searchable, filtered in the page); tabs keep `?node=`. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
@@ -156,6 +157,17 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
   (`monthly_trades.<resource>`); the game's top bar includes them (2200.04: energy 118 − 80 = +38).
   The orders themselves: top-level `market.monthly_trades = { { trade_data = { trade_type=
 market_buy|market_sell resource country } amount } }`.
+- Market prices: `market.internal_market_fluctuations = { country=<id> resources={ energy=-15.9 … }
+… }` (jomini: `country` and `resources` become parallel arrays), percent off the base price,
+  only resources that moved. Base price per unit = `market_price` (100 for all) / `market_amount`
+  (`common/strategic_resources`). The fee (`MARKET_TRADE_FEE_BASE` 30 %, lowered by modifiers) is
+  not stored. Internal vs. galactic (defines): the internal market's fluctuation per trade is ×2
+  (`INTERNAL_MARKET_FLUCTUATION_MULT`) and its recovery ×3 slower
+  (`INTERNAL_MARKET_DAYS_TO_BASE_PRICE`). Galactic access = country flag `has_market_access`,
+  set with `enable_galactic_market` for Galactic Community members once the market is founded
+  (`resolution_galactic_market_form` → `action.99/101/104/115`), removed on leaving it unless the
+  country holds the market planet (`galcom.61`). The monthly limit (`monthlyLimit`) is shown on
+  the internal market only.
 - Colonies: since 4.x a top-level `colony=` section, referenced from `planets.planet.<id>.colony`.
   Holds pops, housing, amenities, stability, `final_designation`, districts, buildings.
   `employable_pops` counts all pops able to work, _not_ the employed: employed is
@@ -281,6 +293,10 @@ start_date }` (passed agendas), `country.ruler`, `country.active_policies = { { 
   format"), variables print as plain numbers (else "malformed SDASH line", e.g. for `1.2K`), and
   `export_resource_income_to_variable` is _net_ income (else the merge logs "disagree on net
   income" at the first autosave).
+- **Galactic market prices, never seen in a save** (2207.03: not founded). `market()` reads
+  `market.fluctuations` / `galactic_market_resources` as lists by resource index — the shape
+  eliasdoehne/stellaris-dashboard's parser uses. Check at the first save with access. Prices exist
+  only for snapshots read since 2026-10-17; older ones' saves are gone.
 - **Chart zoom and pan**: wanted — the default window (`xRange`: last 20 years, 1 ahead) should
   zoom out/in and shift. Not started.
 - **Traditions taken**: read from `country.traditions` (list) — a guess, no save with an adopted

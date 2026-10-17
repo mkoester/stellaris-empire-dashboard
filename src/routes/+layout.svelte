@@ -29,6 +29,11 @@
 			active: path === '/migration'
 		},
 		{
+			name: 'market',
+			href: node ? resolve(`/market?node=${node}`) : resolve('/market'),
+			active: path === '/market'
+		},
+		{
 			name: 'events',
 			href: node ? resolve(`/events?node=${node}`) : resolve('/events'),
 			active: path === '/events'

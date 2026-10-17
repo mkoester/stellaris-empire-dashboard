@@ -15,6 +15,7 @@ import type {
 	Sector,
 	SpeciesInfo,
 	ColonyJob,
+	Market,
 	MarketOrder,
 	ShipCount,
 	Stratum,
@@ -25,6 +26,7 @@ import type {
 	War,
 	Snapshot
 } from '#lib/types.ts';
+import { MARKET_RESOURCES } from '#lib/market.ts';
 import { START_YEAR } from '#lib/series.ts';
 import { readZipEntry } from './zip.ts';
 
@@ -57,6 +59,7 @@ export type RawSave = {
 	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
 	leaders: Record<string, Raw>;
 	monthlyTrades: Raw; // market.monthly_trades: every country's standing orders
+	market: Raw; // market: price fluctuations, galactic and internal
 	popJobs: Record<string, Raw>; // top-level pop_jobs, referenced from colony.pop_jobs
 	popGroups: Record<string, Raw>; // top-level pop_groups, referenced from colony.pop_groups
 	fleets: Record<string, Raw>;
@@ -111,6 +114,11 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			endGameStart: numOrNull(q.at('/galaxy/end_game_start')),
 			leaders: q.at('/leaders') ?? {},
 			monthlyTrades: q.at('/market/monthly_trades'),
+			market: {
+				fluctuations: q.at('/market/fluctuations'),
+				galactic_market_resources: q.at('/market/galactic_market_resources'),
+				internal_market_fluctuations: q.at('/market/internal_market_fluctuations')
+			},
 			popJobs: q.at('/pop_jobs') ?? {},
 			popGroups: q.at('/pop_groups') ?? {},
 			fleets: q.at('/fleet') ?? {},
@@ -187,6 +195,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		knownSystems: knownSystems(raw, ownSystems(raw)),
 		megaShipyards: megaShipyards(raw),
 		marketOrders: marketOrders(raw.monthlyTrades, raw.countryId),
+		market: market(raw),
 		progress: progress(raw),
 		leaderRoster: leaderRoster(raw),
 		ruler: ruler(raw),
@@ -220,6 +229,47 @@ export function marketOrders(trades: Raw, countryId: number): MarketOrder[] {
 			amount: num(t.amount)
 		}));
 }
+
+/**
+ * The market the country trades on. Access to the galactic market is the country flag
+ * `has_market_access` (set and removed together with `enable_galactic_market`, events
+ * `on_action_events_2.txt` / `galactic_community_events.txt`). Its prices are
+ * `market.fluctuations`, one per resource in the order of `common/strategic_resources`, traded
+ * where `galactic_market_resources` is not 0 (both UNVERIFIED — no save with a galactic market
+ * seen; the shape is stellaris-dashboard's parser's). The internal market's are
+ * `market.internal_market_fluctuations = { country=<id> resources={ energy=-15.9 … } … }`, listing
+ * only resources whose price has moved — the basic five always trade, at 0 when not listed.
+ */
+export function market(raw: Pick<RawSave, 'market' | 'country' | 'countryId'>): Market {
+	if (raw.country?.flags?.has_market_access !== undefined) {
+		const open = items(raw.market?.galactic_market_resources);
+		const fluctuations = items(raw.market?.fluctuations);
+		return {
+			galactic: true,
+			fluctuations: Object.fromEntries(
+				MARKET_RESOURCES.flatMap((r, i) =>
+					typeof fluctuations[i] === 'number' && num(open[i]) !== 0 ? [[r, fluctuations[i]]] : []
+				)
+			)
+		};
+	}
+	const internal = raw.market?.internal_market_fluctuations;
+	const at = items(internal?.country).findIndex((c) => Number(c) === raw.countryId);
+	const own = at < 0 ? {} : items(internal.resources)[at];
+	return {
+		galactic: false,
+		fluctuations: {
+			...Object.fromEntries(ALWAYS_TRADED.map((r) => [r, 0])),
+			...Object.fromEntries(
+				Object.entries<Raw>(
+					own && typeof own === 'object' && !Array.isArray(own) ? own : {}
+				).filter(([, v]) => typeof v === 'number')
+			)
+		}
+	};
+}
+
+const ALWAYS_TRADED = ['energy', 'minerals', 'food', 'consumer_goods', 'alloys'];
 
 /**
  * The country's leaders: `country.owned_leaders`. Filtering `leaders` by `country` would also

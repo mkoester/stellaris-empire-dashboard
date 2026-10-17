@@ -149,6 +149,7 @@
 		stockpile={data.latest.stockpile}
 		balance={data.latest.balance}
 		orders={data.latest.marketOrders}
+		galactic={data.latest.market?.galactic}
 	/>
 {:else if id === 'upcoming'}
 	<section>

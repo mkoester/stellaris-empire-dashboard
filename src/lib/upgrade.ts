@@ -19,6 +19,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	navalUsed: null,
 	envoys: null,
 	marketOrders: [],
+	market: null,
 	leaders: null,
 	ships: null,
 	defaultAutomation: null,

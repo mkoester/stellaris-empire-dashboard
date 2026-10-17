@@ -19,6 +19,7 @@ import {
 	planetBudget,
 	shipCounts,
 	strata,
+	market,
 	marketOrders,
 	progress,
 	readSave,
@@ -39,6 +40,7 @@ const raw: RawSave = {
 	galaxy: { technology: 1.25, traditions: 1 },
 	leaders: {},
 	monthlyTrades: undefined,
+	market: undefined,
 	popJobs: {},
 	popGroups: {},
 	fleets: {},
@@ -255,6 +257,53 @@ describe('marketOrders', () => {
 			{ kind: 'buy', resource: 'minerals', amount: 42 }
 		]);
 		expect(marketOrders(undefined, 0)).toEqual([]);
+	});
+});
+
+describe('market', () => {
+	// internal_market_fluctuations as in the 2207.03.10 save, as jomini returns repeated keys
+	const internal = {
+		country: [0, 1, 2],
+		resources: [{ energy: -15.92241, minerals: 0.67149 }, { alloys: 9.78464 }, []]
+	};
+
+	it("reads the country's internal market, the basic five at 0 unless moved", () => {
+		expect(
+			market({ countryId: 0, country: {}, market: { internal_market_fluctuations: internal } })
+		).toEqual({
+			galactic: false,
+			fluctuations: { energy: -15.92241, minerals: 0.67149, food: 0, consumer_goods: 0, alloys: 0 }
+		});
+		// an empty block, and a country missing from the list
+		expect(
+			market({ countryId: 2, country: {}, market: { internal_market_fluctuations: internal } })
+				.fluctuations.energy
+		).toBe(0);
+		expect(market({ countryId: 9, country: {}, market: {} }).fluctuations.alloys).toBe(0);
+	});
+
+	it('reads a single country, which jomini returns unlisted', () => {
+		const one = { country: 0, resources: { food: 2 } };
+		expect(
+			market({ countryId: 0, country: {}, market: { internal_market_fluctuations: one } })
+				.fluctuations.food
+		).toBe(2);
+	});
+
+	it('reads the galactic market once the country has access, by resource index', () => {
+		const galactic = market({
+			countryId: 0,
+			country: { flags: { has_market_access: 62900000 } },
+			market: {
+				fluctuations: [-10, 5, 0, 0, 0, 0, 0, 0, 0, 20, 0, 3],
+				galactic_market_resources: [1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+				internal_market_fluctuations: internal
+			}
+		});
+		expect(galactic).toEqual({
+			galactic: true,
+			fluctuations: { energy: -10, minerals: 5, food: 0, consumer_goods: 20, alloys: 0 }
+		});
 	});
 });
 

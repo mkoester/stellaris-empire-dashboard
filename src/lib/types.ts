@@ -186,6 +186,12 @@ export type SourceKind = 'save' | 'log';
 /** A standing monthly order on the market. */
 export type MarketOrder = { kind: 'buy' | 'sell'; resource: string; amount: number };
 
+/**
+ * The market the country trades on: its own internal one, or the galactic market once it has
+ * access. Fluctuations are percent off the base price, per resource the market trades.
+ */
+export type Market = { galactic: boolean; fluctuations: Record<string, number> };
+
 /** What the empire is working towards; the inputs of the upcoming-events list. */
 export type Progress = {
 	research: { area: string; tech: string; progress: number }[]; // one per field being researched
@@ -219,6 +225,7 @@ export type Snapshot = {
 	navalUsed: number | null;
 	envoys: { used: number; total: number } | null;
 	marketOrders: MarketOrder[]; // standing monthly buy/sell orders
+	market: Market | null; // null from the mod feed and in older snapshots
 	// Null from the mod feed:
 	leaders: Record<string, number> | null; // by class
 	ships: ShipCount[] | null;
