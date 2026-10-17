@@ -188,6 +188,9 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		edicts: items(raw.country?.edicts)
 			.map((e) => e?.edict)
 			.filter((e) => typeof e === 'string'),
+		countryModifiers: items(raw.country?.timed_modifier?.items)
+			.map((m) => m?.modifier)
+			.filter((m) => typeof m === 'string'),
 		species: speciesInfo(raw),
 		sectors: sectors(raw),
 		expansion: expansion(raw),

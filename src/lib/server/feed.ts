@@ -87,6 +87,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		ascensionPerks: null,
 		civilianShips: null,
 		edicts: null,
+		countryModifiers: null,
 		species: null,
 		sectors: null,
 		expansion: null,

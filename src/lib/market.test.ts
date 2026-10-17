@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { basePrice, marketSwitches, monthlyLimit, price, priceSeries } from './market.ts';
+import {
+	basePrice,
+	feeSeries,
+	marketFee,
+	marketSwitches,
+	monthlyLimit,
+	price,
+	priceSeries
+} from './market.ts';
 import type { Market } from './types.ts';
 import { upgrade } from './upgrade.ts';
 
@@ -73,5 +81,72 @@ describe('marketSwitches', () => {
 			{ date: '2230.03.01', galactic: true },
 			{ date: '2231.01.01', galactic: false }
 		]);
+	});
+});
+
+describe('marketFee', () => {
+	const colony = (buildings: string[]) =>
+		({
+			districtList: [{ type: 'district_city', built: 1, zones: [{ type: 'z', buildings }] }]
+		}) as never;
+	const station = (modules: string[], buildings: string[]) => ({ modules, buildings }) as never;
+	const snap = (s: object) =>
+		upgrade({
+			kind: 'save',
+			campaign: 'c',
+			date: '2250.01.01',
+			traditions: [],
+			countryModifiers: [],
+			stations: [],
+			...s
+		});
+
+	it('is 30 % with nothing lowering it', () => {
+		expect(marketFee(snap({}))).toEqual({ fee: 0.3, sources: [] });
+	});
+
+	it('sums traditions, modifiers, buildings per planet and station buildings', () => {
+		const f = marketFee(
+			snap({
+				traditions: ['tr_mercantile_insider_trading', 'tr_mercantile_adopt'],
+				countryModifiers: ['resolution_sanctions_economic', 'shroud_seal_modifier'],
+				colonies: [
+					colony(['building_galactic_stock_exchange']),
+					colony(['building_galactic_stock_exchange'])
+				],
+				stations: [station([], ['trader_proxy_office'])]
+			})
+		);
+		expect(f?.fee).toBeCloseTo(0.3 - 0.1 + 0.1 - 0.05 * 2 - 0.05); // 15 %
+		expect(f?.sources.map((s) => [s.key, s.count])).toEqual([
+			['tr_mercantile_insider_trading', 1],
+			['resolution_sanctions_economic', 1],
+			['building_galactic_stock_exchange', 2],
+			['trader_proxy_office', 1]
+		]);
+	});
+
+	it('never goes below 5 %, and raises with sanctions', () => {
+		const low = snap({
+			traditions: [
+				'tr_mercantile_insider_trading',
+				'tr_logistics_4',
+				'tr_versatility_adaptive_programming'
+			],
+			countryModifiers: ['galactic_market_founder']
+		});
+		expect(marketFee(low)?.fee).toBe(0.05);
+		expect(marketFee(snap({ countryModifiers: ['resolution_sanctions_economic'] }))?.fee).toBe(0.4);
+	});
+
+	it('is unknown for snapshots without the data', () => {
+		expect(marketFee(snap({ countryModifiers: null }))).toBeNull();
+		expect(
+			feeSeries([
+				snap({}),
+				upgrade({ kind: 'log', campaign: 'c', date: '2250.02.01' }),
+				snap({ countryModifiers: null })
+			]).lines['market fee %']
+		).toEqual([30, null]);
 	});
 });

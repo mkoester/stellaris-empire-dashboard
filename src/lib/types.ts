@@ -239,6 +239,7 @@ export type Snapshot = {
 	ascensionPerks: string[] | null;
 	civilianShips: CivilianShip[] | null; // science, construction, colony ships with their orders
 	edicts: string[] | null; // active edicts (keys)
+	countryModifiers: string[] | null; // country.timed_modifier: static modifiers on the empire (keys)
 	species: SpeciesInfo[] | null; // species with pops in the empire
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets

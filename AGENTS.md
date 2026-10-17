@@ -161,8 +161,13 @@ market_buy|market_sell resource country } amount } }`.
 - Market prices: `market.internal_market_fluctuations = { country=<id> resources={ energy=-15.9 … }
 … }` (jomini: `country` and `resources` become parallel arrays), percent off the base price,
   only resources that moved. Base price per unit = `market_price` (100 for all) / `market_amount`
-  (`common/strategic_resources`). The fee (`MARKET_TRADE_FEE_BASE` 30 %, lowered by modifiers) is
-  not stored. Internal vs. galactic (defines): the internal market's fluctuation per trade is ×2
+  (`common/strategic_resources`). **The fee is not stored**: `marketFee()` sums it — 30 %
+  (`MARKET_TRADE_FEE_BASE`) plus each `country_trade_fee` source the save shows (traditions,
+  `country.timed_modifier.items[].modifier`, colony and station buildings), at least 5 %; the list
+  is every `country_trade_fee` in 4.5.2's `common/`, re-grep on game updates. Checked at
+  2207.03.10 against the budget's `trade_income|trade_expenses.monthly_trades`: buying 107 booked
+  vs. 107.3 computed, selling 85 vs. 83.7. Exact alternative, via the mod:
+  `check_modifier_value` on `country_trade_fee`. Internal vs. galactic (defines): the internal market's fluctuation per trade is ×2
   (`INTERNAL_MARKET_FLUCTUATION_MULT`) and its recovery ×3 slower
   (`INTERNAL_MARKET_DAYS_TO_BASE_PRICE`). Galactic access = country flag `has_market_access`,
   set with `enable_galactic_market` for Galactic Community members once the market is founded

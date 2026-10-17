@@ -116,3 +116,101 @@ export function marketSwitches(history: Snapshot[]): { date: string; galactic: b
 		.filter((s, i) => i > 0 && s.market!.galactic !== saves[i - 1].market!.galactic)
 		.map((s) => ({ date: s.date, galactic: s.market!.galactic }));
 }
+
+// The market fee: `MARKET_TRADE_FEE_BASE` 30 % plus every `country_trade_fee`, at least
+// `MARKET_TRADE_FEE_MIN` 5 %. The save holds no total, so it is summed from the sources the save
+// shows — every `country_trade_fee` in 4.5.2's `common/` (re-grep on game updates). Not counted:
+// the enclave trader councilor (`councilor_enclave_trader`, −1 %), whose post the snapshot lacks.
+const BASE_FEE = 0.3;
+const MIN_FEE = 0.05;
+
+type FeeSource = {
+	key: string;
+	name: string; // the game's English name
+	fee: number;
+	in: 'tradition' | 'modifier' | 'building' | 'station';
+};
+const FEE_SOURCES: FeeSource[] = [
+	{ key: 'tr_mercantile_insider_trading', name: 'Insider Trading', fee: -0.1, in: 'tradition' },
+	{ key: 'tr_logistics_4', name: 'Galactic Exchange Efficiencies', fee: -0.1, in: 'tradition' },
+	{
+		key: 'tr_versatility_adaptive_programming',
+		name: 'Adaptive Programming',
+		fee: -0.1,
+		in: 'tradition'
+	},
+	{ key: 'galactic_market_founder', name: 'Market Nexus', fee: -0.1, in: 'modifier' },
+	{
+		key: 'secrets_of_the_inetian_traders',
+		name: 'Secrets of the Inetian Traders',
+		fee: -0.05,
+		in: 'modifier'
+	},
+	{
+		key: 'secrets_of_the_inetian_traders_hive_mach',
+		name: 'Secrets of the Inetian Traders',
+		fee: -0.05,
+		in: 'modifier'
+	},
+	{ key: 'resolution_sanctions_economic', name: 'Economic Sanctions', fee: 0.1, in: 'modifier' },
+	{
+		key: 'black_needle_base_sold_stolen_items',
+		name: 'Sold Stolen Items (Black Needle Base)',
+		fee: 0.1,
+		in: 'modifier'
+	},
+	// country_modifier of a building: once per building (one per planet)
+	{
+		key: 'building_galactic_stock_exchange',
+		name: 'Galactic Stock Exchange',
+		fee: -0.05,
+		in: 'building'
+	},
+	{ key: 'trader_proxy_office', name: 'Trader Proxy Office', fee: -0.05, in: 'station' },
+	{
+		key: 'waystation_trader_proxy_office',
+		name: 'Trader Proxy Office (waystation)',
+		fee: -0.05,
+		in: 'station'
+	}
+];
+
+export type MarketFee = {
+	fee: number;
+	sources: { key: string; name: string; count: number; fee: number }[];
+};
+
+/** The fee as a fraction (0.3 = 30 %) with what lowers or raises it; null without the data. */
+export function marketFee(s: Snapshot): MarketFee | null {
+	if (s.traditions === null || s.countryModifiers === null || s.stations === null) return null;
+	const found: Record<FeeSource['in'], string[]> = {
+		tradition: s.traditions,
+		modifier: s.countryModifiers,
+		building: s.colonies.flatMap((c) =>
+			c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings))
+		),
+		station: s.stations.flatMap((st) => [...st.modules, ...st.buildings])
+	};
+	const sources = FEE_SOURCES.map((f) => ({
+		key: f.key,
+		name: f.name,
+		count: found[f.in].filter((k) => k === f.key).length,
+		fee: f.fee
+	})).filter((f) => f.count > 0);
+	const total = BASE_FEE + sources.reduce((sum, f) => sum + f.fee * f.count, 0);
+	return { fee: Math.max(MIN_FEE, Math.round(total * 1000) / 1000), sources };
+}
+
+/** The fee in percent over time: saves only, a gap where a save lacks the data. */
+export function feeSeries(history: Snapshot[]): Series {
+	const saves = history.filter((s) => s.kind === 'save');
+	return {
+		x: saves.map((s) => gameYear(s.date)),
+		lines: {
+			'market fee %': saves.map((s) => {
+				const f = marketFee(s);
+				return f === null ? null : Math.round(f.fee * 1000) / 10;
+			})
+		}
+	};
+}

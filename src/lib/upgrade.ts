@@ -32,6 +32,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	ascensionPerks: null,
 	civilianShips: null,
 	edicts: null,
+	countryModifiers: null,
 	species: null,
 	sectors: null,
 	expansion: null,

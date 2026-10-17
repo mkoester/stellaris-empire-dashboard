@@ -32,6 +32,10 @@
 	);
 
 	const money = (n: number | null) => (n === null ? '–' : n.toFixed(2));
+	const pct = (f: number) => `${Math.round(f * 1000) / 10} %`;
+	// price paid (+1) or got (−1) with the fee; unknown without it
+	const withFee = (p: number | null, side: 1 | -1) =>
+		p === null || !data.fee ? null : p * (1 + side * data.fee.fee);
 	const signed = (n: number) => (n >= 0 ? '+' : '−') + fmt(Math.abs(n)) + ' %';
 </script>
 
@@ -52,8 +56,22 @@
 			as much as on the galactic market, and they recover three times slower. Access to the galactic
 			market comes once it is founded and the empire is in the Galactic Community.
 		{/if}
-		Prices are trade per unit before the market fee.
+		Prices are trade per unit; buying adds the market fee, selling deducts it.
 	</p>
+
+	{#if data.fee}
+		<p class="mb-4 text-sm">
+			Market fee <b>{pct(data.fee.fee)}</b>
+			<span class="text-gray-500"
+				>= base 30 %{#each data.fee.sources as s (s.key)}, {s.name}{s.count > 1
+						? ` ×${s.count}`
+						: ''}
+					{s.fee < 0 ? '−' : '+'}{pct(Math.abs(s.fee * s.count))}{/each}{data.fee.fee === 0.05
+					? ' (5 % at least)'
+					: ''} — not counted: an enclave trader councilor (−1 %)</span
+			>
+		</p>
+	{/if}
 
 	<table class="mb-6 text-sm tabular-nums">
 		<thead class="text-left text-gray-500">
@@ -62,6 +80,8 @@
 				<th class="pr-6 text-right font-normal">base</th>
 				<th class="pr-6 text-right font-normal">price</th>
 				<th class="pr-6 text-right font-normal">vs. base</th>
+				<th class="pr-6 text-right font-normal">buy</th>
+				<th class="pr-6 text-right font-normal">sell</th>
 				<th class="font-normal">your monthly orders</th>
 			</tr>
 		</thead>
@@ -72,6 +92,8 @@
 					<td class="pr-6 text-right text-gray-500">{money(r.base)}</td>
 					<td class="pr-6 text-right font-semibold">{money(r.price)}</td>
 					<td class="pr-6 text-right text-gray-500">{signed(r.fluctuation)}</td>
+					<td class="pr-6 text-right">{money(withFee(r.price, 1))}</td>
+					<td class="pr-6 text-right">{money(withFee(r.price, -1))}</td>
 					<td>
 						{#each r.orders as o, i (i)}
 							{@const limit = monthlyLimit(o, galactic)}
@@ -97,6 +119,16 @@
 				range={data.xRange}
 				yMin={0}
 				{markers}
+				events={data.milestones}
+			/>
+		{/if}
+		{#if data.fees.lines['market fee %'].some((v) => v !== null)}
+			<Chart
+				title="market fee"
+				series={data.fees}
+				range={data.xRange}
+				yMin={0}
+				yMax={40}
 				events={data.milestones}
 			/>
 		{/if}
