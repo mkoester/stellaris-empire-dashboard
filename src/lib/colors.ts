@@ -40,7 +40,9 @@ const COLORS: Record<string, string> = {
 	government: '#d64a9b',
 	policy: '#a3a830',
 	edict: '#b55bc4',
-	sector: '#3bb2c2'
+	sector: '#3bb2c2',
+	district: '#8c6d1f',
+	building: '#d0403a' // built with minerals
 };
 
 export const colorOf = (key: string): string | undefined => COLORS[key];

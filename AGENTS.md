@@ -78,8 +78,12 @@ jobs explained from the extraction DB — descriptions, modifiers (edict/agenda 
 `modifiers.ts` is **copied from the planner's `src/lib/civics.ts`** — keep the two in step. The
 popup itself is plain CSS: the planner's needs Skeleton UI.
 
-**Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `planets`
-(`/planets` → first colony, `/planet/[id]` with a dropdown) and `migration`; tabs keep `?node=`.
+**Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `colonies`
+(`/colonies` → first colony, `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
+`map` (`/map`, reuses `MigrationMap` — fork it when the two diverge), `migration` and `events`
+(`/events`: the milestone log, searchable, filtered in the page); tabs keep `?node=`. Say
+**colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
+`PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
 panels by id (`EmpirePanel.svelte`);
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
@@ -90,14 +94,15 @@ defines the `dark:` variant on it. Canvases (uPlot) pick axis colours per draw a
 `onThemeChange` (`#lib/theme.ts`).
 
 **Milestones** (`#lib/milestones.ts`, pure): the campaign's bigger events — systems, colonies
-(colonization started / established / gained / lost), wars, traditions, perks, research, species,
+(colonization started / established / gained / lost), districts built and buildings done per
+colony, wars, traditions, perks, research, species,
 trade deals, passed agendas, leaders, ruler, civics/ethics/authority, policies, edicts, sectors —
 **derived on read** by diffing consecutive _saves_ along the branch (`branch()` → `milestones`), so
 they follow the save graph and cover all history for fields already stored. A field is compared
 only between saves that both have it (null = unknown; an empty colony list too), and an event is
 dated to the first save showing it. New kind: `KINDS` + a detector + a colour in `colors.ts`. Each
 chart has an "events" picker (`EventPicker.svelte`); choices are stored per `<scope>:<title>`
-(`empire:`/`planet:`; `log` for the Events panel) in the `chartEvents` setting, merged on PUT.
+(`empire:`/`colony:` — stored `planet:` keys are renamed on read; `log` for the Events panel) in the `chartEvents` setting, merged on PUT.
 
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
 events after the game's text colours. Charts and the upcoming list both use them.

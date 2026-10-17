@@ -36,6 +36,7 @@ export type Upcoming = {
 	act: boolean;
 	queuedAfter?: number; // construction: items still waiting when this one is done
 	fleetId?: number; // civilian ship rows
+	sub?: string; // what to show as the kind, where finer than `kind` (ships: the ship type)
 };
 
 /**
@@ -280,6 +281,7 @@ export function upcoming(
 			date: fromDays(toDays(latest.date) + days),
 			months: days / 30,
 			kind: 'ship',
+			sub: s.kind.replaceAll('_', ' '),
 			what: s.order ? orderLabel(s.order) : idleState(s).text,
 			tint: 'ship',
 			detail: `${s.name} · ${s.kind.replaceAll('_', ' ')}`,

@@ -64,11 +64,11 @@
 			.map((e) => ({ x: gameYear(e.date), tint: e.tint, label: `${e.date.slice(0, 7)} ${e.what}` }))
 	);
 
-	// Stay on the same branch when opening a planet.
-	const planetHref = (planetId: number) =>
+	// Stay on the same branch when opening a colony.
+	const colonyHref = (planetId: number) =>
 		!data.isHead
-			? resolve(`/planet/[id]?node=${data.tip}`, { id: String(planetId) })
-			: resolve('/planet/[id]', { id: String(planetId) });
+			? resolve(`/colony/[id]?node=${data.tip}`, { id: String(planetId) })
+			: resolve('/colony/[id]', { id: String(planetId) });
 
 	const queue = (c: Colony) =>
 		c.buildQueue.length === 0
@@ -171,7 +171,7 @@
 			<table class="w-full text-left text-sm">
 				<thead>
 					<tr class="border-b border-gray-300 dark:border-gray-700">
-						<th class="p-1">Planet</th>
+						<th class="p-1">Colony</th>
 						<th class="p-1">Designation</th>
 						<th class="p-1 text-right">Pops</th>
 						<th class="p-1 text-right" title="last month: growth, migration, …">±/mo</th>
@@ -193,7 +193,7 @@
 						<tr>
 							<td class="p-1">
 								{#if c.planetId >= 0}
-									<a class="underline" href={planetHref(c.planetId)}>{c.name}</a
+									<a class="underline" href={colonyHref(c.planetId)}>{c.name}</a
 									>{#if c.colonizing}&nbsp;<span
 											class="text-xs text-green-700"
 											title="being settled: complete at 100 colonists"

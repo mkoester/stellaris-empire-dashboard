@@ -9,7 +9,7 @@
 	const empire = $derived(data.empire);
 	followGame(() => empire.empty || empire.isHead);
 
-	// Like the `all` tab: planet pages in other panes follow the branch shown here.
+	// Like the `all` tab: colony pages in other panes follow the branch shown here.
 	const shown = () => (empire.empty || empire.isHead ? null : empire.tip);
 	announceBranch(shown);
 	$effect(() => postBranch(shown()));

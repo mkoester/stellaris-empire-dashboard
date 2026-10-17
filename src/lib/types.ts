@@ -67,6 +67,7 @@ export type ShipOrder = {
 	orderId: number | null;
 	size?: string; // build orders: the ship size being built (starbase_outpost, mining_station, …)
 	anomaly?: string; // anomaly orders: the planet's anomaly category
+	system?: string; // the target's system (absent in snapshots from before it was read)
 };
 
 export type CivilianShip = {

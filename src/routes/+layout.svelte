@@ -14,14 +14,24 @@
 	const fixed = $derived([
 		{ name: 'all', href: node ? resolve(`/?node=${node}`) : resolve('/'), active: path === '/' },
 		{
-			name: 'planets',
-			href: node ? resolve(`/planets?node=${node}`) : resolve('/planets'),
-			active: path.startsWith('/planet')
+			name: 'colonies',
+			href: node ? resolve(`/colonies?node=${node}`) : resolve('/colonies'),
+			active: path.startsWith('/colon')
+		},
+		{
+			name: 'map',
+			href: node ? resolve(`/map?node=${node}`) : resolve('/map'),
+			active: path === '/map'
 		},
 		{
 			name: 'migration',
 			href: node ? resolve(`/migration?node=${node}`) : resolve('/migration'),
 			active: path === '/migration'
+		},
+		{
+			name: 'events',
+			href: node ? resolve(`/events?node=${node}`) : resolve('/events'),
+			active: path === '/events'
 		}
 	]);
 	const tabHref = (id: string) =>

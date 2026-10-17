@@ -33,7 +33,7 @@
 		markers?: Marker[];
 		right?: string[]; // lines drawn against a second y-axis on the right
 		events?: Milestone[]; // milestones the viewer can switch on, per kind, for this chart
-		scope?: 'empire' | 'planet'; // the choice is stored per `<scope>:<title>`, so all planets share it
+		scope?: 'empire' | 'colony'; // the choice is stored per `<scope>:<title>`, so all colonies share it
 	} = $props();
 
 	// Picked milestones: thin lines in their kind's colour, named on hover.

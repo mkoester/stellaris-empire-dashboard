@@ -1,6 +1,6 @@
-import { pretty } from './format.ts';
+import { nameOf, pretty } from './format.ts';
 import { gameYear } from './series.ts';
-import type { GameData, Snapshot } from './types.ts';
+import type { Colony, GameData, Snapshot } from './types.ts';
 
 // Milestones: the bigger events of a campaign (a colony founded, a tradition taken, a war lost …),
 // derived on read by comparing consecutive saves along the branch shown — so they follow the save
@@ -15,6 +15,8 @@ export const KINDS = [
 	{ kind: 'colony', label: 'colonies established' },
 	{ kind: 'colony-gained', label: 'colonies gained (conquest, cession)' },
 	{ kind: 'colony-lost', label: 'colonies lost' },
+	{ kind: 'district', label: 'districts built' },
+	{ kind: 'building', label: 'buildings done' },
 	{ kind: 'war', label: 'wars' },
 	{ kind: 'tradition-tree', label: 'tradition trees' },
 	{ kind: 'tradition', label: 'traditions' },
@@ -38,10 +40,10 @@ export type Milestone = {
 	x: number; // fractional game year, as the charts' x axis
 	kind: EventKind;
 	label: string;
-	planetId?: number; // colony events: the planet, so planet pages show only their own
+	planetId?: number; // colony events: the planet, so colony pages show only their own
 };
 
-type Names = Pick<GameData, 'techs' | 'agendas' | 'edicts' | 'traditionTrees' | 'perks'>;
+type Names = Pick<GameData, 'techs' | 'agendas' | 'edicts' | 'traditionTrees' | 'perks' | 'names'>;
 type Found = Omit<Milestone, 'date' | 'x'>;
 
 const added = <T>(before: T[], after: T[]) => after.filter((x) => !before.includes(x));
@@ -66,6 +68,26 @@ const ownedSystems = (s: Snapshot): string[] | null =>
 	s.knownSystems?.filter((k) => k.owned).map((k) => k.name) ??
 	s.stations?.map((st) => st.system) ??
 	null;
+
+/** How often each key occurs: districts built per type, buildings per type. */
+const tally = (keys: [string, number][]) => {
+	const m = new Map<string, number>();
+	for (const [k, n] of keys) m.set(k, (m.get(k) ?? 0) + n);
+	return m;
+};
+const districtsOf = (c: Colony) => tally(c.districtList.map((d) => [d.type, d.built]));
+const buildingsOf = (c: Colony) =>
+	tally(
+		c.districtList.flatMap((d) =>
+			d.zones.flatMap((z) => z.buildings.map((b): [string, number] => [b, 1]))
+		)
+	);
+
+/** What grew (+n) or shrank (−n) from one tally to the next. */
+const changes = (a: Map<string, number>, b: Map<string, number>) =>
+	[...new Set([...a.keys(), ...b.keys()])]
+		.map((k) => [k, (b.get(k) ?? 0) - (a.get(k) ?? 0)] as const)
+		.filter(([, d]) => d !== 0);
 
 const trees = (names: Names) =>
 	Object.values(names.traditionTrees).flatMap((t) =>
@@ -106,6 +128,30 @@ const DETECTORS = [
 					}))
 			];
 		}
+	),
+	// Districts and buildings per colony. Snapshots from before districts were read hold none on any
+	// colony: unknown. A colony new in the save is skipped (its founding is its own event).
+	field(
+		(s) => (s.colonies.some((c) => c.districtList.length) ? s.colonies : null),
+		(a, b, names) =>
+			b.flatMap((c) => {
+				const before = a.find((o) => o.planetId === c.planetId);
+				if (!before || c.planetId < 0) return [];
+				const at = { planetId: c.planetId };
+				const n = (d: number) => (Math.abs(d) > 1 ? ` ×${Math.abs(d)}` : '');
+				return [
+					...changes(districtsOf(before), districtsOf(c)).map(([k, d]) => ({
+						...at,
+						kind: 'district' as const,
+						label: `${d > 0 ? 'district built' : 'district removed'}: ${nameOf(names.names, k)}${n(d)} — ${c.name}`
+					})),
+					...changes(buildingsOf(before), buildingsOf(c)).map(([k, d]) => ({
+						...at,
+						kind: 'building' as const,
+						label: `${d > 0 ? 'building done' : 'building removed'}: ${nameOf(names.names, k)}${n(d)} — ${c.name}`
+					}))
+				];
+			})
 	),
 	field(
 		(s) => s.wars,

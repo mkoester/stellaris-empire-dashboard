@@ -47,7 +47,9 @@ export function orderLabel(o: ShipOrder): string {
 					: o.kind === 'orbit_planet'
 						? 'travel to'
 						: pretty(o.kind);
-	return o.target ? `${what} ${o.target}` : what;
+	// the system only where the target's name does not already say it (asteroids: "GR- QW1")
+	const where = o.system && !o.target?.startsWith(o.system) ? ` in ${o.system}` : '';
+	return o.target ? `${what} ${o.target}${where}` : what;
 }
 
 /** Progress per month for the ship's current order, from the save before (same order id). */

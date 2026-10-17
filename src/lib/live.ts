@@ -12,8 +12,8 @@ export function followGame(follow: () => boolean) {
 	});
 }
 
-// Split view: the empire page announces the branch it shows (null = following the game), planet
-// pages in other tabs or panes follow it. A planet page opened later asks for the current one.
+// Split view: the empire page announces the branch it shows (null = following the game), colony
+// pages in other tabs or panes follow it. A colony page opened later asks for the current one.
 type BranchMessage = { node: number | null } | 'ask';
 const CHANNEL = 'dashboard-branch';
 

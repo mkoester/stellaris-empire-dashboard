@@ -6,7 +6,7 @@
 	let { data } = $props();
 	followGame(() => data.empty || data.isHead);
 
-	// Planet pages in other panes follow the branch shown here.
+	// Colony pages in other panes follow the branch shown here.
 	const shown = () => (data.empty || data.isHead ? null : data.tip);
 	announceBranch(shown);
 	$effect(() => postBranch(shown()));

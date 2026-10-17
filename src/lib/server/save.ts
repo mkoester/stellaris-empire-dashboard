@@ -288,13 +288,15 @@ export function civilianShips(
 		id === undefined ? null : displayName(raw.planets[String(id)]?.name) || null;
 	const order = ([key, o]: [string, Raw]): ShipOrder => {
 		const design = raw.shipDesigns[String(o?.ship_design?.design)];
+		const planet =
+			o?.planet ??
+			(num(o?.deposit_holder?.type) === 0 ? o?.deposit_holder?.id : undefined) ??
+			o?.orbitable?.planet;
+		const system = raw.systems[String(raw.planets[String(planet)]?.coordinate?.origin)];
 		return {
 			kind: key.replace(/_order$/, ''),
-			target: planetName(
-				o?.planet ??
-					(num(o?.deposit_holder?.type) === 0 ? o?.deposit_holder?.id : undefined) ??
-					o?.orbitable?.planet
-			),
+			target: planetName(planet),
+			...(system ? { system: displayName(system.name) } : {}),
 			progress: typeof o?.progress === 'number' ? o.progress : null,
 			orderId: typeof o?.order_id === 'number' ? o.order_id : null,
 			...(design ? { size: String(first(design.growth_stages)?.ship_size ?? '') } : {}),

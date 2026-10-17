@@ -108,7 +108,7 @@ export function parseTabs(v: unknown): CustomTab[] | null {
 	return tabs;
 }
 
-/** Milestone kinds shown per chart, by chart key (`empire:<title>`, `planet:<title>`, `log`). */
+/** Milestone kinds shown per chart, by chart key (`empire:<title>`, `colony:<title>`, `log`). */
 export type ChartEvents = Record<string, EventKind[]>;
 
 /** The entries of a well-formed map; unknown kinds dropped. */

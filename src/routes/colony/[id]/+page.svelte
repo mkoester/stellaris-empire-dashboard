@@ -20,8 +20,8 @@
 		const id = String(data.planetId);
 		goto(
 			node === null
-				? resolve('/planet/[id]', { id })
-				: resolve(`/planet/[id]?node=${node}`, { id }),
+				? resolve('/colony/[id]', { id })
+				: resolve(`/colony/[id]?node=${node}`, { id }),
 			{ replace: true, reset: false }
 		);
 	});
@@ -42,12 +42,12 @@
 		data.upcoming.find((e) => e.kind === 'colonization' && e.planetId === data.planetId)
 	);
 
-	// The planets tab: pick another colony, staying on the branch shown.
+	// The colonies tab: pick another colony, staying on the branch shown.
 	const open = (id: string) =>
 		goto(
 			data.isHead
-				? resolve('/planet/[id]', { id })
-				: resolve(`/planet/[id]?node=${data.tip}`, { id })
+				? resolve('/colony/[id]', { id })
+				: resolve(`/colony/[id]?node=${data.tip}`, { id })
 		);
 </script>
 
@@ -59,7 +59,7 @@
 				class="rounded bg-transparent"
 				value={data.planetId}
 				onchange={(e) => open(e.currentTarget.value)}
-				aria-label="planet shown"
+				aria-label="colony shown"
 			>
 				{#if !data.colonies.some((c) => c.planetId === data.planetId)}
 					<option value={data.planetId}>{data.name}</option>
@@ -111,7 +111,7 @@
 			series={data.charts.pops}
 			range={data.xRange}
 			events={planetEvents}
-			scope="planet"
+			scope="colony"
 			right={['open jobs']}
 		/>
 		<Chart
@@ -119,21 +119,21 @@
 			series={data.charts.stability}
 			range={data.xRange}
 			events={planetEvents}
-			scope="planet"
+			scope="colony"
 		/>
 		<Chart
 			title="Pops per month: growth and migration"
 			series={data.charts.growth}
 			range={data.xRange}
 			events={planetEvents}
-			scope="planet"
+			scope="colony"
 		/>
 		<Chart
 			title="Happiness %"
 			series={data.charts.happiness}
 			range={data.xRange}
 			events={planetEvents}
-			scope="planet"
+			scope="colony"
 			yMin={0}
 			yMax={100}
 		/>
@@ -142,14 +142,14 @@
 			series={data.charts.free}
 			range={data.xRange}
 			events={planetEvents}
-			scope="planet"
+			scope="colony"
 		/>
 		<Chart
 			title="Districts"
 			series={data.charts.districts}
 			range={data.xRange}
 			events={planetEvents}
-			scope="planet"
+			scope="colony"
 		/>
 	{/key}
 </div>

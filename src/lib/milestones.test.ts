@@ -7,6 +7,7 @@ const names = {
 	techs: { tech_lasers_1: { name: 'Red Lasers', cost: 1, area: 'physics', tier: 1 } },
 	agendas: { agenda_unlock_slot: { name: 'Expand The Council', cost: 7000 } },
 	edicts: {},
+	names: { district_city: 'City District', building_research_lab_1: 'Research Lab' },
 	perks: { ap_technological_ascendancy: 'Technological Ascendancy' },
 	traditionTrees: {
 		tr_expansion: {
@@ -26,7 +27,46 @@ const save = (date: string, s: Partial<Snapshot> = {}) =>
 const log = (date: string) => upgrade({ kind: 'log', campaign: 'c', date });
 const labels = (snaps: Snapshot[]) => milestones(snaps, names).map((m) => `${m.date} ${m.label}`);
 
+const built = (planetId: number, name: string, districts: [string, number, string[]][]): Colony =>
+	({
+		planetId,
+		name,
+		colonizing: false,
+		districtList: districts.map(([type, n, buildings]) => ({
+			type,
+			built: n,
+			zones: buildings.length ? [{ type: 'zone_research', buildings }] : []
+		}))
+	}) as Colony;
+
 describe('milestones', () => {
+	it('records districts built and buildings done or replaced, per colony', () => {
+		const ms = milestones(
+			[
+				save('2206.01.01', { colonies: [colony(3, 'Earth')] }), // before districts were read
+				save('2206.02.01', {
+					colonies: [built(3, 'Earth', [['district_city', 2, ['building_research_lab_1']]])]
+				}),
+				save('2206.03.01', {
+					colonies: [
+						built(3, 'Earth', [['district_city', 4, ['building_research_lab_2']]]),
+						built(159, 'AC Prime', [['district_city', 1, []]]) // new: its founding counts
+					]
+				})
+			],
+			names
+		);
+		expect(
+			ms
+				.filter((m) => m.kind === 'district' || m.kind === 'building')
+				.map((m) => [m.planetId, m.label])
+		).toEqual([
+			[3, 'district built: City District ×2 — Earth'],
+			[3, 'building removed: Research Lab — Earth'],
+			[3, 'building done: research lab 2 — Earth']
+		]);
+	});
+
 	it('follows a colony from landing to established, and notices gains and losses', () => {
 		const ms = milestones(
 			[

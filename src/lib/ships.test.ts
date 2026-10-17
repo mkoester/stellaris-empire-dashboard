@@ -81,6 +81,12 @@ describe('ships', () => {
 				size: 'starbase_outpost'
 			})
 		).toBe('build starbase outpost Alpha Centauri A');
+		// the system where the name does not give it
+		const survey = { kind: 'survey_planet', progress: 3, orderId: 7 };
+		expect(orderLabel({ ...survey, target: 'GR- QW1', system: 'Xigar' })).toBe(
+			'survey GR- QW1 in Xigar'
+		);
+		expect(orderLabel({ ...survey, target: 'Xigar II', system: 'Xigar' })).toBe('survey Xigar II');
 	});
 });
 

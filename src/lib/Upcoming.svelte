@@ -7,7 +7,7 @@
 	import type { Upcoming } from './events.ts';
 	import type { Explanation } from './types.ts';
 
-	// node: the save shown when not following the game, so planet links stay on that branch.
+	// node: the save shown when not following the game, so colony links stay on that branch.
 	let {
 		events,
 		node,
@@ -20,10 +20,10 @@
 		names?: Record<string, string>;
 	} = $props();
 
-	const planetHref = (planetId: number) =>
+	const colonyHref = (planetId: number) =>
 		node === null
-			? resolve('/planet/[id]', { id: String(planetId) })
-			: resolve(`/planet/[id]?node=${node}`, { id: String(planetId) });
+			? resolve('/colony/[id]', { id: String(planetId) })
+			: resolve(`/colony/[id]?node=${node}`, { id: String(planetId) });
 
 	// "Only what the game doesn't tell me": research, traditions, agendas, elections and
 	// construction with more queued come with game notifications; the ⚠ rows do not. A
@@ -97,11 +97,11 @@
 							{#if e.act}<span
 									title="the build slot runs idle then — the game sends no notification">⚠</span
 								>{/if}
-							{e.kind}
+							{e.sub ?? e.kind}
 						</td>
 						<td class="p-1" style="color: CanvasText">
 							{#if e.planetId !== undefined}
-								<a class="underline" href={planetHref(e.planetId)}>{e.detail}</a>
+								<a class="underline" href={colonyHref(e.planetId)}>{e.detail}</a>
 							{:else}
 								{e.detail}
 							{/if}
