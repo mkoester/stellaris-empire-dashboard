@@ -12,6 +12,7 @@
 	import DistrictSummary from './DistrictSummary.svelte';
 	import AutomationSummary from './panels/AutomationSummary.svelte';
 	import Edicts from './panels/Edicts.svelte';
+	import Events from './panels/Events.svelte';
 	import Expansion from './panels/Expansion.svelte';
 	import Leaders from './panels/Leaders.svelte';
 	import Migration from './panels/Migration.svelte';
@@ -161,7 +162,7 @@
 	</section>
 {:else if id in charts}
 	{#key data.tip}
-		<Chart {...charts[id]} range={data.xRange} />
+		<Chart {...charts[id]} range={data.xRange} events={data.milestones} />
 	{/key}
 {:else if id === 'colonies'}
 	<section>
@@ -249,6 +250,8 @@
 			</table>
 		</div>
 	</section>
+{:else if id === 'events'}
+	<Events events={data.milestones} />
 {:else if id === 'jobs'}
 	<section>
 		<h2 class="mb-2 text-xl font-semibold">Jobs</h2>

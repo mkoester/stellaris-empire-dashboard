@@ -21,6 +21,8 @@ import type {
 	Progress,
 	QueueItem,
 	Resources,
+	TradeDeal,
+	War,
 	Snapshot
 } from '#lib/types.ts';
 import { START_YEAR } from '#lib/series.ts';
@@ -64,6 +66,8 @@ export type RawSave = {
 	systems: Record<string, Raw>; // galactic_object: names, planets, hyperlanes
 	sectors: Record<string, Raw>;
 	speciesDb: Record<string, Raw>;
+	wars: Record<string, Raw>; // top-level war (UNVERIFIED shape: empty in every save seen)
+	tradeDeals: Record<string, Raw>; // top-level trade_deal (UNVERIFIED shape, likewise)
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -76,14 +80,19 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 		const countryId = Number(first(q.at('/player'))?.country ?? 0);
 		const colonies = q.at('/colony') ?? {};
 		const planets = q.at('/planets/planet') ?? {};
-		// names of every empire owning a colony (migration involves foreign colonies too)
-		const owners = new Set(
-			Object.values(planets as Record<string, Raw>)
+		const wars = q.at('/war') ?? {};
+		const tradeDeals = q.at('/trade_deal') ?? {};
+		// names of every empire owning a colony (migration involves foreign colonies too) and of
+		// those at war or trading with anyone
+		const owners = new Set([
+			...Object.values(planets as Record<string, Raw>)
 				.filter(
 					(p) => p && typeof p === 'object' && p.colony !== undefined && p.owner !== undefined
 				)
-				.map((p) => Number(p.owner))
-		);
+				.map((p) => Number(p.owner)),
+			...countryIds(wars),
+			...countryIds(tradeDeals)
+		]);
 		const countryNames = Object.fromEntries(
 			[...owners].map((id) => [id, displayName(q.at(`/country/${id}/name`))])
 		);
@@ -111,6 +120,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			systems: q.at('/galactic_object') ?? {},
 			sectors: q.at('/sectors') ?? {},
 			speciesDb: q.at('/species_db') ?? {},
+			wars,
+			tradeDeals,
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
 			districtsDb: q.at('/districts') ?? {},
 			zones: q.at('/zones') ?? {},
@@ -176,7 +187,26 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		knownSystems: knownSystems(raw, ownSystems(raw)),
 		megaShipyards: megaShipyards(raw),
 		marketOrders: marketOrders(raw.monthlyTrades, raw.countryId),
-		progress: progress(raw)
+		progress: progress(raw),
+		leaderRoster: leaderRoster(raw),
+		ruler: ruler(raw),
+		agendasDone: items(raw.country?.government?.council_agenda_cooldowns)
+			.map((c) => c?.council_agenda)
+			.filter((k) => typeof k === 'string'),
+		policies: Object.fromEntries(
+			items(raw.country?.active_policies)
+				.filter((p) => typeof p?.policy === 'string')
+				.map((p) => [p.policy, String(p.selected)])
+		),
+		government: [
+			...items(raw.country?.government?.civics),
+			...items(raw.country?.ethos?.ethics),
+			raw.country?.government?.authority
+		].filter((k) => typeof k === 'string'),
+		wars: wars(raw),
+		warLostDate:
+			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
+		tradeDeals: tradeDeals(raw)
 	};
 }
 
@@ -213,6 +243,21 @@ export function idleLeaders(raw: Pick<RawSave, 'country' | 'leaders'>) {
 		if (l.location !== undefined || l.council_location !== undefined) return [];
 		return [{ id, class: String(l.class), name: leaderName(l.name) }];
 	});
+}
+
+/** Every hired leader (`country.owned_leaders` → `leaders.<id>`), envoys and the ruler included. */
+export function leaderRoster(raw: Pick<RawSave, 'country' | 'leaders'>) {
+	return list(raw.country?.owned_leaders).flatMap((id) => {
+		const l = raw.leaders[String(id)];
+		if (!l || typeof l !== 'object') return [];
+		return [{ id, class: String(l.class), name: leaderName(l.name) }];
+	});
+}
+
+export function ruler(raw: Pick<RawSave, 'country' | 'leaders'>) {
+	const id = num(raw.country?.ruler);
+	const l = raw.leaders[String(id)];
+	return l && typeof l === 'object' ? { id, name: leaderName(l.name) } : null;
 }
 
 /** `name = { full_names = { key=… } }` (or a list of parts) → "Mncedisi Iweala". */
@@ -803,6 +848,59 @@ export function migrationPartners(country: Raw): Set<number> {
 }
 
 /**
+ * Wars the country takes part in: `war.<id> = { name start_date attackers = { { country } }
+ * defenders = { … } }`. UNVERIFIED — assumed from earlier versions; no war seen in a save yet.
+ */
+export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames'>): War[] {
+	const side = (v: Raw) => items(v).map((p) => Number(p?.country));
+	return Object.entries(raw.wars).flatMap(([id, w]) => {
+		if (!w || typeof w !== 'object') return [];
+		const [attackers, defenders] = [side(w.attackers), side(w.defenders)];
+		const enemies = attackers.includes(raw.countryId)
+			? defenders
+			: defenders.includes(raw.countryId)
+				? attackers
+				: null;
+		if (!enemies) return [];
+		return [
+			{
+				id,
+				name: displayName(w.name) || `war ${id}`,
+				start: typeof w.start_date === 'string' ? w.start_date : null,
+				enemies: enemies.map((c) => raw.countryNames[String(c)] ?? `empire ${c}`)
+			}
+		];
+	});
+}
+
+/**
+ * Trade deals with the country on one side. UNVERIFIED — `trade_deal` was empty in every save seen;
+ * read as "any entry naming the country", its contents summarised from the remaining fields.
+ */
+export function tradeDeals(
+	raw: Pick<RawSave, 'tradeDeals' | 'countryId' | 'countryNames'>
+): TradeDeal[] {
+	const leaves = (v: Raw, path: string): string[] =>
+		v && typeof v === 'object'
+			? Object.entries(v).flatMap(([k, x]) =>
+					k === 'country' ? [] : leaves(x, Array.isArray(v) ? path : k)
+				)
+			: [`${path} ${v}`];
+	return Object.entries(raw.tradeDeals).flatMap(([id, d]) => {
+		const sides = countryIds(d);
+		if (!sides.includes(raw.countryId)) return [];
+		const others = sides.filter((c) => c !== raw.countryId);
+		return [
+			{
+				id,
+				partner: others.map((c) => raw.countryNames[String(c)] ?? `empire ${c}`).join(', '),
+				items: leaves(d, '').join(', ').slice(0, 200)
+			}
+		];
+	});
+}
+
+/**
  * `colony.last_month_growth_data = { growth_and_size = { growth } current_month_growth_details =
  * { key = { GROWTH_CAT_… } value = { … } } species = { … categories = { key value } } }`.
  * Detail values are amounts; emigration counts against the colony (Earth 2204.07: growth 3,
@@ -1028,6 +1126,14 @@ const ordinal = (n: number) =>
 	`${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')}`;
 const num = (v: Raw) => (typeof v === 'number' ? v : 0);
 const numOrNull = (v: Raw) => (typeof v === 'number' ? v : null);
+/** Every `country=<id>` anywhere below `v` (wars and trade deals name their sides this way). */
+export function countryIds(v: Raw): number[] {
+	if (!v || typeof v !== 'object') return [];
+	return Object.entries(v).flatMap(([k, x]) =>
+		k === 'country' && typeof x !== 'object' ? [Number(x)] : countryIds(x)
+	);
+}
+
 const items = (v: Raw): Raw[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]);
 const list = (v: Raw): number[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]).map(Number);
 const first = (v: Raw) => (Array.isArray(v) ? v[0] : v);

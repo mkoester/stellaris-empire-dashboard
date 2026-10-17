@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
 	buildQueue,
+	countryIds,
 	colonyGrowth,
 	colonyJobs,
 	displayName,
@@ -23,6 +24,8 @@ import {
 	readSave,
 	sumSources,
 	toSnapshot,
+	tradeDeals,
+	wars,
 	type RawSave
 } from './save.ts';
 
@@ -45,6 +48,8 @@ const raw: RawSave = {
 	systems: {},
 	sectors: {},
 	speciesDb: {},
+	wars: {},
+	tradeDeals: {},
 	starbases: {},
 	megastructures: {},
 	countryNames: {},
@@ -788,6 +793,88 @@ describe('helpers', () => {
 				variables: [{ key: 'NAME', value: { key: 'NAME_Alpha_Centauri' } }]
 			})
 		).toBe('Alpha Centauri Prime');
+	});
+});
+
+describe('milestone fields', () => {
+	// shapes as in the 2207.03.10 save (agenda cooldowns from an AI empire's government)
+	const country = {
+		...raw.country,
+		ruler: 318767105,
+		owned_leaders: [318767105, 129],
+		government: {
+			authority: 'auth_democratic',
+			civics: ['civic_beacon_of_liberty', 'civic_idealistic_foundation'],
+			council_agenda_cooldowns: {
+				council_agenda: 'agenda_arkship_engineering_military',
+				start_date: '2211.08.01'
+			}
+		},
+		ethos: { ethics: ['ethic_fanatic_egalitarian', 'ethic_xenophile'] },
+		active_policies: [
+			{ policy: 'diplomatic_stance', selected: 'diplo_stance_expansionist' },
+			{ policy: 'war_philosophy', selected: 'unrestricted_wars' }
+		],
+		last_date_war_lost: '0.01.01'
+	};
+	const leaders = {
+		'318767105': { class: 'official', name: { full_names: { key: 'Ada' } } },
+		'129': { class: 'scientist', name: { full_names: { key: 'Bo' } } },
+		'184549376': 'none' // a removed leader leaves this behind
+	};
+	const s = toSnapshot({ ...raw, country, leaders }, 'camp');
+
+	it('lists all hired leaders and the ruler', () => {
+		expect(s.leaderRoster).toEqual([
+			{ id: 318767105, class: 'official', name: 'Ada' },
+			{ id: 129, class: 'scientist', name: 'Bo' }
+		]);
+		expect(s.ruler).toEqual({ id: 318767105, name: 'Ada' });
+	});
+
+	it('reads agendas on cooldown, policies, government and the last lost war', () => {
+		expect(s.agendasDone).toEqual(['agenda_arkship_engineering_military']);
+		expect(s.policies).toEqual({
+			diplomatic_stance: 'diplo_stance_expansionist',
+			war_philosophy: 'unrestricted_wars'
+		});
+		expect(s.government).toEqual([
+			'civic_beacon_of_liberty',
+			'civic_idealistic_foundation',
+			'ethic_fanatic_egalitarian',
+			'ethic_xenophile',
+			'auth_democratic'
+		]);
+		expect(s.warLostDate).toBe('0.01.01');
+	});
+
+	// ASSUMED shapes: no war or trade deal seen in a save yet
+	const names = { '0': 'UNE', '4': 'Tzynn', '7': 'Blorg' };
+	it('finds wars the country is in, with the other side as enemies', () => {
+		const w = {
+			'1': {
+				name: { key: 'War of Aggression' },
+				start_date: '2210.01.01',
+				attackers: [{ country: 4 }],
+				defenders: [{ country: 0 }, { country: 7 }]
+			},
+			'2': { attackers: { country: 4 }, defenders: { country: 7 } },
+			'3': 'none'
+		};
+		expect(wars({ wars: w, countryId: 0, countryNames: names })).toEqual([
+			{ id: '1', name: 'War of Aggression', start: '2210.01.01', enemies: ['Tzynn'] }
+		]);
+		expect(countryIds(w).sort()).toEqual([0, 4, 4, 7, 7]);
+	});
+
+	it('finds trade deals naming the country, with a summary of their contents', () => {
+		const d = {
+			'5': { first: { country: 0, energy: 10 }, second: { country: 4, minerals: 20 } },
+			'6': { first: { country: 4 }, second: { country: 7 } }
+		};
+		expect(tradeDeals({ tradeDeals: d, countryId: 0, countryNames: names })).toEqual([
+			{ id: '5', partner: 'Tzynn', items: 'energy 10, minerals 20' }
+		]);
 	});
 });
 

@@ -2,6 +2,7 @@ import { upcoming } from '#lib/events.ts';
 import { jobFlows, jobRows, withFlows } from '#lib/jobs.ts';
 import { getDb, getGameData } from './app.ts';
 import { headId, history, nodes } from './db.ts';
+import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
 
 /**
@@ -35,6 +36,8 @@ export function branch(url: URL) {
 	);
 	const empirePops = Object.fromEntries(empireJobs.map((r) => [r.type, r.pops]));
 	return {
+		// the campaign's bigger events along this branch, for charts and the events panel
+		milestones: milestones(snaps, getGameData()),
 		upcoming: last ? upcoming(last, previous, getGameData(), saves.slice(0, -1)) : [],
 		// Display names of what the colonies hold: queue items, districts, zones, buildings.
 		names: Object.fromEntries(

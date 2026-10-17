@@ -22,7 +22,25 @@ const COLORS: Record<string, string> = {
 	election: '#8f6ad8', // politics: influence
 	construction: '#d0403a', // built with minerals
 	ship: '#4f94b5', // civilian ships: the game's sensor blue
-	colonization: '#36a862' // a new world: the society green
+	colonization: '#36a862', // a new world: the society green
+	// milestones (#lib/milestones.ts) not covered above
+	system: '#4f94b5', // borders: sensor blue
+	colony: '#2e7d32',
+	'colony-gained': '#7cb342',
+	'colony-lost': '#c62828',
+	war: '#d0403a',
+	'tradition-tree': '#127a70',
+	tradition: '#22a99c', // unity
+	perk: '#8f6ad8',
+	research: '#2f8fe0',
+	species: '#c8743a',
+	'trade-deal': '#d9a521', // energy
+	leader: '#6b7280',
+	ruler: '#8c6d1f',
+	government: '#d64a9b',
+	policy: '#a3a830',
+	edict: '#b55bc4',
+	sector: '#3bb2c2'
 };
 
 export const colorOf = (key: string): string | undefined => COLORS[key];

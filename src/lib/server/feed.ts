@@ -93,7 +93,15 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		migration: null,
 		knownSystems: null,
 		megaShipyards: null,
-		progress: null
+		progress: null,
+		leaderRoster: null,
+		ruler: null,
+		agendasDone: null,
+		policies: null,
+		government: null,
+		wars: null,
+		warLostDate: null,
+		tradeDeals: null
 	};
 }
 

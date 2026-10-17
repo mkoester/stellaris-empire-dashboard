@@ -44,7 +44,15 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	migration: null,
 	knownSystems: null,
 	megaShipyards: null,
-	progress: null
+	progress: null,
+	leaderRoster: null,
+	ruler: null,
+	agendasDone: null,
+	policies: null,
+	government: null,
+	wars: null,
+	warLostDate: null,
+	tradeDeals: null
 });
 
 describe('db', () => {

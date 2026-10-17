@@ -89,6 +89,16 @@ drop. The theme is a class on `<html>`, put there by `hooks.server.ts` (no flash
 defines the `dark:` variant on it. Canvases (uPlot) pick axis colours per draw and redraw on
 `onThemeChange` (`#lib/theme.ts`).
 
+**Milestones** (`#lib/milestones.ts`, pure): the campaign's bigger events — systems, colonies
+(colonization started / established / gained / lost), wars, traditions, perks, research, species,
+trade deals, passed agendas, leaders, ruler, civics/ethics/authority, policies, edicts, sectors —
+**derived on read** by diffing consecutive _saves_ along the branch (`branch()` → `milestones`), so
+they follow the save graph and cover all history for fields already stored. A field is compared
+only between saves that both have it (null = unknown; an empty colony list too), and an event is
+dated to the first save showing it. New kind: `KINDS` + a detector + a colour in `colors.ts`. Each
+chart has an "events" picker (`EventPicker.svelte`); choices are stored per `<scope>:<title>`
+(`empire:`/`planet:`; `log` for the Events panel) in the `chartEvents` setting, merged on PUT.
+
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
 events after the game's text colours. Charts and the upcoming list both use them.
 
@@ -224,6 +234,12 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   03.01 → 03.10: 0), research daily — so the agenda's rate is measured across month starts, or a
   mid-month manual save hides it. Galaxy cost sliders `galaxy.technology`, `galaxy.traditions`. Tech costs
   in game were ×1.05 of the extracted base (source unconfirmed, `TECH_COST_OBSERVED_FACTOR`).
+- Milestone sources (2207.03.10): `country.government.council_agenda_cooldowns = { council_agenda
+start_date }` (passed agendas), `country.ruler`, `country.active_policies = { { policy selected
+} }`, `country.government.civics|authority`, `country.ethos.ethics`, `country.last_date_war_lost`
+  ("0.01.01" = never). Removed leaders leave `leaders.<id> = none`. Prescripted names (the ruler)
+  come out as their key ("ruler name humans1"). Only undismissed notifications survive in
+  `message`, so it is no event source.
 - Identity of a game state (`Snapshot.fingerprint`): `tick` + `random_count`, both top-level.
 
 ## Open (needs a running game on Linux)
@@ -231,6 +247,9 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
 - **Migration treaties, never seen in a save** (2207.03: none, not even between AI empires).
   `migrationPartners()` takes any relation mentioning "migration" — check the real shape at the
   first treaty, tighten it, and add the foreign colonies' case to the tests from that save.
+- **Wars and trade deals, never seen in a save** (2207.03: `war`, `trade_deal`, `truce`,
+  `dead_war` all empty). `wars()` / `tradeDeals()` in `save.ts` read an assumed shape — check the
+  real one at the first war / deal, tighten them, and replace the assumed test fixtures.
 - **Exact branch points via the mod**: each month the mod rolls a random id and keeps the previous
   one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
   load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.

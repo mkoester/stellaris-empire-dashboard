@@ -1,5 +1,8 @@
-// Viewer settings kept on the server (`setting` table), so every device sees the same: the theme
-// and the custom tabs. Requests carry them as JSON; the parsers reject anything malformed.
+import { KIND_IDS, type EventKind } from './milestones.ts';
+
+// Viewer settings kept on the server (`setting` table), so every device sees the same: the theme,
+// the custom tabs and which milestones each chart shows. Requests carry them as JSON; the parsers
+// reject anything malformed.
 
 export const THEMES = ['system', 'light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
@@ -34,6 +37,7 @@ export const LAYOUT = [
 		]
 	},
 	{ cols: '', panels: [{ id: 'colonies', label: 'Colonies', wide: true }] },
+	{ cols: '', panels: [{ id: 'events', label: 'Events (log)', wide: true }] },
 	{
 		// side by side once both fit (about 1250 px), stacked in a split-view half
 		cols: 'grid items-start gap-6 2xl:grid-cols-2',
@@ -104,8 +108,29 @@ export function parseTabs(v: unknown): CustomTab[] | null {
 	return tabs;
 }
 
-/** Stores changed settings on the server (`/api/settings`). */
-export async function putSettings(patch: { theme?: Theme; tabs?: CustomTab[] }) {
+/** Milestone kinds shown per chart, by chart key (`empire:<title>`, `planet:<title>`, `log`). */
+export type ChartEvents = Record<string, EventKind[]>;
+
+/** The entries of a well-formed map; unknown kinds dropped. */
+export function parseChartEvents(v: unknown): ChartEvents | null {
+	if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+	const out: ChartEvents = {};
+	for (const [key, kinds] of Object.entries(v)) {
+		if (key.length > 80 || !Array.isArray(kinds)) return null;
+		out[key] = [...new Set(kinds.filter((k) => KIND_IDS.includes(k)))] as EventKind[];
+	}
+	return out;
+}
+
+/**
+ * Stores changed settings on the server (`/api/settings`). `chartEvents` entries are merged into
+ * the stored map, so charts saving at once do not undo each other.
+ */
+export async function putSettings(patch: {
+	theme?: Theme;
+	tabs?: CustomTab[];
+	chartEvents?: ChartEvents;
+}) {
 	const r = await fetch('/api/settings', {
 		method: 'PUT',
 		headers: { 'content-type': 'application/json' },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PANELS, parseTabs, parseTheme } from './settings.ts';
+import { PANELS, parseChartEvents, parseTabs, parseTheme } from './settings.ts';
 
 describe('parseTheme', () => {
 	it('takes the three themes and nothing else', () => {
@@ -43,6 +43,17 @@ describe('parseTabs', () => {
 				{ id: 'a', name: 'y', panels: [] }
 			])
 		).toBeNull();
+	});
+});
+
+describe('parseChartEvents', () => {
+	it('keeps known kinds per chart, once each, and rejects what is not a map of lists', () => {
+		expect(parseChartEvents({ 'empire:Pops': ['colony', 'nope', 'colony'], log: [] })).toEqual({
+			'empire:Pops': ['colony'],
+			log: []
+		});
+		expect(parseChartEvents([])).toBeNull();
+		expect(parseChartEvents({ a: 'colony' })).toBeNull();
 	});
 });
 

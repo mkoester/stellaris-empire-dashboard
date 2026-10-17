@@ -239,7 +239,21 @@ export type Snapshot = {
 	knownSystems: KnownSystem[] | null; // visited or own systems, for maps
 	megaShipyards: MegaShipyard[] | null;
 	progress: Progress | null; // null from the mod feed
+	// For milestones (#lib/milestones.ts); null from the mod feed and in older snapshots.
+	leaderRoster: { id: number; name: string; class: string }[] | null; // all hired leaders
+	ruler: { id: number; name: string } | null;
+	agendasDone: string[] | null; // agendas on cooldown, i.e. passed recently
+	policies: Record<string, string> | null; // policy → selected option
+	government: string[] | null; // civics, ethics and authority keys
+	wars: War[] | null; // wars the country takes part in
+	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
+	tradeDeals: TradeDeal[] | null;
 };
+
+/** A war the country is in. UNVERIFIED shape — no war seen in a save yet (see AGENTS.md). */
+export type War = { id: string; name: string; start: string | null; enemies: string[] };
+/** A trade deal with another empire. UNVERIFIED shape — none seen in a save yet. */
+export type TradeDeal = { id: string; partner: string; items: string };
 
 export type TimelineNode = {
 	id: number;

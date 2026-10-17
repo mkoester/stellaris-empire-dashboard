@@ -33,6 +33,11 @@
 			.map((e) => (e.exact ? '' : '≈ ') + e.date)
 	);
 
+	// Chart events: the empire's, but of the colony events only this planet's.
+	const planetEvents = $derived(
+		data.milestones.filter((e) => e.planetId === undefined || e.planetId === data.planetId)
+	);
+
 	const settled = $derived(
 		data.upcoming.find((e) => e.kind === 'colonization' && e.planetId === data.planetId)
 	);
@@ -101,22 +106,51 @@
 
 <div class="grid gap-4 lg:grid-cols-2">
 	{#key data.tip}
-		<Chart title="Pops" series={data.charts.pops} range={data.xRange} right={['open jobs']} />
-		<Chart title="Stability" series={data.charts.stability} range={data.xRange} />
+		<Chart
+			title="Pops"
+			series={data.charts.pops}
+			range={data.xRange}
+			events={planetEvents}
+			scope="planet"
+			right={['open jobs']}
+		/>
+		<Chart
+			title="Stability"
+			series={data.charts.stability}
+			range={data.xRange}
+			events={planetEvents}
+			scope="planet"
+		/>
 		<Chart
 			title="Pops per month: growth and migration"
 			series={data.charts.growth}
 			range={data.xRange}
+			events={planetEvents}
+			scope="planet"
 		/>
 		<Chart
 			title="Happiness %"
 			series={data.charts.happiness}
 			range={data.xRange}
+			events={planetEvents}
+			scope="planet"
 			yMin={0}
 			yMax={100}
 		/>
-		<Chart title="Free housing and amenities" series={data.charts.free} range={data.xRange} />
-		<Chart title="Districts" series={data.charts.districts} range={data.xRange} />
+		<Chart
+			title="Free housing and amenities"
+			series={data.charts.free}
+			range={data.xRange}
+			events={planetEvents}
+			scope="planet"
+		/>
+		<Chart
+			title="Districts"
+			series={data.charts.districts}
+			range={data.xRange}
+			events={planetEvents}
+			scope="planet"
+		/>
 	{/key}
 </div>
 

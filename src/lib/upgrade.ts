@@ -38,7 +38,15 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	migration: null,
 	knownSystems: null,
 	megaShipyards: null,
-	progress: null
+	progress: null,
+	leaderRoster: null,
+	ruler: null,
+	agendasDone: null,
+	policies: null,
+	government: null,
+	wars: null,
+	warLostDate: null,
+	tradeDeals: null
 };
 
 const COLONY: Omit<Colony, 'planetId' | 'name'> = {

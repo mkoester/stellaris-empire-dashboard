@@ -5,6 +5,9 @@
 	import { colorOf } from './colors.ts';
 	import { gameMonth, type Series } from './series.ts';
 	import { isDark, onThemeChange } from './theme.ts';
+	import { chartEvents } from './chartEvents.svelte.ts';
+	import EventPicker from './EventPicker.svelte';
+	import type { Milestone } from './milestones.ts';
 
 	/** A due date drawn on the chart: a line where it falls, or a note at the edge when beyond. */
 	export type Marker = { x: number; tint: string; label: string };
@@ -18,7 +21,9 @@
 		yMin,
 		yMax,
 		markers = [],
-		right = []
+		right = [],
+		events,
+		scope = 'empire'
 	}: {
 		title: string;
 		series: Series;
@@ -27,7 +32,18 @@
 		yMax?: number; // a fixed top, e.g. 100 for percentages
 		markers?: Marker[];
 		right?: string[]; // lines drawn against a second y-axis on the right
+		events?: Milestone[]; // milestones the viewer can switch on, per kind, for this chart
+		scope?: 'empire' | 'planet'; // the choice is stored per `<scope>:<title>`, so all planets share it
 	} = $props();
+
+	// Picked milestones: thin lines in their kind's colour, named on hover.
+	const picker = chartEvents(() => `${scope}:${title}`);
+	const visible = $derived((events ?? []).filter((e) => picker.shown.includes(e.kind)));
+	let hovered: Milestone[] = $state([]);
+	$effect(() => {
+		void visible;
+		plot?.redraw(false, false);
+	});
 
 	let el: HTMLDivElement;
 	let plot: uPlot | undefined;
@@ -87,6 +103,33 @@
 
 	const showLatest = (u: uPlot) => u.setLegend({ idx: u.data[0].length - 1 });
 
+	function drawEvents(u: uPlot, px: number) {
+		const { ctx, bbox } = u;
+		const [min, max] = [u.scales.x.min ?? range[0], u.scales.x.max ?? range[1]];
+		ctx.save();
+		ctx.lineWidth = px;
+		ctx.globalAlpha = 0.7;
+		for (const e of visible) {
+			if (e.x < min || e.x > max) continue;
+			const x = Math.round(u.valToPos(e.x, 'x', true)) + 0.5;
+			ctx.strokeStyle = colorOf(e.kind) ?? '#888';
+			ctx.beginPath();
+			ctx.moveTo(x, bbox.top);
+			ctx.lineTo(x, bbox.top + bbox.height);
+			ctx.stroke();
+		}
+		ctx.restore();
+	}
+
+	// The events whose line is within a few pixels of the cursor.
+	function hover(u: uPlot) {
+		const left = u.cursor.left;
+		hovered =
+			left === undefined || left < 0
+				? []
+				: visible.filter((e) => Math.abs(u.valToPos(e.x, 'x') - left) <= 4);
+	}
+
 	// The canvas draws axes itself (uPlot's default is black): colours by theme, read at each draw.
 	const ink = () => (isDark() ? '#d1d5db' : '#374151');
 	const rule = () => (isDark() ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)');
@@ -135,8 +178,8 @@
 				hooks: {
 					ready: [showLatest],
 					setData: [showLatest],
-					setCursor: [(u) => u.cursor.idx == null && showLatest(u)],
-					draw: [(u) => drawMarkers(u, UPlot.pxRatio)]
+					setCursor: [(u) => u.cursor.idx == null && showLatest(u), hover],
+					draw: [(u) => drawMarkers(u, UPlot.pxRatio), (u) => drawEvents(u, UPlot.pxRatio)]
 				}
 			};
 			plot = new UPlot(opts, data(series), el);
@@ -160,7 +203,21 @@
 </script>
 
 <section class="rounded border border-gray-300 p-2 dark:border-gray-700">
-	<h2 class="mb-1 font-semibold">{title}</h2>
+	<div class="mb-1 flex items-baseline gap-2">
+		<h2 class="flex-1 font-semibold">{title}</h2>
+		{#if events}<EventPicker {events} shown={picker.shown} toggle={picker.toggle} />{/if}
+	</div>
+	{#if visible.length}
+		<!-- one line reserved, so hovering does not move the chart -->
+		<p class="h-4 truncate text-xs" title={hovered.map((e) => e.label).join('\n')}>
+			{#if hovered.length}
+				{hovered[0].date.slice(0, 7)} ·
+				{#each hovered.slice(0, 4) as e, i (i)}<span style:color={colorOf(e.kind)}
+						>{i ? ' · ' : ''}{e.label}</span
+					>{/each}{hovered.length > 4 ? ` · +${hovered.length - 4} more` : ''}
+			{/if}
+		</p>
+	{/if}
 	<div bind:this={el}></div>
 </section>
 
