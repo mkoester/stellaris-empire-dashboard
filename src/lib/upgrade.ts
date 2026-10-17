@@ -88,7 +88,11 @@ export function upgrade(
 		expansion: s.expansion && s.expansion.map((p) => ({ ...p, candidate: p.candidate ?? null })),
 		knownSystems:
 			s.knownSystems && s.knownSystems.map((k) => ({ ...k, capital: k.capital ?? false })),
-		tradeDeals: s.tradeDeals && s.tradeDeals.map(upgradeDeal)
+		tradeDeals: s.tradeDeals && s.tradeDeals.map(upgradeDeal),
+		// stored as plain keys for a day (2026-10-17), without the end date
+		countryModifiers:
+			s.countryModifiers &&
+			s.countryModifiers.map((m) => (typeof m === 'string' ? { key: m, until: null } : m))
 	};
 }
 

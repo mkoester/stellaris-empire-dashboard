@@ -183,6 +183,9 @@ export type QueueItem = {
  */
 export type SourceKind = 'save' | 'log';
 
+/** An empire-wide static modifier (from events, agendas, …); `until` null = permanent. */
+export type CountryModifier = { key: string; until: string | null };
+
 /** A standing monthly order on the market. */
 export type MarketOrder = { kind: 'buy' | 'sell'; resource: string; amount: number };
 
@@ -239,7 +242,7 @@ export type Snapshot = {
 	ascensionPerks: string[] | null;
 	civilianShips: CivilianShip[] | null; // science, construction, colony ships with their orders
 	edicts: string[] | null; // active edicts (keys)
-	countryModifiers: string[] | null; // country.timed_modifier: static modifiers on the empire (keys)
+	countryModifiers: CountryModifier[] | null; // country.timed_modifier: empire-wide effects
 	species: SpeciesInfo[] | null; // species with pops in the empire
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets

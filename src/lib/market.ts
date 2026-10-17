@@ -185,7 +185,7 @@ export function marketFee(s: Snapshot): MarketFee | null {
 	if (s.traditions === null || s.countryModifiers === null || s.stations === null) return null;
 	const found: Record<FeeSource['in'], string[]> = {
 		tradition: s.traditions,
-		modifier: s.countryModifiers,
+		modifier: s.countryModifiers.map((m) => m.key),
 		building: s.colonies.flatMap((c) =>
 			c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings))
 		),

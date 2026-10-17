@@ -276,6 +276,11 @@ start_date }` (passed agendas), `country.ruler`, `country.active_policies = { { 
   ("0.01.01" = never). Removed leaders leave `leaders.<id> = none`. Prescripted names (the ruler)
   come out as their key ("ruler name humans1"). Only undismissed notifications survive in
   `message`, so it is no event source.
+- Empire-wide modifiers (events, agendas, relics, …): `country.timed_modifier = { items = { {
+modifier="celebrate_diversity" days=3535 } … } }` — `days` left, −1 = permanent; stored as an
+  end date (`addGameDays`: 30-day months). Named and explained from the data DB's
+  `static_modifier` tables (`modifier:<key>` popups, Empire modifiers panel). Some keys are no
+  static modifier (`uncivic_parliamentary_system_isolationist`, 4.0.1) and show as the key.
 - Identity of a game state (`Snapshot.fingerprint`): `tick` + `random_count`, both top-level.
 
 ## Open (needs a running game on Linux)

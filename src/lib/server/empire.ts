@@ -24,6 +24,8 @@ export function empireData(url: URL) {
 	const { snaps, ...rest } = b;
 	const data = getGameData();
 	const latest = b.latest;
+	// empire-wide modifiers at the latest save that read them
+	const modifiers = snaps.findLast((s) => s.countryModifiers !== null)?.countryModifiers ?? [];
 	return {
 		empty: false as const,
 		...rest,
@@ -34,7 +36,8 @@ export function empireData(url: URL) {
 			...b.upcoming.flatMap((e) => (e.ref ? [e.ref] : [])),
 			...b.empireJobs.map((j) => `job:${j.type}`),
 			...(latest.traditions ?? []).map((k) => `tradition:${k}`),
-			...(latest.ascensionPerks ?? []).map((k) => `perk:${k}`)
+			...(latest.ascensionPerks ?? []).map((k) => `perk:${k}`),
+			...modifiers.map((m) => `modifier:${m.key}`)
 		]),
 		// what each civilian ship's current order counts to (anomalies need the game data's levels)
 		shipTotals: Object.fromEntries(
@@ -51,6 +54,10 @@ export function empireData(url: URL) {
 		// Researched techs per field and tier, at the latest full save.
 		tiers: techTiers(b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [], data.techs),
 		// Overview panels, named from the game data.
+		modifiers: modifiers.map((m) => ({
+			...m,
+			name: getExplanations()[`modifier:${m.key}`]?.title ?? null
+		})),
 		edicts: (latest.edicts ?? []).map((key) => ({
 			key,
 			name: data.edicts[key]?.name ?? pretty(key)

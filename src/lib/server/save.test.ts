@@ -19,6 +19,7 @@ import {
 	planetBudget,
 	shipCounts,
 	strata,
+	countryModifiers,
 	market,
 	marketOrders,
 	progress,
@@ -257,6 +258,29 @@ describe('marketOrders', () => {
 			{ kind: 'buy', resource: 'minerals', amount: 42 }
 		]);
 		expect(marketOrders(undefined, 0)).toEqual([]);
+	});
+});
+
+describe('countryModifiers', () => {
+	it('dates the timed ones, −1 is permanent (shape of the 4.0.1 save at 2312)', () => {
+		const country = {
+			timed_modifier: {
+				items: [
+					{ modifier: 'galactic_market_founder', days: -1 },
+					{ modifier: 'celebrate_diversity', days: 3535 }
+				]
+			}
+		};
+		expect(countryModifiers({ country, date: '2312.01.01' })).toEqual([
+			{ key: 'galactic_market_founder', until: null },
+			{ key: 'celebrate_diversity', until: '2321.10.26' }
+		]);
+		expect(
+			countryModifiers({
+				country: { timed_modifier: { items: { modifier: 'x', days: -1 } } },
+				date: '2200.01.01'
+			})
+		).toEqual([{ key: 'x', until: null }]);
 	});
 });
 

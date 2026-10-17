@@ -15,6 +15,7 @@ import type {
 	Sector,
 	SpeciesInfo,
 	ColonyJob,
+	CountryModifier,
 	Market,
 	MarketOrder,
 	ShipCount,
@@ -28,7 +29,7 @@ import type {
 	Snapshot
 } from '#lib/types.ts';
 import { MARKET_RESOURCES } from '#lib/market.ts';
-import { START_YEAR } from '#lib/series.ts';
+import { addGameDays, START_YEAR } from '#lib/series.ts';
 import { readZipEntry } from './zip.ts';
 
 // Save → Snapshot. `querySave` is the only part touching jomini; everything after it is pure and
@@ -188,9 +189,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		edicts: items(raw.country?.edicts)
 			.map((e) => e?.edict)
 			.filter((e) => typeof e === 'string'),
-		countryModifiers: items(raw.country?.timed_modifier?.items)
-			.map((m) => m?.modifier)
-			.filter((m) => typeof m === 'string'),
+		countryModifiers: countryModifiers(raw),
 		species: speciesInfo(raw),
 		sectors: sectors(raw),
 		expansion: expansion(raw),
@@ -221,6 +220,19 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
 		tradeDeals: tradeDeals(raw)
 	};
+}
+
+/**
+ * `country.timed_modifier = { items = { { modifier="celebrate_diversity" days=3535 } … } }` —
+ * `days` left, −1 for a permanent one.
+ */
+export function countryModifiers(raw: Pick<RawSave, 'country' | 'date'>): CountryModifier[] {
+	return items(raw.country?.timed_modifier?.items)
+		.filter((m) => typeof m?.modifier === 'string')
+		.map((m) => ({
+			key: m.modifier,
+			until: typeof m.days === 'number' && m.days > 0 ? addGameDays(raw.date, m.days) : null
+		}));
 }
 
 /** `market.monthly_trades = { { trade_data = { trade_type=market_buy|market_sell resource country } amount } }` */

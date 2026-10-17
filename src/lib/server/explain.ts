@@ -99,6 +99,24 @@ export function loadExplanations(file: string): Explanations {
 			};
 		}
 
+		// Static modifiers a save puts on the empire (events, agendas, …): `modifier:<key>`.
+		const staticMods = grouped(
+			'SELECT static_key AS owner, modifier_key AS key, modifier_value AS value FROM static_modifier_modifier ORDER BY sort_order'
+		);
+		for (const m of rows<{
+			key: string;
+			name: string | null;
+			description: string | null;
+			tooltip: string | null;
+		}>('SELECT key, name, description, tooltip FROM static_modifier'))
+			out[`modifier:${m.key}`] = {
+				title: m.name ?? pretty(m.key),
+				description: m.description,
+				modifiers: staticMods.get(m.key) ?? [],
+				text: m.tooltip,
+				facts: []
+			};
+
 		const techMods = grouped(
 			'SELECT tech_key AS owner, modifier_key AS key, modifier_value AS value FROM technology_modifier ORDER BY sort_order'
 		);

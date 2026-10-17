@@ -84,6 +84,8 @@ describe('marketSwitches', () => {
 	});
 });
 
+const mods = (...keys: string[]) => keys.map((key) => ({ key, until: null }));
+
 describe('marketFee', () => {
 	const colony = (buildings: string[]) =>
 		({
@@ -109,7 +111,7 @@ describe('marketFee', () => {
 		const f = marketFee(
 			snap({
 				traditions: ['tr_mercantile_insider_trading', 'tr_mercantile_adopt'],
-				countryModifiers: ['resolution_sanctions_economic', 'shroud_seal_modifier'],
+				countryModifiers: mods('resolution_sanctions_economic', 'shroud_seal_modifier'),
 				colonies: [
 					colony(['building_galactic_stock_exchange']),
 					colony(['building_galactic_stock_exchange'])
@@ -133,10 +135,12 @@ describe('marketFee', () => {
 				'tr_logistics_4',
 				'tr_versatility_adaptive_programming'
 			],
-			countryModifiers: ['galactic_market_founder']
+			countryModifiers: mods('galactic_market_founder')
 		});
 		expect(marketFee(low)?.fee).toBe(0.05);
-		expect(marketFee(snap({ countryModifiers: ['resolution_sanctions_economic'] }))?.fee).toBe(0.4);
+		expect(marketFee(snap({ countryModifiers: mods('resolution_sanctions_economic') }))?.fee).toBe(
+			0.4
+		);
 	});
 
 	it('is unknown for snapshots without the data', () => {

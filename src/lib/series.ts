@@ -18,6 +18,14 @@ export function gameMonth(year: number): string {
 	return `${Math.floor(months / 12)}.${String((months % 12) + 1).padStart(2, '0')}`;
 }
 
+/** "2207.03.10" + 30 → "2207.04.10": the game's calendar has 30-day months, 12 per year. */
+export function addGameDays(date: string, days: number): string {
+	const [y, m, d] = date.split('.').map(Number);
+	const t = y * 360 + (m - 1) * 30 + (d - 1) + days;
+	const pad = (n: number) => String(n).padStart(2, '0');
+	return `${Math.floor(t / 360)}.${pad(Math.floor((t % 360) / 30) + 1)}.${pad((t % 30) + 1)}`;
+}
+
 /** Every game starts on 2200.01.01. */
 export const START_YEAR = 2200;
 const YEARS_BACK = 20;
