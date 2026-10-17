@@ -21,6 +21,7 @@ export type Colony = {
 	planetClass: string;
 	planetSize: number;
 	deposits: string[]; // deposit types on the planet, blockers included
+	planet: PlanetState | null; // null in older snapshots
 	buildQueue: QueueItem[];
 	buildSlots: number; // items the planet builds at once (queue `simultaneous`; >1 for wilderness, arkships, mods)
 	jobs: ColonyJob[];
@@ -105,6 +106,7 @@ export type ExpansionPlanet = {
 	jumps: number | null;
 	modifier: string | null;
 	candidate: string | null; // terraforming candidate modifier, if any
+	planet: PlanetState | null; // null in older snapshots
 };
 
 /** One budget source of pops (a job, a stratum's upkeep, buildings, …) for the month. */
@@ -183,8 +185,17 @@ export type QueueItem = {
  */
 export type SourceKind = 'save' | 'log';
 
-/** An empire-wide static modifier (from events, agendas, …); `until` null = permanent. */
-export type CountryModifier = { key: string; until: string | null };
+/** A static modifier on the empire or a planet (events, agendas, features …); `until` null = permanent. */
+export type TimedModifier = { key: string; until: string | null };
+
+/**
+ * What the save says about a planet itself: its deposits (features and blockers; `swap` = the
+ * feature a blocker hides, found once it is cleared) and its modifiers.
+ */
+export type PlanetState = {
+	deposits: { key: string; swap: string | null }[];
+	modifiers: TimedModifier[];
+};
 
 /** A standing monthly order on the market. */
 export type MarketOrder = { kind: 'buy' | 'sell'; resource: string; amount: number };
@@ -242,7 +253,7 @@ export type Snapshot = {
 	ascensionPerks: string[] | null;
 	civilianShips: CivilianShip[] | null; // science, construction, colony ships with their orders
 	edicts: string[] | null; // active edicts (keys)
-	countryModifiers: CountryModifier[] | null; // country.timed_modifier: empire-wide effects
+	countryModifiers: TimedModifier[] | null; // country.timed_modifier: empire-wide effects
 	species: SpeciesInfo[] | null; // species with pops in the empire
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
@@ -311,7 +322,13 @@ export type GameData = {
 	perks: Record<string, string>; // ascension perk names
 	anomalyLevels: Record<string, number | null>; // anomaly category → level
 	blockers: string[]; // deposit keys that are blockers
+	// District caps (`district_*_max_add|mult`, `planet_max_districts_add|mult`) of what can sit on
+	// a planet, keyed `deposit:<key>`, `modifier:<key>` (static modifier), `building:<key>`
+	capEffects: Record<string, CapEffect[]>;
 };
+
+/** One district cap modifier, e.g. `{ key: 'district_farming_max_add', value: 3 }`. */
+export type CapEffect = { key: string; value: number };
 
 /** One modifier as the game files give it, labelled from modifier_label. */
 export type Modifier = {

@@ -183,10 +183,17 @@ pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − wo
   (`-1` = unlimited, civilian). Every colony also carries empty placeholder jobs (servant, purge, …).
 - Districts (4.x): `colony.districts` → `districts.<id> = { type level zones }` — **`level` is the
   number built**; `zones.<id> = { type buildings }` (4294967295 = no zone); `buildings.<id> =
-{ type position }`. **Not in the save: district caps and free building slots** — caps come from
-  deposits' `planet_modifier` (`district_*_max_add`; Earth's give farming 5 / generator 6 / mining 7
-  vs. the game's 8 / 8 / 7, so more sources apply), game-start scripts and more; zone slots from
-  `max_buildings`, `districts_per_building` and planet-wide `zone_building_slots_add`.
+{ type position }`. **District caps are computed** (`#lib/districtCaps.ts`, not in the save): per type
+  Σ `district_<type>_max_add` (× 1 + `_mult`) over deposits, planet modifiers and buildings; the
+  limit is size + Σ `planet_max_districts_add` (blockers −1 or −2). **A blocker's hidden feature
+  counts** (`deposit.<id>.swap_type`): Earth's deposits give farming 5 / generator 6 / mining 7,
+  plus Pacific Algae Tracts +3 and Delhi Sprawl +2 behind its two blockers = the game's 8 / 8 / 7;
+  limit 18 − 2 = 16, all built (2207.03.10). Empire-wide and triggered modifiers are not counted;
+  habitats' limit (capital tier, system bodies) is not computed. **Free building slots are not in
+  the save** — zone slots from `max_buildings`, `districts_per_building` and planet-wide
+  `zone_building_slots_add`.
+- Planet modifiers: `planets.planet.<id>.timed_modifier`, as the country's; features like
+  `tidal_locked` and `mineral_poor` are permanent ones (`days=-1`).
 - Pop groups: `colony.pop_groups` → top-level `pop_groups.<id> = { key = { species category } size
 happiness }`. **`happiness` is omitted for some groups** (rulers, specialists at 2200.05) —
   treated as unknown, not 0.
@@ -301,8 +308,9 @@ modifier="celebrate_diversity" days=3535 } … } }` — `days` left, −1 = perm
   one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
   load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.
   The variables also land in every save. Needs the mod running (no achievements).
-- **District caps and free slots via the mod**: the `free_district_slots` trigger (colony scope)
-  can be exported with `export_trigger_value_to_variable`; no trigger for free building slots found.
+- **District caps via the mod, to check the computed ones**: the `free_district_slots` trigger
+  (colony scope) can be exported with `export_trigger_value_to_variable`; no trigger for free
+  building slots found. Matched by hand for Earth only.
 - **`continue_game.json` on load**: if the game rewrites it when a save is _loaded_, it names the
   branch point exactly — `place()` already takes that as `loadedFrom`, nothing feeds it yet.
 - **Companion mod, never loaded in game.** First run decides three guesses, each failing loudly

@@ -1,5 +1,6 @@
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
+import { planetDetails } from './planets.ts';
 import { branch } from './branch.ts';
 import { pretty } from '#lib/format.ts';
 import { traitBudget } from '#lib/species.ts';
@@ -71,7 +72,15 @@ export function empireData(url: URL) {
 		expansion: (latest.expansion ?? []).map((p) => ({
 			...p,
 			className: data.planetClasses[p.planetClass]?.name ?? pretty(p.planetClass),
-			colonizable: data.planetClasses[p.planetClass]?.colonizable ?? false
+			colonizable: data.planetClasses[p.planetClass]?.colonizable ?? false,
+			details: p.planet
+				? planetDetails(p.planet, {
+						size: p.size,
+						planetClass: p.planetClass,
+						buildings: [],
+						built: {}
+					})
+				: null
 		})),
 		xRange: xRange(snaps),
 		charts: {

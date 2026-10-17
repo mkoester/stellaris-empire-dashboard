@@ -30,6 +30,7 @@ const data: GameData = {
 	planetClasses: {},
 	names: {},
 	blockers: [],
+	capEffects: {},
 	traditionTrees: {},
 	perks: {},
 	anomalyLevels: { GEN_PLAYGROUND_CAT: 3 },

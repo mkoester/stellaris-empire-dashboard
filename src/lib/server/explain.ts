@@ -117,6 +117,42 @@ export function loadExplanations(file: string): Explanations {
 				facts: []
 			};
 
+		// Deposits — planet features and blockers: `deposit:<key>`, with what they produce and what
+		// clearing a blocker takes.
+		const depositMods = grouped(
+			'SELECT deposit_key AS owner, modifier_key AS key, modifier_value AS value FROM deposit_modifier'
+		);
+		const depositRes = new Map<string, { kind: string; resource: string; amount: number }[]>();
+		for (const r of rows<{ owner: string; kind: string; resource: string; amount: number }>(
+			'SELECT deposit_key AS owner, kind, resource, amount FROM deposit_resource'
+		))
+			depositRes.set(r.owner, [...(depositRes.get(r.owner) ?? []), r]);
+		for (const d of rows<{
+			key: string;
+			name: string | null;
+			is_blocker: number;
+			clear_time: number | null;
+		}>('SELECT key, name, is_blocker, clear_time FROM deposit')) {
+			const res = depositRes.get(d.key) ?? [];
+			const amounts = (kind: string) =>
+				res
+					.filter((r) => r.kind === kind)
+					.map((r) => `${r.amount} ${pretty(r.resource)}`)
+					.join(', ');
+			out[`deposit:${d.key}`] = {
+				title: (d.name ?? pretty(d.key)).replace(/^Blocker /, ''),
+				description: null,
+				modifiers: depositMods.get(d.key) ?? [],
+				text: null,
+				facts: [
+					...(amounts('produces') ? [`produces ${amounts('produces')} per month`] : []),
+					...(d.is_blocker
+						? [`blocker: clearing takes ${d.clear_time ?? '?'} days and ${amounts('cost') || '?'}`]
+						: [])
+				]
+			};
+		}
+
 		const techMods = grouped(
 			'SELECT tech_key AS owner, modifier_key AS key, modifier_value AS value FROM technology_modifier ORDER BY sort_order'
 		);

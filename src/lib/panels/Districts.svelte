@@ -11,7 +11,7 @@
 
 <Panel
 	title="Districts"
-	note="Free district and building slots are computed by the game and not in the save — see the planet view in game."
+	note="Free district slots: see the planet's district caps. Free building slots are computed by the game and not in the save."
 >
 	<table class="text-left text-sm">
 		<thead>

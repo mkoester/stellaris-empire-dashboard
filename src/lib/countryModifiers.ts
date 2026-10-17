@@ -1,8 +1,8 @@
 import { gameYear } from './series.ts';
-import type { CountryModifier } from './types.ts';
+import type { TimedModifier } from './types.ts';
 
 /** Expiring ones first, soonest on top; then the permanent ones, by name. */
-export function byExpiry<T extends CountryModifier & { name: string }>(mods: T[]): T[] {
+export function byExpiry<T extends TimedModifier & { name: string }>(mods: T[]): T[] {
 	return [...mods].sort(
 		(a, b) =>
 			(a.until === null ? 1 : 0) - (b.until === null ? 1 : 0) ||

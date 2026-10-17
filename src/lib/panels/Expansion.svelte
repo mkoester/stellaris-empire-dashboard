@@ -1,10 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { expansionCounts, visible, type ExpansionRow, type ExpansionView } from '../expansion.ts';
-	import { pretty } from '../format.ts';
+	import { nameOf, pretty } from '../format.ts';
+	import PlanetDetails from '../PlanetDetails.svelte';
 	import Panel from './Panel.svelte';
 
-	let { planets }: { planets: ExpansionRow[] } = $props();
+	let { planets, date }: { planets: ExpansionRow[]; date: string } = $props();
+
+	// One row open at a time shows the planet's details.
+	let open: number | null = $state(null);
+	// "Farming 8 · Generator 8 · Mining 7": the capped district types
+	const capsLine = (p: ExpansionRow) =>
+		(p.details?.caps.types ?? [])
+			.filter((t) => t.cap !== null && t.cap > 0)
+			.map((t) => `${nameOf(p.details!.names, t.district).replace(/ District$/, '')} ${t.cap}`)
+			.join(' · ');
 
 	// The toggles are a per-viewer convenience, remembered in this browser.
 	const KEY = 'expansion-view';
@@ -54,6 +64,9 @@
 					<th class="p-1 text-right">Size</th>
 					<th class="p-1">System</th>
 					<th class="p-1 text-right">Jumps</th>
+					<th class="p-1 text-right" title="district limit: size, less blockers">Districts</th>
+					<th class="p-1">Caps</th>
+					<th class="p-1 text-right">Blockers</th>
 					<th class="p-1">Modifier</th>
 					<th class="p-1">Note</th>
 				</tr>
@@ -61,20 +74,33 @@
 			<tbody>
 				{#each shown as p (p.planetId)}
 					<tr
-						class="border-b border-gray-200 dark:border-gray-800 {p.colonizable
+						class="cursor-pointer border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900 {p.colonizable
 							? ''
 							: 'text-gray-500'}"
+						onclick={() => (open = open === p.planetId ? null : p.planetId)}
+						title="details"
 					>
 						<td class="p-1">{p.name}</td>
 						<td class="p-1">{p.className}</td>
 						<td class="p-1 text-right">{p.size}</td>
 						<td class="p-1">{p.system}</td>
 						<td class="p-1 text-right">{p.jumps ?? '–'}</td>
+						<td class="p-1 text-right">{p.details?.caps.limit ?? '–'}</td>
+						<td class="p-1">{capsLine(p)}</td>
+						<td class="p-1 text-right"
+							>{p.planet?.deposits.filter((d) => p.details?.blockers.includes(d.key)).length ||
+								''}</td
+						>
 						<td class="p-1">{p.modifier ? pretty(p.modifier.replace(/^pm_/, '')) : ''}</td>
 						<td class="p-1">
 							{p.candidate ? candidateLabel(p.candidate) : p.colonizable ? '' : 'not colonizable'}
 						</td>
 					</tr>
+					{#if open === p.planetId && p.details}
+						<tr class="border-b border-gray-200 dark:border-gray-800">
+							<td colspan="10" class="p-2"><PlanetDetails {...p.details} {date} /></td>
+						</tr>
+					{/if}
 				{/each}
 			</tbody>
 		</table>

@@ -161,6 +161,8 @@
 			names={data.names}
 			blockers={data.blockers}
 			classNames={data.classNames}
+			details={data.details}
+			date={data.latest.date}
 		/>
 		<Districts districts={data.colony.districtList} names={data.names} />
 	</div>

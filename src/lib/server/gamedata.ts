@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import type { GameData } from '#lib/types.ts';
+import type { CapEffect, GameData } from '#lib/types.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -67,6 +67,14 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT key, name FROM zone WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name.replace(/^Blocker /, '')])
 			),
+			capEffects: capEffects(
+				rows<{ owner: string; key: string; value: number }>(
+					`SELECT 'deposit:' || deposit_key AS owner, modifier_key AS key, modifier_value AS value FROM deposit_modifier
+					 UNION ALL SELECT 'modifier:' || static_key, modifier_key, modifier_value FROM static_modifier_modifier
+					 UNION ALL SELECT 'building:' || building_key, modifier_key, value FROM building_modifier
+					   WHERE scope = 'planet' AND condition IS NULL`
+				)
+			),
 			blockers: rows<{ key: string }>('SELECT key FROM deposit WHERE is_blocker = 1').map(
 				(r) => r.key
 			),
@@ -113,4 +121,16 @@ function traditionTrees(
 			}
 		])
 	);
+}
+
+const CAP = /^(district_\w+_max_(add|mult)|planet_max_districts_(add|mult))$/;
+
+/** The district cap modifiers among `rows`, grouped by owner. */
+export function capEffects(
+	rows: { owner: string; key: string; value: number }[]
+): Record<string, CapEffect[]> {
+	const out: Record<string, CapEffect[]> = {};
+	for (const r of rows)
+		if (CAP.test(r.key)) (out[r.owner] ??= []).push({ key: r.key, value: r.value });
+	return out;
 }

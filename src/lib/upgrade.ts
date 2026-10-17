@@ -74,7 +74,8 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	happiness: null,
 	automation: { enabled: false, settings: [] },
 	produces: {},
-	upkeep: {}
+	upkeep: {},
+	planet: null
 };
 
 export function upgrade(
@@ -85,7 +86,9 @@ export function upgrade(
 		...s,
 		colonies: s.colonies.map((c) => ({ ...COLONY, ...c })),
 		progress: s.progress && { ...s.progress, researched: s.progress.researched ?? [] },
-		expansion: s.expansion && s.expansion.map((p) => ({ ...p, candidate: p.candidate ?? null })),
+		expansion:
+			s.expansion &&
+			s.expansion.map((p) => ({ ...p, candidate: p.candidate ?? null, planet: p.planet ?? null })),
 		knownSystems:
 			s.knownSystems && s.knownSystems.map((k) => ({ ...k, capital: k.capital ?? false })),
 		tradeDeals: s.tradeDeals && s.tradeDeals.map(upgradeDeal),

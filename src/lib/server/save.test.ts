@@ -171,6 +171,7 @@ describe('toSnapshot', () => {
 				planetClass: '',
 				planetSize: 0,
 				deposits: [],
+				planet: { deposits: [], modifiers: [] },
 				districts: 5,
 				districtList: [
 					{
@@ -585,7 +586,8 @@ describe('empire overview', () => {
 			planet_size: 13,
 			coordinate: { origin: 380 },
 			planet_modifier: 'pm_mineral_poor',
-			timed_modifier: { items: [{ modifier: 'terraforming_candidate', days: -1 }] }
+			timed_modifier: { items: [{ modifier: 'terraforming_candidate', days: -1 }] },
+			deposits: [7, 8]
 		},
 		'9': {
 			name: { key: 'NAME_Faraway' },
@@ -605,7 +607,12 @@ describe('empire overview', () => {
 			capital: 3,
 			surveyed_deposit_holders: [0, 3, 5, 9, 10].map((id) => ({ type: 0, id }))
 		};
-		expect(expansion({ country, planets, systems })).toEqual([
+		// as on Earth at 2207.03.10: a blocker hiding a feature
+		const deposits = {
+			'7': { type: 'd_minerals_3', deposit_holder: { type: 0, id: 5 } },
+			'8': { type: 'd_failing_infrastructure_earth', swap_type: 'd_delhi_sprawl' }
+		};
+		expect(expansion({ country, planets, systems, deposits, date: '2200.05.01' })).toEqual([
 			{
 				planetId: 5,
 				name: 'Mars',
@@ -614,7 +621,14 @@ describe('empire overview', () => {
 				system: 'Sol',
 				jumps: 0,
 				modifier: 'pm_mineral_poor',
-				candidate: 'terraforming_candidate'
+				candidate: 'terraforming_candidate',
+				planet: {
+					deposits: [
+						{ key: 'd_minerals_3', swap: null },
+						{ key: 'd_failing_infrastructure_earth', swap: 'd_delhi_sprawl' }
+					],
+					modifiers: [{ key: 'terraforming_candidate', until: null }]
+				}
 			},
 			{
 				planetId: 9,
@@ -624,7 +638,8 @@ describe('empire overview', () => {
 				system: 'Far',
 				jumps: 2,
 				modifier: null,
-				candidate: null
+				candidate: null,
+				planet: { deposits: [], modifiers: [] }
 			}
 		]);
 	});

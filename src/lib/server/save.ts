@@ -15,7 +15,8 @@ import type {
 	Sector,
 	SpeciesInfo,
 	ColonyJob,
-	CountryModifier,
+	TimedModifier,
+	PlanetState,
 	Market,
 	MarketOrder,
 	ShipCount,
@@ -226,13 +227,33 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
  * `country.timed_modifier = { items = { { modifier="celebrate_diversity" days=3535 } … } }` —
  * `days` left, −1 for a permanent one.
  */
-export function countryModifiers(raw: Pick<RawSave, 'country' | 'date'>): CountryModifier[] {
-	return items(raw.country?.timed_modifier?.items)
+export function countryModifiers(raw: Pick<RawSave, 'country' | 'date'>): TimedModifier[] {
+	return timedModifiers(raw.country?.timed_modifier, raw.date);
+}
+
+/** A `timed_modifier` block (country or planet) with end dates. */
+function timedModifiers(block: Raw, date: string): TimedModifier[] {
+	return items(block?.items)
 		.filter((m) => typeof m?.modifier === 'string')
 		.map((m) => ({
 			key: m.modifier,
-			until: typeof m.days === 'number' && m.days > 0 ? addGameDays(raw.date, m.days) : null
+			until: typeof m.days === 'number' && m.days > 0 ? addGameDays(date, m.days) : null
 		}));
+}
+
+/**
+ * A planet's deposits (`planet.deposits` → `deposit.<id> = { type swap_type }`; a blocker's
+ * `swap_type` is the feature it hides — Earth: the Great Pacific Garbage Patch hides the Pacific
+ * Algae Tracts) and its `timed_modifier` (features like `tidal_locked` are permanent ones).
+ */
+export function planetState(raw: Pick<RawSave, 'deposits' | 'date'>, planet: Raw): PlanetState {
+	return {
+		deposits: list(planet?.deposits)
+			.map((d) => raw.deposits[String(d)])
+			.filter((d) => typeof d?.type === 'string')
+			.map((d) => ({ key: d.type, swap: typeof d.swap_type === 'string' ? d.swap_type : null })),
+		modifiers: timedModifiers(planet?.timed_modifier, raw.date)
+	};
 }
 
 /** `market.monthly_trades = { { trade_data = { trade_type=market_buy|market_sell resource country } amount } }` */
@@ -683,7 +704,7 @@ const NOT_ROCKY =
  * Habitability is left out: which of them the game lists depends on species and terraforming.
  */
 export function expansion(
-	raw: Pick<RawSave, 'country' | 'planets' | 'systems'>
+	raw: Pick<RawSave, 'country' | 'planets' | 'systems' | 'deposits' | 'date'>
 ): ExpansionPlanet[] {
 	const capitalSystem = raw.planets[String(raw.country?.capital)]?.coordinate?.origin;
 	const jumps = hops(raw.systems, capitalSystem);
@@ -707,7 +728,8 @@ export function expansion(
 				candidate:
 					items(p.timed_modifier?.items)
 						.map((m) => String(m?.modifier))
-						.find((m) => m.endsWith('terraforming_candidate')) ?? null
+						.find((m) => m.endsWith('terraforming_candidate')) ?? null,
+				planet: planetState(raw, p)
 			};
 		})
 		.sort((a, b) => (a.jumps ?? 1e9) - (b.jumps ?? 1e9) || b.size - a.size);
@@ -816,6 +838,7 @@ function playerColonies(raw: RawSave): Colony[] {
 			deposits: list(planet?.deposits)
 				.map((d) => raw.deposits[String(d)]?.type)
 				.filter((d) => typeof d === 'string'),
+			planet: planet ? planetState(raw, planet) : null,
 			buildQueue:
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
 			buildSlots:
