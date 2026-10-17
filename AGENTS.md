@@ -80,7 +80,8 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 
 **Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `planets`
 (`/planets` → first colony, `/planet/[id]` with a dropdown) and `migration`; tabs keep `?node=`.
-The `all` tab and custom tabs (`/tab/[id]`) render the same panels by id (`EmpirePanel.svelte`);
+The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
+panels by id (`EmpirePanel.svelte`);
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
 goes there and into `EmpirePanel`**. Custom tabs and the theme (`system`/`light`/`dark`) are
 stored server-side in the `setting` table (`PUT /api/settings`), which a `SCHEMA` bump does not
@@ -219,7 +220,9 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   `export_trigger_value_to_variable`), i.e. the companion mod.
 - Progress: `country.tech_status.<area>_queue = { { progress technology date } }` (research points,
   not percent); `country.government.council_agenda` + `council_agenda_progress`;
-  `country.next_election`; galaxy cost sliders `galaxy.technology`, `galaxy.traditions`. Tech costs
+  `country.next_election`. **Agenda progress moves on the 1st only** (2207.02.01 → 03.01: +44,
+  03.01 → 03.10: 0), research daily — so the agenda's rate is measured across month starts, or a
+  mid-month manual save hides it. Galaxy cost sliders `galaxy.technology`, `galaxy.traditions`. Tech costs
   in game were ×1.05 of the extracted base (source unconfirmed, `TECH_COST_OBSERVED_FACTOR`).
 - Identity of a game state (`Snapshot.fingerprint`): `tick` + `random_count`, both top-level.
 

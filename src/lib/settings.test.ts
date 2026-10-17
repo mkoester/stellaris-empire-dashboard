@@ -16,13 +16,20 @@ describe('parseTabs', () => {
 				{
 					id: 'a1',
 					name: '  Economy ',
+					header: true,
 					panels: ['resources', 'nope', 'chart-income', 'resources']
 				},
 				{ id: 'b2', name: '', panels: [] }
 			])
 		).toEqual([
-			{ id: 'a1', name: 'Economy', panels: ['resources', 'chart-income'] },
-			{ id: 'b2', name: 'tab', panels: [] }
+			{ id: 'a1', name: 'Economy', header: true, panels: ['resources', 'chart-income'] },
+			{ id: 'b2', name: 'tab', header: false, panels: [] }
+		]);
+	});
+
+	it('turns a header picked as a panel (before it was a switch) into the switch', () => {
+		expect(parseTabs([{ id: 'a', name: 'x', panels: ['header', 'resources'] }])).toEqual([
+			{ id: 'a', name: 'x', header: true, panels: ['resources'] }
 		]);
 	});
 

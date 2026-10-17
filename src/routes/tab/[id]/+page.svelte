@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import EmpirePanel from '#lib/EmpirePanel.svelte';
 	import { announceBranch, followGame, postBranch } from '#lib/live.ts';
-	import { PANELS, panelInfo, putSettings, type CustomTab, type PanelId } from '#lib/settings.ts';
+	import { PICKABLE, panelInfo, putSettings, type CustomTab, type PanelId } from '#lib/settings.ts';
 
 	let { data } = $props();
 	const empire = $derived(data.empire);
@@ -25,7 +25,7 @@
 		draft = null;
 		if (data.tab.panels.length === 0) edit();
 	});
-	const unused = $derived(draft ? PANELS.filter((p) => !draft!.panels.includes(p.id)) : []);
+	const unused = $derived(draft ? PICKABLE.filter((p) => !draft!.panels.includes(p.id)) : []);
 
 	const move = (i: number, by: number) => {
 		const p = draft!.panels;
@@ -66,6 +66,10 @@
 				maxlength="40"
 			/>
 		</label>
+		<label class="flex items-center gap-2"
+			><input type="checkbox" bind:checked={draft.header} /> show the header (rank, date, research and
+			agenda progress) on top</label
+		>
 		<ol class="flex flex-col gap-1">
 			{#each draft.panels as id, i (id)}
 				<li class="flex items-center gap-2">
@@ -119,6 +123,9 @@
 {#if empire.empty}
 	<p>Waiting for the first save.</p>
 {:else}
+	{#if (draft ?? data.tab).header}
+		<div class="mb-6"><EmpirePanel id="header" data={empire} /></div>
+	{/if}
 	<div class="grid items-start gap-6 xl:grid-cols-2">
 		{#each (draft ?? data.tab).panels as id (id)}
 			<div class={panelInfo(id).wide ? 'xl:col-span-2' : ''}>

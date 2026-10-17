@@ -4,8 +4,8 @@
 export const THEMES = ['system', 'light', 'dark'] as const;
 export type Theme = (typeof THEMES)[number];
 
-/** A tab of one's own: a name and the panels it shows, in order. */
-export type CustomTab = { id: string; name: string; panels: PanelId[] };
+/** A tab of one's own: a name, whether the header shows on top, and the panels below, in order. */
+export type CustomTab = { id: string; name: string; header: boolean; panels: PanelId[] };
 
 /**
  * The empire panels, in the order the `all` tab shows them, grouped as it lays them out. A custom
@@ -72,14 +72,19 @@ export const LAYOUT = [
 type Panel = (typeof LAYOUT)[number]['panels'][number] & { wide?: true };
 export type PanelId = Panel['id'];
 export const PANELS: Panel[] = LAYOUT.flatMap((g): Panel[] => [...g.panels]);
-const panelIds = new Set<string>(PANELS.map((p) => p.id));
+/** What a custom tab picks from; the header is its own switch, always on top. */
+export const PICKABLE = PANELS.filter((p) => p.id !== 'header');
+const panelIds = new Set<string>(PICKABLE.map((p) => p.id));
 export const panelInfo = (id: PanelId) => PANELS.find((p) => p.id === id)!;
 
 export function parseTheme(v: unknown): Theme | null {
 	return THEMES.includes(v as Theme) ? (v as Theme) : null;
 }
 
-/** The tabs if `v` is a well-formed list (names trimmed, unknown or repeated panels dropped). */
+/**
+ * The tabs if `v` is a well-formed list (names trimmed, unknown or repeated panels dropped). Tabs
+ * saved when the header was a panel show it if they picked it.
+ */
 export function parseTabs(v: unknown): CustomTab[] | null {
 	if (!Array.isArray(v)) return null;
 	const tabs: CustomTab[] = [];
@@ -89,7 +94,12 @@ export function parseTabs(v: unknown): CustomTab[] | null {
 		if (tabs.some((o) => o.id === t.id)) return null;
 		const name = t.name.trim().slice(0, 40) || 'tab';
 		const panels = [...new Set<string>(t.panels.filter((p: unknown) => typeof p === 'string'))];
-		tabs.push({ id: t.id, name, panels: panels.filter((p) => panelIds.has(p)) as PanelId[] });
+		tabs.push({
+			id: t.id,
+			name,
+			header: t.header === true || panels.includes('header'),
+			panels: panels.filter((p) => panelIds.has(p)) as PanelId[]
+		});
 	}
 	return tabs;
 }

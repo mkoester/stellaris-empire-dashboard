@@ -31,7 +31,7 @@
 
 	async function addTab() {
 		const id = crypto.randomUUID().slice(0, 8);
-		await putSettings({ tabs: [...data.tabs, { id, name: 'new tab', panels: [] }] });
+		await putSettings({ tabs: [...data.tabs, { id, name: 'new tab', header: true, panels: [] }] });
 		await goto(tabHref(id), { invalidateAll: true });
 	}
 
