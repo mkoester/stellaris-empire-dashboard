@@ -9,5 +9,11 @@ export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
-	return { ...rest, frames: migrationFrames(snaps), history: migrationHistory(snaps) };
+	return {
+		...rest,
+		frames: migrationFrames(snaps),
+		history: migrationHistory(snaps),
+		// the map's background: the latest known systems and hyperlanes
+		systems: snaps.findLast((s) => s.knownSystems)?.knownSystems ?? []
+	};
 }

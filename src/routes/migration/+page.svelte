@@ -39,28 +39,31 @@
 		: ''}. Foreign colonies appear once a migration treaty moves pops.
 </p>
 
-{#if data.frames.length}
-	<div class="mb-4 flex max-w-3xl items-center gap-3 text-sm">
-		<span class="text-gray-500">month</span>
-		<input
-			type="range"
-			min="0"
-			max={last}
-			value={at}
-			oninput={(e) => (picked = Number(e.currentTarget.value))}
-			class="flex-1"
-			aria-label="month shown by the flow diagram and the map"
-		/>
-		<b class="tabular-nums">{frame.date.slice(0, 7)}</b>
-		{#if at !== last}
-			<button class="underline" onclick={() => (picked = null)}>latest</button>
-		{/if}
-	</div>
-{/if}
-
 <div class="flex flex-col gap-8">
-	<MigrationSankey flows={monthFlows} {colors} />
-	<MigrationMap {rows} flows={monthFlows} {colors} />
 	<MigrationBars x={data.history.x} colonies={data.history.colonies} />
 	<MigrationHeatmap x={data.history.x} colonies={data.history.colonies} />
+
+	<!-- one month at a time: the slider drives the flow diagram and the map below it -->
+	<section class="flex flex-col gap-6">
+		{#if data.frames.length}
+			<div class="flex max-w-3xl items-center gap-3 text-sm">
+				<span class="text-gray-500">month</span>
+				<input
+					type="range"
+					min="0"
+					max={last}
+					value={at}
+					oninput={(e) => (picked = Number(e.currentTarget.value))}
+					class="flex-1"
+					aria-label="month shown by the flow diagram and the map"
+				/>
+				<b class="tabular-nums">{frame.date.slice(0, 7)}</b>
+				{#if at !== last}
+					<button class="underline" onclick={() => (picked = null)}>latest</button>
+				{/if}
+			</div>
+		{/if}
+		<MigrationSankey flows={monthFlows} {colors} />
+		<MigrationMap {rows} flows={monthFlows} {colors} systems={data.systems} />
+	</section>
 </div>

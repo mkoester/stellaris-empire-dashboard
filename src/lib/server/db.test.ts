@@ -42,6 +42,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	expansion: null,
 	stations: null,
 	migration: null,
+	knownSystems: null,
 	megaShipyards: null,
 	progress: null
 });

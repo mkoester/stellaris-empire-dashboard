@@ -119,6 +119,16 @@ export type ColonyDistrict = {
 /** One job on a colony. Positions null: unlimited (civilian). */
 export type ColonyJob = { type: string; pops: number; filled: number; positions: number | null };
 
+/** A system the country knows (visited or own), with its hyperlanes to other known systems. */
+export type KnownSystem = {
+	id: number;
+	name: string;
+	x: number;
+	y: number;
+	owned: boolean;
+	lanes: number[];
+};
+
 /** One colony's migration last month, in pops (both amounts positive). */
 export type MigrationColony = {
 	colonyId: number;
@@ -225,6 +235,7 @@ export type Snapshot = {
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
 	stations: Station[] | null; // starbases with their queues and shipyards
 	migration: MigrationColony[] | null; // last month, per colony; own colonies always, foreign ones with any
+	knownSystems: KnownSystem[] | null; // visited or own systems, for maps
 	megaShipyards: MegaShipyard[] | null;
 	progress: Progress | null; // null from the mod feed
 };

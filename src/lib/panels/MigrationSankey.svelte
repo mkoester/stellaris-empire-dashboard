@@ -22,7 +22,10 @@
 	};
 </script>
 
-<Panel title="Flow last month" note="Who sends pops to whom. Bands of estimated pairs are dashed.">
+<Panel
+	title="Monthly flow"
+	note="Who sends pops to whom in the month picked. Bands of estimated pairs are dashed."
+>
 	{#if flows.length === 0}
 		<p class="text-gray-500">No migration last month.</p>
 	{:else}

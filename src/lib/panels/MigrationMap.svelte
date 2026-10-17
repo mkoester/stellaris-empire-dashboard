@@ -1,23 +1,31 @@
 <script lang="ts">
 	import { fmt } from '../format.ts';
 	import type { Flow } from '../migration.ts';
-	import type { MigrationColony } from '../types.ts';
+	import type { KnownSystem, MigrationColony } from '../types.ts';
 	import Panel from './Panel.svelte';
 
-	// Variant 2: the colonies at their systems' galaxy positions, arcs from sender to receiver,
-	// thickness ∝ pops/month. Only the systems involved are drawn; the frame fits them.
+	// Variant 2: the colonies at their systems' galaxy positions over the known systems and their
+	// hyperlanes (own systems tinted), arcs from sender to receiver, thickness ∝ pops/month.
 	let {
 		rows,
 		flows,
-		colors
-	}: { rows: MigrationColony[]; flows: Flow[]; colors: Record<number, string> } = $props();
+		colors,
+		systems = []
+	}: {
+		rows: MigrationColony[];
+		flows: Flow[];
+		colors: Record<number, string>;
+		systems?: KnownSystem[];
+	} = $props();
+	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 
 	const W = 640;
-	const H = 360;
-	const PAD = 60;
+	const H = 420;
+	const PAD = 40;
 	const box = $derived.by(() => {
-		const xs = rows.map((r) => r.x);
-		const ys = rows.map((r) => r.y);
+		const points = [...systems, ...rows];
+		const xs = points.map((r) => r.x);
+		const ys = points.map((r) => r.y);
 		return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
 	});
 	const scale = $derived(
@@ -40,7 +48,10 @@
 		rows.filter((o) => o.x === r.x && o.y === r.y).indexOf(r) * 14;
 </script>
 
-<Panel title="Map" note="Colonies at their systems' map positions; arcs from sender to receiver.">
+<Panel
+	title="Map"
+	note="Colonies at their systems' map positions over the systems you know (yours tinted) and their hyperlanes; arcs from sender to receiver."
+>
 	{#if rows.length === 0}
 		<p class="text-gray-500">No colonies.</p>
 	{:else}
@@ -63,6 +74,30 @@
 					<path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
 				</marker>
 			</defs>
+			{#each systems as s (s.id)}
+				{#each s.lanes as to (to)}
+					{@const o = byId.get(to)}
+					{#if o}
+						<line
+							x1={px(s.x)}
+							y1={py(s.y)}
+							x2={px(o.x)}
+							y2={py(o.y)}
+							class="stroke-gray-300 dark:stroke-gray-700"
+							stroke-width="1"
+						/>
+					{/if}
+				{/each}
+			{/each}
+			{#each systems as s (s.id)}
+				<circle
+					cx={px(s.x)}
+					cy={py(s.y)}
+					r="3"
+					class={s.owned ? 'fill-blue-200 stroke-blue-400' : 'fill-gray-200 stroke-gray-400'}
+					stroke-width="1"><title>{s.name}{s.owned ? ' (yours)' : ''}</title></circle
+				>
+			{/each}
 			{#each flows as f, i (i)}
 				<path
 					d={arc(f)}
