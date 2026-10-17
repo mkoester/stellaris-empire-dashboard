@@ -1,3 +1,4 @@
+import { sideSummary } from './deals.ts';
 import { nameOf, pretty } from './format.ts';
 import { gameYear } from './series.ts';
 import type { Colony, GameData, Snapshot } from './types.ts';
@@ -228,7 +229,7 @@ const DETECTORS = [
 				.filter((d) => !a.some((o) => o.id === d.id))
 				.map((d) => ({
 					kind: 'trade-deal' as const,
-					label: `trade deal with ${d.partner}: ${d.items}`
+					label: `trade deal with ${d.partner}: we give ${sideSummary(d.gives)}, get ${sideSummary(d.gets)}`
 				})),
 			...a
 				.filter((d) => !b.some((o) => o.id === d.id))

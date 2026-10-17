@@ -260,8 +260,23 @@ export type Snapshot = {
 
 /** A war the country is in. UNVERIFIED shape — no war seen in a save yet (see AGENTS.md). */
 export type War = { id: string; name: string; start: string | null; enemies: string[] };
-/** A trade deal with another empire. UNVERIFIED shape — none seen in a save yet. */
-export type TradeDeal = { id: string; partner: string; items: string };
+/** What one side of a trade deal hands over: resources monthly or once, and anything else. */
+export type DealSide = { monthly: Resources; once: Resources; other: string[] };
+
+/**
+ * A trade deal with another empire. UNVERIFIED shape — none seen in a save yet (see AGENTS.md):
+ * `raw` keeps the deal as the save wrote it, so the first one seen can be checked on /deals.
+ */
+export type TradeDeal = {
+	id: string;
+	partner: string;
+	start: string | null; // game date the deal was made
+	years: number | null; // its length; null = no end
+	gives: DealSide; // the player's side
+	gets: DealSide; // the partner's side
+	understood: boolean; // false: the sides were not found, everything is in `gives.other`
+	raw: string; // the save's block, JSON, cut at 2000 characters
+};
 
 export type TimelineNode = {
 	id: number;

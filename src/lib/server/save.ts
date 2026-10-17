@@ -22,6 +22,7 @@ import type {
 	Progress,
 	QueueItem,
 	Resources,
+	DealSide,
 	TradeDeal,
 	War,
 	Snapshot
@@ -926,30 +927,65 @@ export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames'>):
 }
 
 /**
- * Trade deals with the country on one side. UNVERIFIED — `trade_deal` was empty in every save seen;
- * read as "any entry naming the country", its contents summarised from the remaining fields.
+ * Trade deals with the country on one side. UNVERIFIED — `trade_deal` was empty in every save seen
+ * (ours to 2207, a 4.0.1 one at 2312). Known from stellaris-dashboard's parser: `trade_deal.<id> =
+ * { first = { country … } second = { country sensor_link=yes … } date length }` (length in years).
+ * Guessed: each side lists what it gives (loc `TRADE_DEAL_DESC`: "$FIRST$ will trade:
+ * $FIRST_OFFER$"), resources under a key with "month" in it are monthly. A deal whose sides are not
+ * found keeps everything in `gives.other`, and is logged.
  */
 export function tradeDeals(
 	raw: Pick<RawSave, 'tradeDeals' | 'countryId' | 'countryNames'>
 ): TradeDeal[] {
-	const leaves = (v: Raw, path: string): string[] =>
-		v && typeof v === 'object'
-			? Object.entries(v).flatMap(([k, x]) =>
-					k === 'country' ? [] : leaves(x, Array.isArray(v) ? path : k)
-				)
-			: [`${path} ${v}`];
 	return Object.entries(raw.tradeDeals).flatMap(([id, d]) => {
 		const sides = countryIds(d);
 		if (!sides.includes(raw.countryId)) return [];
 		const others = sides.filter((c) => c !== raw.countryId);
+		const own = [d?.first, d?.second].find((x) => Number(x?.country) === raw.countryId);
+		const theirs = [d?.first, d?.second].find((x) => x && x !== own && x.country !== undefined);
+		const understood = own !== undefined && theirs !== undefined;
+		if (!understood) console.warn(`trade deal ${id} not understood, check its shape:`, d);
 		return [
 			{
 				id,
 				partner: others.map((c) => raw.countryNames[String(c)] ?? `empire ${c}`).join(', '),
-				items: leaves(d, '').join(', ').slice(0, 200)
+				start: typeof d?.date === 'string' ? d.date : null,
+				years: typeof d?.length === 'number' && d.length > 0 ? d.length : null,
+				gives: dealSide(understood ? own : d),
+				gets: dealSide(understood ? theirs : undefined),
+				understood,
+				raw: JSON.stringify(d).slice(0, 2000)
 			}
 		];
 	});
+}
+
+const RESOURCE_KEYS = new Set(MARKET_RESOURCES);
+
+/** One side's offer, read generically: resource amounts by key, `{ resource amount }` pairs too. */
+export function dealSide(v: Raw): DealSide {
+	const side: DealSide = { monthly: {}, once: {}, other: [] };
+	const add = (path: string[], resource: string, amount: number) => {
+		const into = path.some((p) => p.includes('month')) ? side.monthly : side.once;
+		into[resource] = (into[resource] ?? 0) + amount;
+	};
+	const walk = (x: Raw, path: string[]) => {
+		if (x && typeof x === 'object') {
+			if (typeof x.resource === 'string' && typeof x.amount === 'number')
+				return add(path, x.resource, x.amount);
+			for (const [k, y] of Object.entries(x)) {
+				if (k === 'country') continue;
+				walk(y, Array.isArray(x) ? path : [...path, k]);
+			}
+			return;
+		}
+		const key = path.at(-1) ?? '';
+		if (typeof x === 'number' && RESOURCE_KEYS.has(key)) add(path.slice(0, -1), key, x);
+		else if (x !== 'no' && x !== undefined)
+			side.other.push(x === 'yes' ? path.join(' ') : `${path.join(' ')} ${x}`);
+	};
+	walk(v, []);
+	return side;
 }
 
 /**

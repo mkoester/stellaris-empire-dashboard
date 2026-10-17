@@ -1,4 +1,4 @@
-import type { Colony, Snapshot } from './types.ts';
+import type { Colony, Snapshot, TradeDeal } from './types.ts';
 
 // Snapshots stored by an older dashboard lack the fields added since. The game deletes old
 // autosaves, so those snapshots cannot be rebuilt from the files: they are kept and brought up to
@@ -86,6 +86,23 @@ export function upgrade(
 		progress: s.progress && { ...s.progress, researched: s.progress.researched ?? [] },
 		expansion: s.expansion && s.expansion.map((p) => ({ ...p, candidate: p.candidate ?? null })),
 		knownSystems:
-			s.knownSystems && s.knownSystems.map((k) => ({ ...k, capital: k.capital ?? false }))
+			s.knownSystems && s.knownSystems.map((k) => ({ ...k, capital: k.capital ?? false })),
+		tradeDeals: s.tradeDeals && s.tradeDeals.map(upgradeDeal)
+	};
+}
+
+// Deals were stored as `{ id, partner, items }` (a one-line summary) before they had sides.
+function upgradeDeal(d: TradeDeal | { id: string; partner: string; items: string }): TradeDeal {
+	if ('gives' in d) return d;
+	const empty = { monthly: {}, once: {}, other: [] };
+	return {
+		id: d.id,
+		partner: d.partner,
+		start: null,
+		years: null,
+		gives: { ...empty, other: [d.items] },
+		gets: empty,
+		understood: false,
+		raw: ''
 	};
 }

@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	buildQueue,
 	countryIds,
@@ -916,14 +916,45 @@ describe('milestone fields', () => {
 		expect(countryIds(w).sort()).toEqual([0, 4, 4, 7, 7]);
 	});
 
-	it('finds trade deals naming the country, with a summary of their contents', () => {
+	it('finds trade deals naming the country and reads both sides (assumed shape)', () => {
 		const d = {
-			'5': { first: { country: 0, energy: 10 }, second: { country: 4, minerals: 20 } },
+			'5': {
+				first: { country: 4, monthly_resources: { minerals: 20 }, sensor_link: 'yes' },
+				second: {
+					country: 0,
+					resources: { energy: 100 },
+					monthly: [{ resource: 'food', amount: 5 }]
+				},
+				date: '2230.05.01',
+				length: 10
+			},
 			'6': { first: { country: 4 }, second: { country: 7 } }
 		};
-		expect(tradeDeals({ tradeDeals: d, countryId: 0, countryNames: names })).toEqual([
-			{ id: '5', partner: 'Tzynn', items: 'energy 10, minerals 20' }
-		]);
+		const [deal, ...more] = tradeDeals({ tradeDeals: d, countryId: 0, countryNames: names });
+		expect(more).toEqual([]);
+		expect(deal).toMatchObject({
+			id: '5',
+			partner: 'Tzynn',
+			start: '2230.05.01',
+			years: 10,
+			understood: true,
+			gives: { monthly: { food: 5 }, once: { energy: 100 }, other: [] },
+			gets: { monthly: { minerals: 20 }, once: {}, other: ['sensor_link'] }
+		});
+		expect(JSON.parse(deal.raw)).toEqual(d['5']);
+	});
+
+	it('keeps a deal it cannot read, everything under gives.other', () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const [deal] = tradeDeals({
+			tradeDeals: { '1': { parties: [{ country: 0 }, { country: 4 }], energy: 3 } },
+			countryId: 0,
+			countryNames: names
+		});
+		expect(deal).toMatchObject({ understood: false, partner: 'Tzynn', years: null });
+		expect(deal.gives.once).toEqual({ energy: 3 });
+		expect(warn).toHaveBeenCalledOnce();
+		warn.mockRestore();
 	});
 });
 
@@ -953,7 +984,8 @@ describe.skipIf(!real)('real save', () => {
 				happiness: s.colonies[0].happiness,
 				strata: s.colonies[0].strata,
 				automation: s.colonies[0].automation,
-				defaults: s.defaultAutomation
+				defaults: s.defaultAutomation,
+				market: s.market
 			})
 		);
 		console.log(JSON.stringify({ ...s, colonies: s.colonies.slice(0, 3) }, null, 1));

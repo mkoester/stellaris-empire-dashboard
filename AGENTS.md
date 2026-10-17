@@ -90,7 +90,8 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 
 **Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `colonies`
 (`/colonies` → first colony, `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
-`map` (`/map`, reuses `MigrationMap` — fork it when the two diverge), `migration`, `market`
+`map` (`/map`, reuses `MigrationMap` — fork it when the two diverge), `migration`, `trade deals`
+(`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`) and `events`
 (`/events`: the milestone log, searchable, filtered in the page); tabs keep `?node=`. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
@@ -277,9 +278,15 @@ start_date }` (passed agendas), `country.ruler`, `country.active_policies = { { 
 - **Migration treaties, never seen in a save** (2207.03: none, not even between AI empires).
   `migrationPartners()` takes any relation mentioning "migration" — check the real shape at the
   first treaty, tighten it, and add the foreign colonies' case to the tests from that save.
-- **Wars and trade deals, never seen in a save** (2207.03: `war`, `trade_deal`, `truce`,
-  `dead_war` all empty). `wars()` / `tradeDeals()` in `save.ts` read an assumed shape — check the
-  real one at the first war / deal, tighten them, and replace the assumed test fixtures.
+- **Wars, never seen in a save** (2207.03: `war`, `truce`, `dead_war` empty). `wars()` in
+  `save.ts` reads an assumed shape — check the real one at the first war, tighten it, and replace
+  the assumed test fixtures.
+- **Trade deals, never seen in a save** (ours to 2207.03, and a 4.0.1 save at 2312: `trade_deal`
+  empty). Known (stellaris-dashboard's parser): `trade_deal.<id> = { first = { country … } second
+= { country sensor_link=yes … } date length }`. Guessed in `tradeDeals()`: each side lists what
+  it _gives_, resources under a key containing "month" are monthly. Each deal keeps its raw block
+  (`TradeDeal.raw`, shown on `/deals`) and an unreadable one logs `trade deal … not understood` —
+  at the first deal, compare `/deals` with the game's diplomacy screen and tighten the parser.
 - **Exact branch points via the mod**: each month the mod rolls a random id and keeps the previous
   one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
   load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.
@@ -293,10 +300,11 @@ start_date }` (passed agendas), `country.ruler`, `country.active_policies = { { 
   format"), variables print as plain numbers (else "malformed SDASH line", e.g. for `1.2K`), and
   `export_resource_income_to_variable` is _net_ income (else the merge logs "disagree on net
   income" at the first autosave).
-- **Galactic market prices, never seen in a save** (2207.03: not founded). `market()` reads
-  `market.fluctuations` / `galactic_market_resources` as lists by resource index — the shape
-  eliasdoehne/stellaris-dashboard's parser uses. Check at the first save with access. Prices exist
-  only for snapshots read since 2026-10-17; older ones' saves are gone.
+- **Galactic market prices**: `market()` reads `market.fluctuations` /
+  `galactic_market_resources` as lists by resource index — confirmed on a 4.0.1 save at 2312
+  (chennin/stellaris-dashboard-test-saves; 24 slots there vs. 26 resources in 4.5.2, so the order
+  follows the game version's `strategic_resources`). Not yet seen in our own game. Prices exist
+  only for saves read since 2026-10-17; older ones' saves are gone.
 - **Chart zoom and pan**: wanted — the default window (`xRange`: last 20 years, 1 ahead) should
   zoom out/in and shift. Not started.
 - **Traditions taken**: read from `country.traditions` (list) — a guess, no save with an adopted
