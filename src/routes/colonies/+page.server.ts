@@ -1,10 +1,17 @@
-import { error, redirect } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { branch } from '#lib/server/branch.ts';
+import { colonyRows } from '#lib/server/colonies.ts';
+import { colonyView } from '#lib/server/settings.ts';
 
-// The colonies tab opens on the first colony; the colony page's dropdown picks another.
+// All colonies in one table: what each is good and bad at, what it makes, what needs attention.
 export function load({ url }) {
 	const b = branch(url);
-	const first = b?.latest.colonies.find((c) => c.planetId >= 0);
-	if (!b || !first) error(404, 'no colony yet');
-	redirect(307, `/colony/${first.planetId}${url.search}`);
+	if (!b) error(404, 'no save yet');
+	return {
+		...colonyRows(b),
+		date: b.latest.date,
+		tip: b.tip,
+		isHead: b.isHead,
+		view: colonyView()
+	};
 }

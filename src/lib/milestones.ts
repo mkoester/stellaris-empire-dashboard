@@ -28,7 +28,7 @@ export const KINDS = [
 	{ kind: 'agenda', label: 'agendas passed' },
 	{ kind: 'leader', label: 'leaders' },
 	{ kind: 'ruler', label: 'ruler' },
-	{ kind: 'government', label: 'civics, ethics, authority' },
+	{ kind: 'government', label: 'government: civics, ethics, authority, type, origin' },
 	{ kind: 'policy', label: 'policies' },
 	{ kind: 'edict', label: 'edicts' },
 	{ kind: 'sector', label: 'sectors' }
@@ -44,7 +44,10 @@ export type Milestone = {
 	planetId?: number; // colony events: the planet, so colony pages show only their own
 };
 
-type Names = Pick<GameData, 'techs' | 'agendas' | 'edicts' | 'traditionTrees' | 'perks' | 'names'>;
+type Names = Pick<
+	GameData,
+	'techs' | 'agendas' | 'edicts' | 'traditionTrees' | 'perks' | 'names' | 'identityNames'
+>;
 type Found = Omit<Milestone, 'date' | 'x'>;
 
 const added = <T>(before: T[], after: T[]) => after.filter((x) => !before.includes(x));
@@ -261,10 +264,30 @@ const DETECTORS = [
 	),
 	field(
 		(s) => s.government,
-		(a, b) => [
-			...added(a, b).map((k) => ({ kind: 'government' as const, label: `+ ${pretty(k)}` })),
-			...added(b, a).map((k) => ({ kind: 'government' as const, label: `− ${pretty(k)}` }))
+		(a, b, names) => [
+			...added(a, b).map((k) => ({
+				kind: 'government' as const,
+				label: `+ ${nameOf(names.identityNames, k)}`
+			})),
+			...added(b, a).map((k) => ({
+				kind: 'government' as const,
+				label: `− ${nameOf(names.identityNames, k)}`
+			}))
 		]
+	),
+	...(['governmentType', 'origin'] as const).map((f) =>
+		field(
+			(s) => s[f],
+			(a, b, names) =>
+				a !== b
+					? [
+							{
+								kind: 'government' as const,
+								label: `${f === 'origin' ? 'origin' : 'government'}: ${nameOf(names.identityNames, a)} → ${nameOf(names.identityNames, b)}`
+							}
+						]
+					: []
+		)
 	),
 	field(
 		(s) => s.policies,

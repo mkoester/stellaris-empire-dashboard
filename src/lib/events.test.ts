@@ -30,6 +30,7 @@ const data: GameData = {
 	planetClasses: {},
 	names: {},
 	districtColors: {},
+	identityNames: {},
 	blockers: [],
 	capEffects: {},
 	blockerInfo: {},

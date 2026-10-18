@@ -6,6 +6,7 @@ export type Colony = {
 	planetId: number;
 	name: string;
 	designation: string;
+	sector: string | null; // the sector its system belongs to; null outside any
 	colonizing: boolean; // being settled; complete at 100 pops
 	// last month's change in pops, by cause (signed: emigration negative), e.g.
 	// { growth: 3, emigration: -18, promotion: 0 } — null when the save has none
@@ -28,6 +29,7 @@ export type Colony = {
 	openJobs: number; // unfilled positions, summed over the colony's jobs
 	strata: Stratum[]; // pops and happiness per stratum (worker, specialist, …)
 	happiness: number | null; // 0–1, pops-weighted over the strata
+	habitability: number | null; // 0–1, pops-weighted over the pop groups
 	automation: { enabled: boolean; settings: string[] };
 	produces: Resources; // the colony's monthly output and upkeep, as the planet view sums them
 	upkeep: Resources;
@@ -318,6 +320,8 @@ export type GameData = {
 	planetClasses: Record<string, { name: string; colonizable: boolean }>;
 	names: Record<string, string>; // display names of buildings, deposits, districts and zones
 	districtColors: Record<string, string>; // district → its colour in game, '#rrggbb'
+	// civics, origins, authorities, ethics and government types by key
+	identityNames: Record<string, string>;
 	traditionTrees: Record<
 		string,
 		{ name: string; traditions: { key: string; name: string; role: string }[] }

@@ -2,10 +2,12 @@ import { error, json } from '@sveltejs/kit';
 import { getDb } from '#lib/server/app.ts';
 import { setSetting } from '#lib/server/db.ts';
 import { chartEvents } from '#lib/server/settings.ts';
+import { parseView } from '#lib/colonyTable.ts';
 import { parseChartEvents, parseTabs, parseTheme } from '#lib/settings.ts';
 
 // Stores the viewer settings a page changed: `{ theme }`, `{ tabs }` (the whole list) and/or
-// `{ chartEvents }` (entries merged into the stored map).
+// `{ chartEvents }` (entries merged into the stored map) and/or `{ colonyView }` (the colonies tab's
+// mode, sort, filters and columns, replaced whole).
 export async function PUT({ request }) {
 	const body = await request.json().catch(() => error(400, 'not JSON'));
 	if (body?.theme !== undefined) {
@@ -23,5 +25,6 @@ export async function PUT({ request }) {
 		if (!entries) error(400, 'malformed chartEvents');
 		setSetting(getDb(), 'chartEvents', { ...chartEvents(), ...entries });
 	}
+	if (body?.colonyView !== undefined) setSetting(getDb(), 'colonyView', parseView(body.colonyView));
 	return json({ ok: true });
 }

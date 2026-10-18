@@ -14,6 +14,7 @@ import {
 	expansion,
 	hops,
 	militaryFleets,
+	sectorBySystem,
 	sectors,
 	speciesInfo,
 	planetBudget,
@@ -194,6 +195,8 @@ describe('toSnapshot', () => {
 				openJobs: 0,
 				strata: [],
 				happiness: null,
+				habitability: null,
+				sector: null,
 				automation: { enabled: false, settings: [] },
 				produces: {},
 				upkeep: {}
@@ -509,8 +512,8 @@ describe('envoys', () => {
 describe('strata', () => {
 	it('sums pop groups per stratum, happiness weighted by size', () => {
 		const groups = {
-			'1': { key: { category: 'civilian' }, size: 1911, happiness: 0.95 },
-			'2': { key: { category: 'worker' }, size: 1800, happiness: 0.5 },
+			'1': { key: { category: 'civilian' }, size: 1911, happiness: 0.95, habitability: 1 },
+			'2': { key: { category: 'worker' }, size: 1800, happiness: 0.5, habitability: 0.5 },
 			'3': { key: { category: 'worker' }, size: 200, happiness: 1 },
 			'4': { key: { category: 'ruler' }, size: 0, happiness: 1 },
 			'5': { key: { category: 'specialist' }, size: 1299 }
@@ -522,7 +525,9 @@ describe('strata', () => {
 			{ category: 'specialist', size: 1299, happiness: null }
 		]);
 		expect(r.happiness).toBeCloseTo((1911 * 0.95 + 2000 * 0.55) / 3911);
+		expect(r.habitability).toBeCloseTo((1911 + 1800 * 0.5) / 3711);
 		expect(strata({}, []).happiness).toBeNull();
+		expect(strata({}, []).habitability).toBeNull();
 	});
 });
 
@@ -651,6 +656,21 @@ describe('empire overview', () => {
 			systems
 		});
 		expect(r).toEqual([{ name: 'Earth', type: 'core', systems: 1, colonies: 1 }]);
+	});
+
+	it('maps systems to their sector', () => {
+		const r = sectorBySystem({
+			country: { sectors: { owned: [0, 1] } },
+			sectors: {
+				'0': { name: { key: 'NAME_Earth' }, systems: [380, 52] },
+				'1': { name: { key: 'NAME_Cradle' }, systems: 60 }
+			}
+		});
+		expect([...r]).toEqual([
+			[380, 'Earth'],
+			[52, 'Earth'],
+			[60, 'Cradle']
+		]);
 	});
 
 	it('names fleets from their %SEQ% template and keeps military ones', () => {
@@ -1019,6 +1039,9 @@ describe.skipIf(!real)('real save', () => {
 		expect(Object.values(s.leaders ?? {}).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
 		expect(s.ships?.length).toBeGreaterThan(0);
 		expect(s.colonies[0].happiness).toBeGreaterThan(0);
+		expect(s.colonies[0].sector).not.toBeNull();
+		expect(s.colonies[0].habitability).toBeGreaterThan(0);
+		expect(s.colonies[0].habitability).toBeLessThanOrEqual(1);
 		expect(s.governmentType).toMatch(/^gov_/);
 		expect(s.origin).toMatch(/^origin_/);
 		expect(s.governmentType).toMatch(/^gov_/);

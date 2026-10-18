@@ -16,7 +16,12 @@
 		{
 			name: 'colonies',
 			href: node ? resolve(`/colonies?node=${node}`) : resolve('/colonies'),
-			active: path.startsWith('/colon')
+			active: path === '/colonies'
+		},
+		{
+			name: 'colony',
+			href: node ? resolve(`/colony?node=${node}`) : resolve('/colony'),
+			active: path.startsWith('/colony')
 		},
 		{
 			name: 'map',

@@ -1,3 +1,4 @@
+import type { ColonyView } from './colonyTable.ts';
 import { KIND_IDS, type EventKind } from './milestones.ts';
 
 // Viewer settings kept on the server (`setting` table), so every device sees the same: the theme,
@@ -133,6 +134,7 @@ export async function putSettings(patch: {
 	theme?: Theme;
 	tabs?: CustomTab[];
 	chartEvents?: ChartEvents;
+	colonyView?: ColonyView;
 }) {
 	const r = await fetch('/api/settings', {
 		method: 'PUT',

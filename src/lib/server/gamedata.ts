@@ -73,6 +73,15 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, color FROM district WHERE color IS NOT NULL'
 				).map((r) => [r.key, r.color])
 			),
+			identityNames: Object.fromEntries(
+				rows<{ key: string; name: string }>(
+					`SELECT key, name FROM civic WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM origin WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM authority WHERE name IS NOT NULL
+					 UNION ALL SELECT key, label FROM ethic WHERE label IS NOT NULL
+					 UNION ALL SELECT key, name FROM government_type WHERE name IS NOT NULL`
+				).map((r) => [r.key, r.name])
+			),
 			capEffects: capEffects(
 				rows<{ owner: string; key: string; value: number }>(
 					`SELECT 'deposit:' || deposit_key AS owner, modifier_key AS key, modifier_value AS value FROM deposit_modifier

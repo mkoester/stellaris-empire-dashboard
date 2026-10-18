@@ -9,6 +9,12 @@ const names = {
 	edicts: {},
 	names: { district_city: 'City District', building_research_lab_1: 'Research Lab' },
 	perks: { ap_technological_ascendancy: 'Technological Ascendancy' },
+	identityNames: {
+		civic_technocracy: 'Technocracy',
+		ethic_xenophile: 'Xenophile',
+		gov_representative_democracy: 'Representative Democracy',
+		gov_citizen_republic: 'Citizen Republic'
+	},
 	traditionTrees: {
 		tr_expansion: {
 			name: 'Expansion',
@@ -160,6 +166,22 @@ describe('milestones', () => {
 			'2202.02.01 war philosophy: liberation wars',
 			'2202.03.01 war ended: Border War',
 			'2202.03.01 war lost'
+		]);
+	});
+
+	it('names government changes, including its type and origin', () => {
+		const gov = (government: string[], governmentType: string, origin: string) =>
+			({ government, governmentType, origin }) as Partial<Snapshot>;
+		expect(
+			labels([
+				save('2203.01.01', { government: null }), // before the fields were read
+				save('2203.02.01', gov(['ethic_xenophile'], 'gov_representative_democracy', 'origin_x')),
+				save('2203.03.01', gov(['civic_technocracy'], 'gov_citizen_republic', 'origin_x'))
+			])
+		).toEqual([
+			'2203.03.01 + Technocracy',
+			'2203.03.01 − Xenophile',
+			'2203.03.01 government: Representative Democracy → Citizen Republic'
 		]);
 	});
 });

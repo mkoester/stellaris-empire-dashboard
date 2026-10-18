@@ -6,12 +6,14 @@ import {
 	type CustomTab,
 	type Theme
 } from '#lib/settings.ts';
+import { parseView, type ColonyView } from '#lib/colonyTable.ts';
 import { getDb } from './app.ts';
 import { getSetting } from './db.ts';
 
 // The stored viewer settings, falling back to the defaults when unset or unreadable.
 export const theme = (): Theme => parseTheme(getSetting(getDb(), 'theme')) ?? 'system';
 export const tabs = (): CustomTab[] => parseTabs(getSetting(getDb(), 'tabs')) ?? [];
+export const colonyView = (): ColonyView => parseView(getSetting(getDb(), 'colonyView'));
 // Colony charts were stored as `planet:<title>` before the rename.
 export const chartEvents = (): ChartEvents =>
 	Object.fromEntries(

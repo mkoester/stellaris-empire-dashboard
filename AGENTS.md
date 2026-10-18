@@ -97,7 +97,8 @@ choices' flat modifiers in `#lib/effects.ts` — **adapted from the planner's `c
 popup itself is plain CSS: the planner's needs Skeleton UI.
 
 **Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `colonies`
-(`/colonies` → first colony, `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
+(`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
+`/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
 `map` (`/map`, reuses `MigrationMap` — fork it when the two diverge), `migration`, `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`) and `events`
@@ -113,10 +114,25 @@ drop. The theme is a class on `<html>`, put there by `hooks.server.ts` (no flash
 defines the `dark:` variant on it. Canvases (uPlot) pick axis colours per draw and redraw on
 `onThemeChange` (`#lib/theme.ts`).
 
+**Colonies tab** (`/colonies`; rows from `server/colonies.ts`, logic in `#lib/colonyTable.ts` and
+`#lib/colonyProfile.ts`, both pure; `ColonyTable.svelte`): one table or one per sector (with the
+sector's summed net output, as the game's sector row), sortable, filtered, columns picked; in
+one-table mode each row carries its sector's colour (`CATEGORICAL`). Under each colony its **pros
+and cons**: district caps per type, every non-cap effect of its features and planet modifiers
+(good or bad by `positiveIsGood`), blockers, habitability < 100 %, free district room. **Suits**
+ranks resources by that evidence (a cap counts its size, a tagged pro +2, a con −2;
+`resourceOf()` reads the resource from the key); a designation whose resources score under half
+the best gets a ⚠ (capitals and cities aim at nothing). **Needs attention** (`problems()`):
+stability < 50, housing or amenities short, habitability < 70 %, over a quarter of the pops
+without a job (civilians are normal in 4.x). Orbital deposits are left out — the station mines
+them, not the colony. Mode, sort, filters and columns are the `colonyView` setting, replaced
+whole on PUT. The `all` tab's Colonies panel is still its own compact table.
+
 **Milestones** (`#lib/milestones.ts`, pure): the campaign's bigger events — systems, colonies
 (colonization started / established / gained / lost), districts built and buildings done per
 colony, wars, traditions, perks, research, species,
-trade deals, passed agendas, leaders, ruler, civics/ethics/authority, policies, edicts, sectors —
+trade deals, passed agendas, leaders, ruler, civics/ethics/authority (by name, `identityNames`),
+government type and origin, policies, edicts, sectors —
 **derived on read** by diffing consecutive _saves_ along the branch (`branch()` → `milestones`), so
 they follow the save graph and cover all history for fields already stored. A field is compared
 only between saves that both have it (null = unknown; an empty colony list too), and an event is
@@ -316,6 +332,9 @@ modifier="celebrate_diversity" days=3535 } … } }` — `days` left, −1 = perm
 - Government: `country.government = { type="gov_representative_democracy" authority civics={…}
 origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `type` is named
   from the data DB's `government_type`.
+- A colony's sector: its planet's system (`coordinate.origin`) in an owned sector's `systems`
+  (`sectorBySystem()`; 2207.03.10: only the core sector, `type="core_sector"`, named after the
+  capital). Habitability: `pop_groups.<id>.habitability` (0–1, seen 1 and 0.9), pops-weighted.
 
 ## Open (needs a running game on Linux)
 

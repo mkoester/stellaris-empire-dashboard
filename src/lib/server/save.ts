@@ -683,6 +683,16 @@ function speciesName(name: Raw): string {
 }
 
 /** The empire's sectors (`country.sectors.owned` → `sectors.<id>`), colonies counted per system. */
+/** The country's sector names by system id (`sectors.<id>.systems`). */
+export function sectorBySystem(raw: Pick<RawSave, 'country' | 'sectors'>): Map<number, string> {
+	return new Map(
+		list(raw.country?.sectors?.owned).flatMap((id) => {
+			const s = raw.sectors[String(id)] ?? {};
+			return list(s.systems).map((sys) => [sys, displayName(s.name)] as const);
+		})
+	);
+}
+
 export function sectors(raw: Pick<RawSave, 'country' | 'sectors' | 'systems'>): Sector[] {
 	return list(raw.country?.sectors?.owned).map((id) => {
 		const s = raw.sectors[String(id)] ?? {};
@@ -818,6 +828,7 @@ function playerColonies(raw: RawSave): Colony[] {
 			planetOfColony.set(Number(planet.colony), [Number(id), planet]);
 		}
 	}
+	const sectorOf = sectorBySystem(raw);
 	return list(raw.country?.controlled_colonies).map((colonyId) => {
 		const c = raw.colonies[String(colonyId)] ?? {};
 		const [planetId, planet] = planetOfColony.get(colonyId) ?? [-1, undefined];
@@ -825,6 +836,7 @@ function playerColonies(raw: RawSave): Colony[] {
 			planetId,
 			name: planet ? displayName(planet.name) : `colony ${colonyId}`,
 			designation: String(c.final_designation ?? ''),
+			sector: sectorOf.get(Number(planet?.coordinate?.origin)) ?? null,
 			// still being settled: `colonizing_species`; done at COLONY_POPS_REQUIRED (100) pops
 			colonizing: c.colonizing_species !== undefined,
 			growth: colonyGrowth(c.last_month_growth_data),
@@ -1094,9 +1106,15 @@ export function colonyDistricts(
  */
 export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const by = new Map<string, { size: number; known: number; weighted: number }>();
+	// habitability (0–1) of the species on this planet, per pop group
+	const hab = { size: 0, weighted: 0 };
 	for (const id of ids) {
 		const g = popGroups[String(id)];
 		if (!g || typeof g !== 'object' || !(num(g.size) > 0)) continue;
+		if (typeof g.habitability === 'number') {
+			hab.size += num(g.size);
+			hab.weighted += num(g.size) * g.habitability;
+		}
 		const cat = String(g.key?.category ?? 'unknown');
 		const s = by.get(cat) ?? { size: 0, known: 0, weighted: 0 };
 		const known = typeof g.happiness === 'number';
@@ -1114,7 +1132,8 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const known = [...by.values()].reduce((n, s) => n + s.known, 0);
 	return {
 		strata: list,
-		happiness: known > 0 ? [...by.values()].reduce((n, s) => n + s.weighted, 0) / known : null
+		happiness: known > 0 ? [...by.values()].reduce((n, s) => n + s.weighted, 0) / known : null,
+		habitability: hab.size > 0 ? hab.weighted / hab.size : null
 	};
 }
 
