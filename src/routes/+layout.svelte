@@ -34,6 +34,11 @@
 			active: path === '/migration'
 		},
 		{
+			name: 'expansion',
+			href: node ? resolve(`/expansion?node=${node}`) : resolve('/expansion'),
+			active: path === '/expansion'
+		},
+		{
 			name: 'trade deals',
 			href: node ? resolve(`/deals?node=${node}`) : resolve('/deals'),
 			active: path === '/deals'

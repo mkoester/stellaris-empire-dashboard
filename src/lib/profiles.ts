@@ -1,4 +1,5 @@
 import { DEFAULT_VIEW, parseView, type ColonyView } from './colonyTable.ts';
+import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from './expansion.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
 // Profiles: named sets of viewer settings — one per playstyle or play-through. Everything but the
@@ -15,6 +16,7 @@ export type ProfileSettings = {
 	tabs: CustomTab[];
 	chartEvents: ChartEvents;
 	colonyView: ColonyView;
+	expansionView: ExpansionView;
 	display: Display;
 };
 export type ProfileInfo = { id: string; name: string };
@@ -23,6 +25,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	tabs: [],
 	chartEvents: {},
 	colonyView: DEFAULT_VIEW,
+	expansionView: DEFAULT_EXPANSION_VIEW,
 	display: DEFAULT_DISPLAY
 };
 
@@ -38,6 +41,7 @@ export function parseSettings(v: unknown): ProfileSettings {
 		tabs: parseTabs(o.tabs) ?? [],
 		chartEvents: parseChartEvents(o.chartEvents) ?? {},
 		colonyView: parseView(o.colonyView),
+		expansionView: parseExpansionView(o.expansionView),
 		display: parseDisplay(o.display)
 	};
 }

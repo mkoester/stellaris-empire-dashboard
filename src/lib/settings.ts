@@ -1,4 +1,5 @@
 import type { ColonyView } from './colonyTable.ts';
+import type { ExpansionView } from './expansion.ts';
 import type { Display } from './profiles.ts';
 import { KIND_IDS, type EventKind } from './milestones.ts';
 
@@ -136,6 +137,7 @@ export async function putSettings(patch: {
 	tabs?: CustomTab[];
 	chartEvents?: ChartEvents;
 	colonyView?: ColonyView;
+	expansionView?: ExpansionView;
 	display?: Display;
 }) {
 	const r = await fetch('/api/settings', {

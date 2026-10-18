@@ -1,6 +1,8 @@
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
-import { colonyBlockerHints, planetDetails } from './planets.ts';
+import { expansionRows } from './expansion.ts';
+import { colonyBlockerHints } from './planets.ts';
+import { expansionView } from './settings.ts';
 import { branch } from './branch.ts';
 import { totalEffects } from '#lib/effects.ts';
 import { pretty } from '#lib/format.ts';
@@ -79,19 +81,8 @@ export function empireData(url: URL) {
 			traits: s.traits.map((key) => ({ key, name: pretty(key.replace(/^trait_(pc_)?/, '')) })),
 			budget: traitBudget(s, data)
 		})),
-		expansion: (latest.expansion ?? []).map((p) => ({
-			...p,
-			className: data.planetClasses[p.planetClass]?.name ?? pretty(p.planetClass),
-			colonizable: data.planetClasses[p.planetClass]?.colonizable ?? false,
-			details: p.planet
-				? planetDetails(p.planet, {
-						size: p.size,
-						planetClass: p.planetClass,
-						buildings: [],
-						built: {}
-					})
-				: null
-		})),
+		expansion: expansionRows(latest.expansion ?? []),
+		expansionView: expansionView(),
 		xRange: xRange(snaps),
 		charts: {
 			pops: popSeries(snaps),

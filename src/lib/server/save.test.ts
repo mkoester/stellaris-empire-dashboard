@@ -56,6 +56,9 @@ const raw: RawSave = {
 	tradeDeals: {},
 	starbases: {},
 	megastructures: {},
+	bypasses: {},
+	naturalWormholes: {},
+	globalFlags: {},
 	countryNames: {},
 	// as in the 2201.06.01 save: a city district with a filled Government Zone and an empty one
 	districtsDb: {
@@ -583,8 +586,13 @@ describe('empire overview', () => {
 		'7': { name: { key: 'NAME_Far' }, hyperlane: [{ to: 135 }] }
 	};
 	const planets = {
-		'0': { name: { key: 'NAME_Sol' }, planet_class: 'pc_g_star', coordinate: { origin: 380 } },
-		'3': { planet_class: 'pc_continental', owner: 0, coordinate: { origin: 380 } },
+		'0': {
+			name: { key: 'NAME_Sol' },
+			planet_class: 'pc_g_star',
+			controller: 0,
+			coordinate: { origin: 380 }
+		},
+		'3': { planet_class: 'pc_continental', owner: 0, controller: 0, coordinate: { origin: 380 } },
 		'5': {
 			name: { key: 'NAME_Mars' },
 			planet_class: 'pc_barren',
@@ -617,7 +625,9 @@ describe('empire overview', () => {
 			'7': { type: 'd_minerals_3', deposit_holder: { type: 0, id: 5 } },
 			'8': { type: 'd_failing_infrastructure_earth', swap_type: 'd_delhi_sprawl' }
 		};
-		expect(expansion({ country, planets, systems, deposits, date: '2200.05.01' })).toEqual([
+		expect(
+			expansion({ countryId: 0, country, planets, systems, deposits, date: '2200.05.01' })
+		).toEqual([
 			{
 				planetId: 5,
 				name: 'Mars',
@@ -625,6 +635,8 @@ describe('empire overview', () => {
 				size: 13,
 				system: 'Sol',
 				jumps: 0,
+				beyond: 0,
+				via: [],
 				modifier: 'pm_mineral_poor',
 				candidate: 'terraforming_candidate',
 				planet: {
@@ -642,6 +654,8 @@ describe('empire overview', () => {
 				size: 20,
 				system: 'Far',
 				jumps: 2,
+				beyond: 2,
+				via: [],
 				modifier: null,
 				candidate: null,
 				planet: { deposits: [], modifiers: [] }

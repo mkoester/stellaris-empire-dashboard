@@ -99,7 +99,8 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 **Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `colonies`
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
-`map` (`/map`, reuses `MigrationMap` — fork it when the two diverge), `migration`, `trade deals`
+`map` (`/map`, reuses `MigrationMap` — fork it when the two diverge), `migration`, `expansion`
+(`/expansion`: the Expansion panel full-size, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`) and `events`
 (`/events`: the milestone log, searchable, filtered in the page); tabs keep `?node=`. Say
@@ -110,7 +111,7 @@ panels by id (`EmpirePanel.svelte`);
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
 goes there and into `EmpirePanel`**. Settings are stored server-side in the `setting` table
 (`PUT /api/settings`), which a `SCHEMA` bump does not drop. The theme (`system`/`light`/`dark`)
-is global; everything else (custom tabs, chart events, the colonies view, display options) lives
+is global; everything else (custom tabs, chart events, the colonies and expansion views, display options) lives
 in a **profile** (`#lib/profiles.ts`, `server/settings.ts`): rows `profiles`, `profile:<id>`,
 `activeProfile`, `campaignProfiles`. The profile in use is the current campaign's (the head's),
 else the last picked — picking one while a campaign runs makes it that campaign's. The **config
@@ -274,6 +275,20 @@ shipyard_build_queue station }` — **no owner field**; the country's are those 
 - Expansion: `country.surveyed_deposit_holders = { { type=0 id=<planet> } }`; systems
   `galactic_object.<id> = { name planet hyperlane = { to length } colonies }`. The game's list
   differs from the class rule (`pc_barren` is `colonizable = no`, yet Mars is offered — terraforming).
+  An uncolonised planet in an owned system has no `owner` but `controller=<country>` (Mars:
+  `controller=0`); own systems are those whose planets (stars included) the country controls
+  (2207.03.10: the four of sector Earth), planets another empire controls are dropped.
+  **Distances** (`jumps` from the capital, `beyond` from the nearest own system — the panel's
+  "beyond my borders" range, in the profile) come from a multi-source breadth-first search over
+  hyperlanes and usable bypasses (`#lib/galaxyGraph.ts`; every jump or bypass traversal is one).
+  Bypasses: top-level `bypasses.<id> = { type active connections active_connections linked_to
+owner = { type id } }` — owner type 6 = `megastructures.<id>` (gateways, `lgate_base`), 7 =
+  `natural_wormholes.<id>`, both with `coordinate.origin`. Which types count, their techs, the
+  explore rule and the L-Gate script (star flags `lgate` → `lcluster1`, global flag
+  `lgates_activated_globally`) are `BYPASS_RULES`, from 4.5.2's `common/bypass/00_bypasses.txt` —
+  re-check on game updates. "Explored" is approximated as a ship having visited either end
+  (`visited_objects`); the save has no per-wormhole knowledge (`seen_bypass_types` lists types).
+  2207.03.10: 12 wormholes, 5 gateways (inactive), 2 L-Gates, none usable yet.
 - Idle leaders: no `location` and no `council_location` — except the ruler (`country.ruler`) and
   envoys. Civilian fleets: `current_order = { <kind>_order = { progress order_id planet |
 deposit_holder | orbitable } }`, queue in `order`, **no arrival date**: `movement_manager.path.date` is not

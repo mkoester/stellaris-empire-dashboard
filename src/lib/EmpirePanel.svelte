@@ -342,7 +342,7 @@
 {:else if id === 'species'}
 	<SpeciesPanel species={data.species} explain={data.explain} />
 {:else if id === 'expansion'}
-	<Expansion planets={data.expansion} date={data.latest.date} />
+	<Expansion planets={data.expansion} date={data.latest.date} view={data.expansionView} />
 {/if}
 
 {#snippet progress(e: (typeof events)[number])}

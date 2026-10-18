@@ -105,7 +105,9 @@ export type ExpansionPlanet = {
 	planetClass: string;
 	size: number;
 	system: string;
-	jumps: number | null;
+	jumps: number | null; // from the capital, over hyperlanes and usable bypasses
+	beyond?: number | null; // from the nearest own system (0 inside the borders); absent in older snapshots
+	via?: string[]; // bypass types on the way from the border
 	modifier: string | null;
 	candidate: string | null; // terraforming candidate modifier, if any
 	planet: PlanetState | null; // null in older snapshots

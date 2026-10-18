@@ -1,3 +1,4 @@
+import { bypassLinks, distances, graph, type Bypass, type Graph } from '#lib/galaxyGraph.ts';
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
@@ -56,6 +57,9 @@ export type RawSave = {
 	zones: Record<string, Raw>;
 	buildings: Record<string, Raw>;
 	megastructures: Record<string, Raw>;
+	bypasses: Record<string, Raw>; // wormholes, gateways, L-Gates, … (#lib/galaxyGraph.ts)
+	naturalWormholes: Record<string, Raw>;
+	globalFlags: Record<string, Raw>; // top-level `flags`
 	countryNames: Record<string, string>; // owners of colonised planets
 	empireName: string;
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
@@ -138,6 +142,9 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			zones: q.at('/zones') ?? {},
 			buildings: q.at('/buildings') ?? {},
 			megastructures: q.at('/megastructures') ?? {},
+			bypasses: q.at('/bypasses') ?? {},
+			naturalWormholes: q.at('/natural_wormholes') ?? {},
+			globalFlags: q.at('/flags') ?? {},
 			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
 		};
 	});
@@ -715,15 +722,78 @@ const NOT_ROCKY =
  * by nobody, with jumps from the capital's system over `galactic_object.<id>.hyperlane`.
  * Habitability is left out: which of them the game lists depends on species and terraforming.
  */
+type GalaxyRaw = Pick<
+	RawSave,
+	'country' | 'systems' | 'bypasses' | 'naturalWormholes' | 'megastructures' | 'globalFlags'
+>;
+
+/** The galaxy the country moves in: hyperlanes plus the bypasses it can use. */
+export function galaxy(raw: Partial<GalaxyRaw> & Pick<GalaxyRaw, 'country' | 'systems'>): Graph {
+	const lanes = Object.entries(raw.systems).flatMap(([id, s]) =>
+		items(s?.hyperlane).map((l) => [Number(id), Number(l?.to)] as [number, number])
+	);
+	// a bypass sits on a megastructure (owner type 6: gateways, L-Gates) or a natural wormhole (7)
+	const systemOf = (owner: Raw): number | null => {
+		const holder =
+			num(owner?.type) === 6
+				? raw.megastructures?.[String(owner.id)]
+				: num(owner?.type) === 7
+					? raw.naturalWormholes?.[String(owner.id)]
+					: undefined;
+		return typeof holder?.coordinate?.origin === 'number' ? holder.coordinate.origin : null;
+	};
+	const bypasses: Bypass[] = Object.entries(raw.bypasses ?? {})
+		.filter(([, b]) => b && typeof b === 'object')
+		.map(([id, b]) => ({
+			id: Number(id),
+			type: String(b.type),
+			active: b.active === true || b.active === 'yes',
+			system: systemOf(b.owner),
+			links:
+				[b.active_connections, b.connections, b.linked_to].map(list).find((l) => l.length) ?? []
+		}));
+	const starFlagged = (flag: string) =>
+		Object.entries(raw.systems)
+			.filter(([, s]) => s?.flags?.[flag] !== undefined)
+			.map(([id]) => Number(id));
+	return graph(
+		lanes,
+		bypassLinks({
+			bypasses,
+			researched: items(raw.country?.tech_status?.technology).map(String),
+			visited: list(raw.country?.visited_objects),
+			globalFlags: Object.keys(raw.globalFlags ?? {}),
+			lgateSystems: starFlagged('lgate'),
+			lclusterSystems: starFlagged('lcluster1')
+		})
+	);
+}
+
+/**
+ * Surveyed rocky planets nobody owns and no other empire controls, nearest first: jumps from the
+ * capital and from the nearest own system (`beyond`, 0 inside the borders), both over hyperlanes
+ * and usable bypasses. Own systems: those whose planets (stars included) the country controls.
+ */
 export function expansion(
-	raw: Pick<RawSave, 'country' | 'planets' | 'systems' | 'deposits' | 'date'>
+	raw: Pick<RawSave, 'countryId' | 'country' | 'planets' | 'systems' | 'deposits' | 'date'> &
+		Partial<GalaxyRaw>
 ): ExpansionPlanet[] {
+	const g = galaxy(raw);
+	const controlled = (p: Raw) =>
+		p?.controller !== undefined && Number(p.controller) === raw.countryId;
 	const capitalSystem = raw.planets[String(raw.country?.capital)]?.coordinate?.origin;
-	const jumps = hops(raw.systems, capitalSystem);
+	const fromCapital = distances(g, capitalSystem === undefined ? [] : [Number(capitalSystem)]);
+	const fromBorder = distances(
+		g,
+		Object.values(raw.planets)
+			.filter(controlled)
+			.map((p) => Number(p.coordinate?.origin))
+	);
 	return items(raw.country?.surveyed_deposit_holders)
 		.filter((h) => num(h?.type) === 0)
 		.map((h) => [Number(h.id), raw.planets[String(h.id)]] as const)
 		.filter(([, p]) => p && typeof p === 'object' && p.owner === undefined)
+		.filter(([, p]) => p.controller === undefined || controlled(p))
 		.filter(([, p]) => !NOT_ROCKY.test(String(p.planet_class)))
 		.map(([planetId, p]) => {
 			const sys = p.coordinate?.origin;
@@ -733,7 +803,9 @@ export function expansion(
 				planetClass: String(p.planet_class),
 				size: num(p.planet_size),
 				system: displayName(raw.systems[String(sys)]?.name),
-				jumps: jumps.get(Number(sys)) ?? null,
+				jumps: fromCapital.jumps.get(Number(sys)) ?? null,
+				beyond: fromBorder.jumps.get(Number(sys)) ?? null,
+				via: fromBorder.via(Number(sys)),
 				modifier: typeof p.planet_modifier === 'string' ? p.planet_modifier : null,
 				// `terraforming_candidate` (Mars) or `toxic_terraforming_candidate` (toxic worlds: only
 				// with the right perk, origin or civic), as a permanent timed modifier
