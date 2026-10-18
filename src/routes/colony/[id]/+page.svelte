@@ -4,6 +4,7 @@
 	import Chart from '#lib/Chart.svelte';
 	import Flows from '#lib/Flows.svelte';
 	import Jobs from '#lib/Jobs.svelte';
+	import DistrictName from '#lib/DistrictName.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
 	import PlanetInfo from '#lib/panels/PlanetInfo.svelte';
 	import { automationRows } from '#lib/automation.ts';
@@ -93,7 +94,12 @@
 			<tbody>
 				{#each data.colony.buildQueue as item, i (i)}
 					<tr class="border-b border-gray-200 dark:border-gray-800">
-						<td class="p-1">{nameOf(data.names, item.name)}</td>
+						<td class="p-1"
+							><DistrictName
+								name={nameOf(data.names, item.name)}
+								color={data.colors[item.name]}
+							/></td
+						>
 						<td class="p-1 text-gray-500">{pretty(item.kind)}</td>
 						<td class="p-1 text-right">{fmt(item.progress)} / {fmt(item.needed)}</td>
 						<td class="p-1 text-right">{done[i] ?? ''}</td>
@@ -165,7 +171,7 @@
 			hints={data.blockerHints}
 			date={data.latest.date}
 		/>
-		<Districts districts={data.colony.districtList} names={data.names} />
+		<Districts districts={data.colony.districtList} names={data.names} colors={data.colors} />
 	</div>
 
 	<h2 class="mt-6 mb-2 text-xl font-semibold">Jobs</h2>

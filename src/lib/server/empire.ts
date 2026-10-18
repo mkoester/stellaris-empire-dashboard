@@ -2,7 +2,9 @@ import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
 import { colonyBlockerHints, planetDetails } from './planets.ts';
 import { branch } from './branch.ts';
+import { totalEffects } from '#lib/effects.ts';
 import { pretty } from '#lib/format.ts';
+import type { Snapshot } from '#lib/types.ts';
 import { traitBudget } from '#lib/species.ts';
 import { techTiers } from '#lib/techTiers.ts';
 import { adoptedTrees } from '#lib/traditions.ts';
@@ -27,6 +29,7 @@ export function empireData(url: URL) {
 	const latest = b.latest;
 	// empire-wide modifiers at the latest save that read them
 	const modifiers = snaps.findLast((s) => s.countryModifiers !== null)?.countryModifiers ?? [];
+	const government = identity(snaps.findLast((s) => s.government !== null));
 	return {
 		empty: false as const,
 		...rest,
@@ -38,8 +41,10 @@ export function empireData(url: URL) {
 			...b.empireJobs.map((j) => `job:${j.type}`),
 			...(latest.traditions ?? []).map((k) => `tradition:${k}`),
 			...(latest.ascensionPerks ?? []).map((k) => `perk:${k}`),
-			...modifiers.map((m) => `modifier:${m.key}`)
+			...modifiers.map((m) => `modifier:${m.key}`),
+			...(government?.rows.flatMap((r) => r.items.map((i) => i.id)) ?? [])
 		]),
+		government,
 		// what each civilian ship's current order counts to (anomalies need the game data's levels)
 		shipTotals: Object.fromEntries(
 			(latest.civilianShips ?? []).map((s) => [
@@ -103,6 +108,42 @@ export function empireData(url: URL) {
 			balance: resourceSeries(snaps, (s) => withoutResearch(s.balance)),
 			income: resourceSeries(snaps, (s) => withoutResearch(s.income))
 		}
+	};
+}
+
+/**
+ * The Government panel: government type, authority, ethics, civics and origin as popup ids
+ * (`<kind>:<key>`), and their modifiers summed. The save lists authority, ethics and civics in one
+ * list; each key is sorted by the kind the data DB knows it as — unknown ones (mods) under "other".
+ */
+function identity(s: Snapshot | undefined) {
+	if (!s?.government) return null;
+	const all = getExplanations();
+	const KINDS = ['authority', 'ethic', 'civic'];
+	const kindOf = (key: string) => KINDS.find((k) => all[`${k}:${key}`]) ?? 'other';
+	const item = (id: string) => ({ id, name: all[id]?.title ?? pretty(id.replace(/^\w+:/, '')) });
+	const ids = (kind: string) =>
+		s.government!.filter((k) => kindOf(k) === kind).map((k) => item(`${kind}:${k}`));
+	const rows = [
+		{ label: 'Government', items: s.governmentType ? [item(`gov:${s.governmentType}`)] : [] },
+		{ label: 'Authority', items: ids('authority') },
+		{ label: 'Ethics', items: ids('ethic') },
+		{ label: 'Civics', items: ids('civic') },
+		{ label: 'Origin', items: s.origin ? [item(`origin:${s.origin}`)] : [] },
+		{ label: 'Other', items: ids('other') }
+	].filter((r) => r.items.length);
+	return {
+		date: s.date,
+		rows,
+		effects: totalEffects(
+			['Ethics', 'Authority', 'Civics', 'Origin'].flatMap(
+				(label) =>
+					rows
+						.find((r) => r.label === label)
+						?.items.filter((i) => all[i.id])
+						.map((i) => ({ name: i.name, modifiers: all[i.id].modifiers })) ?? []
+			)
+		)
 	};
 }
 

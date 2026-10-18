@@ -67,6 +67,12 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT key, name FROM zone WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name.replace(/^Blocker /, '')])
 			),
+			// the border colour of each district's grid-box icon; districts without one are left out
+			districtColors: Object.fromEntries(
+				rows<{ key: string; color: string }>(
+					'SELECT key, color FROM district WHERE color IS NOT NULL'
+				).map((r) => [r.key, r.color])
+			),
 			capEffects: capEffects(
 				rows<{ owner: string; key: string; value: number }>(
 					`SELECT 'deposit:' || deposit_key AS owner, modifier_key AS key, modifier_value AS value FROM deposit_modifier

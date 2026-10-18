@@ -28,6 +28,7 @@ export type PlanetDetailsData = {
 	caps: PlanetCaps;
 	blockers: string[];
 	names: Record<string, string>;
+	colors: Record<string, string>; // districts' colours in game
 	explain: Record<string, Explanation>;
 };
 

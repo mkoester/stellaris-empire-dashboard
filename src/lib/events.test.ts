@@ -29,6 +29,7 @@ const data: GameData = {
 	archetypes: {},
 	planetClasses: {},
 	names: {},
+	districtColors: {},
 	blockers: [],
 	capEffects: {},
 	blockerInfo: {},

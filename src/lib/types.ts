@@ -268,6 +268,8 @@ export type Snapshot = {
 	agendasDone: string[] | null; // agendas on cooldown, i.e. passed recently
 	policies: Record<string, string> | null; // policy → selected option
 	government: string[] | null; // civics, ethics and authority keys
+	governmentType: string | null; // e.g. gov_representative_democracy
+	origin: string | null; // e.g. origin_default
 	wars: War[] | null; // wars the country takes part in
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
@@ -315,6 +317,7 @@ export type GameData = {
 	archetypes: Record<string, { points: number; maxTraits: number }>;
 	planetClasses: Record<string, { name: string; colonizable: boolean }>;
 	names: Record<string, string>; // display names of buildings, deposits, districts and zones
+	districtColors: Record<string, string>; // district → its colour in game, '#rrggbb'
 	traditionTrees: Record<
 		string,
 		{ name: string; traditions: { key: string; name: string; role: string }[] }

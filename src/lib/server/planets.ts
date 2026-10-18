@@ -28,7 +28,8 @@ export function planetDetails(
 		planet,
 		caps,
 		blockers: data.blockers.filter((b) => planet.deposits.some((d) => d.key === b)),
-		names: Object.fromEntries(keys.filter((k) => data.names[k]).map((k) => [k, data.names[k]])),
+		names: pick(data.names, keys),
+		colors: pick(data.districtColors, keys),
 		explain: pick(getExplanations(), [
 			...planet.deposits.flatMap((d) => [
 				`deposit:${d.key}`,

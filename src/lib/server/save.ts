@@ -216,6 +216,8 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			...items(raw.country?.ethos?.ethics),
 			raw.country?.government?.authority
 		].filter((k) => typeof k === 'string'),
+		governmentType: strOrNull(raw.country?.government?.type),
+		origin: strOrNull(raw.country?.government?.origin),
 		wars: wars(raw),
 		warLostDate:
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
@@ -1252,6 +1254,7 @@ const ordinal = (n: number) =>
 	`${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')}`;
 const num = (v: Raw) => (typeof v === 'number' ? v : 0);
 const numOrNull = (v: Raw) => (typeof v === 'number' ? v : null);
+const strOrNull = (v: Raw) => (typeof v === 'string' ? v : null);
 /** Every `country=<id>` anywhere below `v` (wars and trade deals name their sides this way). */
 export function countryIds(v: Raw): number[] {
 	if (!v || typeof v !== 'object') return [];

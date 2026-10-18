@@ -891,8 +891,10 @@ describe('milestone fields', () => {
 		ruler: 318767105,
 		owned_leaders: [318767105, 129],
 		government: {
+			type: 'gov_representative_democracy',
 			authority: 'auth_democratic',
 			civics: ['civic_beacon_of_liberty', 'civic_idealistic_foundation'],
+			origin: 'origin_default',
 			council_agenda_cooldowns: {
 				council_agenda: 'agenda_arkship_engineering_military',
 				start_date: '2211.08.01'
@@ -933,6 +935,8 @@ describe('milestone fields', () => {
 			'ethic_xenophile',
 			'auth_democratic'
 		]);
+		expect(s.governmentType).toBe('gov_representative_democracy');
+		expect(s.origin).toBe('origin_default');
 		expect(s.warLostDate).toBe('0.01.01');
 	});
 
@@ -1015,6 +1019,10 @@ describe.skipIf(!real)('real save', () => {
 		expect(Object.values(s.leaders ?? {}).reduce((a, b) => a + b, 0)).toBeGreaterThan(0);
 		expect(s.ships?.length).toBeGreaterThan(0);
 		expect(s.colonies[0].happiness).toBeGreaterThan(0);
+		expect(s.governmentType).toMatch(/^gov_/);
+		expect(s.origin).toMatch(/^origin_/);
+		expect(s.governmentType).toMatch(/^gov_/);
+		expect(s.origin).toMatch(/^origin_/);
 		console.log(
 			JSON.stringify({
 				leaders: s.leaders,

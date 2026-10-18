@@ -1,12 +1,20 @@
 <script lang="ts">
+	import DistrictName from '../DistrictName.svelte';
 	import { nameOf } from '../format.ts';
 	import type { ColonyDistrict } from '../types.ts';
 	import Panel from './Panel.svelte';
 
 	// A colony's districts in detail: how many are built, its zones (specialisations) and their
 	// buildings by name.
-	let { districts, names }: { districts: ColonyDistrict[]; names: Record<string, string> } =
-		$props();
+	let {
+		districts,
+		names,
+		colors
+	}: {
+		districts: ColonyDistrict[];
+		names: Record<string, string>;
+		colors: Record<string, string>;
+	} = $props();
 </script>
 
 <Panel
@@ -30,7 +38,9 @@
 							? 'border-b border-gray-200 dark:border-gray-800'
 							: ''}"
 					>
-						<td class="p-1">{i ? '' : nameOf(names, d.type)}</td>
+						<td class="p-1"
+							>{#if !i}<DistrictName name={nameOf(names, d.type)} color={colors[d.type]} />{/if}</td
+						>
 						<td class="p-1 text-right">{i ? '' : d.built}</td>
 						<td class="p-1">{z ? nameOf(names, z.type) : '–'}</td>
 						<td class="p-1">

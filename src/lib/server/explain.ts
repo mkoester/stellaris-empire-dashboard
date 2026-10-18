@@ -2,7 +2,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { pretty } from '#lib/format.ts';
 import type { Explanation, Modifier } from '#lib/types.ts';
 
-// Popup texts for traits, edicts, council agendas, techs and jobs, from the extraction's SQLite:
+// Popup texts for traits, edicts, council agendas, techs, jobs and the empire's civics, origin,
+// authority, ethics and government type, from the extraction's SQLite:
 // descriptions, modifiers (labelled via modifier_label) and a few facts. Loaded once at start,
 // keyed `<kind>:<key>` (e.g. `edict:fortify_the_border`).
 
@@ -219,6 +220,173 @@ export function loadExplanations(file: string): Explanations {
 				text: null,
 				facts: j.category ? [j.category] : []
 			};
+
+		// The empire's identity — civics, origin, authority, ethics, government type — after the
+		// planner's civics/origins/government/ethics pages (same tables). A civic's or origin's
+		// `description` is the game's effects tooltip, so it goes to `text`.
+		const listed = (sql: string) => {
+			const out = new Map<string, string[]>();
+			for (const r of rows<{ owner: string; item: string }>(sql))
+				out.set(r.owner, [...(out.get(r.owner) ?? []), r.item]);
+			return out;
+		};
+		// one line per replaced job; variants for other empire types in brackets
+		const swaps = new Map<string, string[]>();
+		for (const [owner, pairs] of listed(
+			`SELECT source_key AS owner, coalesce(base_name, base_job) || '|' || coalesce(swapped_name, swapped_job) AS item
+			 FROM job_swap ORDER BY sort_order`
+		)) {
+			const byBase = new Map<string, string[]>();
+			for (const [base, to] of pairs.map((p) => p.split('|')))
+				byBase.set(base, [...(byBase.get(base) ?? []), to]);
+			swaps.set(
+				owner,
+				[...byBase].map(
+					([base, [to, ...or]]) => `${base} → ${to}${or.length ? ` (or ${or.join(', ')})` : ''}`
+				)
+			);
+		}
+		const unlocks = listed(
+			`SELECT DISTINCT u.owner_key AS owner, coalesce(b.name, u.building_key) AS item
+			 FROM building_unlock u LEFT JOIN building b ON b.key = u.building_key ORDER BY item`
+		);
+		const traits = listed('SELECT owner_key AS owner, trait_key AS item FROM granted_trait');
+		const choiceFacts = (key: string) => [
+			...(swaps.get(key) ?? []).map((s) => `job: ${s}`),
+			...(unlocks.get(key) ?? []).map((b) => `unlocks ${b}`),
+			...(traits.get(key) ?? []).map(
+				(t) => `grants trait ${pretty(t.replace(/^trait_(pc_)?/, ''))}`
+			)
+		];
+		// the Shroud's "Add Attunement" (on every civic) after the real effects
+		const attunementLast = (mods: Modifier[]) => [
+			...mods.filter((m) => !m.key.includes('attunement')),
+			...mods.filter((m) => m.key.includes('attunement'))
+		];
+
+		const civicMods = grouped(
+			'SELECT civic_key AS owner, modifier_key AS key, modifier_value AS value FROM civic_modifier ORDER BY sort_order'
+		);
+		const seatMods = grouped(
+			'SELECT position_key AS owner, modifier_key AS key, modifier_value AS value FROM council_position_modifier ORDER BY sort_order'
+		);
+		const seats = new Map(
+			rows<{
+				key: string;
+				civic_key: string;
+				name: string | null;
+				leader_classes: string | null;
+				effect: string | null;
+			}>('SELECT key, civic_key, name, leader_classes, effect FROM council_position').map((s) => [
+				s.civic_key,
+				s
+			])
+		);
+		for (const c of rows<{
+			key: string;
+			name: string | null;
+			description: string | null;
+			locked: number;
+		}>('SELECT key, name, description, locked FROM civic')) {
+			const seat = seats.get(c.key);
+			const seatName = seat
+				? `${seat.name ?? pretty(seat.key)}${seat.leader_classes ? ` (${seat.leader_classes.replaceAll(',', ', ')})` : ''}`
+				: '';
+			out[`civic:${c.key}`] = {
+				title: c.name ?? pretty(c.key),
+				description: null,
+				modifiers: attunementLast(civicMods.get(c.key) ?? []),
+				text:
+					[c.description, seat?.effect && `Council seat ${seatName}: ${seat.effect}`]
+						.filter(Boolean)
+						.join('\n') || null,
+				after:
+					seat && seatMods.get(seat.key)
+						? {
+								label: `council seat ${seatName}, per leader level`,
+								modifiers: seatMods.get(seat.key)!
+							}
+						: undefined,
+				facts: [
+					...(seat && !seatMods.get(seat.key) && !seat.effect ? [`council seat ${seatName}`] : []),
+					...choiceFacts(c.key),
+					...(c.locked ? ['cannot be changed after game start'] : [])
+				]
+			};
+		}
+
+		const planetNames = new Map(
+			rows<{ key: string; name: string | null }>('SELECT key, name FROM planet_class').map((p) => [
+				p.key,
+				p.name
+			])
+		);
+		const originMods = grouped(
+			'SELECT origin_key AS owner, modifier_key AS key, modifier_value AS value FROM origin_modifier ORDER BY sort_order'
+		);
+		for (const o of rows<{
+			key: string;
+			name: string | null;
+			description: string | null;
+			starting_colony: string | null;
+		}>('SELECT key, name, description, starting_colony FROM origin'))
+			out[`origin:${o.key}`] = {
+				title: o.name ?? pretty(o.key),
+				description: null,
+				modifiers: attunementLast(originMods.get(o.key) ?? []),
+				text: o.description,
+				facts: [
+					...(o.starting_colony
+						? [`starts on ${planetNames.get(o.starting_colony) ?? pretty(o.starting_colony)}`]
+						: []),
+					...choiceFacts(o.key)
+				]
+			};
+
+		const authorityMods = grouped(
+			'SELECT authority_key AS owner, modifier_key AS key, modifier_value AS value FROM authority_modifier ORDER BY sort_order'
+		);
+		for (const a of rows<{ key: string; name: string | null; description: string | null }>(
+			'SELECT key, name, description FROM authority'
+		))
+			out[`authority:${a.key}`] = {
+				title: a.name ?? pretty(a.key),
+				description: a.description,
+				modifiers: authorityMods.get(a.key) ?? [],
+				text: null,
+				facts: []
+			};
+
+		const ethicMods = grouped(
+			'SELECT ethic_key AS owner, modifier_key AS key, modifier_value AS value FROM ethic_modifier ORDER BY sort_order'
+		);
+		const implications = listed(
+			`SELECT t.ethic_key AS owner, coalesce(l.label, t.tag) AS item
+			 FROM ethic_tag t LEFT JOIN ethic_tag_label l ON l.tag = t.tag ORDER BY t.sort_order`
+		);
+		const forbids = listed(
+			`SELECT ethic_key AS owner, coalesce(option_label, option_key) AS item
+			 FROM ethic_policy_restriction ORDER BY policy_key, option_key`
+		);
+		for (const e of rows<{ key: string; label: string | null }>('SELECT key, label FROM ethic'))
+			out[`ethic:${e.key}`] = {
+				title: e.label ?? pretty(e.key.replace(/^ethic_/, '')),
+				description: null,
+				modifiers: ethicMods.get(e.key) ?? [],
+				text: (implications.get(e.key) ?? []).join('\n') || null,
+				facts: forbids.get(e.key) ? [`forbids policies: ${forbids.get(e.key)!.join(', ')}`] : []
+			};
+
+		for (const g of rows<{ key: string; name: string | null }>(
+			'SELECT key, name FROM government_type'
+		))
+			out[`gov:${g.key}`] = {
+				title: g.name ?? pretty(g.key.replace(/^gov_/, '')),
+				description: null,
+				modifiers: [],
+				text: 'The game names the government after its authority, ethics and civics.',
+				facts: []
+			};
 		return out;
 	} finally {
 		db.close();
@@ -226,5 +394,5 @@ export function loadExplanations(file: string): Explanations {
 }
 
 /** The explanations a page needs, for the `<kind>:<key>` ids it shows. */
-export const pick = (all: Explanations, ids: string[]): Explanations =>
+export const pick = <T>(all: Record<string, T>, ids: string[]): Record<string, T> =>
 	Object.fromEntries(ids.filter((id) => all[id]).map((id) => [id, all[id]]));

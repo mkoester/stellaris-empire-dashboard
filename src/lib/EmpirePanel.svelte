@@ -9,6 +9,7 @@
 	import { openJobs } from './jobs.ts';
 	import Resources from './Resources.svelte';
 	import Upcoming from './Upcoming.svelte';
+	import DistrictName from './DistrictName.svelte';
 	import DistrictSummary from './DistrictSummary.svelte';
 	import AutomationSummary from './panels/AutomationSummary.svelte';
 	import Edicts from './panels/Edicts.svelte';
@@ -16,6 +17,7 @@
 	import Blockers from './panels/Blockers.svelte';
 	import Events from './panels/Events.svelte';
 	import Expansion from './panels/Expansion.svelte';
+	import Government from './panels/Government.svelte';
 	import Leaders from './panels/Leaders.svelte';
 	import Migration from './panels/Migration.svelte';
 	import FleetMovement from './panels/FleetMovement.svelte';
@@ -33,7 +35,6 @@
 	import { gameYear } from './series.ts';
 	import type { EmpireData } from './server/empire.ts';
 	import type { PanelId } from './settings.ts';
-	import type { Colony } from './types.ts';
 
 	// One empire panel by id: the `all` tab lays them all out, a custom tab shows its pick.
 	let { id, data }: { id: PanelId; data: EmpireData } = $props();
@@ -71,12 +72,6 @@
 		!data.isHead
 			? resolve(`/colony/[id]?node=${data.tip}`, { id: String(planetId) })
 			: resolve('/colony/[id]', { id: String(planetId) });
-
-	const queue = (c: Colony) =>
-		c.buildQueue.length === 0
-			? '∅'
-			: nameOf(data.names, c.buildQueue[0].name) +
-				(c.buildQueue.length > 1 ? ` (+${c.buildQueue.length - 1})` : '');
 
 	const charts = $derived({
 		'chart-empire-size': { title: 'Empire size', series: data.charts.empireSize, yMin: 50 },
@@ -236,7 +231,13 @@
 							<td class="p-1 text-right">{fmt(c.freeHousing)}</td>
 							<td class="p-1 text-right">{fmt(c.freeAmenities)}</td>
 							<td class="p-1 text-right">{c.districts}</td>
-							<td class="p-1 text-right">{queue(c)}</td>
+							<td class="p-1 text-right"
+								>{#if c.buildQueue.length}<DistrictName
+										name={nameOf(data.names, c.buildQueue[0].name)}
+										color={data.colors[c.buildQueue[0].name]}
+									/>{#if c.buildQueue.length > 1}&nbsp;(+{c.buildQueue.length -
+											1}){/if}{:else}∅{/if}</td
+							>
 							<td class="p-1"
 								>{c.automation.enabled ? automationSummary(c.automation.settings) : 'off'}</td
 							>
@@ -245,7 +246,11 @@
 						<tr class="border-b border-gray-200 text-xs dark:border-gray-800">
 							<td></td>
 							<td class="p-1 pb-2" colspan="14">
-								<DistrictSummary districts={c.districtList} names={data.names} />
+								<DistrictSummary
+									districts={c.districtList}
+									names={data.names}
+									colors={data.colors}
+								/>
 							</td>
 						</tr>
 					{/each}
@@ -332,6 +337,8 @@
 	/>
 {:else if id === 'research-tiers'}
 	<ResearchTiers tiers={data.tiers} />
+{:else if id === 'government'}
+	<Government government={data.government} explain={data.explain} />
 {:else if id === 'species'}
 	<SpeciesPanel species={data.species} explain={data.explain} />
 {:else if id === 'expansion'}

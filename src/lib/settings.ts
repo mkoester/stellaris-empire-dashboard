@@ -63,6 +63,7 @@ export const LAYOUT = [
 	{
 		cols: 'grid items-start gap-6 2xl:grid-cols-2',
 		panels: [
+			{ id: 'government', label: 'Government' },
 			{ id: 'traditions', label: 'Traditions' },
 			{ id: 'fleet-movement', label: 'Fleet movement' },
 			{ id: 'civilian-ships', label: 'Civilian ships' },

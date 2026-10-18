@@ -84,9 +84,15 @@ branch's two latest saves, so every speed bonus counts — and costs are base co
 scaled by empire size and the galaxy sliders. Checked against the game at 2200.04.01: research
 53/71/108 months, tradition 2200.09.01 exact; the agenda is 164 vs. the game's 163 (rounding).
 
-**Popups** (`InfoPopup.svelte`, `server/explain.ts`): traits, edicts, council agendas, techs and
-jobs explained from the extraction DB — descriptions, modifiers (edict/agenda ones live in
-`tradition_modifier`, techs in `technology_modifier`), a few facts. The modifier formatting in
+**Popups** (`InfoPopup.svelte`, `server/explain.ts`): traits, edicts, council agendas, techs,
+jobs and the empire's identity (`civic:`, `origin:`, `authority:`, `ethic:`, `gov:`) explained from
+the extraction DB — descriptions, modifiers (edict/agenda ones live in `tradition_modifier`, techs
+in `technology_modifier`), a few facts. Civics and origins follow the planner's pages: the effects
+tooltip as text, job swaps, unlocked buildings, granted traits, the council seat (its modifiers
+per leader level as `after`); ethics their implications (`ethic_tag_label`) and forbidden
+policies. The **Government panel** (`panels/Government.svelte`, `identity()` in `server/empire.ts`)
+sorts the save's flat `government` list by the kind the data DB knows each key as, and sums the
+choices' flat modifiers in `#lib/effects.ts` — **adapted from the planner's `collectEffects`**. The modifier formatting in
 `modifiers.ts` is **copied from the planner's `src/lib/civics.ts`** — keep the two in step. The
 popup itself is plain CSS: the planner's needs Skeleton UI.
 
@@ -119,7 +125,9 @@ chart has an "events" picker (`EventPicker.svelte`); choices are stored per `<sc
 (`empire:`/`colony:` — stored `planet:` keys are renamed on read; `log` for the Events panel) in the `chartEvents` setting, merged on PUT.
 
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
-events after the game's text colours. Charts and the upcoming list both use them.
+events after the game's text colours. Charts and the upcoming list both use them. **Districts**
+take theirs from the data DB (`district.color`, the border of the game's grid-box icon), shown as
+a swatch and tinted name by `DistrictName.svelte`; pages get them as `colors` next to `names`.
 
 **Two sources, one moment:** an autosave and the mod's line for the same date are merged into one
 node (`place()` → `merge`), otherwise the second would look like a reload. The merge compares the
@@ -305,6 +313,9 @@ modifier="celebrate_diversity" days=3535 } … } }` — `days` left, −1 = perm
   `static_modifier` tables (`modifier:<key>` popups, Empire modifiers panel). Some keys are no
   static modifier (`uncivic_parliamentary_system_isolationist`, 4.0.1) and show as the key.
 - Identity of a game state (`Snapshot.fingerprint`): `tick` + `random_count`, both top-level.
+- Government: `country.government = { type="gov_representative_democracy" authority civics={…}
+origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `type` is named
+  from the data DB's `government_type`.
 
 ## Open (needs a running game on Linux)
 

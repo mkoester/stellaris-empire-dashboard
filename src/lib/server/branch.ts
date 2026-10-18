@@ -2,6 +2,7 @@ import { upcoming } from '#lib/events.ts';
 import { jobFlows, jobRows, withFlows } from '#lib/jobs.ts';
 import { getDb, getGameData } from './app.ts';
 import { headId, history, nodes } from './db.ts';
+import { pick } from './explain.ts';
 import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
 
@@ -35,24 +36,19 @@ export function branch(url: URL) {
 		flows
 	);
 	const empirePops = Object.fromEntries(empireJobs.map((r) => [r.type, r.pops]));
+	const held = colonies.flatMap((c) => [
+		...c.buildQueue.map((q) => q.name),
+		...c.deposits,
+		...c.districtList.flatMap((d) => [d.type, ...d.zones.flatMap((z) => [z.type, ...z.buildings])])
+	]);
 	return {
 		// the campaign's bigger events along this branch, for charts and the events panel
 		milestones: milestones(snaps, getGameData()),
 		upcoming: last ? upcoming(last, previous, getGameData(), saves.slice(0, -1)) : [],
 		// Display names of what the colonies hold: queue items, districts, zones, buildings.
-		names: Object.fromEntries(
-			colonies
-				.flatMap((c) => [
-					...c.buildQueue.map((q) => q.name),
-					...c.deposits,
-					...c.districtList.flatMap((d) => [
-						d.type,
-						...d.zones.flatMap((z) => [z.type, ...z.buildings])
-					])
-				])
-				.filter((k) => getGameData().names[k])
-				.map((k) => [k, getGameData().names[k]])
-		),
+		names: pick(getGameData().names, held),
+		// and the districts' colours in game
+		colors: pick(getGameData().districtColors, held),
 		jobs: Object.fromEntries(
 			colonies.map((c) => [c.planetId, withFlows(jobRows(c.jobs, info), flows, empirePops)])
 		),

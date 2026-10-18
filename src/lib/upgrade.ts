@@ -46,6 +46,8 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	agendasDone: null,
 	policies: null,
 	government: null,
+	governmentType: null,
+	origin: null,
 	wars: null,
 	warLostDate: null,
 	tradeDeals: null

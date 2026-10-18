@@ -3,6 +3,7 @@
 	import type { CapSource, PlanetDetailsData } from './districtCaps.ts';
 	import BlockerHint from './BlockerHint.svelte';
 	import type { BlockerHint as Hint } from './blockers.ts';
+	import DistrictName from './DistrictName.svelte';
 	import Effects from './Effects.svelte';
 	import { nameOf, pretty } from './format.ts';
 	import InfoPopup from './InfoPopup.svelte';
@@ -15,6 +16,7 @@
 		date,
 		blockers,
 		names,
+		colors,
 		explain,
 		hints = null
 	}: PlanetDetailsData & {
@@ -69,7 +71,9 @@
 			<tbody class="tabular-nums">
 				{#each caps.types as t (t.district)}
 					<tr title={sourceText(t.sources)}>
-						<td class="pr-4">{nameOf(names, t.district)}</td>
+						<td class="pr-4"
+							><DistrictName name={nameOf(names, t.district)} color={colors[t.district]} /></td
+						>
 						<td class="pr-4 text-right">{t.built}</td>
 						<td class="pr-4 text-right"
 							>{t.cap ?? '–'}{#if t.sources.some((s) => s.blocked)}<span
