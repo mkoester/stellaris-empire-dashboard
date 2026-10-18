@@ -17,8 +17,9 @@ import type {
 //   snapshots up to date on read; saves still on disk refresh theirs on every start.
 // - SCHEMA versions the *tables* only. Bumping it drops everything, history included — except the
 //   viewer's settings (`setting`: theme, custom tabs), which no schema change touches.
-// - The galaxy (`Snapshot.galaxy`, ~140 KB: every system, the visited ones' bodies) is not stored
-//   per node: `galaxy` keeps each campaign's latest reading, the snapshots go without it.
+// - The galaxy (`Snapshot.galaxy`: every system with its bodies) and the lists as if all were
+//   surveyed (`Snapshot.surveyedAll`) are not stored per node (~1.6 MB at 2207.03.10): `galaxy`
+//   keeps each campaign's latest reading, the snapshots go without them.
 
 const SCHEMA = '15';
 
@@ -209,7 +210,10 @@ export function record(
 	}
 }
 
-/** A snapshot's stored JSON: its galaxy goes to the campaign's `galaxy` row, if it is the latest. */
+/**
+ * A snapshot's stored JSON: its galaxy (and the lists as if all were surveyed) go to the
+ * campaign's `galaxy` row, if it is the latest.
+ */
 function stored(db: Db, snap: Snapshot): string {
 	if (snap.galaxy) {
 		const row = db.prepare('SELECT date FROM galaxy WHERE campaign = ?').get(snap.campaign) as
@@ -218,20 +222,25 @@ function stored(db: Db, snap: Snapshot): string {
 			db.prepare('INSERT OR REPLACE INTO galaxy (campaign, date, json) VALUES (?, ?, ?)').run(
 				snap.campaign,
 				snap.date,
-				JSON.stringify(snap.galaxy)
+				JSON.stringify({ systems: snap.galaxy, surveyedAll: snap.surveyedAll })
 			);
 	}
-	return JSON.stringify({ ...snap, galaxy: null });
+	return JSON.stringify({ ...snap, galaxy: null, surveyedAll: null });
 }
 
 /** The campaign's galaxy as last read (its date), or null before the first save that has one. */
 export function galaxyOf(
 	db: Db,
 	campaign: string
-): { date: string; systems: GalaxySystem[] } | null {
+): { date: string; systems: GalaxySystem[]; surveyedAll: Snapshot['surveyedAll'] } | null {
 	const row = db.prepare('SELECT date, json FROM galaxy WHERE campaign = ?').get(campaign) as
 		{ date: string; json: string } | undefined;
-	return row ? { date: row.date, systems: JSON.parse(row.json) } : null;
+	if (!row) return null;
+	const v = JSON.parse(row.json);
+	// rows before 2026-10-18 hold the systems alone
+	return Array.isArray(v)
+		? { date: row.date, systems: v, surveyedAll: null }
+		: { date: row.date, systems: v.systems, surveyedAll: v.surveyedAll ?? null };
 }
 
 /**

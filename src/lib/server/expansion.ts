@@ -8,6 +8,7 @@ import type { ExpansionPlanet, Snapshot, SpeciesInfo } from '#lib/types.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
 import { planetDetails } from './planets.ts';
+import { campaignGalaxy } from './mapSystems.ts';
 import { display } from './settings.ts';
 
 /**
@@ -66,7 +67,21 @@ export function expansionRows(
 }
 
 /**
- * Habitat sites at the branch's latest save that read them, judged for the empire — shown once it
+ * With the surveyAll spoiler, the expansion candidates and habitat sites as if every planet were
+ * surveyed (the campaign's latest reading, kept with its galaxy); null otherwise or before a save
+ * has written them.
+ */
+export function surveyedAll(snaps: Snapshot[]): Snapshot['surveyedAll'] {
+	const last = snaps.at(-1);
+	return display().surveyAll && last ? (campaignGalaxy(last.campaign)?.surveyedAll ?? null) : null;
+}
+
+/** The expansion candidates: the surveyed planets of the branch's latest full save, or all. */
+export const expansionOf = (snaps: Snapshot[]) =>
+	surveyedAll(snaps)?.expansion ?? snaps.findLast((x) => x.expansion !== null)?.expansion ?? [];
+
+/**
+ * Habitat sites at the branch's latest save that read them (or as if all were surveyed), judged for the empire — shown once it
  * can build habitats, or always with the config tab's `habitatsAlways`.
  */
 export function habitatData(snaps: Snapshot[]) {
@@ -80,7 +95,9 @@ export function habitatData(snaps: Snapshot[]) {
 		show,
 		can,
 		rows: show
-			? (s?.habitatSites ?? []).map((site) => habitatRow(site, empire, data.habitatEffects))
+			? (surveyedAll(snaps)?.habitatSites ?? s?.habitatSites ?? []).map((site) =>
+					habitatRow(site, empire, data.habitatEffects)
+				)
 			: [],
 		names: pick(data.names, HABITAT_DISTRICTS),
 		colors: pick(data.districtColors, HABITAT_DISTRICTS)

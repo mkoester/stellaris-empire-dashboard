@@ -23,7 +23,9 @@ export type MapLayer = (typeof MAP_LAYERS)[number];
 
 export const LAYER_INFO: Record<MapLayer, { label: string; symbol: string; color: string }> = {
 	borders: { label: 'empire borders', symbol: '▢', color: '#8a8984' },
-	contacts: { label: 'first contacts', symbol: '✉', color: '#e34948' },
+	// the game's first contact map icon, sampled from a screenshot (2207.03.10, Rimmock and Mizar):
+	// a #6478c8 symbol on a #284088 hexagon
+	contacts: { label: 'first contacts', symbol: '✉', color: '#6478c8' },
 	stations: { label: 'stations seen', symbol: '⬢', color: '#7a5cc4' },
 	anomalies: { label: 'anomalies', symbol: '?', color: '#2f8fe0' },
 	digSites: { label: 'dig sites', symbol: '⛏', color: '#b07a2a' },
@@ -65,7 +67,7 @@ const days = (d: number | null) => (d === null ? '' : `, ${Math.ceil(d)} days le
 const isGate = (t: string) => /gateway|lgate/.test(t);
 const isRuin = (t: string) => /ruined/.test(t);
 const structure = (t: string) =>
-	pretty(t.replace(/_(permanently_)?ruined.*$/, '')) +
+	(/^lgate/.test(t) ? 'L-Gate' : pretty(t.replace(/_(permanently_)?ruined.*$/, ''))) +
 	(/permanently_ruined/.test(t) ? ' (beyond repair)' : isRuin(t) ? ' (ruined)' : '');
 
 /** Every marker of the discovered galaxy (`galaxy` holds only what the map may show). */
@@ -135,7 +137,9 @@ export function mapMarkers(p: {
 				out.push({ layer: 'wormholes', systemId: s.id, label: pretty(t), detail: 'bypass' });
 		// a gateway or L-gate is a megastructure too (built or ruined); the bypass alone if not
 		const gates = s.megastructures.filter(isGate);
-		for (const t of gates.length ? gates : (s.bypasses ?? []).filter(isGate))
+		const listed = gates.length ? gates : (s.bypasses ?? []).filter(isGate);
+		// an L-Gate shown by the lgates spoiler, in a system not visited
+		for (const t of listed.length ? listed : s.lgate ? ['lgate_base'] : [])
 			out.push({ layer: 'gateways', systemId: s.id, label: structure(t), detail: 'bypass' });
 		for (const t of s.megastructures.filter((x) => !isGate(x)))
 			out.push({

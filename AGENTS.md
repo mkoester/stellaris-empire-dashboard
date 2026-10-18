@@ -259,7 +259,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`. A new view of hidden information follows the same pattern. **The
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`. A new view of hidden information follows the same pattern. **The
 check is the user's in-game screenshot** of the matching panel (workspace `CLAUDE.md`): it caught
 the edicts (58 → the game's 5), policies, agendas and focus cards here.
 
@@ -297,9 +297,24 @@ empires' stations in the systems our fleets are in when the game saves (`fleet.<
 with the owner's shipset (`graphical_culture`) — what the player saw being there. A snapshot field,
 so it follows the save graph; `mergeSightings()` keeps first and last date per system. The owner id
 stays on the server unless we talk to them. Monthly autosaves catch only the fleets present then
-(2207.03.10: none yet — every fleet abroad sat in a station-less system). **The galaxy is not stored per snapshot** (~140 KB): `Snapshot.galaxy` goes to the
-`galaxy` table, one row per campaign holding its latest reading (`galaxyOf()`); every system's
-place, star and lanes, owner, bodies and megastructures only for visited or own systems.
+(2207.03.10: none yet — every fleet abroad sat in a station-less system). **The galaxy is not stored per snapshot** (~1.6 MB at 2207.03.10): `Snapshot.galaxy` and
+`Snapshot.surveyedAll` (expansion candidates and habitat sites as if every planet were surveyed: 2448
+planets vs. 51) go to the `galaxy` table, one row per campaign holding its latest reading
+(`galaxyOf()`; rows before 2026-10-18 hold the systems alone); every system's place, star, lanes
+and bodies (each `surveyed` or not), owner and megastructures only for visited or own systems.
+Pages read it through `campaignGalaxy()` (`server/mapSystems.ts`), which applies `surveyView()`:
+bodies of visited or own systems only, anomalies only on surveyed planets — or everything with the
+`surveyAll` spoiler, which also swaps the expansion and habitat lists (`expansionOf()`,
+`surveyedAll()` in `server/expansion.ts`; the campaign's latest reading, not the branch's).
+**L-Gates** (`lgates` spoiler): every L-Gate system (`GalaxySystem.lgate`, an `lgate_base`
+megastructure; 2207.03.10: Eye of Bal, Ribellan Vortex), named, with an L-Gate marker. The
+L-Cluster (`lcluster`: star flags `lcluster*`) only exists once the gates open — 4.5.2
+`events/distant_stars_events_3.txt` `distar.11000` spawns it then, 550–560 from the galactic
+core at 44–46°, its other systems relative to that within ranges; then every gate links to its
+entrance `lcluster1` (`lgateTo`, a star), drawn like a wormhole in cyan. Without the spoiler a
+gate's link shows once both ends are visited. **First contact** markers take the game's map icon
+blue (`#6478c8` on `#284088`, sampled from a screenshot: `firstcontact_map_icon.dds` is a cyan
+saucer the map does not show).
 
 **Megastructures tab** (`/megastructures`, `#lib/megastructures.ts`, pure): every system ranked
 per structure (arc furnace, dyson swarm, dyson sphere, ring world, matter decompressor, stellar
@@ -621,6 +636,9 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 
 ## Open (needs a running game on Linux)
 
+- **A predicted L-Cluster**: its place and shape are nearly fixed (`distar.11000`, see above), so
+  it could be drawn before it exists — but the angle's origin and direction are unknown. Calibrate
+  from any save with the cluster open (a throwaway game, console `event distar.11000`).
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
   show a link never jumped through). At the first wormhole explored, diff its `bypasses.<id>`,
   `natural_wormholes.<id>` and the country block against an earlier save for a real marker.

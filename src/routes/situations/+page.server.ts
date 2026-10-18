@@ -1,9 +1,8 @@
 import { error } from '@sveltejs/kit';
 import { contactRows, mapView, situationRows, stationOwners } from '#lib/situations.ts';
-import { getDb, getGameData } from '#lib/server/app.ts';
+import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import { galaxyOf } from '#lib/server/db.ts';
-import { territoriesOf } from '#lib/server/mapSystems.ts';
+import { campaignGalaxy, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display } from '#lib/server/settings.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
 
@@ -17,7 +16,7 @@ export function load({ url }) {
 	const data = getGameData();
 	const opts = display();
 	const s = snaps.findLast((x) => x.firstContacts !== null);
-	const galaxy = s ? (galaxyOf(getDb(), s.campaign)?.systems ?? []) : [];
+	const galaxy = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const nameOf = new Map(galaxy.map((g) => [g.id, g.name]));
 	const system = (id: number | null) => (id === null ? '–' : (nameOf.get(id) ?? String(id)));
 	const owners = s
@@ -47,7 +46,8 @@ export function load({ url }) {
 				whole: opts.wholeGalaxy,
 				stars: opts.unknownStars,
 				wormholes: opts.wormholeLinks,
-				wormholePairs: opts.wormholePairs
+				wormholePairs: opts.wormholePairs,
+				lgates: opts.lgates
 			},
 			(s?.firstContacts ?? []).map((c) => c.systemId)
 		),

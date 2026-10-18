@@ -314,6 +314,9 @@ export type Snapshot = {
 	// What the empire knows of the galaxy and the others (server/world.ts); null from the mod feed
 	// and in older snapshots.
 	galaxy: GalaxySystem[] | null;
+	// expansion and habitat sites as if every planet were surveyed (the surveyAll spoiler); stored
+	// with the galaxy, not per snapshot
+	surveyedAll: { expansion: ExpansionPlanet[]; habitatSites: HabitatSite[] } | null;
 	countries: CountryInfo[] | null; // empires in contact, or owning a station in a visited system
 	relations: Relation[] | null;
 	firstContacts: FirstContact[] | null;
@@ -368,6 +371,9 @@ export type GalaxySystem = {
 	megastructures: string[]; // types, built or ruined, in a visited system
 	bypasses?: string[]; // wormholes, gateways, L-gates (`bypasses.<id>.type`) in a visited system; since 2026-10-18
 	wormholes?: number[]; // where a wormhole here leads, explored or not (a spoiler); since 2026-10-18
+	lgate?: boolean; // an L-Gate here (`lgate_base` megastructure), in any system; since 2026-10-18
+	lcluster?: boolean; // one of the L-Cluster's systems (star flag lcluster*), once spawned
+	lgateTo?: number[]; // an L-Gate's link to the L-Cluster's entrance, once the gates are open
 	sector?: string | null; // own systems: the sector (`sectors.<id>.systems`); since 2026-10-18
 	lanesKnown?: boolean; // in `country.hyperlane_systems`: its hyperlanes are on our map (sensors); since 2026-10-18
 };
@@ -383,8 +389,9 @@ export type Body = {
 	ownerId: number | null;
 	colonized: boolean;
 	deposits: string[];
-	anomaly: string | null; // category, if the empire surveyed the planet
+	anomaly: string | null; // category; shown only where surveyed unless `surveyAll` (surveyView)
 	dist: number; // from the system's centre (in-system coordinates)
+	surveyed?: boolean; // by us (`surveyed_by`); since 2026-10-18
 };
 
 export type CountryInfo = {

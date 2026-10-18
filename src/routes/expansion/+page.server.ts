@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import { expansionRows, habitatData, speciesChoices } from '#lib/server/expansion.ts';
+import { expansionOf, expansionRows, habitatData, speciesChoices } from '#lib/server/expansion.ts';
 import { display, expansionView } from '#lib/server/settings.ts';
 import { ROW_LINES } from '#lib/profiles.ts';
 
@@ -13,7 +13,7 @@ export function load({ url }) {
 	const s = b.snaps.findLast((x) => x.expansion !== null);
 	const species = speciesChoices(b.snaps.findLast((x) => x.species !== null)?.species ?? []);
 	return {
-		planets: expansionRows(s?.expansion ?? [], species),
+		planets: expansionRows(expansionOf(b.snaps), species),
 		species: species.map(({ id, name }) => ({ id, name })),
 		canDetox: b.snaps.findLast((x) => x.canDetox !== null)?.canDetox ?? false,
 		habitats: habitatData(b.snaps),

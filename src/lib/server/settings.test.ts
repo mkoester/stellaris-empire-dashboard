@@ -32,6 +32,8 @@ describe('profiles', () => {
 				unknownStars: false,
 				wormholeLinks: true,
 				wormholePairs: false,
+				lgates: false,
+				surveyAll: false,
 				showLocked: false,
 				factionTypes: false,
 				allFactionTypes: false
@@ -69,6 +71,8 @@ describe('profiles', () => {
 				unknownStars: false,
 				wormholeLinks: true,
 				wormholePairs: false,
+				lgates: false,
+				surveyAll: false,
 				showLocked: false,
 				factionTypes: false,
 				allFactionTypes: false

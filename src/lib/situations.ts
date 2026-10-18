@@ -113,6 +113,21 @@ export function situationRows(
 	}));
 }
 
+/**
+ * The galaxy as the empire knows its bodies: those of visited or own systems, anomalies only on
+ * planets it surveyed — or, with `all` (the surveyAll spoiler), every body as if surveyed.
+ */
+export function surveyView(galaxy: GalaxySystem[], all: boolean): GalaxySystem[] {
+	if (all) return galaxy;
+	return galaxy.map((s) => ({
+		...s,
+		bodies:
+			s.visited || s.owned
+				? (s.bodies?.map((b) => (b.surveyed === false ? { ...b, anomaly: null } : b)) ?? null)
+				: null
+	}));
+}
+
 /** Which systems a map shows: discovered only, every star (lanes still only the known), all. */
 export type Reveal = { whole: boolean; stars: boolean };
 
@@ -176,11 +191,13 @@ export function discovered(
  * with `wormholes`, where explored wormholes lead (drawn as arcs). Explored: both ends visited —
  * the save marks no wormhole as explored, and exploring one (a fleet's jump through it) visits
  * the far end; visiting one end is not enough. With `wormholePairs` (a spoiler) every pair,
- * both ends shown.
+ * both ends shown. With `lgates` (a spoiler) every L-Gate system and, once the gates are open and
+ * the L-Cluster exists, its systems, lanes and the gates' links (`lgates`), named; without it a
+ * gate's link shows once both ends are visited.
  */
 export function mapView(
 	galaxy: GalaxySystem[],
-	reveal: Reveal & { wormholes?: boolean; wormholePairs?: boolean },
+	reveal: Reveal & { wormholes?: boolean; wormholePairs?: boolean; lgates?: boolean },
 	also: number[] = []
 ) {
 	const known = knownIds(galaxy, also);
@@ -190,32 +207,43 @@ export function mapView(
 		(s.wormholes ?? []).filter(
 			(to) => reveal.wormholePairs || (reveal.wormholes && visited(s.id) && visited(to))
 		);
-	const lit = (id: number) => known.has(id) || byId.get(id)?.lanesKnown === true;
+	const revealed = (s: GalaxySystem | undefined) =>
+		reveal.lgates === true && (s?.lgate === true || s?.lcluster === true);
+	const lgates = (s: GalaxySystem) =>
+		(s.lgateTo ?? []).filter((to) => reveal.lgates || (visited(s.id) && visited(to)));
+	const lit = (id: number) =>
+		known.has(id) ||
+		byId.get(id)?.lanesKnown === true ||
+		(revealed(byId.get(id)) && byId.get(id)?.lcluster === true);
 	const lane = (a: number, b: number) => lit(a) || lit(b);
 	// a lane is listed at its lower end, so both ends are looked at
 	const near = new Set<number>();
 	for (const s of galaxy) {
 		for (const to of s.lanes)
 			if (lane(s.id, to)) for (const id of [s.id, to]) if (!known.has(id)) near.add(id);
-		for (const to of worm(s)) for (const id of [s.id, to]) if (!known.has(id)) near.add(id);
+		for (const to of [...worm(s), ...lgates(s)])
+			for (const id of [s.id, to]) if (!known.has(id)) near.add(id);
+		if (revealed(s) && !known.has(s.id)) near.add(s.id);
 	}
 	const base = discovered(galaxy, reveal, also);
 	const ids = new Set(base.map((s) => s.id));
 	const frontier = galaxy
 		.filter((s) => near.has(s.id) && !ids.has(s.id))
-		.map((s) => ({ ...s, name: 'Unknown' }));
+		.map((s) => (revealed(s) ? s : { ...s, name: 'Unknown' }));
 	const lanes = (id: number) => {
 		const all = byId.get(id)?.lanes ?? [];
 		return reveal.whole ? all : all.filter((to) => lane(id, to));
 	};
 	return [...base, ...frontier].map((g) => ({
 		id: g.id,
-		name: g.name,
+		// a star the unknownStars switch named 'Unknown' keeps its name when the L-Gate spoiler shows it
+		name: revealed(byId.get(g.id)) ? (byId.get(g.id)?.name ?? g.name) : g.name,
 		x: g.x,
 		y: g.y,
 		lanes: lanes(g.id),
 		owned: g.owned,
 		known: reveal.whole || known.has(g.id),
-		wormholes: worm(byId.get(g.id) ?? g)
+		wormholes: worm(byId.get(g.id) ?? g),
+		lgates: lgates(byId.get(g.id) ?? g)
 	}));
 }

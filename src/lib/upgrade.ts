@@ -72,6 +72,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	specialProjects: null,
 	digSites: null,
 	stationsSeen: null,
+	surveyedAll: null,
 	focus: null,
 	techOptions: null,
 	leaderList: null,

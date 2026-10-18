@@ -2,10 +2,9 @@ import { error } from '@sveltejs/kit';
 import { candidates, KINDS, MEGA_RULES } from '#lib/megastructures.ts';
 import { discovered, jumpsFromBorder, mapView } from '#lib/situations.ts';
 import { display, megastructureView } from '#lib/server/settings.ts';
-import { getDb, getGameData } from '#lib/server/app.ts';
+import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import { galaxyOf } from '#lib/server/db.ts';
-import { reveal, territoriesOf } from '#lib/server/mapSystems.ts';
+import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
 
 // Where to build each kilo- and megastructure, over the campaign's latest galaxy reading.
 export function load({ url }) {
@@ -13,7 +12,7 @@ export function load({ url }) {
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	const s = snaps.findLast((x) => x.firstContacts !== null);
-	const g = s ? galaxyOf(getDb(), s.campaign) : null;
+	const g = s ? campaignGalaxy(s.campaign) : null;
 	const { wholeGalaxy: whole, unknownStars: stars, contactStations } = display();
 	// what is not discovered is neither a candidate nor counted (the catapult's farthest system);
 	// with the unknown stars shown, their stars count (the game shows a star's class), not bodies

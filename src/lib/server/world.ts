@@ -69,11 +69,9 @@ function body(raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>, id: numb
 		deposits: list(p.deposits)
 			.map((d) => raw.deposits[String(d)]?.type)
 			.filter((t): t is string => typeof t === 'string' && t !== 'none'),
-		anomaly:
-			typeof p.anomaly === 'string' && list(p.surveyed_by).includes(raw.countryId)
-				? p.anomaly
-				: null,
-		dist: Math.hypot(num(p.coordinate?.x), num(p.coordinate?.y))
+		anomaly: typeof p.anomaly === 'string' ? p.anomaly : null,
+		dist: Math.hypot(num(p.coordinate?.x), num(p.coordinate?.y)),
+		surveyed: list(p.surveyed_by).includes(raw.countryId)
 	};
 }
 
@@ -143,6 +141,7 @@ export function galaxy(
 		| 'bypasses'
 		| 'naturalWormholes'
 		| 'sectors'
+		| 'globalFlags'
 	>,
 	own: Set<number>
 ): GalaxySystem[] {
@@ -158,10 +157,18 @@ export function galaxy(
 		if (at !== null && typeof m?.type === 'string')
 			megas.set(at, [...(megas.get(at) ?? []), m.type]);
 	}
+	// L-Gates link to the L-Cluster's entrance once open for everyone (#lib/galaxyGraph.ts); the
+	// cluster's systems only exist from then on (4.5.2 events/distant_stars_events_3.txt, distar.11000)
+	const starFlags = (s: Raw) => Object.keys(s?.flags ?? {});
+	const entrance = Object.entries(raw.systems)
+		.filter(([, s]) => starFlags(s).includes('lcluster1'))
+		.map(([id]) => Number(id));
+	const open = Object.keys(raw.globalFlags ?? {}).includes('lgates_activated_globally');
 	return Object.entries(raw.systems).flatMap(([key, s]) => {
 		if (!s || typeof s !== 'object') return [];
 		const id = Number(key);
 		const seen = visited.has(id);
+		const lgate = (megas.get(id) ?? []).some((t) => /^lgate/.test(t));
 		return [
 			{
 				id,
@@ -174,14 +181,16 @@ export function galaxy(
 				visited: seen,
 				owned: own.has(id),
 				ownerId: seen ? stationOwner(raw, s) : null,
-				bodies: seen
-					? list(s.planet)
-							.map((p) => body(raw, p))
-							.filter((b) => b !== null)
-					: null,
+				// every system's bodies: what a map may show of them is surveyView's choice
+				bodies: list(s.planet)
+					.map((p) => body(raw, p))
+					.filter((b) => b !== null),
 				megastructures: seen ? (megas.get(id) ?? []) : [],
 				wormholes: wormholes.get(id) ?? [],
 				lanesKnown: lanesKnown.has(id),
+				lgate,
+				lcluster: starFlags(s).some((f) => f.startsWith('lcluster')),
+				lgateTo: lgate && open ? entrance : [],
 				sector: own.has(id) ? (sectorOf.get(id) ?? null) : null,
 				bypasses: seen
 					? list(s.bypasses)

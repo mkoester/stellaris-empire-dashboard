@@ -18,6 +18,7 @@
 		capital?: boolean;
 		known?: boolean; // false: an undiscovered star, drawn faint
 		wormholes?: number[]; // where explored wormholes lead, drawn as dashed arcs
+		lgates?: number[]; // an L-Gate's link to the L-Cluster, likewise
 	};
 	let {
 		systems,
@@ -56,14 +57,21 @@
 		ownerOf.size ? cells(systems, new Set(ownerOf.keys()), claimRadius(systems)) : []
 	);
 	const keyOf = (id: number) => ownerOf.get(id)?.key;
-	// each wormhole once (both ends list each other), bent so it does not hide a lane
+	// each wormhole once (both ends list each other), bent so it does not hide a lane; L-Gates
+	// list their link at the gate only
 	const wormholes = $derived(
-		systems.flatMap((s) =>
-			(s.wormholes ?? []).flatMap((to) => {
+		systems.flatMap((s) => [
+			...(s.wormholes ?? []).flatMap((to) => {
 				const o = byId.get(to);
-				return o && (s.id < to || !(o.wormholes ?? []).includes(s.id)) ? [[s, o] as const] : [];
+				return o && (s.id < to || !(o.wormholes ?? []).includes(s.id))
+					? [[s, o, 'wormhole'] as const]
+					: [];
+			}),
+			...(s.lgates ?? []).flatMap((to) => {
+				const o = byId.get(to);
+				return o ? [[s, o, 'L-Gate'] as const] : [];
 			})
-		)
+		])
 	);
 	const arc = (a: Point, b: Point) => {
 		const [p, q] = [at(a), at(b)];
@@ -242,13 +250,15 @@
 					{/if}
 				{/each}
 			{/each}
-			{#each wormholes as [a, b] (`${a.id}-${b.id}`)}
+			{#each wormholes as [a, b, via] (`${via}:${a.id}-${b.id}`)}
 				<path
-					class="pointer-events-none stroke-fuchsia-500"
+					class="pointer-events-none {via === 'wormhole'
+						? 'stroke-fuchsia-500'
+						: 'stroke-cyan-500'}"
 					d={arc(a, b)}
 					fill="none"
 					stroke-width="1.5"
-					stroke-dasharray="5 4"><title>wormhole {a.name} – {b.name}</title></path
+					stroke-dasharray="5 4"><title>{via} {a.name} – {b.name}</title></path
 				>
 			{/each}
 			{#each systems as s (s.id)}

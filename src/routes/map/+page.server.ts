@@ -1,11 +1,10 @@
 import { error } from '@sveltejs/kit';
 import { mapMarkers } from '#lib/mapLayers.ts';
 import { discovered, mapView } from '#lib/situations.ts';
-import { getDb, getGameData } from '#lib/server/app.ts';
+import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import { galaxyOf } from '#lib/server/db.ts';
-import { reveal, territoriesOf } from '#lib/server/mapSystems.ts';
-import { mapFilter } from '#lib/server/settings.ts';
+import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
+import { display, mapFilter } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
 
 // The galaxy as the empire has discovered it: borders, first contacts, stations seen, anomalies,
@@ -17,7 +16,7 @@ export function load({ url }) {
 	const { snaps, ...rest } = b;
 	const data = getGameData();
 	const s = snaps.findLast((x) => x.firstContacts !== null);
-	const g = s ? (galaxyOf(getDb(), s.campaign)?.systems ?? []) : [];
+	const g = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const contactSites = (s?.firstContacts ?? []).map((c) => c.systemId);
 	const capital = snaps.findLast((x) => x.knownSystems)?.knownSystems?.find((k) => k.capital)?.id;
 	return {
@@ -31,7 +30,10 @@ export function load({ url }) {
 		territories: territoriesOf(snaps),
 		markers: mapMarkers({
 			// what was discovered only: a marker's place is never a spoiler
-			galaxy: discovered(g, { whole: false, stars: false }, contactSites),
+			galaxy: [
+				...discovered(g, { whole: false, stars: false }, contactSites),
+				...(display().lgates ? g.filter((x) => x.lgate && !x.visited && !x.owned) : [])
+			],
 			contacts: s?.firstContacts ?? [],
 			anomalies: s?.anomalies ?? [],
 			digSites: s?.digSites ?? [],

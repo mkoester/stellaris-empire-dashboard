@@ -264,6 +264,11 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		sectors: sectors(raw),
 		expansion: expansion(raw, shipyardSystems(raw)),
 		habitatSites: habitatSites(raw, shipyardSystems(raw)),
+		// as if every planet were surveyed: kept with the galaxy, one row per campaign
+		surveyedAll: {
+			expansion: expansion(raw, shipyardSystems(raw), true),
+			habitatSites: habitatSites(raw, shipyardSystems(raw), true)
+		},
 		habitats: {
 			// 4.5.2 common/megastructures/habitats.txt (habitat_central_complex: potential)
 			can:
@@ -1051,7 +1056,11 @@ const ARTIFICIAL = /habitat|ringworld|^pc_ark|astral_scar|cosmogenesis|_seam$/;
  * deposits on its surveyed bodies, whose `habitat_modifier` caps its districts
  * (#lib/habitats.ts). Building needs the system inside the borders: `beyond` 0.
  */
-export function habitatSites(raw: ReachRaw & Pick<RawSave, 'deposits'>, shipyards: number[] = []) {
+export function habitatSites(
+	raw: ReachRaw & Pick<RawSave, 'deposits'>,
+	shipyards: number[] = [],
+	all = false // every system as if surveyed (the surveyAll spoiler)
+) {
 	const { fromCapital, fromShipyard, fromBorder } = reach(raw, shipyards);
 	const bySystem = new Map<number, Raw[]>();
 	for (const p of Object.values(raw.planets))
@@ -1060,7 +1069,7 @@ export function habitatSites(raw: ReachRaw & Pick<RawSave, 'deposits'>, shipyard
 				...(bySystem.get(Number(p.coordinate.origin)) ?? []),
 				p
 			]);
-	const surveyed = (p: Raw) => list(p.surveyed_by).includes(raw.countryId);
+	const surveyed = (p: Raw) => all || list(p.surveyed_by).includes(raw.countryId);
 	return [...bySystem]
 		.filter(
 			([sys, ps]) =>
@@ -1095,13 +1104,18 @@ export function habitatSites(raw: ReachRaw & Pick<RawSave, 'deposits'>, shipyard
 
 export function expansion(
 	raw: ReachRaw & Pick<RawSave, 'deposits' | 'date'>,
-	shipyards: number[] = []
+	shipyards: number[] = [],
+	all = false // every planet as if surveyed (the surveyAll spoiler)
 ): ExpansionPlanet[] {
 	const { fromCapital, fromShipyard, fromBorder } = reach(raw, shipyards);
 	const controlled = (p: Raw) => controlledBy(p, raw.countryId);
-	return items(raw.country?.surveyed_deposit_holders)
-		.filter((h) => num(h?.type) === 0)
-		.map((h) => [Number(h.id), raw.planets[String(h.id)]] as const)
+	const ids = all
+		? Object.keys(raw.planets).map(Number)
+		: items(raw.country?.surveyed_deposit_holders)
+				.filter((h) => num(h?.type) === 0)
+				.map((h) => Number(h.id));
+	return ids
+		.map((id) => [id, raw.planets[String(id)]] as const)
 		.filter(([, p]) => p && typeof p === 'object' && p.owner === undefined)
 		.filter(([, p]) => p.controller === undefined || controlled(p))
 		.filter(([, p]) => !NOT_ROCKY.test(String(p.planet_class)))

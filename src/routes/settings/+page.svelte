@@ -42,9 +42,19 @@
 			'spoilers'
 		],
 		[
+			'lgates',
+			'Maps: show every L-Gate and, once they are open, the L-Cluster and its connections',
+			'spoilers — the L-Cluster itself only exists once the gates open'
+		],
+		[
+			'surveyAll',
+			'Treat every system as fully surveyed: bodies, deposits, anomalies, expansion and habitat sites',
+			'spoilers'
+		],
+		[
 			'wholeGalaxy',
-			'Maps and megastructure sites: the whole galaxy, not only the systems discovered',
-			'shows what the game still hides'
+			'Maps and megastructure sites: every system with its name and hyperlanes',
+			'spoilers'
 		],
 		[
 			'contactStations',

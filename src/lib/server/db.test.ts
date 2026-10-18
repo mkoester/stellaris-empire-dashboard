@@ -88,6 +88,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	specialProjects: null,
 	digSites: null,
 	stationsSeen: null,
+	surveyedAll: null,
 	focus: null,
 	techOptions: null,
 	leaderList: null,
@@ -152,9 +153,28 @@ describe('galaxy', () => {
 		const a = record(db, { ...snap('2201.01.01', 'a'), galaxy: [sys('new')] }, 't').nodeId;
 		// a reload of an older save: its galaxy is not the latest
 		record(db, { ...snap('2200.06.01', 'b'), galaxy: [sys('old')] }, 't');
-		expect(galaxyOf(db, 'c')).toEqual({ date: '2201.01.01', systems: [sys('new')] });
+		expect(galaxyOf(db, 'c')).toEqual({
+			date: '2201.01.01',
+			systems: [sys('new')],
+			surveyedAll: null
+		});
 		expect(history(db, a)[0].galaxy).toBeNull();
 		expect(galaxyOf(db, 'other')).toBeNull();
+	});
+
+	it('keeps the lists as if surveyed with the galaxy, and reads rows from before them', () => {
+		const db = openDb(':memory:');
+		const surveyedAll = { expansion: [], habitatSites: [] };
+		const a = record(db, { ...snap('2201.01.01', 'a'), galaxy: [sys('x')], surveyedAll }, 't');
+		expect(galaxyOf(db, 'c')?.surveyedAll).toEqual(surveyedAll);
+		expect(history(db, a.nodeId)[0].surveyedAll).toBeNull();
+		// a row written before 2026-10-18: the systems alone
+		db.prepare("UPDATE galaxy SET json = ? WHERE campaign = 'c'").run(JSON.stringify([sys('y')]));
+		expect(galaxyOf(db, 'c')).toEqual({
+			date: '2201.01.01',
+			systems: [sys('y')],
+			surveyedAll: null
+		});
 	});
 });
 

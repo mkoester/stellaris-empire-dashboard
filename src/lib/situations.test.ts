@@ -5,7 +5,8 @@ import {
 	mainNetwork,
 	mapView,
 	monthsBetween,
-	stationOwners
+	stationOwners,
+	surveyView
 } from './situations.ts';
 import type { FirstContact, GalaxySystem } from './types.ts';
 
@@ -148,6 +149,63 @@ describe('mapView', () => {
 		const pairs = mapView(g, { ...none, wormholePairs: true });
 		expect(pairs.find((s) => s.id === 1)?.wormholes).toEqual([9]);
 		expect(pairs.find((s) => s.id === 9)?.known).toBe(false);
+	});
+});
+
+describe('surveyView', () => {
+	const planet = (id: number, surveyed: boolean) => ({
+		id,
+		name: `P${id}`,
+		class: 'pc_barren',
+		size: 10,
+		star: false,
+		moonOf: null,
+		ownerId: null,
+		colonized: false,
+		deposits: [],
+		anomaly: 'battle',
+		dist: 10,
+		surveyed
+	});
+	const g = [
+		sys(1, [], { bodies: [planet(1, true), planet(2, false)] }),
+		sys(2, [], { visited: false, bodies: [planet(3, false)] })
+	];
+	it('hides the bodies of unvisited systems and anomalies on unsurveyed planets', () => {
+		const v = surveyView(g, false);
+		expect(v[0].bodies?.map((b) => b.anomaly)).toEqual(['battle', null]);
+		expect(v[1].bodies).toBeNull();
+	});
+	it('shows everything as if surveyed with the spoiler', () => {
+		expect(surveyView(g, true)).toEqual(g);
+	});
+});
+
+describe('mapView and L-Gates', () => {
+	// 1 visited; 5 an L-Gate far off; 8 and 9 the L-Cluster (spawned once open), the gate linked to 8
+	const g = [
+		sys(1, [2], { lanesKnown: true }),
+		sys(2, [], { visited: false }),
+		sys(5, [], { visited: false, lgate: true, lgateTo: [8] }),
+		sys(8, [9], { visited: false, lcluster: true }),
+		sys(9, [], { visited: false, lcluster: true })
+	];
+	const none = { whole: false, stars: false };
+	it('reveals every L-Gate and the L-Cluster, named and linked, only with the spoiler', () => {
+		expect(mapView(g, none).map((s) => s.id)).toEqual([1, 2]);
+		const v = mapView(g, { ...none, lgates: true });
+		expect(v.map((s) => [s.id, s.name, s.lgates, s.lanes])).toEqual([
+			[1, 'S1', [], [2]],
+			[2, 'Unknown', [], []],
+			[5, 'S5', [8], []],
+			[8, 'S8', [], [9]],
+			[9, 'S9', [], []]
+		]);
+	});
+
+	it('keeps an L-Gate’s name when the unknown stars are shown too', () => {
+		const v = mapView(g, { whole: false, stars: true, lgates: true });
+		expect(v.find((s) => s.id === 5)?.name).toBe('S5');
 	});
 });
 
