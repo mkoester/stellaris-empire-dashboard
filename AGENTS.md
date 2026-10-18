@@ -212,8 +212,8 @@ its `bonus_skill_level` + the empire's `councilor_skill_add` the save shows acti
 edicts, policy options, civics, timed modifiers; `councilorBonus()`, data DB `councilorSkill`).
 Each seat's leader classes are chips in the game's colours; the leader's traits add their
 `councilor_modifier` ("applied to country if leader is on the Council", flat — 4.5.2
-`common/traits/000_documentation_leader_traits.txt`; `ltraitcouncil:<key>`). Possible seats: our civics' seats and base seats whose `possible` is not
-Possible seats are only those known to be open (`possible` true): the enclaves' seats need a
+`common/traits/000_documentation_leader_traits.txt`; `ltraitcouncil:<key>`). Possible seats are our
+civics' seats and the base and enclave seats known to be open (`possible` true): the enclaves' seats need a
 leader with the enclave's trait, hired at that enclave (4.5.2 `events/overlord_enclaves_events.txt`,
 e.g. `enclave.7100`: 50 influence and energy by empire size), so the extraction rewrites
 `any_owned_leader = { has_trait = X }` as `has_owned_leader_trait` leaves, checked against our
@@ -222,7 +222,19 @@ stays unknown, hidden. Agendas show "while preparing" (`modifier`, active while 
 `99_README_AGENDAS.txt`) and "once launched" (launch effect text, `finish_modifier` for its
 duration); edicts their effects, in the table. Factions: none has formed in a save yet, so the
 panel lists faction types only with the profile's `factionTypes` (our ethics) or
-`allFactionTypes` switch — both marked cheating. false; `unlocked_civic_council_slots` is the number of seats (3 at 2207.03.10, all held).
+`allFactionTypes` switch — both marked cheating. `unlocked_civic_council_slots` is the number of
+seats (3 at 2207.03.10, all held). The agenda being prepared shows progress / cost (at empire size),
+percentage and months; every other open one "~N months if picked next" — the measured rate and
+size factor of the current agenda, started from 0. Same-status agendas sort alphabetically.
+
+**Revealing what the game hides is the user's choice, off by default** (their rule, 2026-10-18):
+the tabs show what the game's own panels show — agendas, edicts, policies, council seats as the
+game lists them, maps only discovered space, factions only once formed. Everything beyond is a
+profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
+`factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
+`unknownStars`, `wholeGalaxy`. A new view of hidden information follows the same pattern. **The
+check is the user's in-game screenshot** of the matching panel (workspace `CLAUDE.md`): it caught
+the edicts (58 → the game's 5), policies, agendas and focus cards here.
 
 **Government tab** (`/government`, `#lib/government.ts` and `#lib/triggers.ts`, both pure): the
 identity panel, ruler and council seats, the agenda with its due date (`events.ts`), the agendas this

@@ -28,7 +28,18 @@ export function load({ url }) {
 	const f = facts(s, data.scriptedTriggers);
 	const { showLocked, factionTypes, allFactionTypes } = display();
 	const policies = policyRows(data.policies, s.policies ?? {}, f, showLocked);
-	const agendas = agendaRows(data.agendas, s, f);
+	// the measured agenda rate (progress/month) and the empire-size factor on costs, from the
+	// agenda being prepared: an estimate for every other one, if picked next and started from 0
+	const due = rest.upcoming.find((u) => u.kind === 'agenda' && u.total !== undefined);
+	const current = s.progress?.agenda;
+	const base = current ? data.agendas[current.key]?.cost : null;
+	const rate =
+		due && current && due.months > 0 ? (due.total! - current.progress) / due.months : null;
+	const factor = due && base ? due.total! / base : 1;
+	const agendas = agendaRows(data.agendas, s, f).map((a) => ({
+		...a,
+		months: rate && a.cost ? Math.ceil((a.cost * factor) / rate) : null
+	}));
 	const edicts = edictRows(data.edicts, s, f);
 	const government = identity(snaps.findLast((x) => x.government !== null));
 	const explanations = getExplanations();

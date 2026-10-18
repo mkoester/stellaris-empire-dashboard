@@ -50,7 +50,7 @@
 		v === null || Math.abs(v) < 0.01 ? null : `${v > 0 ? '+' : ''}${v}`;
 	const mark = (v: boolean | null) => (v === null ? '?' : v ? '✓' : '✗');
 
-	const agendaColumns: Column<AgendaRow>[] = [
+	const agendaColumns: Column<AgendaRow & { months: number | null }>[] = [
 		{ id: 'name', label: 'Agenda', value: (r) => r.name, cell: agendaName },
 		{
 			id: 'cost',
@@ -60,7 +60,12 @@
 			cell: agendaCost,
 			title: 'base agenda progress; the one being prepared: progress / cost at your empire size'
 		},
-		{ id: 'status', label: 'Status', value: (r) => STATUS[r.status][0], cell: agendaStatus },
+		{
+			id: 'status',
+			label: 'Status',
+			value: (r) => `${STATUS[r.status][0]} ${r.name}`,
+			cell: agendaStatus
+		},
 		{
 			id: 'preparing',
 			label: 'While preparing',
@@ -122,10 +127,10 @@
 			{modifierLabel(m)}
 		</div>{/each}
 {/snippet}
-{#snippet agendaNow(r: AgendaRow)}{@render mods(
+{#snippet agendaNow(r: AgendaRow & { months: number | null })}{@render mods(
 		data.explain[`agenda:${r.key}`]?.modifiers ?? []
 	)}{/snippet}
-{#snippet agendaAfter(r: AgendaRow)}
+{#snippet agendaAfter(r: AgendaRow & { months: number | null })}
 	{@const e = data.explain[`agenda:${r.key}`]}
 	{#if e?.text}<div class="max-w-md text-gray-500">{e.text}</div>{/if}
 	{#if e?.after}<div class="text-xs text-gray-500">{e.after.label}:</div>
@@ -136,16 +141,16 @@
 	{@render mods(e?.modifiers ?? [])}
 	{#if e?.text}<div class="max-w-md text-gray-500">{e.text}</div>{/if}
 {/snippet}
-{#snippet agendaName(r: AgendaRow)}
+{#snippet agendaName(r: AgendaRow & { months: number | null })}
 	<InfoPopup explanation={data.explain[`agenda:${r.key}`]}>{r.name}</InfoPopup>
 {/snippet}
-{#snippet agendaCost(r: AgendaRow)}
+{#snippet agendaCost(r: AgendaRow & { months: number | null })}
 	{#if r.status === 'current' && data.agenda}{Math.round(data.agenda.progress).toLocaleString('en')}
 		<div class="text-gray-500">
 			/ {Math.round(data.agendaDue?.total ?? r.cost ?? 0).toLocaleString('en')}
 		</div>{:else}{r.cost?.toLocaleString('en') ?? '–'}{/if}
 {/snippet}
-{#snippet agendaStatus(r: AgendaRow)}
+{#snippet agendaStatus(r: AgendaRow & { months: number | null })}
 	<span
 		class={r.status === 'current' ? 'font-semibold' : r.status === 'locked' ? 'text-gray-500' : ''}
 		>{STATUS[r.status][1]}</span
@@ -155,6 +160,12 @@
 		>
 			{Math.floor((data.agenda.progress / data.agendaDue.total) * 100)}% · {data.agendaDue.months}
 			months{data.agendaDue.exact ? '' : ' (est.)'}
+		</div>{/if}
+	{#if (r.status === 'open' || r.status === 'maybe') && r.months !== null}<div
+			class="text-xs whitespace-nowrap text-gray-500"
+			title="at the current agenda rate, picked next and started from 0"
+		>
+			~{r.months} months if picked next
 		</div>{/if}
 	{#if r.launch}<div class="text-xs whitespace-nowrap text-gray-500">
 			{#if r.launch.launched}<div>launched {r.launch.launched}</div>{/if}
