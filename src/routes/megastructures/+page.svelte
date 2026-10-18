@@ -1,20 +1,28 @@
 <script lang="ts">
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import { followGame } from '#lib/live.ts';
-	import { scoreFill, type Candidate, type Kind } from '#lib/megastructures.ts';
+	import { RANGES, scoreFill, type Candidate, type MegaView } from '#lib/megastructures.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import SortTable from '#lib/SortTable.svelte';
+	import { putSettings } from '#lib/settings.ts';
 	import type { Column } from '#lib/sort.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
 
-	let kind: Kind = $state('quantum_catapult');
-	let range = $state('mine'); // mine | 0…5 jumps beyond the border | all
-	let fitting = $state(true);
+	// the view is the profile's: changed here, stored at once
+	let view: MegaView = $derived(data.view);
+	const save = (v: MegaView) => {
+		view = v;
+		void putSettings({ megastructureView: v });
+	};
 	let hovered: number | null = $state(null);
+	const getSelected = () => view.selected;
+	const setSelected = (id: number | null | undefined) => save({ ...view, selected: id ?? null });
+	const range = $derived(view.range);
+	const fitting = $derived(view.fitting);
 
-	const k = $derived(data.kinds.find((x) => x.kind === kind)!);
+	const k = $derived(data.kinds.find((x) => x.kind === view.kind) ?? data.kinds[0]);
 	const inRange = (r: Candidate) =>
 		range === 'all'
 			? true
@@ -93,10 +101,10 @@
 <div class="mb-4 flex flex-wrap items-center gap-1 text-sm">
 	{#each data.kinds as x (x.kind)}
 		<button
-			class="rounded border px-2 py-0.5 {x.kind === kind
+			class="rounded border px-2 py-0.5 {x.kind === view.kind
 				? 'border-blue-500 font-semibold'
 				: 'border-gray-300 dark:border-gray-700'} {x.available ? '' : 'opacity-50'}"
-			onclick={() => (kind = x.kind)}>{x.name}</button
+			onclick={() => save({ ...view, kind: x.kind })}>{x.name}</button
 		>
 	{/each}
 </div>
@@ -106,16 +114,20 @@
 		>systems
 		<select
 			class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
-			bind:value={range}
+			value={range}
+			onchange={(e) => save({ ...view, range: e.currentTarget.value })}
 		>
-			<option value="mine">mine</option>
-			{#each [0, 1, 2, 3, 5] as n (n)}<option value={String(n)}>up to +{n} beyond the border</option
+			{#each RANGES as r (r)}<option value={r}
+					>{r === 'mine' || r === 'all' ? r : `up to +${r} beyond the border`}</option
 				>{/each}
-			<option value="all">all</option>
 		</select></label
 	>
 	<label class="flex items-center gap-1"
-		><input type="checkbox" bind:checked={fitting} /> fitting only (and unknown)</label
+		><input
+			type="checkbox"
+			checked={fitting}
+			onchange={(e) => save({ ...view, fitting: e.currentTarget.checked })}
+		/> fitting only (and unknown)</label
 	>
 	<span class="text-gray-500"
 		>{rows.filter((r) => r.ok).length} fit, {rows.filter((r) => r.ok === null).length} unknown</span
@@ -147,7 +159,9 @@
 			]}
 			heightKey="megastructure-map-height"
 			label="{k.name} sites"
+			territories={data.territories}
 			bind:hovered
+			bind:selected={getSelected, setSelected}
 		/>
 		<p class="mt-1 mb-3 text-xs text-gray-500">
 			Darker blue: better score among the systems shown.
@@ -159,6 +173,7 @@
 			bind:sort
 			link={(r) => r.systemId}
 			bind:hovered
+			bind:selected={getSelected, setSelected}
 		/>
 	</Panel>
 </div>

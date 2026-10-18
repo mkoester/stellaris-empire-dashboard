@@ -1,6 +1,8 @@
 import { DEFAULT_VIEW, parseView, type ColonyView } from './colonyTable.ts';
 import { DEFAULT_CONTACT_VIEW, parseContactView, type ContactView } from './contacts.ts';
 import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from './expansion.ts';
+import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
+import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
 // Profiles: named sets of viewer settings — one per playstyle or play-through. Everything but the
@@ -43,6 +45,8 @@ export type ProfileSettings = {
 	colonyView: ColonyView;
 	expansionView: ExpansionView;
 	contactView: ContactView;
+	megastructureView: MegaView;
+	mapFilter: MapFilter;
 	display: Display;
 };
 export type ProfileInfo = { id: string; name: string };
@@ -53,6 +57,8 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	colonyView: DEFAULT_VIEW,
 	expansionView: DEFAULT_EXPANSION_VIEW,
 	contactView: DEFAULT_CONTACT_VIEW,
+	megastructureView: DEFAULT_MEGA_VIEW,
+	mapFilter: DEFAULT_MAP_FILTER,
 	display: DEFAULT_DISPLAY
 };
 
@@ -86,6 +92,8 @@ export function parseSettings(v: unknown): ProfileSettings {
 		colonyView: parseView(o.colonyView),
 		expansionView: parseExpansionView(o.expansionView),
 		contactView: parseContactView(o.contactView),
+		megastructureView: parseMegaView(o.megastructureView),
+		mapFilter: parseMapFilter(o.mapFilter),
 		display: parseDisplay(o.display)
 	};
 }

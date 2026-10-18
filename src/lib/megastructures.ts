@@ -1,3 +1,4 @@
+import { distances, graph, type Graph } from './galaxyGraph.ts';
 import type { Body, GalaxySystem, GameData } from './types.ts';
 
 // Where to build kilo- and megastructures: every system ranked per structure, from the rules in
@@ -34,7 +35,7 @@ const PULSING = ['sc_neutron_star', 'sc_pulsar'];
 
 export const MEGA_RULES: Record<Kind, Rule> = {
 	arc_furnace: {
-		name: 'Orbital Arc Furnace',
+		name: 'Arc Furnace',
 		file: '17_orbital_arc_furnace.txt',
 		machineAge: true,
 		score:
@@ -99,13 +100,43 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	sentry_array: {
 		name: 'Sentry Array',
 		file: '02_spy_orb.txt',
-		score: 'systems not ours within 20 / 40 / 60 of it (its stages’ sensor range; units unverified)'
+		score:
+			'systems not ours within 20 hyperlane jumps (stage 1’s sensor range; 40 and 60 for the next stages, the finished array sees the whole galaxy)'
 	}
 };
 
+/** The tab's view, the profile's: structure, systems shown, fitting only, the system picked. */
+export type MegaView = {
+	kind: Kind;
+	range: string; // 'mine' | '0'…'10' jumps beyond the border | 'all'
+	fitting: boolean;
+	selected: number | null;
+};
+export const DEFAULT_MEGA_VIEW: MegaView = {
+	kind: 'arc_furnace',
+	range: 'mine',
+	fitting: true,
+	selected: null
+};
+export const RANGES = ['mine', ...Array.from({ length: 11 }, (_, i) => String(i)), 'all'];
+
+export function parseMegaView(v: unknown): MegaView {
+	const o = (v && typeof v === 'object' ? v : {}) as Partial<MegaView>;
+	return {
+		kind: KINDS.includes(o.kind as Kind) ? (o.kind as Kind) : DEFAULT_MEGA_VIEW.kind,
+		range: RANGES.includes(o.range as string) ? (o.range as string) : DEFAULT_MEGA_VIEW.range,
+		fitting: o.fitting !== false,
+		selected: typeof o.selected === 'number' ? o.selected : null
+	};
+}
+
 /** Catapult reach per stage (`catapult_range_base`, 13_quantum_catapult.txt). */
 export const CATAPULT_RANGES = [300, 450, 750];
-/** Sentry Array sensor range per stage (`sensor_range`, 02_spy_orb.txt). */
+/**
+ * Sentry Array sensor range per stage (`sensor_range`, 02_spy_orb.txt; the last stage has
+ * `has_full_sensor_range`). Hyperlane jumps: ship sensors are 1–4 and starbases add 1, which in map
+ * units (~20 between systems) would not leave their own system.
+ */
 export const SENTRY_RANGES = [20, 40, 60];
 
 export type Candidate = {
@@ -131,6 +162,7 @@ type Context = {
 	beyond: Map<number, number>;
 	planetClasses: GameData['planetClasses'];
 	depositCategories: GameData['depositCategories'];
+	lanes: Graph; // the hyperlanes among the systems given
 };
 
 /** `colonizable_planet` (4.5.2 scripted_triggers/00_scripted_triggers.txt), by planet class. */
@@ -207,10 +239,16 @@ function scoreOf(
 		case 'sentry_array': {
 			if (!planets.some((b) => !colonizable(b, c) && !/asteroid/.test(b.class)))
 				return { score: null, detail: '', why: ['no planet to build on'] };
+			const { jumps } = distances(c.lanes, [s.id]);
+			const notOurs = c.galaxy.filter((o) => !o.owned);
 			const cover = SENTRY_RANGES.map(
-				(r) => c.galaxy.filter((o) => !o.owned && Math.hypot(o.x - s.x, o.y - s.y) <= r).length
+				(r) => notOurs.filter((o) => (jumps.get(o.id) ?? Infinity) <= r).length
 			);
-			return { score: cover[2], detail: `not ours within range: ${cover.join(' / ')}`, why: [] };
+			return {
+				score: cover[0],
+				detail: `not ours within ${SENTRY_RANGES.join(' / ')} jumps: ${cover.join(' / ')} of ${notOurs.length}`,
+				why: []
+			};
 		}
 	}
 }
@@ -223,7 +261,11 @@ export function candidates(
 	data: Pick<GameData, 'planetClasses' | 'depositCategories'>
 ): Candidate[] {
 	const rule = MEGA_RULES[kind];
-	const c: Context = { galaxy, beyond, ...data };
+	const lanes = graph(
+		galaxy.flatMap((s) => s.lanes.map((to): [number, number] => [s.id, to])),
+		[]
+	);
+	const c: Context = { galaxy, beyond, ...data, lanes };
 	const cx = galaxy.reduce((a, s) => a + s.x, 0) / Math.max(1, galaxy.length);
 	const cy = galaxy.reduce((a, s) => a + s.y, 0) / Math.max(1, galaxy.length);
 	return galaxy.map((s) => {

@@ -1,0 +1,55 @@
+import { describe, expect, it } from 'vitest';
+import { mapMarkers, parseMapFilter } from './mapLayers.ts';
+import type { GalaxySystem } from './types.ts';
+
+const sys = (id: number, s: Partial<GalaxySystem> = {}): GalaxySystem => ({
+	id,
+	name: `S${id}`,
+	x: 0,
+	y: 0,
+	star: 'sc_g',
+	lanes: [],
+	visited: true,
+	owned: false,
+	ownerId: null,
+	bodies: [],
+	megastructures: [],
+	bypasses: [],
+	...s
+});
+const none = {
+	contacts: [],
+	anomalies: [],
+	digSites: [],
+	projects: [],
+	anomalyNames: {},
+	seen: []
+};
+
+describe('mapMarkers', () => {
+	it('sorts structures into gateways, megastructures and ruins', () => {
+		// 2207.03.10: Durabbius has a ruined gateway, listed both as megastructure and bypass
+		const galaxy = [
+			sys(1, { megastructures: ['gateway_ruined'], bypasses: ['gateway'] }),
+			sys(2, { megastructures: ['dyson_sphere_permanently_ruined', 'think_tank_4'] }),
+			sys(3, { bypasses: ['wormhole'] })
+		];
+		expect(mapMarkers({ ...none, galaxy }).map((m) => [m.layer, m.systemId, m.label])).toEqual([
+			['gateways', 1, 'gateway (ruined)'],
+			['ruins', 2, 'dyson sphere (beyond repair)'],
+			['megastructures', 2, 'think tank 4'],
+			['wormholes', 3, 'wormhole']
+		]);
+	});
+
+	it('leaves out what lies outside the systems shown', () => {
+		const anomalies = [{ planetId: 1, planet: 'P', systemId: 9, category: 'x' }];
+		expect(mapMarkers({ ...none, galaxy: [sys(1)], anomalies })).toEqual([]);
+	});
+});
+
+describe('parseMapFilter', () => {
+	it('keeps known layers only', () => {
+		expect(parseMapFilter({ hidden: ['ruins', 'nonsense'] })).toEqual({ hidden: ['ruins'] });
+	});
+});

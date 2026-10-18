@@ -60,6 +60,12 @@
 			</div>
 		{/if}
 		<MigrationSankey flows={monthFlows} {colors} />
-		<MigrationMap {rows} flows={monthFlows} {colors} systems={data.systems} />
+		<MigrationMap
+			{rows}
+			flows={monthFlows}
+			{colors}
+			systems={data.systems}
+			territories={data.territories}
+		/>
 	</section>
 </div>

@@ -49,6 +49,7 @@ const COLORS: Record<string, string> = {
 	'class-official': '#d9a521',
 	'class-commander': '#d0403a',
 	'class-scientist': '#2f8fe0',
+	'class-envoy': '#8a7fb8', // ours: envoys have no class colour of their own
 	// empire focus categories, after the game's focus panel (blue, red, gold; core cards brown)
 	'focus-exploration': '#3a86c8',
 	'focus-conquest': '#c8463a',

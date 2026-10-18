@@ -342,6 +342,14 @@ export function loadGameData(file: string): GameData {
 					(r) => [r.key, r.name ?? r.key]
 				)
 			),
+			flagColors: Object.fromEntries(
+				rows<{ key: string; r: number; g: number; b: number }>(
+					'SELECT key, r, g, b FROM flag_color'
+				).map((c) => [
+					c.key,
+					`#${[c.r, c.g, c.b].map((v) => v.toString(16).padStart(2, '0')).join('')}`
+				])
+			),
 			anomalyLevels: Object.fromEntries(
 				rows<{ key: string; level: number | null }>('SELECT key, level FROM anomaly_category').map(
 					(r) => [r.key, r.level]

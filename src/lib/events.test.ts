@@ -51,6 +51,7 @@ const data: GameData = {
 	blockerInfo: {},
 	traditionTrees: {},
 	perks: {},
+	flagColors: {},
 	anomalyLevels: { GEN_PLAYGROUND_CAT: 3 },
 	defines: {
 		EMPIRE_SIZE_BASE: 100,

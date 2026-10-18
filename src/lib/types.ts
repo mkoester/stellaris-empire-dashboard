@@ -321,6 +321,7 @@ export type Snapshot = {
 	anomalies: AnomalyInfo[] | null; // found, not yet researched
 	specialProjects: ProjectInfo[] | null;
 	digSites: DigSite[] | null; // archaeological sites in visited systems
+	stationsSeen: StationSighting[] | null; // stations where our fleets are, null before 2026-10-18
 	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
 	focus: EmpireFocus | null;
 	techOptions: Record<string, string[]> | null; // research field → the cards on offer
@@ -365,6 +366,7 @@ export type GalaxySystem = {
 	ownerId: number | null; // the station's owner, in a visited system
 	bodies: Body[] | null; // visited only
 	megastructures: string[]; // types, built or ruined, in a visited system
+	bypasses?: string[]; // wormholes, gateways, L-gates (`bypasses.<id>.type`) in a visited system; since 2026-10-18
 };
 
 /** A star, planet, moon or asteroid in a visited system. */
@@ -387,12 +389,20 @@ export type CountryInfo = {
 	name: string;
 	type: string; // default, fallen_empire, enclave, caravaneer_home, primitive …
 	shipset: string | null; // graphical_culture
+	flagColor?: string | null; // its flag's first colour (flag.colors), a flag_color swatch; since 2026-10-18
 	ethics: string[];
 	authority: string | null;
 	civics: string[];
 	governmentType: string | null;
 	origin: string | null;
 };
+
+/**
+ * Another empire's station in a system one of our fleets was in when the game saved: what we saw
+ * there (its shipset), as opposed to what the save knows of systems we only passed once. The owner
+ * stays on the server unless we talk to them (or the contactStations spoiler is on).
+ */
+export type StationSighting = { systemId: number; ownerId: number; shipset: string | null };
 
 /** `country.relations_manager.relation`: what we know of another empire. */
 export type Relation = {
@@ -570,6 +580,7 @@ export type GameData = {
 		{ name: string; traditions: { key: string; name: string; role: string }[] }
 	>;
 	perks: Record<string, string>; // ascension perk names
+	flagColors: Record<string, string>; // flag colour swatch → its galaxy-map colour (#rrggbb)
 	anomalyLevels: Record<string, number | null>; // anomaly category → level
 	blockers: string[]; // deposit keys that are blockers
 	// what clearing each blocker takes
@@ -655,6 +666,8 @@ export type ModInfo = {
 	tags: string[];
 	steamId: string | null; // remote_file_id; null for local mods
 	updated: string | null; // ISO time of the workshop's last update (launcher-v2.sqlite timeUpdated)
+	file: string | null; // the descriptor's file name; null for a mod known only from the save
+	local: boolean; // a descriptor not written by the workshop (`ugc_<id>.mod`), e.g. a dev copy
 };
 
 /** A mod's version as the dashboard saw it at one start (`mod_version` rows). */

@@ -3,7 +3,9 @@ import { contactRows, mapView, situationRows, stationOwners } from '#lib/situati
 import { getDb, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { galaxyOf } from '#lib/server/db.ts';
+import { territoriesOf } from '#lib/server/mapSystems.ts';
 import { display } from '#lib/server/settings.ts';
+import { mergeSightings, seenRows } from '#lib/territories.ts';
 
 // The game's situation log: first contacts (table and map), situations, anomalies, special
 // projects and dig sites, at the branch's latest save that has them, over the campaign's galaxy.
@@ -27,8 +29,11 @@ export function load({ url }) {
 				s.firstContacts ?? []
 			)
 		: [];
+	const territories = territoriesOf(snaps);
 	return {
 		...rest,
+		territories,
+		seen: seenRows(mergeSightings(snaps), territories, system),
 		seenAt: s?.date ?? null,
 		opts,
 		contacts: s

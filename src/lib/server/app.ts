@@ -11,6 +11,7 @@ import {
 	type Db,
 	type Recorded
 } from './db.ts';
+import { trackedMods } from '#lib/addons.ts';
 import type { GameData, ModInfo } from '#lib/types.ts';
 import { tailLog, toLogSnapshot } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
@@ -97,7 +98,7 @@ async function run() {
 	const head = headId(store);
 	noteModVersions(
 		store,
-		state.mods,
+		trackedMods(state.mods),
 		new Date().toISOString(),
 		nodes(store).find((n) => n.id === head)?.date ?? null
 	);

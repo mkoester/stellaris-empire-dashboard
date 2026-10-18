@@ -5,6 +5,7 @@
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import type { ContactRow, SituationRow } from '#lib/situations.ts';
+	import type { SeenRow } from '#lib/territories.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 	import type { Outcome } from '#lib/types.ts';
@@ -32,6 +33,14 @@
 			)
 		)
 	);
+
+	const seenColumns: Column<SeenRow>[] = [
+		{ id: 'system', label: 'System', value: (r) => r.system },
+		{ id: 'shipset', label: 'Shipset', value: (r) => r.shipset },
+		{ id: 'territory', label: 'Owner', value: (r) => r.territory, title: 'known, or our guess' },
+		{ id: 'first', label: 'First seen', value: (r) => r.first },
+		{ id: 'last', label: 'Last seen', value: (r) => r.last }
+	];
 
 	const contactColumns: Column<ContactRow>[] = [
 		{ id: 'name', label: 'Contact', value: (r) => r.name, cell: contactName },
@@ -144,6 +153,7 @@
 			focus={[{ label: 'contacts', points: open.flatMap((c) => byId.get(c.systemId) ?? []) }]}
 			heightKey="first-contact-map-height"
 			label="First contact map"
+			territories={data.territories}
 			bind:hovered
 		>
 			{#snippet layer(at)}
@@ -191,6 +201,23 @@
 				{/each}
 			</ul>
 		{/if}
+	</Panel>
+
+	<Panel
+		title="Stations seen"
+		note="Other empires' stations in systems one of your fleets was in when the game saved (monthly autosaves catch only the fleets there at that moment), with their shipset. Unknown owners are guessed: one shipset within 3 jumps counts as one empire."
+	>
+		{#if data.seen.length}
+			<SortTable
+				rows={data.seen}
+				columns={seenColumns}
+				key={(r) => r.systemId}
+				link={(r) => r.systemId}
+				bind:hovered
+			/>
+		{:else}<p class="text-sm text-gray-500">
+				None yet: no fleet of yours has been at another empire's station when the game saved.
+			</p>{/if}
 	</Panel>
 
 	<Panel title="Situations" note="Progress runs to 100.">

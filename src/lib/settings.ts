@@ -1,6 +1,8 @@
 import type { ColonyView } from './colonyTable.ts';
 import type { ContactView } from './contacts.ts';
 import type { ExpansionView } from './expansion.ts';
+import type { MapFilter } from './mapLayers.ts';
+import type { MegaView } from './megastructures.ts';
 import type { Display } from './profiles.ts';
 import { KIND_IDS, type EventKind } from './milestones.ts';
 
@@ -140,6 +142,8 @@ export async function putSettings(patch: {
 	colonyView?: ColonyView;
 	expansionView?: ExpansionView;
 	contactView?: ContactView;
+	megastructureView?: MegaView;
+	mapFilter?: MapFilter;
 	display?: Display;
 }) {
 	const r = await fetch('/api/settings', {

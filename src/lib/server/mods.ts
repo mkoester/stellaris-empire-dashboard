@@ -21,7 +21,7 @@ export function loadModDescriptors(saveDir: string): ModInfo[] {
 	}
 	const descriptors = files
 		.sort()
-		.map((f) => parseModDescriptor(readFileSync(join(dir, f), 'utf8')))
+		.map((f) => parseModDescriptor(readFileSync(join(dir, f), 'utf8'), f))
 		.filter((m) => m !== null);
 	return withLauncher(descriptors, launcherMods(join(userDir, 'launcher-v2.sqlite')));
 }

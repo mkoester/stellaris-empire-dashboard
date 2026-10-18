@@ -1,6 +1,7 @@
-import { mapView } from '#lib/situations.ts';
+import { knownIds, mapView } from '#lib/situations.ts';
+import { mergeSightings, territories, type Territory } from '#lib/territories.ts';
 import type { KnownSystem, Snapshot } from '#lib/types.ts';
-import { getDb } from './app.ts';
+import { getDb, getGameData } from './app.ts';
 import { galaxyOf } from './db.ts';
 import { display } from './settings.ts';
 
@@ -16,4 +17,25 @@ export function mapSystems(snaps: Snapshot[]): (KnownSystem & { known?: boolean 
 	if (!g) return known;
 	const capital = known.find((k) => k.capital)?.id;
 	return mapView(g.systems, { whole, stars }).map((s) => ({ ...s, capital: s.id === capital }));
+}
+
+/**
+ * The empires' territories on the discovered systems, as far as the viewer may know their owners
+ * (`#lib/territories.ts`; the contactStations switch names them all).
+ */
+export function territoriesOf(snaps: Snapshot[]): Territory[] {
+	const last = snaps.findLast((s) => s.countries !== null);
+	const g = last ? galaxyOf(getDb(), last.campaign) : null;
+	if (!last || !g) return [];
+	const ids = knownIds(g.systems);
+	return territories({
+		galaxy: g.systems.filter((s) => ids.has(s.id)),
+		ownId: last.countryId,
+		ownName: last.empireName,
+		countries: last.countries ?? [],
+		relations: last.relations ?? [],
+		seen: mergeSightings(snaps),
+		flagColors: getGameData().flagColors,
+		spoiler: display().contactStations
+	});
 }

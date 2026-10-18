@@ -39,6 +39,7 @@ import { readZipEntry } from './zip.ts';
 import {
 	anomalies,
 	digSites,
+	stationsSeen,
 	firstContacts,
 	galaxy as galaxySystems,
 	knownCountries,
@@ -120,6 +121,10 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 				name: displayName(c.name),
 				type: String(c.type ?? ''),
 				shipset: strOrNull(c.graphical_culture),
+				flagColor:
+					items(c.flag?.colors)
+						.map(String)
+						.find((x) => x !== 'null') ?? null,
 				ethics: items(c.ethos?.ethics).map(String),
 				authority: strOrNull(c.government?.authority),
 				civics: items(c.government?.civics).map(String),
@@ -428,7 +433,8 @@ function world(raw: RawSave) {
 		situations: situations(raw),
 		anomalies: anomalies(raw),
 		specialProjects: specialProjects(raw),
-		digSites: digSites(raw, visited)
+		digSites: digSites(raw, visited),
+		stationsSeen: stationsSeen(raw, own)
 	};
 }
 

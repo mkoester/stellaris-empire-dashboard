@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Effects from '#lib/Effects.svelte';
 	import { pretty } from '#lib/format.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
@@ -13,7 +14,7 @@
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
 </header>
 
-<div class="grid gap-6 lg:grid-cols-2">
+<div class="flex flex-col gap-6">
 	{#each data.species as s (s.id)}
 		<Panel title={s.name}>
 			<p class="mb-1 text-sm text-gray-500">
@@ -21,11 +22,18 @@
 					? ` · traits ${s.budget.points} / ${s.budget.maxPoints} points, ${s.budget.picks} / ${s.budget.maxPicks} picks`
 					: ''}
 			</p>
-			<div class="text-sm">
-				{#each s.traits as t, i (t)}{i ? ' · ' : ''}<InfoPopup
-						explanation={data.explain[`trait:${t}`]}
-						>{data.explain[`trait:${t}`]?.title ?? pretty(t.replace(/^trait_/, ''))}</InfoPopup
-					>{/each}
+			<!-- each trait with its effects, as many side by side as the width allows -->
+			<div class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-x-4 gap-y-1.5 text-sm">
+				{#each s.traits as t (t)}
+					<div>
+						<b
+							><InfoPopup explanation={data.explain[`trait:${t}`]}
+								>{data.explain[`trait:${t}`]?.title ?? pretty(t.replace(/^trait_/, ''))}</InfoPopup
+							></b
+						>
+						<div><Effects explanation={data.explain[`trait:${t}`]} /></div>
+					</div>
+				{/each}
 			</div>
 			{#if s.rights.length}
 				<table class="mt-2 text-left text-sm">

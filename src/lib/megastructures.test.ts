@@ -117,6 +117,23 @@ describe('ring world', () => {
 	});
 });
 
+describe('sentry array', () => {
+	it('counts the systems not ours by hyperlane jumps, not by distance on the map', () => {
+		// a chain 1–2–…–25 of systems 30 units apart: on the map none lies within 20 units of
+		// system 1, by jumps 2…21 do; system 1 is ours and has a barren planet to build on
+		const galaxy = Array.from({ length: 25 }, (_, i) =>
+			sys(i + 1, i * 30, 0, {
+				lanes: i < 24 ? [i + 2] : [],
+				owned: i === 0,
+				bodies: i === 0 ? [body(1, 'pc_g_star'), body(2, 'pc_barren')] : []
+			})
+		);
+		const [row] = candidates('sentry_array', galaxy, none, data);
+		expect(row.score).toBe(20);
+		expect(row.detail).toBe('not ours within 20 / 40 / 60 jumps: 20 / 24 / 24 of 24');
+	});
+});
+
 describe('scoreFill', () => {
 	it('gives the best fitting system the darkest colour', () => {
 		// the pulsar nearer the middle reaches the far end sooner

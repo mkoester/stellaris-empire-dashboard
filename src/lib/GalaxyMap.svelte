@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
+	import { borderEdges, cells, claimRadius } from './borders.ts';
 	import { fit, pan, toScreen, zoomAt, type Point, type View } from './mapView.ts';
+	import type { Territory } from './territories.ts';
 
 	// A galaxy map in screen pixels: hyperlanes and systems (own ones tinted, or filled by `fill`),
 	// with drag to pan, the wheel to zoom and the bottom edge to resize. What a page draws on top is
 	// its `layer`, given the galaxy → screen transform; `extra` are more points to fit. `hovered`
-	// (bindable) is the system under the pointer, here or in a table beside: it gets a ring.
+	// (bindable) is the system under the pointer, here or in a table beside: it gets a ring. Binding
+	// `selected` makes a click (not a drag) pick the system under the pointer, again to unpick; the
+	// picked one keeps a ring of its own. `territories` are drawn as empire borders (#lib/borders.ts).
 	type System = Point & {
 		id: number;
 		name: string;
@@ -23,7 +27,9 @@
 		heightKey,
 		label = 'Galaxy map',
 		layer,
-		hovered = $bindable(null)
+		territories = [],
+		hovered = $bindable(null),
+		selected = $bindable()
 	}: {
 		systems: System[];
 		fill?: Record<number, string>; // system id → colour, instead of the own/other tint
@@ -33,9 +39,22 @@
 		heightKey: string; // localStorage key for the height
 		label?: string;
 		layer?: Snippet<[(p: Point) => Point, number]>; // transform, scale (px per galaxy unit)
+		territories?: Territory[];
 		hovered?: number | null;
+		selected?: number | null;
 	} = $props();
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
+
+	// the cells only change with the systems and owners, not with panning
+	const ownerOf = $derived(
+		new Map(territories.flatMap((t) => t.systems.map((id) => [id, t] as const)))
+	);
+	const territoryCells = $derived(
+		ownerOf.size ? cells(systems, new Set(ownerOf.keys()), claimRadius(systems)) : []
+	);
+	const keyOf = (id: number) => ownerOf.get(id)?.key;
+	const path = (poly: Point[]) =>
+		poly.length ? `M${poly.map((p) => `${at(p).x},${at(p).y}`).join('L')}Z` : '';
 
 	// The height is a per-viewer convenience, remembered in this browser once the viewer resizes
 	// (the outer height then differs from the one set), so a new default reaches everyone else.
@@ -90,9 +109,25 @@
 		return () => node.removeEventListener('wheel', onWheel);
 	};
 	let drag: Point | null = $state(null);
+	let start: Point | null = null; // where the pointer went down: a click moves less than 4px
 	const down = (e: PointerEvent) => {
 		(e.currentTarget as Element).setPointerCapture(e.pointerId);
-		drag = { x: e.clientX, y: e.clientY };
+		drag = start = { x: e.clientX, y: e.clientY };
+	};
+	const up = (e: PointerEvent) => {
+		drag = null;
+		if (selected === undefined || !start) return;
+		if (Math.hypot(e.clientX - start.x, e.clientY - start.y) >= 4) return;
+		// the system nearest the pointer, within the 8px hover target
+		const r = (e.currentTarget as Element).getBoundingClientRect();
+		const p = { x: e.clientX - r.left, y: e.clientY - r.top };
+		let best: { id: number; d: number } | null = null;
+		for (const s of systems) {
+			const q = at(s);
+			const d = Math.hypot(q.x - p.x, q.y - p.y);
+			if (d <= 8 && (!best || d < best.d)) best = { id: s.id, d };
+		}
+		if (best) selected = best.id === selected ? null : best.id;
 	};
 	const move = (e: PointerEvent) => {
 		if (!drag) return;
@@ -139,9 +174,28 @@
 			{@attach wheel}
 			onpointerdown={down}
 			onpointermove={move}
-			onpointerup={() => (drag = null)}
+			onpointerup={up}
 			onpointercancel={() => (drag = null)}
 		>
+			{#each territoryCells as c (c.id)}
+				{@const t = ownerOf.get(c.id)!}
+				<path class="pointer-events-none" d={path(c.poly)} fill={t.color} fill-opacity="0.16" />
+			{/each}
+			{#each territoryCells as c (c.id)}
+				{@const t = ownerOf.get(c.id)!}
+				{#each borderEdges(c, keyOf) as e, i (i)}
+					<line
+						class="pointer-events-none"
+						x1={at(e.a).x}
+						y1={at(e.a).y}
+						x2={at(e.b).x}
+						y2={at(e.b).y}
+						stroke={t.color}
+						stroke-width="1.5"
+						stroke-dasharray={t.guess ? '4 3' : undefined}
+					/>
+				{/each}
+			{/each}
 			{#each systems as s (s.id)}
 				{#each new Set(s.lanes) as to (to)}
 					{@const o = byId.get(to)}
@@ -188,6 +242,24 @@
 				/>
 			{/each}
 			{@render layer?.(at, v.k)}
+			{#if selected !== undefined && selected !== null && byId.get(selected)}
+				{@const p = at(byId.get(selected)!)}
+				<circle
+					class="pointer-events-none stroke-sky-500"
+					cx={p.x}
+					cy={p.y}
+					r="14"
+					fill="none"
+					stroke-width="3"
+				/>
+				{#if selected !== hovered}
+					<text
+						class="pointer-events-none fill-current text-xs font-semibold"
+						x={p.x + 16}
+						y={p.y - 12}>{byId.get(selected)!.name}</text
+					>
+				{/if}
+			{/if}
 			{#if hovered !== null && byId.get(hovered)}
 				{@const p = at(byId.get(hovered)!)}
 				<circle
@@ -207,3 +279,16 @@
 		</svg>
 	{/if}
 </div>
+{#if territories.length}
+	<div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
+		{#each territories as t (t.key)}
+			<span class="flex items-center gap-1"
+				><span
+					class="inline-block h-2.5 w-2.5 rounded-sm border"
+					style:background={t.color}
+					style:border-style={t.guess ? 'dashed' : 'solid'}
+				></span>{t.label}</span
+			>
+		{/each}
+	</div>
+{/if}

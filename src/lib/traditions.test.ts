@@ -28,7 +28,13 @@ describe('adoptedTrees', () => {
 				name: 'Discovery',
 				picked: [{ key: 'tr_discovery_to_boldly_go', name: 'To Boldly Go' }],
 				total: 2,
-				finished: false
+				finished: false,
+				all: [
+					{ ...t('tr_discovery_adopt', 'Discovery Traditions', 'adopt'), active: true },
+					{ ...t('tr_discovery_to_boldly_go', 'To Boldly Go', 'normal'), active: true },
+					{ ...t('tr_discovery_databank_uplinks', 'Databank Uplinks', 'normal'), active: false },
+					{ ...t('tr_discovery_finish', 'Discovery Traditions Finished', 'finish'), active: false }
+				]
 			}
 		]);
 	});

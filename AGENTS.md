@@ -100,7 +100,7 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 **Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `colonies`
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
-`map` (`/map`, reuses `MigrationMap` — fork it when the two diverge), `migration`, `expansion`
+`map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
 (`/expansion`: the Expansion panel full-size, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`) and `events`
@@ -122,7 +122,21 @@ connections are hidden); `wholeGalaxy` shows every system and lane. With `unknow
 star-only megastructure rules (catapult, stellar cannon, matter decompressor's star) count those
 systems too. Megastructure candidates, the catapult's farthest system and the jumps beyond the border
 count discovered systems only. Table rows tied to a system (`SortTable` `link`) and the map share a
-bindable `hovered` system: the row is highlighted, the system ringed. Say
+bindable `hovered` system: the row is highlighted, the system ringed; binding `selected` too
+makes a click (row or system, not a drag) pick a system, ringed in sky blue, its row scrolled into
+view. **Borders** (`territories` on `GalaxyMap`; `#lib/borders.ts`, `#lib/territories.ts`,
+`territoriesOf()` in `server/mapSystems.ts`): every system claims its Voronoi cell, clipped to a
+circle of the median nearest-neighbour distance (`claimRadius`); a territory is its systems' cells,
+its border the arcs and the cell edges towards another owner — all systems are sites, so territory
+stops halfway to unowned ones. Colours are the game's: a country's first `flag.colors` swatch, its
+`map` rgb from `flags/colors.txt` (data DB `flag_color`). Shown: ours, empires we have
+communications with, every visited station's owner with `contactStations`; stations we saw but
+cannot name are **guessed** (one shipset within `GUESS_JUMPS` = 3 jumps = one empire), dashed, in
+a colour of ours; other visited stations grey, "unknown owner". **Map tab** (`/map`,
+`#lib/mapLayers.ts`): borders and the markers of what was discovered — open first contacts,
+stations seen, anomalies, dig sites, special projects, wormholes, gateways and L-gates
+(`GalaxySystem.bypasses`), megastructures and their ruins (`*_ruined`) — each layer hidden by the
+profile's `mapFilter`, plus a table. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
@@ -264,15 +278,21 @@ border along hyperlanes, their stations) and a map (open contacts by difficulty 
 an envoy); situations, anomalies, special projects (no progress in the save), dig sites, a link
 to events. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`:
 the outcome events' titles), as is `contactStations`: visited systems coloured by their
-station's owner — the save names it before communications, so it is shown as known, not
-guessed. **The galaxy is not stored per snapshot** (~140 KB): `Snapshot.galaxy` goes to the
+station's owner, and every map's borders named — the save names it before communications, a
+spoiler. **Stations seen** (`Snapshot.stationsSeen`, `stationsSeen()` in `server/world.ts`): other
+empires' stations in the systems our fleets are in when the game saves (`fleet.<id>.movement_manager.coordinate.origin`),
+with the owner's shipset (`graphical_culture`) — what the player saw being there. A snapshot field,
+so it follows the save graph; `mergeSightings()` keeps first and last date per system. The owner id
+stays on the server unless we talk to them. Monthly autosaves catch only the fleets present then
+(2207.03.10: none yet — every fleet abroad sat in a station-less system). **The galaxy is not stored per snapshot** (~140 KB): `Snapshot.galaxy` goes to the
 `galaxy` table, one row per campaign holding its latest reading (`galaxyOf()`); every system's
 place, star and lanes, owner, bodies and megastructures only for visited or own systems.
 
 **Megastructures tab** (`/megastructures`, `#lib/megastructures.ts`, pure): every system ranked
 per structure (arc furnace, dyson swarm, dyson sphere, ring world, matter decompressor, stellar
 cannon, quantum catapult, mega shipyard, sentry array), with a map coloured by score and a table,
-filtered to my systems, up to +N jumps beyond the border, or all. `MEGA_RULES` is taken from 4.5.2
+filtered to my systems, up to +0…+10 jumps beyond the border, or all. Structure, range, the
+fitting switch and the picked system are the profile's `megastructureView` (default Arc Furnace). `MEGA_RULES` is taken from 4.5.2
 `common/megastructures/*` (file per rule; re-check on game updates): star classes, no
 binary/trinary, no colonizable planet (`colonizable_planet`: the data DB's colonizable classes plus
 city, relic, nuked, hive, machine, habitat), no non-gate megastructure already there (ruined ones
@@ -283,7 +303,11 @@ structure with one. The others are ours: swarm = the star's deposit amounts, sph
 planets frozen + deposits, ring world = deposit amounts removed with every non-star body, catapult
 = the farthest system on the 2D map (and how many lie within the stages' 300/450/750), mega
 shipyard = the outermost body's distance from the star (the way out for new ships), sentry array
-= systems not ours within 20/40/60. Rules needing bodies are unknown (`?`) in unvisited systems.
+= systems not ours within 20 **hyperlane jumps** (stage 1; 40 and 60 shown, the finished array
+sees everything — `has_full_sensor_range`). `sensor_range` is jumps: ship sensors are 1–4 and
+starbases add 1, which in map units (~20 between systems) would not leave their own system. Jumps
+run over discovered lanes, so early on the score saturates (2207.03.10: 37 for every reachable
+system). Rules needing bodies are unknown (`?`) in unvisited systems.
 2207.03.10: catapult best near the centre (Elthir: farthest 387, centre 83); arc furnace Sol 20.
 
 **Focus, traditions, tech, leaders, species, contacts** (one route each):
@@ -294,13 +318,16 @@ shipyard = the outermost body's distance from the star (the way out for new ship
   `logs/script_documentation/effects.log`): no research, no progress. Several options are an
   if/else on the empire, not a choice; the one ours is evaluated (`is_diplomatic` …) and the
   ⓘ popup says why. Categories in the game's colours (`focus-*` in `colors.ts`).
-- **traditions**: adopted trees (the existing Traditions panel), the other trees, every perk
-  (taken first, conditions not checked).
+- **traditions**: the active effects in two tables, traditions and perks (`totalEffects()`,
+  `EffectTotals.svelte`, shared with the Government panel; text-only effects listed apart), every
+  adopted tree in full with each tradition's effects (not yet active ones grey), the other trees,
+  every perk (taken first, conditions not checked).
 - **tech**: the three queues with due dates (`events.ts`), the cards on offer
   (`tech_status.alternatives`), research tiers, everything researched.
 - **leaders**: `Snapshot.leaderList`, traits explained by `ltrait:<key>` (data DB `leader_trait`,
-  each modifier labelled with its scope).
-- **species**: traits and trait budget.
+  each modifier labelled with its scope); class colours (`class-*` in `colors.ts`, envoys ours);
+  envoys behind a switch, off by default.
+- **species**: traits with their effects in a grid, trait budget, rights.
 - **contacts** (`#lib/contacts.ts`): the relations table, its filters and columns being the
   profile's `contactView` (stored at once, `PUT /api/settings`).
 
@@ -311,7 +338,7 @@ first save read since 2026-10-18. The DLC catalogue is the data DB's `dlc` table
 `dlc_info.txt`, category from the installed DLCs' descriptors, Steam release dates). Installed
 mods are the launcher's descriptors, `<user dir>/mod/*.mod`, the user dir being
 `STELLARIS_SAVE_DIR`'s parent (`server/mods.ts`, read at start); `supports()` compares their
-`supported_version` (`v4.5.*`) with the save's version. 2207.03.10: 28 DLCs, 17 mods. **Merged
+`supported_version` (`v4.5.*`) with the save's version. A dev copy registered next to its workshop version (`link-mod-proton.sh`) has the same name and id: rows are keyed by descriptor file, marked "local", and left out of the version notes (`trackedMods()`) — keyed by name and id they once broke the tab (a duplicate key, client-side only). 2207.03.10: 28 DLCs, 17 mods. **Merged
 DLCs**: Utopia, Synthetic Dawn and Humanoids are gameplay DLCs no script checks for (data DB
 `dlc.host_checks` 0) and saves leave them out of `required_dlcs` though installed — shown as
 "base game". **Mod updates**: the launcher's `launcher-v2.sqlite` (`mods.timeUpdated`, seconds;
@@ -578,9 +605,13 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 
 ## Open (needs a running game on Linux)
 
+- **Stations seen, exactly**: saves catch only the fleets present at save time. The companion mod
+  could log each system entry (an `on_entering_system`-style on_action) with the station's shipset
+  for `feed.ts`. Check the borders and the guesses against the game's map at the first sighting.
+
 - **Megastructure scores, not yet checked in game**: the arc furnace's (Sol 20 at 2207.03.10)
-  against the game's "best systems" tooltip; whether the catapult's `catapult_range_base` and the
-  sentry array's `sensor_range` are galaxy-map units (assumed); whether the in-system distance to
+  against the game's "best systems" tooltip; whether the catapult's `catapult_range_base` is in
+  galaxy-map units (assumed); whether the in-system distance to
   the outermost body is what new ships of a mega shipyard travel (hyperlane arrival points are not
   stored); and whether the catapult's `max_jumps = 25` (another catapult) is a rule or AI weight.
 - **Factions, never seen in a save** (2207.03.10: no `pop_factions`, empty `pop_groups.*.factions`).

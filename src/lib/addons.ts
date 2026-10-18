@@ -56,7 +56,9 @@ export function modRows(
 			supportedVersion: null,
 			tags: [],
 			steamId: null,
-			updated: null
+			updated: null,
+			file: null,
+			local: false
 		}))
 	].map((m) => ({
 		...m,
@@ -81,8 +83,12 @@ export function supports(supported: string | null, gameVersion: string | null): 
 	return true;
 }
 
-/** A `mod/*.mod` descriptor: `key="value"` lines and a `tags={ "…" }` block. */
-export function parseModDescriptor(text: string): ModInfo | null {
+/**
+ * A `mod/*.mod` descriptor: `key="value"` lines and a `tags={ "…" }` block. A dev copy registered
+ * next to its published version (`link-mod-proton.sh`) has the same name and workshop id, so the
+ * file name is what tells the two apart.
+ */
+export function parseModDescriptor(text: string, file: string): ModInfo | null {
 	const value = (key: string) => text.match(new RegExp(`^\\s*${key}\\s*=\\s*"([^"]*)"`, 'm'))?.[1];
 	const name = value('name');
 	if (!name) return null;
@@ -93,7 +99,9 @@ export function parseModDescriptor(text: string): ModInfo | null {
 		supportedVersion: value('supported_version') ?? null,
 		tags: tags ? [...tags.matchAll(/"([^"]*)"/g)].map((m) => m[1]) : [],
 		steamId: value('remote_file_id') ?? null,
-		updated: null
+		updated: null,
+		file,
+		local: !/^ugc_\d+\.mod$/.test(file)
 	};
 }
 
@@ -111,6 +119,15 @@ export function withLauncher(descriptors: ModInfo[], launcher: LauncherMod[]): M
 			updated: l?.timeUpdated ? new Date(l.timeUpdated * 1000).toISOString() : null
 		};
 	});
+}
+
+/**
+ * The mods whose versions are noted: a local copy of a mod that also has a workshop descriptor is
+ * left out, or the two would take turns as the mod's "latest" version at every start.
+ */
+export function trackedMods(mods: ModInfo[]): ModInfo[] {
+	const workshop = new Set(mods.filter((m) => !m.local).map((m) => m.name));
+	return mods.filter((m) => !m.local || !workshop.has(m.name));
 }
 
 export type ModVersionChange = {

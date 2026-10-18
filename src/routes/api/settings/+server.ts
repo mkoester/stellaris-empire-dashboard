@@ -2,6 +2,8 @@ import { error, json } from '@sveltejs/kit';
 import { parseView } from '#lib/colonyTable.ts';
 import { parseContactView } from '#lib/contacts.ts';
 import { parseExpansionView } from '#lib/expansion.ts';
+import { parseMapFilter } from '#lib/mapLayers.ts';
+import { parseMegaView } from '#lib/megastructures.ts';
 import { parseDisplay } from '#lib/profiles.ts';
 import { getDb } from '#lib/server/app.ts';
 import { setSetting } from '#lib/server/db.ts';
@@ -11,7 +13,7 @@ import { parseChartEvents, parseTabs, parseTheme } from '#lib/settings.ts';
 // Stores the viewer settings a page changed. `{ theme }` is global; into the profile in use go
 // `{ tabs }` (the whole list), `{ chartEvents }` (entries merged into the stored map),
 // `{ colonyView }` (the colonies tab's mode, sort, filters and columns), `{ expansionView }`,
-// `{ contactView }` and `{ display }`.
+// `{ contactView }`, `{ megastructureView }`, `{ mapFilter }` and `{ display }`.
 export async function PUT({ request }) {
 	const body = await request.json().catch(() => error(400, 'not JSON'));
 	if (body?.theme !== undefined) {
@@ -35,6 +37,10 @@ export async function PUT({ request }) {
 		updateProfile(getDb(), { expansionView: parseExpansionView(body.expansionView) });
 	if (body?.contactView !== undefined)
 		updateProfile(getDb(), { contactView: parseContactView(body.contactView) });
+	if (body?.megastructureView !== undefined)
+		updateProfile(getDb(), { megastructureView: parseMegaView(body.megastructureView) });
+	if (body?.mapFilter !== undefined)
+		updateProfile(getDb(), { mapFilter: parseMapFilter(body.mapFilter) });
 	if (body?.display !== undefined) updateProfile(getDb(), { display: parseDisplay(body.display) });
 	return json({ ok: true });
 }

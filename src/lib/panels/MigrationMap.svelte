@@ -3,6 +3,7 @@
 	import GalaxyMap from '../GalaxyMap.svelte';
 	import type { Point } from '../mapView.ts';
 	import type { Flow } from '../migration.ts';
+	import type { Territory } from '../territories.ts';
 	import type { KnownSystem, MigrationColony } from '../types.ts';
 	import Panel from './Panel.svelte';
 
@@ -12,12 +13,14 @@
 		rows,
 		flows,
 		colors,
-		systems = []
+		systems = [],
+		territories = []
 	}: {
 		rows: MigrationColony[];
 		flows: Flow[];
 		colors: Record<number, string>;
 		systems?: KnownSystem[];
+		territories?: Territory[];
 	} = $props();
 	const colonies = $derived(rows.filter((r) => r.own));
 
@@ -43,6 +46,7 @@
 	{:else}
 		<GalaxyMap
 			{systems}
+			{territories}
 			extra={rows}
 			focus={[{ label: 'my colonies', points: colonies }]}
 			heightKey="migration-map-height-v2"

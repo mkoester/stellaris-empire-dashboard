@@ -7,7 +7,8 @@ import type {
 	GalaxySystem,
 	ProjectInfo,
 	Relation,
-	SituationInfo
+	SituationInfo,
+	StationSighting
 } from '#lib/types.ts';
 import {
 	displayName,
@@ -87,6 +88,7 @@ export function galaxy(
 		| 'ships'
 		| 'fleetOwner'
 		| 'megastructures'
+		| 'bypasses'
 	>,
 	own: Set<number>
 ): GalaxySystem[] {
@@ -118,10 +120,49 @@ export function galaxy(
 							.map((p) => body(raw, p))
 							.filter((b) => b !== null)
 					: null,
-				megastructures: seen ? (megas.get(id) ?? []) : []
+				megastructures: seen ? (megas.get(id) ?? []) : [],
+				bypasses: seen
+					? list(s.bypasses)
+							.map((b) => raw.bypasses[String(b)]?.type)
+							.filter((t): t is string => typeof t === 'string')
+					: []
 			}
 		];
 	});
+}
+
+/**
+ * Other empires' stations in the systems our fleets are in at the moment of the save (each fleet's
+ * `movement_manager.coordinate.origin`), with the owner's shipset — what we saw being there.
+ * Monthly autosaves catch only the fleets present at that moment.
+ */
+export function stationsSeen(
+	raw: Pick<
+		RawSave,
+		| 'country'
+		| 'countryId'
+		| 'countries'
+		| 'fleets'
+		| 'systems'
+		| 'starbases'
+		| 'ships'
+		| 'fleetOwner'
+	>,
+	own: Set<number>
+): StationSighting[] {
+	const here = new Set<number>();
+	for (const o of items(raw.country?.fleets_manager?.owned_fleets)) {
+		const at = idOrNull(raw.fleets[String(o?.fleet)]?.movement_manager?.coordinate?.origin);
+		if (at !== null && !own.has(at)) here.add(at);
+	}
+	return [...here]
+		.sort((a, b) => a - b)
+		.flatMap((systemId) => {
+			const ownerId = stationOwner(raw, raw.systems[String(systemId)]);
+			return ownerId === null || ownerId === raw.countryId
+				? []
+				: [{ systemId, ownerId, shipset: raw.countries[String(ownerId)]?.shipset ?? null }];
+		});
 }
 
 /** `country.relations_manager.relation`, one per empire we know. */

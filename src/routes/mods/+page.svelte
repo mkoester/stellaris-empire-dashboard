@@ -52,7 +52,12 @@
 			href="https://steamcommunity.com/sharedfiles/filedetails/?id={r.steamId}"
 			rel="external noreferrer"
 			target="_blank">{r.name}</a
-		>{:else}{r.name}{/if}
+		>{:else}{r.name}{/if}{#if r.local && r.steamId}<span
+			class="text-gray-500"
+			title="a local copy ({r.file}) beside the workshop version"
+		>
+			· local</span
+		>{/if}
 {/snippet}
 {#snippet supported(r: ModRow)}
 	{r.supportedVersion ?? '–'}{#if r.supported === false}<span
@@ -94,7 +99,7 @@
 </div>
 
 <div class="mb-8">
-	<SortTable rows={shown} {columns} key={(r) => `${r.name}|${r.steamId}`} bind:sort />
+	<SortTable rows={shown} {columns} key={(r) => r.file ?? `save:${r.name}`} bind:sort />
 </div>
 
 <h2 class="mb-2 text-xl font-semibold">Changes</h2>

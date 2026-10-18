@@ -42,8 +42,8 @@
 		],
 		[
 			'contactStations',
-			'First contact map: colour visited systems by their station’s owner',
-			'the save knows them before you have communications'
+			'Maps: colour visited systems by their station’s owner, named, before communications',
+			'spoilers — the save knows them before you have communications'
 		]
 	];
 
