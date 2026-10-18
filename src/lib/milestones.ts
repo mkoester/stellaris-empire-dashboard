@@ -67,11 +67,11 @@ const field =
 		return out;
 	};
 
-// Owned systems by name: knownSystems where stored, starbases before that field existed.
+// Owned systems by name, from `knownSystems` only. Snapshots from before that field kept their
+// starbases (`stations`), but read by a parser that saw only the capital's (the outpost bug):
+// mixing the two made a save re-read later look like Alpha Centauri gained, then lost (2203.08).
 const ownedSystems = (s: Snapshot): string[] | null =>
-	s.knownSystems?.filter((k) => k.owned).map((k) => k.name) ??
-	s.stations?.map((st) => st.system) ??
-	null;
+	s.knownSystems?.filter((k) => k.owned).map((k) => k.name) ?? null;
 
 /** How often each key occurs: districts built per type, buildings per type. */
 const tally = (keys: [string, number][]) => {

@@ -12,6 +12,7 @@ import {
 	megaShipyards,
 	stations,
 	expansion,
+	habitatSites,
 	hops,
 	militaryFleets,
 	sectorBySystem,
@@ -675,6 +676,45 @@ describe('empire overview', () => {
 				planet: { deposits: [], modifiers: [] }
 			}
 		]);
+	});
+
+	it('finds habitat sites with their bodies and surveyed deposits', () => {
+		const ps = {
+			'0': {
+				planet_class: 'pc_g_star',
+				controller: 0,
+				surveyed_by: 0,
+				coordinate: { origin: 380 }
+			},
+			'5': {
+				planet_class: 'pc_barren',
+				surveyed_by: [0],
+				deposits: [7],
+				coordinate: { origin: 380 }
+			},
+			'6': { planet_class: 'pc_barren', moon_of: 5, coordinate: { origin: 380 } },
+			'8': { planet_class: 'pc_ice_asteroid', coordinate: { origin: 380 } },
+			'9': { planet_class: 'pc_ocean', surveyed_by: 0, coordinate: { origin: 7 } },
+			'10': { planet_class: 'pc_gas_giant', deposits: [8], coordinate: { origin: 7 } },
+			'11': {
+				planet_class: 'pc_desert',
+				controller: 4,
+				surveyed_by: 0,
+				coordinate: { origin: 135 }
+			},
+			'12': { planet_class: 'pc_habitat', controller: 0, coordinate: { origin: 52 } }
+		};
+		const sites = habitatSites({
+			countryId: 0,
+			country: { capital: 0 },
+			planets: ps,
+			systems,
+			deposits: { '7': { type: 'd_minerals_3' }, '8': { type: 'd_energy_5' } }
+		});
+		expect(sites.map((x) => [x.system, x.beyond, x.major, x.minor, x.deposits])).toEqual([
+			['Sol', 0, 2, 2, ['d_minerals_3']], // the moon and the ice asteroid are minor
+			['Far', 2, 2, 0, []] // the gas giant is not surveyed: its deposit is unknown
+		]); // Sirius is another empire's, system 52 has a habitat already
 	});
 
 	it('counts jumps from the nearest shipyard', () => {

@@ -3,10 +3,12 @@ import { profile } from '#lib/colonyProfile.ts';
 import type { ExpansionRow, SpeciesChoice } from '#lib/expansion.ts';
 import { pretty } from '#lib/format.ts';
 import { estimate, livesOnPlanets } from '#lib/habitability.ts';
-import type { ExpansionPlanet, SpeciesInfo } from '#lib/types.ts';
+import { HABITAT_DISTRICTS, habitatRow } from '#lib/habitats.ts';
+import type { ExpansionPlanet, Snapshot, SpeciesInfo } from '#lib/types.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
 import { planetDetails } from './planets.ts';
+import { display } from './settings.ts';
 
 /**
  * The empire's species habitability applies to (a climate preference or the like), the main one —
@@ -61,4 +63,26 @@ export function expansionRows(
 			)
 		};
 	});
+}
+
+/**
+ * Habitat sites at the branch's latest save that read them, judged for the empire — shown once it
+ * can build habitats, or always with the config tab's `habitatsAlways`.
+ */
+export function habitatData(snaps: Snapshot[]) {
+	const data = getGameData();
+	const s = snaps.findLast((x) => x.habitatSites !== null);
+	const can = s?.habitats?.can ?? false;
+	const show = can || display().habitatsAlways;
+	const researched = snaps.findLast((x) => x.progress)?.progress?.researched ?? [];
+	const empire = { researched, voidDweller: s?.habitats?.voidDweller ?? false };
+	return {
+		show,
+		can,
+		rows: show
+			? (s?.habitatSites ?? []).map((site) => habitatRow(site, empire, data.habitatEffects))
+			: [],
+		names: pick(data.names, HABITAT_DISTRICTS),
+		colors: pick(data.districtColors, HABITAT_DISTRICTS)
+	};
 }

@@ -38,6 +38,8 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	traditions: null,
 	ascensionPerks: null,
 	canDetox: null,
+	habitatSites: null,
+	habitats: null,
 	civilianShips: null,
 	edicts: null,
 	species: null,

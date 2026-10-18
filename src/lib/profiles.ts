@@ -9,8 +9,16 @@ import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from '.
 
 export const ROW_LINES = { thin: 1, medium: 2, thick: 4 } as const; // px
 export type RowLine = keyof typeof ROW_LINES;
-export type Display = { colonyRowLine: RowLine; expansionRowLine: RowLine };
-export const DEFAULT_DISPLAY: Display = { colonyRowLine: 'medium', expansionRowLine: 'medium' };
+export type Display = {
+	colonyRowLine: RowLine;
+	expansionRowLine: RowLine;
+	habitatsAlways: boolean; // habitat sites before habitats can be built (later behind cheats)
+};
+export const DEFAULT_DISPLAY: Display = {
+	colonyRowLine: 'medium',
+	expansionRowLine: 'medium',
+	habitatsAlways: false
+};
 
 export type ProfileSettings = {
 	tabs: CustomTab[];
@@ -31,11 +39,15 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 
 export function parseDisplay(v: unknown): Display {
 	const o = (v ?? {}) as Partial<Display>;
-	const line = (k: keyof Display) => {
+	const line = (k: 'colonyRowLine' | 'expansionRowLine') => {
 		const l = o[k];
 		return l && l in ROW_LINES ? l : DEFAULT_DISPLAY[k];
 	};
-	return { colonyRowLine: line('colonyRowLine'), expansionRowLine: line('expansionRowLine') };
+	return {
+		colonyRowLine: line('colonyRowLine'),
+		expansionRowLine: line('expansionRowLine'),
+		habitatsAlways: o.habitatsAlways === true
+	};
 }
 
 /** A stored or imported profile in the current shape; broken parts fall back to the defaults. */

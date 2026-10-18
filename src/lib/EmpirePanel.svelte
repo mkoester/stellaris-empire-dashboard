@@ -349,6 +349,7 @@
 		species={data.expansionSpecies}
 		defines={data.habDefines}
 		canDetox={data.canDetox}
+		habitats={data.habitats}
 		rowLine={data.expansionRowLine}
 		compact
 	/>

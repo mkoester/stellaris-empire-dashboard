@@ -15,6 +15,7 @@
 	import { colorOf } from '../colors.ts';
 	import { pretty } from '../format.ts';
 	import { habitabilityLabel, habitabilityTier, TIER_CLASS } from '../habitability.ts';
+	import { HABITAT_DISTRICTS, habitatVisible, sortHabitats, type HabitatRow } from '../habitats.ts';
 	import PlanetDetails from '../PlanetDetails.svelte';
 	import { putSettings } from '../settings.ts';
 	import TraitChip from '../TraitChip.svelte';
@@ -31,6 +32,7 @@
 		species,
 		defines,
 		canDetox = false,
+		habitats = null,
 		compact = false,
 		rowLine = 1
 	}: {
@@ -40,6 +42,14 @@
 		species: SpeciesChoice[];
 		defines: Record<string, number>;
 		canDetox?: boolean; // toxic worlds count as terraforming candidates
+		// habitat sites (#lib/habitats.ts), when the empire can build habitats or always shows them
+		habitats?: {
+			show: boolean;
+			can: boolean;
+			rows: HabitatRow[];
+			names: Record<string, string>;
+			colors: Record<string, string>;
+		} | null;
 		compact?: boolean;
 		rowLine?: number;
 	} = $props();
@@ -127,6 +137,24 @@
 
 	let open: number | null = $state(null);
 	const width = $derived(12 + types.length);
+
+	const sites = $derived(
+		habitats?.show
+			? sortHabitats(
+					habitats.rows.filter((r) => habitatVisible(r, view.beyond, view.habitatMin)),
+					view.habitatSort
+				)
+			: []
+	);
+	const onSortHabitats = (column: string) =>
+		set(
+			'habitatSort',
+			view.habitatSort.column === column
+				? { column, desc: !view.habitatSort.desc }
+				: { column, desc: !['system', 'capital', 'shipyard', 'beyond'].includes(column) }
+		);
+	const habShort = (d: string) =>
+		(habitats?.names[d] ?? pretty(d.replace(/^district_hab_/, ''))).replace(/ District$/, '');
 </script>
 
 {#snippet head(id: string, label: string, title = '', right = true, color?: string)}
@@ -342,5 +370,101 @@
 				{/each}
 			</tbody>
 		</table>
+	{/if}
+
+	{#if habitats?.show}
+		<h3 class="mt-6 mb-1 text-lg font-semibold">Habitat sites</h3>
+		<p class="mb-2 text-sm text-gray-500">
+			One habitat per system, inside the borders (+0) to build it.{#if !habitats.can}
+				<span class="text-amber-600">You cannot build habitats yet</span> — shown because of the config
+				tab's setting.{/if} Districts: 6 + ¼ per star and planet (again with Habitats II and III), + ¼
+			per moon and asteroid for Void Dwellers; empire-wide bonuses not counted. Mining, energy and science
+			are capped by the system's surveyed orbital deposits.
+		</p>
+		<div class="mb-2 flex flex-wrap items-center gap-x-4 text-sm">
+			<label
+				>min size
+				<input
+					class="w-14 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+					type="number"
+					min="0"
+					step="1"
+					value={view.habitatMin}
+					onchange={(e) =>
+						set('habitatMin', Math.max(0, Math.floor(Number(e.currentTarget.value) || 0)))}
+				/></label
+			>
+			<span class="text-gray-500"
+				>{sites.length} of {habitats.rows.length} systems, range as above</span
+			>
+		</div>
+		{#if sites.length}
+			<table class="text-left text-sm">
+				<thead>
+					<tr class="border-b border-gray-300 dark:border-gray-700">
+						{#snippet hhead(id: string, label: string, title = '', right = true, color?: string)}
+							<th class="p-1 {right ? 'text-right' : ''}" {title}>
+								<button
+									class="cursor-pointer whitespace-nowrap hover:underline {view.habitatSort
+										.column === id
+										? 'font-semibold'
+										: 'font-normal'}"
+									style:color
+									onclick={() => onSortHabitats(id)}
+									>{label}{#if view.habitatSort.column === id}{view.habitatSort.desc
+											? ' ▼'
+											: ' ▲'}{/if}</button
+								>
+							</th>
+						{/snippet}
+						{@render hhead('system', 'System', '', false)}
+						{@render hhead('capital', 'Capital', 'jumps from the capital')}
+						{@render hhead('shipyard', 'Shipyard', 'jumps from the nearest own shipyard')}
+						{@render hhead('beyond', 'Border', 'jumps beyond the borders; * via a bypass')}
+						{@render hhead('limit', 'Districts', 'district limit')}
+						{#each HABITAT_DISTRICTS as d (d)}
+							{@render hhead(
+								`cap:${d}`,
+								habShort(d),
+								`${habShort(d)} cap`,
+								true,
+								habitats.colors[d]
+							)}
+						{/each}
+						{@render hhead('major', 'Major', 'stars and planets')}
+						{@render hhead('minor', 'Minor', 'moons and asteroids')}
+					</tr>
+				</thead>
+				<tbody>
+					{#each sites as r (r.systemId)}
+						<tr
+							class="border-gray-300 dark:border-gray-700"
+							style:border-bottom-width="{rowLine}px"
+						>
+							<td class="p-1">{r.system}</td>
+							<td class="p-1 text-right">{r.jumps ?? '–'}</td>
+							<td class="p-1 text-right">{r.shipyard ?? '–'}</td>
+							<td
+								class="p-1 text-right"
+								title={r.via.length
+									? `via ${[...new Set(r.via)].map((v) => pretty(v)).join(', ')}`
+									: ''}
+								>{r.beyond === null ? '–' : `+${r.beyond}`}{#if r.via.length}*{/if}</td
+							>
+							<td class="p-1 text-right tabular-nums">{r.limit}</td>
+							{#each HABITAT_DISTRICTS as d (d)}
+								<td class="p-1 text-right tabular-nums" style:color={habitats.colors[d]}
+									>{r.caps[d] || ''}</td
+								>
+							{/each}
+							<td class="p-1 text-right">{r.major}</td>
+							<td class="p-1 text-right">{r.minor}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		{:else}
+			<p class="text-sm">No system matches — see the range and the minimum size.</p>
+		{/if}
 	{/if}
 </Panel>

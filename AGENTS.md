@@ -158,7 +158,14 @@ jumps from the capital, the nearest own shipyard and the border; filters by rang
 class and district types (all of those picked); toxic worlds behind their own toggle until the
 empire can detox them (`Snapshot.canDetox`: the `ap_detox` perk or the `knights_detox` country
 flag — 4.5.2 `common/terraform/02_special_terraform_links.txt`; Climate Restoration is needed as
-for every candidate), then among the terraforming candidates; district numbers are what the planet allows once its blockers are
+for every candidate), then among the terraforming candidates; below it the **habitat sites**
+(`habitatSites()` in save.ts, `#lib/habitats.ts`), shown once the empire can build habitats
+(`tech_habitat_1`, the Diadochi / Great Khan's Legacy civics, `democratic_khanate_flag`) or always
+with the config tab's `habitatsAlways`: one habitat per system, inside the borders to build; its
+district limit after `max_habitat_districts_value` (6 + ¼ per star and planet, again with Habitats
+II and III, + ¼ per moon and asteroid for Void Dwellers), its mining, energy and science caps from
+the surveyed orbital deposits' `habitat_modifier` (data DB `deposit_habitat_modifier`); filtered by
+the same range and a minimum size (default 10, the game's "poor" threshold); district numbers are what the planet allows once its blockers are
 cleared, now in brackets (`DistrictCap.blocked`, `PlanetCaps.limitCleared`: the blockers' hidden
 features and their district loss). Matched the game at 2207.03.10 (Alpha Centauri IV farming 11
 (8), generator 7 (5), mining 3 (2)) once the extraction resolved
@@ -380,6 +387,8 @@ modifier="celebrate_diversity" days=3535 } … } }` — `days` left, −1 = perm
   `static_modifier` tables (`modifier:<key>` popups, Empire modifiers panel). Some keys are no
   static modifier (`uncivic_parliamentary_system_isolationist`, 4.0.1) and show as the key.
 - Identity of a game state (`Snapshot.fingerprint`): `tick` + `random_count`, both top-level.
+- Planets: `moon_of` marks moons, `surveyed_by` the countries that surveyed them (one id or a
+  list), `controller` the owner of the system it lies in.
 - Government: `country.government = { type="gov_representative_democracy" authority civics={…}
 origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `type` is named
   from the data DB's `government_type`.
@@ -388,6 +397,10 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   capital). Habitability: `pop_groups.<id>.habitability` (0–1, seen 1 and 0.9), pops-weighted.
 
 ## Open (needs a running game on Linux)
+
+- **Habitat district limits, not yet checked in game** (no habitat tech at 2207.03): whether
+  `count_system_planet` counts the star as a major body (assumed yes: Sol 9 major → 8 districts),
+  against the game's habitat placement tooltip.
 
 - **Migration treaties, never seen in a save** (2207.03: none, not even between AI empires).
   `migrationPartners()` takes any relation mentioning "migration" — check the real shape at the

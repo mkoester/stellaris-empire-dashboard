@@ -107,6 +107,12 @@ export function loadGameData(file: string): GameData {
 					).map((r) => [r.owner, r.value])
 				)
 			},
+			habitatEffects: rows<{ owner: string; key: string; value: number }>(
+				'SELECT deposit_key AS owner, modifier_key AS key, modifier_value AS value FROM deposit_habitat_modifier'
+			).reduce<Record<string, Record<string, number>>>(
+				(acc, r) => ({ ...acc, [r.owner]: { ...acc[r.owner], [r.key]: r.value } }),
+				{}
+			),
 			identityNames: Object.fromEntries(
 				rows<{ key: string; name: string }>(
 					`SELECT key, name FROM civic WHERE name IS NOT NULL

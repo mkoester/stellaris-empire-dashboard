@@ -86,6 +86,8 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		traditions: null,
 		ascensionPerks: null,
 		canDetox: null,
+		habitatSites: null,
+		habitats: null,
 		civilianShips: null,
 		edicts: null,
 		countryModifiers: null,

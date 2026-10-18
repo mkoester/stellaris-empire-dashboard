@@ -137,5 +137,17 @@
 				</select></label
 			>
 		{/each}
+		<label class="mt-2 block"
+			><input
+				type="checkbox"
+				checked={data.display.habitatsAlways}
+				onchange={(e) =>
+					act(() =>
+						putSettings({ display: { ...data.display, habitatsAlways: e.currentTarget.checked } })
+					)}
+			/>
+			Expansion: show habitat sites even before habitats can be built
+			<span class="text-gray-500">(later behind an “enable cheats” switch)</span></label
+		>
 	</section>
 </div>

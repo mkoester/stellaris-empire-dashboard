@@ -13,5 +13,6 @@
 	species={data.species}
 	defines={data.defines}
 	canDetox={data.canDetox}
+	habitats={data.habitats}
 	rowLine={data.rowLine}
 />

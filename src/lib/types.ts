@@ -100,6 +100,19 @@ export type SpeciesInfo = { id: string; name: string; cls: string; traits: strin
 export type Sector = { name: string; type: string; systems: number; colonies: number };
 
 /** A surveyed planet nobody owns; jumps from the capital system, null when unreachable. */
+/** A system a habitat could go to (`habitatSites()` in save.ts; judged in #lib/habitats.ts). */
+export type HabitatSite = {
+	systemId: number;
+	system: string;
+	jumps: number | null; // from the capital
+	shipyard: number | null; // from the nearest own shipyard
+	beyond: number | null; // from the nearest own system; 0 = inside the borders, where one can build
+	via: string[]; // bypass types on the way from the border
+	major: number; // stars and planets
+	minor: number; // moons and asteroids
+	deposits: string[]; // deposit types on its surveyed bodies
+};
+
 export type ExpansionPlanet = {
 	planetId: number;
 	name: string;
@@ -258,6 +271,8 @@ export type Snapshot = {
 	traditions: string[] | null; // adopted traditions, in pick order (adopt and finish included)
 	ascensionPerks: string[] | null;
 	canDetox: boolean | null; // can terraform toxic worlds (Detox perk or the Toxic Knights)
+	habitatSites: HabitatSite[] | null;
+	habitats: { can: boolean; voidDweller: boolean } | null; // can build them; Void Dwellers get more
 	civilianShips: CivilianShip[] | null; // science, construction, colony ships with their orders
 	edicts: string[] | null; // active edicts (keys)
 	countryModifiers: TimedModifier[] | null; // country.timed_modifier: empire-wide effects
@@ -336,6 +351,7 @@ export type GameData = {
 	districtColors: Record<string, string>; // district → its colour in game, '#rrggbb'
 	// civics, origins, authorities, ethics and government types by key
 	identityNames: Record<string, string>;
+	habitatEffects: Record<string, Record<string, number>>; // deposit → what a habitat gets from it
 	// what habitability is made of (#lib/habitability.ts): the species traits' `pc_<class>_habitability`,
 	// `pop_environment_tolerance` and `habitability_floor_add`, and the planet's own tolerance
 	// modifiers by popup id (`modifier:<key>`, `deposit:<key>`)

@@ -1,6 +1,6 @@
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
-import { expansionRows, speciesChoices } from './expansion.ts';
+import { expansionRows, habitatData, speciesChoices } from './expansion.ts';
 import { colonyBlockerHints } from './planets.ts';
 import { display, expansionView } from './settings.ts';
 import { ROW_LINES } from '#lib/profiles.ts';
@@ -86,6 +86,7 @@ export function empireData(url: URL) {
 		expansion: expansionRows(latest.expansion ?? [], species),
 		expansionSpecies: species.map(({ id, name }) => ({ id, name })),
 		canDetox: snaps.findLast((s) => s.canDetox !== null)?.canDetox ?? false,
+		habitats: habitatData(snaps),
 		// the game's habitability colours
 		habDefines: {
 			HABITABILITY_WRONG_PLANET: data.defines.HABITABILITY_WRONG_PLANET,

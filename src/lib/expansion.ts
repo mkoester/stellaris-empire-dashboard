@@ -30,6 +30,8 @@ export type ExpansionView = {
 	cls: string; // planet class, '' = any
 	districts: string[]; // district types it must allow (after clearing blockers); none = any
 	species: string | null; // species id whose habitability shows; null = the main one
+	habitatMin: number; // habitat sites: at least this many districts
+	habitatSort: { column: string; desc: boolean };
 };
 export const DEFAULT_EXPANSION_VIEW: ExpansionView = {
 	candidates: false,
@@ -39,7 +41,9 @@ export const DEFAULT_EXPANSION_VIEW: ExpansionView = {
 	sort: { column: 'beyond', desc: false },
 	cls: '',
 	districts: [],
-	species: null
+	species: null,
+	habitatMin: 10, // the game calls 10 a poor site
+	habitatSort: { column: 'limit', desc: true }
 };
 export const RANGE_CHOICES = [...Array(11).keys()]; // +0 … +10, then "any"
 
@@ -70,7 +74,15 @@ export function parseExpansionView(v: unknown): ExpansionView {
 			: str(o.district)
 				? [str(o.district)]
 				: [],
-		species: typeof o.species === 'string' ? o.species : null
+		species: typeof o.species === 'string' ? o.species : null,
+		habitatMin:
+			Number.isInteger(o.habitatMin) && o.habitatMin! >= 0
+				? o.habitatMin!
+				: DEFAULT_EXPANSION_VIEW.habitatMin,
+		habitatSort:
+			o.habitatSort && typeof o.habitatSort.column === 'string'
+				? { column: o.habitatSort.column, desc: !!o.habitatSort.desc }
+				: DEFAULT_EXPANSION_VIEW.habitatSort
 	};
 }
 

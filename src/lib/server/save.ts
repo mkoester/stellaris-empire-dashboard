@@ -12,6 +12,7 @@ import type {
 	Station,
 	Colony,
 	ExpansionPlanet,
+	HabitatSite,
 	Fleet,
 	Sector,
 	SpeciesInfo,
@@ -206,6 +207,22 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		species: speciesInfo(raw),
 		sectors: sectors(raw),
 		expansion: expansion(raw, shipyardSystems(raw)),
+		habitatSites: habitatSites(raw, shipyardSystems(raw)),
+		habitats: {
+			// 4.5.2 common/megastructures/habitats.txt (habitat_central_complex: potential)
+			can:
+				items(raw.country?.tech_status?.technology).includes('tech_habitat_1') ||
+				items(raw.country?.government?.civics).some(
+					(c) => c === 'civic_diadochi' || c === 'civic_great_khans_legacy'
+				) ||
+				raw.country?.flags?.democratic_khanate_flag !== undefined,
+			// is_void_dweller_empire (scripted trigger): the perk or a void-dweller origin
+			voidDweller:
+				items(raw.country?.ascension_perks).includes('ap_voidborn') ||
+				['origin_void_dwellers', 'origin_void_machines'].includes(
+					String(raw.country?.government?.origin)
+				)
+		},
 		stations: stations(raw),
 		migration: migration(raw),
 		knownSystems: knownSystems(raw, ownSystems(raw)),
@@ -791,23 +808,88 @@ export function shipyardSystems(raw: Parameters<typeof stations>[0]): number[] {
 		.map(([id]) => Number(id));
 }
 
+type ReachRaw = Pick<RawSave, 'countryId' | 'country' | 'planets' | 'systems'> & Partial<GalaxyRaw>;
+
+/**
+ * Jumps to every system from the capital, the nearest own shipyard and the nearest own system,
+ * over hyperlanes and usable bypasses. Own systems: those whose planets (stars included) the
+ * country controls.
+ */
+function reach(raw: ReachRaw, shipyards: number[]) {
+	const g = galaxy(raw);
+	const capitalSystem = raw.planets[String(raw.country?.capital)]?.coordinate?.origin;
+	return {
+		fromCapital: distances(g, capitalSystem === undefined ? [] : [Number(capitalSystem)]),
+		fromShipyard: distances(g, shipyards),
+		fromBorder: distances(
+			g,
+			Object.values(raw.planets)
+				.filter((p) => controlledBy(p, raw.countryId))
+				.map((p) => Number(p.coordinate?.origin))
+		)
+	};
+}
+const controlledBy = (p: Raw, country: number) =>
+	p?.controller !== undefined && Number(p.controller) === country;
+
+// bodies that are no natural celestial object (habitats, ring worlds, arks, astral scars …)
+const ARTIFICIAL = /habitat|ringworld|^pc_ark|astral_scar|cosmogenesis|_seam$/;
+
+/**
+ * Systems a habitat could go to: surveyed (one planet at least), with no habitat or ring world
+ * yet, and not another empire's. Per system its jumps, its natural bodies — major ones (stars and
+ * planets) and minor ones (moons, asteroids), which set the habitat's district limit — and the
+ * deposits on its surveyed bodies, whose `habitat_modifier` caps its districts
+ * (#lib/habitats.ts). Building needs the system inside the borders: `beyond` 0.
+ */
+export function habitatSites(raw: ReachRaw & Pick<RawSave, 'deposits'>, shipyards: number[] = []) {
+	const { fromCapital, fromShipyard, fromBorder } = reach(raw, shipyards);
+	const bySystem = new Map<number, Raw[]>();
+	for (const p of Object.values(raw.planets))
+		if (p && typeof p === 'object' && p.coordinate?.origin !== undefined)
+			bySystem.set(Number(p.coordinate.origin), [
+				...(bySystem.get(Number(p.coordinate.origin)) ?? []),
+				p
+			]);
+	const surveyed = (p: Raw) => list(p.surveyed_by).includes(raw.countryId);
+	return [...bySystem]
+		.filter(
+			([sys, ps]) =>
+				fromBorder.jumps.has(sys) &&
+				ps.some(surveyed) &&
+				!ps.some((p) => /^pc_(habitat|ringworld)/.test(String(p.planet_class))) &&
+				!ps.some((p) => p.controller !== undefined && !controlledBy(p, raw.countryId))
+		)
+		.map(([sys, ps]): HabitatSite => {
+			const natural = ps.filter((p) => !ARTIFICIAL.test(String(p.planet_class)));
+			// asteroids of every kind (pc_ice_asteroid: Makemake, Haumea …) are minor bodies
+			const major = natural.filter(
+				(p) => p.moon_of === undefined && !/asteroid/.test(String(p.planet_class))
+			).length;
+			return {
+				systemId: sys,
+				system: displayName(raw.systems[String(sys)]?.name),
+				jumps: fromCapital.jumps.get(sys) ?? null,
+				shipyard: fromShipyard.jumps.get(sys) ?? null,
+				beyond: fromBorder.jumps.get(sys) ?? null,
+				via: fromBorder.via(sys),
+				major,
+				minor: natural.length - major,
+				deposits: ps
+					.filter(surveyed)
+					.flatMap((p) => list(p.deposits).map((d) => raw.deposits[String(d)]?.type))
+					.filter((t): t is string => typeof t === 'string')
+			};
+		})
+		.sort((a, b) => (a.beyond ?? 1e9) - (b.beyond ?? 1e9) || a.system.localeCompare(b.system));
+}
+
 export function expansion(
-	raw: Pick<RawSave, 'countryId' | 'country' | 'planets' | 'systems' | 'deposits' | 'date'> &
-		Partial<GalaxyRaw>,
+	raw: ReachRaw & Pick<RawSave, 'deposits' | 'date'>,
 	shipyards: number[] = []
 ): ExpansionPlanet[] {
-	const g = galaxy(raw);
-	const controlled = (p: Raw) =>
-		p?.controller !== undefined && Number(p.controller) === raw.countryId;
-	const capitalSystem = raw.planets[String(raw.country?.capital)]?.coordinate?.origin;
-	const fromCapital = distances(g, capitalSystem === undefined ? [] : [Number(capitalSystem)]);
-	const fromShipyard = distances(g, shipyards);
-	const fromBorder = distances(
-		g,
-		Object.values(raw.planets)
-			.filter(controlled)
-			.map((p) => Number(p.coordinate?.origin))
-	);
+	const { fromCapital, fromShipyard, fromBorder } = reach(raw, shipyards);
+	const controlled = (p: Raw) => controlledBy(p, raw.countryId);
 	return items(raw.country?.surveyed_deposit_holders)
 		.filter((h) => num(h?.type) === 0)
 		.map((h) => [Number(h.id), raw.planets[String(h.id)]] as const)

@@ -169,6 +169,28 @@ describe('milestones', () => {
 		]);
 	});
 
+	it('compares owned systems only between saves that list them', () => {
+		const sys = (name: string) => ({
+			id: 0,
+			name,
+			x: 0,
+			y: 0,
+			owned: true,
+			capital: false,
+			lanes: []
+		});
+		const station = (system: string) => ({ system }) as NonNullable<Snapshot['stations']>[number];
+		expect(
+			labels([
+				// older readings: only the capital's starbase, no knownSystems
+				save('2203.07.01', { stations: [station('Sol')] }),
+				save('2203.08.10', { knownSystems: [sys('Sol'), sys('Alpha Centauri')] }),
+				save('2203.09.01', { stations: [station('Sol')] }),
+				save('2206.11.01', { knownSystems: [sys('Sol'), sys('Alpha Centauri'), sys('Sirius')] })
+			])
+		).toEqual(['2206.11.01 system gained: Sirius']);
+	});
+
 	it('names government changes, including its type and origin', () => {
 		const gov = (government: string[], governmentType: string, origin: string) =>
 			({ government, governmentType, origin }) as Partial<Snapshot>;

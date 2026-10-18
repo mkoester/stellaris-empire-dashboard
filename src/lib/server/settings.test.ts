@@ -20,7 +20,9 @@ describe('profiles', () => {
 	it('writes into the profile in use only', () => {
 		const db = openDb(':memory:');
 		const b = profileAction(db, { action: 'create', name: 'Wide' })!;
-		updateProfile(db, { display: { colonyRowLine: 'thick', expansionRowLine: 'medium' } });
+		updateProfile(db, {
+			display: { colonyRowLine: 'thick', expansionRowLine: 'medium', habitatsAlways: false }
+		});
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('thick');
 		profileAction(db, { action: 'select', id: b });
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('medium');
@@ -41,7 +43,9 @@ describe('profiles', () => {
 
 	it('copies, renames uniquely, imports and keeps the last profile', () => {
 		const db = openDb(':memory:');
-		updateProfile(db, { display: { colonyRowLine: 'thin', expansionRowLine: 'medium' } });
+		updateProfile(db, {
+			display: { colonyRowLine: 'thin', expansionRowLine: 'medium', habitatsAlways: false }
+		});
 		const copy = profileAction(db, { action: 'create', name: 'default', copyOf: 'default' })!;
 		expect(profiles(db).map((p) => p.name)).toEqual(['default', 'default (2)']);
 		expect(getSetting(db, `profile:${copy}`)).toMatchObject({ display: { colonyRowLine: 'thin' } });
