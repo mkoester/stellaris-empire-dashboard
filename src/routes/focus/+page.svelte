@@ -19,7 +19,7 @@
 			explanation={data.explain[`tech:${o.tech}`]}>{data.techNames[o.tech]}</InfoPopup
 		>{/each}
 	<InfoPopup explanation={data.explain[`focusreward:${r.key}`]}
-		><span class="text-gray-500" title="what this reward does">ⓘ</span></InfoPopup
+		><span class="text-gray-500">ⓘ</span></InfoPopup
 	>
 {/snippet}
 
