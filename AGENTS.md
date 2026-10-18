@@ -113,8 +113,11 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 `MigrationMap` is one such layer). **Maps show only what is discovered**: visited or own systems
 (the save's `terra_incognita.systems` is the same list; its 256×256 `data` grid is run-length
 encoded, row-major, but its scale is not pinned down) plus first contact sites, lanes only among
-them (`discovered()`, `server/mapSystems.ts`); the profile's `wholeGalaxy` switch shows every
-system. Megastructure candidates, the catapult's farthest system and the jumps beyond the border
+them (`discovered()`, `mapView()`, `server/mapSystems.ts`). Profile switches: `unknownStars`
+adds every other star, faint and without lanes (the game shows all stars from the start, only the
+connections are hidden); `wholeGalaxy` shows every system and lane. With `unknownStars` the
+star-only megastructure rules (catapult, stellar cannon, matter decompressor's star) count those
+systems too. Megastructure candidates, the catapult's farthest system and the jumps beyond the border
 count discovered systems only. Table rows tied to a system (`SortTable` `link`) and the map share a
 bindable `hovered` system: the row is highlighted, the system ringed. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
@@ -246,8 +249,12 @@ shipyard = the outermost body's distance from the star (the way out for new ship
 
 **Focus, traditions, tech, leaders, species, contacts** (one route each):
 
-- **focus** (`#lib/focus.ts`): the open and done cards (hint, requirement) and per category the
-  next reward and the one after, each a research option (every branch of its effect listed).
+- **focus** (`#lib/focus.ts`): the open and done cards (hint, requirement, the progress each
+  gives: 10 / 25 / 50 by tier, core cards to all three) and per category the next reward and the
+  one after. A reward is `add_research_option` — "permanent until researched" (4.5.2
+  `logs/script_documentation/effects.log`): no research, no progress. Several options are an
+  if/else on the empire, not a choice; the one ours is evaluated (`is_diplomatic` …) and the
+  ⓘ popup says why. Categories in the game's colours (`focus-*` in `colors.ts`).
 - **traditions**: adopted trees (the existing Traditions panel), the other trees, every perk
   (taken first, conditions not checked).
 - **tech**: the three queues with due dates (`events.ts`), the cards on offer
@@ -503,9 +510,9 @@ type clues difficulty days_left excavator_fleet }`. Megastructures `megastructur
   ruined ring world sections).
 - Empire focus: `country.focus = { active = { <card ids> } priority = { current } reward = {
 rewards = { { category current="development_rewards_2" progress } } } }`; cards are top-level
-  `focus_cards.<id> = { type status }`. **`status=1` is read as done** (2207.03.10: 1 on Hire a
-  Commander, Found a Colony, Adopt a Tradition; 0 on Declare a Rival, Upgrade a Starbase) — check
-  against the game's focus panel. Offered techs `country.tech_status.alternatives = { physics =
+  `focus_cards.<id> = { type status }`, **`status=1` = done**: the game's panel at 2207.03.10 lists
+  exactly the five `status=0` cards (screenshot 2026_10_18_4; one taken just before showed a card
+  that had just been completed and replaced). Offered techs `country.tech_status.alternatives = { physics =
 { "tech_…" } … }`. Leaders: `leaders.<id> = { name class level age species traits job }`.
 - Council: `country.government.council_positions = { <ids> }` → top-level
   `council_positions.council_positions.<id> = { country type leader }` (2207.03.10: defense,
@@ -521,7 +528,6 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 
 ## Open (needs a running game on Linux)
 
-- **Focus card status**: `status=1` read as done — confirm in the game's focus panel.
 - **Megastructure scores, not yet checked in game**: the arc furnace's (Sol 20 at 2207.03.10)
   against the game's "best systems" tooltip; whether the catapult's `catapult_range_base` and the
   sentry array's `sensor_range` are galaxy-map units (assumed); whether the in-system distance to

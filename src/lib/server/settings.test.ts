@@ -28,7 +28,8 @@ describe('profiles', () => {
 				anomalySpoilers: false,
 				projectSpoilers: false,
 				contactStations: false,
-				wholeGalaxy: false
+				wholeGalaxy: false,
+				unknownStars: false
 			}
 		});
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('thick');
@@ -59,7 +60,8 @@ describe('profiles', () => {
 				anomalySpoilers: false,
 				projectSpoilers: false,
 				contactStations: false,
-				wholeGalaxy: false
+				wholeGalaxy: false,
+				unknownStars: false
 			}
 		});
 		const copy = profileAction(db, { action: 'create', name: 'default', copyOf: 'default' })!;

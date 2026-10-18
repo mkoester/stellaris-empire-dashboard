@@ -12,6 +12,7 @@
 		lanes: number[];
 		owned?: boolean;
 		capital?: boolean;
+		known?: boolean; // false: an undiscovered star, drawn faint
 	};
 	let {
 		systems,
@@ -167,15 +168,16 @@
 					onpointerenter={() => (hovered = s.id)}
 					onpointerleave={() => (hovered = null)}
 					><title
-						>{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{titles[s.id]
-							? ` — ${titles[s.id]}`
-							: ''}</title
+						>{s.name}{s.known === false ? ' (not discovered)' : ''}{s.owned
+							? ' (yours)'
+							: ''}{s.capital ? ', capital' : ''}{titles[s.id] ? ` — ${titles[s.id]}` : ''}</title
 					></circle
 				>
 				<circle
 					cx={at(s).x}
 					cy={at(s).y}
-					r={fill[s.id] ? 4 : 3}
+					r={fill[s.id] ? 4 : s.known === false ? 2 : 3}
+					opacity={s.known === false && !fill[s.id] ? 0.5 : 1}
 					fill={fill[s.id]}
 					class="pointer-events-none {fill[s.id]
 						? 'stroke-white dark:stroke-gray-900'

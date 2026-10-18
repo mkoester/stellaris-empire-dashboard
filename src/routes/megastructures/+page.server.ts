@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { candidates, KINDS, MEGA_RULES } from '#lib/megastructures.ts';
-import { discovered, jumpsFromBorder } from '#lib/situations.ts';
+import { discovered, jumpsFromBorder, mapView } from '#lib/situations.ts';
 import { display } from '#lib/server/settings.ts';
 import { getDb, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -13,9 +13,10 @@ export function load({ url }) {
 	const { snaps, ...rest } = b;
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const g = s ? galaxyOf(getDb(), s.campaign) : null;
-	const whole = display().wholeGalaxy;
-	// what is not discovered is neither a candidate nor counted (the catapult's farthest system)
-	const galaxy = discovered(g?.systems ?? [], whole);
+	const { wholeGalaxy: whole, unknownStars: stars } = display();
+	// what is not discovered is neither a candidate nor counted (the catapult's farthest system);
+	// with the unknown stars shown, their stars count (the game shows a star's class), not bodies
+	const galaxy = discovered(g?.systems ?? [], { whole, stars });
 	const beyond = jumpsFromBorder(galaxy);
 	const data = getGameData();
 	// who owns what we know of: ourselves, or an empire by the name we know it under
@@ -31,14 +32,7 @@ export function load({ url }) {
 		wholeGalaxy: whole,
 		machineAge,
 		owners,
-		systems: galaxy.map((x) => ({
-			id: x.id,
-			name: x.name,
-			x: x.x,
-			y: x.y,
-			lanes: x.lanes,
-			owned: x.owned
-		})),
+		systems: mapView(g?.systems ?? [], { whole, stars }),
 		kinds: KINDS.map((kind) => ({
 			kind,
 			...MEGA_RULES[kind],

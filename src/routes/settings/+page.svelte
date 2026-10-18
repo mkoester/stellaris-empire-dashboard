@@ -20,6 +20,11 @@
 		['anomalySpoilers', 'Situations: show what an anomaly can lead to', 'spoilers'],
 		['projectSpoilers', 'Situations: show what a special project leads to', 'spoilers'],
 		[
+			'unknownStars',
+			'Maps: show the undiscovered systems too, without their hyperlanes',
+			'the game shows every star from the start'
+		],
+		[
 			'wholeGalaxy',
 			'Maps and megastructure sites: the whole galaxy, not only the systems discovered',
 			'shows what the game still hides'

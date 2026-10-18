@@ -113,19 +113,41 @@ export function situationRows(
 	}));
 }
 
+/** Which systems a map shows: discovered only, every star (lanes still only the known), all. */
+export type Reveal = { whole: boolean; stars: boolean };
+
+/** The ids the empire has discovered: visited or own (the save's `terra_incognita.systems` is the
+ * same list) and `also` (first contact sites, which the game shows). */
+export const knownIds = (galaxy: GalaxySystem[], also: number[] = []) =>
+	new Set([...galaxy.filter((s) => s.visited || s.owned).map((s) => s.id), ...also]);
+
 /**
- * What the empire has discovered: visited or own systems (the save's `terra_incognita.systems` is
- * the same list) and `also` (first contact sites, which the game shows), with lanes among them
- * only — the game hides hyperlanes outside its known space. `whole` keeps every system.
+ * The systems a map or a site search sees: the discovered ones with the lanes among them only —
+ * the game hides hyperlanes outside its known space — plus every other star with `stars` (the
+ * game shows them from the start), or the whole galaxy with its lanes with `whole`.
  */
 export function discovered(
 	galaxy: GalaxySystem[],
-	whole: boolean,
+	reveal: Reveal,
 	also: number[] = []
 ): GalaxySystem[] {
-	if (whole) return galaxy;
-	const known = new Set([...galaxy.filter((s) => s.visited || s.owned).map((s) => s.id), ...also]);
+	if (reveal.whole) return galaxy;
+	const known = knownIds(galaxy, also);
 	return galaxy
-		.filter((s) => known.has(s.id))
-		.map((s) => ({ ...s, lanes: s.lanes.filter((to) => known.has(to)) }));
+		.filter((s) => reveal.stars || known.has(s.id))
+		.map((s) => ({ ...s, lanes: known.has(s.id) ? s.lanes.filter((to) => known.has(to)) : [] }));
+}
+
+/** What a map draws of the galaxy: `known` false for an undiscovered star shown faint. */
+export function mapView(galaxy: GalaxySystem[], reveal: Reveal, also: number[] = []) {
+	const known = knownIds(galaxy, also);
+	return discovered(galaxy, reveal, also).map((g) => ({
+		id: g.id,
+		name: g.name,
+		x: g.x,
+		y: g.y,
+		lanes: g.lanes,
+		owned: g.owned,
+		known: reveal.whole || known.has(g.id)
+	}));
 }

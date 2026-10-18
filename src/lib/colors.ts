@@ -45,6 +45,11 @@ const COLORS: Record<string, string> = {
 	mod: '#c8743a',
 	district: '#8c6d1f',
 	building: '#d0403a', // built with minerals
+	// empire focus categories, after the game's focus panel (blue, red, gold; core cards brown)
+	'focus-exploration': '#3a86c8',
+	'focus-conquest': '#c8463a',
+	'focus-development': '#c9962e',
+	'focus-core_focus': '#9a8059',
 	// planet classes by climate (#lib/climate.ts), after the climate-preference trait icons
 	// (gfx/interface/icons/traits/trait_pc_*_preference.dds)
 	'climate-dry': '#b99037',

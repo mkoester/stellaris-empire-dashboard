@@ -591,10 +591,20 @@ export type GameData = {
 				name: string;
 				hint: string | null;
 				requirement: string | null;
+				gives: { category: string; amount: number }[]; // focus progress when done
 			}
 		>;
-		rewards: Record<string, { category: string | null; cost: number | null; techs: string[] }>;
+		// each reward adds one research option, which depends on the empire (if/else, not a choice)
+		rewards: Record<
+			string,
+			{
+				category: string | null;
+				cost: number | null;
+				options: { tech: string; when: Trigger | null }[];
+			}
+		>;
 	};
+
 	// council seats; modifiers (per leader level) are the `seat:<key>` explanations
 	councilPositions: Record<
 		string,

@@ -18,6 +18,7 @@ export type Display = {
 	projectSpoilers: boolean; // situations tab: what a special project leads to
 	contactStations: boolean; // first contact map: whose station each visited system has
 	wholeGalaxy: boolean; // maps and megastructure sites: every system, not only the discovered
+	unknownStars: boolean; // maps: the undiscovered systems too, without their hyperlanes
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
@@ -26,7 +27,8 @@ export const DEFAULT_DISPLAY: Display = {
 	anomalySpoilers: false,
 	projectSpoilers: false,
 	contactStations: false,
-	wholeGalaxy: false
+	wholeGalaxy: false,
+	unknownStars: false
 };
 
 export type ProfileSettings = {
@@ -61,7 +63,8 @@ export function parseDisplay(v: unknown): Display {
 		anomalySpoilers: o.anomalySpoilers === true,
 		projectSpoilers: o.projectSpoilers === true,
 		contactStations: o.contactStations === true,
-		wholeGalaxy: o.wholeGalaxy === true
+		wholeGalaxy: o.wholeGalaxy === true,
+		unknownStars: o.unknownStars === true
 	};
 }
 

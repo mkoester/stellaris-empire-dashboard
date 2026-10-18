@@ -233,9 +233,12 @@ export function loadGameData(file: string): GameData {
 						name: string | null;
 						hint: string | null;
 						requirement: string | null;
-					}>('SELECT key, category, tier, name, hint, requirement FROM focus_card').map((r) => [
+						progress_json: string | null;
+					}>(
+						'SELECT key, category, tier, name, hint, requirement, progress_json FROM focus_card'
+					).map(({ progress_json, ...r }) => [
 						r.key,
-						{ ...r, name: r.name ?? r.key }
+						{ ...r, name: r.name ?? r.key, gives: jsonList(progress_json) }
 					])
 				),
 				rewards: Object.fromEntries(
@@ -243,10 +246,10 @@ export function loadGameData(file: string): GameData {
 						key: string;
 						category: string | null;
 						cost: number | null;
-						techs_json: string | null;
-					}>('SELECT key, category, cost, techs_json FROM focus_reward').map((r) => [
+						options_json: string | null;
+					}>('SELECT key, category, cost, options_json FROM focus_reward').map((r) => [
 						r.key,
-						{ category: r.category, cost: r.cost, techs: jsonList(r.techs_json) }
+						{ category: r.category, cost: r.cost, options: jsonList(r.options_json) }
 					])
 				)
 			},

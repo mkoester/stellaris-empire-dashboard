@@ -88,11 +88,19 @@ describe('discovered', () => {
 			sys(3, [4]),
 			sys(4, [], { visited: false })
 		];
-		expect(discovered(g, false, [4]).map((s) => [s.id, s.lanes])).toEqual([
+		const none = { whole: false, stars: false };
+		expect(discovered(g, none, [4]).map((s) => [s.id, s.lanes])).toEqual([
 			[1, [3]],
 			[3, [4]],
 			[4, []]
 		]);
-		expect(discovered(g, true)).toHaveLength(4);
+		// every star, but no lane to or from the undiscovered 2
+		expect(discovered(g, { whole: false, stars: true }, [4]).map((s) => [s.id, s.lanes])).toEqual([
+			[1, [3]],
+			[2, []],
+			[3, [4]],
+			[4, []]
+		]);
+		expect(discovered(g, { whole: true, stars: false })).toHaveLength(4);
 	});
 });

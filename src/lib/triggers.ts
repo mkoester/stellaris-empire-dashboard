@@ -84,6 +84,9 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			return yes(auth('auth_corporate'));
 		case 'is_homicidal':
 			return yes(HOMICIDAL.some(auth));
+		case 'is_diplomatic':
+			// 4.5.2 scripted_triggers: not homicidal, not Inward Perfection
+			return yes(!HOMICIDAL.some(auth) && !auth('civic_inwards_perfection'));
 		case 'is_wilderness_empire':
 			return yes(f.origin === null ? null : f.origin === 'origin_wilderness');
 		case 'is_nomadic':
