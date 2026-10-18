@@ -1,11 +1,17 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { colorOf } from './colors.ts';
-	import { countLabel, type Trait } from './colonyProfile.ts';
+	import { countLabel } from './colonyProfile.ts';
 	import { sectorName, type ColonyRow, type ColumnId, type Sort } from './colonyTable.ts';
 	import DistrictName from './DistrictName.svelte';
+	import TraitChip from './TraitChip.svelte';
+	import {
+		habitabilityLabel,
+		habitabilityTier,
+		TIER_CLASS,
+		type Habitability
+	} from './habitability.ts';
 	import { fmt, nameOf, pretty } from './format.ts';
-	import InfoPopup from './InfoPopup.svelte';
 	import type { Explanation } from './types.ts';
 
 	// The colonies tab's table: one row per colony and, under it, its pros (👍) and cons (👎) as
@@ -22,7 +28,9 @@
 		colors,
 		explain,
 		node,
-		rowLine = 2
+		rowLine = 2,
+		species = '',
+		defines = {}
 	}: {
 		rows: ColonyRow[];
 		columns: ColumnId[];
@@ -35,9 +43,20 @@
 		explain: Record<string, Explanation>;
 		node: number | null;
 		rowLine?: number; // px between colonies (config tab)
+		species?: string; // whose habitability shows (class colour, Hab.); '' = everyone's, pops-weighted
+		defines?: Record<string, number>;
 	} = $props();
 
 	const show = (id: ColumnId) => columns.includes(id);
+	// the species picked, else everyone living there (the save's, exact)
+	const hab = (r: ColonyRow): Habitability | null =>
+		species
+			? (r.hab[species] ?? null)
+			: r.habitability === null
+				? null
+				: { value: r.habitability, exact: true };
+	const tier = (h: Habitability | null) =>
+		h ? TIER_CLASS[habitabilityTier(h.value, defines)] : '';
 	const pct = (v: number | null) => (v === null ? '–' : `${Math.round(v * 100)}%`);
 	const signed = (v: number) => (v > 0 ? '+' : '') + fmt(v);
 	const href = (planetId: number) =>
@@ -79,21 +98,6 @@
 	</th>
 {/snippet}
 
-{#snippet chip(t: Trait, pro: boolean)}
-	<span
-		class="inline-flex items-center gap-1 rounded border px-1 whitespace-nowrap {pro
-			? 'border-green-600/40'
-			: 'border-red-600/40'}"
-		title={t.until ? `${t.detail}\ntemporary, until ${t.until}` : t.detail}
-		><span class={pro ? 'text-green-600' : 'text-red-600'}>{pro ? '👍' : '👎'}</span
-		>{#if t.resource && colorOf(t.resource)}<span
-				class="inline-block size-2 rounded-full"
-				style:background={colorOf(t.resource)}
-			></span>{/if}<InfoPopup explanation={t.ref ? explain[t.ref] : undefined}>{t.label}</InfoPopup
-		>{#if t.until}<span class="cursor-help" aria-label="temporary">⏳</span>{/if}</span
-	>
-{/snippet}
-
 <!-- no overflow wrapper: it would clip the popups -->
 <div>
 	<table class="text-left text-sm">
@@ -102,7 +106,12 @@
 				{@render head('name', 'Colony', '', false)}
 				{#if show('sector')}{@render head('sector', 'Sector', '', false)}{/if}
 				{#if show('designation')}{@render head('designation', 'Designation', '', false)}{/if}
-				{#if show('class')}{@render head('class', 'Class', 'sorted by size', false)}{/if}
+				{#if show('class')}{@render head(
+						'class',
+						'Class',
+						'coloured by habitability, as in game',
+						false
+					)}{/if}
 				{#if show('pops')}{@render head('pops', 'Pops')}{/if}
 				{#if show('growth')}{@render head(
 						'growth',
@@ -114,7 +123,9 @@
 				{#if show('habitability')}{@render head(
 						'habitability',
 						'Hab.',
-						'habitability, pops-weighted'
+						species
+							? 'habitability for the species picked; ≈ estimated where it does not live'
+							: 'habitability, pops-weighted'
 					)}{/if}
 				{#if show('housing')}{@render head('housing', 'Housing', 'free housing')}{/if}
 				{#if show('amenities')}{@render head('amenities', 'Amen.', 'free amenities')}{/if}
@@ -181,7 +192,9 @@
 								>{/if}
 						</td>
 					{/if}
-					{#if show('class')}<td class="p-1 whitespace-nowrap">{r.planetClass} {r.size}</td>{/if}
+					{#if show('class')}<td class="p-1 whitespace-nowrap {tier(hab(r))}">
+							{r.planetClass} <span class="text-gray-500">{r.size}</span>
+						</td>{/if}
 					{#if show('pops')}<td class="p-1 text-right">{fmt(r.pops)}</td>{/if}
 					{#if show('growth')}
 						<td
@@ -199,10 +212,8 @@
 					{/if}
 					{#if show('happiness')}<td class="p-1 text-right">{pct(r.happiness)}</td>{/if}
 					{#if show('habitability')}
-						<td
-							class="p-1 text-right {r.habitability !== null && r.habitability < 0.7
-								? 'text-red-600'
-								: ''}">{pct(r.habitability)}</td
+						<td class="p-1 text-right whitespace-nowrap {tier(hab(r))}"
+							>{hab(r) ? habitabilityLabel(hab(r)!) : '–'}</td
 						>
 					{/if}
 					{#if show('housing')}
@@ -277,8 +288,16 @@
 				>
 					<td class="p-1 pb-2 pl-2" colspan={width}>
 						<span class="flex flex-wrap gap-1">
-							{#each r.profile.pros as t, i (i)}{@render chip(t, true)}{/each}
-							{#each r.profile.cons as t, i (i)}{@render chip(t, false)}{/each}
+							{#each r.profile.pros as t, i (i)}<TraitChip
+									{t}
+									pro
+									explanation={t.ref ? explain[t.ref] : undefined}
+								/>{/each}
+							{#each r.profile.cons as t, i (i)}<TraitChip
+									{t}
+									pro={false}
+									explanation={t.ref ? explain[t.ref] : undefined}
+								/>{/each}
 							{#if !r.profile.pros.length && !r.profile.cons.length}<span class="text-gray-500"
 									>nothing known about this planet</span
 								>{/if}

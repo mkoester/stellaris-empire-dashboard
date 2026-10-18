@@ -9,8 +9,8 @@ import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from '.
 
 export const ROW_LINES = { thin: 1, medium: 2, thick: 4 } as const; // px
 export type RowLine = keyof typeof ROW_LINES;
-export type Display = { colonyRowLine: RowLine };
-export const DEFAULT_DISPLAY: Display = { colonyRowLine: 'medium' };
+export type Display = { colonyRowLine: RowLine; expansionRowLine: RowLine };
+export const DEFAULT_DISPLAY: Display = { colonyRowLine: 'medium', expansionRowLine: 'medium' };
 
 export type ProfileSettings = {
 	tabs: CustomTab[];
@@ -30,8 +30,12 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 };
 
 export function parseDisplay(v: unknown): Display {
-	const line = (v as Partial<Display> | null)?.colonyRowLine;
-	return { colonyRowLine: line && line in ROW_LINES ? line : DEFAULT_DISPLAY.colonyRowLine };
+	const o = (v ?? {}) as Partial<Display>;
+	const line = (k: keyof Display) => {
+		const l = o[k];
+		return l && l in ROW_LINES ? l : DEFAULT_DISPLAY[k];
+	};
+	return { colonyRowLine: line('colonyRowLine'), expansionRowLine: line('expansionRowLine') };
 }
 
 /** A stored or imported profile in the current shape; broken parts fall back to the defaults. */

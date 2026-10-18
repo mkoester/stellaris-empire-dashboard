@@ -58,6 +58,20 @@ describe('districtCaps', () => {
 		expect([c.built, c.limit]).toEqual([16, 16]);
 	});
 
+	it('tells what clearing the blockers adds', () => {
+		const c = districtCaps(earth, built, effects, [
+			'd_great_pacific_garbage_patch',
+			'd_failing_infrastructure_earth'
+		]);
+		expect(c.types.map((t) => [t.district, t.blocked])).toEqual([
+			['district_city', 0],
+			['district_farming', 3], // Pacific Algae Tracts
+			['district_generator', 2], // Delhi Sprawl
+			['district_mining', 0]
+		]);
+		expect([c.limit, c.limitCleared]).toEqual([16, 18]);
+	});
+
 	it('applies multipliers, rounds down, and counts each building', () => {
 		const c = districtCaps(
 			{

@@ -13,11 +13,13 @@ export type DistrictCap = {
 	district: string;
 	built: number;
 	cap: number | null; // null: no cap of its own (city districts), only the planet's limit
+	blocked: number; // of the cap, what the features behind blockers add: usable once cleared
 	sources: CapSource[];
 };
 export type PlanetCaps = {
 	built: number;
 	limit: number | null; // null for habitats: theirs depends on capital tier and the system
+	limitCleared: number | null; // the limit once every blocker is cleared
 	limitSources: CapSource[];
 	types: DistrictCap[];
 };
@@ -37,7 +39,8 @@ const TYPE_CAP = /^district_(\w+)_max_(add|mult)$/;
 export function districtCaps(
 	planet: PlanetState & { size: number; habitat: boolean; buildings: string[] },
 	built: Record<string, number>,
-	effects: Record<string, CapEffect[]>
+	effects: Record<string, CapEffect[]>,
+	blockers: string[] = [] // deposit keys that are blockers
 ): PlanetCaps {
 	const owners: [string, boolean][] = [
 		...planet.deposits.flatMap((d): [string, boolean][] => [
@@ -64,20 +67,25 @@ export function districtCaps(
 		.sort()
 		.map((district) => {
 			const s = byType.get(district);
-			return { district, built: built[district] ?? 0, cap: s ? capped(s) : null, sources: s ?? [] };
+			return {
+				district,
+				built: built[district] ?? 0,
+				cap: s ? capped(s) : null,
+				blocked: s ? capped(s) - capped(s.filter((x) => !x.blocked)) : 0,
+				sources: s ?? []
+			};
 		});
 
 	const limitSources = sources.filter((s) => s.key.startsWith('planet_max_districts_'));
+	const limitOf = (s: CapSource[]) =>
+		planet.habitat
+			? null
+			: Math.max(0, Math.floor((planet.size + sum(s, '_add')) * (1 + sum(s, '_mult')) + 1e-9));
+	const blockerRefs = new Set(blockers.map((b) => `deposit:${b}`));
 	return {
 		built: Object.values(built).reduce((a, n) => a + n, 0),
-		limit: planet.habitat
-			? null
-			: Math.max(
-					0,
-					Math.floor(
-						(planet.size + sum(limitSources, '_add')) * (1 + sum(limitSources, '_mult')) + 1e-9
-					)
-				),
+		limit: limitOf(limitSources),
+		limitCleared: limitOf(limitSources.filter((s) => !blockerRefs.has(s.from))),
 		limitSources,
 		types
 	};

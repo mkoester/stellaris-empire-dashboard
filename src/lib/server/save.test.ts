@@ -199,6 +199,7 @@ describe('toSnapshot', () => {
 				strata: [],
 				happiness: null,
 				habitability: null,
+				speciesHabitability: {},
 				sector: null,
 				automation: { enabled: false, settings: [] },
 				produces: {},
@@ -515,8 +516,18 @@ describe('envoys', () => {
 describe('strata', () => {
 	it('sums pop groups per stratum, happiness weighted by size', () => {
 		const groups = {
-			'1': { key: { category: 'civilian' }, size: 1911, happiness: 0.95, habitability: 1 },
-			'2': { key: { category: 'worker' }, size: 1800, happiness: 0.5, habitability: 0.5 },
+			'1': {
+				key: { category: 'civilian', species: 7 },
+				size: 1911,
+				happiness: 0.95,
+				habitability: 1
+			},
+			'2': {
+				key: { category: 'worker', species: 9 },
+				size: 1800,
+				happiness: 0.5,
+				habitability: 0.5
+			},
 			'3': { key: { category: 'worker' }, size: 200, happiness: 1 },
 			'4': { key: { category: 'ruler' }, size: 0, happiness: 1 },
 			'5': { key: { category: 'specialist' }, size: 1299 }
@@ -529,6 +540,7 @@ describe('strata', () => {
 		]);
 		expect(r.happiness).toBeCloseTo((1911 * 0.95 + 2000 * 0.55) / 3911);
 		expect(r.habitability).toBeCloseTo((1911 + 1800 * 0.5) / 3711);
+		expect(r.speciesHabitability).toEqual({ '7': 1, '9': 0.5 });
 		expect(strata({}, []).happiness).toBeNull();
 		expect(strata({}, []).habitability).toBeNull();
 	});
@@ -637,6 +649,7 @@ describe('empire overview', () => {
 				jumps: 0,
 				beyond: 0,
 				via: [],
+				shipyard: null,
 				modifier: 'pm_mineral_poor',
 				candidate: 'terraforming_candidate',
 				planet: {
@@ -656,10 +669,23 @@ describe('empire overview', () => {
 				jumps: 2,
 				beyond: 2,
 				via: [],
+				shipyard: null,
 				modifier: null,
 				candidate: null,
 				planet: { deposits: [], modifiers: [] }
 			}
+		]);
+	});
+
+	it('counts jumps from the nearest shipyard', () => {
+		const country = { capital: 3, surveyed_deposit_holders: [5, 9].map((id) => ({ type: 0, id })) };
+		const r = expansion(
+			{ countryId: 0, country, planets, systems, deposits: {}, date: '2200.05.01' },
+			[7]
+		);
+		expect(r.map((p) => [p.name, p.shipyard])).toEqual([
+			['Mars', 2],
+			['Faraway', 0]
 		]);
 	});
 

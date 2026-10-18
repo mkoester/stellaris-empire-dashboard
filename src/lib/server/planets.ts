@@ -17,7 +17,8 @@ export function planetDetails(
 	const caps = districtCaps(
 		{ ...planet, size: p.size, habitat: p.planetClass === 'pc_habitat', buildings: p.buildings },
 		p.built,
-		data.capEffects
+		data.capEffects,
+		data.blockers
 	);
 	const keys = [
 		...caps.types.map((t) => t.district),

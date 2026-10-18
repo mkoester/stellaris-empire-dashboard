@@ -135,7 +135,28 @@ the best gets a ⚠ (capitals and cities aim at nothing). **Needs attention** (`
 stability < 50, housing or amenities short, habitability < 70 %, over a quarter of the pops
 without a job (civilians are normal in 4.x). Orbital deposits are left out — the station mines
 them, not the colony. Mode, sort, filters and columns are the `colonyView` setting, replaced
-whole on PUT. The `all` tab's Colonies panel is still its own compact table.
+whole on PUT. The `all` tab's Colonies panel is still its own compact table. Pros and cons are
+`TraitChip.svelte`; both tables sort through `#lib/sort.ts`.
+
+**Habitability per species** (`#lib/habitability.ts`; the colonies and expansion tabs' "habitability
+for" picker, main species = most pops): where the species lives, the save's value (pop groups,
+`Colony.speciesHabitability`); elsewhere an estimate from the data DB — its traits'
+`pc_<class>_habitability`, 100 % on `ideal` classes, plus `pop_environment_tolerance` (traits,
+planet modifiers and features) only where the class gives it any, at least
+`habitability_floor_add`. Empire-wide bonuses are not counted. Matched the game's Expansion
+Planner at 2207.03.10 (Mars 0 %, Arid and Savanna 30 %, Tundra with Atmospheric Aphrodisiac 35 %).
+Class names take the game's colours: yellow below `HABITABILITY_WRONG_PLANET`, red below
+`HABITABILITY_OPPOSITE_PLANET` (0.7 / 0.4, data DB defines).
+
+**Expansion** (`panels/Expansion.svelte`, the `all` tab compact — modifiers by name, effects on
+hover — and the expansion tab with each effect shown): sortable, including per district type;
+jumps from the capital, the nearest own shipyard and the border; filters by range (+0…+10, any),
+class and a district type; district numbers are what the planet allows once its blockers are
+cleared, now in brackets (`DistrictCap.blocked`, `PlanetCaps.limitCleared`: the blockers' hidden
+features and their district loss). Matched the game at 2207.03.10 (Alpha Centauri IV farming 11
+(8), generator 7 (5), mining 3 (2)) once the extraction resolved
+`@DISTRICTS_FROM_SR_DEPOSITS` (swamps and bogs: +3 farming). Its view (range, toggles, filters,
+sort, species) and both tables' row lines belong to the profile.
 
 **Milestones** (`#lib/milestones.ts`, pure): the campaign's bigger events — systems, colonies
 (colonization started / established / gained / lost), districts built and buildings done per

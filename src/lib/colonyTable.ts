@@ -1,5 +1,7 @@
 import type { Profile } from './colonyProfile.ts';
 import { CATEGORICAL } from './migration.ts';
+import type { Habitability } from './habitability.ts';
+import { sortBy, type SortValue } from './sort.ts';
 import type { QueueItem, Resources } from './types.ts';
 
 // The colonies tab: one row per colony, sortable by any column, filtered, shown as one table or
@@ -17,7 +19,8 @@ export type ColonyRow = {
 	growth: number | null; // last month, net
 	stability: number;
 	happiness: number | null;
-	habitability: number | null;
+	habitability: number | null; // pops-weighted over everyone living there
+	hab: Record<string, Habitability>; // per species: the save's where it lives, else an estimate
 	freeHousing: number;
 	freeAmenities: number;
 	civilians: number;
@@ -111,10 +114,9 @@ export function filterRows(rows: ColonyRow[], f: Filters): ColonyRow[] {
 }
 
 export type Sort = { column: string; desc: boolean };
-type Value = number | string | null;
 
 /** Sort keys per column; `net:<resource>` columns sort by that resource. */
-export function sortValue(r: ColonyRow, column: string): Value {
+export function sortValue(r: ColonyRow, column: string, species = ''): SortValue {
 	if (column.startsWith('net:')) return r.net[column.slice(4)] ?? 0;
 	switch (column) {
 		case 'name':
@@ -123,8 +125,6 @@ export function sortValue(r: ColonyRow, column: string): Value {
 			return sectorName(r);
 		case 'designation':
 			return r.designation;
-		case 'class':
-			return r.size;
 		case 'pops':
 			return r.pops;
 		case 'growth':
@@ -133,8 +133,9 @@ export function sortValue(r: ColonyRow, column: string): Value {
 			return r.stability;
 		case 'happiness':
 			return r.happiness;
+		case 'class':
 		case 'habitability':
-			return r.habitability;
+			return species ? (r.hab[species]?.value ?? null) : r.habitability;
 		case 'housing':
 			return r.freeHousing;
 		case 'amenities':
@@ -161,20 +162,8 @@ export function sortValue(r: ColonyRow, column: string): Value {
 }
 
 /** Sorted copy; unknown values (null) always last, ties keep their order. */
-export function sortRows(rows: ColonyRow[], s: Sort): ColonyRow[] {
-	const dir = s.desc ? -1 : 1;
-	return rows
-		.map((r, i) => ({ r, i, v: sortValue(r, s.column) }))
-		.sort((a, b) => {
-			if (a.v === null || b.v === null) return a.v === b.v ? a.i - b.i : a.v === null ? 1 : -1;
-			const c =
-				typeof a.v === 'string' || typeof b.v === 'string'
-					? String(a.v).localeCompare(String(b.v))
-					: a.v - b.v;
-			return c * dir || a.i - b.i;
-		})
-		.map((x) => x.r);
-}
+export const sortRows = (rows: ColonyRow[], s: Sort, species = ''): ColonyRow[] =>
+	sortBy(rows, (r) => sortValue(r, s.column, species), s.desc);
 
 /** The resources any colony makes or uses, in the game's top-bar order, for the net columns. */
 export const NET_ORDER = [
@@ -234,12 +223,14 @@ export type ColonyView = {
 	sort: Sort;
 	filters: Filters;
 	columns: ColumnId[];
+	species: string | null; // whose habitability shows; null = the main species
 };
 export const DEFAULT_VIEW: ColonyView = {
 	mode: 'all',
 	sort: { column: 'pops', desc: true },
 	filters: NO_FILTERS,
-	columns: DEFAULT_COLUMNS
+	columns: DEFAULT_COLUMNS,
+	species: null
 };
 
 /** A stored view brought to the current shape: unknown columns dropped, missing fields defaulted. */
@@ -260,6 +251,7 @@ export function parseView(v: unknown): ColonyView {
 		) as Filters,
 		columns: Array.isArray(o.columns)
 			? (o.columns.filter((c) => ids.includes(c)) as ColumnId[])
-			: DEFAULT_COLUMNS
+			: DEFAULT_COLUMNS,
+		species: typeof o.species === 'string' ? o.species : null
 	};
 }

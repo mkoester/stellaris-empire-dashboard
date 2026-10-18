@@ -3,6 +3,8 @@ import { profile } from '#lib/colonyProfile.ts';
 import { problems, type ColonyRow } from '#lib/colonyTable.ts';
 import { net } from '#lib/flows.ts';
 import { pretty } from '#lib/format.ts';
+import { estimate } from '#lib/habitability.ts';
+import { speciesChoices } from './expansion.ts';
 import { getExplanations, getGameData } from './app.ts';
 import type { branch } from './branch.ts';
 import { pick } from './explain.ts';
@@ -17,6 +19,7 @@ export function colonyRows(b: NonNullable<ReturnType<typeof branch>>) {
 	const data = getGameData();
 	const explain = getExplanations();
 	const colonies = b.latest.colonies.filter((c) => c.planetId >= 0);
+	const species = speciesChoices(b.snaps.findLast((s) => s.species !== null)?.species ?? []);
 	const hints = colonyBlockerHints(
 		colonies,
 		b.snaps.findLast((s) => s.progress)?.progress?.researched ?? []
@@ -48,6 +51,14 @@ export function colonyRows(b: NonNullable<ReturnType<typeof branch>>) {
 			stability: c.stability,
 			happiness: c.happiness,
 			habitability: c.habitability,
+			hab: Object.fromEntries(
+				species.map((s) => [
+					s.id,
+					s.id in c.speciesHabitability
+						? { value: c.speciesHabitability[s.id], exact: true }
+						: { value: estimate(c.planetClass, s.traits, c.planet, data), exact: false }
+				])
+			),
 			freeHousing: c.freeHousing,
 			freeAmenities: c.freeAmenities,
 			civilians: c.civilians,
@@ -82,6 +93,12 @@ export function colonyRows(b: NonNullable<ReturnType<typeof branch>>) {
 			...rows.flatMap((r) => r.districts.map((d) => d.type)),
 			...rows.flatMap((r) => r.queue.map((q) => q.name))
 		]),
-		explain: pick(explain, refs)
+		explain: pick(explain, refs),
+		species: species.map(({ id, name }) => ({ id, name })),
+		// the game's habitability colours
+		defines: {
+			HABITABILITY_WRONG_PLANET: data.defines.HABITABILITY_WRONG_PLANET,
+			HABITABILITY_OPPOSITE_PLANET: data.defines.HABITABILITY_OPPOSITE_PLANET
+		}
 	};
 }

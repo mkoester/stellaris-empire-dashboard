@@ -45,12 +45,14 @@ const explain = {
 const caps: PlanetCaps = {
 	built: 10,
 	limit: 13,
+	limitCleared: 14,
 	limitSources: [],
 	types: [
 		{
 			district: 'district_mining',
 			built: 4,
 			cap: 7,
+			blocked: 0,
 			sources: [
 				{
 					from: 'deposit:d_mineral_rich',
@@ -61,9 +63,9 @@ const caps: PlanetCaps = {
 				{ from: 'building:b_x', key: 'district_mining_max_add', value: 3, blocked: false }
 			]
 		},
-		{ district: 'district_generator', built: 2, cap: 2, sources: [] },
-		{ district: 'district_farming', built: 0, cap: 0, sources: [] },
-		{ district: 'district_city', built: 4, cap: null, sources: [] }
+		{ district: 'district_generator', built: 2, cap: 2, blocked: 0, sources: [] },
+		{ district: 'district_farming', built: 0, cap: 0, blocked: 0, sources: [] },
+		{ district: 'district_city', built: 4, cap: null, blocked: 0, sources: [] }
 	]
 };
 const hint = {

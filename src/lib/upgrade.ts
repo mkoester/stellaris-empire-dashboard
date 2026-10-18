@@ -75,6 +75,7 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	strata: [],
 	happiness: null,
 	habitability: null,
+	speciesHabitability: {},
 	sector: null,
 	automation: { enabled: false, settings: [] },
 	produces: {},

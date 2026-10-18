@@ -30,6 +30,7 @@ export type Colony = {
 	strata: Stratum[]; // pops and happiness per stratum (worker, specialist, …)
 	happiness: number | null; // 0–1, pops-weighted over the strata
 	habitability: number | null; // 0–1, pops-weighted over the pop groups
+	speciesHabitability: Record<string, number>; // per species id living there, pops-weighted
 	automation: { enabled: boolean; settings: string[] };
 	produces: Resources; // the colony's monthly output and upkeep, as the planet view sums them
 	upkeep: Resources;
@@ -108,6 +109,7 @@ export type ExpansionPlanet = {
 	jumps: number | null; // from the capital, over hyperlanes and usable bypasses
 	beyond?: number | null; // from the nearest own system (0 inside the borders); absent in older snapshots
 	via?: string[]; // bypass types on the way from the border
+	shipyard?: number | null; // jumps from the nearest own shipyard; absent in older snapshots
 	modifier: string | null;
 	candidate: string | null; // terraforming candidate modifier, if any
 	planet: PlanetState | null; // null in older snapshots
@@ -319,11 +321,18 @@ export type GameData = {
 	traits: Record<string, { cost: number | null }>;
 	speciesClasses: Record<string, { name: string; archetype: string | null }>;
 	archetypes: Record<string, { points: number; maxTraits: number }>;
-	planetClasses: Record<string, { name: string; colonizable: boolean }>;
+	planetClasses: Record<string, { name: string; colonizable: boolean; ideal: boolean }>;
 	names: Record<string, string>; // display names of buildings, deposits, districts and zones
 	districtColors: Record<string, string>; // district → its colour in game, '#rrggbb'
 	// civics, origins, authorities, ethics and government types by key
 	identityNames: Record<string, string>;
+	// what habitability is made of (#lib/habitability.ts): the species traits' `pc_<class>_habitability`,
+	// `pop_environment_tolerance` and `habitability_floor_add`, and the planet's own tolerance
+	// modifiers by popup id (`modifier:<key>`, `deposit:<key>`)
+	habitability: {
+		traits: Record<string, Record<string, number>>;
+		planet: Record<string, number>;
+	};
 	traditionTrees: Record<
 		string,
 		{ name: string; traditions: { key: string; name: string; role: string }[] }

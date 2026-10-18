@@ -32,7 +32,11 @@
 		return () => clearTimeout(t);
 	});
 
-	const shown = $derived(sortRows(filterRows(data.rows, view.filters), view.sort));
+	// the species whose habitability shows: the one picked, else the main one (the most pops)
+	const speciesId = $derived(
+		data.species.find((s) => s.id === view.species)?.id ?? data.species[0]?.id ?? ''
+	);
+	const shown = $derived(sortRows(filterRows(data.rows, view.filters), view.sort, speciesId));
 	const netKeys = $derived(netResources(data.rows));
 	const colors = $derived(sectorColors(data.rows));
 	const node = $derived(data.isHead ? null : data.tip);
@@ -106,6 +110,20 @@
 		(v) => (view.filters.suits = v),
 		pretty
 	)}
+	{#if data.species.length}
+		<label
+			>habitability for
+			<select
+				class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+				value={speciesId}
+				onchange={(e) => (view.species = e.currentTarget.value)}
+			>
+				{#each data.species as s, i (s.id)}<option value={s.id}
+						>{i ? s.name : `${s.name} (main)`}</option
+					>{/each}
+			</select></label
+		>
+	{/if}
 	<label><input type="checkbox" bind:checked={view.filters.attention} /> needs attention</label>
 	<label><input type="checkbox" bind:checked={view.filters.freeDistricts} /> free districts</label>
 	<label><input type="checkbox" bind:checked={view.filters.blockers} /> blockers</label>
@@ -157,6 +175,8 @@
 		explain={data.explain}
 		{node}
 		rowLine={data.rowLine}
+		species={speciesId}
+		defines={data.defines}
 	/>
 {/snippet}
 

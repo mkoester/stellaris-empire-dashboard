@@ -54,9 +54,12 @@ export function loadGameData(file: string): GameData {
 				).map((r) => [r.key, { points: r.trait_points ?? 0, maxTraits: r.max_traits ?? 0 }])
 			),
 			planetClasses: Object.fromEntries(
-				rows<{ key: string; name: string | null; colonizable: number }>(
-					'SELECT key, name, colonizable FROM planet_class'
-				).map((r) => [r.key, { name: r.name ?? r.key, colonizable: r.colonizable === 1 }])
+				rows<{ key: string; name: string | null; colonizable: number; ideal: number }>(
+					'SELECT key, name, colonizable, ideal FROM planet_class'
+				).map((r) => [
+					r.key,
+					{ name: r.name ?? r.key, colonizable: r.colonizable === 1, ideal: r.ideal === 1 }
+				])
 			),
 			// Blockers are named "Blocker Sprawling Slums" in the data; the game shows "Sprawling Slums".
 			names: Object.fromEntries(
@@ -73,6 +76,24 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, color FROM district WHERE color IS NOT NULL'
 				).map((r) => [r.key, r.color])
 			),
+			habitability: {
+				traits: rows<{ trait: string; key: string; value: number }>(
+					`SELECT trait_key AS trait, modifier_key AS key, modifier_value AS value FROM trait_modifier
+					 WHERE modifier_key LIKE 'pc_%_habitability'
+					   OR modifier_key IN ('pop_environment_tolerance', 'habitability_floor_add')`
+				).reduce<Record<string, Record<string, number>>>(
+					(acc, r) => ({ ...acc, [r.trait]: { ...acc[r.trait], [r.key]: r.value } }),
+					{}
+				),
+				planet: Object.fromEntries(
+					rows<{ owner: string; value: number }>(
+						`SELECT 'modifier:' || static_key AS owner, modifier_value AS value FROM static_modifier_modifier
+						 WHERE modifier_key = 'pop_environment_tolerance'
+						 UNION ALL SELECT 'deposit:' || deposit_key, modifier_value FROM deposit_modifier
+						 WHERE modifier_key = 'pop_environment_tolerance'`
+					).map((r) => [r.owner, r.value])
+				)
+			},
 			identityNames: Object.fromEntries(
 				rows<{ key: string; name: string }>(
 					`SELECT key, name FROM civic WHERE name IS NOT NULL

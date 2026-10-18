@@ -120,20 +120,22 @@
 
 	<section>
 		<h2 class="mb-1 text-xl font-semibold">Display</h2>
-		<label
-			>Colonies tab, line between colonies
-			<select
-				class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
-				value={data.display.colonyRowLine}
-				onchange={(e) =>
-					act(() =>
-						putSettings({
-							display: { ...data.display, colonyRowLine: e.currentTarget.value as RowLine }
-						})
-					)}
+		{#each [['colonyRowLine', 'Colonies tab, line between colonies'], ['expansionRowLine', 'Expansion, line between planets']] as const as [key, label] (key)}
+			<label class="block"
+				>{label}
+				<select
+					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+					value={data.display[key]}
+					onchange={(e) =>
+						act(() =>
+							putSettings({
+								display: { ...data.display, [key]: e.currentTarget.value as RowLine }
+							})
+						)}
+				>
+					{#each Object.keys(ROW_LINES) as l (l)}<option value={l}>{l}</option>{/each}
+				</select></label
 			>
-				{#each Object.keys(ROW_LINES) as l (l)}<option value={l}>{l}</option>{/each}
-			</select></label
-		>
+		{/each}
 	</section>
 </div>

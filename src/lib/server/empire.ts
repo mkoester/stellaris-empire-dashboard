@@ -1,8 +1,9 @@
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
-import { expansionRows } from './expansion.ts';
+import { expansionRows, speciesChoices } from './expansion.ts';
 import { colonyBlockerHints } from './planets.ts';
-import { expansionView } from './settings.ts';
+import { display, expansionView } from './settings.ts';
+import { ROW_LINES } from '#lib/profiles.ts';
 import { branch } from './branch.ts';
 import { totalEffects } from '#lib/effects.ts';
 import { pretty } from '#lib/format.ts';
@@ -31,6 +32,7 @@ export function empireData(url: URL) {
 	const latest = b.latest;
 	// empire-wide modifiers at the latest save that read them
 	const modifiers = snaps.findLast((s) => s.countryModifiers !== null)?.countryModifiers ?? [];
+	const species = speciesChoices(latest.species ?? []);
 	const government = identity(snaps.findLast((s) => s.government !== null));
 	return {
 		empty: false as const,
@@ -81,7 +83,14 @@ export function empireData(url: URL) {
 			traits: s.traits.map((key) => ({ key, name: pretty(key.replace(/^trait_(pc_)?/, '')) })),
 			budget: traitBudget(s, data)
 		})),
-		expansion: expansionRows(latest.expansion ?? []),
+		expansion: expansionRows(latest.expansion ?? [], species),
+		expansionSpecies: species.map(({ id, name }) => ({ id, name })),
+		// the game's habitability colours
+		habDefines: {
+			HABITABILITY_WRONG_PLANET: data.defines.HABITABILITY_WRONG_PLANET,
+			HABITABILITY_OPPOSITE_PLANET: data.defines.HABITABILITY_OPPOSITE_PLANET
+		},
+		expansionRowLine: ROW_LINES[display().expansionRowLine],
 		expansionView: expansionView(),
 		xRange: xRange(snaps),
 		charts: {

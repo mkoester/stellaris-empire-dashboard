@@ -6,4 +6,11 @@
 	followGame(() => data.isHead);
 </script>
 
-<Expansion planets={data.planets} date={data.date} view={data.view} />
+<Expansion
+	planets={data.planets}
+	date={data.date}
+	view={data.view}
+	species={data.species}
+	defines={data.defines}
+	rowLine={data.rowLine}
+/>

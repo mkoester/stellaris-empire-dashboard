@@ -200,7 +200,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		countryModifiers: countryModifiers(raw),
 		species: speciesInfo(raw),
 		sectors: sectors(raw),
-		expansion: expansion(raw),
+		expansion: expansion(raw, shipyardSystems(raw)),
 		stations: stations(raw),
 		migration: migration(raw),
 		knownSystems: knownSystems(raw, ownSystems(raw)),
@@ -774,15 +774,29 @@ export function galaxy(raw: Partial<GalaxyRaw> & Pick<GalaxyRaw, 'country' | 'sy
  * capital and from the nearest own system (`beyond`, 0 inside the borders), both over hyperlanes
  * and usable bypasses. Own systems: those whose planets (stars included) the country controls.
  */
+/** Systems with one of the country's shipyards (a starbase shipyard module, an arkship's). */
+export function shipyardSystems(raw: Parameters<typeof stations>[0]): number[] {
+	const yards = new Set(
+		stations(raw)
+			.filter((s) => s.shipyard)
+			.map((s) => s.id)
+	);
+	return Object.entries(raw.systems)
+		.filter(([, sys]) => list(sys?.starbases).some((sb) => yards.has(sb)))
+		.map(([id]) => Number(id));
+}
+
 export function expansion(
 	raw: Pick<RawSave, 'countryId' | 'country' | 'planets' | 'systems' | 'deposits' | 'date'> &
-		Partial<GalaxyRaw>
+		Partial<GalaxyRaw>,
+	shipyards: number[] = []
 ): ExpansionPlanet[] {
 	const g = galaxy(raw);
 	const controlled = (p: Raw) =>
 		p?.controller !== undefined && Number(p.controller) === raw.countryId;
 	const capitalSystem = raw.planets[String(raw.country?.capital)]?.coordinate?.origin;
 	const fromCapital = distances(g, capitalSystem === undefined ? [] : [Number(capitalSystem)]);
+	const fromShipyard = distances(g, shipyards);
 	const fromBorder = distances(
 		g,
 		Object.values(raw.planets)
@@ -805,6 +819,7 @@ export function expansion(
 				system: displayName(raw.systems[String(sys)]?.name),
 				jumps: fromCapital.jumps.get(Number(sys)) ?? null,
 				beyond: fromBorder.jumps.get(Number(sys)) ?? null,
+				shipyard: fromShipyard.jumps.get(Number(sys)) ?? null,
 				via: fromBorder.via(Number(sys)),
 				modifier: typeof p.planet_modifier === 'string' ? p.planet_modifier : null,
 				// `terraforming_candidate` (Mars) or `toxic_terraforming_candidate` (toxic worlds: only
@@ -1178,14 +1193,21 @@ export function colonyDistricts(
  */
 export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const by = new Map<string, { size: number; known: number; weighted: number }>();
-	// habitability (0–1) of the species on this planet, per pop group
+	// habitability (0–1) of the species on this planet, per pop group: overall and per species
 	const hab = { size: 0, weighted: 0 };
+	const bySpecies = new Map<string, { size: number; weighted: number }>();
 	for (const id of ids) {
 		const g = popGroups[String(id)];
 		if (!g || typeof g !== 'object' || !(num(g.size) > 0)) continue;
 		if (typeof g.habitability === 'number') {
 			hab.size += num(g.size);
 			hab.weighted += num(g.size) * g.habitability;
+			const sp = String(g.key?.species);
+			const s = bySpecies.get(sp) ?? { size: 0, weighted: 0 };
+			bySpecies.set(sp, {
+				size: s.size + num(g.size),
+				weighted: s.weighted + num(g.size) * g.habitability
+			});
 		}
 		const cat = String(g.key?.category ?? 'unknown');
 		const s = by.get(cat) ?? { size: 0, known: 0, weighted: 0 };
@@ -1205,7 +1227,10 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	return {
 		strata: list,
 		happiness: known > 0 ? [...by.values()].reduce((n, s) => n + s.weighted, 0) / known : null,
-		habitability: hab.size > 0 ? hab.weighted / hab.size : null
+		habitability: hab.size > 0 ? hab.weighted / hab.size : null,
+		speciesHabitability: Object.fromEntries(
+			[...bySpecies].map(([sp, s]) => [sp, s.weighted / s.size])
+		)
 	};
 }
 
