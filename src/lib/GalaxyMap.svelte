@@ -168,9 +168,9 @@
 					onpointerenter={() => (hovered = s.id)}
 					onpointerleave={() => (hovered = null)}
 					><title
-						>{s.name}{s.known === false ? ' (not discovered)' : ''}{s.owned
-							? ' (yours)'
-							: ''}{s.capital ? ', capital' : ''}{titles[s.id] ? ` — ${titles[s.id]}` : ''}</title
+						>{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{titles[s.id]
+							? ` — ${titles[s.id]}`
+							: ''}</title
 					></circle
 				>
 				<circle

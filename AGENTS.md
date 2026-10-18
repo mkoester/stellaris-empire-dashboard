@@ -114,7 +114,10 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (the save's `terra_incognita.systems` is the same list; its 256×256 `data` grid is run-length
 encoded, row-major, but its scale is not pinned down) plus first contact sites, lanes only among
 them (`discovered()`, `mapView()`, `server/mapSystems.ts`). Profile switches: `unknownStars`
-adds every other star, faint and without lanes (the game shows all stars from the start, only the
+adds every other star, faint, named "Unknown" and without lanes, but not the special systems off
+the main hyperlane network (`mainNetwork()`; 2207.03.10: Kleeia `distar_sealed_1_2` and Ultima
+Vigilis `surveillance_supercomputer_system`, no lane at all — the game reveals such systems by a
+trigger) (the game shows all stars from the start, only the
 connections are hidden); `wholeGalaxy` shows every system and lane. With `unknownStars` the
 star-only megastructure rules (catapult, stellar cannon, matter decompressor's star) count those
 systems too. Megastructure candidates, the catapult's farthest system and the jumps beyond the border

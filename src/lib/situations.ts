@@ -122,9 +122,33 @@ export const knownIds = (galaxy: GalaxySystem[], also: number[] = []) =>
 	new Set([...galaxy.filter((s) => s.visited || s.owned).map((s) => s.id), ...also]);
 
 /**
+ * The systems of the galaxy's largest hyperlane network. Special systems the game shows only once
+ * a trigger fires lie outside it: 2207.03.10 Kleeia (`distar_sealed_1_2`) and Ultima Vigilis
+ * (`surveillance_supercomputer_system`) have no hyperlane at all; L-Cluster and crisis systems
+ * join later, behind bypasses or on their own.
+ */
+export function mainNetwork(galaxy: GalaxySystem[]): Set<number> {
+	const parent = new Map(galaxy.map((s) => [s.id, s.id]));
+	const root = (id: number): number => {
+		const p = parent.get(id) ?? id;
+		if (p === id) return id;
+		const r = root(p);
+		parent.set(id, r);
+		return r;
+	};
+	for (const s of galaxy)
+		for (const to of s.lanes) if (parent.has(to)) parent.set(root(s.id), root(to));
+	const size = new Map<number, number>();
+	for (const s of galaxy) size.set(root(s.id), (size.get(root(s.id)) ?? 0) + 1);
+	const biggest = [...size].sort((a, b) => b[1] - a[1])[0]?.[0];
+	return new Set(galaxy.filter((s) => root(s.id) === biggest).map((s) => s.id));
+}
+
+/**
  * The systems a map or a site search sees: the discovered ones with the lanes among them only —
  * the game hides hyperlanes outside its known space — plus every other star with `stars` (the
- * game shows them from the start), or the whole galaxy with its lanes with `whole`.
+ * game shows them from the start, named "Unknown"; not the special ones off the main network,
+ * see `mainNetwork`), or the whole galaxy with its lanes with `whole`.
  */
 export function discovered(
 	galaxy: GalaxySystem[],
@@ -133,9 +157,15 @@ export function discovered(
 ): GalaxySystem[] {
 	if (reveal.whole) return galaxy;
 	const known = knownIds(galaxy, also);
+	const network = reveal.stars ? mainNetwork(galaxy) : new Set<number>();
 	return galaxy
-		.filter((s) => reveal.stars || known.has(s.id))
-		.map((s) => ({ ...s, lanes: known.has(s.id) ? s.lanes.filter((to) => known.has(to)) : [] }));
+		.filter((s) => known.has(s.id) || (reveal.stars && network.has(s.id)))
+		.map((s) =>
+			known.has(s.id)
+				? { ...s, lanes: s.lanes.filter((to) => known.has(to)) }
+				: // an undiscovered star: the game names it "Unknown" and draws no lanes
+					{ ...s, name: 'Unknown', lanes: [] }
+		);
 }
 
 /** What a map draws of the galaxy: `known` false for an undiscovered star shown faint. */

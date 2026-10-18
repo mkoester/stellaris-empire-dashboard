@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { contactRows, discovered, monthsBetween, stationOwners } from './situations.ts';
+import {
+	contactRows,
+	discovered,
+	mainNetwork,
+	monthsBetween,
+	stationOwners
+} from './situations.ts';
 import type { FirstContact, GalaxySystem } from './types.ts';
 
 const sys = (id: number, lanes: number[], s: Partial<GalaxySystem> = {}): GalaxySystem => ({
@@ -95,12 +101,27 @@ describe('discovered', () => {
 			[4, []]
 		]);
 		// every star, but no lane to or from the undiscovered 2
-		expect(discovered(g, { whole: false, stars: true }, [4]).map((s) => [s.id, s.lanes])).toEqual([
-			[1, [3]],
-			[2, []],
-			[3, [4]],
-			[4, []]
+		expect(
+			discovered(g, { whole: false, stars: true }, [4]).map((s) => [s.id, s.name, s.lanes])
+		).toEqual([
+			[1, 'S1', [3]],
+			[2, 'Unknown', []],
+			[3, 'S3', [4]],
+			[4, 'S4', []]
 		]);
 		expect(discovered(g, { whole: true, stars: false })).toHaveLength(4);
+	});
+});
+
+describe('mainNetwork', () => {
+	it('leaves out systems off the largest hyperlane network, which the game reveals by a trigger', () => {
+		// 1–2–3 connected; 4–5 a pocket of their own; 6 with no lane (Ultima Vigilis, Kleeia)
+		const g = [sys(1, [2]), sys(2, [3]), sys(3, []), sys(4, [5]), sys(5, []), sys(6, [])];
+		expect([...mainNetwork(g)].sort()).toEqual([1, 2, 3]);
+		const shown = discovered(
+			g.map((s) => ({ ...s, visited: s.id === 1 })),
+			{ whole: false, stars: true }
+		).map((s) => s.id);
+		expect(shown).toEqual([1, 2, 3]);
 	});
 });
