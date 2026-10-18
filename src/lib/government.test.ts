@@ -3,6 +3,7 @@ import {
 	agendaRows,
 	atLevel,
 	councilorBonus,
+	launchDates,
 	edictRows,
 	factionRows,
 	facts,
@@ -237,5 +238,21 @@ describe('councilorBonus', () => {
 			{ source: 'tr_statecraft_shared_benefits', value: 1 },
 			{ source: 'agenda_departmental_efficiency_finish', value: 2 }
 		]);
+	});
+});
+
+describe('launchDates', () => {
+	it('works back from the cooldown end to the launch and the end of the after-launch effect', () => {
+		// another empire at 2207.03.10: Infinite Opportunities available again 2231.12.01, 30-year
+		// cooldown and 10-year effect (COUNCIL_AGENDA_COOLDOWN, _FINISH_MODIFIER_DURATION)
+		expect(
+			launchDates('2231.12.01', {
+				name: 'Infinite Opportunities',
+				cost: 7000,
+				unlockedBy: [],
+				cooldownDays: 10800,
+				finishDays: 3600
+			})
+		).toEqual({ launched: '2201.12.01', effectUntil: '2211.12.01', availableAgain: '2231.12.01' });
 	});
 });

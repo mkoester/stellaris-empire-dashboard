@@ -52,7 +52,14 @@
 
 	const agendaColumns: Column<AgendaRow>[] = [
 		{ id: 'name', label: 'Agenda', value: (r) => r.name, cell: agendaName },
-		{ id: 'cost', label: 'Cost', value: (r) => r.cost, right: true, title: 'base agenda progress' },
+		{
+			id: 'cost',
+			label: 'Cost',
+			value: (r) => r.cost,
+			right: true,
+			cell: agendaCost,
+			title: 'base agenda progress; the one being prepared: progress / cost at your empire size'
+		},
 		{ id: 'status', label: 'Status', value: (r) => STATUS[r.status][0], cell: agendaStatus },
 		{
 			id: 'preparing',
@@ -132,11 +139,28 @@
 {#snippet agendaName(r: AgendaRow)}
 	<InfoPopup explanation={data.explain[`agenda:${r.key}`]}>{r.name}</InfoPopup>
 {/snippet}
+{#snippet agendaCost(r: AgendaRow)}
+	{#if r.status === 'current' && data.agenda}{Math.round(data.agenda.progress).toLocaleString('en')}
+		<div class="text-gray-500">
+			/ {Math.round(data.agendaDue?.total ?? r.cost ?? 0).toLocaleString('en')}
+		</div>{:else}{r.cost?.toLocaleString('en') ?? '–'}{/if}
+{/snippet}
 {#snippet agendaStatus(r: AgendaRow)}
 	<span
 		class={r.status === 'current' ? 'font-semibold' : r.status === 'locked' ? 'text-gray-500' : ''}
 		>{STATUS[r.status][1]}</span
 	>
+	{#if r.status === 'current' && data.agenda && data.agendaDue?.total}<div
+			class="text-xs whitespace-nowrap text-gray-500"
+		>
+			{Math.floor((data.agenda.progress / data.agendaDue.total) * 100)}% · {data.agendaDue.months}
+			months{data.agendaDue.exact ? '' : ' (est.)'}
+		</div>{/if}
+	{#if r.launch}<div class="text-xs whitespace-nowrap text-gray-500">
+			{#if r.launch.launched}<div>launched {r.launch.launched}</div>{/if}
+			{#if r.launch.effectUntil}<div>effect until {r.launch.effectUntil}</div>{/if}
+			<div>available again {r.launch.availableAgain}</div>
+		</div>{/if}
 {/snippet}
 {#snippet amounts(r: Resources | undefined)}
 	{#each Object.entries(r ?? {}) as [k, v], i (k)}{i ? ', ' : ''}<span

@@ -1,3 +1,4 @@
+import { addGameDays } from './series.ts';
 import { evaluate, type Facts } from './triggers.ts';
 import type { CouncilSeat, GameData, Modifier, Snapshot } from './types.ts';
 
@@ -65,7 +66,27 @@ export function policyRows(
 }
 
 export type AgendaStatus = 'current' | 'cooldown' | 'open' | 'maybe' | 'not-allowed' | 'locked';
-export type AgendaRow = { key: string; name: string; cost: number | null; status: AgendaStatus };
+export type AgendaRow = {
+	key: string;
+	name: string;
+	cost: number | null;
+	status: AgendaStatus;
+	// a launched one: when, until when its after-launch modifier lasts, when it can be picked again
+	launch: { launched: string | null; effectUntil: string | null; availableAgain: string } | null;
+};
+
+/** A cooldown's dates: `until` back by the agenda's cooldown is its launch. */
+export function launchDates(
+	until: string,
+	a: GameData['agendas'][string] | undefined
+): NonNullable<AgendaRow['launch']> {
+	const launched = a?.cooldownDays ? addGameDays(until, -a.cooldownDays) : null;
+	return {
+		launched,
+		effectUntil: launched && a?.finishDays ? addGameDays(launched, a.finishDays) : null,
+		availableAgain: until
+	};
+}
 
 /**
  * The council agendas this empire can have (`potential` not false): the one being prepared, those
@@ -74,14 +95,17 @@ export type AgendaRow = { key: string; name: string; cost: number | null; status
  */
 export function agendaRows(agendas: GameData['agendas'], s: Snapshot, f: Facts): AgendaRow[] {
 	const current = s.progress?.agenda?.key;
+	const cooldown = new Map((s.agendaCooldowns ?? []).map((c) => [c.key, c.until]));
 	return Object.entries(agendas)
 		.filter(([key, a]) => key === current || evaluate(a.potential ?? null, f) !== false)
 		.map(([key, a]) => {
 			const allow = evaluate(a.allow ?? null, f);
+			const until = cooldown.get(key);
 			return {
 				key,
 				name: a.name,
 				cost: a.cost,
+				launch: until ? launchDates(until, a) : null,
 				status:
 					key === current
 						? 'current'

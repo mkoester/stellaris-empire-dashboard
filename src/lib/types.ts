@@ -291,6 +291,8 @@ export type Snapshot = {
 	// level, bonus (bonus_skill_level) and traits: since 2026-10-18
 	ruler: { id: number; name: string; level?: number; bonus?: number; traits?: string[] } | null;
 	agendasDone: string[] | null; // agendas on cooldown, i.e. passed recently
+	// …and when each can be picked again (`council_agenda_cooldowns.start_date`); since 2026-10-18
+	agendaCooldowns?: { key: string; until: string }[] | null;
 	policies: Record<string, string> | null; // policy → selected option
 	government: string[] | null; // civics, ethics and authority keys
 	governmentType: string | null; // e.g. gov_representative_democracy
@@ -497,6 +499,8 @@ export type GameData = {
 			name: string;
 			cost: number | null;
 			unlockedBy: string[];
+			finishDays?: number | null; // how long its after-launch modifier lasts
+			cooldownDays?: number | null; // from launch until it can be picked again
 			potential?: Trigger | null; // whether the empire can ever have it
 			allow?: Trigger | null; // whether it may be launched now
 		}

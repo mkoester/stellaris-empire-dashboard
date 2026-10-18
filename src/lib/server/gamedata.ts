@@ -30,14 +30,18 @@ export function loadGameData(file: string): GameData {
 					unlocked_by_json: string | null;
 					potential_json: string | null;
 					allow_json: string | null;
+					finish_days: number | null;
+					cooldown_days: number | null;
 				}>(
-					'SELECT key, name, cost, unlocked_by_json, potential_json, allow_json FROM council_agenda ORDER BY sort_order'
+					'SELECT key, name, cost, unlocked_by_json, potential_json, allow_json, finish_days, cooldown_days FROM council_agenda ORDER BY sort_order'
 				).map((r) => [
 					r.key,
 					{
 						name: r.name ?? r.key,
 						cost: r.cost,
 						unlockedBy: jsonList(r.unlocked_by_json),
+						finishDays: r.finish_days,
+						cooldownDays: r.cooldown_days,
 						potential: parseTrigger(r.potential_json),
 						allow: parseTrigger(r.allow_json)
 					}

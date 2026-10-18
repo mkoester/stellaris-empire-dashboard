@@ -241,6 +241,21 @@ export function upcoming(
 			});
 	}
 
+	// Launched agendas: when each can be picked again (the save's own date, exact).
+	for (const c of latest.agendaCooldowns ?? [])
+		if (c.until > latest.date)
+			out.push({
+				date: c.until,
+				months: Math.max(0, Math.round(monthsBetween(latest.date, c.until))),
+				kind: 'agenda',
+				act: false,
+				what: data.agendas[c.key]?.name ?? c.key,
+				tint: 'agenda',
+				ref: `agenda:${c.key}`,
+				detail: 'council agenda · can be picked again',
+				exact: true
+			});
+
 	// Build queues: progress counts days. A planet builds `buildSlots` items at once; the rest wait.
 	for (const c of latest.colonies)
 		out.push(

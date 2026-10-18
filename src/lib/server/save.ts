@@ -282,6 +282,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		progress: progress(raw),
 		leaderRoster: leaderRoster(raw),
 		ruler: ruler(raw),
+		agendaCooldowns: agendaCooldowns(raw.country?.government?.council_agenda_cooldowns),
 		agendasDone: items(raw.country?.government?.council_agenda_cooldowns)
 			.map((c) => c?.council_agenda)
 			.filter((k) => typeof k === 'string'),
@@ -1698,3 +1699,14 @@ export const items = (v: Raw): Raw[] => (Array.isArray(v) ? v : v === undefined 
 export const list = (v: Raw): number[] =>
 	(Array.isArray(v) ? v : v === undefined ? [] : [v]).map(Number);
 export const first = (v: Raw) => (Array.isArray(v) ? v[0] : v);
+
+/**
+ * `country.government.council_agenda_cooldowns = { council_agenda start_date }`: `start_date` is
+ * when the agenda can be picked again, not its launch — 2207.03.10, other empires: Infinite
+ * Opportunities until 2231/2232, 30 years (COUNCIL_AGENDA_COOLDOWN) after their first agenda.
+ */
+export function agendaCooldowns(v: Raw): { key: string; until: string }[] {
+	return items(v)
+		.filter((c) => typeof c?.council_agenda === 'string' && typeof c?.start_date === 'string')
+		.map((c) => ({ key: c.council_agenda, until: c.start_date }));
+}
