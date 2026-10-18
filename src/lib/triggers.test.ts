@@ -13,7 +13,8 @@ const facts: Facts = {
 	traditions: [],
 	perks: [],
 	techs: ['tech_lasers_1'],
-	atWar: false
+	atWar: false,
+	situations: 0
 };
 
 // diplo_stance_belligerent's potential (4.5.2 common/policies/00_policies.txt)
@@ -39,6 +40,11 @@ group('evaluate', () => {
 		expect(evaluate({ leaf: 'is_gestalt', value: 'yes' }, facts)).toBe(false);
 		expect(evaluate({ leaf: 'is_democratic_authority', value: 'yes' }, facts)).toBe(true);
 		expect(evaluate({ leaf: 'is_imperial_authority', value: 'yes' }, facts)).toBe(false);
+		// fanatic egalitarian: egalitarian and fanatic egalitarian, not xenophobe
+		expect(evaluate({ leaf: 'is_egalitarian', value: 'yes' }, facts)).toBe(true);
+		expect(evaluate({ leaf: 'is_fanatic_egalitarian', value: 'yes' }, facts)).toBe(true);
+		expect(evaluate({ leaf: 'is_xenophobe', value: 'yes' }, facts)).toBe(false);
+		expect(evaluate({ leaf: 'any_situation', value: 'scope' }, facts)).toBe(false);
 	});
 
 	it('stays unknown where the save cannot tell, unless the rest decides', () => {

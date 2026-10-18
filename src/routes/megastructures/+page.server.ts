@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { candidates, KINDS, MEGA_RULES } from '#lib/megastructures.ts';
-import { jumpsFromBorder } from '#lib/situations.ts';
+import { discovered, jumpsFromBorder } from '#lib/situations.ts';
+import { display } from '#lib/server/settings.ts';
 import { getDb, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { galaxyOf } from '#lib/server/db.ts';
@@ -12,7 +13,9 @@ export function load({ url }) {
 	const { snaps, ...rest } = b;
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const g = s ? galaxyOf(getDb(), s.campaign) : null;
-	const galaxy = g?.systems ?? [];
+	const whole = display().wholeGalaxy;
+	// what is not discovered is neither a candidate nor counted (the catapult's farthest system)
+	const galaxy = discovered(g?.systems ?? [], whole);
 	const beyond = jumpsFromBorder(galaxy);
 	const data = getGameData();
 	// who owns what we know of: ourselves, or an empire by the name we know it under
@@ -25,6 +28,7 @@ export function load({ url }) {
 	return {
 		...rest,
 		seenAt: g?.date ?? null,
+		wholeGalaxy: whole,
 		machineAge,
 		owners,
 		systems: galaxy.map((x) => ({

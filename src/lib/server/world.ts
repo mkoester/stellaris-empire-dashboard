@@ -108,9 +108,8 @@ export function galaxy(
 				x: num(s.coordinate?.x),
 				y: num(s.coordinate?.y),
 				star: String(s.star_class ?? ''),
-				lanes: items(s.hyperlane)
-					.map((l) => Number(l?.to))
-					.filter((to) => to > id),
+				// a lane can be listed twice (2207.03.10: Iblyria → 236), which a keyed list cannot take
+				lanes: [...new Set(items(s.hyperlane).map((l) => Number(l?.to)))].filter((to) => to > id),
 				visited: seen,
 				owned: own.has(id),
 				ownerId: seen ? stationOwner(raw, s) : null,

@@ -14,6 +14,7 @@
 
 	let showDone = $state(false);
 	let contactSort = $state({ column: 'difficulty', desc: true });
+	let hovered: number | null = $state(null); // a system, on the map or a contact's row
 
 	const contacts = $derived(data.contacts.filter((c) => showDone || c.status === 'in_progress'));
 	const open = $derived(data.contacts.filter((c) => c.status === 'in_progress'));
@@ -119,7 +120,14 @@
 		<label class="mb-2 flex items-center gap-1 text-sm"
 			><input type="checkbox" bind:checked={showDone} /> also finished and aborted</label
 		>
-		<SortTable rows={contacts} columns={contactColumns} key={(r) => r.id} bind:sort={contactSort} />
+		<SortTable
+			rows={contacts}
+			columns={contactColumns}
+			key={(r) => r.id}
+			bind:sort={contactSort}
+			link={(r) => r.systemId}
+			bind:hovered
+		/>
 	</Panel>
 
 	<Panel
@@ -136,6 +144,7 @@
 			focus={[{ label: 'contacts', points: open.flatMap((c) => byId.get(c.systemId) ?? []) }]}
 			heightKey="first-contact-map-height"
 			label="First contact map"
+			bind:hovered
 		>
 			{#snippet layer(at)}
 				{#each open as c (c.id)}
@@ -147,6 +156,9 @@
 							cy={p.y}
 							r={7 + Math.min(c.months, 36) / 3}
 							fill={hard(c.difficulty)}
+							role="presentation"
+							onpointerenter={() => (hovered = c.systemId)}
+							onpointerleave={() => (hovered = null)}
 							fill-opacity="0.35"
 							stroke={hard(c.difficulty)}
 							stroke-width="2"

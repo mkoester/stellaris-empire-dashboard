@@ -21,7 +21,11 @@ export type Facts = {
 	perks: string[];
 	techs: string[];
 	atWar: boolean | null;
+	situations: number | null; // running situations
 };
+
+const ETHICS =
+	/^is_(fanatic_)?(pacifist|militarist|xenophile|xenophobe|egalitarian|authoritarian|spiritualist|materialist)$/;
 
 const HOMICIDAL = [
 	'civic_fanatic_purifiers',
@@ -85,8 +89,17 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 		case 'is_nomadic':
 			// built into the game; Nomads origins are the only way to be one (approximation)
 			return yes(f.origin === null ? null : f.origin.includes('nomad'));
-		default:
-			return null;
+		case 'any_situation':
+			// a scope we cannot look into — but with no situation running, none matches
+			return f.situations === 0 ? value === 'no' : null;
+		default: {
+			// is_<ethic> (the ethic or its fanatic form), is_fanatic_<ethic>: 4.5.2
+			// scripted_triggers/00_scripted_triggers.txt
+			const e = ETHICS.exec(name);
+			if (!e) return null;
+			const fanatic = f.government.includes(`ethic_fanatic_${e[2]}`);
+			return yes(e[1] ? fanatic : fanatic || f.government.includes(`ethic_${e[2]}`));
+		}
 	}
 }
 

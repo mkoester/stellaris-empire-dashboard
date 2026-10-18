@@ -17,7 +17,8 @@ export function facts(s: Snapshot): Facts {
 		traditions: s.traditions ?? [],
 		perks: s.ascensionPerks ?? [],
 		techs: s.progress?.researched ?? [],
-		atWar: s.wars === null ? null : s.wars.length > 0
+		atWar: s.wars === null ? null : s.wars.length > 0,
+		situations: s.situations === null ? null : s.situations.length
 	};
 }
 
@@ -57,25 +58,38 @@ export function policyRows(
 		.filter((p) => p.selected !== null || p.options.length > 1);
 }
 
-export type AgendaStatus = 'current' | 'cooldown' | 'open' | 'locked';
+export type AgendaStatus = 'current' | 'cooldown' | 'open' | 'maybe' | 'not-allowed' | 'locked';
 export type AgendaRow = { key: string; name: string; cost: number | null; status: AgendaStatus };
 
-/** Every council agenda: the one being prepared, those on cooldown, open and still locked. */
+/**
+ * The council agendas this empire can have (`potential` not false): the one being prepared, those
+ * on cooldown, open ones, those whose `allow` the save cannot answer (maybe), those not allowed
+ * now, and those still locked behind a tradition or perk.
+ */
 export function agendaRows(agendas: GameData['agendas'], s: Snapshot, f: Facts): AgendaRow[] {
 	const current = s.progress?.agenda?.key;
-	return Object.entries(agendas).map(([key, a]) => ({
-		key,
-		name: a.name,
-		cost: a.cost,
-		status:
-			key === current
-				? 'current'
-				: (s.agendasDone ?? []).includes(key)
-					? 'cooldown'
-					: unlocked(a.unlockedBy, f)
-						? 'open'
-						: 'locked'
-	}));
+	return Object.entries(agendas)
+		.filter(([key, a]) => key === current || evaluate(a.potential ?? null, f) !== false)
+		.map(([key, a]) => {
+			const allow = evaluate(a.allow ?? null, f);
+			return {
+				key,
+				name: a.name,
+				cost: a.cost,
+				status:
+					key === current
+						? 'current'
+						: (s.agendasDone ?? []).includes(key)
+							? 'cooldown'
+							: !unlocked(a.unlockedBy, f)
+								? 'locked'
+								: allow === false
+									? 'not-allowed'
+									: allow === null
+										? 'maybe'
+										: 'open'
+			};
+		});
 }
 
 export type EdictRow = {

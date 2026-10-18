@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contactRows, monthsBetween, stationOwners } from './situations.ts';
+import { contactRows, discovered, monthsBetween, stationOwners } from './situations.ts';
 import type { FirstContact, GalaxySystem } from './types.ts';
 
 const sys = (id: number, lanes: number[], s: Partial<GalaxySystem> = {}): GalaxySystem => ({
@@ -76,5 +76,23 @@ describe('stationOwners', () => {
 		const owners = stationOwners(galaxy, 0, [], [], [imps]);
 		expect(owners).toHaveLength(1);
 		expect(owners[0]).toMatchObject({ countryId: 77, systems: [3], contact: 33 });
+	});
+});
+
+describe('discovered', () => {
+	it('keeps visited and own systems, the contact sites, and only the lanes among them', () => {
+		// 4 is unvisited but a contact site; 3 is visited; 2 is neither
+		const g = [
+			sys(1, [2, 3], { owned: true }),
+			sys(2, [4], { visited: false }),
+			sys(3, [4]),
+			sys(4, [], { visited: false })
+		];
+		expect(discovered(g, false, [4]).map((s) => [s.id, s.lanes])).toEqual([
+			[1, [3]],
+			[3, [4]],
+			[4, []]
+		]);
+		expect(discovered(g, true)).toHaveLength(4);
 	});
 });

@@ -486,7 +486,16 @@ export type TimelineNode = {
 /** Names, costs and rules from the extraction's SQLite (STELLARIS_DATA_DB), loaded once. */
 export type GameData = {
 	techs: Record<string, { name: string; cost: number | null; area: string; tier: number | null }>;
-	agendas: Record<string, { name: string; cost: number | null; unlockedBy: string[] }>;
+	agendas: Record<
+		string,
+		{
+			name: string;
+			cost: number | null;
+			unlockedBy: string[];
+			potential?: Trigger | null; // whether the empire can ever have it
+			allow?: Trigger | null; // whether it may be launched now
+		}
+	>;
 	defines: Record<string, number>;
 	jobs: Record<string, { name: string; category: string | null }>;
 	edicts: Record<

@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { branch } from '#lib/server/branch.ts';
+import { mapSystems } from '#lib/server/mapSystems.ts';
 import { migrationFrames } from '#lib/migration.ts';
 
 // The galaxy map on its own: the known systems and the colonies with the latest month's
@@ -11,6 +12,6 @@ export function load({ url }) {
 	return {
 		...rest,
 		frame: migrationFrames(snaps).at(-1) ?? null,
-		systems: snaps.findLast((s) => s.knownSystems)?.knownSystems ?? []
+		systems: mapSystems(snaps)
 	};
 }

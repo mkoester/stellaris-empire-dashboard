@@ -112,3 +112,20 @@ export function situationRows(
 		approachName: s.approach ? (types[s.type]?.approaches[s.approach] ?? s.approach) : null
 	}));
 }
+
+/**
+ * What the empire has discovered: visited or own systems (the save's `terra_incognita.systems` is
+ * the same list) and `also` (first contact sites, which the game shows), with lanes among them
+ * only — the game hides hyperlanes outside its known space. `whole` keeps every system.
+ */
+export function discovered(
+	galaxy: GalaxySystem[],
+	whole: boolean,
+	also: number[] = []
+): GalaxySystem[] {
+	if (whole) return galaxy;
+	const known = new Set([...galaxy.filter((s) => s.visited || s.owned).map((s) => s.id), ...also]);
+	return galaxy
+		.filter((s) => known.has(s.id))
+		.map((s) => ({ ...s, lanes: s.lanes.filter((to) => known.has(to)) }));
+}

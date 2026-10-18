@@ -28,12 +28,20 @@ export function loadGameData(file: string): GameData {
 					name: string | null;
 					cost: number | null;
 					unlocked_by_json: string | null;
-				}>('SELECT key, name, cost, unlocked_by_json FROM council_agenda ORDER BY sort_order').map(
-					(r) => [
-						r.key,
-						{ name: r.name ?? r.key, cost: r.cost, unlockedBy: jsonList(r.unlocked_by_json) }
-					]
-				)
+					potential_json: string | null;
+					allow_json: string | null;
+				}>(
+					'SELECT key, name, cost, unlocked_by_json, potential_json, allow_json FROM council_agenda ORDER BY sort_order'
+				).map((r) => [
+					r.key,
+					{
+						name: r.name ?? r.key,
+						cost: r.cost,
+						unlockedBy: jsonList(r.unlocked_by_json),
+						potential: parseTrigger(r.potential_json),
+						allow: parseTrigger(r.allow_json)
+					}
+				])
 			),
 			jobs: Object.fromEntries(
 				rows<{ key: string; name: string | null; category: string | null }>(

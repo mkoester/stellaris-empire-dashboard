@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { branch } from '#lib/server/branch.ts';
+import { mapSystems } from '#lib/server/mapSystems.ts';
 import { migrationFrames, migrationHistory } from '#lib/migration.ts';
 
 // Migration between colonies — own and treaty partners' — in four variants to compare. The flow
@@ -14,6 +15,6 @@ export function load({ url }) {
 		frames: migrationFrames(snaps),
 		history: migrationHistory(snaps),
 		// the map's background: the latest known systems and hyperlanes
-		systems: snaps.findLast((s) => s.knownSystems)?.knownSystems ?? []
+		systems: mapSystems(snaps)
 	};
 }

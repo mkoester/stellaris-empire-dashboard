@@ -12,6 +12,7 @@
 	let kind: Kind = $state('quantum_catapult');
 	let range = $state('mine'); // mine | 0…5 jumps beyond the border | all
 	let fitting = $state(true);
+	let hovered: number | null = $state(null);
 
 	const k = $derived(data.kinds.find((x) => x.kind === kind)!);
 	const inRange = (r: Candidate) =>
@@ -130,7 +131,9 @@
 			? ''
 			: k.machineAge
 				? ' Needs The Machine Age, which this save does not have.'
-				: ' Not with The Machine Age (this save has it): it replaces the Dyson Sphere with the Swarm.'} ? = not visited, its bodies unknown."
+				: ' Not with The Machine Age (this save has it): it replaces the Dyson Sphere with the Swarm.'} ? = not visited, its bodies unknown.{data.wholeGalaxy
+			? ' The whole galaxy is shown (switch in ⚙).'
+			: ' Only discovered systems count, the catapult’s farthest system too (⚙ shows the whole galaxy).'}"
 	>
 		<GalaxyMap
 			systems={data.systems}
@@ -144,10 +147,18 @@
 			]}
 			heightKey="megastructure-map-height"
 			label="{k.name} sites"
+			bind:hovered
 		/>
 		<p class="mt-1 mb-3 text-xs text-gray-500">
 			Darker blue: better score among the systems shown.
 		</p>
-		<SortTable {rows} {columns} key={(r) => r.systemId} bind:sort />
+		<SortTable
+			{rows}
+			{columns}
+			key={(r) => r.systemId}
+			bind:sort
+			link={(r) => r.systemId}
+			bind:hovered
+		/>
 	</Panel>
 </div>

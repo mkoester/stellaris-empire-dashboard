@@ -27,7 +27,8 @@ describe('profiles', () => {
 				habitatsAlways: false,
 				anomalySpoilers: false,
 				projectSpoilers: false,
-				contactStations: false
+				contactStations: false,
+				wholeGalaxy: false
 			}
 		});
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('thick');
@@ -57,7 +58,8 @@ describe('profiles', () => {
 				habitatsAlways: false,
 				anomalySpoilers: false,
 				projectSpoilers: false,
-				contactStations: false
+				contactStations: false,
+				wholeGalaxy: false
 			}
 		});
 		const copy = profileAction(db, { action: 'create', name: 'default', copyOf: 'default' })!;

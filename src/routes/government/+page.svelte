@@ -22,10 +22,14 @@
 	const STATUS: Record<AgendaRow['status'], [number, string]> = {
 		current: [0, 'being prepared'],
 		open: [1, 'open'],
-		cooldown: [2, 'on cooldown'],
-		locked: [3, 'locked: needs a tradition or perk']
+		maybe: [2, 'open? the save cannot tell all conditions'],
+		cooldown: [3, 'on cooldown'],
+		'not-allowed': [4, 'not allowed now'],
+		locked: [5, 'locked: needs a tradition or perk']
 	};
-	const agendas = $derived(data.agendas.filter((a) => showLocked || a.status !== 'locked'));
+	const agendas = $derived(
+		data.agendas.filter((a) => showLocked || (a.status !== 'locked' && a.status !== 'not-allowed'))
+	);
 	const activeEdicts = $derived(data.edicts.filter((e) => e.active));
 	const otherEdicts = $derived(data.edicts.filter((e) => !e.active && (showLocked || e.unlocked)));
 	const categories = $derived([...new Set(data.policies.map((p) => p.category ?? ''))]);
@@ -174,7 +178,7 @@
 
 	<Panel
 		title="Council agendas"
-		note="Locked: none of the traditions or perks that unlock it taken. Other conditions are not checked."
+		note="Only agendas this empire can have. Open: every condition met; open?: met as far as the save tells; not allowed now: a condition fails; locked: none of the traditions or perks that unlock it taken. The last two show with “show locked”."
 	>
 		<SortTable rows={agendas} columns={agendaColumns} key={(r) => r.key} bind:sort={agendaSort} />
 	</Panel>

@@ -4,7 +4,8 @@
 
 	// A galaxy map in screen pixels: hyperlanes and systems (own ones tinted, or filled by `fill`),
 	// with drag to pan, the wheel to zoom and the bottom edge to resize. What a page draws on top is
-	// its `layer`, given the galaxy → screen transform; `extra` are more points to fit.
+	// its `layer`, given the galaxy → screen transform; `extra` are more points to fit. `hovered`
+	// (bindable) is the system under the pointer, here or in a table beside: it gets a ring.
 	type System = Point & {
 		id: number;
 		name: string;
@@ -20,7 +21,8 @@
 		focus = [],
 		heightKey,
 		label = 'Galaxy map',
-		layer
+		layer,
+		hovered = $bindable(null)
 	}: {
 		systems: System[];
 		fill?: Record<number, string>; // system id → colour, instead of the own/other tint
@@ -30,6 +32,7 @@
 		heightKey: string; // localStorage key for the height
 		label?: string;
 		layer?: Snippet<[(p: Point) => Point, number]>; // transform, scale (px per galaxy unit)
+		hovered?: number | null;
 	} = $props();
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 
@@ -139,7 +142,7 @@
 			onpointercancel={() => (drag = null)}
 		>
 			{#each systems as s (s.id)}
-				{#each s.lanes as to (to)}
+				{#each new Set(s.lanes) as to (to)}
 					{@const o = byId.get(to)}
 					{#if o}
 						<line
@@ -154,25 +157,51 @@
 				{/each}
 			{/each}
 			{#each systems as s (s.id)}
+				<!-- a wider invisible target, so a 3px system is easy to point at -->
 				<circle
+					role="presentation"
 					cx={at(s).x}
 					cy={at(s).y}
-					r={fill[s.id] ? 4 : 3}
-					fill={fill[s.id]}
-					class={fill[s.id]
-						? 'stroke-white dark:stroke-gray-900'
-						: s.owned
-							? 'fill-blue-200 stroke-blue-400'
-							: 'fill-gray-200 stroke-gray-400'}
-					stroke-width="1"
+					r="8"
+					fill="transparent"
+					onpointerenter={() => (hovered = s.id)}
+					onpointerleave={() => (hovered = null)}
 					><title
 						>{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{titles[s.id]
 							? ` — ${titles[s.id]}`
 							: ''}</title
 					></circle
 				>
+				<circle
+					cx={at(s).x}
+					cy={at(s).y}
+					r={fill[s.id] ? 4 : 3}
+					fill={fill[s.id]}
+					class="pointer-events-none {fill[s.id]
+						? 'stroke-white dark:stroke-gray-900'
+						: s.owned
+							? 'fill-blue-200 stroke-blue-400'
+							: 'fill-gray-200 stroke-gray-400'}"
+					stroke-width="1"
+				/>
 			{/each}
 			{@render layer?.(at, v.k)}
+			{#if hovered !== null && byId.get(hovered)}
+				{@const p = at(byId.get(hovered)!)}
+				<circle
+					class="pointer-events-none stroke-amber-500"
+					cx={p.x}
+					cy={p.y}
+					r="11"
+					fill="none"
+					stroke-width="3"
+				/>
+				<text
+					class="pointer-events-none fill-current text-xs font-semibold"
+					x={p.x + 14}
+					y={p.y - 10}>{byId.get(hovered)!.name}</text
+				>
+			{/if}
 		</svg>
 	{/if}
 </div>

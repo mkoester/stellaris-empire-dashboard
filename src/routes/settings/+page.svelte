@@ -20,6 +20,11 @@
 		['anomalySpoilers', 'Situations: show what an anomaly can lead to', 'spoilers'],
 		['projectSpoilers', 'Situations: show what a special project leads to', 'spoilers'],
 		[
+			'wholeGalaxy',
+			'Maps and megastructure sites: the whole galaxy, not only the systems discovered',
+			'shows what the game still hides'
+		],
+		[
 			'contactStations',
 			'First contact map: colour visited systems by their station’s owner',
 			'the save knows them before you have communications'

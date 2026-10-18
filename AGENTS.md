@@ -110,7 +110,13 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 "DLCs and mods" below); tabs keep `?node=`. Tables on the newer tabs sort through
 `SortTable.svelte` (columns as `Column<T>` from `#lib/sort.ts`), maps through `GalaxyMap.svelte`
 (pan, zoom, resize, lanes, systems with an optional `fill`; the page draws its `layer`;
-`MigrationMap` is one such layer). Say
+`MigrationMap` is one such layer). **Maps show only what is discovered**: visited or own systems
+(the save's `terra_incognita.systems` is the same list; its 256×256 `data` grid is run-length
+encoded, row-major, but its scale is not pinned down) plus first contact sites, lanes only among
+them (`discovered()`, `server/mapSystems.ts`); the profile's `wholeGalaxy` switch shows every
+system. Megastructure candidates, the catapult's farthest system and the jumps beyond the border
+count discovered systems only. Table rows tied to a system (`SortTable` `link`) and the map share a
+bindable `hovered` system: the row is highlighted, the system ringed. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
@@ -199,9 +205,10 @@ per-level values). Possible seats: our civics' seats and base seats whose `possi
 false; `unlocked_civic_council_slots` is the number of seats (3 at 2207.03.10, all held).
 
 **Government tab** (`/government`, `#lib/government.ts` and `#lib/triggers.ts`, both pure): the
-identity panel, ruler and council seats, the agenda with its due date (`events.ts`), every agenda
-(current / cooldown / open / locked — locked: none of the traditions or perks in its
-`unlocked_by` taken), policies with the options this empire can have, edicts (active with their
+identity panel, ruler and council seats, the agenda with its due date (`events.ts`), the agendas this
+empire can have (`potential` not false: current, cooldown, open, open? — `allow` not answerable —,
+not allowed now, locked — none of the traditions or perks in its `unlocked_by` taken; 2207.03.10:
+7 open, matching ethics such as Open Arms and Give and Take), policies with the options this empire can have, edicts (active with their
 start, the others by unlock), and per faction type its demands. The data DB's normalised triggers
 (`*_json`) are evaluated **three-valued** against the save (`facts()`: country type, civics,
 ethics, authority, origin, DLCs, policy and country flags, traditions, perks, techs, war): what
@@ -475,7 +482,9 @@ modifier="celebrate_diversity" days=3535 } … } }` — `days` left, −1 = perm
   list), `controller` the owner of the system it lies in.
 - Galaxy and the others (`server/world.ts`, 2207.03.10): `galactic_object.<id> = { coordinate
 star_class planet=… hyperlane starbases inner_radius outer_radius }` (radii 390/490 are no
-  in-system size); planets' `coordinate` is in-system (Earth 90 from the star). **Fleets have no
+  in-system size); planets' `coordinate` is in-system (Earth 90 from the star). **A hyperlane can be
+  listed twice** (2207.03.10: Iblyria → 236): `galaxy()` de-duplicates, or a keyed `{#each}` throws
+  in the browser only — the page shows, then a 500 the server log never sees. **Fleets have no
   owner**: a country lists its own in `fleets_manager.owned_fleets = { { fleet=<id> } }`, so a
   station's owner is starbase → `station` ship → `fleet` → that list (`stationOwner`; Chors
   Compass: the Caravaneers). Reading every `country` costs ~250 ms per save (51 countries).

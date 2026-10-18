@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { contactRows, situationRows, stationOwners } from '#lib/situations.ts';
+import { contactRows, discovered, situationRows, stationOwners } from '#lib/situations.ts';
 import { getDb, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { galaxyOf } from '#lib/server/db.ts';
@@ -35,7 +35,12 @@ export function load({ url }) {
 			? contactRows(s.firstContacts ?? [], galaxy, s.relations ?? [], s.countries ?? [], s.date)
 			: [],
 		// the map: every system, the contacts' places, other empires' stations if switched on
-		systems: galaxy.map((g) => ({
+		wholeGalaxy: opts.wholeGalaxy,
+		systems: discovered(
+			galaxy,
+			opts.wholeGalaxy,
+			(s?.firstContacts ?? []).map((c) => c.systemId)
+		).map((g) => ({
 			id: g.id,
 			name: g.name,
 			x: g.x,
