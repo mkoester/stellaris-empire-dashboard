@@ -43,8 +43,8 @@
 		],
 		[
 			'lgates',
-			'Maps: show every L-Gate and, once they are open, the L-Cluster and its connections',
-			'spoilers — the L-Cluster itself only exists once the gates open'
+			'Maps: show every L-Gate, the L-Cluster and all their connections',
+			'spoilers — until the gates open the L-Cluster does not exist yet: shown where it is predicted to spawn'
 		],
 		[
 			'surveyAll',

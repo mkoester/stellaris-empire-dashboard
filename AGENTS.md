@@ -311,7 +311,9 @@ megastructure; 2207.03.10: Eye of Bal, Ribellan Vortex), named, with an L-Gate m
 L-Cluster (`lcluster`: star flags `lcluster*`) only exists once the gates open — 4.5.2
 `events/distant_stars_events_3.txt` `distar.11000` spawns it then, 550–560 from the galactic
 core at 44–46°, its other systems relative to that within ranges; then every gate links to its
-entrance `lcluster1` (`lgateTo`, a star), drawn like a wormhole in cyan. Without the spoiler a
+entrance `lcluster1` (`lgateTo`, a star), drawn like a wormhole in cyan. Before that the spoiler
+links every gate to `PREDICTED_LCLUSTER` (`situations.ts`, id −1): 555 from the core at 45°, read
+in the maths sense — unverified (2207.03.10: (392, 392), outside the galaxy's radius 356). Without the spoiler a
 gate's link shows once both ends are visited. **First contact** markers take the game's map icon
 blue (`#6478c8` on `#284088`, sampled from a screenshot: `firstcontact_map_icon.dds` is a cyan
 saucer the map does not show).
@@ -636,9 +638,10 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 
 ## Open (needs a running game on Linux)
 
-- **A predicted L-Cluster**: its place and shape are nearly fixed (`distar.11000`, see above), so
-  it could be drawn before it exists — but the angle's origin and direction are unknown. Calibrate
-  from any save with the cluster open (a throwaway game, console `event distar.11000`).
+- **The predicted L-Cluster's place**: `PREDICTED_LCLUSTER` assumes the angle runs from +x
+  towards +y; the game's origin and direction are unverified, so it may sit on another diagonal.
+  Calibrate from any save with the cluster open (a throwaway game, console `event distar.11000`):
+  compare `lcluster1`'s coordinates, then draw its other systems too (shape: same event).
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
   show a link never jumped through). At the first wormhole explored, diff its `bypasses.<id>`,
   `natural_wormholes.<id>` and the country block against an earlier save for a real marker.

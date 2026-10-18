@@ -234,7 +234,7 @@ export function mapView(
 		const all = byId.get(id)?.lanes ?? [];
 		return reveal.whole ? all : all.filter((to) => lane(id, to));
 	};
-	return [...base, ...frontier].map((g) => ({
+	const shown = [...base, ...frontier].map((g) => ({
 		id: g.id,
 		// a star the unknownStars switch named 'Unknown' keeps its name when the L-Gate spoiler shows it
 		name: revealed(byId.get(g.id)) ? (byId.get(g.id)?.name ?? g.name) : g.name,
@@ -246,4 +246,30 @@ export function mapView(
 		wormholes: worm(byId.get(g.id) ?? g),
 		lgates: lgates(byId.get(g.id) ?? g)
 	}));
+	// before the gates open the L-Cluster does not exist: with the spoiler, every gate links to
+	// where it will spawn (predicted, see PREDICTED_LCLUSTER)
+	const gates = shown.filter((s) => byId.get(s.id)?.lgate);
+	if (!reveal.lgates || !gates.length || galaxy.some((s) => s.lcluster)) return shown;
+	const hub = {
+		...PREDICTED_LCLUSTER,
+		lanes: [],
+		owned: false,
+		known: false,
+		wormholes: [],
+		lgates: []
+	};
+	return [...shown.map((s) => (gates.includes(s) ? { ...s, lgates: [hub.id] } : s)), hub];
 }
+
+/**
+ * Where the L-Cluster will spawn when the gates open: 4.5.2 events/distant_stars_events_3.txt
+ * `distar.11000` puts its entrance 550–560 from the galactic core (the save's 0,0) at 44–46°. The
+ * angle is read in the standard maths sense (from +x towards +y) — unverified: no save with the
+ * cluster open has been seen, so it may sit on another diagonal (AGENTS.md "Open").
+ */
+export const PREDICTED_LCLUSTER = {
+	id: -1,
+	name: 'L-Cluster (predicted — spawns when the gates open)',
+	x: 555 * Math.cos(Math.PI / 4),
+	y: 555 * Math.sin(Math.PI / 4)
+};

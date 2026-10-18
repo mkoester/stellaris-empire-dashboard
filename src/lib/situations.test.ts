@@ -203,6 +203,15 @@ describe('mapView and L-Gates', () => {
 		]);
 	});
 
+	it('links every gate to the predicted L-Cluster before it exists', () => {
+		const closed = g.filter((s) => !s.lcluster).map((s) => ({ ...s, lgateTo: [] }));
+		const v = mapView(closed, { ...none, lgates: true });
+		expect(v.find((s) => s.id === 5)?.lgates).toEqual([-1]);
+		expect(v.at(-1)).toMatchObject({ id: -1, known: false });
+		expect(Math.hypot(v.at(-1)!.x, v.at(-1)!.y)).toBeCloseTo(555);
+		expect(mapView(closed, none).some((s) => s.id === -1)).toBe(false);
+	});
+
 	it('keeps an L-Gate’s name when the unknown stars are shown too', () => {
 		const v = mapView(g, { whole: false, stars: true, lgates: true });
 		expect(v.find((s) => s.id === 5)?.name).toBe('S5');
