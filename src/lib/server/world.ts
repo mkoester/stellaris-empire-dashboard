@@ -106,10 +106,10 @@ export function bypassList(
 }
 
 /**
- * Where each system's wormholes lead, once explored — a ship has been to either end, as the
- * game's pathing (`BYPASS_RULES.*.explore`). Both ends list each other.
+ * Where each system's wormholes lead, every pair, explored or not — what a map may show of them
+ * is `mapView`'s choice. Both ends list each other.
  */
-export function wormholeLinks(bypasses: Bypass[], visited: Set<number>): Map<number, number[]> {
+export function wormholeLinks(bypasses: Bypass[]): Map<number, number[]> {
 	const byId = new Map(bypasses.map((b) => [b.id, b]));
 	const out = new Map<number, number[]>();
 	const add = (a: number, b: number) => {
@@ -120,7 +120,6 @@ export function wormholeLinks(bypasses: Bypass[], visited: Set<number>): Map<num
 		for (const id of b.links) {
 			const to = byId.get(id)?.system;
 			if (to === null || to === undefined || to === b.system) continue;
-			if (!visited.has(b.system) && !visited.has(to)) continue;
 			add(b.system, to);
 			add(to, b.system);
 		}
@@ -148,7 +147,7 @@ export function galaxy(
 	own: Set<number>
 ): GalaxySystem[] {
 	const visited = new Set([...list(raw.country?.visited_objects), ...own]);
-	const wormholes = wormholeLinks(bypassList(raw), visited);
+	const wormholes = wormholeLinks(bypassList(raw));
 	// the systems whose lanes the map shows: visited ones and those within hyperlane detection
 	// range (2207.03.10: 60 = 41 visited + 10 one jump out + 9 further)
 	const lanesKnown = new Set(list(raw.country?.hyperlane_systems));

@@ -31,6 +31,7 @@ describe('profiles', () => {
 				wholeGalaxy: false,
 				unknownStars: false,
 				wormholeLinks: true,
+				wormholePairs: false,
 				showLocked: false,
 				factionTypes: false,
 				allFactionTypes: false
@@ -67,6 +68,7 @@ describe('profiles', () => {
 				wholeGalaxy: false,
 				unknownStars: false,
 				wormholeLinks: true,
+				wormholePairs: false,
 				showLocked: false,
 				factionTypes: false,
 				allFactionTypes: false

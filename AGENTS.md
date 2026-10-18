@@ -117,8 +117,12 @@ them (`discovered()`, `mapView()`, `server/mapSystems.ts`). As the game, a map a
 lane of a system whose lanes the empire knows — `country.hyperlane_systems` (`GalaxySystem.lanesKnown`):
 visited plus hyperlane detection range, which sensors and the Map the Stars edict raise
 (2207.03.10: 60 = 41 visited + 10 one jump out + 9 further; matches the game's map around Craxima
-and Rimmock) — the systems at their far ends faint, "Unknown". Explored wormholes (a ship at either
-end, `wormholeLinks()`) are dashed arcs, behind the profile's `wormholeLinks` switch (on). Fit
+and Rimmock) — the systems at their far ends faint, "Unknown". Explored wormholes are dashed arcs, behind the profile's `wormholeLinks` switch (on). Explored =
+**both ends visited**: the save marks no wormhole as explored (bypasses carry no such field, the
+country only `seen_bypass_types`), and exploring one is a fleet's jump through it (4.5.2
+`common/bypass/00_bypasses.txt`, `on_pre_explore`), which visits the far end; one end visited is
+not enough (2207.03.10: Phiroza visited, Eye of Bal not — no link). `wormholePairs` (spoiler) shows
+every pair (`wormholeLinks()` stores them all), both ends. Fit
 buttons: capital, my empire, explored, the page's own, everything; a per-viewer `sectors` checkbox
 splits our territory by sector (`GalaxySystem.sector`, the colonies tab's `sectorColors`). Profile switches: `unknownStars`
 adds every other star, faint, named "Unknown" and without lanes, but not the special systems off
@@ -255,7 +259,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`. A new view of hidden information follows the same pattern. **The
+`unknownStars`, `wholeGalaxy`, `wormholePairs`. A new view of hidden information follows the same pattern. **The
 check is the user's in-game screenshot** of the matching panel (workspace `CLAUDE.md`): it caught
 the edicts (58 → the game's 5), policies, agendas and focus cards here.
 
@@ -616,6 +620,10 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   capital). Habitability: `pop_groups.<id>.habitability` (0–1, seen 1 and 0.9), pops-weighted.
 
 ## Open (needs a running game on Linux)
+
+- **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
+  show a link never jumped through). At the first wormhole explored, diff its `bypasses.<id>`,
+  `natural_wormholes.<id>` and the country block against an earlier save for a real marker.
 
 - **Stations seen, exactly**: saves catch only the fleets present at save time. The companion mod
   could log each system entry (an `on_entering_system`-style on_action) with the station's shipset

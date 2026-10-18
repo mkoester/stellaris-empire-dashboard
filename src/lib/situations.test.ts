@@ -137,11 +137,17 @@ describe('mapView', () => {
 		]);
 	});
 
-	it('shows where explored wormholes lead, unless switched off', () => {
-		const v = mapView(g, { ...none, wormholes: true });
-		expect(v.find((s) => s.id === 1)?.wormholes).toEqual([9]);
-		expect(v.some((s) => s.id === 9)).toBe(true);
-		expect(mapView(g, none).find((s) => s.id === 1)?.wormholes).toEqual([]);
+	it('shows a wormhole once both ends are visited, every pair only as a spoiler', () => {
+		// 1 visited, 9 not: Phiroza and Eye of Bal at 2207.03.10, never jumped through
+		expect(mapView(g, { ...none, wormholes: true }).find((s) => s.id === 1)?.wormholes).toEqual([]);
+		const both = g.map((s) => (s.id === 9 ? { ...s, visited: true } : s));
+		expect(mapView(both, { ...none, wormholes: true }).find((s) => s.id === 1)?.wormholes).toEqual([
+			9
+		]);
+		expect(mapView(both, none).find((s) => s.id === 1)?.wormholes).toEqual([]);
+		const pairs = mapView(g, { ...none, wormholePairs: true });
+		expect(pairs.find((s) => s.id === 1)?.wormholes).toEqual([9]);
+		expect(pairs.find((s) => s.id === 9)?.known).toBe(false);
 	});
 });
 

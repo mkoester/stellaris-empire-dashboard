@@ -173,16 +173,23 @@ export function discovered(
  * a system whose lanes we know (`lanesKnown`: visited, or within hyperlane detection range; older
  * readings: the discovered ones) with the undiscovered systems at their ends (`known` false:
  * faint, "Unknown");
- * with `wormholes`, where explored wormholes lead (`wormholes`, drawn as arcs), their far ends too.
+ * with `wormholes`, where explored wormholes lead (drawn as arcs). Explored: both ends visited —
+ * the save marks no wormhole as explored, and exploring one (a fleet's jump through it) visits
+ * the far end; visiting one end is not enough. With `wormholePairs` (a spoiler) every pair,
+ * both ends shown.
  */
 export function mapView(
 	galaxy: GalaxySystem[],
-	reveal: Reveal & { wormholes?: boolean },
+	reveal: Reveal & { wormholes?: boolean; wormholePairs?: boolean },
 	also: number[] = []
 ) {
 	const known = knownIds(galaxy, also);
 	const byId = new Map(galaxy.map((s) => [s.id, s]));
-	const worm = (s: GalaxySystem) => (reveal.wormholes ? (s.wormholes ?? []) : []);
+	const visited = (id: number) => byId.get(id)?.visited === true || byId.get(id)?.owned === true;
+	const worm = (s: GalaxySystem) =>
+		(s.wormholes ?? []).filter(
+			(to) => reveal.wormholePairs || (reveal.wormholes && visited(s.id) && visited(to))
+		);
 	const lit = (id: number) => known.has(id) || byId.get(id)?.lanesKnown === true;
 	const lane = (a: number, b: number) => lit(a) || lit(b);
 	// a lane is listed at its lower end, so both ends are looked at
@@ -190,7 +197,7 @@ export function mapView(
 	for (const s of galaxy) {
 		for (const to of s.lanes)
 			if (lane(s.id, to)) for (const id of [s.id, to]) if (!known.has(id)) near.add(id);
-		if (known.has(s.id)) for (const to of worm(s)) if (!known.has(to)) near.add(to);
+		for (const to of worm(s)) for (const id of [s.id, to]) if (!known.has(id)) near.add(id);
 	}
 	const base = discovered(galaxy, reveal, also);
 	const ids = new Set(base.map((s) => s.id));
@@ -209,6 +216,6 @@ export function mapView(
 		lanes: lanes(g.id),
 		owned: g.owned,
 		known: reveal.whole || known.has(g.id),
-		wormholes: known.has(g.id) || reveal.whole ? worm(byId.get(g.id) ?? g) : []
+		wormholes: worm(byId.get(g.id) ?? g)
 	}));
 }

@@ -48,13 +48,10 @@ describe('wormholeLinks', () => {
 		{ id: 7, type: 'wormhole', active: true, system: 20, links: [6] },
 		{ id: 8, type: 'gateway', active: false, system: 30, links: [6] }
 	];
-	it('links both ends once a ship has been to either', () => {
-		expect([...wormholeLinks(bypasses, new Set([20]))]).toEqual([
+	it('links both ends of every wormhole pair, gateways left out', () => {
+		expect([...wormholeLinks(bypasses)]).toEqual([
 			[10, [20]],
 			[20, [10]]
 		]);
-	});
-	it('knows nothing of an unexplored wormhole', () => {
-		expect(wormholeLinks(bypasses, new Set([30])).size).toBe(0);
 	});
 });

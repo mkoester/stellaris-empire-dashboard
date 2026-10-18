@@ -22,6 +22,7 @@ export type Display = {
 	wholeGalaxy: boolean; // maps and megastructure sites: every system, not only the discovered
 	unknownStars: boolean; // maps: the undiscovered systems too, without their hyperlanes
 	wormholeLinks: boolean; // maps: where explored wormholes lead (on by default)
+	wormholePairs: boolean; // maps: every wormhole pair, explored or not (spoiler)
 	showLocked: boolean; // government: agendas, edicts and policies the game does not list
 	factionTypes: boolean; // government: faction types of our ethics, before any has formed (cheating)
 	allFactionTypes: boolean; // … and those of ethics we do not hold (cheating)
@@ -36,6 +37,7 @@ export const DEFAULT_DISPLAY: Display = {
 	wholeGalaxy: false,
 	unknownStars: false,
 	wormholeLinks: true,
+	wormholePairs: false,
 	showLocked: false,
 	factionTypes: false,
 	allFactionTypes: false
@@ -80,6 +82,7 @@ export function parseDisplay(v: unknown): Display {
 		wholeGalaxy: o.wholeGalaxy === true,
 		unknownStars: o.unknownStars === true,
 		wormholeLinks: o.wormholeLinks !== false,
+		wormholePairs: o.wormholePairs === true,
 		showLocked: o.showLocked === true,
 		factionTypes: o.factionTypes === true,
 		allFactionTypes: o.allFactionTypes === true

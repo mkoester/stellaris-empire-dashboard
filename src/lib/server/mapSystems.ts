@@ -9,7 +9,7 @@ import { display } from './settings.ts';
 /**
  * The systems a map draws (`mapView`): the discovered ones (`knownSystems`: visited or own) with
  * the lanes out of them, plus with the `unknownStars` switch every other star, or with
- * `wholeGalaxy` everything; explored wormholes with `wormholeLinks`. Without a galaxy reading,
+ * `wholeGalaxy` everything; explored wormholes with `wormholeLinks`, all with `wormholePairs`. Without a galaxy reading,
  * the snapshot's known systems.
  */
 export function mapSystems(snaps: Snapshot[]): (KnownSystem & { known?: boolean })[] {
@@ -24,7 +24,12 @@ export function mapSystems(snaps: Snapshot[]): (KnownSystem & { known?: boolean 
 /** The display switches that decide what a map reveals. */
 export const reveal = () => {
 	const d = display();
-	return { whole: d.wholeGalaxy, stars: d.unknownStars, wormholes: d.wormholeLinks };
+	return {
+		whole: d.wholeGalaxy,
+		stars: d.unknownStars,
+		wormholes: d.wormholeLinks,
+		wormholePairs: d.wormholePairs
+	};
 };
 
 /**
