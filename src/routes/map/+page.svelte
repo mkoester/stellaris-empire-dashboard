@@ -24,6 +24,28 @@
 
 	let hovered: number | null = $state(null);
 	let selected: number | null = $state(null);
+	let map: ReturnType<typeof GalaxyMap> | undefined = $state();
+
+	// search by system name, the known systems offered as completions
+	let query = $state('');
+	const names = $derived(
+		[...new Map(data.systems.filter((s) => s.known).map((s) => [s.name, s.id]))].sort(([a], [b]) =>
+			a.localeCompare(b)
+		)
+	);
+	const find = (q: string, prefix: boolean) => {
+		const l = q.trim().toLowerCase();
+		return l
+			? (names.find(([n]) => n.toLowerCase() === l) ??
+					(prefix ? names.find(([n]) => n.toLowerCase().startsWith(l)) : undefined))
+			: undefined;
+	};
+	const go = (hit: [string, number] | undefined) => {
+		if (!hit) return;
+		query = hit[0];
+		selected = hit[1];
+		map?.show(hit[1]);
+	};
 
 	type Marker = (typeof data.markers)[number];
 	const markers = $derived(data.markers.filter((m) => on(m.layer)));
@@ -50,10 +72,19 @@
 		{ id: 'layer', label: 'What', value: (r) => LAYER_INFO[r.layer].label, cell: what },
 		{ id: 'label', label: 'Name', value: (r) => r.label },
 		{ id: 'system', label: 'System', value: (r) => byId.get(r.systemId)?.name ?? null },
-		{ id: 'detail', label: 'Detail', value: (r) => r.detail }
+		{ id: 'detail', label: 'Detail', value: (r) => r.detail },
+		{
+			id: 'ongoing',
+			label: 'Ongoing',
+			value: (r) => (r.ongoing === undefined || r.ongoing === null ? null : r.ongoing ? 1 : 0),
+			cell: ongoing,
+			title: 'an envoy on the contact, an excavation running; – where the save does not tell'
+		},
+		{ id: 'progress', label: 'Progress', value: (r) => r.progress ?? null }
 	];
 </script>
 
+{#snippet ongoing(r: Marker)}{r.ongoing ? '✓' : r.ongoing === false ? 'waiting' : '–'}{/snippet}
 {#snippet what(r: Marker)}
 	<span style:color={LAYER_INFO[r.layer].color}>{LAYER_INFO[r.layer].symbol}</span>
 	{LAYER_INFO[r.layer].label}
@@ -67,6 +98,23 @@
 {#if !data.seenAt}
 	<p class="mb-4 text-sm text-amber-600">No galaxy read yet; it fills after the next save.</p>
 {/if}
+
+<div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
+	<label class="flex items-center gap-1"
+		>find system
+		<input
+			class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+			list="system-names"
+			placeholder="name…"
+			bind:value={query}
+			oninput={() => go(find(query, false))}
+			onkeydown={(e) => e.key === 'Enter' && go(find(query, true))}
+		/></label
+	>
+	<datalist id="system-names">
+		{#each names as [n, id] (id)}<option value={n}></option>{/each}
+	</datalist>
+</div>
 
 <div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
 	{#each MAP_LAYERS as l (l)}
@@ -97,6 +145,7 @@
 			label="Galaxy map"
 			bind:hovered
 			bind:selected
+			bind:this={map}
 		>
 			{#snippet layer(at)}
 				{#each [...bySystem] as [id, list] (id)}

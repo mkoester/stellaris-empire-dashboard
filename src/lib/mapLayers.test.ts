@@ -46,6 +46,27 @@ describe('mapMarkers', () => {
 		const anomalies = [{ planetId: 1, planet: 'P', systemId: 9, category: 'x' }];
 		expect(mapMarkers({ ...none, galaxy: [sys(1)], anomalies })).toEqual([]);
 	});
+
+	it('tells whether a contact or dig site is worked on, and how far it is', () => {
+		const contacts = [
+			{
+				id: 1,
+				countryId: 7,
+				name: 'Helvan Assembly',
+				systemId: 1,
+				leaderId: 4,
+				leaderName: 'Envoy',
+				date: '2207.01.01',
+				daysLeft: 41.5,
+				difficulty: 4,
+				clues: 3,
+				stage: 'first_contact_stage_2',
+				status: 'in_progress'
+			}
+		];
+		const [m] = mapMarkers({ ...none, galaxy: [sys(1)], contacts });
+		expect([m.ongoing, m.progress]).toEqual([true, 'first contact stage 2, 3 clues, 42 days left']);
+	});
 });
 
 describe('parseMapFilter', () => {

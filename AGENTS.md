@@ -136,7 +136,9 @@ a colour of ours; other visited stations grey, "unknown owner". **Map tab** (`/m
 `#lib/mapLayers.ts`): borders and the markers of what was discovered — open first contacts,
 stations seen, anomalies, dig sites, special projects, wormholes, gateways and L-gates
 (`GalaxySystem.bypasses`), megastructures and their ruins (`*_ruined`) — each layer hidden by the
-profile's `mapFilter`, plus a table. Say
+profile's `mapFilter`, plus a table with what is worked on and how far (an envoy on a contact,
+an excavation running; stage, clues, days — anomalies and special projects carry no progress in
+the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
@@ -327,7 +329,10 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
 - **leaders**: `Snapshot.leaderList`, traits explained by `ltrait:<key>` (data DB `leader_trait`,
   each modifier labelled with its scope); class colours (`class-*` in `colors.ts`, envoys ours);
   envoys behind a switch, off by default.
-- **species**: traits with their effects in a grid, trait budget, rights.
+- **species**: traits with their effects in a grid (the climate preference, one line per planet
+  class, a row of its own; more picks wrap into more rows), trait budget, rights. System names
+  from random-name lists that are localisation keys (`VOIDWORM_SYSTEM_12` = Papqaqtet) resolve
+  through the data DB's `prescripted_name`.
 - **contacts** (`#lib/contacts.ts`): the relations table, its filters and columns being the
   profile's `contactView` (stored at once, `PUT /api/settings`).
 

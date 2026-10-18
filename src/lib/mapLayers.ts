@@ -46,8 +46,21 @@ export function parseMapFilter(v: unknown): MapFilter {
 	};
 }
 
-/** One thing on the map: a layer, the system it is in, what it is. */
-export type MapMarker = { layer: MapLayer; systemId: number; label: string; detail: string };
+/**
+ * One thing on the map: a layer, the system it is in, what it is; for what is worked on, whether it
+ * is (`ongoing`, null: not something one works on, or unknown) and how far (`progress`, as far as
+ * the save tells — anomalies and special projects carry none).
+ */
+export type MapMarker = {
+	layer: MapLayer;
+	systemId: number;
+	label: string;
+	detail: string;
+	ongoing?: boolean | null;
+	progress?: string | null;
+};
+
+const days = (d: number | null) => (d === null ? '' : `, ${Math.ceil(d)} days left`);
 
 const isGate = (t: string) => /gateway|lgate/.test(t);
 const isRuin = (t: string) => /ruined/.test(t);
@@ -73,7 +86,9 @@ export function mapMarkers(p: {
 				layer: 'contacts' as const,
 				systemId: c.systemId,
 				label: c.name,
-				detail: `first contact, difficulty ${c.difficulty}, ${c.clues} clues`
+				detail: `first contact, difficulty ${c.difficulty}`,
+				ongoing: c.leaderId !== null, // an envoy on it
+				progress: `${pretty(c.stage)}, ${c.clues} clues${days(c.daysLeft)}`
 			})),
 		...p.seen.map((s) => ({
 			layer: 'stations' as const,
@@ -95,7 +110,9 @@ export function mapMarkers(p: {
 							layer: 'digSites' as const,
 							systemId: d.systemId,
 							label: pretty(d.type),
-							detail: `dig site, ${d.clues} clues${d.excavating ? ', excavating' : ''}`
+							detail: `dig site, difficulty ${d.difficulty}`,
+							ongoing: d.excavating,
+							progress: `${d.clues} clues${d.excavating ? days(d.daysLeft) : ''}`
 						}
 					]
 		),

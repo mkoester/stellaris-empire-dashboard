@@ -90,6 +90,11 @@
 	const empire = $derived(systems.filter((s) => s.owned));
 	// at least close enough to tell the capital's neighbours apart (~100px between systems)
 	const toCapital = (c: Point) => (view = { cx: c.x, cy: c.y, k: Math.max(v.k, 5) });
+	/** Centres a system, zoomed in as for the capital (a page's search uses it). */
+	export const show = (id: number) => {
+		const s = byId.get(id);
+		if (s) toCapital(s);
+	};
 	const zoomBy = (factor: number) => (view = zoomAt(v, size, { x: w / 2, y: h / 2 }, factor, kMin));
 
 	const wheel = (node: SVGSVGElement) => {

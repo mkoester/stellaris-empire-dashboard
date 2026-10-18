@@ -7,6 +7,8 @@
 
 	let { data } = $props();
 	followGame(() => data.isHead);
+
+	const isClimate = (trait: string) => /^trait_pc_.*_preference$/.test(trait);
 </script>
 
 <header class="mb-4 flex items-start gap-4">
@@ -22,10 +24,11 @@
 					? ` · traits ${s.budget.points} / ${s.budget.maxPoints} points, ${s.budget.picks} / ${s.budget.maxPicks} picks`
 					: ''}
 			</p>
-			<!-- each trait with its effects, as many side by side as the width allows -->
+			<!-- the climate preference lists every planet class: a row of its own; the other traits
+			     side by side, as many as the width allows, more picks wrapping into more rows -->
 			<div class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-x-4 gap-y-1.5 text-sm">
-				{#each s.traits as t (t)}
-					<div>
+				{#each [...s.traits].sort((a, b) => Number(isClimate(b)) - Number(isClimate(a))) as t (t)}
+					<div class={isClimate(t) ? 'col-span-full' : ''}>
 						<b
 							><InfoPopup explanation={data.explain[`trait:${t}`]}
 								>{data.explain[`trait:${t}`]?.title ?? pretty(t.replace(/^trait_/, ''))}</InfoPopup
