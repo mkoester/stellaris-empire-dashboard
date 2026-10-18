@@ -192,6 +192,11 @@ pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − wo
   habitats' limit (capital tier, system bodies) is not computed. **Free building slots are not in
   the save** — zone slots from `max_buildings`, `districts_per_building` and planet-wide
   `zone_building_slots_add`.
+- Clearing blockers (`#lib/blockers.ts`, "Blockers to clear" panel and per colony): the gain is
+  the district limit the blocker takes (1 or 2; its hidden feature is already in the caps); some
+  need a tech (`deposit.prerequisites` in the data DB, 12 in 4.5.2), natural ones
+  (`deposit_cat_blockers_natural`) cannot be cleared while the planet has a Ranger Lodge; one in
+  the build queue (`clear_deposit_blocker`) shows as being cleared.
 - Planet modifiers: `planets.planet.<id>.timed_modifier`, as the country's; features like
   `tidal_locked` and `mineral_poor` are permanent ones (`days=-1`).
 - Pop groups: `colony.pop_groups` → top-level `pop_groups.<id> = { key = { species category } size

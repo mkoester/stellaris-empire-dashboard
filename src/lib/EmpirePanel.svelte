@@ -13,6 +13,7 @@
 	import AutomationSummary from './panels/AutomationSummary.svelte';
 	import Edicts from './panels/Edicts.svelte';
 	import Modifiers from './panels/Modifiers.svelte';
+	import Blockers from './panels/Blockers.svelte';
 	import Events from './panels/Events.svelte';
 	import Expansion from './panels/Expansion.svelte';
 	import Leaders from './panels/Leaders.svelte';
@@ -280,6 +281,8 @@
 	/>
 {:else if id === 'edicts'}
 	<Edicts edicts={data.edicts} explain={data.explain} />
+{:else if id === 'blockers'}
+	<Blockers hints={data.blockerHints.hints} names={data.blockerHints.names} />
 {:else if id === 'modifiers'}
 	<Modifiers modifiers={data.modifiers} date={data.latest.date} explain={data.explain} />
 {:else if id === 'sectors'}

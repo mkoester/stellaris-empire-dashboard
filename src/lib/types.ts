@@ -322,6 +322,11 @@ export type GameData = {
 	perks: Record<string, string>; // ascension perk names
 	anomalyLevels: Record<string, number | null>; // anomaly category → level
 	blockers: string[]; // deposit keys that are blockers
+	// what clearing each blocker takes
+	blockerInfo: Record<
+		string,
+		{ days: number | null; cost: Resources; prerequisites: string[]; natural: boolean }
+	>;
 	// District caps (`district_*_max_add|mult`, `planet_max_districts_add|mult`) of what can sit on
 	// a planet, keyed `deposit:<key>`, `modifier:<key>` (static modifier), `building:<key>`
 	capEffects: Record<string, CapEffect[]>;

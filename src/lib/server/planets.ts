@@ -1,5 +1,7 @@
+import { blockerHints, type BlockerHint } from '#lib/blockers.ts';
 import { districtCaps, type PlanetDetailsData } from '#lib/districtCaps.ts';
-import type { PlanetState } from '#lib/types.ts';
+import { pretty } from '#lib/format.ts';
+import type { Colony, PlanetState } from '#lib/types.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
 
@@ -34,5 +36,61 @@ export function planetDetails(
 			]),
 			...planet.modifiers.map((m) => `modifier:${m.key}`)
 		])
+	};
+}
+
+const buildingsOf = (c: Colony) =>
+	c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings));
+
+/** A colony's planet details (null before snapshots had the planet). */
+export function colonyDetails(c: Colony | undefined): PlanetDetailsData | null {
+	if (!c?.planet) return null;
+	return planetDetails(c.planet, {
+		size: c.planetSize,
+		planetClass: c.planetClass,
+		buildings: buildingsOf(c),
+		built: Object.fromEntries(c.districtList.map((d) => [d.type, d.built]))
+	});
+}
+
+/**
+ * What clearing each blocker on the colonies would give, with display names for blockers,
+ * features and techs.
+ */
+export function colonyBlockerHints(
+	colonies: Colony[],
+	researched: string[]
+): { hints: BlockerHint[]; names: Record<string, string> } {
+	const data = getGameData();
+	const hints = blockerHints(
+		colonies.flatMap((c) => {
+			const d = colonyDetails(c);
+			if (!d) return [];
+			return [
+				{
+					planetId: c.planetId,
+					name: c.name,
+					planet: d.planet,
+					room: d.caps.limit === null ? null : Math.max(0, d.caps.limit - d.caps.built),
+					buildings: buildingsOf(c),
+					queued: c.buildQueue.filter((q) => q.kind === 'clear_deposit_blocker').map((q) => q.name)
+				}
+			];
+		}),
+		data.blockerInfo,
+		data.capEffects,
+		researched
+	);
+	const explain = getExplanations();
+	const title = (k: string) => explain[`deposit:${k}`]?.title ?? pretty(k);
+	return {
+		hints,
+		names: Object.fromEntries(
+			hints.flatMap((h) => [
+				[h.blocker, title(h.blocker)],
+				...(h.feature ? [[h.feature, title(h.feature)]] : []),
+				...h.missing.map((t) => [t, data.techs[t]?.name ?? pretty(t)])
+			])
+		)
 	};
 }

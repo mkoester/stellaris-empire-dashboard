@@ -1,6 +1,6 @@
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
-import { planetDetails } from './planets.ts';
+import { colonyBlockerHints, planetDetails } from './planets.ts';
 import { branch } from './branch.ts';
 import { pretty } from '#lib/format.ts';
 import { traitBudget } from '#lib/species.ts';
@@ -52,6 +52,11 @@ export function empireData(url: URL) {
 			key,
 			name: data.perks[key] ?? pretty(key)
 		})),
+		// what clearing blockers would give, at the latest full save
+		blockerHints: colonyBlockerHints(
+			b.snaps.findLast((s) => s.kind === 'save')?.colonies ?? [],
+			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? []
+		),
 		// Researched techs per field and tier, at the latest full save.
 		tiers: techTiers(b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [], data.techs),
 		// Overview panels, named from the game data.

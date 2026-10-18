@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { nameOf } from '../format.ts';
+	import type { BlockerHint } from '../blockers.ts';
 	import type { PlanetDetailsData } from '../districtCaps.ts';
 	import PlanetDetails from '../PlanetDetails.svelte';
 	import type { Colony } from '../types.ts';
@@ -13,7 +14,8 @@
 		blockers,
 		classNames,
 		details,
-		date
+		date,
+		hints = null
 	}: {
 		colony: Colony;
 		names: Record<string, string>;
@@ -21,6 +23,7 @@
 		classNames: Record<string, string>;
 		details: PlanetDetailsData | null;
 		date: string;
+		hints?: { hints: BlockerHint[]; names: Record<string, string> } | null;
 	} = $props();
 
 	const sorted = $derived(
@@ -33,7 +36,7 @@
 		{classNames[colony.planetClass] ?? colony.planetClass} · size <b>{colony.planetSize}</b>
 	</div>
 	{#if details}
-		<div class="mt-2"><PlanetDetails {...details} {date} /></div>
+		<div class="mt-2"><PlanetDetails {...details} {date} {hints} /></div>
 	{:else}
 		<div class="mt-1 text-gray-500">deposits</div>
 		{#each sorted as d, i (i)}

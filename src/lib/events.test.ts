@@ -31,6 +31,7 @@ const data: GameData = {
 	names: {},
 	blockers: [],
 	capEffects: {},
+	blockerInfo: {},
 	traditionTrees: {},
 	perks: {},
 	anomalyLevels: { GEN_PLAYGROUND_CAT: 3 },

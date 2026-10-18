@@ -162,6 +162,7 @@
 			blockers={data.blockers}
 			classNames={data.classNames}
 			details={data.details}
+			hints={data.blockerHints}
 			date={data.latest.date}
 		/>
 		<Districts districts={data.colony.districtList} names={data.names} />

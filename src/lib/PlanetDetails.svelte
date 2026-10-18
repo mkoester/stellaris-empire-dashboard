@@ -1,14 +1,29 @@
 <script lang="ts">
 	import { byExpiry, timeLeft } from './countryModifiers.ts';
 	import type { CapSource, PlanetDetailsData } from './districtCaps.ts';
+	import BlockerHint from './BlockerHint.svelte';
+	import type { BlockerHint as Hint } from './blockers.ts';
 	import Effects from './Effects.svelte';
 	import { nameOf, pretty } from './format.ts';
 	import InfoPopup from './InfoPopup.svelte';
 
 	// What a planet offers: district caps (computed, see districtCaps.ts), its features, its
 	// blockers and what they hide, and its modifiers. For colonies and expansion candidates alike.
-	let { planet, caps, date, blockers, names, explain }: PlanetDetailsData & { date: string } =
-		$props();
+	let {
+		planet,
+		caps,
+		date,
+		blockers,
+		names,
+		explain,
+		hints = null
+	}: PlanetDetailsData & {
+		date: string;
+		// colonies only: what clearing each blocker gives
+		hints?: { hints: Hint[]; names: Record<string, string> } | null;
+	} = $props();
+	// a colony's blockers of one type are alike, so the first hint for the type serves them all
+	const hintFor = (key: string) => hints?.hints.find((h) => h.blocker === key);
 
 	const title = (ref: string) =>
 		ref.startsWith('building:')
@@ -109,6 +124,11 @@
 								>{title(`deposit:${d.swap}`)}</InfoPopup
 							>
 							<Effects explanation={explain[`deposit:${d.swap}`]} />
+						</div>
+					{/if}
+					{#if hintFor(d.key)}
+						<div class="ml-5 text-xs">
+							clearing: <BlockerHint hint={hintFor(d.key)!} names={hints!.names} />
 						</div>
 					{/if}
 				</div>

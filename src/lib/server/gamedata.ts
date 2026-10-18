@@ -75,6 +75,17 @@ export function loadGameData(file: string): GameData {
 					   WHERE scope = 'planet' AND condition IS NULL`
 				)
 			),
+			blockerInfo: blockerInfo(
+				rows<{
+					key: string;
+					category: string | null;
+					clear_time: number | null;
+					prerequisites: string | null;
+				}>('SELECT key, category, clear_time, prerequisites FROM deposit WHERE is_blocker = 1'),
+				rows<{ key: string; resource: string; amount: number }>(
+					`SELECT deposit_key AS key, resource, amount FROM deposit_resource WHERE kind = 'cost'`
+				)
+			),
 			blockers: rows<{ key: string }>('SELECT key FROM deposit WHERE is_blocker = 1').map(
 				(r) => r.key
 			),
@@ -133,4 +144,29 @@ export function capEffects(
 	for (const r of rows)
 		if (CAP.test(r.key)) (out[r.owner] ??= []).push({ key: r.key, value: r.value });
 	return out;
+}
+
+/** Per blocker: clearing days and cost, the techs it needs, natural or not (Ranger Lodge). */
+export function blockerInfo(
+	blockers: {
+		key: string;
+		category: string | null;
+		clear_time: number | null;
+		prerequisites: string | null;
+	}[],
+	costs: { key: string; resource: string; amount: number }[]
+): GameData['blockerInfo'] {
+	return Object.fromEntries(
+		blockers.map((b) => [
+			b.key,
+			{
+				days: b.clear_time,
+				cost: Object.fromEntries(
+					costs.filter((c) => c.key === b.key).map((c) => [c.resource, c.amount])
+				),
+				prerequisites: b.prerequisites ? b.prerequisites.split(',') : [],
+				natural: b.category === 'deposit_cat_blockers_natural'
+			}
+		])
+	);
 }

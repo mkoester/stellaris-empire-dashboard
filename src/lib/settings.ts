@@ -54,6 +54,7 @@ export const LAYOUT = [
 			{ id: 'ships', label: 'Ships' },
 			{ id: 'edicts', label: 'Edicts' },
 			{ id: 'modifiers', label: 'Empire modifiers' },
+			{ id: 'blockers', label: 'Blockers to clear' },
 			{ id: 'sectors', label: 'Sectors' },
 			{ id: 'migration', label: 'Migration (summary)' },
 			{ id: 'automation', label: 'Automation defaults' }

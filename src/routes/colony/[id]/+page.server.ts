@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
-import { planetDetails } from '#lib/server/planets.ts';
+import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
 import { colonySeries, xRange } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
@@ -29,7 +29,11 @@ export function load({ url, params }) {
 			.filter((c) => c.planetId >= 0)
 			.map((c) => ({ planetId: c.planetId, name: c.name })),
 		colony: colonyAt(b.latest) ?? null,
-		details: details(colonyAt(b.latest)),
+		details: colonyDetails(colonyAt(b.latest)),
+		blockerHints: colonyBlockerHints(
+			b.latest.colonies.filter((c) => c.planetId === planetId),
+			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? []
+		),
 		jobRows: b.jobs[planetId] ?? [],
 		classNames: Object.fromEntries(
 			Object.entries(getGameData().planetClasses).map(([k, v]) => [k, v.name])
@@ -82,15 +86,4 @@ export function load({ url, params }) {
 			districts: colonySeries(snaps, planetId, { districts: (c) => c.districts })
 		}
 	};
-}
-
-/** The planet under the colony, once the snapshot has it (null for older ones). */
-function details(c: Colony | undefined) {
-	if (!c?.planet) return null;
-	return planetDetails(c.planet, {
-		size: c.planetSize,
-		planetClass: c.planetClass,
-		buildings: c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings)),
-		built: Object.fromEntries(c.districtList.map((d) => [d.type, d.built]))
-	});
 }
