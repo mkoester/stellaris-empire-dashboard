@@ -110,7 +110,7 @@
 		>{/each}
 {/snippet}
 {#snippet mods(list: Modifier[])}
-	{#each list as m (m.key)}<div class="whitespace-nowrap">
+	{#each list as m (m.key)}<div>
 			<span class={modifierColor(m)}>{formatModifierValue(m)}</span>
 			{modifierLabel(m)}
 		</div>{/each}
@@ -120,7 +120,7 @@
 	)}{/snippet}
 {#snippet agendaAfter(r: AgendaRow)}
 	{@const e = data.explain[`agenda:${r.key}`]}
-	{#if e?.text}<div class="text-gray-500">{e.text}</div>{/if}
+	{#if e?.text}<div class="max-w-md text-gray-500">{e.text}</div>{/if}
 	{#if e?.after}<div class="text-xs text-gray-500">{e.after.label}:</div>
 		{@render mods(e.after.modifiers)}{/if}
 {/snippet}
@@ -271,12 +271,15 @@
 		{/if}
 	</Panel>
 
-	<Panel
-		title="Council agendas"
-		note="Only agendas this empire can have. Open: every condition met; open?: met as far as the save tells; not allowed now: a condition fails; locked: none of the traditions or perks that unlock it taken. The last two show with the “show locked” switch in ⚙."
-	>
-		<SortTable rows={agendas} columns={agendaColumns} key={(r) => r.key} bind:sort={agendaSort} />
-	</Panel>
+	<!-- full width: its effect columns need the room -->
+	<div class="lg:col-span-2">
+		<Panel
+			title="Council agendas"
+			note="Only agendas this empire can have. Open: every condition met; open?: met as far as the save tells; not allowed now: a condition fails; locked: none of the traditions or perks that unlock it taken. The last two show with the “show locked” switch in ⚙."
+		>
+			<SortTable rows={agendas} columns={agendaColumns} key={(r) => r.key} bind:sort={agendaSort} />
+		</Panel>
+	</div>
 
 	<Panel
 		title="Policies"
