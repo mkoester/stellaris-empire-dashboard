@@ -145,13 +145,20 @@ for" picker, main species = most pops): where the species lives, the save's valu
 planet modifiers and features) only where the class gives it any, at least
 `habitability_floor_add`. Empire-wide bonuses are not counted. Matched the game's Expansion
 Planner at 2207.03.10 (Mars 0 %, Arid and Savanna 30 %, Tundra with Atmospheric Aphrodisiac 35 %).
-Class names take the game's colours: yellow below `HABITABILITY_WRONG_PLANET`, red below
-`HABITABILITY_OPPOSITE_PLANET` (0.7 / 0.4, data DB defines).
+The Hab. column takes the game's colours: yellow below `HABITABILITY_WRONG_PLANET`, red below
+`HABITABILITY_OPPOSITE_PLANET` (0.7 / 0.4, data DB defines). Class names take their climate's
+colour (`#lib/climate.ts`, `climate-*` in `colors.ts`), sampled from the climate-preference trait
+icons: dry, wet, cold, volcanic, gold for the other colonizable classes; toxic worlds (no icon) an
+olive of our own. Volcanic worlds are an ordinary colonizable class in 4.5.2 (climate dry,
+`initial = yes`), good only for volcanic-preference species.
 
 **Expansion** (`panels/Expansion.svelte`, the `all` tab compact — modifiers by name, effects on
 hover — and the expansion tab with each effect shown): sortable, including per district type;
 jumps from the capital, the nearest own shipyard and the border; filters by range (+0…+10, any),
-class and a district type; district numbers are what the planet allows once its blockers are
+class and district types (all of those picked); toxic worlds behind their own toggle until the
+empire can detox them (`Snapshot.canDetox`: the `ap_detox` perk or the `knights_detox` country
+flag — 4.5.2 `common/terraform/02_special_terraform_links.txt`; Climate Restoration is needed as
+for every candidate), then among the terraforming candidates; district numbers are what the planet allows once its blockers are
 cleared, now in brackets (`DistrictCap.blocked`, `PlanetCaps.limitCleared`: the blockers' hidden
 features and their district loss). Matched the game at 2207.03.10 (Alpha Centauri IV farming 11
 (8), generator 7 (5), mining 3 (2)) once the extraction resolved

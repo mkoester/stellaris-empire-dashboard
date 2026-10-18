@@ -3,9 +3,15 @@ import { estimate, habitabilityTier, livesOnPlanets } from './habitability.ts';
 
 const data = {
 	planetClasses: {
-		pc_continental: { name: 'Continental', colonizable: true, ideal: false },
-		pc_gaia: { name: 'Gaia', colonizable: true, ideal: true },
-		pc_hive: { name: 'Hive', colonizable: true, ideal: true }
+		pc_continental: {
+			name: 'Continental',
+			colonizable: true,
+			ideal: false,
+			standard: true,
+			climate: 'wet'
+		},
+		pc_gaia: { name: 'Gaia', colonizable: true, ideal: true, standard: false, climate: null },
+		pc_hive: { name: 'Hive', colonizable: true, ideal: true, standard: false, climate: null }
 	},
 	habitability: {
 		traits: {

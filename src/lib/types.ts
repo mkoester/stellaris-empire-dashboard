@@ -257,6 +257,7 @@ export type Snapshot = {
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
 	traditions: string[] | null; // adopted traditions, in pick order (adopt and finish included)
 	ascensionPerks: string[] | null;
+	canDetox: boolean | null; // can terraform toxic worlds (Detox perk or the Toxic Knights)
 	civilianShips: CivilianShip[] | null; // science, construction, colony ships with their orders
 	edicts: string[] | null; // active edicts (keys)
 	countryModifiers: TimedModifier[] | null; // country.timed_modifier: empire-wide effects
@@ -321,7 +322,16 @@ export type GameData = {
 	traits: Record<string, { cost: number | null }>;
 	speciesClasses: Record<string, { name: string; archetype: string | null }>;
 	archetypes: Record<string, { points: number; maxTraits: number }>;
-	planetClasses: Record<string, { name: string; colonizable: boolean; ideal: boolean }>;
+	planetClasses: Record<
+		string,
+		{
+			name: string;
+			colonizable: boolean;
+			ideal: boolean;
+			standard: boolean;
+			climate: string | null;
+		}
+	>;
 	names: Record<string, string>; // display names of buildings, deposits, districts and zones
 	districtColors: Record<string, string>; // district → its colour in game, '#rrggbb'
 	// civics, origins, authorities, ethics and government types by key

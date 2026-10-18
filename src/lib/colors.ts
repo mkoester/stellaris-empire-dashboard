@@ -42,7 +42,15 @@ const COLORS: Record<string, string> = {
 	edict: '#b55bc4',
 	sector: '#3bb2c2',
 	district: '#8c6d1f',
-	building: '#d0403a' // built with minerals
+	building: '#d0403a', // built with minerals
+	// planet classes by climate (#lib/climate.ts), after the climate-preference trait icons
+	// (gfx/interface/icons/traits/trait_pc_*_preference.dds)
+	'climate-dry': '#b99037',
+	'climate-wet': '#559028',
+	'climate-cold': '#47a0a0',
+	'climate-volcanic': '#aa6a10',
+	'climate-special': '#ae9301', // Gaia, ring world, habitat, city, relic …: the gold icons
+	'climate-toxic': '#7f8a3a' // no preference icon: olive, after the toxic planet's
 };
 
 export const colorOf = (key: string): string | undefined => COLORS[key];

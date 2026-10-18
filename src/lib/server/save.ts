@@ -193,6 +193,11 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		idleLeaders: idleLeaders(raw),
 		traditions: items(raw.country?.traditions).map(String),
 		ascensionPerks: items(raw.country?.ascension_perks).map(String),
+		// toxic worlds can be terraformed with the Detox perk or the Toxic Knights' flag (4.5.2
+		// common/terraform/02_special_terraform_links.txt; Climate Restoration needed as for Mars)
+		canDetox:
+			items(raw.country?.ascension_perks).includes('ap_detox') ||
+			raw.country?.flags?.knights_detox !== undefined,
 		civilianShips: civilianShips(raw, ownSystems(raw)),
 		edicts: items(raw.country?.edicts)
 			.map((e) => e?.edict)

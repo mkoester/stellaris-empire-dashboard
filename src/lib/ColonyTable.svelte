@@ -109,7 +109,7 @@
 				{#if show('class')}{@render head(
 						'class',
 						'Class',
-						'coloured by habitability, as in game',
+						"coloured by climate, as the game's preference icons; habitability in Hab.",
 						false
 					)}{/if}
 				{#if show('pops')}{@render head('pops', 'Pops')}{/if}
@@ -192,7 +192,10 @@
 								>{/if}
 						</td>
 					{/if}
-					{#if show('class')}<td class="p-1 whitespace-nowrap {tier(hab(r))}">
+					{#if show('class')}<td
+							class="p-1 whitespace-nowrap"
+							style:color={colorOf(`climate-${r.climate}`)}
+						>
 							{r.planetClass} <span class="text-gray-500">{r.size}</span>
 						</td>{/if}
 					{#if show('pops')}<td class="p-1 text-right">{fmt(r.pops)}</td>{/if}

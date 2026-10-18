@@ -1,3 +1,4 @@
+import { climateOf } from '#lib/climate.ts';
 import { profile } from '#lib/colonyProfile.ts';
 import type { ExpansionRow, SpeciesChoice } from '#lib/expansion.ts';
 import { pretty } from '#lib/format.ts';
@@ -54,6 +55,7 @@ export function expansionRows(
 					})
 				: null,
 			effects: { pros, cons },
+			climate: climateOf(p.planetClass, data.planetClasses),
 			hab: Object.fromEntries(
 				species.map((s) => [s.id, estimate(p.planetClass, s.traits, p.planet, data)])
 			)

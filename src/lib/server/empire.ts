@@ -85,6 +85,7 @@ export function empireData(url: URL) {
 		})),
 		expansion: expansionRows(latest.expansion ?? [], species),
 		expansionSpecies: species.map(({ id, name }) => ({ id, name })),
+		canDetox: snaps.findLast((s) => s.canDetox !== null)?.canDetox ?? false,
 		// the game's habitability colours
 		habDefines: {
 			HABITABILITY_WRONG_PLANET: data.defines.HABITABILITY_WRONG_PLANET,

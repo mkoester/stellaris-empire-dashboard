@@ -15,6 +15,7 @@ export function load({ url }) {
 	return {
 		planets: expansionRows(s?.expansion ?? [], species),
 		species: species.map(({ id, name }) => ({ id, name })),
+		canDetox: b.snaps.findLast((x) => x.canDetox !== null)?.canDetox ?? false,
 		rowLine: ROW_LINES[display().expansionRowLine],
 		date: s?.date ?? b.latest.date,
 		isHead: b.isHead,

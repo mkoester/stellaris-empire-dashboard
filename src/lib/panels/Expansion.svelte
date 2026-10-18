@@ -12,6 +12,7 @@
 		type ExpansionView,
 		type SpeciesChoice
 	} from '../expansion.ts';
+	import { colorOf } from '../colors.ts';
 	import { pretty } from '../format.ts';
 	import { habitabilityLabel, habitabilityTier, TIER_CLASS } from '../habitability.ts';
 	import PlanetDetails from '../PlanetDetails.svelte';
@@ -29,6 +30,7 @@
 		view: stored,
 		species,
 		defines,
+		canDetox = false,
 		compact = false,
 		rowLine = 1
 	}: {
@@ -37,6 +39,7 @@
 		view: ExpansionView;
 		species: SpeciesChoice[];
 		defines: Record<string, number>;
+		canDetox?: boolean; // toxic worlds count as terraforming candidates
 		compact?: boolean;
 		rowLine?: number;
 	} = $props();
@@ -64,12 +67,12 @@
 	);
 	const shown = $derived(
 		sortRows(
-			planets.filter((p) => visible(p, view)),
+			planets.filter((p) => visible(p, view, canDetox)),
 			view.sort,
 			speciesId
 		)
 	);
-	const counts = $derived(expansionCounts(planets));
+	const counts = $derived(expansionCounts(planets, canDetox));
 	const types = $derived(districtTypes(planets));
 	const classes = $derived(
 		[...new Map(planets.map((p) => [p.planetClass, p.className]))].sort((a, b) =>
@@ -109,7 +112,18 @@
 		return [...by];
 	};
 	const candidateLabel = (c: string) =>
-		c.startsWith('toxic') ? 'toxic: needs a perk, origin or civic' : 'terraforming candidate';
+		!c.startsWith('toxic')
+			? 'terraforming candidate'
+			: canDetox
+				? 'toxic: can be detoxed'
+				: 'toxic: needs the Detox perk or the Toxic Knights origin';
+	const toggleDistrict = (d: string, on: boolean) =>
+		set(
+			'districts',
+			on
+				? types.filter((t) => t === d || view.districts.includes(t))
+				: view.districts.filter((t) => t !== d)
+		);
 
 	let open: number | null = $state(null);
 	const width = $derived(12 + types.length);
@@ -161,12 +175,30 @@
 			''
 		)}
 		{@render select('class', view.cls, classes, (v) => set('cls', v))}
-		{@render select(
-			'has district',
-			view.district,
-			types.map((d): [string, string] => [d, short(d)]),
-			(v) => set('district', v)
-		)}
+		<details class="relative">
+			<summary class="cursor-pointer"
+				>has district{#if view.districts.length}:
+					{#each view.districts as d, i (d)}{i ? ' + ' : ''}<span style:color={districtColor(d)}
+							>{short(d)}</span
+						>{/each}{:else}
+					any{/if}</summary
+			>
+			<div
+				class="absolute z-40 mt-1 grid w-48 gap-0.5 rounded border border-gray-300 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900"
+			>
+				{#each types as d (d)}
+					<label
+						><input
+							type="checkbox"
+							checked={view.districts.includes(d)}
+							onchange={(e) => toggleDistrict(d, e.currentTarget.checked)}
+						/>
+						<span style:color={districtColor(d)}>{short(d)}</span></label
+					>
+				{/each}
+				<span class="text-xs text-gray-500">all of those picked</span>
+			</div>
+		</details>
 		{#if species.length}
 			{@render select(
 				'habitability for',
@@ -184,6 +216,17 @@
 			/>
 			terraforming candidates ({counts.candidates})</label
 		>
+		{#if !canDetox}
+			<label
+				title="toxic worlds need the Detox perk or the Toxic Knights origin, and Climate Restoration"
+				><input
+					type="checkbox"
+					checked={view.toxic}
+					onchange={(e) => set('toxic', e.currentTarget.checked)}
+				/>
+				toxic ({counts.toxic})</label
+			>
+		{/if}
 		<label
 			><input
 				type="checkbox"
@@ -201,7 +244,12 @@
 			<thead>
 				<tr class="border-b border-gray-300 dark:border-gray-700">
 					{@render head('name', 'Planet', '', false)}
-					{@render head('class', 'Class', 'coloured by habitability, as in game', false)}
+					{@render head(
+						'class',
+						'Class',
+						"coloured by climate, as the game's preference icons; habitability in Hab.",
+						false
+					)}
 					{@render head('hab', 'Hab.', 'habitability for the species picked (estimate)')}
 					{@render head('size', 'Size')}
 					{@render head('system', 'System', '', false)}
@@ -236,7 +284,9 @@
 						title="details"
 					>
 						<td class="p-1">{p.name}</td>
-						<td class="p-1 whitespace-nowrap {h?.tier ?? ''}">{p.className}</td>
+						<td class="p-1 whitespace-nowrap" style:color={colorOf(`climate-${p.climate}`)}>
+							{p.className}
+						</td>
 						<td class="p-1 text-right whitespace-nowrap {h?.tier ?? ''}">{h?.label ?? '–'}</td>
 						<td class="p-1 text-right">{p.size}</td>
 						<td class="p-1">{p.system}</td>

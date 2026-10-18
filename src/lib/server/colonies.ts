@@ -4,6 +4,7 @@ import { problems, type ColonyRow } from '#lib/colonyTable.ts';
 import { net } from '#lib/flows.ts';
 import { pretty } from '#lib/format.ts';
 import { estimate } from '#lib/habitability.ts';
+import { climateOf } from '#lib/climate.ts';
 import { speciesChoices } from './expansion.ts';
 import { getExplanations, getGameData } from './app.ts';
 import type { branch } from './branch.ts';
@@ -45,6 +46,7 @@ export function colonyRows(b: NonNullable<ReturnType<typeof branch>>) {
 			designation: c.designation,
 			colonizing: c.colonizing,
 			planetClass: data.planetClasses[c.planetClass]?.name ?? pretty(c.planetClass),
+			climate: climateOf(c.planetClass, data.planetClasses),
 			size: c.planetSize,
 			pops: c.pops,
 			growth: c.growth?.net ?? null,

@@ -1,5 +1,6 @@
 import type { Profile } from './colonyProfile.ts';
 import { CATEGORICAL } from './migration.ts';
+import type { Climate } from './climate.ts';
 import type { Habitability } from './habitability.ts';
 import { sortBy, type SortValue } from './sort.ts';
 import type { QueueItem, Resources } from './types.ts';
@@ -14,6 +15,7 @@ export type ColonyRow = {
 	designation: string;
 	colonizing: boolean;
 	planetClass: string; // display name
+	climate: Climate; // for the class's colour
 	size: number;
 	pops: number;
 	growth: number | null; // last month, net

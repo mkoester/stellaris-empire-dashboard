@@ -12,5 +12,6 @@
 	view={data.view}
 	species={data.species}
 	defines={data.defines}
+	canDetox={data.canDetox}
 	rowLine={data.rowLine}
 />

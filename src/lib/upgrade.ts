@@ -30,6 +30,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	idleLeaders: null,
 	traditions: null,
 	ascensionPerks: null,
+	canDetox: null,
 	civilianShips: null,
 	edicts: null,
 	countryModifiers: null,

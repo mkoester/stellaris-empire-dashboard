@@ -348,6 +348,7 @@
 		view={data.expansionView}
 		species={data.expansionSpecies}
 		defines={data.habDefines}
+		canDetox={data.canDetox}
 		rowLine={data.expansionRowLine}
 		compact
 	/>

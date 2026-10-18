@@ -85,6 +85,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		idleLeaders: null,
 		traditions: null,
 		ascensionPerks: null,
+		canDetox: null,
 		civilianShips: null,
 		edicts: null,
 		countryModifiers: null,

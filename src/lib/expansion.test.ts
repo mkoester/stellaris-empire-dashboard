@@ -52,13 +52,18 @@ describe('expansion filter', () => {
 
 	it('shows colonizable classes by default, candidates and the rest behind toggles', () => {
 		expect(names({ candidates: false, all: false })).toEqual(['Alpha Centauri II']);
-		expect(names({ candidates: true, all: false })).toEqual([
-			'Alpha Centauri II',
-			'Mars',
-			'Avishek III'
-		]);
-		expect(names({ candidates: false, all: true })).toHaveLength(4);
-		expect(expansionCounts(rows)).toEqual({ candidates: 2, rest: 1 });
+		expect(names({ candidates: true, all: false })).toEqual(['Alpha Centauri II', 'Mars']);
+		expect(names({ candidates: false, all: true })).toHaveLength(2);
+		expect(expansionCounts(rows)).toEqual({ candidates: 1, toxic: 1, rest: 1 });
+	});
+
+	it('keeps toxic worlds apart until the empire can detox them', () => {
+		const shown = (v: Partial<typeof DEFAULT_EXPANSION_VIEW>, canDetox: boolean) =>
+			rows.filter((p) => visible(p, view(v), canDetox)).map((p) => p.name);
+		expect(shown({ toxic: true }, false)).toEqual(['Alpha Centauri II', 'Avishek III']);
+		expect(shown({ candidates: true }, true)).toEqual(['Alpha Centauri II', 'Mars', 'Avishek III']);
+		expect(shown({ toxic: true }, true)).toEqual(['Alpha Centauri II']);
+		expect(expansionCounts(rows, true)).toEqual({ candidates: 2, toxic: 0, rest: 1 });
 	});
 
 	it('limits the distance beyond the borders', () => {
@@ -85,7 +90,8 @@ describe('expansion filter', () => {
 		const at = (v: Partial<typeof DEFAULT_EXPANSION_VIEW>) =>
 			rs.filter((p) => visible(p, view(v))).map((p) => p.name);
 		expect(at({ cls: 'pc_tundra' })).toEqual(['Tundra']);
-		expect(at({ district: 'district_generator' })).toEqual(['Arid']);
+		expect(at({ districts: ['district_generator'] })).toEqual(['Arid']);
+		expect(at({ districts: ['district_generator', 'district_mining'] })).toEqual([]); // all picked
 		expect(capOf(rs[0], 'district_generator')).toEqual({ after: 9, now: 7 });
 		expect(districtTypes(rs)).toEqual(['district_generator', 'district_mining']);
 	});
@@ -108,5 +114,9 @@ describe('expansion filter', () => {
 			view({ beyond: null, all: true, cls: 'pc_arid' })
 		);
 		expect(parseExpansionView({ beyond: -1, cls: 3 })).toMatchObject({ beyond: 0, cls: '' });
+		// a single district, as stored before several could be picked
+		expect(parseExpansionView({ district: 'district_mining' }).districts).toEqual([
+			'district_mining'
+		]);
 	});
 });
