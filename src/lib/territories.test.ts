@@ -86,6 +86,32 @@ describe('territories', () => {
 	});
 });
 
+describe('sectors', () => {
+	it('splits our own territory by sector, in the colonies tab’s colours', () => {
+		const galaxy = [
+			sys(1, { owned: true, ownerId: 0, sector: 'Earth' }),
+			sys(2, { owned: true, ownerId: 0, sector: 'Cradle' }),
+			sys(3, { owned: true, ownerId: 0, sector: null })
+		];
+		const [own] = territories({
+			ownId: 0,
+			ownName: 'Us',
+			countries: [],
+			relations: [],
+			seen: [],
+			flagColors: {},
+			spoiler: false,
+			galaxy,
+			sectorColors: { Earth: '#111111', Cradle: '#222222' }
+		});
+		expect(own.parts?.map((t) => [t.label, t.color, t.systems])).toEqual([
+			['Earth', '#111111', [1]],
+			['Cradle', '#222222', [2]],
+			['(no sector)', '#8a8984', [3]]
+		]);
+	});
+});
+
 describe('mergeSightings', () => {
 	it('keeps the first and the latest sighting per system', () => {
 		const s = (date: string, shipset: string) => ({

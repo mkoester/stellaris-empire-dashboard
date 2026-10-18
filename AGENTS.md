@@ -113,7 +113,14 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 `MigrationMap` is one such layer). **Maps show only what is discovered**: visited or own systems
 (the save's `terra_incognita.systems` is the same list; its 256×256 `data` grid is run-length
 encoded, row-major, but its scale is not pinned down) plus first contact sites, lanes only among
-them (`discovered()`, `mapView()`, `server/mapSystems.ts`). Profile switches: `unknownStars`
+them (`discovered()`, `mapView()`, `server/mapSystems.ts`). As the game, a map also draws every
+lane of a system whose lanes the empire knows — `country.hyperlane_systems` (`GalaxySystem.lanesKnown`):
+visited plus hyperlane detection range, which sensors and the Map the Stars edict raise
+(2207.03.10: 60 = 41 visited + 10 one jump out + 9 further; matches the game's map around Craxima
+and Rimmock) — the systems at their far ends faint, "Unknown". Explored wormholes (a ship at either
+end, `wormholeLinks()`) are dashed arcs, behind the profile's `wormholeLinks` switch (on). Fit
+buttons: capital, my empire, explored, the page's own, everything; a per-viewer `sectors` checkbox
+splits our territory by sector (`GalaxySystem.sector`, the colonies tab's `sectorColors`). Profile switches: `unknownStars`
 adds every other star, faint, named "Unknown" and without lanes, but not the special systems off
 the main hyperlane network (`mainNetwork()`; 2207.03.10: Kleeia `distar_sealed_1_2` and Ultima
 Vigilis `surveillance_supercomputer_system`, no lane at all — the game reveals such systems by a

@@ -367,6 +367,9 @@ export type GalaxySystem = {
 	bodies: Body[] | null; // visited only
 	megastructures: string[]; // types, built or ruined, in a visited system
 	bypasses?: string[]; // wormholes, gateways, L-gates (`bypasses.<id>.type`) in a visited system; since 2026-10-18
+	wormholes?: number[]; // systems an explored wormhole here leads to; since 2026-10-18
+	sector?: string | null; // own systems: the sector (`sectors.<id>.systems`); since 2026-10-18
+	lanesKnown?: boolean; // in `country.hyperlane_systems`: its hyperlanes are on our map (sensors); since 2026-10-18
 };
 
 /** A star, planet, moon or asteroid in a visited system. */

@@ -30,6 +30,7 @@ describe('profiles', () => {
 				contactStations: false,
 				wholeGalaxy: false,
 				unknownStars: false,
+				wormholeLinks: true,
 				showLocked: false,
 				factionTypes: false,
 				allFactionTypes: false
@@ -65,6 +66,7 @@ describe('profiles', () => {
 				contactStations: false,
 				wholeGalaxy: false,
 				unknownStars: false,
+				wormholeLinks: true,
 				showLocked: false,
 				factionTypes: false,
 				allFactionTypes: false

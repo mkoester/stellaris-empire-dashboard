@@ -35,6 +35,7 @@
 			'Maps: show the undiscovered systems too, without their hyperlanes',
 			'the game shows every star from the start'
 		],
+		['wormholeLinks', 'Maps: show where explored wormholes lead'],
 		[
 			'wholeGalaxy',
 			'Maps and megastructure sites: the whole galaxy, not only the systems discovered',

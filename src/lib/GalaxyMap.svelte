@@ -17,6 +17,7 @@
 		owned?: boolean;
 		capital?: boolean;
 		known?: boolean; // false: an undiscovered star, drawn faint
+		wormholes?: number[]; // where explored wormholes lead, drawn as dashed arcs
 	};
 	let {
 		systems,
@@ -45,14 +46,30 @@
 	} = $props();
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 
+	// our territory split into its sectors: a per-viewer switch, off by default
+	let sectors = $state(false);
+	const hasSectors = $derived(territories.some((t) => t.parts?.length));
+	const shown = $derived(sectors ? territories.flatMap((t) => t.parts ?? [t]) : territories);
 	// the cells only change with the systems and owners, not with panning
-	const ownerOf = $derived(
-		new Map(territories.flatMap((t) => t.systems.map((id) => [id, t] as const)))
-	);
+	const ownerOf = $derived(new Map(shown.flatMap((t) => t.systems.map((id) => [id, t] as const))));
 	const territoryCells = $derived(
 		ownerOf.size ? cells(systems, new Set(ownerOf.keys()), claimRadius(systems)) : []
 	);
 	const keyOf = (id: number) => ownerOf.get(id)?.key;
+	// each wormhole once (both ends list each other), bent so it does not hide a lane
+	const wormholes = $derived(
+		systems.flatMap((s) =>
+			(s.wormholes ?? []).flatMap((to) => {
+				const o = byId.get(to);
+				return o && (s.id < to || !(o.wormholes ?? []).includes(s.id)) ? [[s, o] as const] : [];
+			})
+		)
+	);
+	const arc = (a: Point, b: Point) => {
+		const [p, q] = [at(a), at(b)];
+		const m = { x: (p.x + q.x) / 2 - (q.y - p.y) * 0.2, y: (p.y + q.y) / 2 + (q.x - p.x) * 0.2 };
+		return `M${p.x},${p.y}Q${m.x},${m.y} ${q.x},${q.y}`;
+	};
 	const path = (poly: Point[]) =>
 		poly.length ? `M${poly.map((p) => `${at(p).x},${at(p).y}`).join('L')}Z` : '';
 
@@ -88,6 +105,7 @@
 
 	const capital = $derived(systems.find((s) => s.capital));
 	const empire = $derived(systems.filter((s) => s.owned));
+	const explored = $derived(systems.filter((s) => s.known !== false));
 	// at least close enough to tell the capital's neighbours apart (~100px between systems)
 	const toCapital = (c: Point) => (view = { cx: c.x, cy: c.y, k: Math.max(v.k, 5) });
 	/** Centres a system, zoomed in as for the capital (a page's search uses it). */
@@ -152,6 +170,9 @@
 	<button class={button} disabled={!empire.length} onclick={() => (view = fit(empire, size))}
 		>my empire</button
 	>
+	<button class={button} disabled={!explored.length} onclick={() => (view = fit(explored, size))}
+		>explored</button
+	>
 	{#each focus as f (f.label)}
 		<button class={button} disabled={!f.points.length} onclick={() => (view = fit(f.points, size))}
 			>{f.label}</button
@@ -161,6 +182,11 @@
 	<span class="ml-2 text-gray-500">zoom</span>
 	<button class={button} onclick={() => zoomBy(1.5)} aria-label="zoom in">+</button>
 	<button class={button} onclick={() => zoomBy(1 / 1.5)} aria-label="zoom out">−</button>
+	{#if hasSectors}
+		<label class="ml-2 flex items-center gap-1"
+			><input type="checkbox" bind:checked={sectors} /> sectors</label
+		>
+	{/if}
 </div>
 <div
 	class="w-full resize-y overflow-hidden rounded border border-gray-200 dark:border-gray-800"
@@ -215,6 +241,15 @@
 						/>
 					{/if}
 				{/each}
+			{/each}
+			{#each wormholes as [a, b] (`${a.id}-${b.id}`)}
+				<path
+					class="pointer-events-none stroke-fuchsia-500"
+					d={arc(a, b)}
+					fill="none"
+					stroke-width="1.5"
+					stroke-dasharray="5 4"><title>wormhole {a.name} – {b.name}</title></path
+				>
 			{/each}
 			{#each systems as s (s.id)}
 				<!-- a wider invisible target, so a 3px system is easy to point at -->
@@ -284,9 +319,9 @@
 		</svg>
 	{/if}
 </div>
-{#if territories.length}
+{#if shown.length}
 	<div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
-		{#each territories as t (t.key)}
+		{#each shown as t (t.key)}
 			<span class="flex items-center gap-1"
 				><span
 					class="inline-block h-2.5 w-2.5 rounded-sm border"

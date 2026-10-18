@@ -1,4 +1,4 @@
-import { bypassLinks, distances, graph, type Bypass, type Graph } from '#lib/galaxyGraph.ts';
+import { bypassLinks, distances, graph, type Graph } from '#lib/galaxyGraph.ts';
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
@@ -38,6 +38,7 @@ import { addGameDays, START_YEAR } from '#lib/series.ts';
 import { readZipEntry } from './zip.ts';
 import {
 	anomalies,
+	bypassList,
 	digSites,
 	stationsSeen,
 	firstContacts,
@@ -981,26 +982,7 @@ export function galaxy(raw: Partial<GalaxyRaw> & Pick<GalaxyRaw, 'country' | 'sy
 	const lanes = Object.entries(raw.systems).flatMap(([id, s]) =>
 		items(s?.hyperlane).map((l) => [Number(id), Number(l?.to)] as [number, number])
 	);
-	// a bypass sits on a megastructure (owner type 6: gateways, L-Gates) or a natural wormhole (7)
-	const systemOf = (owner: Raw): number | null => {
-		const holder =
-			num(owner?.type) === 6
-				? raw.megastructures?.[String(owner.id)]
-				: num(owner?.type) === 7
-					? raw.naturalWormholes?.[String(owner.id)]
-					: undefined;
-		return typeof holder?.coordinate?.origin === 'number' ? holder.coordinate.origin : null;
-	};
-	const bypasses: Bypass[] = Object.entries(raw.bypasses ?? {})
-		.filter(([, b]) => b && typeof b === 'object')
-		.map(([id, b]) => ({
-			id: Number(id),
-			type: String(b.type),
-			active: b.active === true || b.active === 'yes',
-			system: systemOf(b.owner),
-			links:
-				[b.active_connections, b.connections, b.linked_to].map(list).find((l) => l.length) ?? []
-		}));
+	const bypasses = bypassList(raw);
 	const starFlagged = (flag: string) =>
 		Object.entries(raw.systems)
 			.filter(([, s]) => s?.flags?.[flag] !== undefined)

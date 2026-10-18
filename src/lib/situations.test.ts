@@ -3,6 +3,7 @@ import {
 	contactRows,
 	discovered,
 	mainNetwork,
+	mapView,
 	monthsBetween,
 	stationOwners
 } from './situations.ts';
@@ -110,6 +111,37 @@ describe('discovered', () => {
 			[4, 'S4', []]
 		]);
 		expect(discovered(g, { whole: true, stars: false })).toHaveLength(4);
+	});
+});
+
+describe('mapView', () => {
+	// a chain 1–2–3–4–5: 1 visited, 2 and 3 within hyperlane detection range (Map the Stars), 4 and
+	// 5 unknown; 1 has an explored wormhole to 9, which lies off the chain
+	const g = [
+		sys(1, [2], { lanesKnown: true, wormholes: [9] }),
+		sys(2, [3], { visited: false, lanesKnown: true }),
+		sys(3, [4], { visited: false, lanesKnown: true }),
+		sys(4, [5], { visited: false }),
+		sys(5, [], { visited: false }),
+		sys(9, [], { visited: false, wormholes: [1] })
+	];
+	const none = { whole: false, stars: false };
+
+	it('draws every lane of a system whose lanes we know, the systems at their ends faint', () => {
+		const v = mapView(g, none);
+		expect(v.map((s) => [s.id, s.name, s.known, s.lanes])).toEqual([
+			[1, 'S1', true, [2]],
+			[2, 'Unknown', false, [3]],
+			[3, 'Unknown', false, [4]],
+			[4, 'Unknown', false, []]
+		]);
+	});
+
+	it('shows where explored wormholes lead, unless switched off', () => {
+		const v = mapView(g, { ...none, wormholes: true });
+		expect(v.find((s) => s.id === 1)?.wormholes).toEqual([9]);
+		expect(v.some((s) => s.id === 9)).toBe(true);
+		expect(mapView(g, none).find((s) => s.id === 1)?.wormholes).toEqual([]);
 	});
 });
 

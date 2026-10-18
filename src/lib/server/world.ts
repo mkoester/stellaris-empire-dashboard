@@ -1,3 +1,4 @@
+import type { Bypass } from '#lib/galaxyGraph.ts';
 import type {
 	AnomalyInfo,
 	Body,
@@ -17,6 +18,7 @@ import {
 	list,
 	num,
 	numOrNull,
+	sectorBySystem,
 	strOrNull,
 	type RawSave
 } from './save.ts';
@@ -75,6 +77,57 @@ function body(raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>, id: numb
 	};
 }
 
+/**
+ * Every bypass with the system it sits in: on a megastructure (owner type 6: gateways, L-Gates)
+ * or a natural wormhole (7).
+ */
+export function bypassList(
+	raw: Partial<Pick<RawSave, 'bypasses' | 'megastructures' | 'naturalWormholes'>>
+): Bypass[] {
+	const systemOf = (owner: Raw): number | null => {
+		const holder =
+			num(owner?.type) === 6
+				? raw.megastructures?.[String(owner.id)]
+				: num(owner?.type) === 7
+					? raw.naturalWormholes?.[String(owner.id)]
+					: undefined;
+		return typeof holder?.coordinate?.origin === 'number' ? holder.coordinate.origin : null;
+	};
+	return Object.entries(raw.bypasses ?? {})
+		.filter(([, b]) => b && typeof b === 'object')
+		.map(([id, b]) => ({
+			id: Number(id),
+			type: String(b.type),
+			active: b.active === true || b.active === 'yes',
+			system: systemOf(b.owner),
+			links:
+				[b.active_connections, b.connections, b.linked_to].map(list).find((l) => l.length) ?? []
+		}));
+}
+
+/**
+ * Where each system's wormholes lead, once explored — a ship has been to either end, as the
+ * game's pathing (`BYPASS_RULES.*.explore`). Both ends list each other.
+ */
+export function wormholeLinks(bypasses: Bypass[], visited: Set<number>): Map<number, number[]> {
+	const byId = new Map(bypasses.map((b) => [b.id, b]));
+	const out = new Map<number, number[]>();
+	const add = (a: number, b: number) => {
+		if (!(out.get(a) ?? []).includes(b)) out.set(a, [...(out.get(a) ?? []), b]);
+	};
+	for (const b of bypasses) {
+		if (!/wormhole/.test(b.type) || b.system === null) continue;
+		for (const id of b.links) {
+			const to = byId.get(id)?.system;
+			if (to === null || to === undefined || to === b.system) continue;
+			if (!visited.has(b.system) && !visited.has(to)) continue;
+			add(b.system, to);
+			add(to, b.system);
+		}
+	}
+	return out;
+}
+
 /** Every system; owner, bodies and megastructures where visited or owned. */
 export function galaxy(
 	raw: Pick<
@@ -89,10 +142,17 @@ export function galaxy(
 		| 'fleetOwner'
 		| 'megastructures'
 		| 'bypasses'
+		| 'naturalWormholes'
+		| 'sectors'
 	>,
 	own: Set<number>
 ): GalaxySystem[] {
 	const visited = new Set([...list(raw.country?.visited_objects), ...own]);
+	const wormholes = wormholeLinks(bypassList(raw), visited);
+	// the systems whose lanes the map shows: visited ones and those within hyperlane detection
+	// range (2207.03.10: 60 = 41 visited + 10 one jump out + 9 further)
+	const lanesKnown = new Set(list(raw.country?.hyperlane_systems));
+	const sectorOf = sectorBySystem(raw);
 	const megas = new Map<number, string[]>();
 	for (const m of Object.values(raw.megastructures)) {
 		const at = numOrNull(m?.coordinate?.origin);
@@ -121,6 +181,9 @@ export function galaxy(
 							.filter((b) => b !== null)
 					: null,
 				megastructures: seen ? (megas.get(id) ?? []) : [],
+				wormholes: wormholes.get(id) ?? [],
+				lanesKnown: lanesKnown.has(id),
+				sector: own.has(id) ? (sectorOf.get(id) ?? null) : null,
 				bypasses: seen
 					? list(s.bypasses)
 							.map((b) => raw.bypasses[String(b)]?.type)

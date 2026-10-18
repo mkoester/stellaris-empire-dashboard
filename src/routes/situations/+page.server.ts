@@ -43,7 +43,7 @@ export function load({ url }) {
 		wholeGalaxy: opts.wholeGalaxy,
 		systems: mapView(
 			galaxy,
-			{ whole: opts.wholeGalaxy, stars: opts.unknownStars },
+			{ whole: opts.wholeGalaxy, stars: opts.unknownStars, wormholes: opts.wormholeLinks },
 			(s?.firstContacts ?? []).map((c) => c.systemId)
 		),
 		owners: opts.contactStations ? owners : [],

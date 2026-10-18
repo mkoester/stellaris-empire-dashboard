@@ -1,3 +1,4 @@
+import { sectorColors } from '#lib/colonyTable.ts';
 import { knownIds, mapView } from '#lib/situations.ts';
 import { mergeSightings, territories, type Territory } from '#lib/territories.ts';
 import type { KnownSystem, Snapshot } from '#lib/types.ts';
@@ -6,18 +7,25 @@ import { galaxyOf } from './db.ts';
 import { display } from './settings.ts';
 
 /**
- * The systems a map draws: the discovered ones (`knownSystems`: visited or own), plus with the
- * `unknownStars` switch every other star (no lanes), or with `wholeGalaxy` everything.
+ * The systems a map draws (`mapView`): the discovered ones (`knownSystems`: visited or own) with
+ * the lanes out of them, plus with the `unknownStars` switch every other star, or with
+ * `wholeGalaxy` everything; explored wormholes with `wormholeLinks`. Without a galaxy reading,
+ * the snapshot's known systems.
  */
 export function mapSystems(snaps: Snapshot[]): (KnownSystem & { known?: boolean })[] {
 	const known = snaps.findLast((s) => s.knownSystems)?.knownSystems ?? [];
-	const { wholeGalaxy: whole, unknownStars: stars } = display();
 	const last = snaps.at(-1);
-	const g = (whole || stars) && last ? galaxyOf(getDb(), last.campaign) : null;
+	const g = last ? galaxyOf(getDb(), last.campaign) : null;
 	if (!g) return known;
 	const capital = known.find((k) => k.capital)?.id;
-	return mapView(g.systems, { whole, stars }).map((s) => ({ ...s, capital: s.id === capital }));
+	return mapView(g.systems, reveal()).map((s) => ({ ...s, capital: s.id === capital }));
 }
+
+/** The display switches that decide what a map reveals. */
+export const reveal = () => {
+	const d = display();
+	return { whole: d.wholeGalaxy, stars: d.unknownStars, wormholes: d.wormholeLinks };
+};
 
 /**
  * The empires' territories on the discovered systems, as far as the viewer may know their owners
@@ -36,6 +44,7 @@ export function territoriesOf(snaps: Snapshot[]): Territory[] {
 		relations: last.relations ?? [],
 		seen: mergeSightings(snaps),
 		flagColors: getGameData().flagColors,
-		spoiler: display().contactStations
+		spoiler: display().contactStations,
+		sectorColors: sectorColors(snaps.findLast((s) => s.colonies.length)?.colonies ?? [])
 	});
 }

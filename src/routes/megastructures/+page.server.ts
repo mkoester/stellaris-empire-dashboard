@@ -5,7 +5,7 @@ import { display, megastructureView } from '#lib/server/settings.ts';
 import { getDb, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { galaxyOf } from '#lib/server/db.ts';
-import { territoriesOf } from '#lib/server/mapSystems.ts';
+import { reveal, territoriesOf } from '#lib/server/mapSystems.ts';
 
 // Where to build each kilo- and megastructure, over the campaign's latest galaxy reading.
 export function load({ url }) {
@@ -43,7 +43,7 @@ export function load({ url }) {
 		owners,
 		view: megastructureView(),
 		territories: territoriesOf(snaps),
-		systems: mapView(g?.systems ?? [], { whole, stars }),
+		systems: mapView(g?.systems ?? [], reveal()),
 		kinds: KINDS.map((kind) => ({
 			kind,
 			...MEGA_RULES[kind],

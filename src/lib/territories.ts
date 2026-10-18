@@ -14,6 +14,7 @@ export type Territory = {
 	color: string;
 	guess: boolean; // dashed: our guess from the shipsets seen
 	systems: number[];
+	parts?: Territory[]; // our own territory by sector, for the maps' sectors switch
 };
 
 /** A station seen over the branch: the latest sighting per system, and when we first saw it. */
@@ -43,6 +44,29 @@ export function seenRows(seen: SeenStation[], ts: Territory[], name: (id: number
 	}));
 }
 export type SeenRow = ReturnType<typeof seenRows>[number];
+
+const NO_SECTOR = '(no sector)';
+
+/** Our systems by sector, each sector in the colonies tab's colour. */
+function sectorParts(
+	galaxy: GalaxySystem[],
+	systems: number[],
+	colors: Record<string, string>
+): Territory[] {
+	const sectorOf = new Map(galaxy.map((s) => [s.id, s.sector ?? NO_SECTOR]));
+	const bySector = new Map<string, number[]>();
+	for (const id of systems) {
+		const s = sectorOf.get(id) ?? NO_SECTOR;
+		bySector.set(s, [...(bySector.get(s) ?? []), id]);
+	}
+	return [...bySector].map(([sector, ids]) => ({
+		key: `sector:${sector}`,
+		label: sector,
+		color: colors[sector] ?? OTHER,
+		guess: false,
+		systems: ids
+	}));
+}
 
 /** "avian_01" → "Avian". */
 export const shipsetName = (s: string | null) =>
@@ -95,6 +119,7 @@ export function territories(p: {
 	seen: SeenStation[];
 	flagColors: Record<string, string>;
 	spoiler: boolean; // contactStations: name every visited station's owner
+	sectorColors?: Record<string, string>; // as the colonies tab colours them
 }): Territory[] {
 	const country = (id: number) => p.countries.find((c) => c.id === id);
 	const colorOf = (id: number) => p.flagColors[country(id)?.flagColor ?? ''] ?? OTHER;
@@ -116,7 +141,8 @@ export function territories(p: {
 		label: id === p.ownId ? p.ownName : name(id),
 		color: colorOf(id),
 		guess: false,
-		systems
+		systems,
+		...(id === p.ownId ? { parts: sectorParts(p.galaxy, systems, p.sectorColors ?? {}) } : {})
 	}));
 
 	// what we saw of the unknown ones: guessed by shipset; the rest of them stays plain unknown

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stationsSeen } from './world.ts';
+import { stationsSeen, wormholeLinks } from './world.ts';
 
 describe('stationsSeen', () => {
 	// shaped like 2207.03.01: fleets in `fleet.<id>.movement_manager.coordinate.origin`, a system's
@@ -38,5 +38,23 @@ describe('stationsSeen', () => {
 		expect(stationsSeen(raw, new Set([380]))).toEqual([
 			{ systemId: 77, ownerId: 16777220, shipset: 'avian_01' }
 		]);
+	});
+});
+
+describe('wormholeLinks', () => {
+	// two natural wormholes linked to each other, and a gateway (not a wormhole)
+	const bypasses = [
+		{ id: 6, type: 'wormhole', active: true, system: 10, links: [7] },
+		{ id: 7, type: 'wormhole', active: true, system: 20, links: [6] },
+		{ id: 8, type: 'gateway', active: false, system: 30, links: [6] }
+	];
+	it('links both ends once a ship has been to either', () => {
+		expect([...wormholeLinks(bypasses, new Set([20]))]).toEqual([
+			[10, [20]],
+			[20, [10]]
+		]);
+	});
+	it('knows nothing of an unexplored wormhole', () => {
+		expect(wormholeLinks(bypasses, new Set([30])).size).toBe(0);
 	});
 });

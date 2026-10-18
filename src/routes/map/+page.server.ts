@@ -4,8 +4,8 @@ import { discovered, mapView } from '#lib/situations.ts';
 import { getDb, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { galaxyOf } from '#lib/server/db.ts';
-import { territoriesOf } from '#lib/server/mapSystems.ts';
-import { display, mapFilter } from '#lib/server/settings.ts';
+import { reveal, territoriesOf } from '#lib/server/mapSystems.ts';
+import { mapFilter } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
 
 // The galaxy as the empire has discovered it: borders, first contacts, stations seen, anomalies,
@@ -18,14 +18,13 @@ export function load({ url }) {
 	const data = getGameData();
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const g = s ? (galaxyOf(getDb(), s.campaign)?.systems ?? []) : [];
-	const { wholeGalaxy: whole, unknownStars: stars } = display();
 	const contactSites = (s?.firstContacts ?? []).map((c) => c.systemId);
 	const capital = snaps.findLast((x) => x.knownSystems)?.knownSystems?.find((k) => k.capital)?.id;
 	return {
 		...rest,
 		seenAt: s?.date ?? null,
 		filter: mapFilter(),
-		systems: mapView(g, { whole, stars }, contactSites).map((x) => ({
+		systems: mapView(g, reveal(), contactSites).map((x) => ({
 			...x,
 			capital: x.id === capital
 		})),
