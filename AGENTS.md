@@ -66,7 +66,8 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
 calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — delete it after.
 
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
-dev server ingests saves and moves the head). Copy `dashboard.sqlite*` (WAL files included) to a
+dev server ingests saves and moves the head). On the Linux game machine it lives in
+`~/.local/share/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
 each command its own network namespace.
@@ -103,7 +104,13 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/expansion`: the Expansion panel full-size, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`) and `events`
-(`/events`: the milestone log, searchable, filtered in the page); tabs keep `?node=`. Say
+(`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `focus`,
+`traditions`, `tech`, `leaders`, `species`, `contacts`, `megastructures` (all below), `mods` and
+`dlc` (last; see
+"DLCs and mods" below); tabs keep `?node=`. Tables on the newer tabs sort through
+`SortTable.svelte` (columns as `Column<T>` from `#lib/sort.ts`), maps through `GalaxyMap.svelte`
+(pan, zoom, resize, lanes, systems with an optional `fill`; the page draws its `layer`;
+`MigrationMap` is one such layer). Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
@@ -183,6 +190,83 @@ only between saves that both have it (null = unknown; an empty colony list too),
 dated to the first save showing it. New kind: `KINDS` + a detector + a colour in `colors.ts`. Each
 chart has an "events" picker (`EventPicker.svelte`); choices are stored per `<scope>:<title>`
 (`empire:`/`colony:` — stored `planet:` keys are renamed on read; `log` for the Events panel) in the `chartEvents` setting, merged on PUT.
+
+**Council** (government tab): the ruler's seat (`councilor_ruler_<authority>`; not in the save's
+seat list, `possible = { always = no }`) and the seats held, each with what it gives **at the
+leader's level** — 4.5.2 `common/governments/councilors/000_councilor_documentation.txt`: a seat's
+`modifier` "is multiplied by assigned Leader's level" (`atLevel`; `seat:<key>` popups hold the
+per-level values). Possible seats: our civics' seats and base seats whose `possible` is not
+false; `unlocked_civic_council_slots` is the number of seats (3 at 2207.03.10, all held).
+
+**Government tab** (`/government`, `#lib/government.ts` and `#lib/triggers.ts`, both pure): the
+identity panel, ruler and council seats, the agenda with its due date (`events.ts`), every agenda
+(current / cooldown / open / locked — locked: none of the traditions or perks in its
+`unlocked_by` taken), policies with the options this empire can have, edicts (active with their
+start, the others by unlock), and per faction type its demands. The data DB's normalised triggers
+(`*_json`) are evaluated **three-valued** against the save (`facts()`: country type, civics,
+ethics, authority, origin, DLCs, policy and country flags, traditions, perks, techs, war): what
+the save cannot answer (`num_rivals`, scopes like `any_owned_pop_group`) is unknown, shown `?`,
+never guessed. An option or edict is hidden only when its `potential` is false. `is_nomadic` is
+built into the game and approximated as a Nomads origin.
+
+**Situations tab** (`/situations`, `#lib/situations.ts` pure, readers in `server/world.ts`): first
+contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
+border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
+an envoy); situations, anomalies, special projects (no progress in the save), dig sites, a link
+to events. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`:
+the outcome events' titles), as is `contactStations`: visited systems coloured by their
+station's owner — the save names it before communications, so it is shown as known, not
+guessed. **The galaxy is not stored per snapshot** (~140 KB): `Snapshot.galaxy` goes to the
+`galaxy` table, one row per campaign holding its latest reading (`galaxyOf()`); every system's
+place, star and lanes, owner, bodies and megastructures only for visited or own systems.
+
+**Megastructures tab** (`/megastructures`, `#lib/megastructures.ts`, pure): every system ranked
+per structure (arc furnace, dyson swarm, dyson sphere, ring world, matter decompressor, stellar
+cannon, quantum catapult, mega shipyard, sentry array), with a map coloured by score and a table,
+filtered to my systems, up to +N jumps beyond the border, or all. `MEGA_RULES` is taken from 4.5.2
+`common/megastructures/*` (file per rule; re-check on game updates): star classes, no
+binary/trinary, no colonizable planet (`colonizable_planet`: the data DB's colonizable classes plus
+city, relic, nuked, hive, machine, habitat), no non-gate megastructure already there (ruined ones
+block too, though they can be restored), The Machine Age (arc furnace and swarm need it, the Dyson
+Sphere only exists without it). Scores: the arc furnace's is the game's own `tooltip_system_score`
+(bodies neither star nor colonizable without a research deposit; ≤ 10 poor, ≥ 16 good); the only
+structure with one. The others are ours: swarm = the star's deposit amounts, sphere = colonizable
+planets frozen + deposits, ring world = deposit amounts removed with every non-star body, catapult
+= the farthest system on the 2D map (and how many lie within the stages' 300/450/750), mega
+shipyard = the outermost body's distance from the star (the way out for new ships), sentry array
+= systems not ours within 20/40/60. Rules needing bodies are unknown (`?`) in unvisited systems.
+2207.03.10: catapult best near the centre (Elthir: farthest 387, centre 83); arc furnace Sol 20.
+
+**Focus, traditions, tech, leaders, species, contacts** (one route each):
+
+- **focus** (`#lib/focus.ts`): the open and done cards (hint, requirement) and per category the
+  next reward and the one after, each a research option (every branch of its effect listed).
+- **traditions**: adopted trees (the existing Traditions panel), the other trees, every perk
+  (taken first, conditions not checked).
+- **tech**: the three queues with due dates (`events.ts`), the cards on offer
+  (`tech_status.alternatives`), research tiers, everything researched.
+- **leaders**: `Snapshot.leaderList`, traits explained by `ltrait:<key>` (data DB `leader_trait`,
+  each modifier labelled with its scope).
+- **species**: traits and trait budget.
+- **contacts** (`#lib/contacts.ts`): the relations table, its filters and columns being the
+  profile's `contactView` (stored at once, `PUT /api/settings`).
+
+**DLCs and mods** (`/dlc`, `/mods`, `#lib/addons.ts`, pure): what is active comes from each
+save's `meta` (`required_dlcs`, `mods`: names; `version`) → `Snapshot.dlcs|mods|gameVersion`;
+the changelog is the `dlc` and `mod` milestones, so it follows the save graph and starts with the
+first save read since 2026-10-18. The DLC catalogue is the data DB's `dlc` table (all 36 of
+`dlc_info.txt`, category from the installed DLCs' descriptors, Steam release dates). Installed
+mods are the launcher's descriptors, `<user dir>/mod/*.mod`, the user dir being
+`STELLARIS_SAVE_DIR`'s parent (`server/mods.ts`, read at start); `supports()` compares their
+`supported_version` (`v4.5.*`) with the save's version. 2207.03.10: 28 DLCs, 17 mods. **Merged
+DLCs**: Utopia, Synthetic Dawn and Humanoids are gameplay DLCs no script checks for (data DB
+`dlc.host_checks` 0) and saves leave them out of `required_dlcs` though installed — shown as
+"base game". **Mod updates**: the launcher's `launcher-v2.sqlite` (`mods.timeUpdated`, seconds;
+`version` where the descriptor has none, read-only) completes the descriptors; at each start
+`noteModVersions` notes every mod whose version, supported version or update time changed in
+the `mod_version` table, with the head's game date — the mods tab's "Updates", since
+2026-10-18 (many mods name no version: their update shows as a new update time). The DLC tab
+opens per category.
 
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
 events after the game's text colours. Charts and the upcoming list both use them. **Districts**
@@ -389,6 +473,36 @@ modifier="celebrate_diversity" days=3535 } … } }` — `days` left, −1 = perm
 - Identity of a game state (`Snapshot.fingerprint`): `tick` + `random_count`, both top-level.
 - Planets: `moon_of` marks moons, `surveyed_by` the countries that surveyed them (one id or a
   list), `controller` the owner of the system it lies in.
+- Galaxy and the others (`server/world.ts`, 2207.03.10): `galactic_object.<id> = { coordinate
+star_class planet=… hyperlane starbases inner_radius outer_radius }` (radii 390/490 are no
+  in-system size); planets' `coordinate` is in-system (Earth 90 from the star). **Fleets have no
+  owner**: a country lists its own in `fleets_manager.owned_fleets = { { fleet=<id> } }`, so a
+  station's owner is starbase → `station` ship → `fleet` → that list (`stationOwner`; Chors
+  Compass: the Caravaneers). Reading every `country` costs ~250 ms per save (51 countries).
+  First contacts: top-level `first_contacts.contacts.<id> = { owner country name location leader
+date days_left difficulty clues stage status }` (`leader=4294967295`: none; `status`
+  in_progress / finished / aborted; stages have no localisation). Relations
+  `country.relations_manager.relation = { country contact communications hostile
+relation_current trust threat border_range pre_communications_name }` (`border_range`
+  2147483647: not bordering; no treaty fields). Situations `situations.situations.<id> = { country
+type progress last_month_progress approach stage }`. Anomalies: `country.events.anomalies =
+{ <planet ids> }`, category in `planets.planet.<id>.anomaly`. Special projects
+  `country.events.special_project = { id special_project carrier = { type=planet reference } }`,
+  no progress. Dig sites `archaeological_sites.sites.<id> = { location = { type=2 id=<planet> }
+type clues difficulty days_left excavator_fleet }`. Megastructures `megastructures.<id> =
+{ type coordinate.origin owner }` (2207.03.10: ruined gateways, a ruined quantum catapult, two
+  ruined ring world sections).
+- Empire focus: `country.focus = { active = { <card ids> } priority = { current } reward = {
+rewards = { { category current="development_rewards_2" progress } } } }`; cards are top-level
+  `focus_cards.<id> = { type status }`. **`status=1` is read as done** (2207.03.10: 1 on Hire a
+  Commander, Found a Colony, Adopt a Tradition; 0 on Declare a Rival, Upgrade a Starbase) — check
+  against the game's focus panel. Offered techs `country.tech_status.alternatives = { physics =
+{ "tech_…" } … }`. Leaders: `leaders.<id> = { name class level age species traits job }`.
+- Council: `country.government.council_positions = { <ids> }` → top-level
+  `council_positions.council_positions.<id> = { country type leader }` (2207.03.10: defense,
+  research, state; the ruler is `country.ruler`, apart). Policy flags `country.policy_flags =
+{ "unrestricted_wars" … }` (strings). Edicts `{ edict date start_date perpetual=yes }` — a
+  perpetual one's `date` is junk (`-5070.07.21`), else the end date.
 - Government: `country.government = { type="gov_representative_democracy" authority civics={…}
 origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `type` is named
   from the data DB's `government_type`.
@@ -397,6 +511,18 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   capital). Habitability: `pop_groups.<id>.habitability` (0–1, seen 1 and 0.9), pops-weighted.
 
 ## Open (needs a running game on Linux)
+
+- **Focus card status**: `status=1` read as done — confirm in the game's focus panel.
+- **Megastructure scores, not yet checked in game**: the arc furnace's (Sol 20 at 2207.03.10)
+  against the game's "best systems" tooltip; whether the catapult's `catapult_range_base` and the
+  sentry array's `sensor_range` are galaxy-map units (assumed); whether the in-system distance to
+  the outermost body is what new ships of a mega shipyard travel (hyperlane arrival points are not
+  stored); and whether the catapult's `max_jumps = 25` (another catapult) is a rule or AI weight.
+- **Factions, never seen in a save** (2207.03.10: no `pop_factions`, empty `pop_groups.*.factions`).
+  The government tab shows only what each faction type demands; at the first faction, find its
+  block (support, approval, members), read it and show it beside the demands.
+- **Faction Approval shows `+0.1`, not `+10%`**: `isPercentModifier` (`modifiers.ts`, copied from
+  the planner's `civics.ts`) does not know `faction_approval`. Fix both copies together.
 
 - **Habitat district limits, not yet checked in game** (no habitat tech at 2207.03): whether
   `count_system_planet` counts the star as a major body (assumed yes: Sol 9 major → 8 districts),

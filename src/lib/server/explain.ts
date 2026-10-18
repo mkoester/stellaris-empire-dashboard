@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { pretty } from '#lib/format.ts';
 import type { Explanation, Modifier } from '#lib/types.ts';
 
-// Popup texts for traits, edicts, council agendas, techs, jobs and the empire's civics, origin,
+// Popup texts for traits, edicts, council agendas, policy options, techs, jobs and the empire's civics, origin,
 // authority, ethics and government type, from the extraction's SQLite:
 // descriptions, modifiers (labelled via modifier_label) and a few facts. Loaded once at start,
 // keyed `<kind>:<key>` (e.g. `edict:fortify_the_border`).
@@ -75,6 +75,17 @@ export function loadExplanations(file: string): Explanations {
 						? 'perpetual, until cancelled'
 						: `lasts ${Math.round((e.length ?? 0) / 360)} years`
 				]
+			};
+		// Policy options keep theirs there too (owner_key = option key).
+		for (const o of rows<{ key: string; name: string | null; description: string | null }>(
+			'SELECT key, name, description FROM policy_option'
+		))
+			out[`policy:${o.key}`] = {
+				title: o.name ?? pretty(o.key),
+				description: o.description,
+				modifiers: ownedMods.get(o.key) ?? [],
+				text: null,
+				facts: []
 			};
 		for (const a of rows<{
 			key: string;
@@ -277,11 +288,53 @@ export function loadExplanations(file: string): Explanations {
 				name: string | null;
 				leader_classes: string | null;
 				effect: string | null;
-			}>('SELECT key, civic_key, name, leader_classes, effect FROM council_position').map((s) => [
-				s.civic_key,
-				s
-			])
+			}>(
+				'SELECT key, civic_key, name, leader_classes, effect FROM council_position WHERE civic_key IS NOT NULL'
+			).map((s) => [s.civic_key, s])
 		);
+		// Leader traits: `ltrait:<key>`, each modifier labelled with where it applies.
+		const ltraitMods = new Map<string, Modifier[]>();
+		for (const r of rows<{ owner: string; scope: string; key: string; value: number }>(
+			'SELECT trait_key AS owner, scope, modifier_key AS key, modifier_value AS value FROM leader_trait_modifier ORDER BY sort_order'
+		)) {
+			const m = modifier(r.key, r.value);
+			const where = r.scope === 'country' ? '' : ` (${r.scope})`;
+			ltraitMods.set(r.owner, [
+				...(ltraitMods.get(r.owner) ?? []),
+				{ ...m, label: m.label ? `${m.label}${where}` : `${pretty(r.key)}${where}` }
+			]);
+		}
+		for (const t of rows<{
+			key: string;
+			name: string | null;
+			description: string | null;
+			leader_classes: string | null;
+		}>('SELECT key, name, description, leader_classes FROM leader_trait'))
+			out[`ltrait:${t.key}`] = {
+				title: t.name ?? pretty(t.key),
+				description: t.description,
+				modifiers: ltraitMods.get(t.key) ?? [],
+				text: null,
+				facts: t.leader_classes ? [`for: ${t.leader_classes.replaceAll(',', ', ')}`] : []
+			};
+		// Every council seat: `seat:<key>`, modifiers per leader level (the government tab scales them).
+		for (const p of rows<{
+			key: string;
+			name: string | null;
+			description: string | null;
+			leader_classes: string | null;
+			effect: string | null;
+		}>('SELECT key, name, description, leader_classes, effect FROM council_position'))
+			out[`seat:${p.key}`] = {
+				title: p.name ?? pretty(p.key),
+				description: p.description,
+				modifiers: seatMods.get(p.key) ?? [],
+				text: p.effect,
+				facts: [
+					'modifiers per leader level',
+					...(p.leader_classes ? [`for: ${p.leader_classes.replaceAll(',', ', ')}`] : [])
+				]
+			};
 		for (const c of rows<{
 			key: string;
 			name: string | null;

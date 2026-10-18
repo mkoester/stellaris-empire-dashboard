@@ -5,7 +5,7 @@ import type { Colony, Snapshot } from './types.ts';
 
 const names = {
 	techs: { tech_lasers_1: { name: 'Red Lasers', cost: 1, area: 'physics', tier: 1 } },
-	agendas: { agenda_unlock_slot: { name: 'Expand The Council', cost: 7000 } },
+	agendas: { agenda_unlock_slot: { name: 'Expand The Council', cost: 7000, unlockedBy: [] } },
 	edicts: {},
 	names: { district_city: 'City District', building_research_lab_1: 'Research Lab' },
 	perks: { ap_technological_ascendancy: 'Technological Ascendancy' },
@@ -204,6 +204,20 @@ describe('milestones', () => {
 			'2203.03.01 + Technocracy',
 			'2203.03.01 − Xenophile',
 			'2203.03.01 government: Representative Democracy → Citizen Republic'
+		]);
+	});
+
+	it('logs DLCs and mods switched on or off between saves', () => {
+		expect(
+			labels([
+				save('2203.01.01'), // older snapshot: unknown, not "everything enabled"
+				save('2203.02.01', { dlcs: ['Utopia', 'Megacorp'], mods: ['A'] }),
+				save('2203.03.01', { dlcs: ['Utopia', 'Nomads'], mods: [] })
+			])
+		).toEqual([
+			'2203.03.01 dlc enabled: Nomads',
+			'2203.03.01 dlc disabled: Megacorp',
+			'2203.03.01 mod disabled: A'
 		]);
 	});
 });

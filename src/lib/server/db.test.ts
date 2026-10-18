@@ -4,7 +4,17 @@ import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Snapshot } from '#lib/types.ts';
-import { getSetting, headId, history, nodes, openDb, record, setParent, setSetting } from './db.ts';
+import {
+	galaxyOf,
+	getSetting,
+	headId,
+	history,
+	nodes,
+	openDb,
+	record,
+	setParent,
+	setSetting
+} from './db.ts';
 
 const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	kind: 'save',
@@ -59,7 +69,27 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	origin: null,
 	wars: null,
 	warLostDate: null,
-	tradeDeals: null
+	tradeDeals: null,
+	gameVersion: null,
+	dlcs: null,
+	mods: null,
+	countryType: null,
+	policyFlags: null,
+	countryFlags: null,
+	council: null,
+	councilSlots: null,
+	edictTimes: null,
+	galaxy: null,
+	countries: null,
+	relations: null,
+	firstContacts: null,
+	situations: null,
+	anomalies: null,
+	specialProjects: null,
+	digSites: null,
+	focus: null,
+	techOptions: null,
+	leaderList: null
 });
 
 describe('db', () => {
@@ -98,6 +128,31 @@ describe('db', () => {
 		setParent(db, c, b);
 		expect(nodes(db).find((n) => n.id === c)).toMatchObject({ parentId: b, ambiguous: false });
 		expect(() => setParent(db, a, c)).toThrow(/cycle/);
+	});
+});
+
+describe('galaxy', () => {
+	const sys = (name: string) => ({
+		id: 1,
+		name,
+		x: 0,
+		y: 0,
+		star: 'sc_g',
+		lanes: [],
+		visited: true,
+		owned: true,
+		ownerId: 0,
+		bodies: [],
+		megastructures: []
+	});
+	it("keeps the campaign's latest galaxy apart, not in each snapshot", () => {
+		const db = openDb(':memory:');
+		const a = record(db, { ...snap('2201.01.01', 'a'), galaxy: [sys('new')] }, 't').nodeId;
+		// a reload of an older save: its galaxy is not the latest
+		record(db, { ...snap('2200.06.01', 'b'), galaxy: [sys('old')] }, 't');
+		expect(galaxyOf(db, 'c')).toEqual({ date: '2201.01.01', systems: [sys('new')] });
+		expect(history(db, a)[0].galaxy).toBeNull();
+		expect(galaxyOf(db, 'other')).toBeNull();
 	});
 });
 

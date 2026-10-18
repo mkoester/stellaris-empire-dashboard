@@ -1,7 +1,15 @@
 import { DatabaseSync } from 'node:sqlite';
 import { path, place } from '#lib/timeline.ts';
 import { upgrade } from '#lib/upgrade.ts';
-import type { Resources, Snapshot, SourceKind, TimelineNode } from '#lib/types.ts';
+import type {
+	GalaxySystem,
+	ModInfo,
+	ModVersionSeen,
+	Resources,
+	Snapshot,
+	SourceKind,
+	TimelineNode
+} from '#lib/types.ts';
 
 // The dashboard's own store: the save graph plus one snapshot per node. It is **history, not a
 // cache**: the game keeps only its last few autosaves, so most snapshots can no longer be rebuilt.
@@ -9,6 +17,8 @@ import type { Resources, Snapshot, SourceKind, TimelineNode } from '#lib/types.t
 //   snapshots up to date on read; saves still on disk refresh theirs on every start.
 // - SCHEMA versions the *tables* only. Bumping it drops everything, history included — except the
 //   viewer's settings (`setting`: theme, custom tabs), which no schema change touches.
+// - The galaxy (`Snapshot.galaxy`, ~140 KB: every system, the visited ones' bodies) is not stored
+//   per node: `galaxy` keeps each campaign's latest reading, the snapshots go without it.
 
 const SCHEMA = '15';
 
@@ -46,6 +56,19 @@ export function openDb(file: string): Db {
 		CREATE TABLE IF NOT EXISTS snapshot (
 			node_id INTEGER PRIMARY KEY REFERENCES node(id),
 			json    TEXT NOT NULL
+		);
+		CREATE TABLE IF NOT EXISTS mod_version (
+			name      TEXT NOT NULL,
+			version   TEXT,
+			supported TEXT,
+			updated   TEXT,
+			seen_at   TEXT NOT NULL,
+			game_date TEXT
+		);
+		CREATE TABLE IF NOT EXISTS galaxy (
+			campaign TEXT PRIMARY KEY,
+			date     TEXT NOT NULL,
+			json     TEXT NOT NULL
 		);
 	`);
 	db.prepare("INSERT OR REPLACE INTO state (key, value) VALUES ('schema', ?)").run(SCHEMA);
@@ -132,7 +155,7 @@ export function record(
 		// Seen before: a save read by a newer dashboard has more fields — keep the fresh reading.
 		if (snap.kind === 'save')
 			db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
-				JSON.stringify(snap),
+				stored(db, snap),
 				placement.nodeId
 			);
 		setHead(db, placement.nodeId);
@@ -147,7 +170,7 @@ export function record(
 			placement.nodeId
 		);
 		db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
-			JSON.stringify(save),
+			stored(db, save),
 			placement.nodeId
 		);
 		setHead(db, placement.nodeId);
@@ -176,10 +199,7 @@ export function record(
 				new Date().toISOString()
 			);
 		const nodeId = Number(lastInsertRowid);
-		db.prepare('INSERT INTO snapshot (node_id, json) VALUES (?, ?)').run(
-			nodeId,
-			JSON.stringify(snap)
-		);
+		db.prepare('INSERT INTO snapshot (node_id, json) VALUES (?, ?)').run(nodeId, stored(db, snap));
 		setHead(db, nodeId);
 		db.exec('COMMIT');
 		return { nodeId, isNew: true, mismatches: [] };
@@ -187,6 +207,80 @@ export function record(
 		db.exec('ROLLBACK');
 		throw e;
 	}
+}
+
+/** A snapshot's stored JSON: its galaxy goes to the campaign's `galaxy` row, if it is the latest. */
+function stored(db: Db, snap: Snapshot): string {
+	if (snap.galaxy) {
+		const row = db.prepare('SELECT date FROM galaxy WHERE campaign = ?').get(snap.campaign) as
+			{ date: string } | undefined;
+		if (!row || row.date <= snap.date)
+			db.prepare('INSERT OR REPLACE INTO galaxy (campaign, date, json) VALUES (?, ?, ?)').run(
+				snap.campaign,
+				snap.date,
+				JSON.stringify(snap.galaxy)
+			);
+	}
+	return JSON.stringify({ ...snap, galaxy: null });
+}
+
+/** The campaign's galaxy as last read (its date), or null before the first save that has one. */
+export function galaxyOf(
+	db: Db,
+	campaign: string
+): { date: string; systems: GalaxySystem[] } | null {
+	const row = db.prepare('SELECT date, json FROM galaxy WHERE campaign = ?').get(campaign) as
+		{ date: string; json: string } | undefined;
+	return row ? { date: row.date, systems: JSON.parse(row.json) } : null;
+}
+
+/**
+ * Notes each installed mod's version and update time, when they differ from its last note (or it
+ * is new), with the time of this start and the game date of the head: the mods tab's updates.
+ */
+export function noteModVersions(db: Db, mods: ModInfo[], seenAt: string, gameDate: string | null) {
+	const last = db.prepare(
+		'SELECT version, supported, updated FROM mod_version WHERE name = ? ORDER BY seen_at DESC LIMIT 1'
+	);
+	const add = db.prepare(
+		'INSERT INTO mod_version (name, version, supported, updated, seen_at, game_date) VALUES (?, ?, ?, ?, ?, ?)'
+	);
+	for (const m of mods) {
+		const prev = last.get(m.name) as
+			{ version: string | null; supported: string | null; updated: string | null } | undefined;
+		if (
+			!prev ||
+			prev.version !== m.version ||
+			prev.supported !== m.supportedVersion ||
+			prev.updated !== m.updated
+		)
+			add.run(m.name, m.version, m.supportedVersion, m.updated, seenAt, gameDate);
+	}
+}
+
+/** Every note of `noteModVersions`, oldest first. */
+export function modVersions(db: Db): ModVersionSeen[] {
+	return (
+		db
+			.prepare(
+				'SELECT name, version, supported, updated, seen_at, game_date FROM mod_version ORDER BY seen_at'
+			)
+			.all() as {
+			name: string;
+			version: string | null;
+			supported: string | null;
+			updated: string | null;
+			seen_at: string;
+			game_date: string | null;
+		}[]
+	).map((r) => ({
+		name: r.name,
+		version: r.version,
+		supportedVersion: r.supported,
+		updated: r.updated,
+		seenAt: r.seen_at,
+		gameDate: r.game_date
+	}));
 }
 
 function sourceOf(db: Db, nodeId: number): string {

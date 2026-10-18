@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { parseTrigger } from '#lib/triggers.ts';
 import type { CapEffect, GameData } from '#lib/types.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
@@ -22,9 +23,17 @@ export function loadGameData(file: string): GameData {
 				])
 			),
 			agendas: Object.fromEntries(
-				rows<{ key: string; name: string | null; cost: number | null }>(
-					'SELECT key, name, cost FROM council_agenda'
-				).map((r) => [r.key, { name: r.name ?? r.key, cost: r.cost }])
+				rows<{
+					key: string;
+					name: string | null;
+					cost: number | null;
+					unlocked_by_json: string | null;
+				}>('SELECT key, name, cost, unlocked_by_json FROM council_agenda ORDER BY sort_order').map(
+					(r) => [
+						r.key,
+						{ name: r.name ?? r.key, cost: r.cost, unlockedBy: jsonList(r.unlocked_by_json) }
+					]
+				)
 			),
 			jobs: Object.fromEntries(
 				rows<{ key: string; name: string | null; category: string | null }>(
@@ -32,10 +41,41 @@ export function loadGameData(file: string): GameData {
 				).map((r) => [r.key, { name: r.name ?? r.key, category: r.category }])
 			),
 			edicts: Object.fromEntries(
-				rows<{ key: string; name: string | null }>('SELECT key, name FROM edict').map((r) => [
+				rows<{
+					key: string;
+					name: string | null;
+					category: string | null;
+					length: number | null;
+					cost_json: string | null;
+					potential_json: string | null;
+					unlocked_by_json: string | null;
+				}>(
+					'SELECT key, name, category, length, cost_json, potential_json, unlocked_by_json FROM edict ORDER BY sort_order'
+				).map((r) => [
 					r.key,
-					{ name: r.name ?? r.key }
+					{
+						name: r.name ?? r.key,
+						category: r.category,
+						length: r.length,
+						cost: r.cost_json ? JSON.parse(r.cost_json) : {},
+						potential: parseTrigger(r.potential_json),
+						unlockedBy: jsonList(r.unlocked_by_json)
+					}
 				])
+			),
+			policies: policies(
+				rows('SELECT key, name, category FROM policy ORDER BY sort_order'),
+				rows(
+					'SELECT key, policy_key, name, potential_json, valid_json FROM policy_option ORDER BY sort_order'
+				)
+			),
+			factionTypes: factionTypes(
+				rows(
+					'SELECT key, name, description, guiding_ethic FROM pop_faction_type ORDER BY sort_order'
+				),
+				rows(
+					'SELECT faction_key, title, unfulfilled_title, description, fulfilled_effect, unfulfilled_effect, potential_json, trigger_json FROM faction_demand ORDER BY faction_key, sort_order'
+				)
 			),
 			traits: Object.fromEntries(
 				rows<{ key: string; cost: number | null }>('SELECT key, cost FROM trait').map((r) => [
@@ -121,6 +161,110 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT key, label FROM ethic WHERE label IS NOT NULL
 					 UNION ALL SELECT key, name FROM government_type WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name])
+			),
+			dlcs: rows<{
+				name: string;
+				dlc_key: string | null;
+				category: string | null;
+				release_date: string | null;
+				affects_gameplay: number;
+				host_checks: number;
+			}>(
+				'SELECT name, dlc_key, category, release_date, affects_gameplay, host_checks FROM dlc ORDER BY dlc_key'
+			).map((r) => ({
+				name: r.name,
+				key: r.dlc_key ?? '',
+				category: r.category,
+				releaseDate: r.release_date,
+				gameplay: r.affects_gameplay === 1,
+				baseGame: r.affects_gameplay === 1 && r.host_checks === 0
+			})),
+			situationTypes: situationTypes(
+				rows('SELECT key, name, category FROM situation'),
+				rows('SELECT situation_key, key, name FROM situation_approach ORDER BY sort_order')
+			),
+			projects: Object.fromEntries(
+				rows<{
+					key: string;
+					name: string | null;
+					days: number | null;
+					department: string | null;
+					outcomes_json: string | null;
+				}>('SELECT key, name, days, department, outcomes_json FROM special_project').map((r) => [
+					r.key,
+					{
+						name: r.name ?? r.key,
+						days: r.days,
+						department: r.department,
+						outcomes: jsonList(r.outcomes_json)
+					}
+				])
+			),
+			anomalyCategories: Object.fromEntries(
+				rows<{
+					key: string;
+					name: string | null;
+					level: number | null;
+					outcomes_json: string | null;
+				}>('SELECT key, name, level, outcomes_json FROM anomaly_category').map((r) => [
+					r.key,
+					{ name: r.name ?? r.key, level: r.level, outcomes: jsonList(r.outcomes_json) }
+				])
+			),
+			focus: {
+				categories: Object.fromEntries(
+					rows<{ key: string; name: string | null }>('SELECT key, name FROM focus_category').map(
+						(r) => [r.key, r.name ?? r.key]
+					)
+				),
+				cards: Object.fromEntries(
+					rows<{
+						key: string;
+						category: string | null;
+						tier: number | null;
+						name: string | null;
+						hint: string | null;
+						requirement: string | null;
+					}>('SELECT key, category, tier, name, hint, requirement FROM focus_card').map((r) => [
+						r.key,
+						{ ...r, name: r.name ?? r.key }
+					])
+				),
+				rewards: Object.fromEntries(
+					rows<{
+						key: string;
+						category: string | null;
+						cost: number | null;
+						techs_json: string | null;
+					}>('SELECT key, category, cost, techs_json FROM focus_reward').map((r) => [
+						r.key,
+						{ category: r.category, cost: r.cost, techs: jsonList(r.techs_json) }
+					])
+				)
+			},
+			depositCategories: Object.fromEntries(
+				rows<{ key: string; category: string }>(
+					'SELECT key, category FROM deposit WHERE category IS NOT NULL'
+				).map((r) => [r.key, r.category])
+			),
+			councilPositions: Object.fromEntries(
+				rows<{
+					key: string;
+					name: string | null;
+					civic_key: string | null;
+					leader_classes: string | null;
+					possible_json: string | null;
+				}>(
+					'SELECT key, name, civic_key, leader_classes, possible_json FROM council_position ORDER BY sort_order'
+				).map((r) => [
+					r.key,
+					{
+						name: r.name ?? r.key,
+						civic: r.civic_key,
+						classes: r.leader_classes ? r.leader_classes.split(',') : [],
+						possible: parseTrigger(r.possible_json)
+					}
+				])
 			),
 			capEffects: capEffects(
 				rows<{ owner: string; key: string; value: number }>(
@@ -224,4 +368,89 @@ export function blockerInfo(
 			}
 		])
 	);
+}
+
+const jsonList = <T = string>(json: string | null): T[] => (json ? JSON.parse(json) : []);
+
+/** Situations with their approaches' names. */
+export function situationTypes(
+	types: { key: string; name: string | null; category: string | null }[],
+	approaches: { situation_key: string; key: string; name: string | null }[]
+): GameData['situationTypes'] {
+	return Object.fromEntries(
+		types.map((t) => [
+			t.key,
+			{
+				name: t.name ?? t.key,
+				category: t.category,
+				approaches: Object.fromEntries(
+					approaches.filter((a) => a.situation_key === t.key).map((a) => [a.key, a.name ?? a.key])
+				)
+			}
+		])
+	);
+}
+
+/** Policies with their options, in the game files' order. */
+export function policies(
+	ps: { key: string; name: string | null; category: string | null }[],
+	options: {
+		key: string;
+		policy_key: string;
+		name: string | null;
+		potential_json: string | null;
+		valid_json: string | null;
+	}[]
+): GameData['policies'] {
+	return ps.map((p) => ({
+		key: p.key,
+		name: p.name ?? p.key,
+		category: p.category,
+		options: options
+			.filter((o) => o.policy_key === p.key)
+			.map((o) => ({
+				key: o.key,
+				name: o.name ?? o.key,
+				potential: parseTrigger(o.potential_json),
+				valid: parseTrigger(o.valid_json)
+			}))
+	}));
+}
+
+/** Pop faction types with their demands. */
+export function factionTypes(
+	types: {
+		key: string;
+		name: string | null;
+		description: string | null;
+		guiding_ethic: string | null;
+	}[],
+	demands: {
+		faction_key: string;
+		title: string | null;
+		unfulfilled_title: string | null;
+		description: string | null;
+		fulfilled_effect: number | null;
+		unfulfilled_effect: number | null;
+		potential_json: string | null;
+		trigger_json: string | null;
+	}[]
+): GameData['factionTypes'] {
+	return types.map((t) => ({
+		key: t.key,
+		name: t.name ?? t.key,
+		description: t.description,
+		ethic: t.guiding_ethic,
+		demands: demands
+			.filter((d) => d.faction_key === t.key)
+			.map((d) => ({
+				title: d.title ?? '',
+				unfulfilledTitle: d.unfulfilled_title,
+				description: d.description,
+				fulfilled: d.fulfilled_effect,
+				unfulfilled: d.unfulfilled_effect,
+				potential: parseTrigger(d.potential_json),
+				trigger: parseTrigger(d.trigger_json)
+			}))
+	}));
 }

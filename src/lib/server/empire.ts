@@ -118,7 +118,7 @@ export function empireData(url: URL) {
  * (`<kind>:<key>`), and their modifiers summed. The save lists authority, ethics and civics in one
  * list; each key is sorted by the kind the data DB knows it as — unknown ones (mods) under "other".
  */
-function identity(s: Snapshot | undefined) {
+export function identity(s: Snapshot | undefined) {
 	if (!s?.government) return null;
 	const all = getExplanations();
 	const KINDS = ['authority', 'ethic', 'civic'];

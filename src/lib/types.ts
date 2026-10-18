@@ -1,5 +1,7 @@
 // Shapes shared by server and pages.
 
+import type { Trigger } from './triggers.ts';
+
 export type Resources = Record<string, number>;
 
 export type Colony = {
@@ -286,7 +288,7 @@ export type Snapshot = {
 	progress: Progress | null; // null from the mod feed
 	// For milestones (#lib/milestones.ts); null from the mod feed and in older snapshots.
 	leaderRoster: { id: number; name: string; class: string }[] | null; // all hired leaders
-	ruler: { id: number; name: string } | null;
+	ruler: { id: number; name: string; level?: number } | null; // level: since 2026-10-18
 	agendasDone: string[] | null; // agendas on cooldown, i.e. passed recently
 	policies: Record<string, string> | null; // policy → selected option
 	government: string[] | null; // civics, ethics and authority keys
@@ -295,6 +297,160 @@ export type Snapshot = {
 	wars: War[] | null; // wars the country takes part in
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
+	// From the save's `meta`; null from the mod feed and in older snapshots.
+	gameVersion: string | null; // e.g. "Cygnus v4.5.2"
+	dlcs: string[] | null; // DLCs active in this save (`required_dlcs`), by name
+	mods: string[] | null; // mods active in this save, by name
+	// The government tab's facts (#lib/triggers.ts); null from the mod feed and in older snapshots.
+	countryType: string | null; // country.type, "default" for a normal empire
+	policyFlags: string[] | null; // country.policy_flags, set by the selected policy options
+	countryFlags: string[] | null; // keys of country.flags
+	council: CouncilSeat[] | null; // in the game's seat order, the ruler's seat not among them
+	councilSlots: number | null; // country.government.unlocked_civic_council_slots
+	edictTimes: { key: string; start: string | null; end: string | null }[] | null; // end null: perpetual
+	// What the empire knows of the galaxy and the others (server/world.ts); null from the mod feed
+	// and in older snapshots.
+	galaxy: GalaxySystem[] | null;
+	countries: CountryInfo[] | null; // empires in contact, or owning a station in a visited system
+	relations: Relation[] | null;
+	firstContacts: FirstContact[] | null;
+	situations: SituationInfo[] | null;
+	anomalies: AnomalyInfo[] | null; // found, not yet researched
+	specialProjects: ProjectInfo[] | null;
+	digSites: DigSite[] | null; // archaeological sites in visited systems
+	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
+	focus: EmpireFocus | null;
+	techOptions: Record<string, string[]> | null; // research field → the cards on offer
+	leaderList: LeaderInfo[] | null; // every hired leader
+};
+
+/** `country.focus` with its cards (top-level `focus_cards`). */
+export type EmpireFocus = {
+	priority: string | null; // the category picked, e.g. "development"
+	cards: { key: string; done: boolean }[]; // the active cards; `status=1` read as done
+	rewards: { category: string; current: string; progress: number }[]; // the next reward per category
+};
+
+export type LeaderInfo = {
+	id: number;
+	name: string;
+	class: string;
+	level: number;
+	age: number | null;
+	traits: string[];
+	job: string | null;
+	species: string | null; // its species' name
+	council: boolean; // holds a council seat
+	ruler: boolean;
+};
+
+/**
+ * A system of the galaxy. Every system has its place, star and hyperlanes (the game shows the
+ * whole map); owner, bodies and megastructures only once visited (or owned) — no fog-free peeking.
+ */
+export type GalaxySystem = {
+	id: number;
+	name: string;
+	x: number;
+	y: number;
+	star: string; // star_class, e.g. "sc_g", "sc_pulsar", "sc_black_hole", "sc_binary_1"
+	lanes: number[]; // hyperlanes to systems with a higher id
+	visited: boolean;
+	owned: boolean;
+	ownerId: number | null; // the station's owner, in a visited system
+	bodies: Body[] | null; // visited only
+	megastructures: string[]; // types, built or ruined, in a visited system
+};
+
+/** A star, planet, moon or asteroid in a visited system. */
+export type Body = {
+	id: number;
+	name: string;
+	class: string; // planet_class
+	size: number;
+	star: boolean;
+	moonOf: number | null;
+	ownerId: number | null;
+	colonized: boolean;
+	deposits: string[];
+	anomaly: string | null; // category, if the empire surveyed the planet
+	dist: number; // from the system's centre (in-system coordinates)
+};
+
+export type CountryInfo = {
+	id: number;
+	name: string;
+	type: string; // default, fallen_empire, enclave, caravaneer_home, primitive …
+	shipset: string | null; // graphical_culture
+	ethics: string[];
+	authority: string | null;
+	civics: string[];
+	governmentType: string | null;
+	origin: string | null;
+};
+
+/** `country.relations_manager.relation`: what we know of another empire. */
+export type Relation = {
+	countryId: number;
+	name: string; // the pre-communications name until communications
+	contact: boolean;
+	communications: boolean;
+	hostile: boolean;
+	opinion: number | null; // relation_current
+	trust: number;
+	threat: number;
+	borderRange: number | null; // null: not bordering (2147483647)
+};
+
+/** `first_contacts.contacts.<id>`, ours. */
+export type FirstContact = {
+	id: number;
+	countryId: number;
+	name: string;
+	systemId: number;
+	leaderId: number | null; // the envoy on it
+	leaderName: string | null;
+	date: string; // discovered
+	daysLeft: number | null;
+	difficulty: number;
+	clues: number;
+	stage: string;
+	status: string; // in_progress, finished, aborted
+};
+
+export type SituationInfo = {
+	id: number;
+	type: string;
+	progress: number;
+	monthly: number | null; // last month's progress
+	approach: string | null;
+	stage: string | null;
+};
+
+export type AnomalyInfo = { planetId: number; planet: string; systemId: number; category: string };
+export type ProjectInfo = {
+	id: number;
+	key: string;
+	planetId: number | null;
+	systemId: number | null;
+};
+export type DigSite = {
+	id: number;
+	type: string;
+	planetId: number;
+	systemId: number | null;
+	clues: number;
+	difficulty: number;
+	daysLeft: number | null;
+	excavating: boolean;
+};
+
+/** A council seat: `council_positions.<id> = { country type leader }`. */
+export type CouncilSeat = {
+	type: string;
+	leaderId: number | null;
+	leaderName: string | null;
+	leaderLevel: number | null;
 };
 
 /** A war the country is in. UNVERIFIED shape — no war seen in a save yet (see AGENTS.md). */
@@ -330,10 +486,41 @@ export type TimelineNode = {
 /** Names, costs and rules from the extraction's SQLite (STELLARIS_DATA_DB), loaded once. */
 export type GameData = {
 	techs: Record<string, { name: string; cost: number | null; area: string; tier: number | null }>;
-	agendas: Record<string, { name: string; cost: number | null }>;
+	agendas: Record<string, { name: string; cost: number | null; unlockedBy: string[] }>;
 	defines: Record<string, number>;
 	jobs: Record<string, { name: string; category: string | null }>;
-	edicts: Record<string, { name: string }>;
+	edicts: Record<
+		string,
+		{
+			name: string;
+			category: string | null; // edicts, campaigns, rare_edicts …
+			length: number | null; // days, −1 perpetual
+			cost: Record<string, Resources>; // cost / upkeep → resources, before multipliers
+			potential: Trigger | null;
+			unlockedBy: string[]; // traditions / perks
+		}
+	>;
+	policies: {
+		key: string;
+		name: string;
+		category: string | null;
+		options: { key: string; name: string; potential: Trigger | null; valid: Trigger | null }[];
+	}[];
+	factionTypes: {
+		key: string;
+		name: string;
+		description: string | null;
+		ethic: string | null;
+		demands: {
+			title: string;
+			unfulfilledTitle: string | null;
+			description: string | null;
+			fulfilled: number | null; // approval while met (±0.001 = none)
+			unfulfilled: number | null;
+			potential: Trigger | null; // when the demand applies
+			trigger: Trigger | null; // met when true
+		}[];
+	}[];
 	traits: Record<string, { cost: number | null }>;
 	speciesClasses: Record<string, { name: string; archetype: string | null }>;
 	archetypes: Record<string, { points: number; maxTraits: number }>;
@@ -374,6 +561,71 @@ export type GameData = {
 	// District caps (`district_*_max_add|mult`, `planet_max_districts_add|mult`) of what can sit on
 	// a planet, keyed `deposit:<key>`, `modifier:<key>` (static modifier), `building:<key>`
 	capEffects: Record<string, CapEffect[]>;
+	dlcs: Dlc[]; // every DLC the game knows (dlc_info.txt), in release order
+	situationTypes: Record<
+		string,
+		{ name: string; category: string | null; approaches: Record<string, string> }
+	>;
+	projects: Record<
+		string,
+		{ name: string; days: number | null; department: string | null; outcomes: Outcome[] }
+	>;
+	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
+	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
+	focus: {
+		categories: Record<string, string>; // key → name
+		cards: Record<
+			string,
+			{
+				category: string | null;
+				tier: number | null;
+				name: string;
+				hint: string | null;
+				requirement: string | null;
+			}
+		>;
+		rewards: Record<string, { category: string | null; cost: number | null; techs: string[] }>;
+	};
+	// council seats; modifiers (per leader level) are the `seat:<key>` explanations
+	councilPositions: Record<
+		string,
+		{ name: string; civic: string | null; classes: string[]; possible: Trigger | null }
+	>;
+};
+
+/** An event an anomaly or special project can lead to, with its title where it has one. */
+export type Outcome = { event: string; name: string | null };
+
+/** A DLC from the data DB's `dlc` table. */
+export type Dlc = {
+	name: string; // as the save's `required_dlcs` names it
+	key: string; // dlc_info.txt block key, "dlc029"
+	category: string | null; // expansion | story_pack | species_pack | content_pack; null if not installed
+	releaseDate: string | null; // ISO date from the Steam store
+	gameplay: boolean; // affects_gameplay
+	// merged into the base game: a gameplay DLC no script checks for (`host_checks` 0; 4.5.2:
+	// Utopia, Synthetic Dawn, Humanoids — and saves leave them out of `required_dlcs`)
+	baseGame: boolean;
+};
+
+/** A mod descriptor from the Stellaris user dir's mod folder (`<name>.mod`). */
+export type ModInfo = {
+	name: string;
+	version: string | null;
+	supportedVersion: string | null; // e.g. "v4.5.*"
+	tags: string[];
+	steamId: string | null; // remote_file_id; null for local mods
+	updated: string | null; // ISO time of the workshop's last update (launcher-v2.sqlite timeUpdated)
+};
+
+/** A mod's version as the dashboard saw it at one start (`mod_version` rows). */
+export type ModVersionSeen = {
+	name: string;
+	version: string | null;
+	supportedVersion: string | null;
+	updated: string | null;
+	seenAt: string; // ISO time of the dashboard start that saw it
+	gameDate: string | null; // the head's game date then
 };
 
 /** One district cap modifier, e.g. `{ key: 'district_farming_max_add', value: 3 }`. */

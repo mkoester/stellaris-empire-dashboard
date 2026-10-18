@@ -1,10 +1,30 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { ROW_LINES, type RowLine } from '#lib/profiles.ts';
+	import { ROW_LINES, type Display, type RowLine } from '#lib/profiles.ts';
 	import { profileAction, putSettings } from '#lib/settings.ts';
 
 	let { data } = $props();
+
+	// on/off display options: key, label, note
+	const SWITCHES: [
+		Exclude<keyof Display, 'colonyRowLine' | 'expansionRowLine'>,
+		string,
+		string?
+	][] = [
+		[
+			'habitatsAlways',
+			'Expansion: show habitat sites even before habitats can be built',
+			'later behind an “enable cheats” switch'
+		],
+		['anomalySpoilers', 'Situations: show what an anomaly can lead to', 'spoilers'],
+		['projectSpoilers', 'Situations: show what a special project leads to', 'spoilers'],
+		[
+			'contactStations',
+			'First contact map: colour visited systems by their station’s owner',
+			'the save knows them before you have communications'
+		]
+	];
 
 	let failure = $state('');
 	// every change reloads the page data (and the layout's tab bar, which shows the profile)
@@ -137,17 +157,19 @@
 				</select></label
 			>
 		{/each}
-		<label class="mt-2 block"
-			><input
-				type="checkbox"
-				checked={data.display.habitatsAlways}
-				onchange={(e) =>
-					act(() =>
-						putSettings({ display: { ...data.display, habitatsAlways: e.currentTarget.checked } })
-					)}
-			/>
-			Expansion: show habitat sites even before habitats can be built
-			<span class="text-gray-500">(later behind an “enable cheats” switch)</span></label
-		>
+		{#each SWITCHES as [key, label, note] (key)}
+			<label class="mt-2 block"
+				><input
+					type="checkbox"
+					checked={data.display[key]}
+					onchange={(e) =>
+						act(() =>
+							putSettings({ display: { ...data.display, [key]: e.currentTarget.checked } })
+						)}
+				/>
+				{label}
+				{#if note}<span class="text-gray-500">({note})</span>{/if}</label
+			>
+		{/each}
 	</section>
 </div>

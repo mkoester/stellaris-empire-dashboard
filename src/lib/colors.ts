@@ -41,6 +41,8 @@ const COLORS: Record<string, string> = {
 	policy: '#a3a830',
 	edict: '#b55bc4',
 	sector: '#3bb2c2',
+	dlc: '#2f8fe0',
+	mod: '#c8743a',
 	district: '#8c6d1f',
 	building: '#d0403a', // built with minerals
 	// planet classes by climate (#lib/climate.ts), after the climate-preference trait icons

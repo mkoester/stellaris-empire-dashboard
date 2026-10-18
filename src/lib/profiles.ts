@@ -1,4 +1,5 @@
 import { DEFAULT_VIEW, parseView, type ColonyView } from './colonyTable.ts';
+import { DEFAULT_CONTACT_VIEW, parseContactView, type ContactView } from './contacts.ts';
 import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from './expansion.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
@@ -13,11 +14,17 @@ export type Display = {
 	colonyRowLine: RowLine;
 	expansionRowLine: RowLine;
 	habitatsAlways: boolean; // habitat sites before habitats can be built (later behind cheats)
+	anomalySpoilers: boolean; // situations tab: what an anomaly can turn into
+	projectSpoilers: boolean; // situations tab: what a special project leads to
+	contactStations: boolean; // first contact map: whose station each visited system has
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
 	expansionRowLine: 'medium',
-	habitatsAlways: false
+	habitatsAlways: false,
+	anomalySpoilers: false,
+	projectSpoilers: false,
+	contactStations: false
 };
 
 export type ProfileSettings = {
@@ -25,6 +32,7 @@ export type ProfileSettings = {
 	chartEvents: ChartEvents;
 	colonyView: ColonyView;
 	expansionView: ExpansionView;
+	contactView: ContactView;
 	display: Display;
 };
 export type ProfileInfo = { id: string; name: string };
@@ -34,6 +42,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	chartEvents: {},
 	colonyView: DEFAULT_VIEW,
 	expansionView: DEFAULT_EXPANSION_VIEW,
+	contactView: DEFAULT_CONTACT_VIEW,
 	display: DEFAULT_DISPLAY
 };
 
@@ -46,7 +55,10 @@ export function parseDisplay(v: unknown): Display {
 	return {
 		colonyRowLine: line('colonyRowLine'),
 		expansionRowLine: line('expansionRowLine'),
-		habitatsAlways: o.habitatsAlways === true
+		habitatsAlways: o.habitatsAlways === true,
+		anomalySpoilers: o.anomalySpoilers === true,
+		projectSpoilers: o.projectSpoilers === true,
+		contactStations: o.contactStations === true
 	};
 }
 
@@ -58,6 +70,7 @@ export function parseSettings(v: unknown): ProfileSettings {
 		chartEvents: parseChartEvents(o.chartEvents) ?? {},
 		colonyView: parseView(o.colonyView),
 		expansionView: parseExpansionView(o.expansionView),
+		contactView: parseContactView(o.contactView),
 		display: parseDisplay(o.display)
 	};
 }

@@ -6,6 +6,8 @@ import type {
 	MigrationColony,
 	Route,
 	CivilianShip,
+	CouncilSeat,
+	CountryInfo,
 	ShipOrder,
 	ColonyDistrict,
 	MegaShipyard,
@@ -34,6 +36,16 @@ import type {
 import { MARKET_RESOURCES } from '#lib/market.ts';
 import { addGameDays, START_YEAR } from '#lib/series.ts';
 import { readZipEntry } from './zip.ts';
+import {
+	anomalies,
+	digSites,
+	firstContacts,
+	galaxy as galaxySystems,
+	knownCountries,
+	relations,
+	situations,
+	specialProjects
+} from './world.ts';
 
 // Save → Snapshot. `querySave` is the only part touching jomini; everything after it is pure and
 // takes plain objects, so it is unit-tested against hand-written fixtures.
@@ -63,6 +75,14 @@ export type RawSave = {
 	globalFlags: Record<string, Raw>; // top-level `flags`
 	countryNames: Record<string, string>; // owners of colonised planets
 	empireName: string;
+	meta: { version: string | null; dlcs: string[]; mods: string[] }; // the save's `meta` file
+	councilPositions: Record<string, Raw>; // council_positions.council_positions: every empire's seats
+	countries: Record<string, Omit<CountryInfo, 'id'>>; // every country, in brief
+	fleetOwner: Record<string, number>; // fleet → country, from each `fleets_manager.owned_fleets`
+	firstContacts: Record<string, Raw>; // first_contacts.contacts
+	situations: Record<string, Raw>; // situations.situations
+	archSites: Record<string, Raw>; // archaeological_sites.sites
+	focusCards: Record<string, Raw>; // top-level focus_cards
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
 	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
 	leaders: Record<string, Raw>;
@@ -89,6 +109,24 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 	const meta = jomini.parseText(readZipEntry(zip, 'meta'), opts);
 	return jomini.parseText(readZipEntry(zip, 'gamestate'), opts, (q) => {
 		const countryId = Number(first(q.at('/player'))?.country ?? 0);
+		const allCountries: Record<string, Raw> = q.at('/country') ?? {};
+		const fleetOwner: Record<string, number> = {};
+		const countries: RawSave['countries'] = {};
+		for (const [id, c] of Object.entries(allCountries)) {
+			if (!c || typeof c !== 'object') continue;
+			for (const o of items(c.fleets_manager?.owned_fleets))
+				if (typeof o?.fleet === 'number') fleetOwner[String(o.fleet)] = Number(id);
+			countries[id] = {
+				name: displayName(c.name),
+				type: String(c.type ?? ''),
+				shipset: strOrNull(c.graphical_culture),
+				ethics: items(c.ethos?.ethics).map(String),
+				authority: strOrNull(c.government?.authority),
+				civics: items(c.government?.civics).map(String),
+				governmentType: strOrNull(c.government?.type),
+				origin: strOrNull(c.government?.origin)
+			};
+		}
 		const colonies = q.at('/colony') ?? {};
 		const planets = q.at('/planets/planet') ?? {};
 		const wars = q.at('/war') ?? {};
@@ -112,13 +150,18 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			tick: Number(q.at('/tick') ?? 0),
 			randomCount: Number(q.at('/random_count') ?? 0),
 			countryId,
-			country: q.at(`/country/${countryId}`),
+			country: allCountries[String(countryId)],
 			colonies,
 			planets,
 			countryNames,
 			construction: q.at('/construction'),
 			deposits: q.at('/deposit') ?? {},
 			empireName: String(meta.name ?? ''),
+			meta: {
+				version: strOrNull(meta.version),
+				dlcs: items(meta.required_dlcs).map(String),
+				mods: items(meta.mods).map(String)
+			},
 			endGameStart: numOrNull(q.at('/galaxy/end_game_start')),
 			leaders: q.at('/leaders') ?? {},
 			monthlyTrades: q.at('/market/monthly_trades'),
@@ -146,7 +189,14 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			bypasses: q.at('/bypasses') ?? {},
 			naturalWormholes: q.at('/natural_wormholes') ?? {},
 			globalFlags: q.at('/flags') ?? {},
-			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') }
+			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') },
+			councilPositions: q.at('/council_positions/council_positions') ?? {},
+			countries,
+			fleetOwner,
+			firstContacts: q.at('/first_contacts/contacts') ?? {},
+			situations: q.at('/situations/situations') ?? {},
+			archSites: q.at('/archaeological_sites/sites') ?? {},
+			focusCards: q.at('/focus_cards') ?? {}
 		};
 	});
 }
@@ -250,8 +300,138 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		wars: wars(raw),
 		warLostDate:
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
-		tradeDeals: tradeDeals(raw)
+		tradeDeals: tradeDeals(raw),
+		gameVersion: raw.meta.version,
+		dlcs: raw.meta.dlcs,
+		mods: raw.meta.mods,
+		countryType: strOrNull(raw.country?.type),
+		policyFlags: items(raw.country?.policy_flags).map(String),
+		countryFlags: Object.keys(raw.country?.flags ?? {}),
+		council: council(raw),
+		councilSlots: numOrNull(raw.country?.government?.unlocked_civic_council_slots),
+		edictTimes: edictTimes(raw.country?.edicts),
+		...world(raw),
+		focus: empireFocus(raw),
+		techOptions: Object.fromEntries(
+			Object.entries(raw.country?.tech_status?.alternatives ?? {}).map(([area, techs]) => [
+				area,
+				items(techs).map(String)
+			])
+		),
+		leaderList: leaderList(raw)
 	};
+}
+
+/**
+ * `country.focus = { active = { <card ids> } priority = { current } reward = { rewards = { {
+ * category current progress } } } }`; a card is `focus_cards.<id> = { type status }`, status 1
+ * read as done (2207.03.10: 1 on Hire a Commander, Adopt a Tradition; 0 on Declare a Rival).
+ */
+export function empireFocus(raw: Pick<RawSave, 'country' | 'focusCards'>) {
+	const f = raw.country?.focus;
+	if (!f || typeof f !== 'object') return null;
+	return {
+		priority: strOrNull(f.priority?.current),
+		cards: list(f.active).flatMap((id) => {
+			const c = raw.focusCards[String(id)];
+			return typeof c?.type === 'string' ? [{ key: c.type, done: c.status === 1 }] : [];
+		}),
+		rewards: items(f.reward?.rewards)
+			.filter((r) => typeof r?.category === 'string')
+			.map((r) => ({
+				category: r.category,
+				current: String(r.current ?? ''),
+				progress: num(r.progress)
+			}))
+	};
+}
+
+/** Every hired leader (`country.owned_leaders`), with its traits and whether it sits on the council. */
+export function leaderList(
+	raw: Pick<RawSave, 'country' | 'leaders' | 'speciesDb' | 'councilPositions'>
+) {
+	const seated = new Set(
+		list(raw.country?.government?.council_positions).map((id) =>
+			numOrNull(raw.councilPositions[String(id)]?.leader)
+		)
+	);
+	const rulerId = numOrNull(raw.country?.ruler);
+	return list(raw.country?.owned_leaders).flatMap((id) => {
+		const l = raw.leaders[String(id)];
+		if (!l || typeof l !== 'object') return [];
+		const sp = raw.speciesDb[String(l.species)];
+		return [
+			{
+				id,
+				name: leaderName(l.name),
+				class: String(l.class),
+				level: num(l.level),
+				age: numOrNull(l.age),
+				traits: items(l.traits).map(String),
+				job: strOrNull(l.job),
+				species: sp ? displayName(sp.name) : null,
+				council: seated.has(id),
+				ruler: id === rulerId
+			}
+		];
+	});
+}
+
+/** The galaxy and the others, as the empire knows them (server/world.ts). */
+function world(raw: RawSave) {
+	const own = ownSystems(raw);
+	const gal = galaxySystems(raw, own);
+	const rel = relations(raw);
+	const contacts = firstContacts(raw);
+	const visited = new Set(gal.filter((s) => s.visited).map((s) => s.id));
+	return {
+		galaxy: gal,
+		relations: rel,
+		firstContacts: contacts,
+		countries: knownCountries(raw, [
+			...rel.map((r) => r.countryId),
+			...contacts.map((c) => c.countryId),
+			...gal.flatMap((s) => (s.ownerId === null ? [] : [s.ownerId]))
+		]),
+		situations: situations(raw),
+		anomalies: anomalies(raw),
+		specialProjects: specialProjects(raw),
+		digSites: digSites(raw, visited)
+	};
+}
+
+/**
+ * The council's seats, in the order `country.government.council_positions` lists them, from the
+ * top-level `council_positions` (2207.03.10: defense, research, state; the ruler is apart).
+ */
+export function council(
+	raw: Pick<RawSave, 'country' | 'councilPositions' | 'leaders'>
+): CouncilSeat[] {
+	return list(raw.country?.government?.council_positions).flatMap((id) => {
+		const p = raw.councilPositions[String(id)];
+		if (!p || typeof p !== 'object') return [];
+		const leaderId = numOrNull(p.leader);
+		const l = leaderId === null ? undefined : raw.leaders[String(leaderId)];
+		return [
+			{
+				type: String(p.type),
+				leaderId: l && typeof l === 'object' ? leaderId : null,
+				leaderName: l && typeof l === 'object' ? leaderName(l.name) : null,
+				leaderLevel: l && typeof l === 'object' ? numOrNull(l.level) : null
+			}
+		];
+	});
+}
+
+/** `country.edicts = { { edict date start_date perpetual } }`; a perpetual one's `date` is junk. */
+export function edictTimes(edicts: Raw) {
+	return items(edicts)
+		.filter((e) => typeof e?.edict === 'string')
+		.map((e) => ({
+			key: String(e.edict),
+			start: strOrNull(e.start_date),
+			end: e.perpetual === true || e.perpetual === 'yes' ? null : strOrNull(e.date)
+		}));
 }
 
 /**
@@ -375,11 +555,16 @@ export function leaderRoster(raw: Pick<RawSave, 'country' | 'leaders'>) {
 export function ruler(raw: Pick<RawSave, 'country' | 'leaders'>) {
 	const id = num(raw.country?.ruler);
 	const l = raw.leaders[String(id)];
-	return l && typeof l === 'object' ? { id, name: leaderName(l.name) } : null;
+	if (!l || typeof l !== 'object') return null;
+	return {
+		id,
+		name: leaderName(l.name),
+		...(typeof l.level === 'number' ? { level: l.level } : {})
+	};
 }
 
 /** `name = { full_names = { key=… } }` (or a list of parts) → "Mncedisi Iweala". */
-function leaderName(name: Raw): string {
+export function leaderName(name: Raw): string {
 	const full = name?.full_names ?? name;
 	const parts = Array.isArray(full) ? full : [full];
 	return parts
@@ -1455,9 +1640,9 @@ const COLONY_SUFFIX = [
 ];
 const ordinal = (n: number) =>
 	`${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th')}`;
-const num = (v: Raw) => (typeof v === 'number' ? v : 0);
-const numOrNull = (v: Raw) => (typeof v === 'number' ? v : null);
-const strOrNull = (v: Raw) => (typeof v === 'string' ? v : null);
+export const num = (v: Raw) => (typeof v === 'number' ? v : 0);
+export const numOrNull = (v: Raw) => (typeof v === 'number' ? v : null);
+export const strOrNull = (v: Raw) => (typeof v === 'string' ? v : null);
 /** Every `country=<id>` anywhere below `v` (wars and trade deals name their sides this way). */
 export function countryIds(v: Raw): number[] {
 	if (!v || typeof v !== 'object') return [];
@@ -1466,6 +1651,7 @@ export function countryIds(v: Raw): number[] {
 	);
 }
 
-const items = (v: Raw): Raw[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]);
-const list = (v: Raw): number[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]).map(Number);
-const first = (v: Raw) => (Array.isArray(v) ? v[0] : v);
+export const items = (v: Raw): Raw[] => (Array.isArray(v) ? v : v === undefined ? [] : [v]);
+export const list = (v: Raw): number[] =>
+	(Array.isArray(v) ? v : v === undefined ? [] : [v]).map(Number);
+export const first = (v: Raw) => (Array.isArray(v) ? v[0] : v);

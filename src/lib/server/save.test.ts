@@ -39,6 +39,14 @@ const raw: RawSave = {
 	randomCount: 123,
 	countryId: 0,
 	empireName: 'Yastun Devourers',
+	meta: { version: 'Cygnus v4.5.2', dlcs: ['Utopia'], mods: [] },
+	councilPositions: {},
+	countries: {},
+	fleetOwner: {},
+	firstContacts: {},
+	situations: {},
+	archSites: {},
+	focusCards: {},
 	endGameStart: 150,
 	galaxy: { technology: 1.25, traditions: 1 },
 	leaders: {},
@@ -1124,8 +1132,15 @@ describe.skipIf(!real)('real save', () => {
 		expect(s.colonies[0].habitability).toBeLessThanOrEqual(1);
 		expect(s.governmentType).toMatch(/^gov_/);
 		expect(s.origin).toMatch(/^origin_/);
-		expect(s.governmentType).toMatch(/^gov_/);
-		expect(s.origin).toMatch(/^origin_/);
+		expect(s.gameVersion).toMatch(/v\d+\.\d+/);
+		expect(s.dlcs?.length).toBeGreaterThan(0);
+		expect(s.mods).not.toBeNull();
+		expect(s.galaxy?.some((g) => g.owned && g.ownerId === s.countryId)).toBe(true);
+		expect(s.firstContacts?.length).toBeGreaterThan(0);
+		expect(s.relations?.length).toBeGreaterThan(0);
+		expect(s.council?.length).toBeGreaterThan(0);
+		expect(s.focus?.rewards.length).toBeGreaterThan(0);
+		expect(s.leaderList?.length).toBeGreaterThan(0);
 		console.log(
 			JSON.stringify({
 				leaders: s.leaders,

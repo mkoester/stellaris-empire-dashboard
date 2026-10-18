@@ -53,7 +53,27 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	origin: null,
 	wars: null,
 	warLostDate: null,
-	tradeDeals: null
+	tradeDeals: null,
+	gameVersion: null,
+	dlcs: null,
+	mods: null,
+	countryType: null,
+	policyFlags: null,
+	countryFlags: null,
+	council: null,
+	councilSlots: null,
+	edictTimes: null,
+	galaxy: null,
+	countries: null,
+	relations: null,
+	firstContacts: null,
+	situations: null,
+	anomalies: null,
+	specialProjects: null,
+	digSites: null,
+	focus: null,
+	techOptions: null,
+	leaderList: null
 };
 
 const COLONY: Omit<Colony, 'planetId' | 'name'> = {

@@ -31,7 +31,9 @@ export const KINDS = [
 	{ kind: 'government', label: 'government: civics, ethics, authority, type, origin' },
 	{ kind: 'policy', label: 'policies' },
 	{ kind: 'edict', label: 'edicts' },
-	{ kind: 'sector', label: 'sectors' }
+	{ kind: 'sector', label: 'sectors' },
+	{ kind: 'dlc', label: 'DLCs enabled / disabled' },
+	{ kind: 'mod', label: 'mods enabled / disabled' }
 ] as const;
 export type EventKind = (typeof KINDS)[number]['kind'];
 export const KIND_IDS: readonly string[] = KINDS.map((k) => k.kind);
@@ -312,6 +314,15 @@ const DETECTORS = [
 	field(
 		(s) => s.sectors?.map((x) => x.name),
 		(a, b) => added(a, b).map((n) => ({ kind: 'sector' as const, label: `new sector: ${n}` }))
+	),
+	...(['dlc', 'mod'] as const).map((kind) =>
+		field(
+			(s) => (kind === 'dlc' ? s.dlcs : s.mods),
+			(a, b) => [
+				...added(a, b).map((n) => ({ kind, label: `${kind} enabled: ${n}` })),
+				...added(b, a).map((n) => ({ kind, label: `${kind} disabled: ${n}` }))
+			]
+		)
 	)
 ] satisfies ((snaps: Snapshot[], names: Names) => { s: Snapshot; found: Found[] }[])[];
 

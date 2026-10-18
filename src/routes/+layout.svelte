@@ -52,6 +52,61 @@
 			name: 'events',
 			href: node ? resolve(`/events?node=${node}`) : resolve('/events'),
 			active: path === '/events'
+		},
+		{
+			name: 'government',
+			href: node ? resolve(`/government?node=${node}`) : resolve('/government'),
+			active: path === '/government'
+		},
+		{
+			name: 'situations',
+			href: node ? resolve(`/situations?node=${node}`) : resolve('/situations'),
+			active: path === '/situations'
+		},
+		{
+			name: 'focus',
+			href: node ? resolve(`/focus?node=${node}`) : resolve('/focus'),
+			active: path === '/focus'
+		},
+		{
+			name: 'traditions',
+			href: node ? resolve(`/traditions?node=${node}`) : resolve('/traditions'),
+			active: path === '/traditions'
+		},
+		{
+			name: 'tech',
+			href: node ? resolve(`/tech?node=${node}`) : resolve('/tech'),
+			active: path === '/tech'
+		},
+		{
+			name: 'leaders',
+			href: node ? resolve(`/leaders?node=${node}`) : resolve('/leaders'),
+			active: path === '/leaders'
+		},
+		{
+			name: 'species',
+			href: node ? resolve(`/species?node=${node}`) : resolve('/species'),
+			active: path === '/species'
+		},
+		{
+			name: 'contacts',
+			href: node ? resolve(`/contacts?node=${node}`) : resolve('/contacts'),
+			active: path === '/contacts'
+		},
+		{
+			name: 'megastructures',
+			href: node ? resolve(`/megastructures?node=${node}`) : resolve('/megastructures'),
+			active: path === '/megastructures'
+		},
+		{
+			name: 'mods',
+			href: node ? resolve(`/mods?node=${node}`) : resolve('/mods'),
+			active: path === '/mods'
+		},
+		{
+			name: 'dlc',
+			href: node ? resolve(`/dlc?node=${node}`) : resolve('/dlc'),
+			active: path === '/dlc'
 		}
 	]);
 	const tabHref = (id: string) =>

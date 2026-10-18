@@ -1,4 +1,5 @@
 import type { ColonyView } from '#lib/colonyTable.ts';
+import type { ContactView } from '#lib/contacts.ts';
 import type { ExpansionView } from '#lib/expansion.ts';
 import {
 	activeId,
@@ -124,6 +125,7 @@ const settings = () => activeProfile(getDb()).settings;
 export const tabs = (): CustomTab[] => settings().tabs;
 export const colonyView = (): ColonyView => settings().colonyView;
 export const expansionView = (): ExpansionView => settings().expansionView;
+export const contactView = (): ContactView => settings().contactView;
 export const display = (): Display => settings().display;
 // Colony charts were stored as `planet:<title>` before the rename.
 export const chartEvents = (): ChartEvents =>

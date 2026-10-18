@@ -1,0 +1,138 @@
+import type { Dlc, ModInfo, ModVersionSeen } from './types.ts';
+
+// DLCs and mods: the catalogue (data DB, mod descriptors) against what a save has active.
+// Their changelog is the `dlc` and `mod` milestones (#lib/milestones.ts).
+
+/** The DLC categories of the game's DLC descriptors, in the order the dlc tab groups them. */
+export const DLC_CATEGORIES = [
+	{ key: 'expansion', label: 'major expansions' },
+	{ key: 'story_pack', label: 'story packs' },
+	{ key: 'species_pack', label: 'species packs' },
+	{ key: 'content_pack', label: 'content and portrait packs' },
+	{ key: null, label: 'other (not installed)' }
+] as const;
+
+export type DlcRow = Dlc & { active: boolean | null }; // null: no save says
+
+/**
+ * Every known DLC with whether `active` (the save's `required_dlcs`) has it; a DLC the save
+ * names but the data DB does not know (a newer game) is added at the end.
+ */
+export function dlcRows(catalogue: Dlc[], active: string[] | null): DlcRow[] {
+	const known = new Set(catalogue.map((d) => d.name));
+	const unknown = (active ?? []).filter((n) => !known.has(n));
+	return [
+		...catalogue.map((d) => ({ ...d, active: active ? active.includes(d.name) : null })),
+		...unknown.map((name) => ({
+			name,
+			key: '',
+			category: null,
+			releaseDate: null,
+			gameplay: true,
+			baseGame: false,
+			active: true
+		}))
+	];
+}
+
+export type ModRow = ModInfo & { active: boolean | null; supported: boolean | null };
+
+/**
+ * Every installed mod (descriptor) with whether the save has it active and whether it claims to
+ * support `gameVersion`; an active mod without a descriptor is listed by name.
+ */
+export function modRows(
+	descriptors: ModInfo[],
+	active: string[] | null,
+	gameVersion: string | null
+): ModRow[] {
+	const known = new Set(descriptors.map((m) => m.name));
+	const missing = (active ?? []).filter((n) => !known.has(n));
+	return [
+		...descriptors,
+		...missing.map((name) => ({
+			name,
+			version: null,
+			supportedVersion: null,
+			tags: [],
+			steamId: null,
+			updated: null
+		}))
+	].map((m) => ({
+		...m,
+		active: active ? active.includes(m.name) : null,
+		supported: supports(m.supportedVersion, gameVersion)
+	}));
+}
+
+/**
+ * Does a descriptor's `supported_version` ("v4.5.*", "4.5.2", "*") cover the game version
+ * ("Cygnus v4.5.2")? Compared part by part, `*` matching the rest; null when either is unknown.
+ */
+export function supports(supported: string | null, gameVersion: string | null): boolean | null {
+	const game = gameVersion?.match(/(\d+(?:\.\d+)*)/)?.[1];
+	if (!supported || !game) return null;
+	const want = supported.trim().replace(/^v/, '').split('.');
+	const have = game.split('.');
+	for (const [i, part] of want.entries()) {
+		if (part === '*') return true;
+		if (part !== (have[i] ?? '0')) return false;
+	}
+	return true;
+}
+
+/** A `mod/*.mod` descriptor: `key="value"` lines and a `tags={ "…" }` block. */
+export function parseModDescriptor(text: string): ModInfo | null {
+	const value = (key: string) => text.match(new RegExp(`^\\s*${key}\\s*=\\s*"([^"]*)"`, 'm'))?.[1];
+	const name = value('name');
+	if (!name) return null;
+	const tags = text.match(/^\s*tags\s*=\s*\{([^}]*)\}/m)?.[1];
+	return {
+		name,
+		version: value('version') ?? null,
+		supportedVersion: value('supported_version') ?? null,
+		tags: tags ? [...tags.matchAll(/"([^"]*)"/g)].map((m) => m[1]) : [],
+		steamId: value('remote_file_id') ?? null,
+		updated: null
+	};
+}
+
+/** The launcher's own record of a workshop mod (`launcher-v2.sqlite`, table `mods`). */
+export type LauncherMod = { steamId: string; version: string | null; timeUpdated: number | null };
+
+/** Descriptors completed from the launcher: its version where theirs has none, the update time. */
+export function withLauncher(descriptors: ModInfo[], launcher: LauncherMod[]): ModInfo[] {
+	const bySteam = new Map(launcher.map((l) => [l.steamId, l]));
+	return descriptors.map((m) => {
+		const l = m.steamId ? bySteam.get(m.steamId) : undefined;
+		return {
+			...m,
+			version: m.version ?? (l?.version || null),
+			updated: l?.timeUpdated ? new Date(l.timeUpdated * 1000).toISOString() : null
+		};
+	});
+}
+
+export type ModVersionChange = {
+	name: string;
+	from: ModVersionSeen;
+	to: ModVersionSeen;
+};
+
+/** Updates between consecutive sightings of each mod (a first sighting is no change), newest first. */
+export function versionChanges(seen: ModVersionSeen[]): ModVersionChange[] {
+	const last = new Map<string, ModVersionSeen>();
+	const out: ModVersionChange[] = [];
+	for (const s of [...seen].sort((a, b) => a.seenAt.localeCompare(b.seenAt))) {
+		const prev = last.get(s.name);
+		if (
+			prev &&
+			(prev.version !== s.version ||
+				prev.supportedVersion !== s.supportedVersion ||
+				prev.updated !== s.updated)
+		)
+			out.push({ name: s.name, from: prev, to: s });
+		last.set(s.name, s);
+	}
+	return out.reverse();
+}

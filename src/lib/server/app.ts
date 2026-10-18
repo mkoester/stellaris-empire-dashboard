@@ -1,11 +1,21 @@
 import { EventEmitter } from 'node:events';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { headCampaign, openDb, record, type Db, type Recorded } from './db.ts';
-import type { GameData } from '#lib/types.ts';
+import {
+	headCampaign,
+	headId,
+	nodes,
+	noteModVersions,
+	openDb,
+	record,
+	type Db,
+	type Recorded
+} from './db.ts';
+import type { GameData, ModInfo } from '#lib/types.ts';
 import { tailLog, toLogSnapshot } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
+import { loadModDescriptors } from './mods.ts';
 import { watchSaves } from './watch.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
@@ -23,6 +33,7 @@ type State = {
 	db?: Db;
 	gameData?: GameData;
 	explanations?: Explanations;
+	mods?: ModInfo[];
 };
 const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
 const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter() });
@@ -37,6 +48,12 @@ export function getExplanations(): Explanations {
 export function getGameData(): GameData {
 	if (!state.gameData) throw new Error('dashboard not started');
 	return state.gameData;
+}
+
+/** The installed mods' descriptors, read at start. */
+export function getMods(): ModInfo[] {
+	if (!state.mods) throw new Error('dashboard not started');
+	return state.mods;
 }
 
 export function getDb(): Db {
@@ -66,6 +83,7 @@ async function run() {
 	const saveDir = required('STELLARIS_SAVE_DIR');
 	state.gameData = loadGameData(required('STELLARIS_DATA_DB'));
 	state.explanations = loadExplanations(required('STELLARIS_DATA_DB'));
+	state.mods = loadModDescriptors(saveDir);
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));
 
@@ -73,6 +91,14 @@ async function run() {
 		onIngest: (r) => recorded(r, r.file),
 		onError: (file, e) => console.error(`cannot ingest ${file}:`, e)
 	});
+	// after the backfill, so the note carries the latest game date
+	const head = headId(store);
+	noteModVersions(
+		store,
+		state.mods,
+		new Date().toISOString(),
+		nodes(store).find((n) => n.id === head)?.date ?? null
+	);
 
 	const gameLog = process.env.STELLARIS_GAME_LOG;
 	if (gameLog) {
