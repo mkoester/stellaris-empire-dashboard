@@ -61,7 +61,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   with a migration instead.
 
 `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`; vitest swallows its
-`console.log` dump unless run with `--silent=false`.
+`console.log` dump unless run with `--silent=false`. Its assertions fit our 4.5.2 campaign (a
+4.0.1 save fails one); for an ad-hoc look at any save, a throwaway `src/lib/server/*.test.ts`
+calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — delete it after.
 
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
 dev server ingests saves and moves the head). Copy `dashboard.sqlite*` (WAL files included) to a
@@ -139,6 +141,10 @@ root, launcher closed).
 
 ### Sandbox notes (Claude Code on the Mac)
 
+On Linux (2026-10-17) Node 24 is first on PATH — no `fnm` prefix — and check, test, lint and a
+dev server on a DB copy all ran sandboxed. Kill that server by `$!`, not `pkill -f <pattern>`,
+which also matches the Bash command's own shell and ends it (exit 143).
+
 - **`pnpm install` / `pnpm add` must run outside the sandbox** (`! pnpm install`): pnpm 12 fails to
   take its store lock (`pnpm-store-operation-locks: Operation not permitted`) even with the store in
   `$TMPDIR`. Tests, check, build and dev don't touch the store and work sandboxed.
@@ -148,6 +154,11 @@ root, launcher closed).
   `.claude/settings.json`); start it and make the requests in one Bash command.
 
 ## Save format facts (4.5.2, read from a real save)
+
+**For a shape not yet seen in our saves** (wars, trade deals, galactic market): the other parser,
+eliasdoehne/stellaris-dashboard (`stellarisdashboard/parsing/timeline.py`), reads many; a 4.0.1
+save at 2312 lives in chennin/stellaris-dashboard-test-saves (galactic market and GalCom, but
+still no trade deal). Download into `$TMPDIR`, never into the repo.
 
 A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `gamestate` at 2200).
 
