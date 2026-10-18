@@ -108,9 +108,16 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
 panels by id (`EmpirePanel.svelte`);
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
-goes there and into `EmpirePanel`**. Custom tabs and the theme (`system`/`light`/`dark`) are
-stored server-side in the `setting` table (`PUT /api/settings`), which a `SCHEMA` bump does not
-drop. The theme is a class on `<html>`, put there by `hooks.server.ts` (no flash); `layout.css`
+goes there and into `EmpirePanel`**. Settings are stored server-side in the `setting` table
+(`PUT /api/settings`), which a `SCHEMA` bump does not drop. The theme (`system`/`light`/`dark`)
+is global; everything else (custom tabs, chart events, the colonies view, display options) lives
+in a **profile** (`#lib/profiles.ts`, `server/settings.ts`): rows `profiles`, `profile:<id>`,
+`activeProfile`, `campaignProfiles`. The profile in use is the current campaign's (the head's),
+else the last picked — picking one while a campaign runs makes it that campaign's. The **config
+tab** (`⚙`, `/settings`) manages them (`/api/profiles`: create, rename, delete, select, import;
+`GET /api/profiles/<id>` exports `{ format: 'stellaris-dashboard-profile', version: 1, name,
+settings }`). The first read made profile `default` from the rows stored before profiles; those
+stay, unread. The theme is a class on `<html>`, put there by `hooks.server.ts` (no flash); `layout.css`
 defines the `dark:` variant on it. Canvases (uPlot) pick axis colours per draw and redraw on
 `onThemeChange` (`#lib/theme.ts`).
 

@@ -81,7 +81,12 @@
 			<a class={tab(t.active)} href={t.href}>{t.name}</a>
 		{/each}
 		<button class={tab(false)} onclick={addTab} title="add a tab of your own">+</button>
-		<label class="ml-auto pb-1 text-gray-500"
+		<a
+			class="ml-auto {tab(path === '/settings')}"
+			href={resolve('/settings')}
+			title="config: profiles and display">⚙ {data.profile.name}</a
+		>
+		<label class="pb-1 text-gray-500"
 			>theme
 			<select
 				class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"

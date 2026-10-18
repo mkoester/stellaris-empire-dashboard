@@ -1,5 +1,7 @@
-import { chartEvents, tabs, theme } from '#lib/server/settings.ts';
+import { getDb } from '#lib/server/app.ts';
+import { activeProfile, chartEvents, tabs, theme } from '#lib/server/settings.ts';
 
 export function load() {
-	return { theme: theme(), tabs: tabs(), chartEvents: chartEvents() };
+	const { id, name } = activeProfile(getDb());
+	return { theme: theme(), tabs: tabs(), chartEvents: chartEvents(), profile: { id, name } };
 }

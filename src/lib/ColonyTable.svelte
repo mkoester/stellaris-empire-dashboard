@@ -21,7 +21,8 @@
 		names,
 		colors,
 		explain,
-		node
+		node,
+		rowLine = 2
 	}: {
 		rows: ColonyRow[];
 		columns: ColumnId[];
@@ -33,6 +34,7 @@
 		colors: Record<string, string>;
 		explain: Record<string, Explanation>;
 		node: number | null;
+		rowLine?: number; // px between colonies (config tab)
 	} = $props();
 
 	const show = (id: ColumnId) => columns.includes(id);
@@ -269,7 +271,8 @@
 					{#if show('automation')}<td class="p-1">{r.automation}</td>{/if}
 				</tr>
 				<tr
-					class="border-b border-gray-200 text-xs dark:border-gray-800"
+					class="border-b border-gray-300 text-xs dark:border-gray-700"
+					style:border-bottom-width="{rowLine}px"
 					style:box-shadow={mark ? `inset 4px 0 0 ${mark}` : undefined}
 				>
 					<td class="p-1 pb-2 pl-2" colspan={width}>

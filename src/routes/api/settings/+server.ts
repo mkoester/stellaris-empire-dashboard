@@ -1,13 +1,14 @@
 import { error, json } from '@sveltejs/kit';
+import { parseView } from '#lib/colonyTable.ts';
+import { parseDisplay } from '#lib/profiles.ts';
 import { getDb } from '#lib/server/app.ts';
 import { setSetting } from '#lib/server/db.ts';
-import { chartEvents } from '#lib/server/settings.ts';
-import { parseView } from '#lib/colonyTable.ts';
+import { updateProfile } from '#lib/server/settings.ts';
 import { parseChartEvents, parseTabs, parseTheme } from '#lib/settings.ts';
 
-// Stores the viewer settings a page changed: `{ theme }`, `{ tabs }` (the whole list) and/or
-// `{ chartEvents }` (entries merged into the stored map) and/or `{ colonyView }` (the colonies tab's
-// mode, sort, filters and columns, replaced whole).
+// Stores the viewer settings a page changed. `{ theme }` is global; into the profile in use go
+// `{ tabs }` (the whole list), `{ chartEvents }` (entries merged into the stored map),
+// `{ colonyView }` (the colonies tab's mode, sort, filters and columns) and `{ display }`.
 export async function PUT({ request }) {
 	const body = await request.json().catch(() => error(400, 'not JSON'));
 	if (body?.theme !== undefined) {
@@ -18,13 +19,15 @@ export async function PUT({ request }) {
 	if (body?.tabs !== undefined) {
 		const tabs = parseTabs(body.tabs);
 		if (!tabs) error(400, 'malformed tabs');
-		setSetting(getDb(), 'tabs', tabs);
+		updateProfile(getDb(), { tabs });
 	}
 	if (body?.chartEvents !== undefined) {
-		const entries = parseChartEvents(body.chartEvents);
-		if (!entries) error(400, 'malformed chartEvents');
-		setSetting(getDb(), 'chartEvents', { ...chartEvents(), ...entries });
+		const chartEvents = parseChartEvents(body.chartEvents);
+		if (!chartEvents) error(400, 'malformed chartEvents');
+		updateProfile(getDb(), { chartEvents });
 	}
-	if (body?.colonyView !== undefined) setSetting(getDb(), 'colonyView', parseView(body.colonyView));
+	if (body?.colonyView !== undefined)
+		updateProfile(getDb(), { colonyView: parseView(body.colonyView) });
+	if (body?.display !== undefined) updateProfile(getDb(), { display: parseDisplay(body.display) });
 	return json({ ok: true });
 }

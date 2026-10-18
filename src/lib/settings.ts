@@ -1,4 +1,5 @@
 import type { ColonyView } from './colonyTable.ts';
+import type { Display } from './profiles.ts';
 import { KIND_IDS, type EventKind } from './milestones.ts';
 
 // Viewer settings kept on the server (`setting` table), so every device sees the same: the theme,
@@ -135,6 +136,7 @@ export async function putSettings(patch: {
 	tabs?: CustomTab[];
 	chartEvents?: ChartEvents;
 	colonyView?: ColonyView;
+	display?: Display;
 }) {
 	const r = await fetch('/api/settings', {
 		method: 'PUT',
@@ -142,4 +144,21 @@ export async function putSettings(patch: {
 		body: JSON.stringify(patch)
 	});
 	if (!r.ok) throw new Error(`saving settings failed: ${r.status} ${await r.text()}`);
+}
+
+/** Acts on the profiles (`/api/profiles`); the id acted on. */
+export async function profileAction(
+	body:
+		| { action: 'create'; name: string; copyOf?: string }
+		| { action: 'rename'; id: string; name: string }
+		| { action: 'delete' | 'select'; id: string }
+		| { action: 'import'; file: unknown }
+): Promise<string> {
+	const r = await fetch('/api/profiles', {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify(body)
+	});
+	if (!r.ok) throw new Error(`${body.action} failed: ${r.status} ${await r.text()}`);
+	return ((await r.json()) as { id: string }).id;
 }

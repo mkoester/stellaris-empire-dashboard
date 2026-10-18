@@ -156,6 +156,7 @@
 		colors={data.colors}
 		explain={data.explain}
 		{node}
+		rowLine={data.rowLine}
 	/>
 {/snippet}
 
