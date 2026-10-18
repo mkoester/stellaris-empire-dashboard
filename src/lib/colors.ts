@@ -45,6 +45,10 @@ const COLORS: Record<string, string> = {
 	mod: '#c8743a',
 	district: '#8c6d1f',
 	building: '#d0403a', // built with minerals
+	// leader classes, after the game's class icons
+	'class-official': '#d9a521',
+	'class-commander': '#d0403a',
+	'class-scientist': '#2f8fe0',
 	// empire focus categories, after the game's focus panel (blue, red, gold; core cards brown)
 	'focus-exploration': '#3a86c8',
 	'focus-conquest': '#c8463a',

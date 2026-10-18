@@ -146,13 +146,15 @@ export type SeatRow = {
 	key: string;
 	name: string;
 	leader: string | null;
-	level: number | null;
+	level: number | null; // the leader's level
+	bonus: number; // the leader's own extra levels (bonus_skill_level)
+	traits: string[];
 	ruler: boolean;
 };
 
 /**
  * The council as the game shows it: the ruler's seat (by authority, `councilor_ruler_<kind>`; not
- * in the save's seat list) and the seats held, each with its leader and level.
+ * in the save's seat list) and the seats held, each with its leader, level and traits.
  */
 export function seatRows(
 	council: CouncilSeat[],
@@ -169,6 +171,8 @@ export function seatRows(
 						name: positions[rulerKey].name,
 						leader: ruler?.name ?? null,
 						level: ruler?.level ?? null,
+						bonus: ruler?.bonus ?? 0,
+						traits: ruler?.traits ?? [],
 						ruler: true
 					}
 				]
@@ -178,9 +182,31 @@ export function seatRows(
 			name: positions[c.type]?.name ?? c.type,
 			leader: c.leaderName,
 			level: c.leaderLevel,
+			bonus: c.leaderBonus ?? 0,
+			traits: c.leaderTraits ?? [],
 			ruler: false
 		}))
 	];
+}
+
+/**
+ * Country-wide `councilor_skill_add` the save shows active: traditions taken, edicts, policy
+ * options selected, civics, timed modifiers (e.g. Departmental Efficiency's after-effect).
+ */
+export function councilorBonus(
+	s: Snapshot,
+	skill: GameData['councilorSkill']
+): { source: string; value: number }[] {
+	const held = [
+		...(s.traditions ?? []).map((k) => `tradition:${k}`),
+		...(s.edicts ?? []).map((k) => `tradition:${k}`),
+		...Object.values(s.policies ?? {}).map((k) => `tradition:${k}`),
+		...(s.government ?? []).map((k) => `civic:${k}`),
+		...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`)
+	];
+	return [...new Set(held)]
+		.filter((k) => skill[k] !== undefined)
+		.map((k) => ({ source: k.replace(/^[a-z]+:/, ''), value: skill[k] }));
 }
 
 /** A seat's modifiers at a leader's level: the files give them per level. */

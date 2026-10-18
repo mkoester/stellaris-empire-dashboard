@@ -14,6 +14,7 @@ import {
 import type { GameData, ModInfo } from '#lib/types.ts';
 import { tailLog, toLogSnapshot } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
+import { setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
 import { loadModDescriptors } from './mods.ts';
 import { watchSaves } from './watch.ts';
@@ -82,6 +83,7 @@ async function run() {
 	const dbFile = required('DASHBOARD_DB');
 	const saveDir = required('STELLARIS_SAVE_DIR');
 	state.gameData = loadGameData(required('STELLARIS_DATA_DB'));
+	setPrescriptedNames(state.gameData.prescriptedNames);
 	state.explanations = loadExplanations(required('STELLARIS_DATA_DB'));
 	state.mods = loadModDescriptors(saveDir);
 	mkdirSync(dirname(dbFile), { recursive: true });

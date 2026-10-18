@@ -29,6 +29,8 @@ const data: GameData = {
 	anomalyCategories: {},
 	councilPositions: {},
 	depositCategories: {},
+	prescriptedNames: {},
+	councilorSkill: {},
 	focus: { categories: {}, cards: {}, rewards: {} },
 	jobs: {},
 	edicts: {},

@@ -288,7 +288,8 @@ export type Snapshot = {
 	progress: Progress | null; // null from the mod feed
 	// For milestones (#lib/milestones.ts); null from the mod feed and in older snapshots.
 	leaderRoster: { id: number; name: string; class: string }[] | null; // all hired leaders
-	ruler: { id: number; name: string; level?: number } | null; // level: since 2026-10-18
+	// level, bonus (bonus_skill_level) and traits: since 2026-10-18
+	ruler: { id: number; name: string; level?: number; bonus?: number; traits?: string[] } | null;
 	agendasDone: string[] | null; // agendas on cooldown, i.e. passed recently
 	policies: Record<string, string> | null; // policy → selected option
 	government: string[] | null; // civics, ethics and authority keys
@@ -451,6 +452,8 @@ export type CouncilSeat = {
 	leaderId: number | null;
 	leaderName: string | null;
 	leaderLevel: number | null;
+	leaderBonus?: number; // bonus_skill_level: the leader's own extra levels (since 2026-10-18)
+	leaderTraits?: string[];
 };
 
 /** A war the country is in. UNVERIFIED shape — no war seen in a save yet (see AGENTS.md). */
@@ -581,6 +584,10 @@ export type GameData = {
 	>;
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
+	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1
+	// `councilor_skill_add` by source: `tradition:` (traditions, edicts, policy options, agendas'
+	// `#finish`), `civic:`, `modifier:` (static modifiers)
+	councilorSkill: Record<string, number>;
 	focus: {
 		categories: Record<string, string>; // key → name
 		cards: Record<

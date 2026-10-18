@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	agendaRows,
 	atLevel,
+	councilorBonus,
 	edictRows,
 	factionRows,
 	facts,
@@ -211,6 +212,29 @@ describe('council seats', () => {
 		const f2 = { ...f, government: [...f.government, 'civic_beacon_of_liberty'] };
 		expect(possibleSeats(positions, ['councilor_defense'], f2).map((p) => p.key)).toEqual([
 			'councilor_beacon_of_liberty'
+		]);
+	});
+});
+
+describe('councilorBonus', () => {
+	it('sums the councilor_skill_add the save shows active', () => {
+		// Statecraft's shared benefits (+1) taken; Departmental Efficiency's after-effect (+2) running
+		const s = upgrade({
+			kind: 'save',
+			campaign: 'c',
+			date: '2207.03.10',
+			traditions: ['tr_statecraft_shared_benefits'],
+			countryModifiers: [{ key: 'agenda_departmental_efficiency_finish', until: null }]
+		} as Partial<Snapshot> & Pick<Snapshot, 'kind' | 'campaign' | 'date'>);
+		expect(
+			councilorBonus(s, {
+				'tradition:tr_statecraft_shared_benefits': 1,
+				'modifier:agenda_departmental_efficiency_finish': 2,
+				'civic:civic_shadow_council': 1
+			})
+		).toEqual([
+			{ source: 'tr_statecraft_shared_benefits', value: 1 },
+			{ source: 'agenda_departmental_efficiency_finish', value: 2 }
 		]);
 	});
 });

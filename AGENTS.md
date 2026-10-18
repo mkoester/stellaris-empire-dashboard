@@ -207,7 +207,12 @@ chart has an "events" picker (`EventPicker.svelte`); choices are stored per `<sc
 seat list, `possible = { always = no }`) and the seats held, each with what it gives **at the
 leader's level** — 4.5.2 `common/governments/councilors/000_councilor_documentation.txt`: a seat's
 `modifier` "is multiplied by assigned Leader's level" (`atLevel`; `seat:<key>` popups hold the
-per-level values). Possible seats: our civics' seats and base seats whose `possible` is not
+per-level values), shown per level and, in brackets, at the **councilor level** = leader level +
+its `bonus_skill_level` + the empire's `councilor_skill_add` the save shows active (traditions,
+edicts, policy options, civics, timed modifiers; `councilorBonus()`, data DB `councilorSkill`).
+Each seat's leader classes are chips in the game's colours; the leader's traits add their
+`councilor_modifier` ("applied to country if leader is on the Council", flat — 4.5.2
+`common/traits/000_documentation_leader_traits.txt`; `ltraitcouncil:<key>`). Possible seats: our civics' seats and base seats whose `possible` is not
 false; `unlocked_civic_council_slots` is the number of seats (3 at 2207.03.10, all held).
 
 **Government tab** (`/government`, `#lib/government.ts` and `#lib/triggers.ts`, both pure): the
@@ -517,6 +522,10 @@ rewards = { { category current="development_rewards_2" progress } } } }`; cards 
   exactly the five `status=0` cards (screenshot 2026_10_18_4; one taken just before showed a card
   that had just been completed and replaced). Offered techs `country.tech_status.alternatives = { physics =
 { "tech_…" } … }`. Leaders: `leaders.<id> = { name class level age species traits job }`.
+- Prescripted names: a save names a prescripted empire's ruler, species and empire by loc key
+  (`PRESCRIPTED_ruler_name_humans1` → "Dolores Muwanga"); `displayName()` resolves them from the
+  data DB's `prescripted_name`, set at start (`setPrescriptedNames`). Snapshots stored earlier
+  keep the raw text ("ruler name humans1") until their save is read again.
 - Council: `country.government.council_positions = { <ids> }` → top-level
   `council_positions.council_positions.<id> = { country type leader }` (2207.03.10: defense,
   research, state; the ruler is `country.ruler`, apart). Policy flags `country.policy_flags =

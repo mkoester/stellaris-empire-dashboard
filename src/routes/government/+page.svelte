@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { pretty } from '#lib/format.ts';
 	import type { AgendaRow, EdictRow, FactionRow } from '#lib/government.ts';
+	import { colorOf } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { formatModifierValue, modifierColor, modifierLabel } from '#lib/modifiers.ts';
 	import { followGame } from '#lib/live.ts';
@@ -70,6 +71,13 @@
 	];
 </script>
 
+{#snippet classes(list: string[])}
+	{#each list as k (k)}<span
+			class="mr-1 rounded px-1 text-xs text-white"
+			style:background={colorOf(`class-${k}`)}
+			title="takes a {k}">{k}</span
+		>{/each}
+{/snippet}
 {#snippet agendaName(r: AgendaRow)}
 	<InfoPopup explanation={data.explain[`agenda:${r.key}`]}>{r.name}</InfoPopup>
 {/snippet}
@@ -123,22 +131,36 @@
 				{#each data.seats as c (c.key)}
 					<tr class="border-b border-gray-100 align-top dark:border-gray-900">
 						<th class="p-1 pr-3 font-normal whitespace-nowrap"
-							><InfoPopup explanation={data.explain[`seat:${c.key}`]}>{c.name}</InfoPopup></th
+							><InfoPopup explanation={data.explain[`seat:${c.key}`]}>{c.name}</InfoPopup>
+							<div>{@render classes(c.classes)}</div></th
 						>
 						<td class="p-1 whitespace-nowrap"
-							>{c.leader ?? 'empty'}{#if c.level !== null}<span class="text-gray-500">
-									· level {c.level}</span
-								>{/if}</td
+							>{c.leader ?? 'empty'}{#if c.level !== null}<div class="text-gray-500">
+									level {c.level}{#if c.council !== null && c.council !== c.level}, council level <b
+											class="text-current">{c.council}</b
+										>{/if}
+								</div>{/if}</td
 						>
 						<td class="p-1">
-							{#each c.effects as m, i (m.key)}{i ? ', ' : ''}<span class={modifierColor(m)}
-									>{formatModifierValue(m)}</span
-								>
-								{modifierLabel(
-									m
-								)}{/each}{#if !c.effects.length && data.explain[`seat:${c.key}`]?.text}<span
-									class="text-gray-500">{data.explain[`seat:${c.key}`]?.text}</span
-								>{/if}
+							{#each c.effects as e (e.perLevel.key)}
+								<div>
+									<span class={modifierColor(e.perLevel)}>{formatModifierValue(e.perLevel)}</span>
+									{modifierLabel(e.perLevel)}
+									<span class="text-gray-500">per level</span>{#if c.council !== null}
+										(<span class={modifierColor(e.now)}>{formatModifierValue(e.now)}</span>){/if}
+								</div>
+							{:else}{#if data.explain[`seat:${c.key}`]?.text}<span class="text-gray-500"
+										>{data.explain[`seat:${c.key}`]?.text}</span
+									>{/if}{/each}
+							{#each c.traitEffects as t (t.trait)}
+								<div class="text-gray-500">
+									<InfoPopup explanation={data.explain[`ltrait:${t.trait}`]}>{t.name}</InfoPopup>:
+									{#each t.modifiers as m, i (m.key)}{i ? ', ' : ''}<span class={modifierColor(m)}
+											>{formatModifierValue(m)}</span
+										>
+										{modifierLabel(m)}{/each}
+								</div>
+							{/each}
 						</td>
 					</tr>
 				{/each}
@@ -150,12 +172,24 @@
 				apart). Expand The Council adds one.
 			</p>
 		{/if}
+		<p class="mb-1 text-sm text-gray-500">
+			Council level = the leader's level + its own extra levels + the empire's councilor bonus{#if data.councilBonus.length}
+				({data.councilBonus
+					.map((b) => `${b.value > 0 ? '+' : ''}${b.value} ${b.name}`)
+					.join(', ')}){:else}
+				(none now){/if}.
+		</p>
 		{#if data.possibleSeats.length}
 			<div class="mb-3 text-sm">
 				Possible:
-				{#each data.possibleSeats as p, i (p.key)}{i ? ' · ' : ''}<InfoPopup
-						explanation={data.explain[`seat:${p.key}`]}>{p.name}</InfoPopup
-					>{p.civic ? ' (civic)' : ''}{p.possible === null ? '?' : ''}{/each}
+				{#each data.possibleSeats as p (p.key)}
+					<div class="ml-2">
+						<InfoPopup explanation={data.explain[`seat:${p.key}`]}>{p.name}</InfoPopup>{p.civic
+							? ' (civic)'
+							: ''}{p.possible === null ? '?' : ''}
+						{@render classes(p.classes)}
+					</div>
+				{/each}
 			</div>
 		{/if}
 		{#if data.agenda}

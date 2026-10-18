@@ -417,7 +417,9 @@ export function council(
 				type: String(p.type),
 				leaderId: l && typeof l === 'object' ? leaderId : null,
 				leaderName: l && typeof l === 'object' ? leaderName(l.name) : null,
-				leaderLevel: l && typeof l === 'object' ? numOrNull(l.level) : null
+				leaderLevel: l && typeof l === 'object' ? numOrNull(l.level) : null,
+				leaderBonus: l && typeof l === 'object' ? num(l.bonus_skill_level) : 0,
+				leaderTraits: l && typeof l === 'object' ? items(l.traits).map(String) : []
 			}
 		];
 	});
@@ -559,7 +561,9 @@ export function ruler(raw: Pick<RawSave, 'country' | 'leaders'>) {
 	return {
 		id,
 		name: leaderName(l.name),
-		...(typeof l.level === 'number' ? { level: l.level } : {})
+		...(typeof l.level === 'number'
+			? { level: l.level, bonus: num(l.bonus_skill_level), traits: items(l.traits).map(String) }
+			: {})
 	};
 }
 
@@ -1586,8 +1590,16 @@ export function addResources(a: Resources, b: Resources): Resources {
 }
 
 /** Readable approximation of a localisation key: `SPEC_Dar-Hesh_planet` → `Dar-Hesh`. */
+// Names of the prescripted empires (data DB `prescripted_name`: rulers, species, empires), set at
+// start; a save names them by loc key (`PRESCRIPTED_ruler_name_humans1` → "Dolores Muwanga").
+let prescripted: Record<string, string> = {};
+export const setPrescriptedNames = (names: Record<string, string>) => {
+	prescripted = names;
+};
+
 export function displayName(name: Raw): string {
 	const key = String(name?.key ?? name ?? '');
+	if (prescripted[key]) return prescripted[key];
 	// `%SEQ%` with fmt (e.g. HUMAN1_FLEET) and num: "1st Fleet".
 	if (key === '%SEQ%' && Array.isArray(name?.variables)) {
 		const v = (k: string) => name.variables.find((x: Raw) => x.key === k)?.value?.key;

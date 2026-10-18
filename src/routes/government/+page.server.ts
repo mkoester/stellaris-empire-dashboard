@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import {
 	agendaRows,
 	atLevel,
+	councilorBonus,
 	edictRows,
 	factionRows,
 	facts,
@@ -29,27 +30,57 @@ export function load({ url }) {
 	const edicts = edictRows(data.edicts, s, f);
 	const government = identity(snaps.findLast((x) => x.government !== null));
 	const explanations = getExplanations();
+	const bonus = councilorBonus(s, data.councilorSkill);
+	const bonusTotal = bonus.reduce((a, b) => a + b.value, 0);
 	const seats = seatRows(
 		s.council ?? [],
 		s.ruler,
 		s.government?.find((k) => k.startsWith('auth_')),
 		data.councilPositions
-	).map((r) => ({
-		...r,
-		// what the seat gives now: its per-level modifiers at the leader's level
-		effects: atLevel(explanations[`seat:${r.key}`]?.modifiers ?? [], r.level)
-	}));
+	).map((r) => {
+		// the councilor level: the leader's level, its own extra levels, the country's bonus
+		const council = r.level === null ? null : r.level + r.bonus + bonusTotal;
+		const perLevel = explanations[`seat:${r.key}`]?.modifiers ?? [];
+		return {
+			...r,
+			council,
+			classes: data.councilPositions[r.key]?.classes ?? [],
+			// per level, and what that gives at the councilor level
+			effects: perLevel.map((m, i) => ({ perLevel: m, now: atLevel(perLevel, council)[i] })),
+			// the leader's traits while on the council (flat, not per level)
+			traitEffects: r.traits.flatMap((t) =>
+				explanations[`ltraitcouncil:${t}`]
+					? [
+							{
+								trait: t,
+								name: explanations[`ltrait:${t}`]?.title ?? t,
+								modifiers: explanations[`ltraitcouncil:${t}`].modifiers
+							}
+						]
+					: []
+			)
+		};
+	});
 	const possible = possibleSeats(
 		data.councilPositions,
 		seats.map((r) => r.key),
 		f
-	);
+	).map((p) => ({ ...p, classes: data.councilPositions[p.key]?.classes ?? [] }));
 	return {
 		...rest,
 		seenAt: s.date,
 		complete: s.council !== null, // read since the government tab exists
 		government,
 		seats,
+		councilBonus: bonus.map((b) => ({
+			...b,
+			name:
+				explanations[`tradition:${b.source}`]?.title ??
+				explanations[`civic:${b.source}`]?.title ??
+				explanations[`edict:${b.source}`]?.title ??
+				explanations[`modifier:${b.source}`]?.title ??
+				b.source
+		})),
 		possibleSeats: possible,
 		councilSlots: s.councilSlots,
 		agenda: s.progress?.agenda ?? null,
@@ -60,6 +91,7 @@ export function load({ url }) {
 		factions: factionRows(data.factionTypes, f),
 		explain: pick(explanations, [
 			...seats.map((r) => `seat:${r.key}`),
+			...seats.flatMap((r) => r.traits.map((t) => `ltrait:${t}`)),
 			...possible.map((p) => `seat:${p.key}`),
 			...(government?.rows.flatMap((r) => r.items.map((i) => i.id)) ?? []),
 			...agendas.map((a) => `agenda:${a.key}`),

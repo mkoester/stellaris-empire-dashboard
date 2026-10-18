@@ -253,6 +253,22 @@ export function loadGameData(file: string): GameData {
 					])
 				)
 			},
+			prescriptedNames: Object.fromEntries(
+				rows<{ key: string; text: string }>('SELECT key, text FROM prescripted_name').map((r) => [
+					r.key,
+					r.text
+				])
+			),
+			councilorSkill: Object.fromEntries(
+				rows<{ owner: string; value: number }>(
+					`SELECT 'tradition:' || owner_key AS owner, modifier_value AS value FROM tradition_modifier
+					   WHERE modifier_key = 'councilor_skill_add' AND potential_json IS NULL
+					 UNION ALL SELECT 'civic:' || civic_key, modifier_value FROM civic_modifier
+					   WHERE modifier_key = 'councilor_skill_add'
+					 UNION ALL SELECT 'modifier:' || static_key, modifier_value FROM static_modifier_modifier
+					   WHERE modifier_key = 'councilor_skill_add'`
+				).map((r) => [r.owner, r.value])
+			),
 			depositCategories: Object.fromEntries(
 				rows<{ key: string; category: string }>(
 					'SELECT key, category FROM deposit WHERE category IS NOT NULL'
