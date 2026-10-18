@@ -30,6 +30,8 @@ const data: GameData = {
 	councilPositions: {},
 	depositCategories: {},
 	prescriptedNames: {},
+	scriptedTriggers: {},
+	speciesRights: [],
 	councilorSkill: {},
 	focus: { categories: {}, cards: {}, rewards: {} },
 	jobs: {},

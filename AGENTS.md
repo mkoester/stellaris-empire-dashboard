@@ -224,7 +224,17 @@ start, the others by unlock), and per faction type its demands. The data DB's no
 (`*_json`) are evaluated **three-valued** against the save (`facts()`: country type, civics,
 ethics, authority, origin, DLCs, policy and country flags, traditions, perks, techs, war): what
 the save cannot answer (`num_rivals`, scopes like `any_owned_pop_group`) is unknown, shown `?`,
-never guessed. An option or edict is hidden only when its `potential` is false. `is_nomadic` is
+never guessed — except that a leaf naming a parameter-free scripted trigger is evaluated by its
+body (data DB `scripted_trigger`; `is_dark_consortium_empire` → its civics). As the game lists
+them: policies are the save's `active_policies` (2207.03.10: 27, the game's panel; War
+Philosophy under both its categories), edicts those whose potential holds and that are unlocked
+(traditions, perks and `prerequisites` techs; 2207.03.10: exactly the game's five). The profile's
+`showLocked` switch (⚙) adds the rest: locked agendas and edicts, all policies and options.
+**Species rights** (species tab, `#lib/rights.ts`): `country.modules.standard_species_rights_module
+.primary = { species_index citizenship living_standard … }` per species, every option of each kind
+whose potential is not false (`from` = the country, folded in; `has_trait` = the species'),
+2207.03.10: Human as the game's panel, a few options more than the game shows (their conditions
+read scopes the save cannot answer). `is_nomadic` is
 built into the game and approximated as a Nomads origin.
 
 **Situations tab** (`/situations`, `#lib/situations.ts` pure, readers in `server/world.ts`): first

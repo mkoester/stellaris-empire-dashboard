@@ -57,8 +57,9 @@ export function loadGameData(file: string): GameData {
 					cost_json: string | null;
 					potential_json: string | null;
 					unlocked_by_json: string | null;
+					prerequisites_json: string | null;
 				}>(
-					'SELECT key, name, category, length, cost_json, potential_json, unlocked_by_json FROM edict ORDER BY sort_order'
+					'SELECT key, name, category, length, cost_json, potential_json, unlocked_by_json, prerequisites_json FROM edict ORDER BY sort_order'
 				).map((r) => [
 					r.key,
 					{
@@ -67,7 +68,8 @@ export function loadGameData(file: string): GameData {
 						length: r.length,
 						cost: r.cost_json ? JSON.parse(r.cost_json) : {},
 						potential: parseTrigger(r.potential_json),
-						unlockedBy: jsonList(r.unlocked_by_json)
+						unlockedBy: jsonList(r.unlocked_by_json),
+						prerequisites: jsonList(r.prerequisites_json)
 					}
 				])
 			),
@@ -253,6 +255,16 @@ export function loadGameData(file: string): GameData {
 					])
 				)
 			},
+			speciesRights: speciesRights(
+				rows(
+					'SELECT key, kind, name, potential_json, allow_json FROM species_right ORDER BY kind_order, sort_order'
+				)
+			),
+			scriptedTriggers: Object.fromEntries(
+				rows<{ key: string; trigger_json: string | null }>(
+					'SELECT key, trigger_json FROM scripted_trigger'
+				).map((r) => [r.key, parseTrigger(r.trigger_json)])
+			),
 			prescriptedNames: Object.fromEntries(
 				rows<{ key: string; text: string }>('SELECT key, text FROM prescripted_name').map((r) => [
 					r.key,
@@ -478,6 +490,30 @@ export function factionTypes(
 				unfulfilled: d.unfulfilled_effect,
 				potential: parseTrigger(d.potential_json),
 				trigger: parseTrigger(d.trigger_json)
+			}))
+	}));
+}
+
+/** Species rights grouped by kind, kinds and options in the game's order. */
+export function speciesRights(
+	rights: {
+		key: string;
+		kind: string;
+		name: string | null;
+		potential_json: string | null;
+		allow_json: string | null;
+	}[]
+): GameData['speciesRights'] {
+	const kinds = [...new Set(rights.map((r) => r.kind))];
+	return kinds.map((kind) => ({
+		kind,
+		options: rights
+			.filter((r) => r.kind === kind)
+			.map((r) => ({
+				key: r.key,
+				name: r.name ?? r.key,
+				potential: parseTrigger(r.potential_json),
+				allow: parseTrigger(r.allow_json)
 			}))
 	}));
 }

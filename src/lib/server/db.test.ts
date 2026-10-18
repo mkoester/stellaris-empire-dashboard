@@ -89,7 +89,8 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	digSites: null,
 	focus: null,
 	techOptions: null,
-	leaderList: null
+	leaderList: null,
+	speciesRights: null
 });
 
 describe('db', () => {

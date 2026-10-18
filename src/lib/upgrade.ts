@@ -73,7 +73,8 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	digSites: null,
 	focus: null,
 	techOptions: null,
-	leaderList: null
+	leaderList: null,
+	speciesRights: null
 };
 
 const COLONY: Omit<Colony, 'planetId' | 'name'> = {

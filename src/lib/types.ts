@@ -323,6 +323,8 @@ export type Snapshot = {
 	focus: EmpireFocus | null;
 	techOptions: Record<string, string[]> | null; // research field → the cards on offer
 	leaderList: LeaderInfo[] | null; // every hired leader
+	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
+	speciesRights: Record<string, Record<string, string>> | null;
 };
 
 /** `country.focus` with its cards (top-level `focus_cards`). */
@@ -510,6 +512,7 @@ export type GameData = {
 			cost: Record<string, Resources>; // cost / upkeep → resources, before multipliers
 			potential: Trigger | null;
 			unlockedBy: string[]; // traditions / perks
+			prerequisites: string[]; // techs
 		}
 	>;
 	policies: {
@@ -585,6 +588,12 @@ export type GameData = {
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
 	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1
+	scriptedTriggers: Record<string, Trigger | null>; // parameter-free scripted triggers, normalised
+	// species rights per kind, in the game's order, each with its options
+	speciesRights: {
+		kind: string;
+		options: { key: string; name: string; potential: Trigger | null; allow: Trigger | null }[];
+	}[];
 	// `councilor_skill_add` by source: `tradition:` (traditions, edicts, policy options, agendas'
 	// `#finish`), `civic:`, `modifier:` (static modifiers)
 	councilorSkill: Record<string, number>;

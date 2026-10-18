@@ -4,8 +4,8 @@ import type { CouncilSeat, GameData, Modifier, Snapshot } from './types.ts';
 // The government tab (council, agendas, policies, edicts, factions): the data DB's rules read
 // against one save. What the save cannot answer stays unknown (null), see #lib/triggers.ts.
 
-/** What a snapshot tells the trigger evaluator. */
-export function facts(s: Snapshot): Facts {
+/** What a snapshot tells the trigger evaluator; `scripted`: the data DB's scripted triggers. */
+export function facts(s: Snapshot, scripted: Facts['scripted'] = {}): Facts {
 	return {
 		countryType: s.countryType,
 		government: s.government ?? [],
@@ -18,7 +18,8 @@ export function facts(s: Snapshot): Facts {
 		perks: s.ascensionPerks ?? [],
 		techs: s.progress?.researched ?? [],
 		atWar: s.wars === null ? null : s.wars.length > 0,
-		situations: s.situations === null ? null : s.situations.length
+		situations: s.situations === null ? null : s.situations.length,
+		scripted
 	};
 }
 
@@ -38,24 +39,28 @@ export type PolicyRow = {
 export function policyRows(
 	policies: GameData['policies'],
 	selected: Record<string, string>,
-	f: Facts
+	f: Facts,
+	all = false // also the policies the empire does not have, and every option
 ): PolicyRow[] {
-	return policies
-		.map((p) => ({
-			key: p.key,
-			name: p.name,
-			category: p.category,
-			selected: selected[p.key] ?? null,
-			options: p.options
-				.filter((o) => selected[p.key] === o.key || evaluate(o.potential, f) !== false)
-				.map((o) => ({
-					key: o.key,
-					name: o.name,
-					selected: selected[p.key] === o.key,
-					valid: evaluate(o.valid, f)
-				}))
-		}))
-		.filter((p) => p.selected !== null || p.options.length > 1);
+	return (
+		policies
+			.map((p) => ({
+				key: p.key,
+				name: p.name,
+				category: p.category,
+				selected: selected[p.key] ?? null,
+				options: p.options
+					.filter((o) => all || selected[p.key] === o.key || evaluate(o.potential, f) !== false)
+					.map((o) => ({
+						key: o.key,
+						name: o.name,
+						selected: selected[p.key] === o.key,
+						valid: evaluate(o.valid, f)
+					}))
+			}))
+			// the save lists exactly the policies the empire has (2207.03.10: 26 entries, the game's list)
+			.filter((p) => all || p.selected !== null)
+	);
 }
 
 export type AgendaStatus = 'current' | 'cooldown' | 'open' | 'maybe' | 'not-allowed' | 'locked';
@@ -99,23 +104,35 @@ export type EdictRow = {
 	length: number | null;
 	cost: GameData['edicts'][string]['cost'];
 	active: { start: string | null; end: string | null } | null;
-	unlocked: boolean;
+	possible: boolean | null; // its potential: null when the save cannot tell
+	unlocked: boolean; // a tradition or perk it needs taken, and its prerequisite techs researched
+	needs: string[]; // what is missing: prerequisite techs not researched
 };
 
-/** Edicts this empire can have (potential not false): the active ones and the rest. */
+/**
+ * Edicts this empire can have (potential not false): the active ones and the rest. The game's
+ * list shows those whose potential holds and that are unlocked (2207.03.10: five, the three
+ * active and two campaigns); the others are the page's "show locked".
+ */
 export function edictRows(edicts: GameData['edicts'], s: Snapshot, f: Facts): EdictRow[] {
 	const active = new Map((s.edictTimes ?? []).map((e) => [e.key, e]));
 	return Object.entries(edicts)
-		.filter(([key, e]) => active.has(key) || evaluate(e.potential, f) !== false)
-		.map(([key, e]) => ({
-			key,
-			name: e.name,
-			category: e.category,
-			length: e.length,
-			cost: e.cost,
-			active: active.get(key) ?? null,
-			unlocked: unlocked(e.unlockedBy, f)
-		}));
+		.map(([key, e]) => ({ key, e, possible: active.has(key) ? true : evaluate(e.potential, f) }))
+		.filter((r) => r.possible !== false)
+		.map(({ key, e, possible }) => {
+			const needs = (e.prerequisites ?? []).filter((t) => !f.techs.includes(t));
+			return {
+				key,
+				name: e.name,
+				category: e.category,
+				length: e.length,
+				cost: e.cost,
+				active: active.get(key) ?? null,
+				possible,
+				unlocked: unlocked(e.unlockedBy, f) && needs.length === 0,
+				needs
+			};
+		});
 }
 
 export type DemandRow = GameData['factionTypes'][number]['demands'][number] & {

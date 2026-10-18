@@ -22,6 +22,9 @@ export type Facts = {
 	techs: string[];
 	atWar: boolean | null;
 	situations: number | null; // running situations
+	// parameter-free scripted triggers (data DB), looked into when a leaf is one of them
+	scripted?: Record<string, Trigger | null>;
+	traits?: string[]; // the species' traits, where a trigger is in a species' scope (rights)
 };
 
 const ETHICS =
@@ -43,6 +46,8 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 	switch (name) {
 		case 'always':
 			return value === 'yes';
+		case 'has_trait':
+			return f.traits ? f.traits.includes(value) : null;
 		case 'is_country_type':
 			return f.countryType === null ? null : f.countryType === value;
 		case 'has_ethic':
@@ -99,10 +104,26 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			// is_<ethic> (the ethic or its fanatic form), is_fanatic_<ethic>: 4.5.2
 			// scripted_triggers/00_scripted_triggers.txt
 			const e = ETHICS.exec(name);
-			if (!e) return null;
+			if (!e) return scripted(name, value, f);
 			const fanatic = f.government.includes(`ethic_fanatic_${e[2]}`);
 			return yes(e[1] ? fanatic : fanatic || f.government.includes(`ethic_${e[2]}`));
 		}
+	}
+}
+
+// scripted triggers being looked into, so one that (indirectly) calls itself stays unknown
+const inside = new Set<string>();
+
+/** `some_scripted_trigger = yes|no`, by its body; null when it is none or calls itself. */
+function scripted(name: string, value: string, f: Facts): boolean | null {
+	const body = f.scripted?.[name];
+	if (body === undefined || (value !== 'yes' && value !== 'no') || inside.has(name)) return null;
+	inside.add(name);
+	try {
+		const v = evaluate(body, f);
+		return v === null ? null : value === 'no' ? !v : v;
+	} finally {
+		inside.delete(name);
 	}
 }
 

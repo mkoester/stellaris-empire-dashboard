@@ -318,8 +318,39 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 				items(techs).map(String)
 			])
 		),
-		leaderList: leaderList(raw)
+		leaderList: leaderList(raw),
+		speciesRights: speciesRights(raw.country)
 	};
+}
+
+const RIGHT_KINDS = [
+	'citizenship',
+	'subspecies_integration',
+	'living_standard',
+	'military_service',
+	'colonization_control',
+	'population_control',
+	'migration_control',
+	'slavery',
+	'purge'
+];
+
+/**
+ * Each species' rights: `country.modules.standard_species_rights_module.primary = { species_index
+ * citizenship living_standard … }`, one block per species (the module's `default` is for new ones).
+ */
+export function speciesRights(country: Raw): Record<string, Record<string, string>> {
+	const m = country?.modules?.standard_species_rights_module;
+	return Object.fromEntries(
+		items(m?.primary)
+			.filter((p) => typeof p?.species_index === 'number')
+			.map((p) => [
+				String(p.species_index),
+				Object.fromEntries(
+					RIGHT_KINDS.filter((k) => typeof p[k] === 'string').map((k) => [k, p[k]])
+				)
+			])
+	);
 }
 
 /**

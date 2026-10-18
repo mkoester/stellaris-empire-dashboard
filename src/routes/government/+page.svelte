@@ -15,7 +15,8 @@
 	let { data } = $props();
 	followGame(() => data.isHead);
 
-	let showLocked = $state(false);
+	// the profile's display switch (⚙): what the game does not list
+	const showLocked = $derived(data.showLocked);
 	let edictSort = $state({ column: 'name', desc: false });
 	let agendaSort = $state({ column: 'status', desc: false });
 	let otherFactions = $state(false);
@@ -32,8 +33,13 @@
 		data.agendas.filter((a) => showLocked || (a.status !== 'locked' && a.status !== 'not-allowed'))
 	);
 	const activeEdicts = $derived(data.edicts.filter((e) => e.active));
-	const otherEdicts = $derived(data.edicts.filter((e) => !e.active && (showLocked || e.unlocked)));
-	const categories = $derived([...new Set(data.policies.map((p) => p.category ?? ''))]);
+	// as the game lists them: possible and unlocked; the rest with "show locked"
+	const otherEdicts = $derived(
+		data.edicts.filter((e) => !e.active && (showLocked || (e.unlocked && e.possible === true)))
+	);
+	// a policy in two categories (War Philosophy: diplomacy, military) shows in both, as in game
+	const inCategory = (p: { category: string | null }) => (p.category ?? '').split(',');
+	const categories = $derived([...new Set(data.policies.flatMap(inCategory))]);
 	const shownFactions = $derived(data.factions.filter((f) => otherFactions || f.ours));
 
 	const resources = (r: Resources | undefined) =>
@@ -54,11 +60,18 @@
 	const edictColumns: Column<EdictRow>[] = [
 		{ id: 'name', label: 'Edict', value: (r) => r.name, cell: edictName },
 		{ id: 'category', label: 'Kind', value: (r) => pretty(r.category ?? '') },
-		{ id: 'cost', label: 'Cost', value: (r) => resources(r.cost.cost), title: 'base, once' },
+		{
+			id: 'cost',
+			label: 'Cost',
+			value: (r) => resources(r.cost.cost),
+			cell: cost,
+			title: 'base, once'
+		},
 		{
 			id: 'upkeep',
 			label: 'Upkeep',
 			value: (r) => resources(r.cost.upkeep),
+			cell: upkeep,
 			title: 'base, monthly'
 		},
 		{ id: 'length', label: 'Length', value: (r) => r.length, cell: edictLength },
@@ -87,10 +100,20 @@
 		>{STATUS[r.status][1]}</span
 	>
 {/snippet}
+{#snippet amounts(r: Resources | undefined)}
+	{#each Object.entries(r ?? {}) as [k, v], i (k)}{i ? ', ' : ''}<span
+			class="whitespace-nowrap"
+			style:color={colorOf(k)}>{v} {pretty(k)}</span
+		>{/each}
+{/snippet}
+{#snippet cost(r: EdictRow)}{@render amounts(r.cost.cost)}{/snippet}
+{#snippet upkeep(r: EdictRow)}{@render amounts(r.cost.upkeep)}{/snippet}
 {#snippet edictName(r: EdictRow)}
 	<InfoPopup explanation={data.explain[`edict:${r.key}`]}>{r.name}</InfoPopup>{#if !r.unlocked}<span
 			class="text-gray-500"
-			title="needs a tradition or perk first"
+			title={r.needs.length
+				? `needs ${r.needs.map((t) => data.techNames[t] ?? t).join(', ')}`
+				: 'needs a tradition or perk first'}
 		>
 			🔒</span
 		>{/if}
@@ -113,11 +136,11 @@
 	</p>
 {/if}
 
-<div class="mb-4 flex flex-wrap items-center gap-4 text-sm">
-	<label class="flex items-center gap-1"
-		><input type="checkbox" bind:checked={showLocked} /> show locked agendas and edicts</label
-	>
-</div>
+<p class="mb-4 text-sm text-gray-500">
+	{showLocked
+		? 'Showing locked agendas, edicts and policies too.'
+		: 'As the game lists them; locked agendas, edicts and policies show with the switch in ⚙.'}
+</p>
 
 <div class="grid gap-8 lg:grid-cols-2">
 	<Government government={data.government} explain={data.explain} />
@@ -212,7 +235,7 @@
 
 	<Panel
 		title="Council agendas"
-		note="Only agendas this empire can have. Open: every condition met; open?: met as far as the save tells; not allowed now: a condition fails; locked: none of the traditions or perks that unlock it taken. The last two show with “show locked”."
+		note="Only agendas this empire can have. Open: every condition met; open?: met as far as the save tells; not allowed now: a condition fails; locked: none of the traditions or perks that unlock it taken. The last two show with the “show locked” switch in ⚙."
 	>
 		<SortTable rows={agendas} columns={agendaColumns} key={(r) => r.key} bind:sort={agendaSort} />
 	</Panel>
@@ -224,10 +247,10 @@
 		<div class="flex flex-col gap-3 text-sm">
 			{#each categories as cat (cat)}
 				<div>
-					<h3 class="mb-1 font-semibold text-gray-500">{pretty(cat.replaceAll(',', ', '))}</h3>
+					<h3 class="mb-1 font-semibold text-gray-500">{pretty(cat)}</h3>
 					<table class="text-left">
 						<tbody>
-							{#each data.policies.filter((p) => (p.category ?? '') === cat) as p (p.key)}
+							{#each data.policies.filter((p) => inCategory(p).includes(cat)) as p (p.key)}
 								<tr class="align-top">
 									<th class="pr-3 pb-1 font-normal whitespace-nowrap">{p.name}</th>
 									<td class="pb-1">

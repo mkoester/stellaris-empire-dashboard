@@ -128,7 +128,8 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		digSites: null,
 		focus: null,
 		techOptions: null,
-		leaderList: null
+		leaderList: null,
+		speciesRights: null
 	};
 }
 

@@ -17,6 +17,11 @@
 			'Expansion: show habitat sites even before habitats can be built',
 			'later behind an “enable cheats” switch'
 		],
+		[
+			'showLocked',
+			'Government: show locked agendas, edicts and policies too',
+			'the game lists only what you can pick'
+		],
 		['anomalySpoilers', 'Situations: show what an anomaly can lead to', 'spoilers'],
 		['projectSpoilers', 'Situations: show what a special project leads to', 'spoilers'],
 		[

@@ -14,6 +14,7 @@ import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { identity } from '#lib/server/empire.ts';
 import { pick } from '#lib/server/explain.ts';
+import { display } from '#lib/server/settings.ts';
 
 // The game's government screen: identity, council and agendas, policies, edicts, factions, read
 // against the branch's latest save that has the government fields.
@@ -24,8 +25,9 @@ export function load({ url }) {
 	const data = getGameData();
 	const s = snaps.findLast((x) => x.council !== null) ?? snaps.findLast((x) => x.kind === 'save');
 	if (!s) error(404, 'no save yet');
-	const f = facts(s);
-	const policies = policyRows(data.policies, s.policies ?? {}, f);
+	const f = facts(s, data.scriptedTriggers);
+	const showLocked = display().showLocked;
+	const policies = policyRows(data.policies, s.policies ?? {}, f, showLocked);
 	const agendas = agendaRows(data.agendas, s, f);
 	const edicts = edictRows(data.edicts, s, f);
 	const government = identity(snaps.findLast((x) => x.government !== null));
@@ -69,6 +71,7 @@ export function load({ url }) {
 	return {
 		...rest,
 		seenAt: s.date,
+		showLocked,
 		complete: s.council !== null, // read since the government tab exists
 		government,
 		seats,
@@ -88,6 +91,9 @@ export function load({ url }) {
 		agendas,
 		policies,
 		edicts,
+		techNames: Object.fromEntries(
+			edicts.flatMap((e) => e.needs).map((t) => [t, data.techs[t]?.name ?? t])
+		),
 		factions: factionRows(data.factionTypes, f),
 		explain: pick(explanations, [
 			...seats.map((r) => `seat:${r.key}`),

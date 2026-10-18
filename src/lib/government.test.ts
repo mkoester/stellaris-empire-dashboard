@@ -101,7 +101,8 @@ describe('edictRows', () => {
 			length: -1,
 			cost: {},
 			potential,
-			unlockedBy: []
+			unlockedBy: [],
+			prerequisites: []
 		});
 		const rows = edictRows(
 			{ map_the_stars: edict(null), fe_only: edict(fallen), open: edict(null) },

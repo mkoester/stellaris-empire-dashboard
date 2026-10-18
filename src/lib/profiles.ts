@@ -19,6 +19,7 @@ export type Display = {
 	contactStations: boolean; // first contact map: whose station each visited system has
 	wholeGalaxy: boolean; // maps and megastructure sites: every system, not only the discovered
 	unknownStars: boolean; // maps: the undiscovered systems too, without their hyperlanes
+	showLocked: boolean; // government: agendas, edicts and policies the game does not list
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
@@ -28,7 +29,8 @@ export const DEFAULT_DISPLAY: Display = {
 	projectSpoilers: false,
 	contactStations: false,
 	wholeGalaxy: false,
-	unknownStars: false
+	unknownStars: false,
+	showLocked: false
 };
 
 export type ProfileSettings = {
@@ -64,7 +66,8 @@ export function parseDisplay(v: unknown): Display {
 		projectSpoilers: o.projectSpoilers === true,
 		contactStations: o.contactStations === true,
 		wholeGalaxy: o.wholeGalaxy === true,
-		unknownStars: o.unknownStars === true
+		unknownStars: o.unknownStars === true,
+		showLocked: o.showLocked === true
 	};
 }
 

@@ -45,6 +45,23 @@ group('evaluate', () => {
 		expect(evaluate({ leaf: 'is_fanatic_egalitarian', value: 'yes' }, facts)).toBe(true);
 		expect(evaluate({ leaf: 'is_xenophobe', value: 'yes' }, facts)).toBe(false);
 		expect(evaluate({ leaf: 'any_situation', value: 'scope' }, facts)).toBe(false);
+		// a scripted trigger, by its body (is_dark_consortium_empire: one of two civics)
+		const withScripted = {
+			...facts,
+			scripted: {
+				is_dark_consortium_empire: {
+					op: 'or' as const,
+					args: [
+						{ leaf: 'has_valid_civic', value: 'civic_dark_consortium' },
+						{ leaf: 'has_valid_civic', value: 'civic_corporate_dark_consortium' }
+					]
+				},
+				loops: { leaf: 'loops', value: 'yes' }
+			}
+		};
+		expect(evaluate({ leaf: 'is_dark_consortium_empire', value: 'yes' }, withScripted)).toBe(false);
+		expect(evaluate({ leaf: 'is_dark_consortium_empire', value: 'no' }, withScripted)).toBe(true);
+		expect(evaluate({ leaf: 'loops', value: 'yes' }, withScripted)).toBeNull();
 	});
 
 	it('stays unknown where the save cannot tell, unless the rest decides', () => {
