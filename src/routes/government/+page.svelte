@@ -10,7 +10,7 @@
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 	import { describe } from '#lib/triggers.ts';
-	import type { Resources } from '#lib/types.ts';
+	import type { Modifier, Resources } from '#lib/types.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -19,7 +19,6 @@
 	const showLocked = $derived(data.showLocked);
 	let edictSort = $state({ column: 'name', desc: false });
 	let agendaSort = $state({ column: 'status', desc: false });
-	let otherFactions = $state(false);
 
 	const STATUS: Record<AgendaRow['status'], [number, string]> = {
 		current: [0, 'being prepared'],
@@ -40,7 +39,6 @@
 	// a policy in two categories (War Philosophy: diplomacy, military) shows in both, as in game
 	const inCategory = (p: { category: string | null }) => (p.category ?? '').split(',');
 	const categories = $derived([...new Set(data.policies.flatMap(inCategory))]);
-	const shownFactions = $derived(data.factions.filter((f) => otherFactions || f.ours));
 
 	const resources = (r: Resources | undefined) =>
 		Object.entries(r ?? {})
@@ -55,7 +53,21 @@
 	const agendaColumns: Column<AgendaRow>[] = [
 		{ id: 'name', label: 'Agenda', value: (r) => r.name, cell: agendaName },
 		{ id: 'cost', label: 'Cost', value: (r) => r.cost, right: true, title: 'base agenda progress' },
-		{ id: 'status', label: 'Status', value: (r) => STATUS[r.status][0], cell: agendaStatus }
+		{ id: 'status', label: 'Status', value: (r) => STATUS[r.status][0], cell: agendaStatus },
+		{
+			id: 'preparing',
+			label: 'While preparing',
+			value: (r) => data.explain[`agenda:${r.key}`]?.modifiers.length ?? 0,
+			cell: agendaNow,
+			title: "the agenda's modifier, active while it is being enacted"
+		},
+		{
+			id: 'launched',
+			label: 'Once launched',
+			value: (r) => data.explain[`agenda:${r.key}`]?.after?.modifiers.length ?? 0,
+			cell: agendaAfter,
+			title: 'its launch effect, and the modifier it leaves for a while'
+		}
 	];
 	const edictColumns: Column<EdictRow>[] = [
 		{ id: 'name', label: 'Edict', value: (r) => r.name, cell: edictName },
@@ -80,6 +92,12 @@
 			label: 'Since',
 			value: (r) => r.active?.start ?? null,
 			title: 'active edicts: started; ends where it is not perpetual'
+		},
+		{
+			id: 'effects',
+			label: 'Effects',
+			value: (r) => data.explain[`edict:${r.key}`]?.modifiers.length ?? 0,
+			cell: edictEffects
 		}
 	];
 </script>
@@ -90,6 +108,26 @@
 			style:background={colorOf(`class-${k}`)}
 			title="takes a {k}">{k}</span
 		>{/each}
+{/snippet}
+{#snippet mods(list: Modifier[])}
+	{#each list as m (m.key)}<div class="whitespace-nowrap">
+			<span class={modifierColor(m)}>{formatModifierValue(m)}</span>
+			{modifierLabel(m)}
+		</div>{/each}
+{/snippet}
+{#snippet agendaNow(r: AgendaRow)}{@render mods(
+		data.explain[`agenda:${r.key}`]?.modifiers ?? []
+	)}{/snippet}
+{#snippet agendaAfter(r: AgendaRow)}
+	{@const e = data.explain[`agenda:${r.key}`]}
+	{#if e?.text}<div class="text-gray-500">{e.text}</div>{/if}
+	{#if e?.after}<div class="text-xs text-gray-500">{e.after.label}:</div>
+		{@render mods(e.after.modifiers)}{/if}
+{/snippet}
+{#snippet edictEffects(r: EdictRow)}
+	{@const e = data.explain[`edict:${r.key}`]}
+	{@render mods(e?.modifiers ?? [])}
+	{#if e?.text}<div class="max-w-md text-gray-500">{e.text}</div>{/if}
 {/snippet}
 {#snippet agendaName(r: AgendaRow)}
 	<InfoPopup explanation={data.explain[`agenda:${r.key}`]}>{r.name}</InfoPopup>
@@ -299,13 +337,12 @@
 <div class="mt-8">
 	<Panel
 		title="Factions"
-		note="No faction has formed in our saves yet, so their support and approval are not read. Below: what each faction type demands — ✓ met, ✗ not, ? cannot be told from the save — and how to meet it."
+		note={data.factionTypes
+			? 'No faction has formed yet. The faction types the switches in ⚙ show, with what each demands — ✓ met, ✗ not, ? cannot be told from the save — and how to meet it.'
+			: 'No faction has formed yet. The faction types and their demands show with the switches in ⚙ (cheating).'}
 	>
-		<label class="mb-3 flex items-center gap-1 text-sm"
-			><input type="checkbox" bind:checked={otherFactions} /> also factions of ethics we do not hold</label
-		>
 		<div class="grid gap-6 lg:grid-cols-2">
-			{#each shownFactions as f (f.key)}
+			{#each data.factions as f (f.key)}
 				{@render faction(f)}
 			{/each}
 		</div>

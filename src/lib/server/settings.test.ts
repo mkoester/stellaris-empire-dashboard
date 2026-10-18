@@ -30,7 +30,9 @@ describe('profiles', () => {
 				contactStations: false,
 				wholeGalaxy: false,
 				unknownStars: false,
-				showLocked: false
+				showLocked: false,
+				factionTypes: false,
+				allFactionTypes: false
 			}
 		});
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('thick');
@@ -63,7 +65,9 @@ describe('profiles', () => {
 				contactStations: false,
 				wholeGalaxy: false,
 				unknownStars: false,
-				showLocked: false
+				showLocked: false,
+				factionTypes: false,
+				allFactionTypes: false
 			}
 		});
 		const copy = profileAction(db, { action: 'create', name: 'default', copyOf: 'default' })!;

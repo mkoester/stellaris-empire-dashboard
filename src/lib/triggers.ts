@@ -25,6 +25,7 @@ export type Facts = {
 	// parameter-free scripted triggers (data DB), looked into when a leaf is one of them
 	scripted?: Record<string, Trigger | null>;
 	traits?: string[]; // the species' traits, where a trigger is in a species' scope (rights)
+	leaderTraits?: string[]; // every trait of the empire's leaders
 };
 
 const ETHICS =
@@ -48,6 +49,9 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			return value === 'yes';
 		case 'has_trait':
 			return f.traits ? f.traits.includes(value) : null;
+		case 'has_owned_leader_trait':
+			// the extraction's form of `any_owned_leader = { has_trait = X }` (enclave seats)
+			return f.leaderTraits ? f.leaderTraits.includes(value) : null;
 		case 'is_country_type':
 			return f.countryType === null ? null : f.countryType === value;
 		case 'has_ethic':

@@ -20,6 +20,8 @@ export type Display = {
 	wholeGalaxy: boolean; // maps and megastructure sites: every system, not only the discovered
 	unknownStars: boolean; // maps: the undiscovered systems too, without their hyperlanes
 	showLocked: boolean; // government: agendas, edicts and policies the game does not list
+	factionTypes: boolean; // government: faction types of our ethics, before any has formed (cheating)
+	allFactionTypes: boolean; // … and those of ethics we do not hold (cheating)
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
@@ -30,7 +32,9 @@ export const DEFAULT_DISPLAY: Display = {
 	contactStations: false,
 	wholeGalaxy: false,
 	unknownStars: false,
-	showLocked: false
+	showLocked: false,
+	factionTypes: false,
+	allFactionTypes: false
 };
 
 export type ProfileSettings = {
@@ -67,7 +71,9 @@ export function parseDisplay(v: unknown): Display {
 		contactStations: o.contactStations === true,
 		wholeGalaxy: o.wholeGalaxy === true,
 		unknownStars: o.unknownStars === true,
-		showLocked: o.showLocked === true
+		showLocked: o.showLocked === true,
+		factionTypes: o.factionTypes === true,
+		allFactionTypes: o.allFactionTypes === true
 	};
 }
 

@@ -19,7 +19,8 @@ export function facts(s: Snapshot, scripted: Facts['scripted'] = {}): Facts {
 		techs: s.progress?.researched ?? [],
 		atWar: s.wars === null ? null : s.wars.length > 0,
 		situations: s.situations === null ? null : s.situations.length,
-		scripted
+		scripted,
+		leaderTraits: s.leaderList?.flatMap((l) => l.traits)
 	};
 }
 
@@ -246,10 +247,13 @@ export function possibleSeats(
 	held: string[],
 	f: Facts
 ): PossibleSeat[] {
-	return Object.entries(positions)
-		.filter(
-			([key, p]) => !held.includes(key) && (p.civic === null || f.government.includes(p.civic))
-		)
-		.map(([key, p]) => ({ key, name: p.name, civic: p.civic, possible: evaluate(p.possible, f) }))
-		.filter((p) => p.possible !== false);
+	return (
+		Object.entries(positions)
+			.filter(
+				([key, p]) => !held.includes(key) && (p.civic === null || f.government.includes(p.civic))
+			)
+			.map(([key, p]) => ({ key, name: p.name, civic: p.civic, possible: evaluate(p.possible, f) }))
+			// only what is known to be open: an enclave's seat once one of its leaders is hired
+			.filter((p) => p.possible === true)
+	);
 }

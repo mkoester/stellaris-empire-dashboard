@@ -213,7 +213,16 @@ edicts, policy options, civics, timed modifiers; `councilorBonus()`, data DB `co
 Each seat's leader classes are chips in the game's colours; the leader's traits add their
 `councilor_modifier` ("applied to country if leader is on the Council", flat — 4.5.2
 `common/traits/000_documentation_leader_traits.txt`; `ltraitcouncil:<key>`). Possible seats: our civics' seats and base seats whose `possible` is not
-false; `unlocked_civic_council_slots` is the number of seats (3 at 2207.03.10, all held).
+Possible seats are only those known to be open (`possible` true): the enclaves' seats need a
+leader with the enclave's trait, hired at that enclave (4.5.2 `events/overlord_enclaves_events.txt`,
+e.g. `enclave.7100`: 50 influence and energy by empire size), so the extraction rewrites
+`any_owned_leader = { has_trait = X }` as `has_owned_leader_trait` leaves, checked against our
+leaders; the Thought Warden (`has_leader_flag = mindwarden_commander`, the Mindwardens origin)
+stays unknown, hidden. Agendas show "while preparing" (`modifier`, active while being enacted —
+`99_README_AGENDAS.txt`) and "once launched" (launch effect text, `finish_modifier` for its
+duration); edicts their effects, in the table. Factions: none has formed in a save yet, so the
+panel lists faction types only with the profile's `factionTypes` (our ethics) or
+`allFactionTypes` switch — both marked cheating. false; `unlocked_civic_council_slots` is the number of seats (3 at 2207.03.10, all held).
 
 **Government tab** (`/government`, `#lib/government.ts` and `#lib/triggers.ts`, both pure): the
 identity panel, ruler and council seats, the agenda with its due date (`events.ts`), the agendas this

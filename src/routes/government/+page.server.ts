@@ -26,7 +26,7 @@ export function load({ url }) {
 	const s = snaps.findLast((x) => x.council !== null) ?? snaps.findLast((x) => x.kind === 'save');
 	if (!s) error(404, 'no save yet');
 	const f = facts(s, data.scriptedTriggers);
-	const showLocked = display().showLocked;
+	const { showLocked, factionTypes, allFactionTypes } = display();
 	const policies = policyRows(data.policies, s.policies ?? {}, f, showLocked);
 	const agendas = agendaRows(data.agendas, s, f);
 	const edicts = edictRows(data.edicts, s, f);
@@ -94,7 +94,11 @@ export function load({ url }) {
 		techNames: Object.fromEntries(
 			edicts.flatMap((e) => e.needs).map((t) => [t, data.techs[t]?.name ?? t])
 		),
-		factions: factionRows(data.factionTypes, f),
+		// no faction has formed in a save yet, so only the switches show faction types (cheating)
+		factions: factionRows(data.factionTypes, f).filter(
+			(t) => allFactionTypes || (factionTypes && t.ours)
+		),
+		factionTypes: factionTypes || allFactionTypes,
 		explain: pick(explanations, [
 			...seats.map((r) => `seat:${r.key}`),
 			...seats.flatMap((r) => r.traits.map((t) => `ltrait:${t}`)),
