@@ -19,9 +19,18 @@ export type Trait = {
 	detail: string; // where it comes from
 	resource: string | null; // the resource it bears on, for colour and `suits`
 	ref: string | null; // popup id (`deposit:…`, `modifier:…`)
+	until?: string; // a temporary planet modifier's end date
 };
 export type Suit = { resource: string; score: number; why: string[] };
 export type Profile = { pros: Trait[]; cons: Trait[]; suits: Suit[]; mismatch: string | null };
+
+/** "6" or, with temporary ones among them, "6 (5+1)". */
+export const countLabel = (traits: Trait[]) => {
+	const temporary = traits.filter((t) => t.until).length;
+	return temporary
+		? `${traits.length} (${traits.length - temporary}+${temporary})`
+		: String(traits.length);
+};
 
 const RESOURCES = [
 	'minerals',
@@ -104,13 +113,14 @@ export function profile(p: {
 				ref: null
 			});
 
-	const sources = [
+	// features are permanent; a planet modifier with an end date is temporary
+	const sources: { ref: string; until: string | null }[] = [
 		...(p.colony.planet?.deposits ?? [])
 			.filter((d) => !p.hints.some((h) => h.blocker === d.key))
-			.map((d) => `deposit:${d.key}`),
-		...(p.colony.planet?.modifiers ?? []).map((m) => `modifier:${m.key}`)
+			.map((d) => ({ ref: `deposit:${d.key}`, until: null })),
+		...(p.colony.planet?.modifiers ?? []).map((m) => ({ ref: `modifier:${m.key}`, until: m.until }))
 	];
-	for (const ref of sources) {
+	for (const { ref, until } of sources) {
 		const e = p.explain[ref];
 		for (const m of e?.modifiers ?? []) {
 			if (CAP.test(m.key) || m.value === 0) continue;
@@ -118,7 +128,8 @@ export function profile(p: {
 				label: `${formatModifierValue(m)} ${modifierLabel(m)}`,
 				detail: e.title,
 				resource: resourceOf(m.key),
-				ref
+				ref,
+				...(until ? { until } : {})
 			});
 		}
 	}

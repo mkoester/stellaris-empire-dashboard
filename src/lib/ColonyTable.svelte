@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { colorOf } from './colors.ts';
-	import type { Trait } from './colonyProfile.ts';
+	import { countLabel, type Trait } from './colonyProfile.ts';
 	import { sectorName, type ColonyRow, type ColumnId, type Sort } from './colonyTable.ts';
 	import DistrictName from './DistrictName.svelte';
 	import { fmt, nameOf, pretty } from './format.ts';
 	import InfoPopup from './InfoPopup.svelte';
 	import type { Explanation } from './types.ts';
 
-	// The colonies tab's table: one row per colony and, under it, its pros and cons as chips.
+	// The colonies tab's table: one row per colony and, under it, its pros (👍) and cons (👎) as
+	// chips — thumbs, not triangles, which read as the sort direction.
 	// Headers sort; `sectorColors` (one-table mode) marks each row with its sector's colour.
 	let {
 		rows,
@@ -81,13 +82,13 @@
 		class="inline-flex items-center gap-1 rounded border px-1 whitespace-nowrap {pro
 			? 'border-green-600/40'
 			: 'border-red-600/40'}"
-		title={t.detail}
-		><span class={pro ? 'text-green-600' : 'text-red-600'}>{pro ? '▲' : '▼'}</span
+		title={t.until ? `${t.detail}\ntemporary, until ${t.until}` : t.detail}
+		><span class={pro ? 'text-green-600' : 'text-red-600'}>{pro ? '👍' : '👎'}</span
 		>{#if t.resource && colorOf(t.resource)}<span
 				class="inline-block size-2 rounded-full"
 				style:background={colorOf(t.resource)}
 			></span>{/if}<InfoPopup explanation={t.ref ? explain[t.ref] : undefined}>{t.label}</InfoPopup
-		></span
+		>{#if t.until}<span class="cursor-help" aria-label="temporary">⏳</span>{/if}</span
 	>
 {/snippet}
 
@@ -147,8 +148,8 @@
 						'what its caps and modifiers favour',
 						false
 					)}{/if}
-				{#if show('pros')}{@render head('pros', '▲', 'pros')}{/if}
-				{#if show('cons')}{@render head('cons', '▼', 'cons')}{/if}
+				{#if show('pros')}{@render head('pros', '👍', 'pros (lasting+temporary)')}{/if}
+				{#if show('cons')}{@render head('cons', '👎', 'cons (lasting+temporary)')}{/if}
 				{#if show('queue')}{@render head('queue', 'Queue', 'build queue', false)}{/if}
 				{#if show('automation')}<th class="p-1 font-normal">Automation</th>{/if}
 			</tr>
@@ -253,16 +254,16 @@
 								>{/each}
 						</td>
 					{/if}
-					{#if show('pros')}<td class="p-1 text-right text-green-600">{r.profile.pros.length}</td
+					{#if show('pros')}<td class="p-1 text-right text-green-600"
+							>{countLabel(r.profile.pros)}</td
 						>{/if}
-					{#if show('cons')}<td class="p-1 text-right text-red-600">{r.profile.cons.length}</td
+					{#if show('cons')}<td class="p-1 text-right text-red-600">{countLabel(r.profile.cons)}</td
 						>{/if}
 					{#if show('queue')}
 						<td class="p-1 whitespace-nowrap">
-							{#if r.queue.length}<DistrictName
-									name={nameOf(names, r.queue[0].name)}
-									color={colors[r.queue[0].name]}
-								/>{#if r.queue.length > 1}&nbsp;(+{r.queue.length - 1}){/if}{:else}∅{/if}
+							{#each r.queue as q, i (i)}<span class="block"
+									><DistrictName name={nameOf(names, q.name)} color={colors[q.name]} /></span
+								>{:else}∅{/each}
 						</td>
 					{/if}
 					{#if show('automation')}<td class="p-1">{r.automation}</td>{/if}

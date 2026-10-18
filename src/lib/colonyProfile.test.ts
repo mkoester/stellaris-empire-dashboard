@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BlockerHint } from './blockers.ts';
-import { designationResources, profile, resourceOf } from './colonyProfile.ts';
+import { countLabel, designationResources, profile, resourceOf } from './colonyProfile.ts';
 import type { PlanetCaps } from './districtCaps.ts';
 
 const mod = (key: string, value: number, positiveIsGood = true) => ({
@@ -26,6 +26,13 @@ const explain = {
 			mod('planet_jobs_engineering_research_produces_mult', 0.2),
 			mod('pop_happiness', -0.05)
 		]
+	},
+	'modifier:prosperous_unification': {
+		title: 'Prosperous Unification',
+		description: null,
+		text: null,
+		facts: [],
+		modifiers: [mod('pop_happiness', 0.15)]
 	},
 	'deposit:d_toxic_kelp': {
 		title: 'Toxic Kelp',
@@ -76,7 +83,10 @@ const colony = (designation: string, habitability: number | null = 0.8) => ({
 			{ key: 'd_mineral_rich', swap: null },
 			{ key: 'd_toxic_kelp', swap: null }
 		],
-		modifiers: [{ key: 'unstable_tectonics', until: null }]
+		modifiers: [
+			{ key: 'unstable_tectonics', until: null },
+			{ key: 'prosperous_unification', until: '2210.01.01' }
+		]
 	}
 });
 
@@ -89,11 +99,20 @@ describe('profile', () => {
 			'generator cap 2',
 			'+15% Planet Jobs Minerals Produces',
 			'+20% Planet Jobs Engineering Research Produces',
+			'+15% Pop Happiness',
 			'3 districts free'
 		]);
 		expect(p.pros[0].detail).toBe('+4 Mineral Rich, +3 Mine');
 		expect(p.pros[0].resource).toBe('minerals');
 		expect(p.pros[2]).toMatchObject({ detail: 'Mineral Rich', ref: 'deposit:d_mineral_rich' });
+	});
+
+	it('marks temporary planet modifiers and counts them apart', () => {
+		const temp = p.pros.find((t) => t.ref === 'modifier:prosperous_unification')!;
+		expect(temp.until).toBe('2210.01.01');
+		expect(p.pros.find((t) => t.ref === 'modifier:unstable_tectonics')!.until).toBeUndefined();
+		expect(countLabel(p.pros)).toBe('6 (5+1)');
+		expect(countLabel(p.cons)).toBe('3');
 	});
 
 	it('lists bad effects, blockers and habitability as cons', () => {

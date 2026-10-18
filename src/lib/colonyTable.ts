@@ -218,8 +218,8 @@ export const COLUMNS = [
 	{ id: 'net', label: 'Net output' },
 	{ id: 'districts', label: 'Districts' },
 	{ id: 'suits', label: 'Suits' },
-	{ id: 'pros', label: '▲ pros' },
-	{ id: 'cons', label: '▼ cons' },
+	{ id: 'pros', label: '👍 pros' },
+	{ id: 'cons', label: '👎 cons' },
 	{ id: 'queue', label: 'Build queue' },
 	{ id: 'automation', label: 'Automation' }
 ] as const;

@@ -119,7 +119,8 @@ defines the `dark:` variant on it. Canvases (uPlot) pick axis colours per draw a
 sector's summed net output, as the game's sector row), sortable, filtered, columns picked; in
 one-table mode each row carries its sector's colour (`CATEGORICAL`). Under each colony its **pros
 and cons**: district caps per type, every non-cap effect of its features and planet modifiers
-(good or bad by `positiveIsGood`), blockers, habitability < 100 %, free district room. **Suits**
+(good or bad by `positiveIsGood`), blockers, habitability < 100 %, free district room. Temporary planet modifiers (with an end date) count
+too, marked ⏳ and counted apart: `6 (5+1)` is 5 lasting and 1 temporary (`countLabel()`). **Suits**
 ranks resources by that evidence (a cap counts its size, a tagged pro +2, a con −2;
 `resourceOf()` reads the resource from the key); a designation whose resources score under half
 the best gets a ⚠ (capitals and cities aim at nothing). **Needs attention** (`problems()`):

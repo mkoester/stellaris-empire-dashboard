@@ -138,9 +138,10 @@
 </div>
 
 <p class="mb-3 text-xs text-gray-500">
-	▲ pros and ▼ cons: district caps, the planet's features and modifiers, blockers, habitability —
+	👍 pros and 👎 cons: district caps, the planet's features and modifiers, blockers, habitability —
 	hover for the source. <span class="text-amber-600">⚠</span> the designation does not fit what the
-	planet suits. <span class="font-bold text-red-600">!</span> needs attention.
+	planet suits. <span class="font-bold text-red-600">!</span> needs attention. ⏳ temporary (a planet
+	modifier with an end date) — counted, and shown apart: 6 (5+1) is 5 lasting and 1 temporary.
 </p>
 
 {#snippet table(rows: typeof shown, marked: boolean)}
