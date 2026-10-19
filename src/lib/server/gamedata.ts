@@ -9,6 +9,12 @@ export function loadGameData(file: string): GameData {
 	const db = new DatabaseSync(file, { readOnly: true });
 	try {
 		const rows = <T>(sql: string) => db.prepare(sql).all() as T[];
+		const accords = rows<{ patron_key: string; kind: string; key: string; name: string | null }>(
+			'SELECT patron_key, kind, key, name FROM patron_accord ORDER BY sort_order'
+		);
+		const tiers = rows<{ calling_key: string; tier: number; attunement: number | null }>(
+			'SELECT calling_key, tier, attunement FROM calling_tier'
+		);
 		return {
 			techs: Object.fromEntries(
 				rows<{
@@ -177,6 +183,45 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT key, name FROM agreement_preset WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name])
 			),
+			shroud: {
+				patrons: Object.fromEntries(
+					rows<{
+						key: string;
+						name: string | null;
+						category: string | null;
+						color: string | null;
+						covenant: string | null;
+					}>('SELECT key, name, category, color, covenant FROM patron').map((p) => [
+						p.key,
+						{
+							name: p.name ?? p.key,
+							category: p.category,
+							// minor patrons are black in the game files
+							color: p.color === '#000000' ? null : p.color,
+							covenant: p.covenant,
+							accords: accords
+								.filter((a) => a.patron_key === p.key)
+								.map((a) => ({ kind: a.kind, name: a.name ?? a.key }))
+						}
+					])
+				),
+				callings: Object.fromEntries(
+					rows<{ key: string; name: string | null }>('SELECT key, name FROM calling').map((c) => [
+						c.key,
+						{
+							name: c.name ?? c.key,
+							tiers: Object.fromEntries(
+								tiers.filter((t) => t.calling_key === c.key).map((t) => [t.tier, t.attunement])
+							)
+						}
+					])
+				),
+				deeds: Object.fromEntries(
+					rows<{ key: string; name: string | null; attunement: number | null }>(
+						'SELECT key, name, attunement FROM deed'
+					).map((d) => [d.key, { name: d.name ?? d.key, attunement: d.attunement ?? 0 }])
+				)
+			},
 			identityNames: Object.fromEntries(
 				rows<{ key: string; name: string }>(
 					`SELECT key, name FROM civic WHERE name IS NOT NULL

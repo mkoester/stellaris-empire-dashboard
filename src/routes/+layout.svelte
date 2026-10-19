@@ -64,6 +64,11 @@
 			active: path === '/situations'
 		},
 		{
+			name: 'shroud',
+			href: node ? resolve(`/shroud?node=${node}`) : resolve('/shroud'),
+			active: path === '/shroud'
+		},
+		{
 			name: 'focus',
 			href: node ? resolve(`/focus?node=${node}`) : resolve('/focus'),
 			active: path === '/focus'

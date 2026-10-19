@@ -104,7 +104,7 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/expansion`: the Expansion panel full-size, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`) and `events`
-(`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `focus`,
+(`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `shroud` (patrons and attunement), `focus`,
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `megastructures` (all below), `mods` and
 `dlc` (last; see
 "DLCs and mods" below); tabs keep `?node=`. Tables on the newer tabs sort through
@@ -763,7 +763,7 @@ members = { <ids> } last_month_pops pops_change last_month_colony_pops }`. `fact
   contacts tab's log (`combats()`, `combatLog()`) has what monthly saves caught. The losses are as
   of the save: 2 of the salvagers' 3 at 11.01, the game's report says 3 of 3. The companion mod
   could log combats (an on_action) for the complete record.
-- **The Shroud, to build** (2206.01.01, after the first delve; screenshot 2026_10_19_7): our
+- **The Shroud, open points** (2206.01.01, after the first delve; screenshot 2026_10_19_7): our
   `modules.standard_shroud_module = { attunement = { x y } month_start_attunement
 last_month_attunement_offset patron_relations = { <ids> } last_delve_date }`; top-level
   `patron_relations.<id> = { owner patron position = { x y } contact calling = { tier
@@ -775,9 +775,12 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   autosaves: the Composer at (0, −1) showed 50 with month-start y −0.05 and 65 with −0.065, while
   `attunement` (y −0.2, then −0.215) runs a month ahead and 0.15 further. Whether it is the dot
   product with the patron's position or the distance along its axis is still open for the
-  diagonal patrons (±0.7, ±0.7). Names (callings, deeds) are in localisation (`calling_establish_colony` "Calling of
-  Flight", `deed_host_new_species` "Hosting"); the deed weights (+25 …) and patrons are in
-  `common/patrons/` — an extraction step before a Shroud panel.
+  diagonal patrons (±0.7, ±0.7). The **shroud tab** (`/shroud`, `#lib/shroud.ts` pure,
+  `shroud()` in save.ts; data DB `patron`, `calling*`, `deed`): a compass of the contacted
+  patrons with our attunement (now and month start), and per contacted patron its standing, the
+  calling (tier, reward), its deeds and — negative — the opposite patron's (the save's five
+  each), accords and covenant. Uncontacted patrons stay hidden, as in the game. Still to see: a
+  completed calling, an accord unlocked, a favor.
 - **Exact branch points via the mod**: each month the mod rolls a random id and keeps the previous
   one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
   load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.

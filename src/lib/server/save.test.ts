@@ -74,6 +74,7 @@ const raw: RawSave = {
 	galcom: undefined,
 	resolutions: {},
 	popFactions: {},
+	patronRelations: {},
 	starbases: {},
 	megastructures: {},
 	bypasses: {},

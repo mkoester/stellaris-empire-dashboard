@@ -34,6 +34,7 @@ import type {
 	Subject,
 	Faction,
 	Combat,
+	Shroud,
 	GalacticCommunity,
 	ResolutionVote,
 	Snapshot
@@ -113,6 +114,7 @@ export type RawSave = {
 	galcom: Raw; // top-level galactic_community
 	resolutions: Record<string, Raw>; // top-level resolution: proposed and voted on
 	popFactions: Record<string, Raw>; // top-level pop_factions: every empire's factions
+	patronRelations: Record<string, Raw>; // top-level patron_relations: every empire's patrons
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -210,6 +212,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			galcom: q.at('/galactic_community'),
 			resolutions: q.at('/resolution') ?? {},
 			popFactions: q.at('/pop_factions') ?? {},
+			patronRelations: q.at('/patron_relations') ?? {},
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
 			districtsDb: q.at('/districts') ?? {},
 			zones: q.at('/zones') ?? {},
@@ -337,6 +340,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		galcom: galacticCommunity(raw),
 		factions: factions(raw),
 		combats: combats(raw),
+		shroud: shroud(raw),
 		warLostDate:
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
 		tradeDeals: tradeDeals(raw),
@@ -1494,6 +1498,40 @@ export function combats(raw: Pick<RawSave, 'country' | 'fleets'>): Combat[] {
 			}
 		];
 	});
+}
+
+/** Our standing in the Shroud (see `Shroud`), or null before we can access it. */
+export function shroud(
+	raw: Pick<RawSave, 'country' | 'patronRelations' | 'countryId'>
+): Shroud | null {
+	const m = raw.country?.modules?.standard_shroud_module;
+	if (!m || typeof m !== 'object') return null;
+	const point = (v: Raw) => ({ x: num(v?.x), y: num(v?.y) });
+	return {
+		attunement: point(m.attunement),
+		monthStart: point(m.month_start_attunement),
+		lastDelve: strOrNull(m.last_delve_date),
+		preferred: strOrNull(raw.country?.is_preferred_patron),
+		patrons: Object.values(raw.patronRelations)
+			.filter((p) => p && typeof p === 'object' && p.owner === raw.countryId)
+			.map((p) => ({
+				patron: String(p.patron ?? ''),
+				...point(p.position),
+				contact: String(p.contact ?? 'none'),
+				calling:
+					p.calling && typeof p.calling === 'object'
+						? {
+								key: String(p.calling.patron_objective ?? ''),
+								tier: num(p.calling.tier),
+								start: strOrNull(p.calling.calling_start_date),
+								completed: p.calling.completed === true || p.calling.completed === 'yes'
+							}
+						: null,
+				deeds: items(p.deeds)
+					.map((d) => d?.patron_objective)
+					.filter((d) => typeof d === 'string')
+			}))
+	};
 }
 
 /** Our factions (see `Faction`), by support. */

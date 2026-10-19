@@ -44,6 +44,7 @@ const data: GameData = {
 	districtColors: {},
 	identityNames: {},
 	diploNames: {},
+	shroud: { patrons: {}, callings: {}, deeds: {} },
 	habitatEffects: {},
 	habitability: { traits: {}, planet: {} },
 	blockers: [],

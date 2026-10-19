@@ -303,6 +303,7 @@ export type Snapshot = {
 	claims: Claim[] | null; // ours, and on our systems; null before 2026-10-19
 	factions: Faction[] | null; // ours; null before 2026-10-19
 	combats: Combat[] | null; // our fleets' last combats this save still holds; null before 2026-10-19
+	shroud: Shroud | null; // null before access to the Shroud, and before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	// From the save's `meta`; null from the mod feed and in older snapshots.
@@ -503,6 +504,28 @@ export type War = {
 	enemyExhaustion: number | null;
 	battles: Battle[];
 };
+/** Our relation to one patron of the Shroud: top-level `patron_relations.<id>` with `owner` = us. */
+export type PatronRelation = {
+	patron: string; // key, e.g. the_composer_of_strands
+	x: number; // its position on the Shroud plane
+	y: number;
+	contact: string; // none, completed
+	calling: { key: string; tier: number; start: string | null; completed: boolean } | null;
+	deeds: string[]; // the deeds it currently counts (save picks 5 of its pool)
+};
+/**
+ * Our standing in the Shroud: `modules.standard_shroud_module = { attunement = { x y }
+ * month_start_attunement … last_delve_date }` and the patron relations (4.5.2, first seen
+ * 2026-10-19). A patron's standing is the month-start attunement towards it × 1000.
+ */
+export type Shroud = {
+	attunement: { x: number; y: number };
+	monthStart: { x: number; y: number };
+	lastDelve: string | null;
+	preferred: string | null; // is_preferred_patron
+	patrons: PatronRelation[];
+};
+
 /**
  * One of our factions: top-level `pop_factions.<id> = { country type name support_percent
  * support_power faction_approval members last_month_pops … }` (4.5.2, first seen 2026-10-19 on an
@@ -691,6 +714,20 @@ export type GameData = {
 	identityNames: Record<string, string>;
 	// resolutions, resolution categories, subject agreement terms, term values and presets by key
 	diploNames: Record<string, string>;
+	shroud: {
+		patrons: Record<
+			string,
+			{
+				name: string;
+				category: string | null;
+				color: string | null;
+				covenant: string | null;
+				accords: { kind: string; name: string }[];
+			}
+		>;
+		callings: Record<string, { name: string; tiers: Record<number, number | null> }>;
+		deeds: Record<string, { name: string; attunement: number }>;
+	};
 	habitatEffects: Record<string, Record<string, number>>; // deposit → what a habitat gets from it
 	// what habitability is made of (#lib/habitability.ts): the species traits' `pc_<class>_habitability`,
 	// `pop_environment_tolerance` and `habitability_floor_add`, and the planet's own tolerance
