@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+	agendaSeries,
 	colonySeries,
 	gameMonth,
 	gameYear,
+	monthStarts,
 	popSeries,
 	researchSeries,
 	resourceSeries,
@@ -89,5 +91,36 @@ describe('colonySeries', () => {
 			{ date: '2200.03.01', colonies: [] }
 		] as unknown as Snapshot[];
 		expect(colonySeries(h, 7, { pops: (c) => c.pops }).lines).toEqual({ pops: [null, 100, null] });
+	});
+});
+
+describe('agendaSeries', () => {
+	const a = (date: string, key: string, progress: number) =>
+		({ date, progress: { agenda: { key, progress } } }) as unknown as Snapshot;
+	// a throwaway game, 2026-10-19: the start agenda done on day one, then Unlock Slot at +42 a
+	// month, a manual save on 05.01 and one on 05.02
+	const h = [
+		a('2200.01.01', 'agenda_infinite_opportunities', 6000),
+		a('2200.02.01', 'agenda_unlock_slot', 42),
+		a('2200.04.01', 'agenda_unlock_slot', 126),
+		a('2200.05.01', 'agenda_unlock_slot', 168),
+		a('2200.05.01', 'agenda_unlock_slot', 168),
+		a('2200.05.02', 'agenda_unlock_slot', 168)
+	];
+
+	it('draws each agenda as its own line', () => {
+		const { lines } = agendaSeries(h);
+		expect(lines.infinite_opportunities).toEqual([6000, null, null, null, null, null]);
+		expect(lines.unlock_slot).toEqual([null, 42, 126, 168, 168, 168]);
+	});
+
+	it('measures the gain per month start, none within a month or across agendas', () => {
+		expect(agendaSeries(h).lines['per month']).toEqual([null, null, 42, 42, 42, 42]);
+	});
+
+	it('counts month starts between dates', () => {
+		expect(monthStarts('2200.04.01', '2200.05.02')).toBe(1);
+		expect(monthStarts('2200.05.01', '2200.05.02')).toBe(0);
+		expect(monthStarts('2200.11.15', '2201.02.01')).toBe(3);
 	});
 });

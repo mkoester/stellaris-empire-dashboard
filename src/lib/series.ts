@@ -105,23 +105,39 @@ export function colonySeries(
 	};
 }
 
+/** Month starts passed from one date to a later one: 2200.04.01 → 2200.05.02 is 1. */
+export function monthStarts(from: string, to: string): number {
+	const [fy, fm] = from.split('.').map(Number);
+	const [ty, tm] = to.split('.').map(Number);
+	return (ty - fy) * 12 + (tm - fm);
+}
+
 /**
- * Council agenda progress over time and the gain per month since the save before (same agenda;
- * a gap where the agenda changed or no earlier save exists).
+ * Council agenda progress over time, one line per agenda (named by its key without `agenda_`), so
+ * a new agenda starts its own line instead of falling from the last one's total; and the gain per
+ * month since the save before on the same agenda. Progress moves on the 1st only, so the gain is
+ * divided by the month starts passed — saves within one month give no rate, not 0.
  */
 export function agendaSeries(history: Snapshot[]): Series {
-	const saves = history.map((s) => (s.progress?.agenda ? s : null));
+	const agenda = (s: Snapshot) => s.progress?.agenda ?? null;
+	const keys = [...new Set(history.flatMap((s) => agenda(s)?.key ?? []))];
 	return {
 		x: history.map((s) => gameYear(s.date)),
 		lines: {
-			progress: saves.map((s) => s?.progress?.agenda?.progress ?? null),
-			'per month': saves.map((s, i) => {
-				const before = saves.slice(0, i).findLast((p) => p !== null && p.date < (s?.date ?? ''));
-				const a = s?.progress?.agenda;
-				const b = before?.progress?.agenda;
-				if (!s || !a || !b || a.key !== b.key) return null;
-				const months = (gameYear(s.date) - gameYear(before.date)) * 12;
-				return months > 0 ? Math.round(((a.progress - b.progress) / months) * 10) / 10 : null;
+			...Object.fromEntries(
+				keys.map((k) => [
+					k.replace(/^agenda_/, ''),
+					history.map((s) => (agenda(s)?.key === k ? agenda(s)!.progress : null))
+				])
+			),
+			'per month': history.map((s, i) => {
+				const a = agenda(s);
+				const before = history
+					.slice(0, i)
+					.findLast((p) => agenda(p) !== null && monthStarts(p.date, s.date) > 0);
+				const b = before && agenda(before);
+				if (!a || !b || a.key !== b.key) return null;
+				return Math.round(((a.progress - b.progress) / monthStarts(before.date, s.date)) * 10) / 10;
 			})
 		}
 	};

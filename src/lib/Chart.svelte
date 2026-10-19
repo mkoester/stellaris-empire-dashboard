@@ -73,14 +73,23 @@
 		const { ctx, bbox } = u;
 		const max = u.scales.x.max ?? range[1];
 		let beyond = 0;
+		// Labels sit left of their line; markers close together (three research fields due the same
+		// month) would print over each other, so a label that would touch the one before moves down
+		// a row. rowEnds: each row's rightmost label edge so far.
+		const rowEnds: number[] = [];
 		ctx.save();
 		ctx.font = `${11 * px}px sans-serif`;
 		ctx.textBaseline = 'top';
-		for (const m of markers) {
+		for (const m of [...markers].sort((a, b) => a.x - b.x)) {
 			const color = colorOf(m.tint) ?? '#888';
 			ctx.fillStyle = ctx.strokeStyle = color;
 			if (m.x <= max) {
 				const x = u.valToPos(m.x, 'x', true);
+				const right = x - 3 * px;
+				const left = right - ctx.measureText(m.label).width;
+				let row = rowEnds.findIndex((end) => left > end + 4 * px);
+				if (row === -1) row = rowEnds.length;
+				rowEnds[row] = right;
 				ctx.setLineDash([4 * px, 3 * px]);
 				ctx.lineWidth = px;
 				ctx.beginPath();
@@ -88,7 +97,7 @@
 				ctx.lineTo(x, bbox.top + bbox.height);
 				ctx.stroke();
 				ctx.textAlign = 'right';
-				ctx.fillText(m.label, x - 3 * px, bbox.top + 2 * px);
+				ctx.fillText(m.label, right, bbox.top + (2 + 14 * row) * px);
 			} else {
 				ctx.textAlign = 'right';
 				ctx.fillText(
