@@ -707,8 +707,9 @@ rewards = { { category current="development_rewards_2" progress } } } }`; cards 
   Infinite Opportunities until 2231/2232, 30 years after their first agenda). Launch = that minus
   the agenda's cooldown (`agenda_cooldown`, else `COUNCIL_AGENDA_COOLDOWN` 10,800 days; data DB
   `council_agenda.cooldown_days`), after-launch effect until launch + `finish_days` (3,600). The
-  agendas table shows these dates, the upcoming list "can be picked again"; our own first launch is
-  still to check them against.
+  agendas table shows these dates, the upcoming list "can be picked again". **Checked on our own
+  first launch** (throwaway game): Expand the Council launched 2212.03.05 (a manual save that day),
+  the save's `start_date` 2242.03.05 = + its 10,800-day cooldown — the derived launch is exact.
 - Council: `country.government.council_positions = { <ids> }` → top-level
   `council_positions.council_positions.<id> = { country type leader }` (2207.03.10: defense,
   research, state; the ruler is `country.ruler`, apart). Policy flags `country.policy_flags =
