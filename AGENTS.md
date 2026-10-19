@@ -139,7 +139,9 @@ view. **Borders** (`territories` on `GalaxyMap`; `#lib/borders.ts`, `#lib/territ
 `territoriesOf()` in `server/mapSystems.ts`): every system claims its Voronoi cell, clipped to a
 circle of the median nearest-neighbour distance (`claimRadius`); a territory is its systems' cells,
 its border the arcs and the cell edges towards another owner — all systems are sites, so territory
-stops halfway to unowned ones. Colours are the game's: a country's first `flag.colors` swatch, its
+stops halfway to unowned ones. A lane between two systems of one owner widens both claims by a
+corridor (half-width `CORRIDOR` = ½ R) up to the midpoint, so a chain of far-apart systems is one
+territory, as in the game (2205.07: Cydran Concern's three systems were three islands). Colours are the game's: a country's first `flag.colors` swatch, its
 `map` rgb from `flags/colors.txt` (data DB `flag_color`). Shown: ours, empires we have
 communications with, every visited station's owner with `contactStations`; stations we saw but
 cannot name are **guessed** (one shipset within `GUESS_JUMPS` = 3 jumps = one empire), dashed, in
@@ -733,8 +735,10 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 - **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
   (`is_rival=yes`); no AI rivalled us yet (2205.06).
 - **Galactic Community, not yet understood**: `galactic_community.days` (541 while voting) and
-  `election` (180), and each voted resolution's `voting = { <country>=<date> }` — calibrate
-  against the game's community screen (days left, next election). No resolution has passed yet:
+  `election` (180), and each voted resolution's `voting = { <country>=<date> }`. The game's screen
+  at the same date (screenshot 2026_10_19_3) shows "Senate is in session 899" and 255 by the
+  proposal queue — neither number is in the save. **Votes are weighed by diplomatic weight**
+  (855 for = 469 + 245 + 141), and no country's weight is stored: the tab counts empires. No resolution has passed yet:
   where passed ones are kept is still to see. Resolution descriptions lose loc commands
   ("members of the should …" — `[global_event_country.GetGalCommunityOrGalImperium]`), an
   extraction loc-cleanup gap.

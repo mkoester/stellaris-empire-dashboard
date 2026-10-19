@@ -53,10 +53,18 @@
 	const shown = $derived(sectors ? territories.flatMap((t) => t.parts ?? [t]) : territories);
 	// the cells only change with the systems and owners, not with panning
 	const ownerOf = $derived(new Map(shown.flatMap((t) => t.systems.map((id) => [id, t] as const))));
-	const territoryCells = $derived(
-		ownerOf.size ? cells(systems, new Set(ownerOf.keys()), claimRadius(systems)) : []
-	);
 	const keyOf = (id: number) => ownerOf.get(id)?.key;
+	// territory follows the lanes between systems of one owner (see #lib/borders.ts)
+	const sameOwnerLanes = (id: number) =>
+		(byId.get(id)?.lanes ?? []).flatMap((to) => {
+			const o = byId.get(to);
+			return o && keyOf(to) === keyOf(id) ? [o] : [];
+		});
+	const territoryCells = $derived(
+		ownerOf.size
+			? cells(systems, new Set(ownerOf.keys()), claimRadius(systems), sameOwnerLanes)
+			: []
+	);
 	// each wormhole once (both ends list each other), bent so it does not hide a lane; L-Gates
 	// list their link at the gate only
 	const wormholes = $derived(

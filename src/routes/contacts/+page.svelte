@@ -164,6 +164,10 @@
 				: ', we are not a member'}
 		</div>
 		{#if g.voting}
+			<div class="mb-1 text-xs text-gray-500">
+				counted in empires: the game weighs each vote by diplomatic weight, which the save does not
+				store
+			</div>
 			<div class="mb-2">
 				<b>voting on:</b>
 				{@render resolution(g.voting)}
@@ -204,7 +208,7 @@
 		>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
 	>
 	<span class="text-gray-500">by {r.proposer}</span> ·
-	<span class="text-green-600" title={r.support.join('\n')}>{r.support.length} for</span>,
+	<span class="text-green-600" title={r.support.join('\n')}>{r.support.length} empires for</span>,
 	<span class="text-red-600" title={r.oppose.join('\n')}>{r.oppose.length} against</span> · we {r.ours ??
 		'have not taken a side'}
 {/snippet}
