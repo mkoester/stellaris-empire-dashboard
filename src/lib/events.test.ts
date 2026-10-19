@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	deficits,
 	fromDays,
 	monthTicks,
 	scheduleQueue,
@@ -310,5 +311,20 @@ describe('upcoming colonization', () => {
 		expect(upcoming(now, null, data).find((e) => e.kind === 'colonization')!.detail).toContain(
 			'base rate'
 		);
+	});
+});
+
+describe('deficits', () => {
+	it('dates when a stockpile runs out at its balance, and flags one already empty', () => {
+		const events = deficits({
+			date: '2208.04.01',
+			stockpile: { energy: 100, minerals: 0, alloys: 500, physics_research: 0 },
+			balance: { energy: -30, minerals: -5, alloys: 12, physics_research: -1, food: -0.001 }
+		});
+		expect(events[0].ref).toBe('modifier:energy_deficit');
+		expect(events.map((e) => [e.what, e.date, e.months, e.act])).toEqual([
+			['energy runs out', '2208.08.01', 4, true],
+			['minerals in deficit', '2208.04.01', 0, true]
+		]);
 	});
 });

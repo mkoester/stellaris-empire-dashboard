@@ -80,7 +80,13 @@ follows `game.log` from its current end and turns the mod's monthly lines into p
 (stockpile and net income) of the campaign being played.
 
 **Upcoming events** (`events.ts`, pure): research per field, next tradition, council agenda, build
-queue items and the next election, sorted by due date. Rates are _measured_ — progress between the
+queue items, the next election and **deficits** (`deficits()`: when a stockpile runs empty at its
+monthly balance, or "in deficit" once empty — the game applies `<resource>_deficit` then, 4.5.2
+`09_static_modifiers_deficit.txt`, without warning ahead; the row's popup shows its effects),
+sorted by due date. Checked 2026-10-19: at 2210.01.01 (24.65 energy, −30.56/month) it gave
+2210.02.01, the date of the save's `timeline_first_deficit`. In the save an empty resource is
+**missing from the stockpile**, and no `*_deficit` modifier is stored. 4.5.2's `energy_deficit`
+has every effect commented out — an energy shortage costs nothing directly. Rates are _measured_ — progress between the
 branch's two latest saves, so every speed bonus counts — and costs are base costs from the data DB
 scaled by empire size and the galaxy sliders. Checked against the game at 2200.04.01: research
 53/71/108 months, tradition 2200.09.01 exact; the agenda is 164 vs. the game's 163 (rounding).
@@ -730,7 +736,7 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   galaxy-map units (assumed); whether the in-system distance to
   the outermost body is what new ships of a mega shipyard travel (hyperlane arrival points are not
   stored); and whether the catapult's `max_jumps = 25` (another catapult) is a rule or AI weight.
-- **Our own factions, not seen yet**: `factions.spawnall` (2026-10-19) formed four for an AI
+- **Our own factions, not seen yet** (they can form only after 10 years and the first other species met — 4.5.2 `is_faction_allowed`; 500 potential members, `POP_FACTION_MIN_POTENTIAL_MEMBERS`): `factions.spawnall` (2026-10-19) formed four for an AI
   only: `pop_factions.<id> = { country type name support_percent support_power faction_approval
 members = { <ids> } last_month_pops pops_change last_month_colony_pops }`. `factions()` reads
   ours from that shape; the government tab shows formed ones with support and approval — check
@@ -758,6 +764,9 @@ members = { <ids> } last_month_pops pops_change last_month_colony_pops }`. `fact
   where passed ones are kept is still to see. Resolution descriptions lose loc commands
   ("members of the should …" — `[global_event_country.GetGalCommunityOrGalImperium]`), an
   extraction loc-cleanup gap.
+- **The game's own timeline, unused**: `country.timeline_events = { { date definition data types
+} }` (`timeline_first_deficit`, `timeline_galactic_community_resolution`, `timeline_event_year`,
+  …) — a ready milestone source beside our diffing.
 - **Fleet combats outside wars**: each fleet's `fleet_stats.combat_stats` holds only its last
   combat and is cleared some time after (2205.10.14's: in the 11.01 save, gone by 12.01), so the
   contacts tab's log (`combats()`, `combatLog()`) has what monthly saves caught. The losses are as

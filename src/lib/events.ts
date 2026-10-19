@@ -22,7 +22,8 @@ export type Upcoming = {
 		| 'shipyard'
 		| 'ship'
 		| 'colonization'
-		| 'election';
+		| 'election'
+		| 'deficit';
 	what: string;
 	detail: string;
 	exact: boolean; // false: estimated from costs the save does not hold
@@ -342,5 +343,39 @@ export function upcoming(
 			exact: true
 		});
 
+	out.push(...deficits(latest));
+
 	return out.sort((a, b) => toDays(a.date) - toDays(b.date) || a.what.localeCompare(b.what));
+}
+
+/**
+ * When a stockpile runs empty at its current monthly balance — the game then applies its
+ * `<resource>_deficit` modifier (4.5.2 `common/static_modifiers/09_static_modifiers_deficit.txt`)
+ * and does not warn ahead. The save then simply lacks the resource in the stockpile; the modifier
+ * is not stored (2210.02.01: energy, only `timeline_first_deficit` in `country.timeline_events`).
+ * Research has no stockpile; balances under 0.01 are noise.
+ */
+export function deficits(latest: Pick<Snapshot, 'date' | 'stockpile' | 'balance'>): Upcoming[] {
+	return Object.entries(latest.balance ?? {}).flatMap(([resource, balance]) => {
+		if (!(balance < -0.01) || resource.endsWith('_research')) return [];
+		const stock = latest.stockpile[resource] ?? 0;
+		const when = due(latest.date, stock, -balance);
+		if (!when) return [];
+		return [
+			{
+				...when,
+				kind: 'deficit' as const,
+				act: true,
+				what:
+					stock > 0
+						? `${resource.replaceAll('_', ' ')} runs out`
+						: `${resource.replaceAll('_', ' ')} in deficit`,
+				tint: resource,
+				// what the shortage does: the static modifier (4.5.2: energy's has no effects at all)
+				ref: `modifier:${resource}_deficit`,
+				detail: `${fmt(stock)} left · ${balance.toFixed(1)}/month`,
+				exact: true
+			}
+		];
+	});
 }
