@@ -159,8 +159,13 @@ goes there and into `EmpirePanel`**. Settings are stored server-side in the `set
 (`PUT /api/settings`), which a `SCHEMA` bump does not drop. The theme (`system`/`light`/`dark`)
 is global; everything else (custom tabs, chart events, the colonies and expansion views, display options) lives
 in a **profile** (`#lib/profiles.ts`, `server/settings.ts`): rows `profiles`, `profile:<id>`,
-`activeProfile`, `campaignProfiles`. The profile in use is the current campaign's (the head's),
-else the last picked — picking one while a campaign runs makes it that campaign's. The **config
+`activeProfile`, `campaignProfiles`. The profile in use is the **viewed** campaign's — the
+`?node=` one, else the head's (`viewedCampaign()`, via `getRequestEvent()`; API calls carry the
+page's `?node=`, `api()` in `#lib/settings.ts`) — else the last picked; picking one makes it the
+viewed campaign's. **Campaigns** (one per save folder) switch in the header's `game` dropdown,
+shown from two on: each is its tip node (`campaignTips()` in `#lib/timeline.ts`: the head for the
+one being played, else its last observed node), named after its latest save's empire
+(`campaignName()`); the tab stays, a colony or custom tab goes to `all`. The **config
 tab** (`⚙`, `/settings`) manages them (`/api/profiles`: create, rename, delete, select, import;
 `GET /api/profiles/<id>` exports `{ format: 'stellaris-dashboard-profile', version: 1, name,
 settings }`). The first read made profile `default` from the rows stored before profiles; those
@@ -417,6 +422,20 @@ which also matches the Bash command's own shell and ends it (exit 143).
   commands with `fnm exec --using=24 --`.
 - Starting the dev server needs `sandbox.network.allowLocalBinding` (set in the workspace
   `.claude/settings.json`); start it and make the requests in one Bash command.
+
+## Testing in a throwaway game
+
+New save shapes come from **throwaway games with console cheats, never the real campaign** (its
+history lives only in the DB), against a **separate `DASHBOARD_DB`**, the companion mod on (cheats
+end achievements anyway). Per topic a manual save before and after, diffed in `$TMPDIR`, plus a
+screenshot of the game's panel. Commands, from the wiki's console page (verified for 4.5):
+`debugtooltip` (ids), `contact`, `communications`, `debug_yesmen` (AI accepts all), `play <id>`,
+`war <attacker> <defender> <wg>` (`wg_subjugation`, `wg_tribute`), `peace_on_player <id>`,
+`activate_ascension_perk <ap>`, `activate_tradition <tr>`, `research_technology <tech>`,
+`unity`/`influence`/`cash`/`resource <n> <res>`, `instant_build`, `survey`, `fast_forward <days>`,
+`factions.spawnall`, `federation_add_experience`/`_cohesion`, `event <id>` (`galcom.16` founds
+the Galactic Community, `distar.11000` opens the L-Gates, `crisis.199|1000|2000|8005`,
+`fallen_empires_awakening.1` after `play`-ing a fallen empire), `effect <script>`.
 
 ## Save format facts (4.5.2, read from a real save)
 

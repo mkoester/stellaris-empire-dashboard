@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { path, place } from './timeline.ts';
+import { campaignTips, path, place } from './timeline.ts';
 import type { SourceKind, TimelineNode } from './types.ts';
 
 const node = (
@@ -129,5 +129,35 @@ describe('path', () => {
 	it('survives a parent cycle from a bad manual correction', () => {
 		const t = [node(1, '2200.01.01', 2), node(2, '2201.01.01', 1)];
 		expect(path(t, 2).map((n) => n.id)).toEqual([1, 2]);
+	});
+});
+
+describe('campaignTips', () => {
+	// a: 1 ── 2 ── 4 (head, a reload from 2 would also do), b: 3 ── 5
+	const nodes = [
+		node(1, '2200.01.01', null, 'a'),
+		node(2, '2201.01.01', 1, 'a'),
+		node(3, '2200.01.01', null, 'b'),
+		node(4, '2200.06.01', 1, 'a'),
+		node(5, '2200.02.01', 3, 'b')
+	];
+
+	it('lists each campaign once, most recently observed first, at its last node', () => {
+		expect(campaignTips(nodes, null)).toEqual([
+			{ campaign: 'b', tip: 5, date: '2200.02.01' },
+			{ campaign: 'a', tip: 4, date: '2200.06.01' }
+		]);
+	});
+
+	it("takes the head for the campaign being played, even when it is not that campaign's last", () => {
+		expect(campaignTips(nodes, 2).find((c) => c.campaign === 'a')).toEqual({
+			campaign: 'a',
+			tip: 2,
+			date: '2201.01.01'
+		});
+	});
+
+	it('is empty before the first observation', () => {
+		expect(campaignTips([], null)).toEqual([]);
 	});
 });

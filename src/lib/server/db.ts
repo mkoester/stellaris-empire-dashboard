@@ -126,6 +126,18 @@ export function headCampaign(db: Db): string | null {
 	return nodes(db).find((n) => n.id === id)?.campaign ?? null;
 }
 
+/** The empire's name in the campaign's latest save ('' before one; game.log nodes carry none). */
+export function campaignName(db: Db, campaign: string): string {
+	const row = db
+		.prepare(
+			`SELECT json_extract(s.json, '$.empireName') AS name FROM node n
+			JOIN snapshot s ON s.node_id = n.id
+			WHERE n.campaign = ? AND n.kind = 'save' ORDER BY n.id DESC LIMIT 1`
+		)
+		.get(campaign) as { name: string | null } | undefined;
+	return row?.name ?? '';
+}
+
 function setHead(db: Db, id: number) {
 	db.prepare("INSERT OR REPLACE INTO state (key, value) VALUES ('head', ?)").run(String(id));
 }

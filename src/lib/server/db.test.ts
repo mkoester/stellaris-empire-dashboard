@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Snapshot } from '#lib/types.ts';
 import {
+	campaignName,
 	galaxyOf,
 	getSetting,
 	headId,
@@ -131,6 +132,17 @@ describe('db', () => {
 		setParent(db, c, b);
 		expect(nodes(db).find((n) => n.id === c)).toMatchObject({ parentId: b, ambiguous: false });
 		expect(() => setParent(db, a, c)).toThrow(/cycle/);
+	});
+
+	it("names each campaign after the empire in its latest save, not a game.log node's blank", () => {
+		const db = openDb(':memory:');
+		record(db, { ...snap('2200.01.01', 'a'), empireName: 'Old name' }, 't');
+		record(db, { ...snap('2201.01.01', 'b'), empireName: 'New name' }, 't');
+		record(db, { ...snap('2201.02.01', 'l'), kind: 'log', empireName: '' }, 'game.log');
+		record(db, { ...snap('2200.01.01', 'x'), campaign: 'other', empireName: 'Other' }, 't');
+		expect(campaignName(db, 'c')).toBe('New name');
+		expect(campaignName(db, 'other')).toBe('Other');
+		expect(campaignName(db, 'unknown')).toBe('');
 	});
 });
 

@@ -73,3 +73,19 @@ function latest(nodes: TimelineNode[]): TimelineNode | undefined {
 		undefined
 	);
 }
+
+export type CampaignTip = { campaign: string; tip: number; date: string };
+
+/**
+ * One entry per campaign with the node a switch to it shows: the head for the campaign being
+ * played, else the one observed last (where the player left it). Most recently observed first.
+ */
+export function campaignTips(nodes: TimelineNode[], headId: number | null): CampaignTip[] {
+	const last = new Map<string, TimelineNode>();
+	for (const n of nodes) if (n.id > (last.get(n.campaign)?.id ?? -1)) last.set(n.campaign, n);
+	const head = nodes.find((n) => n.id === headId);
+	return [...last.values()]
+		.sort((a, b) => b.id - a.id)
+		.map((n) => (n.campaign === head?.campaign ? head : n))
+		.map((n) => ({ campaign: n.campaign, tip: n.id, date: n.date }));
+}

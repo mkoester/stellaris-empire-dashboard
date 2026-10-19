@@ -13,11 +13,26 @@ import {
 	type ProfileSettings
 } from '#lib/profiles.ts';
 import { parseTheme, type ChartEvents, type CustomTab, type Theme } from '#lib/settings.ts';
+import { getRequestEvent } from '$app/server';
 import { getDb } from './app.ts';
-import { getSetting, headCampaign, setSetting, type Db } from './db.ts';
+import { getSetting, headCampaign, nodes, setSetting, type Db } from './db.ts';
 
 // The stored viewer settings. The theme is global; everything else lives in the profile in use
-// (#lib/profiles.ts): the current campaign's, else the last picked.
+// (#lib/profiles.ts): the viewed campaign's, else the last picked.
+
+/**
+ * The campaign of the node a request looks at (`?node=`, pages and API calls alike), else the
+ * one being played. Outside a request (the watcher, tests) the one being played.
+ */
+export function viewedCampaign(db: Db): string | null {
+	let node = NaN;
+	try {
+		node = Number(getRequestEvent().url.searchParams.get('node'));
+	} catch {
+		// no request
+	}
+	return nodes(db).find((n) => n.id === node)?.campaign ?? headCampaign(db);
+}
 
 export const theme = (): Theme => parseTheme(getSetting(getDb(), 'theme')) ?? 'system';
 
@@ -47,7 +62,7 @@ const byCampaign = (db: Db) => (getSetting(db, 'campaignProfiles') ?? {}) as Rec
 /** The profile in use and its settings. */
 export function activeProfile(db: Db): ProfileInfo & { settings: ProfileSettings } {
 	const all = profiles(db);
-	const id = activeId(all, getSetting(db, 'activeProfile'), byCampaign(db), headCampaign(db));
+	const id = activeId(all, getSetting(db, 'activeProfile'), byCampaign(db), viewedCampaign(db));
 	return {
 		...all.find((p) => p.id === id)!,
 		settings: parseSettings(getSetting(db, `profile:${id}`))
@@ -108,7 +123,7 @@ export function profileAction(db: Db, a: ProfileAction): string | null {
 		case 'select': {
 			if (!all.some((p) => p.id === a.id)) return null;
 			setSetting(db, 'activeProfile', a.id);
-			const campaign = headCampaign(db);
+			const campaign = viewedCampaign(db);
 			if (campaign !== null)
 				setSetting(db, 'campaignProfiles', { ...byCampaign(db), [campaign]: a.id });
 			return a.id;

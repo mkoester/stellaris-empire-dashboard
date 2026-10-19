@@ -131,6 +131,12 @@ export function parseChartEvents(v: unknown): ChartEvents | null {
 	return out;
 }
 
+// The server keeps the profile of the campaign being viewed, so API calls carry the page's `?node=`.
+function api(path: string): string {
+	const node = new URLSearchParams(location.search).get('node');
+	return node ? `${path}?node=${node}` : path;
+}
+
 /**
  * Stores changed settings on the server (`/api/settings`). `chartEvents` entries are merged into
  * the stored map, so charts saving at once do not undo each other.
@@ -146,7 +152,7 @@ export async function putSettings(patch: {
 	mapFilter?: MapFilter;
 	display?: Display;
 }) {
-	const r = await fetch('/api/settings', {
+	const r = await fetch(api('/api/settings'), {
 		method: 'PUT',
 		headers: { 'content-type': 'application/json' },
 		body: JSON.stringify(patch)
@@ -162,7 +168,7 @@ export async function profileAction(
 		| { action: 'delete' | 'select'; id: string }
 		| { action: 'import'; file: unknown }
 ): Promise<string> {
-	const r = await fetch('/api/profiles', {
+	const r = await fetch(api('/api/profiles'), {
 		method: 'POST',
 		headers: { 'content-type': 'application/json' },
 		body: JSON.stringify(body)

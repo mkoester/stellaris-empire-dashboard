@@ -1,6 +1,5 @@
 import { getDb } from '#lib/server/app.ts';
-import { headCampaign } from '#lib/server/db.ts';
-import { activeProfile, campaignsOf, profiles } from '#lib/server/settings.ts';
+import { activeProfile, campaignsOf, profiles, viewedCampaign } from '#lib/server/settings.ts';
 
 // The config tab: profiles and display options.
 export function load() {
@@ -10,7 +9,7 @@ export function load() {
 		profiles: profiles(db),
 		active: active.id,
 		display: active.settings.display,
-		campaign: headCampaign(db),
+		campaign: viewedCampaign(db),
 		campaigns: campaignsOf(db)
 	};
 }

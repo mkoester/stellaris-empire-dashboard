@@ -11,7 +11,7 @@
 	// Tabs keep the branch being looked at (`?node=`).
 	const node = $derived(page.url.searchParams.get('node'));
 	const path = $derived(page.url.pathname);
-	const fixed = $derived([
+	const tabsAt = (node: string | null) => [
 		{ name: 'all', href: node ? resolve(`/?node=${node}`) : resolve('/'), active: path === '/' },
 		{
 			name: 'colonies',
@@ -108,7 +108,8 @@
 			href: node ? resolve(`/dlc?node=${node}`) : resolve('/dlc'),
 			active: path === '/dlc'
 		}
-	]);
+	];
+	const fixed = $derived(tabsAt(node));
 	const tabHref = (id: string) =>
 		node ? resolve(`/tab/[id]?node=${node}`, { id }) : resolve('/tab/[id]', { id });
 	const tab = (active: boolean) =>
@@ -118,6 +119,14 @@
 		const id = crypto.randomUUID().slice(0, 8);
 		await putSettings({ tabs: [...data.tabs, { id, name: 'new tab', header: true, panels: [] }] });
 		await goto(tabHref(id), { invalidateAll: true });
+	}
+
+	// Another campaign is its tip node; pages tied to one colony or custom tab start over at `all`.
+	async function switchCampaign(campaign: string) {
+		const c = data.campaigns.find((x) => x.campaign === campaign);
+		if (!c) return;
+		const same = tabsAt(String(c.tip)).find((t) => t.active && t.name !== 'colony');
+		await goto(same?.href ?? resolve(`/?node=${c.tip}`));
 	}
 
 	async function setTheme(theme: Theme) {
@@ -143,9 +152,23 @@
 		<button class={tab(false)} onclick={addTab} title="add a tab of your own">+</button>
 		<a
 			class="ml-auto {tab(path === '/settings')}"
-			href={resolve('/settings')}
+			href={node ? resolve(`/settings?node=${node}`) : resolve('/settings')}
 			title="config: profiles and display">⚙ {data.profile.name}</a
 		>
+		{#if data.campaigns.length > 1}
+			<label class="pb-1 text-gray-500"
+				>game
+				<select
+					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+					value={data.campaign}
+					onchange={(e) => switchCampaign(e.currentTarget.value)}
+				>
+					{#each data.campaigns as c (c.campaign)}
+						<option value={c.campaign}>{c.name} ({c.date})</option>
+					{/each}
+				</select>
+			</label>
+		{/if}
 		<label class="pb-1 text-gray-500"
 			>theme
 			<select
