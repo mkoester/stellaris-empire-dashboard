@@ -1,4 +1,5 @@
 import { fmt, pretty } from './format.ts';
+import { byTopBar } from './resourceGroups.ts';
 import { gameYear, type Series } from './series.ts';
 import type { DealSide, Resources, Snapshot, TradeDeal } from './types.ts';
 
@@ -11,12 +12,29 @@ export function dealEnd(d: Pick<TradeDeal, 'start' | 'years'>): string | null {
 	return [Number(y) + d.years, ...rest].join('.');
 }
 
-const resources = (r: Resources, suffix = '') =>
-	Object.entries(r).map(([k, v]) => `${fmt(v)} ${pretty(k)}${suffix}`);
+export type SidePart =
+	{ resource: string; amount: number; monthly: boolean } | { resource: null; text: string };
+
+/** One side's parts: monthly resources, then once-off ones (each in the top bar's order), then terms. */
+export function sideParts(s: DealSide): SidePart[] {
+	const resources = (r: Resources, monthly: boolean): SidePart[] =>
+		Object.entries(r)
+			.sort(([a], [b]) => byTopBar(a, b))
+			.map(([resource, amount]) => ({ resource, amount, monthly }));
+	return [
+		...resources(s.monthly, true),
+		...resources(s.once, false),
+		...s.other.map((o) => ({ resource: null, text: pretty(o) }))
+	];
+}
 
 /** One side in a line: "10 energy/month, 200 minerals, sensor link" — or "nothing". */
 export function sideSummary(s: DealSide): string {
-	const parts = [...resources(s.monthly, '/month'), ...resources(s.once), ...s.other.map(pretty)];
+	const parts = sideParts(s).map((p) =>
+		p.resource === null
+			? p.text
+			: `${fmt(p.amount)} ${pretty(p.resource)}${p.monthly ? '/month' : ''}`
+	);
 	return parts.length ? parts.join(', ') : 'nothing';
 }
 

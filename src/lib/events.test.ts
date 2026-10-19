@@ -167,8 +167,9 @@ describe('upcoming', () => {
 describe('traditionCost', () => {
 	it('is 300 for the first and grows with traditions taken and empire size', () => {
 		expect(traditionCost(0, 50, 1, data.defines)).toBe(300);
-		expect(traditionCost(1, 50, 1, data.defines)).toBeCloseTo(300 + 8 ** 1.8);
-		expect(traditionCost(0, 150, 1, data.defines)).toBeCloseTo(330);
+		expect(traditionCost(1, 50, 1, data.defines)).toBe(343); // 342.2, rounded up
+		expect(traditionCost(3, 50, 1, data.defines)).toBe(606); // the game's tooltip, 2026-10-19
+		expect(traditionCost(0, 150, 1, data.defines)).toBe(330);
 	});
 });
 

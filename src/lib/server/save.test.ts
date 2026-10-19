@@ -9,6 +9,7 @@ import {
 	envoys,
 	knownSystems,
 	migration,
+	migrationPartners,
 	megaShipyards,
 	stations,
 	expansion,
@@ -459,7 +460,8 @@ describe('knownSystems', () => {
 });
 
 describe('migration', () => {
-	// Shapes as in the 2207.03.10 save, plus a foreign colony as a migration treaty would add one.
+	// Shapes as in the 2207.03.10 save, plus a foreign colony through a migration treaty
+	// (`migration_access`, seen 2026-10-19).
 	const growth = (key: string | string[], value: number | number[], net: number) => ({
 		growth_and_size: { growth: net },
 		current_month_growth_details: { key, value }
@@ -470,7 +472,7 @@ describe('migration', () => {
 		country: {
 			relations_manager: {
 				relation: [
-					{ owner: 0, country: 11, migration_pact: true },
+					{ owner: 0, country: 11, migration_access: true },
 					{ owner: 0, country: 12, contact: true }
 				]
 			}
@@ -1095,6 +1097,19 @@ describe('milestone fields', () => {
 			gets: { monthly: { food: 1, consumer_goods: 1 }, once: {}, other: ['sensor_link'] }
 		});
 		expect(JSON.parse(deal.raw)).toEqual(d['5']);
+	});
+
+	it('finds migration treaties by their relation flag', () => {
+		// 4.5.2, a throwaway game at 2200.06.01 (jomini reads `yes` as true)
+		const country = {
+			relations_manager: {
+				relation: [
+					{ country: 16777219, commercial_pact: true, migration_access: true },
+					{ country: 16777224, waystation_pact: true }
+				]
+			}
+		};
+		expect([...migrationPartners(country)]).toEqual([16777219]);
 	});
 
 	it('keeps a deal it cannot read, everything under gives.other', () => {

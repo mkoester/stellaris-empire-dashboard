@@ -8,7 +8,7 @@
 	let { data } = $props();
 	followGame(() => data.isHead);
 
-	let activeOnly = $state(false);
+	let activeOnly = $state(true);
 	let tag = $state('');
 	let sort = $state({ column: 'name', desc: false });
 

@@ -1337,14 +1337,13 @@ export function knownSystems(
 }
 
 /**
- * Empires with a migration treaty: relations (`country.relations_manager.relation`) that mention a
- * migration agreement in any form. UNVERIFIED — no treaty seen in a save yet (2207.03: none, not
- * even between AI empires); check the shape at the first one and tighten this.
+ * Empires with a migration treaty: relations (`country.relations_manager.relation`) with
+ * `migration_access=yes` (4.5.2, seen 2026-10-19).
  */
 export function migrationPartners(country: Raw): Set<number> {
 	return new Set(
 		items(country?.relations_manager?.relation)
-			.filter((r) => /migration/i.test(JSON.stringify(r ?? {})))
+			.filter((r) => r?.migration_access === true || r?.migration_access === 'yes')
 			.map((r) => Number(r.country))
 	);
 }

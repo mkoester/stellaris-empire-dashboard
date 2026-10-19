@@ -78,7 +78,8 @@ export function traditionCost(
 	const base =
 		(d.TRADITION_COST_AMOUNTS ?? 300) +
 		((d.TRADITION_COST_TRADITION ?? 8) * taken) ** (d.TRADITION_COST_TRADITION_EXP ?? 1.8);
-	return base * sizePenalty(size, d.EMPIRE_SIZE_TRADITION_COST_PENALTY, d) * setting;
+	// rounded up: 3 taken → 605.06, the game's tooltip 300 + 306 (2026-10-19)
+	return Math.ceil(base * sizePenalty(size, d.EMPIRE_SIZE_TRADITION_COST_PENALTY, d) * setting);
 }
 
 // ── Events ──────────────────────────────────────────────────────────────────

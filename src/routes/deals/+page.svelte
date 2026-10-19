@@ -1,6 +1,9 @@
 <script lang="ts">
 	import Chart from '#lib/Chart.svelte';
-	import { dealEnd, sideSummary } from '#lib/deals.ts';
+	import { colorOf } from '#lib/colors.ts';
+	import { dealEnd, sideParts } from '#lib/deals.ts';
+	import { fmt, pretty } from '#lib/format.ts';
+	import type { DealSide } from '#lib/types.ts';
 	import { followGame } from '#lib/live.ts';
 	import type { TradeDeal } from '#lib/types.ts';
 
@@ -15,11 +18,6 @@
 	<h1 class="flex-1 text-2xl font-bold">Trade deals</h1>
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
 </header>
-
-<p class="mb-4 max-w-3xl text-sm text-gray-500">
-	No trade deal has been seen in a save yet, so how they are read is a guess. Each deal shows the
-	save's own data — check the first one against the game's diplomacy screen.
-</p>
 
 {#if data.history.length === 0}
 	<p class="text-gray-500">No trade deals on this branch.</p>
@@ -70,8 +68,8 @@
 					>not understood{d.raw ? ' — see the save data' : ''}</span
 				>{/if}
 		</div>
-		<div>we give: {sideSummary(d.gives)}</div>
-		<div>we get: {sideSummary(d.gets)}</div>
+		<div>we give: {@render side(d.gives)}</div>
+		<div>we get: {@render side(d.gets)}</div>
 		{#if d.raw}
 			<details class="mt-1 text-gray-500">
 				<summary class="cursor-pointer">save data</summary>
@@ -79,4 +77,14 @@
 			</details>
 		{/if}
 	</section>
+{/snippet}
+
+{#snippet side(s: DealSide)}
+	{#each sideParts(s) as p, i (i)}{i ? ', ' : ''}{#if p.resource === null}{p.text}{:else}<span
+				class="whitespace-nowrap"
+				>{fmt(p.amount)}
+				<span style:color={colorOf(p.resource)}>{pretty(p.resource)}</span>{p.monthly
+					? '/month'
+					: ''}</span
+			>{/if}{:else}nothing{/each}
 {/snippet}

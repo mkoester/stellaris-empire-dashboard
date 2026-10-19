@@ -24,7 +24,7 @@ export type ContactView = {
 	columns: ContactColumn[];
 };
 export const DEFAULT_CONTACT_VIEW: ContactView = {
-	communicationsOnly: false,
+	communicationsOnly: true,
 	hostile: 'any',
 	hiddenTypes: [],
 	columns: [...CONTACT_COLUMNS]
@@ -33,7 +33,7 @@ export const DEFAULT_CONTACT_VIEW: ContactView = {
 export function parseContactView(v: unknown): ContactView {
 	const o = (v && typeof v === 'object' ? v : {}) as Partial<ContactView>;
 	return {
-		communicationsOnly: o.communicationsOnly === true,
+		communicationsOnly: o.communicationsOnly !== false,
 		hostile: o.hostile === 'hostile' || o.hostile === 'peaceful' ? o.hostile : 'any',
 		hiddenTypes: Array.isArray(o.hiddenTypes)
 			? o.hiddenTypes.filter((t) => typeof t === 'string')
@@ -52,7 +52,9 @@ const AGREEMENTS: Record<string, string> = {
 	defensive_pact: 'defensive pact',
 	non_aggression_pledge: 'non-aggression pact',
 	guarantee: 'guarantee',
-	closed_borders: 'closed borders'
+	closed_borders: 'closed borders',
+	migration_access: 'migration treaty',
+	waystation_pact: 'wayline pact'
 };
 export const agreementName = (key: string) => AGREEMENTS[key] ?? key.replaceAll('_', ' ');
 

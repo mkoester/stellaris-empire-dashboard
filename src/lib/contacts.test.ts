@@ -37,11 +37,10 @@ describe('contacts', () => {
 	);
 
 	it('filters by communications, hostility and country type', () => {
-		const view = parseContactView({});
+		const view = { ...parseContactView({}), communicationsOnly: false };
 		expect(shown(rows, view).length).toBe(3);
-		expect(shown(rows, { ...view, communicationsOnly: true }).map((r) => r.countryId)).toEqual([
-			20, 16
-		]);
+		// the default
+		expect(shown(rows, parseContactView({})).map((r) => r.countryId)).toEqual([20, 16]);
 		expect(shown(rows, { ...view, hostile: 'hostile' }).map((r) => r.countryId)).toEqual([20]);
 		expect(
 			shown(rows, { ...view, hiddenTypes: ['caravaneer_fleet'] }).map((r) => r.countryId)

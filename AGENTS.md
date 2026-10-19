@@ -565,15 +565,18 @@ current_month_growth_details = { key = { GROWTH_CAT_… } value = { … } } spec
 - Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
   (adopt and finish entries included), `tradition_categories`, `last_picked_tradition`; perks
   `country.ascension_perks` (both seen filled 2026-10-19).
+  **Every entry counts as a tradition for the cost**, adopt included, and the cost is rounded up:
+  3 entries → 300 + (8·3)^1.8 = 605.06, the game's tooltip 300 + 306 (2026-10-19).
 - Trade deals (4.5.2, first seen 2026-10-19 in a throwaway game): `trade_deal.<id> = { first = {
 country recipient monthly_resources = { food=1 … } sensor_link=yes } second = { … } length=10
 date="2200.03.08" }` — each side lists what it **gives**; `length` is years (2200.03.08 → the
   diplomacy screen's 2210). `tradeDeals()` reads it; `recipient` is the other side's id.
 - Pacts are **flags on the relation**: `country.relations_manager.relation = { country embassy
 research_agreement commercial_pact defensive_pact non_aggression_pledge guarantee closed_borders
-… }` (`=yes`), read as `Relation.agreements` (contacts tab, Agreements column). `trust` caps near
+migration_access waystation_pact … }` (`=yes`; the last two are the migration treaty and the
+  wayline pact), read as `Relation.agreements` (contacts tab, Agreements column). `trust` caps near
   50 (`add_trust = 100` gave 49.5–50.85); `relation_current` is the contacts screen's opinion
-  (+210, +142 … matched, screenshot 2026_10_19_1). No migration treaty seen yet.
+  (+210, +142 … matched, screenshot 2026_10_19_1).
 - Manual saves: a save with the same date as the head but another state continues the head (a
   manual save after the autosave); only an earlier date counts as a reload.
 - Budget sources: `planet_<job>` (job output and inputs), `pop_category_<stratum>` (pop upkeep and
@@ -694,9 +697,9 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   `count_system_planet` counts the star as a major body (assumed yes: Sol 9 major → 8 districts),
   against the game's habitat placement tooltip.
 
-- **Migration treaties, never seen in a save** (2207.03: none, not even between AI empires).
-  `migrationPartners()` takes any relation mentioning "migration" — check the real shape at the
-  first treaty, tighten it, and add the foreign colonies' case to the tests from that save.
+- **Migration treaties: a foreign colony's case** — the treaty's flag is known (`migration_access`,
+  2026-10-19), but the throwaway game's partner had no pops moving yet; check `/migration` once
+  they do.
 - **Wars, never seen in a save** (2207.03: `war`, `truce`, `dead_war` empty). `wars()` in
   `save.ts` reads an assumed shape — check the real one at the first war, tighten it, and replace
   the assumed test fixtures.
@@ -722,11 +725,6 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   only for saves read since 2026-10-17; older ones' saves are gone.
 - **Chart zoom and pan**: wanted — the default window (`xRange`: last 20 years, 1 ahead) should
   zoom out/in and shift. Not started.
-- **Tradition cost, to check in game**: `country.traditions` is confirmed (2026-10-19, throwaway
-  game: `tr_expansion_adopt`, `tr_expansion_colonization_fever`, and a console-activated
-  `tr_diplomacy_diplomatic_networking` — whose tree landed in `tradition_categories` without its
-  `_adopt`). Whether the adopt entries count as `num_traditions` is not: 3 entries → 605 unity,
-  2 → 447; compare the game's next-tradition cost.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
 - **Next, the user's plan:** a configurable main dashboard (custom tabs pick empire panels now;
