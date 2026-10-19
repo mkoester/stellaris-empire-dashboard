@@ -2,6 +2,7 @@ import type { Bypass } from '#lib/galaxyGraph.ts';
 import type {
 	AnomalyInfo,
 	Body,
+	Claim,
 	CountryInfo,
 	DigSite,
 	FirstContact,
@@ -382,4 +383,34 @@ export function digSites(
 			}
 		];
 	});
+}
+
+/**
+ * Our claims, and others' claims on our systems (`galactic_object.<id>.claims`); what AIs claim
+ * from each other the game does not show. `own`: our systems.
+ */
+export function claims(
+	raw: Pick<RawSave, 'systems' | 'countryId' | 'countries' | 'starbases' | 'ships' | 'fleetOwner'>,
+	own: Set<number>
+): Claim[] {
+	const name = (id: number) => raw.countries[String(id)]?.name ?? `empire ${id}`;
+	return Object.entries(raw.systems).flatMap(([id, s]) =>
+		items(s?.claims).flatMap((c) => {
+			const claimant = Number(c?.owner);
+			const ours = claimant === raw.countryId;
+			if (!ours && !own.has(Number(id))) return [];
+			const holder = stationOwner(raw, s);
+			return [
+				{
+					systemId: Number(id),
+					system: displayName(s.name),
+					holder: holder === null ? null : name(holder),
+					claimant: name(claimant),
+					ours,
+					claims: num(c?.claims),
+					since: strOrNull(c?.date)
+				}
+			];
+		})
+	);
 }

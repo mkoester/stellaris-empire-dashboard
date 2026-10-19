@@ -42,6 +42,7 @@ import { readZipEntry } from './zip.ts';
 import {
 	anomalies,
 	bypassList,
+	claims,
 	digSites,
 	stationsSeen,
 	firstContacts,
@@ -450,6 +451,7 @@ function world(raw: RawSave) {
 	return {
 		galaxy: gal,
 		relations: rel,
+		claims: claims(raw, own),
 		firstContacts: contacts,
 		countries: knownCountries(raw, [
 			...rel.map((r) => r.countryId),

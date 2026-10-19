@@ -153,6 +153,28 @@
 	</div>
 {/if}
 
+{#if data.claims.length}
+	<h2 class="mb-2 text-xl font-semibold">Claims</h2>
+	<table class="mb-6 text-sm tabular-nums">
+		<thead class="text-xs text-gray-500"
+			><tr
+				><th class="pr-4 text-left">system</th><th class="pr-4 text-left">held by</th><th
+					class="pr-4 text-left">claimed by</th
+				><th class="pr-4 text-right">claims</th><th class="text-left">since</th></tr
+			></thead
+		>
+		<tbody>
+			{#each data.claims as c (`${c.systemId}:${c.claimant}`)}
+				<tr
+					><td class="pr-4">{c.system}</td><td class="pr-4">{c.holder ?? '–'}</td><td
+						class="pr-4 {c.ours ? '' : 'text-red-600'}">{c.ours ? 'us' : c.claimant}</td
+					><td class="pr-4 text-right">{c.claims}</td><td>{c.since ?? '?'}</td></tr
+				>
+			{/each}
+		</tbody>
+	</table>
+{/if}
+
 {#if data.galcom}
 	{@const g = data.galcom}
 	<h2 class="mb-2 text-xl font-semibold">Galactic Community</h2>

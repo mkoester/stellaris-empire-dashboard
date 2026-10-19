@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { relations, stationsSeen, wormholeLinks } from './world.ts';
+import { claims, relations, stationsSeen, wormholeLinks } from './world.ts';
 
 describe('stationsSeen', () => {
 	// shaped like 2207.03.01: fleets in `fleet.<id>.movement_manager.coordinate.origin`, a system's
@@ -87,5 +87,49 @@ describe('relations', () => {
 			borderRange: 396,
 			agreements: ['defensive_pact', 'embassy', 'rivals_us']
 		});
+	});
+});
+
+describe('claims', () => {
+	// 4.5.2, the throwaway game at 2205.07.16: we claim Rasalas, an AI claims our capital system;
+	// a claim between two AIs stays hidden, as in the game
+	const raw = {
+		countryId: 0,
+		countries: { '0': { name: 'UNE' }, '7': { name: 'Blorg' }, '8': { name: 'Tzynn' } } as never,
+		systems: {
+			'104': {
+				name: { key: 'Rasalas' },
+				starbases: [5],
+				claims: [{ owner: 0, date: '2205.07.01', claims: 1 }]
+			},
+			'1': { name: { key: 'Sol' }, claims: [{ owner: 7, date: '2205.07.01', claims: 2 }] },
+			'9': { name: { key: 'Vega' }, claims: [{ owner: 8, date: '2205.07.01', claims: 1 }] }
+		},
+		starbases: { '5': { station: 105 } },
+		ships: { '105': { fleet: 55 } },
+		fleetOwner: { '55': 7 }
+	};
+
+	it('lists ours and those on our systems, with the holder and the strength', () => {
+		expect(claims(raw, new Set([1]))).toEqual([
+			{
+				systemId: 1,
+				system: 'Sol',
+				holder: null,
+				claimant: 'Blorg',
+				ours: false,
+				claims: 2,
+				since: '2205.07.01'
+			},
+			{
+				systemId: 104,
+				system: 'Rasalas',
+				holder: 'Blorg',
+				claimant: 'UNE',
+				ours: true,
+				claims: 1,
+				since: '2205.07.01'
+			}
+		]);
 	});
 });

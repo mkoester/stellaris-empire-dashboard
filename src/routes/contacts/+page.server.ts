@@ -19,6 +19,7 @@ export function load({ url }) {
 	const subjects = save?.subjects ?? null;
 	return {
 		wars: save?.wars ?? [],
+		claims: save?.claims ?? [],
 		subjects,
 		galcom,
 		// the game's words for resolutions and subject terms; resolution effects as popups

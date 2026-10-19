@@ -300,6 +300,7 @@ export type Snapshot = {
 	wars: War[] | null; // wars the country takes part in
 	subjects: Subject[] | null; // subject agreements, either side; null before 2026-10-19
 	galcom: GalacticCommunity | null; // null before it forms, and before 2026-10-19
+	claims: Claim[] | null; // ours, and on our systems; null before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	// From the save's `meta`; null from the mod feed and in older snapshots.
@@ -500,6 +501,21 @@ export type War = {
 	enemyExhaustion: number | null;
 	battles: Battle[];
 };
+/**
+ * A claim on a system: `galactic_object.<id>.claims = { { owner date claims } }` (4.5.2, first
+ * seen 2026-10-19), `owner` being the claimant. Ours, and others' on our systems — as the game's
+ * claims view and notifications show them.
+ */
+export type Claim = {
+	systemId: number;
+	system: string;
+	holder: string | null; // whose station the system has; null: nobody's
+	claimant: string;
+	ours: boolean; // we claim it (else: someone claims a system of ours)
+	claims: number; // claim strength, the times claimed
+	since: string | null;
+};
+
 /** A resolution proposed or being voted on: top-level `resolution.<id>`. */
 export type ResolutionVote = {
 	id: number;

@@ -597,9 +597,17 @@ can_subject_* … } subject_specialization = { level experience } }`, owner = th
   stored). Contacts tab: members, the vote, the proposals with our side; names and effects from
   the data DB (`resolution`, its effects = the static modifier of the same key, `resolution:<key>`
   popups).
+- Claims (2026-10-19): on the system, `galactic_object.<id>.claims = { { owner date claims } }`
+  — `owner` is the claimant, `claims` the strength. The game's claims view lists only ours (with
+  the next claim's influence cost, not stored); others' claims on our systems reach us as
+  notifications. Contacts tab: ours and those on our systems (`claims()` in world.ts), holder by
+  the system's station. By console: `effect random_system = { limit = { exists = owner owner =
+{ is_country_type = default NOT = { is_same_value = root } } } add_claims = { who = root
+num_of_claims = 1 } }`, and against us `effect random_country = { limit = { … } root = {
+capital_scope = { solar_system = { add_claims = { who = prevprevprev num_of_claims = 1 } } } } }`.
 - Rivals (2026-10-19): declaring one adds `is_rival=yes` and `rival_date` (declaration + 10
   years: 2205.05 → "2215.05.17") to our relation, `rivals = { country }` and `has_declared_rival`
-  to our country; their opinion of us fell to −460. Contacts: "our rival", "rivals us".
+  to our country; their opinion of us (Themlar Principality) fell to −460. Contacts: "our rival", "rivals us".
 - Pacts are **flags on the relation**: `country.relations_manager.relation = { country embassy
 research_agreement commercial_pact defensive_pact non_aggression_pledge guarantee closed_borders
 migration_access waystation_pact … }` (`=yes`; the last two are the migration treaty and the
@@ -742,8 +750,7 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   where passed ones are kept is still to see. Resolution descriptions lose loc commands
   ("members of the should …" — `[global_event_country.GetGalCommunityOrGalImperium]`), an
   extraction loc-cleanup gap.
-- **Next topics (the user's, 2026-10-19)**: claims, ours and against us (none in a save yet —
-  needs a neighbour), the Shroud (`can_access_shroud`, `shroud_*` keys), and other
+- **Next topics (the user's, 2026-10-19)**: the Shroud (`can_access_shroud`, `shroud_*` keys), and other
   empires' agreements with each other — their own relations hold them (2205.05: 10 research
   agreements, 12 migration treaties, 4 subjects among the AIs), but showing them needs the game's
   intel rules (`intel_manager`, `intel_level`), or it is a spoiler switch.
