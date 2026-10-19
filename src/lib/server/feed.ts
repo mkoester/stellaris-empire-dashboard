@@ -111,6 +111,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		galcom: null,
 		claims: null,
 		factions: null,
+		combats: null,
 		warLostDate: null,
 		tradeDeals: null,
 		gameVersion: null,

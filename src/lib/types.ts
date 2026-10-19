@@ -302,6 +302,7 @@ export type Snapshot = {
 	galcom: GalacticCommunity | null; // null before it forms, and before 2026-10-19
 	claims: Claim[] | null; // ours, and on our systems; null before 2026-10-19
 	factions: Faction[] | null; // ours; null before 2026-10-19
+	combats: Combat[] | null; // our fleets' last combats this save still holds; null before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	// From the save's `meta`; null from the mod feed and in older snapshots.
@@ -551,6 +552,22 @@ export type GalacticCommunity = {
 	voting: ResolutionVote | null;
 	proposed: ResolutionVote[];
 };
+/**
+ * One of our fleets' combats, from its last-combat record (`fleet.<id>.fleet_stats.combat_stats`,
+ * 4.5.2, first seen 2026-10-19) — war or not. Ship counts are summed over the sizes.
+ */
+export type Combat = {
+	fleetId: number;
+	fleet: string;
+	date: string;
+	enemy: string; // their empire(s)
+	enemyFleets: string;
+	ships: number;
+	lost: number;
+	enemyShips: number;
+	enemyLost: number;
+};
+
 /** One battle of a war, seen from our side: `war.<id>.battles`. */
 export type Battle = {
 	date: string;

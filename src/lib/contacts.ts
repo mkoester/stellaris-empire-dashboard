@@ -1,4 +1,4 @@
-import type { CountryInfo, FirstContact, Relation } from './types.ts';
+import type { Combat, CountryInfo, FirstContact, Relation } from './types.ts';
 
 // The contacts tab: every empire we know, with what the save tells about it. Pure.
 
@@ -60,6 +60,16 @@ const AGREEMENTS: Record<string, string> = {
 	subject: 'subject'
 };
 export const agreementName = (key: string) => AGREEMENTS[key] ?? key.replaceAll('_', ' ');
+
+/**
+ * Every combat any save along the branch caught (a fleet's record is cleared some time after the
+ * fight), newest first; a combat seen in several saves keeps its latest reading.
+ */
+export function combatLog(snaps: { combats: Combat[] | null }[]): Combat[] {
+	const byKey = new Map<string, Combat>();
+	for (const s of snaps) for (const c of s.combats ?? []) byKey.set(`${c.fleetId}:${c.date}`, c);
+	return [...byKey.values()].sort((a, b) => b.date.localeCompare(a.date));
+}
 
 export type ContactRow = Relation & {
 	country: CountryInfo | null;

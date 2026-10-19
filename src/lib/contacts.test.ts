@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { agreementName, contactTable, parseContactView, shown } from './contacts.ts';
+import { agreementName, combatLog, contactTable, parseContactView, shown } from './contacts.ts';
 import type { Relation } from './types.ts';
 
 const rel = (countryId: number, r: Partial<Relation> = {}): Relation => ({
@@ -59,5 +59,32 @@ describe('agreementName', () => {
 	it("names the game's pacts and shows unknown flags by their key", () => {
 		expect(agreementName('non_aggression_pledge')).toBe('non-aggression pact');
 		expect(agreementName('migration_treaty')).toBe('migration treaty');
+	});
+});
+
+describe('combatLog', () => {
+	const combat = (fleetId: number, date: string, enemyLost: number) => ({
+		fleetId,
+		fleet: `F${fleetId}`,
+		date,
+		enemy: 'E',
+		enemyFleets: 'EF',
+		ships: 10,
+		lost: 0,
+		enemyShips: 3,
+		enemyLost
+	});
+
+	it('keeps every combat a save caught, the latest reading of each, newest first', () => {
+		const log = combatLog([
+			{ combats: [combat(3, '2205.10.14', 2)] },
+			{ combats: null },
+			{ combats: [combat(3, '2205.10.14', 3), combat(4, '2205.11.20', 1)] },
+			{ combats: [] }
+		]);
+		expect(log.map((c) => [c.fleetId, c.date, c.enemyLost])).toEqual([
+			[4, '2205.11.20', 1],
+			[3, '2205.10.14', 3]
+		]);
 	});
 });

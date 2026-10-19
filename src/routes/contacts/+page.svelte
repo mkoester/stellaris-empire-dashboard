@@ -153,6 +153,34 @@
 	</div>
 {/if}
 
+{#if data.combats.length}
+	<h2 class="mb-2 text-xl font-semibold">Fleet combats</h2>
+	<p class="mb-1 text-xs text-gray-500">
+		what the saves caught: a fleet's combat record is cleared some time after the fight
+	</p>
+	<table class="mb-6 text-sm tabular-nums">
+		<thead class="text-xs text-gray-500"
+			><tr
+				><th class="pr-4 text-left">date</th><th class="pr-4 text-left">our fleet</th><th
+					class="pr-4 text-left">against</th
+				><th class="pr-4 text-right">our losses</th><th class="text-right">theirs</th></tr
+			></thead
+		>
+		<tbody>
+			{#each data.combats as c (`${c.fleetId}:${c.date}`)}
+				<tr
+					><td class="pr-4">{c.date}</td><td class="pr-4">{c.fleet}</td><td class="pr-4"
+						>{c.enemyFleets} <span class="text-gray-500">({c.enemy})</span></td
+					><td class="pr-4 text-right {c.lost ? 'text-red-600' : ''}">{c.lost} / {c.ships}</td><td
+						class="text-right {c.enemyLost ? 'text-green-600' : ''}"
+						>{c.enemyLost} / {c.enemyShips}</td
+					></tr
+				>
+			{/each}
+		</tbody>
+	</table>
+{/if}
+
 {#if data.claims.length}
 	<h2 class="mb-2 text-xl font-semibold">Claims</h2>
 	<table class="mb-6 text-sm tabular-nums">

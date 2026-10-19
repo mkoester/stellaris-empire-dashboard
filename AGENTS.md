@@ -137,14 +137,15 @@ bindable `hovered` system: the row is highlighted, the system ringed; binding `s
 makes a click (row or system, not a drag) pick a system, ringed in sky blue, its row scrolled into
 view. **Borders** (`territories` on `GalaxyMap`; `#lib/borders.ts`, `#lib/territories.ts`,
 `territoriesOf()` in `server/mapSystems.ts`): a smooth field, as the game blends territory — each
-owned system radiates exp(−3·(d/R)²), R = `REACH` (1.25) × the median nearest-neighbour distance
+owned system radiates exp(−3·(d/R)²), R = `REACH` (0.8) × the median nearest-neighbour distance
 (`claimRadius`), and each lane between two systems of one owner the same over its distance from
-the lane scaled by `CORRIDOR` (0.7); an owner holds where its summed field passes a lone system's
+the lane scaled by `CORRIDOR` (0.5); an owner holds where its summed field passes a lone system's
 value at R and beats every other owner's, traced by marching squares (R/5 grid) into rings drawn
 even-odd. **Only owned systems count** — an unowned one is covered, not cut out. Iterations that
 looked wrong against the game's map (2205.07, Cydran Concern): Voronoi cells clipped to circles
 left far systems as islands; every system as a site cut a territory where an unowned system sat
-beside a lane; cells plus corridors left seams and dents. ~180 ms for 14 owners on a 400-system
+beside a lane; cells plus corridors left seams and dents; the field at REACH 1.25 covered 57 of
+362 unowned systems (40 owned: "looks like they own more"), at 0.8 12. ~180 ms for 14 owners on a 400-system
 galaxy, once per owner change. Colours are the game's: a country's first `flag.colors` swatch, its
 `map` rgb from `flags/colors.txt` (data DB `flag_color`). Shown: ours, empires we have
 communications with, every visited station's owner with `contactStations`; stations we saw but
@@ -756,7 +757,16 @@ members = { <ids> } last_month_pops pops_change last_month_colony_pops }`. `fact
   where passed ones are kept is still to see. Resolution descriptions lose loc commands
   ("members of the should …" — `[global_event_country.GetGalCommunityOrGalImperium]`), an
   extraction loc-cleanup gap.
-- **Next topics (the user's, 2026-10-19)**: the Shroud (`can_access_shroud`, `shroud_*` keys), and other
+- **Fleet combats outside wars**: each fleet's `fleet_stats.combat_stats` holds only its last
+  combat and is cleared some time after (2205.10.14's: in the 11.01 save, gone by 12.01), so the
+  contacts tab's log (`combats()`, `combatLog()`) has what monthly saves caught. The losses are as
+  of the save: 2 of the salvagers' 3 at 11.01, the game's report says 3 of 3. The companion mod
+  could log combats (an on_action) for the complete record.
+- **Next topics (the user's, 2026-10-19)**: the Shroud — first data at 2205.12.01 after Psionic
+  Ascension: our `standard_shroud_module`, `has_delved_in_shroud`, `last_delve_date`, delve
+  counts, and top-level `patron_relations.<id> = { owner patron position contact special_project
+leaders unlocked_passive_accords_count … }` (the Covenants); read them with the first delve's
+  save and the game's Shroud screen (`can_access_shroud`, `shroud_*` keys), and other
   empires' agreements with each other — their own relations hold them (2205.05: 10 research
   agreements, 12 migration treaties, 4 subjects among the AIs), but showing them needs the game's
   intel rules (`intel_manager`, `intel_level`), or it is a spoiler switch.

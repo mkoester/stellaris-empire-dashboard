@@ -31,6 +31,7 @@ import {
 	sumSources,
 	galacticCommunity,
 	factions,
+	combats,
 	toSnapshot,
 	tradeDeals,
 	wars,
@@ -1152,6 +1153,45 @@ describe('milestone fields', () => {
 				support: 0.28559,
 				approval: 0.45,
 				pops: 173
+			}
+		]);
+	});
+
+	it("reads our fleets' last combats, skipping the empty records", () => {
+		// 4.5.2, the throwaway game's 2205.11.01 save: our corvettes against the salvagers
+		const side = (country_name: string, fleet_name: string, count: number[], lost: number[]) => ({
+			country_name,
+			fleet_name,
+			ship_size_key: ['corvette'],
+			ship_size_count: count,
+			ship_size_count_lost: lost
+		});
+		const raw = {
+			country: { fleets_manager: { owned_fleets: [{ fleet: 3 }, { fleet: 4 }] } },
+			fleets: {
+				'3': {
+					fleet_stats: {
+						combat_stats: {
+							fleet: side('UNE', 'Xur Ylunuh', [10], [0]),
+							date: '2205.10.14',
+							enemy: [side('Unscrupulous Salvagers', 'Salvage Fleet', [3], [2])]
+						}
+					}
+				},
+				'4': { fleet_stats: { combat_stats: { fleet: {}, date: '0.01.01' } } }
+			}
+		};
+		expect(combats(raw)).toEqual([
+			{
+				fleetId: 3,
+				fleet: 'Xur Ylunuh',
+				date: '2205.10.14',
+				enemy: 'Unscrupulous Salvagers',
+				enemyFleets: 'Salvage Fleet',
+				ships: 10,
+				lost: 0,
+				enemyShips: 3,
+				enemyLost: 2
 			}
 		]);
 	});

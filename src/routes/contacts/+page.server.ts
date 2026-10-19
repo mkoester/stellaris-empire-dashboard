@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { contactTable } from '#lib/contacts.ts';
+import { combatLog, contactTable } from '#lib/contacts.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -19,6 +19,7 @@ export function load({ url }) {
 	const subjects = save?.subjects ?? null;
 	return {
 		wars: save?.wars ?? [],
+		combats: combatLog(snaps),
 		claims: save?.claims ?? [],
 		subjects,
 		galcom,

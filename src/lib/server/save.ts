@@ -33,6 +33,7 @@ import type {
 	War,
 	Subject,
 	Faction,
+	Combat,
 	GalacticCommunity,
 	ResolutionVote,
 	Snapshot
@@ -335,6 +336,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		subjects: subjects(raw),
 		galcom: galacticCommunity(raw),
 		factions: factions(raw),
+		combats: combats(raw),
 		warLostDate:
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
 		tradeDeals: tradeDeals(raw),
@@ -1462,6 +1464,36 @@ export function galacticCommunity(
 		voting: typeof g.voting === 'number' ? vote(g.voting) : null,
 		proposed: ids(g.proposed).flatMap((id) => vote(id) ?? [])
 	};
+}
+
+/**
+ * Our fleets' last combats: `fleet.<id>.fleet_stats.combat_stats = { fleet = { country_name
+ * fleet_name ship_size_count = { <per size> } ship_size_count_lost … } date enemy = { { …the same…
+ * } } damage_outgoing damage_incoming }`. Every fleet has the block, `date="0.01.01"` until it
+ * fights, and the game clears it again later (2205.10.14's was in the 11.01 save, gone by 12.01):
+ * monthly saves catch only some combats, and the losses as of the save.
+ */
+export function combats(raw: Pick<RawSave, 'country' | 'fleets'>): Combat[] {
+	const sum = (v: Raw) => items(v).reduce((n: number, x) => n + Number(x || 0), 0);
+	return items(raw.country?.fleets_manager?.owned_fleets).flatMap((o) => {
+		const c = raw.fleets[String(o?.fleet)]?.fleet_stats?.combat_stats;
+		if (!c || typeof c.date !== 'string' || c.date.startsWith('0.')) return [];
+		const enemies = items(c.enemy);
+		const names = (k: string) => [...new Set(enemies.map((e) => String(e?.[k] ?? '?')))].join(', ');
+		return [
+			{
+				fleetId: Number(o.fleet),
+				fleet: String(c.fleet?.fleet_name ?? `fleet ${o.fleet}`),
+				date: c.date,
+				enemy: names('country_name'),
+				enemyFleets: names('fleet_name'),
+				ships: sum(c.fleet?.ship_size_count),
+				lost: sum(c.fleet?.ship_size_count_lost),
+				enemyShips: enemies.reduce((n, e) => n + sum(e?.ship_size_count), 0),
+				enemyLost: enemies.reduce((n, e) => n + sum(e?.ship_size_count_lost), 0)
+			}
+		];
+	});
 }
 
 /** Our factions (see `Faction`), by support. */

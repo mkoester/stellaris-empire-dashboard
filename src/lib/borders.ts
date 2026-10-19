@@ -14,9 +14,9 @@ import type { Point } from './mapView.ts';
 /** Steepness of the falloff: two lone systems merge once less than ~2.2 R apart. */
 const A = 3;
 /** A lane's reach to either side, as a share of R. */
-export const CORRIDOR = 0.7;
+export const CORRIDOR = 0.5;
 /** The claim radius as a share of the typical distance between systems (claimRadius). */
-export const REACH = 1.25;
+export const REACH = 0.8;
 /** Grid points per R. */
 const STEPS = 5;
 
