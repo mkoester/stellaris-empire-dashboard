@@ -770,9 +770,12 @@ last_month_attunement_offset patron_relations = { <ids> } last_delve_date }`; to
 calling_start_date completed patron_objective } deeds = { { patron_objective } }
 unlocked_passive_accords_count pre_communications_name … }` — eight patrons on a circle
   (positions ±1 / ±0.7), contact `none` or `completed` (the Composer of Strands after the delve),
-  `is_preferred_patron` on the country. The game's screen shows the patron's **50 / 1000**:
-  perhaps the month-start attunement towards it (0.05 along (0, −1)); the current one gives 200 —
-  unconfirmed. Names (callings, deeds) are in localisation (`calling_establish_colony` "Calling of
+  `is_preferred_patron` on the country. **A patron's standing (the game's
+  "65 / 1000") is `month_start_attunement` towards it, × 1000** — confirmed 2026-10-19 over four
+  autosaves: the Composer at (0, −1) showed 50 with month-start y −0.05 and 65 with −0.065, while
+  `attunement` (y −0.2, then −0.215) runs a month ahead and 0.15 further. Whether it is the dot
+  product with the patron's position or the distance along its axis is still open for the
+  diagonal patrons (±0.7, ±0.7). Names (callings, deeds) are in localisation (`calling_establish_colony` "Calling of
   Flight", `deed_host_new_species` "Hosting"); the deed weights (+25 …) and patrons are in
   `common/patrons/` — an extraction step before a Shroud panel.
 - **Exact branch points via the mod**: each month the mod rolls a random id and keeps the previous
