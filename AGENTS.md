@@ -736,11 +736,13 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   galaxy-map units (assumed); whether the in-system distance to
   the outermost body is what new ships of a mega shipyard travel (hyperlane arrival points are not
   stored); and whether the catapult's `max_jumps = 25` (another catapult) is a rule or AI weight.
-- **Our own factions, not seen yet** (they can form only after 10 years and the first other species met — 4.5.2 `is_faction_allowed`; 500 potential members, `POP_FACTION_MIN_POTENTIAL_MEMBERS`): `factions.spawnall` (2026-10-19) formed four for an AI
-  only: `pop_factions.<id> = { country type name support_percent support_power faction_approval
-members = { <ids> } last_month_pops pops_change last_month_colony_pops }`. `factions()` reads
-  ours from that shape; the government tab shows formed ones with support and approval — check
-  against the game's factions screen at our first faction.
+- **Our factions, check against the game's screen**: our first formed on 2211.01.01 (Technologist,
+  "Council of Scientific Betterment", approval 0.9; a totalitarian one by 2211.07, support
+  0.983 / 0.017). They form only after 10 years and the first other species met (4.5.2
+  `is_faction_allowed`; 500 potential members, `POP_FACTION_MIN_POTENTIAL_MEMBERS`). An
+  autosave on the 1st can lack `support_percent` (read as 0) — the manual save a day later had
+  it. Names nest name parts in `%ADJ%`, outer part first (`displayName()`). Compare support,
+  approval and pops with the game's factions screen.
 - **Faction Approval shows `+0.1`, not `+10%`**: `isPercentModifier` (`modifiers.ts`, copied from
   the planner's `civics.ts`) does not know `faction_approval`. Fix both copies together.
 

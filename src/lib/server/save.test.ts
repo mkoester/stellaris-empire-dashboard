@@ -996,6 +996,18 @@ describe('helpers', () => {
 			})
 		).toBe('Armstrong');
 		expect(displayName({ key: 'HUMAN1_CHR_Gabriela' })).toBe('Gabriela');
+		// faction names: name parts nested in %ADJ%, the outer part first (2211.07, throwaway game)
+		const faction = (outer: string, inner: string) =>
+			displayName({
+				key: '%ADJ%',
+				variables: [
+					{ key: '1', value: { key: outer, variables: [{ key: '1', value: { key: inner } }] } }
+				]
+			});
+		expect(faction('Council', 'of_Scientific_Betterment')).toBe('Council of Scientific Betterment');
+		expect(faction('Strength_Through_Unity', 'Initiative')).toBe(
+			'Strength Through Unity Initiative'
+		);
 		expect(
 			displayName({
 				key: 'NEW_COLONY_NAME_1',

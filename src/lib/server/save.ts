@@ -1858,6 +1858,14 @@ export function displayName(name: Raw): string {
 		const part = (k: string) => displayName(name.variables.find((x: Raw) => x?.key === k)?.value);
 		return `${part('1')} - ${part('2')} ${part('3')}`;
 	}
+	// Name parts with a part inside — faction names, `{<names_1> {<names_2>}}` (4.5.2
+	// common/random_names/00_pop_faction_names.txt): the outer part's own words come first.
+	// `Council` + `of_Scientific_Betterment` → "Council of Scientific Betterment". Name-part keys
+	// mirror their text; placeholders (`%ADJ%`) and formats (`PLANET_NAME_FORMAT`) are not parts.
+	if (Array.isArray(name?.variables) && !key.startsWith('%') && key !== key.toUpperCase()) {
+		const inner = name.variables.map((v: Raw) => displayName(v.value)).filter(Boolean);
+		return [displayName({ key }), ...inner].join(' ');
+	}
 	// Templates with variables — `%ADJECTIVE%`, `PLANET_NAME_FORMAT` (PARENT + NUMERAL: "Barnards
 	// Star I"), `PREFIX_NAME_FORMAT` (ship: "UNS Jordan"), `STAR_NAME_1_OF_1` — read as their parts.
 	if (Array.isArray(name?.variables)) {
