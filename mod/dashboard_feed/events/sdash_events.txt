@@ -3,6 +3,8 @@ namespace = sdash
 # Monthly, for human players only: write stockpile and income of every resource to game.log,
 # then an end marker so the reader knows the month is complete.
 # Resource keys from 4.5.2 common/strategic_resources/00_strategic_resources.txt.
+# The lines are spelled out per resource: a $RES$ parameter inside the quoted log string came out
+# one character off in 4.5.2 (`|$RES$|` → `energy$`; `$X|y$` is the parameter-default syntax).
 country_event = {
 	id = sdash.1
 	hide_window = yes
@@ -13,32 +15,58 @@ country_event = {
 	}
 
 	immediate = {
-		sdash_log_resource = { RES = energy }
-		sdash_log_resource = { RES = minerals }
-		sdash_log_resource = { RES = food }
-		sdash_log_resource = { RES = physics_research }
-		sdash_log_resource = { RES = society_research }
-		sdash_log_resource = { RES = engineering_research }
-		sdash_log_resource = { RES = influence }
-		sdash_log_resource = { RES = unity }
-		sdash_log_resource = { RES = trade }
-		sdash_log_resource = { RES = consumer_goods }
-		sdash_log_resource = { RES = alloys }
-		sdash_log_resource = { RES = volatile_motes }
-		sdash_log_resource = { RES = exotic_gases }
-		sdash_log_resource = { RES = rare_crystals }
-		sdash_log_resource = { RES = sr_living_metal }
-		sdash_log_resource = { RES = sr_zro }
-		sdash_log_resource = { RES = sr_dark_matter }
-		sdash_log_resource = { RES = nanites }
-		sdash_log_resource = { RES = minor_artifacts }
-		sdash_log_resource = { RES = astral_threads }
-		sdash_log_resource = { RES = biomass }
-		sdash_log_resource = { RES = menace }
-		sdash_log_resource = { RES = integrity }
-		sdash_log_resource = { RES = advanced_logic }
-		sdash_log_resource = { RES = feral_insight }
-		sdash_log_resource = { RES = entropy_crystals }
+		sdash_export_resource = { RES = energy }
+		log = "SDASH|1|[GetDate]|energy|[This.sdash_s_energy]|[This.sdash_i_energy]"
+		sdash_export_resource = { RES = minerals }
+		log = "SDASH|1|[GetDate]|minerals|[This.sdash_s_minerals]|[This.sdash_i_minerals]"
+		sdash_export_resource = { RES = food }
+		log = "SDASH|1|[GetDate]|food|[This.sdash_s_food]|[This.sdash_i_food]"
+		sdash_export_resource = { RES = physics_research }
+		log = "SDASH|1|[GetDate]|physics_research|[This.sdash_s_physics_research]|[This.sdash_i_physics_research]"
+		sdash_export_resource = { RES = society_research }
+		log = "SDASH|1|[GetDate]|society_research|[This.sdash_s_society_research]|[This.sdash_i_society_research]"
+		sdash_export_resource = { RES = engineering_research }
+		log = "SDASH|1|[GetDate]|engineering_research|[This.sdash_s_engineering_research]|[This.sdash_i_engineering_research]"
+		sdash_export_resource = { RES = influence }
+		log = "SDASH|1|[GetDate]|influence|[This.sdash_s_influence]|[This.sdash_i_influence]"
+		sdash_export_resource = { RES = unity }
+		log = "SDASH|1|[GetDate]|unity|[This.sdash_s_unity]|[This.sdash_i_unity]"
+		sdash_export_resource = { RES = trade }
+		log = "SDASH|1|[GetDate]|trade|[This.sdash_s_trade]|[This.sdash_i_trade]"
+		sdash_export_resource = { RES = consumer_goods }
+		log = "SDASH|1|[GetDate]|consumer_goods|[This.sdash_s_consumer_goods]|[This.sdash_i_consumer_goods]"
+		sdash_export_resource = { RES = alloys }
+		log = "SDASH|1|[GetDate]|alloys|[This.sdash_s_alloys]|[This.sdash_i_alloys]"
+		sdash_export_resource = { RES = volatile_motes }
+		log = "SDASH|1|[GetDate]|volatile_motes|[This.sdash_s_volatile_motes]|[This.sdash_i_volatile_motes]"
+		sdash_export_resource = { RES = exotic_gases }
+		log = "SDASH|1|[GetDate]|exotic_gases|[This.sdash_s_exotic_gases]|[This.sdash_i_exotic_gases]"
+		sdash_export_resource = { RES = rare_crystals }
+		log = "SDASH|1|[GetDate]|rare_crystals|[This.sdash_s_rare_crystals]|[This.sdash_i_rare_crystals]"
+		sdash_export_resource = { RES = sr_living_metal }
+		log = "SDASH|1|[GetDate]|sr_living_metal|[This.sdash_s_sr_living_metal]|[This.sdash_i_sr_living_metal]"
+		sdash_export_resource = { RES = sr_zro }
+		log = "SDASH|1|[GetDate]|sr_zro|[This.sdash_s_sr_zro]|[This.sdash_i_sr_zro]"
+		sdash_export_resource = { RES = sr_dark_matter }
+		log = "SDASH|1|[GetDate]|sr_dark_matter|[This.sdash_s_sr_dark_matter]|[This.sdash_i_sr_dark_matter]"
+		sdash_export_resource = { RES = nanites }
+		log = "SDASH|1|[GetDate]|nanites|[This.sdash_s_nanites]|[This.sdash_i_nanites]"
+		sdash_export_resource = { RES = minor_artifacts }
+		log = "SDASH|1|[GetDate]|minor_artifacts|[This.sdash_s_minor_artifacts]|[This.sdash_i_minor_artifacts]"
+		sdash_export_resource = { RES = astral_threads }
+		log = "SDASH|1|[GetDate]|astral_threads|[This.sdash_s_astral_threads]|[This.sdash_i_astral_threads]"
+		sdash_export_resource = { RES = biomass }
+		log = "SDASH|1|[GetDate]|biomass|[This.sdash_s_biomass]|[This.sdash_i_biomass]"
+		sdash_export_resource = { RES = menace }
+		log = "SDASH|1|[GetDate]|menace|[This.sdash_s_menace]|[This.sdash_i_menace]"
+		sdash_export_resource = { RES = integrity }
+		log = "SDASH|1|[GetDate]|integrity|[This.sdash_s_integrity]|[This.sdash_i_integrity]"
+		sdash_export_resource = { RES = advanced_logic }
+		log = "SDASH|1|[GetDate]|advanced_logic|[This.sdash_s_advanced_logic]|[This.sdash_i_advanced_logic]"
+		sdash_export_resource = { RES = feral_insight }
+		log = "SDASH|1|[GetDate]|feral_insight|[This.sdash_s_feral_insight]|[This.sdash_i_feral_insight]"
+		sdash_export_resource = { RES = entropy_crystals }
+		log = "SDASH|1|[GetDate]|entropy_crystals|[This.sdash_s_entropy_crystals]|[This.sdash_i_entropy_crystals]"
 		log = "SDASH|1|[GetDate]|end"
 	}
 }

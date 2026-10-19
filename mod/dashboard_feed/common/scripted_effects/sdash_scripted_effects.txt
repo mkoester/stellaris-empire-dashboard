@@ -1,10 +1,7 @@
-# One game.log line per resource: SDASH|1|<date>|<resource>|<stockpile>|<monthly income>
+# Stockpile and monthly income of one resource into country variables sdash_s_<res> / sdash_i_<res>,
+# logged by events/sdash_events.txt as SDASH|1|<date>|<resource>|<stockpile>|<monthly income>.
 # Parsed by src/lib/server/feed.ts — change both together, and bump the format number.
-#
-# Loc commands inside a scripted effect must be escaped as \\[...] or they break from the second
-# use on (vanilla common/scripted_effects/99_advanced_documentation.txt).
-sdash_log_resource = {
+sdash_export_resource = {
 	export_resource_stockpile_to_variable = { resource = $RES$ variable = sdash_s_$RES$ }
 	export_resource_income_to_variable = { resource = $RES$ variable = sdash_i_$RES$ }
-	log = "SDASH|1|\\[GetDate]|$RES$|\\[This.sdash_s_$RES$]|\\[This.sdash_i_$RES$]"
 }
