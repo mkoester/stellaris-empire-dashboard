@@ -65,6 +65,7 @@ describe('contactRows', () => {
 			hostile: false,
 			opinion: 20,
 			trust: 0,
+			agreements: [],
 			threat: 0,
 			borderRange: null
 		};

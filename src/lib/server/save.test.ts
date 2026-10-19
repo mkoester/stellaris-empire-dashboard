@@ -1067,30 +1067,32 @@ describe('milestone fields', () => {
 		expect(countryIds(w).sort()).toEqual([0, 4, 4, 7, 7]);
 	});
 
-	it('finds trade deals naming the country and reads both sides (assumed shape)', () => {
+	it('finds trade deals naming the country and reads both sides', () => {
+		// 4.5.2, a throwaway game at 2200.05.01: each side lists what it gives
 		const d = {
 			'5': {
-				first: { country: 4, monthly_resources: { minerals: 20 }, sensor_link: 'yes' },
+				first: { country: 0, recipient: 4 },
 				second: {
-					country: 0,
-					resources: { energy: 100 },
-					monthly: [{ resource: 'food', amount: 5 }]
+					country: 4,
+					recipient: 0,
+					monthly_resources: { food: 1, consumer_goods: 1 },
+					sensor_link: true
 				},
-				date: '2230.05.01',
-				length: 10
+				length: 10,
+				date: '2200.03.08'
 			},
-			'6': { first: { country: 4 }, second: { country: 7 } }
+			'6': { first: { country: 4, recipient: 7 }, second: { country: 7, recipient: 4 } }
 		};
 		const [deal, ...more] = tradeDeals({ tradeDeals: d, countryId: 0, countryNames: names });
 		expect(more).toEqual([]);
 		expect(deal).toMatchObject({
 			id: '5',
 			partner: 'Tzynn',
-			start: '2230.05.01',
+			start: '2200.03.08',
 			years: 10,
 			understood: true,
-			gives: { monthly: { food: 5 }, once: { energy: 100 }, other: [] },
-			gets: { monthly: { minerals: 20 }, once: {}, other: ['sensor_link'] }
+			gives: { monthly: {}, once: {}, other: [] },
+			gets: { monthly: { food: 1, consumer_goods: 1 }, once: {}, other: ['sensor_link'] }
 		});
 		expect(JSON.parse(deal.raw)).toEqual(d['5']);
 	});

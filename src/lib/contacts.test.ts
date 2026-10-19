@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contactTable, parseContactView, shown } from './contacts.ts';
+import { agreementName, contactTable, parseContactView, shown } from './contacts.ts';
 import type { Relation } from './types.ts';
 
 const rel = (countryId: number, r: Partial<Relation> = {}): Relation => ({
@@ -10,6 +10,7 @@ const rel = (countryId: number, r: Partial<Relation> = {}): Relation => ({
 	hostile: false,
 	opinion: 0,
 	trust: 0,
+	agreements: [],
 	threat: 0,
 	borderRange: null,
 	...r
@@ -52,5 +53,12 @@ describe('contacts', () => {
 			hostile: 'any',
 			columns: ['opinion']
 		});
+	});
+});
+
+describe('agreementName', () => {
+	it("names the game's pacts and shows unknown flags by their key", () => {
+		expect(agreementName('non_aggression_pledge')).toBe('non-aggression pact');
+		expect(agreementName('migration_treaty')).toBe('migration treaty');
 	});
 });

@@ -425,6 +425,9 @@ export type Relation = {
 	trust: number;
 	threat: number;
 	borderRange: number | null; // null: not bordering (2147483647)
+	// its other `<key>=yes` flags: embassy, research_agreement, commercial_pact, defensive_pact,
+	// non_aggression_pledge, guarantee, closed_borders (4.5.2), and whatever else the game adds
+	agreements: string[];
 };
 
 /** `first_contacts.contacts.<id>`, ours. */

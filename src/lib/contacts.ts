@@ -10,6 +10,7 @@ export const CONTACT_COLUMNS = [
 	'opinion',
 	'trust',
 	'threat',
+	'agreements',
 	'border',
 	'firstContact'
 ] as const;
@@ -42,6 +43,18 @@ export function parseContactView(v: unknown): ContactView {
 			: [...CONTACT_COLUMNS]
 	};
 }
+
+// The relation flags as the game's diplomacy screen names them; others show as their key.
+const AGREEMENTS: Record<string, string> = {
+	embassy: 'embassy',
+	research_agreement: 'research agreement',
+	commercial_pact: 'commercial pact',
+	defensive_pact: 'defensive pact',
+	non_aggression_pledge: 'non-aggression pact',
+	guarantee: 'guarantee',
+	closed_borders: 'closed borders'
+};
+export const agreementName = (key: string) => AGREEMENTS[key] ?? key.replaceAll('_', ' ');
 
 export type ContactRow = Relation & {
 	country: CountryInfo | null;

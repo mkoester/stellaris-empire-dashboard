@@ -1423,15 +1423,15 @@ export function dealSide(v: Raw): DealSide {
 			if (typeof x.resource === 'string' && typeof x.amount === 'number')
 				return add(path, x.resource, x.amount);
 			for (const [k, y] of Object.entries(x)) {
-				if (k === 'country') continue;
+				if (k === 'country' || k === 'recipient') continue;
 				walk(y, Array.isArray(x) ? path : [...path, k]);
 			}
 			return;
 		}
 		const key = path.at(-1) ?? '';
 		if (typeof x === 'number' && RESOURCE_KEYS.has(key)) add(path.slice(0, -1), key, x);
-		else if (x !== 'no' && x !== undefined)
-			side.other.push(x === 'yes' ? path.join(' ') : `${path.join(' ')} ${x}`);
+		else if (x !== 'no' && x !== false && x !== undefined)
+			side.other.push(x === 'yes' || x === true ? path.join(' ') : `${path.join(' ')} ${x}`);
 	};
 	walk(v, []);
 	return side;

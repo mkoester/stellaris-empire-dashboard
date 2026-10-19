@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stationsSeen, wormholeLinks } from './world.ts';
+import { relations, stationsSeen, wormholeLinks } from './world.ts';
 
 describe('stationsSeen', () => {
 	// shaped like 2207.03.01: fleets in `fleet.<id>.movement_manager.coordinate.origin`, a system's
@@ -53,5 +53,38 @@ describe('wormholeLinks', () => {
 			[10, [20]],
 			[20, [10]]
 		]);
+	});
+});
+
+describe('relations', () => {
+	it('lists the pacts and other yes-flags of each relation as its agreements', () => {
+		// 4.5.2, a throwaway game at 2200.05.01 (jomini reads `yes` as true)
+		const [r] = relations({
+			countries: { '16777222': { name: 'Karkato Accord' } },
+			country: {
+				relations_manager: {
+					relation: [
+						{
+							owner: 0,
+							country: 16777222,
+							contact: true,
+							defensive_pact: true,
+							embassy: true,
+							border_range: 396,
+							trust: 50.85,
+							communications: true,
+							relation_current: 210
+						}
+					]
+				}
+			}
+		} as never);
+		expect(r).toMatchObject({
+			name: 'Karkato Accord',
+			opinion: 210,
+			trust: 50.85,
+			borderRange: 396,
+			agreements: ['defensive_pact', 'embassy']
+		});
 	});
 });

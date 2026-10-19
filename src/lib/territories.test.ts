@@ -36,6 +36,7 @@ const relation = (countryId: number, communications: boolean): Relation => ({
 	hostile: false,
 	opinion: null,
 	trust: 0,
+	agreements: [],
 	threat: 0,
 	borderRange: null
 });

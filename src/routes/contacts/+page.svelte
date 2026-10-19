@@ -1,5 +1,6 @@
 <script lang="ts">
 	import {
+		agreementName,
 		CONTACT_COLUMNS,
 		shown,
 		type ContactColumn,
@@ -53,6 +54,11 @@
 		opinion: { id: 'opinion', label: 'Opinion', value: (r) => r.opinion, right: true },
 		trust: { id: 'trust', label: 'Trust', value: (r) => r.trust, right: true },
 		threat: { id: 'threat', label: 'Threat', value: (r) => r.threat, right: true },
+		agreements: {
+			id: 'agreements',
+			label: 'Agreements',
+			value: (r) => r.agreements.map(agreementName).join(', ') || null
+		},
 		border: {
 			id: 'border',
 			label: 'Border',

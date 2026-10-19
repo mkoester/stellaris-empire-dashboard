@@ -563,7 +563,17 @@ current_month_growth_details = { key = { GROWTH_CAT_… } value = { … } } spec
   **No source→destination pairs**: `/migration` shows exact flows only with one sender or one
   receiver, else a proportional split marked as estimated (`#lib/migration.ts`).
 - Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
-  (adopt and finish entries included), `tradition_categories`; perks `country.ascension_perks`.
+  (adopt and finish entries included), `tradition_categories`, `last_picked_tradition`; perks
+  `country.ascension_perks` (both seen filled 2026-10-19).
+- Trade deals (4.5.2, first seen 2026-10-19 in a throwaway game): `trade_deal.<id> = { first = {
+country recipient monthly_resources = { food=1 … } sensor_link=yes } second = { … } length=10
+date="2200.03.08" }` — each side lists what it **gives**; `length` is years (2200.03.08 → the
+  diplomacy screen's 2210). `tradeDeals()` reads it; `recipient` is the other side's id.
+- Pacts are **flags on the relation**: `country.relations_manager.relation = { country embassy
+research_agreement commercial_pact defensive_pact non_aggression_pledge guarantee closed_borders
+… }` (`=yes`), read as `Relation.agreements` (contacts tab, Agreements column). `trust` caps near
+  50 (`add_trust = 100` gave 49.5–50.85); `relation_current` is the contacts screen's opinion
+  (+210, +142 … matched, screenshot 2026_10_19_1). No migration treaty seen yet.
 - Manual saves: a save with the same date as the head but another state continues the head (a
   manual save after the autosave); only an earlier date counts as a reload.
 - Budget sources: `planet_<job>` (job output and inputs), `pop_category_<stratum>` (pop upkeep and
@@ -618,7 +628,7 @@ date days_left difficulty clues stage status }` (`leader=4294967295`: none; `sta
   in_progress / finished / aborted; stages have no localisation). Relations
   `country.relations_manager.relation = { country contact communications hostile
 relation_current trust threat border_range pre_communications_name }` (`border_range`
-  2147483647: not bordering; no treaty fields). Situations `situations.situations.<id> = { country
+  2147483647: not bordering; pacts as flags, see "Pacts are flags" above). Situations `situations.situations.<id> = { country
 type progress last_month_progress approach stage }`. Anomalies: `country.events.anomalies =
 { <planet ids> }`, category in `planets.planet.<id>.anomaly`. Special projects
   `country.events.special_project = { id special_project carrier = { type=planet reference } }`,
@@ -690,12 +700,6 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 - **Wars, never seen in a save** (2207.03: `war`, `truce`, `dead_war` empty). `wars()` in
   `save.ts` reads an assumed shape — check the real one at the first war, tighten it, and replace
   the assumed test fixtures.
-- **Trade deals, never seen in a save** (ours to 2207.03, and a 4.0.1 save at 2312: `trade_deal`
-  empty). Known (stellaris-dashboard's parser): `trade_deal.<id> = { first = { country … } second
-= { country sensor_link=yes … } date length }`. Guessed in `tradeDeals()`: each side lists what
-  it _gives_, resources under a key containing "month" are monthly. Each deal keeps its raw block
-  (`TradeDeal.raw`, shown on `/deals`) and an unreadable one logs `trade deal … not understood` —
-  at the first deal, compare `/deals` with the game's diplomacy screen and tighten the parser.
 - **Exact branch points via the mod**: each month the mod rolls a random id and keeps the previous
   one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
   load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.
@@ -705,11 +709,12 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   building slots found. Matched by hand for Earth only.
 - **`continue_game.json` on load**: if the game rewrites it when a save is _loaded_, it names the
   branch point exactly — `place()` already takes that as `loadedFrom`, nothing feeds it yet.
-- **Companion mod, never loaded in game.** First run decides three guesses, each failing loudly
-  rather than silently: `[GetDate]` prints `YYYY.MM.DD` (else `feed.ts` reports "unexpected date
-  format"), variables print as plain numbers (else "malformed SDASH line", e.g. for `1.2K`), and
-  `export_resource_income_to_variable` is _net_ income (else the merge logs "disagree on net
-  income" at the first autosave).
+- **Companion mod, first loaded 2026-10-19** (throwaway game): it fires monthly and `[GetDate]`
+  prints `2200.02.01` (zero-padded, as `feed.ts` expects). The first build's lines were garbled — a
+  `$RES$` parameter inside the quoted log string lands one character off — so each line is now
+  spelled out in the event. Still open: variables print as plain numbers (else "malformed SDASH
+  line", e.g. for `1.2K`), and `export_resource_income_to_variable` is _net_ income (else the
+  merge logs "disagree on net income" at the first autosave).
 - **Galactic market prices**: `market()` reads `market.fluctuations` /
   `galactic_market_resources` as lists by resource index — confirmed on a 4.0.1 save at 2312
   (chennin/stellaris-dashboard-test-saves; 24 slots there vs. 26 resources in 4.5.2, so the order
@@ -717,8 +722,11 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   only for saves read since 2026-10-17; older ones' saves are gone.
 - **Chart zoom and pan**: wanted — the default window (`xRange`: last 20 years, 1 ahead) should
   zoom out/in and shift. Not started.
-- **Traditions taken**: read from `country.traditions` (list) — a guess, no save with an adopted
-  tradition seen yet. Wrong means the second tradition's cost stays at 300.
+- **Tradition cost, to check in game**: `country.traditions` is confirmed (2026-10-19, throwaway
+  game: `tr_expansion_adopt`, `tr_expansion_colonization_fever`, and a console-activated
+  `tr_diplomacy_diplomatic_networking` — whose tree landed in `tradition_categories` without its
+  `_adopt`). Whether the adopt entries count as `num_traditions` is not: 3 entries → 605 unity,
+  2 → 447; compare the game's next-tradition cost.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
 - **Next, the user's plan:** a configurable main dashboard (custom tabs pick empire panels now;
