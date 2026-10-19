@@ -4,9 +4,10 @@ import type { Point } from './mapView.ts';
 // the hyperlanes between them, as the game's map blends them. Every owned system radiates
 // exp(−A·(d/R)²), every lane between two systems of one owner the same over its distance from the
 // lane, scaled by CORRIDOR; an owner holds the points where its summed field passes the lone
-// system's value at R, and beats every other owner's. **Only owned systems count**: an unowned
-// system inside the reach is simply covered (2205.07: one beside a lane cut Cydran Concern's
-// territory in two while all systems claimed space). Nearby claims merge into one rounded outline,
+// system's value at R, and beats every other owner's. **Only owned systems claim space**: when all
+// systems did, an unowned one beside a lane cut Cydran Concern's territory in two (2205.07). An
+// unowned system inside a territory is cut out instead, a small hole of HOLE·R around it, so it
+// does not look owned (the user's call, 2026-10-19). Nearby claims merge into one rounded outline,
 // a lane keeps far-apart systems joined, and two owners meet where their fields are equal. The
 // outline is traced by marching squares on a grid of R/STEPS. Pure geometry in galaxy units,
 // drawn by GalaxyMap.
@@ -19,6 +20,8 @@ export const CORRIDOR = 0.5;
 export const REACH = 0.8;
 /** Grid points per R. */
 const STEPS = 5;
+/** The hole around an unowned system inside a territory, as a share of R. */
+export const HOLE = 0.25;
 
 export type Site = Point & { id: number; owner: string };
 /** Each owner's outline: closed rings, holes included (fill them even-odd). */
@@ -86,9 +89,15 @@ const SADDLE: Record<number, { centreIn: [Side, Side][]; centreOut: [Side, Side]
 
 /**
  * The outline of every owner's territory. `sites`: the owned systems; `lanes`: hyperlanes between
- * two systems of one owner (each once); `radius`: R, the reach of a lone system.
+ * two systems of one owner (each once); `radius`: R, the reach of a lone system; `holes`: the
+ * unowned systems, cut out where they fall inside.
  */
-export function outlines(sites: Site[], lanes: [Site, Site][], radius: number): Outlines {
+export function outlines(
+	sites: Site[],
+	lanes: [Site, Site][],
+	radius: number,
+	holes: Point[] = []
+): Outlines {
 	const out: Outlines = new Map();
 	if (!sites.length) return out;
 	const owners = [...new Set(sites.map((s) => s.owner))];
@@ -126,13 +135,28 @@ export function outlines(sites: Site[], lanes: [Site, Site][], radius: number): 
 		]);
 
 	const threshold = Math.exp(-A);
+	// each hole as a cap on the grid points within HOLE·R: negative inside the circle, rising to
+	// the field's own scale at its edge, so the contour runs along the circle
+	const cap = new Float64Array(nx * ny).fill(Infinity);
+	const r0 = HOLE * radius;
+	for (const p of holes) {
+		const i0 = Math.max(0, Math.floor((p.x - 2 * r0 - x0) / h));
+		const i1 = Math.min(nx - 1, Math.ceil((p.x + 2 * r0 - x0) / h));
+		const j0 = Math.max(0, Math.floor((p.y - 2 * r0 - y0) / h));
+		const j1 = Math.min(ny - 1, Math.ceil((p.y + 2 * r0 - y0) / h));
+		for (let j = j0; j <= j1; j++)
+			for (let i = i0; i <= i1; i++) {
+				const d = Math.hypot(x0 + i * h - p.x, y0 + j * h - p.y);
+				cap[j * nx + i] = Math.min(cap[j * nx + i], (threshold * (d - r0)) / r0);
+			}
+	}
 	owners.forEach((owner, k) => {
 		// > 0 inside: above the threshold and ahead of every other owner
 		const g = new Float64Array(nx * ny);
 		for (let n = 0; n < nx * ny; n++) {
 			let rival = threshold;
 			for (let o = 0; o < owners.length; o++) if (o !== k) rival = Math.max(rival, fields[o][n]);
-			g[n] = fields[k][n] - rival;
+			g[n] = Math.min(fields[k][n] - rival, cap[n]);
 		}
 		out.set(
 			owner,

@@ -145,7 +145,8 @@ even-odd. **Only owned systems count** — an unowned one is covered, not cut ou
 looked wrong against the game's map (2205.07, Cydran Concern): Voronoi cells clipped to circles
 left far systems as islands; every system as a site cut a territory where an unowned system sat
 beside a lane; cells plus corridors left seams and dents; the field at REACH 1.25 covered 57 of
-362 unowned systems (40 owned: "looks like they own more"), at 0.8 12. ~180 ms for 14 owners on a 400-system
+362 unowned systems (40 owned: "looks like they own more"), at 0.8 12 — and those are cut out,
+a hole of `HOLE` (¼ R) around each unowned system inside a territory (the user's call). ~180 ms for 14 owners on a 400-system
 galaxy, once per owner change. Colours are the game's: a country's first `flag.colors` swatch, its
 `map` rgb from `flags/colors.txt` (data DB `flag_color`). Shown: ours, empires we have
 communications with, every visited station's owner with `contactStations`; stations we saw but
@@ -762,14 +763,18 @@ members = { <ids> } last_month_pops pops_change last_month_colony_pops }`. `fact
   contacts tab's log (`combats()`, `combatLog()`) has what monthly saves caught. The losses are as
   of the save: 2 of the salvagers' 3 at 11.01, the game's report says 3 of 3. The companion mod
   could log combats (an on_action) for the complete record.
-- **Next topics (the user's, 2026-10-19)**: the Shroud — first data at 2205.12.01 after Psionic
-  Ascension: our `standard_shroud_module`, `has_delved_in_shroud`, `last_delve_date`, delve
-  counts, and top-level `patron_relations.<id> = { owner patron position contact special_project
-leaders unlocked_passive_accords_count … }` (the Covenants); read them with the first delve's
-  save and the game's Shroud screen (`can_access_shroud`, `shroud_*` keys), and other
-  empires' agreements with each other — their own relations hold them (2205.05: 10 research
-  agreements, 12 migration treaties, 4 subjects among the AIs), but showing them needs the game's
-  intel rules (`intel_manager`, `intel_level`), or it is a spoiler switch.
+- **The Shroud, to build** (2206.01.01, after the first delve; screenshot 2026_10_19_7): our
+  `modules.standard_shroud_module = { attunement = { x y } month_start_attunement
+last_month_attunement_offset patron_relations = { <ids> } last_delve_date }`; top-level
+  `patron_relations.<id> = { owner patron position = { x y } contact calling = { tier
+calling_start_date completed patron_objective } deeds = { { patron_objective } }
+unlocked_passive_accords_count pre_communications_name … }` — eight patrons on a circle
+  (positions ±1 / ±0.7), contact `none` or `completed` (the Composer of Strands after the delve),
+  `is_preferred_patron` on the country. The game's screen shows the patron's **50 / 1000**:
+  perhaps the month-start attunement towards it (0.05 along (0, −1)); the current one gives 200 —
+  unconfirmed. Names (callings, deeds) are in localisation (`calling_establish_colony` "Calling of
+  Flight", `deed_host_new_species` "Hosting"); the deed weights (+25 …) and patrons are in
+  `common/patrons/` — an extraction step before a Shroud panel.
 - **Exact branch points via the mod**: each month the mod rolls a random id and keeps the previous
   one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
   load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.

@@ -67,7 +67,9 @@
 				return o && o.owner === s.owner && s.id < to ? [[s, o]] : [];
 			})
 		);
-		return outlines(sites, lanes, REACH * claimRadius(systems));
+		// systems without a shown owner are cut out where they fall inside a territory
+		const holes = systems.filter((s) => !ownerOf.has(s.id));
+		return outlines(sites, lanes, REACH * claimRadius(systems), holes);
 	});
 	const territoryOf = $derived(new Map(shown.map((t) => [t.key, t])));
 	const rings = (rs: Point[][]) => rs.map(path).join(' ');

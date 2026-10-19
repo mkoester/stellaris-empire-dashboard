@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claimRadius, CORRIDOR, outlines, type Site } from './borders.ts';
+import { claimRadius, CORRIDOR, HOLE, outlines, type Site } from './borders.ts';
 
 const site = (id: number, x: number, y: number, owner = 'us'): Site => ({ id, x, y, owner });
 const xs = (ring: { x: number }[]) => ring.map((p) => p.x);
@@ -35,6 +35,17 @@ describe('territory outlines', () => {
 		const out = outlines([site(1, 0, 0), site(2, 30, 0, 'them')], [], 20);
 		expect(Math.max(...xs(out.get('us')![0]))).toBeCloseTo(15, 0);
 		expect(Math.min(...xs(out.get('them')![0]))).toBeCloseTo(15, 0);
+	});
+
+	it('cuts an unowned system out of the territory around it, a small ring of HOLE·R', () => {
+		const a = site(1, 0, 0);
+		const b = site(2, 40, 0);
+		const rings = outlines([a, b], [[a, b]], 20, [{ x: 20, y: 0 }]).get('us')!;
+		expect(rings).toHaveLength(2); // the outline and the hole
+		const hole = rings.find((r) => Math.max(...xs(r)) < 30)!;
+		for (const p of hole) expect(Math.hypot(p.x - 20, p.y)).toBeCloseTo(HOLE * 20, 0);
+		// an unowned system outside every territory changes nothing
+		expect(outlines([a], [], 20, [{ x: 200, y: 0 }]).get('us')).toHaveLength(1);
 	});
 
 	it('claims about the distance to a typical neighbour', () => {
