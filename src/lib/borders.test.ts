@@ -1,72 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { borderEdges, cells, claimRadius, CORRIDOR } from './borders.ts';
+import { claimRadius, CORRIDOR, outlines, type Site } from './borders.ts';
 
-describe('cells and borders', () => {
-	// three systems on a line, 20 units apart: 1 and 2 ours, 3 someone else's
-	const sites = [
-		{ id: 1, x: 0, y: 0 },
-		{ id: 2, x: 20, y: 0 },
-		{ id: 3, x: 40, y: 0 }
-	];
-	const owner = (id: number) => ({ 1: 'us', 2: 'us', 3: 'them' })[id];
-	const all = cells(sites, new Set([1, 2, 3]), 20);
-	const cell = (id: number) => all.find((c) => c.id === id)!;
+const site = (id: number, x: number, y: number, owner = 'us'): Site => ({ id, x, y, owner });
+const xs = (ring: { x: number }[]) => ring.map((p) => p.x);
+const ys = (ring: { y: number }[]) => ring.map((p) => p.y);
 
-	it('splits the space between neighbours halfway', () => {
-		const xs = cell(2).poly.map((p) => p.x);
-		expect(Math.min(...xs)).toBeCloseTo(10);
-		expect(Math.max(...xs)).toBeCloseTo(30);
+describe('territory outlines', () => {
+	it('draws a lone system as a ring of radius R', () => {
+		const [ring, ...more] = outlines([site(1, 0, 0)], [], 20).get('us')!;
+		expect(more).toEqual([]);
+		for (const p of ring) expect(Math.hypot(p.x, p.y)).toBeCloseTo(20, 0);
 	});
 
-	it('draws no border between two systems of one owner, one towards another owner', () => {
-		const towards = (id: number) => borderEdges(cell(2), owner).filter((e) => e.other === id);
-		expect(towards(1)).toEqual([]);
-		expect(towards(3)).toHaveLength(1);
-		expect(towards(3)[0].a.x).toBeCloseTo(30);
+	it('keeps two far systems apart without a lane, joins them with one', () => {
+		const a = site(1, 0, 0);
+		const b = site(2, 100, 0);
+		expect(outlines([a, b], [], 20).get('us')).toHaveLength(2);
+		const joined = outlines([a, b], [[a, b]], 20).get('us')!;
+		expect(joined).toHaveLength(1);
+		// the corridor at the lane's middle is CORRIDOR·R to either side (within the grid's
+		// interpolation, which errs outwards on the curved falloff: < 1 at R/5 = 4)
+		const middle = joined[0].filter((p) => Math.abs(p.x - 50) < 3);
+		expect(Math.abs(Math.max(...ys(middle)) - CORRIDOR * 20)).toBeLessThan(1);
 	});
 
-	it('closes a lone system with its arc', () => {
-		const [lone] = cells([{ id: 9, x: 0, y: 0 }], new Set([9]), 10);
-		expect(lone.edges.every((e) => e.other === null)).toBe(true);
-		expect(lone.poly.every((p) => Math.abs(Math.hypot(p.x, p.y) - 10) < 1e-9)).toBe(true);
+	it('merges close systems into one rounded outline', () => {
+		const rings = outlines([site(1, 0, 0), site(2, 30, 0)], [], 20).get('us')!;
+		expect(rings).toHaveLength(1);
+		expect(Math.min(...xs(rings[0]))).toBeLessThan(-19);
+		expect(Math.max(...xs(rings[0]))).toBeGreaterThan(49);
+	});
+
+	it('splits the space between two owners halfway', () => {
+		const out = outlines([site(1, 0, 0), site(2, 30, 0, 'them')], [], 20);
+		expect(Math.max(...xs(out.get('us')![0]))).toBeCloseTo(15, 0);
+		expect(Math.min(...xs(out.get('them')![0]))).toBeCloseTo(15, 0);
 	});
 
 	it('claims about the distance to a typical neighbour', () => {
-		expect(claimRadius(sites)).toBe(20);
-	});
-});
-
-describe('corridors along lanes', () => {
-	// two of our systems 100 apart on a lane, radius 20: without the lane two islands
-	const sites = [
-		{ id: 1, x: 0, y: 0 },
-		{ id: 2, x: 100, y: 0 }
-	];
-	const linked = (id: number) => (id === 1 ? [sites[1]] : [sites[0]]);
-
-	it('reaches along the lane to the midpoint, where the neighbour takes over', () => {
-		const [a, b] = cells(sites, new Set([1, 2]), 20, linked);
-		expect(Math.max(...a.poly.map((p) => p.x))).toBeCloseTo(50);
-		expect(Math.min(...b.poly.map((p) => p.x))).toBeCloseTo(50);
-		// the meeting edge is the bisector, tagged with the neighbour: no border between them
-		expect(a.edges.some((e) => e.other === 2)).toBe(true);
-	});
-
-	it('keeps the corridor CORRIDOR·R to either side of the lane', () => {
-		const [a] = cells(sites, new Set([1, 2]), 20, linked);
-		const at40 = a.poly.filter((p) => Math.abs(p.x - 40) < 6).map((p) => Math.abs(p.y));
-		expect(Math.max(...at40)).toBeCloseTo(CORRIDOR * 20, 0);
-	});
-
-	it('stays a plain circle without links', () => {
-		const [a] = cells(sites, new Set([1]), 20);
-		expect(Math.max(...a.poly.map((p) => p.x))).toBeCloseTo(20);
-	});
-
-	it('gives way to a third owned system near the lane', () => {
-		const third = { id: 3, x: 50, y: 8 };
-		const [a] = cells([...sites, third], new Set([1, 2]), 20, linked);
-		// the bisector towards system 3 cuts the corridor short of the midpoint
-		expect(Math.max(...a.poly.map((p) => p.x))).toBeLessThan(50);
+		expect(claimRadius([site(1, 0, 0), site(2, 20, 0), site(3, 40, 0)])).toBe(20);
 	});
 });

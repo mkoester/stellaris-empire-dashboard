@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import { borderEdges, cells, claimRadius, REACH } from './borders.ts';
+	import { claimRadius, outlines, REACH, type Site } from './borders.ts';
 	import { fit, pan, toScreen, zoomAt, type Point, type View } from './mapView.ts';
 	import type { Territory } from './territories.ts';
 
@@ -51,26 +51,26 @@
 	let sectors = $state(false);
 	const hasSectors = $derived(territories.some((t) => t.parts?.length));
 	const shown = $derived(sectors ? territories.flatMap((t) => t.parts ?? [t]) : territories);
-	// the cells only change with the systems and owners, not with panning
+	// the outlines only change with the systems and owners, not with panning
 	const ownerOf = $derived(new Map(shown.flatMap((t) => t.systems.map((id) => [id, t] as const))));
-	const keyOf = (id: number) => ownerOf.get(id)?.key;
-	// territory follows the lanes between systems of one owner (see #lib/borders.ts)
-	const sameOwnerLanes = (id: number) =>
-		(byId.get(id)?.lanes ?? []).flatMap((to) => {
-			const o = byId.get(to);
-			return o && keyOf(to) === keyOf(id) ? [o] : [];
+	// only owned systems claim space, along the lanes between systems of one owner too; the radius
+	// follows how dense the galaxy is (#lib/borders.ts)
+	const territoryOutlines = $derived.by(() => {
+		const sites: Site[] = systems.flatMap((s) => {
+			const t = ownerOf.get(s.id);
+			return t ? [{ id: s.id, x: s.x, y: s.y, owner: t.key }] : [];
 		});
-	// only owned systems claim space; the radius follows how dense the galaxy is
-	const territoryCells = $derived(
-		ownerOf.size
-			? cells(
-					systems.filter((s) => ownerOf.has(s.id)),
-					new Set(ownerOf.keys()),
-					REACH * claimRadius(systems),
-					sameOwnerLanes
-				)
-			: []
-	);
+		const byKey = new Map(sites.map((s) => [s.id, s]));
+		const lanes = sites.flatMap((s) =>
+			(byId.get(s.id)?.lanes ?? []).flatMap((to): [Site, Site][] => {
+				const o = byKey.get(to);
+				return o && o.owner === s.owner && s.id < to ? [[s, o]] : [];
+			})
+		);
+		return outlines(sites, lanes, REACH * claimRadius(systems));
+	});
+	const territoryOf = $derived(new Map(shown.map((t) => [t.key, t])));
+	const rings = (rs: Point[][]) => rs.map(path).join(' ');
 	// each wormhole once (both ends list each other), bent so it does not hide a lane; L-Gates
 	// list their link at the gate only
 	const wormholes = $derived(
@@ -230,24 +230,19 @@
 			onpointerup={up}
 			onpointercancel={() => (drag = null)}
 		>
-			{#each territoryCells as c (c.id)}
-				{@const t = ownerOf.get(c.id)!}
-				<path class="pointer-events-none" d={path(c.poly)} fill={t.color} fill-opacity="0.16" />
-			{/each}
-			{#each territoryCells as c (c.id)}
-				{@const t = ownerOf.get(c.id)!}
-				{#each borderEdges(c, keyOf) as e, i (i)}
-					<line
-						class="pointer-events-none"
-						x1={at(e.a).x}
-						y1={at(e.a).y}
-						x2={at(e.b).x}
-						y2={at(e.b).y}
-						stroke={t.color}
-						stroke-width="1.5"
-						stroke-dasharray={t.guess ? '4 3' : undefined}
-					/>
-				{/each}
+			{#each [...territoryOutlines] as [key, rs] (key)}
+				{@const t = territoryOf.get(key)!}
+				<path
+					class="pointer-events-none"
+					d={rings(rs)}
+					fill={t.color}
+					fill-opacity="0.16"
+					fill-rule="evenodd"
+					stroke={t.color}
+					stroke-width="1.5"
+					stroke-linejoin="round"
+					stroke-dasharray={t.guess ? '4 3' : undefined}
+				/>
 			{/each}
 			{#each systems as s (s.id)}
 				{#each new Set(s.lanes) as to (to)}

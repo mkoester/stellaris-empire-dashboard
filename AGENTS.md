@@ -136,12 +136,16 @@ count discovered systems only. Table rows tied to a system (`SortTable` `link`) 
 bindable `hovered` system: the row is highlighted, the system ringed; binding `selected` too
 makes a click (row or system, not a drag) pick a system, ringed in sky blue, its row scrolled into
 view. **Borders** (`territories` on `GalaxyMap`; `#lib/borders.ts`, `#lib/territories.ts`,
-`territoriesOf()` in `server/mapSystems.ts`): every system claims its Voronoi cell, clipped to a
-circle of the median nearest-neighbour distance (`claimRadius`); a territory is its systems' cells,
-its border the arcs and the cell edges towards another owner — all systems are sites, so territory
-stops halfway to unowned ones. A lane between two systems of one owner widens both claims by a
-corridor (half-width `CORRIDOR` = ½ R) up to the midpoint, so a chain of far-apart systems is one
-territory, as in the game (2205.07: Cydran Concern's three systems were three islands). Colours are the game's: a country's first `flag.colors` swatch, its
+`territoriesOf()` in `server/mapSystems.ts`): a smooth field, as the game blends territory — each
+owned system radiates exp(−3·(d/R)²), R = `REACH` (1.25) × the median nearest-neighbour distance
+(`claimRadius`), and each lane between two systems of one owner the same over its distance from
+the lane scaled by `CORRIDOR` (0.7); an owner holds where its summed field passes a lone system's
+value at R and beats every other owner's, traced by marching squares (R/5 grid) into rings drawn
+even-odd. **Only owned systems count** — an unowned one is covered, not cut out. Iterations that
+looked wrong against the game's map (2205.07, Cydran Concern): Voronoi cells clipped to circles
+left far systems as islands; every system as a site cut a territory where an unowned system sat
+beside a lane; cells plus corridors left seams and dents. ~180 ms for 14 owners on a 400-system
+galaxy, once per owner change. Colours are the game's: a country's first `flag.colors` swatch, its
 `map` rgb from `flags/colors.txt` (data DB `flag_color`). Shown: ours, empires we have
 communications with, every visited station's owner with `contactStations`; stations we saw but
 cannot name are **guessed** (one shipset within `GUESS_JUMPS` = 3 jumps = one empire), dashed, in
@@ -439,7 +443,9 @@ screenshot of the game's panel. Commands, from the wiki's console page (verified
 `unity`/`influence`/`cash`/`resource <n> <res>`, `instant_build`, `survey`, `fast_forward <days>`,
 `factions.spawnall`, `federation_add_experience`/`_cohesion`, `event <id>` (`galcom.16` founds
 the Galactic Community, `distar.11000` opens the L-Gates, `crisis.199|1000|2000|8005`,
-`fallen_empires_awakening.1` after `play`-ing a fallen empire), `effect <script>`.
+`fallen_empires_awakening.1` after `play`-ing a fallen empire), `effect <script>`. Situations:
+`effect add_situation_progress = 500` moved our Psionic Ascension to its next stage (2026-10-19;
+an `every_situation = { limit = … }` form did not).
 
 ## Save format facts (4.5.2, read from a real save)
 
@@ -766,9 +772,10 @@ members = { <ids> } last_month_pops pops_change last_month_colony_pops }`. `fact
 - **Companion mod, first loaded 2026-10-19** (throwaway game): it fires monthly and `[GetDate]`
   prints `2200.02.01` (zero-padded, as `feed.ts` expects). The first build's lines were garbled — a
   `$RES$` parameter inside the quoted log string lands one character off — so each line is now
-  spelled out in the event. Still open: variables print as plain numbers (else "malformed SDASH
-  line", e.g. for `1.2K`), and `export_resource_income_to_variable` is _net_ income (else the
-  merge logs "disagree on net income" at the first autosave).
+  spelled out in the event. **All three first-run guesses hold** (2205.09.01, after a restart):
+  variables print as plain decimals (`2460.95365`, unity `99861092.57269`), and
+  `export_resource_income_to_variable` is net income — energy −19.36242 and minerals 36.04496,
+  exactly the save's balance that day.
 - **Galactic market prices**: `market()` reads `market.fluctuations` /
   `galactic_market_resources` as lists by resource index — confirmed on a 4.0.1 save at 2312
   (chennin/stellaris-dashboard-test-saves; 24 slots there vs. 26 resources in 4.5.2, so the order
