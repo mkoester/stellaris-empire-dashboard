@@ -239,7 +239,7 @@ export function stationsSeen(
 const RELATION_STATE = ['contact', 'communications', 'hostile'];
 
 /** `country.relations_manager.relation`, one per empire we know. */
-export function relations(raw: Pick<RawSave, 'country' | 'countries'>): Relation[] {
+export function relations(raw: Pick<RawSave, 'country' | 'countries' | 'rivalsOfUs'>): Relation[] {
 	return items(raw.country?.relations_manager?.relation)
 		.filter((r) => typeof r?.country === 'number')
 		.map((r) => ({
@@ -255,9 +255,13 @@ export function relations(raw: Pick<RawSave, 'country' | 'countries'>): Relation
 			threat: num(r.threat),
 			borderRange:
 				typeof r.border_range === 'number' && r.border_range < 2147483647 ? r.border_range : null,
-			agreements: Object.entries(r)
-				.filter(([k, v]) => (v === true || v === 'yes') && !RELATION_STATE.includes(k))
-				.map(([k]) => k)
+			agreements: [
+				...Object.entries(r)
+					.filter(([k, v]) => (v === true || v === 'yes') && !RELATION_STATE.includes(k))
+					.map(([k]) => k),
+				// their relation to us, not ours to them
+				...(raw.rivalsOfUs.includes(r.country) ? ['rivals_us'] : [])
+			]
 		}));
 }
 

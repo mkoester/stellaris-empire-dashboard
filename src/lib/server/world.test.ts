@@ -60,6 +60,7 @@ describe('relations', () => {
 	it('lists the pacts and other yes-flags of each relation as its agreements', () => {
 		// 4.5.2, a throwaway game at 2200.05.01 (jomini reads `yes` as true)
 		const [r] = relations({
+			rivalsOfUs: [16777222],
 			countries: { '16777222': { name: 'Karkato Accord' } },
 			country: {
 				relations_manager: {
@@ -84,7 +85,7 @@ describe('relations', () => {
 			opinion: 210,
 			trust: 50.85,
 			borderRange: 396,
-			agreements: ['defensive_pact', 'embassy']
+			agreements: ['defensive_pact', 'embassy', 'rivals_us']
 		});
 	});
 });

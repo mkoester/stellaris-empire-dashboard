@@ -104,6 +104,7 @@ export type RawSave = {
 	tradeDeals: Record<string, Raw>; // top-level trade_deal
 	agreements: Record<string, Raw>; // agreements.agreements: every subject agreement
 	loyalty: Record<string, number>; // country → its `loyalty` as a subject
+	rivalsOfUs: number[]; // countries whose relation to us has `is_rival=yes`
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -117,10 +118,13 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 		const allCountries: Record<string, Raw> = q.at('/country') ?? {};
 		const fleetOwner: Record<string, number> = {};
 		const loyalty: Record<string, number> = {};
+		const rivalsOfUs: number[] = [];
 		const countries: RawSave['countries'] = {};
 		for (const [id, c] of Object.entries(allCountries)) {
 			if (!c || typeof c !== 'object') continue;
 			if (typeof c.loyalty === 'number') loyalty[id] = c.loyalty;
+			const toUs = items(c.relations_manager?.relation).find((r) => r?.country === countryId);
+			if (toUs?.is_rival === true || toUs?.is_rival === 'yes') rivalsOfUs.push(Number(id));
 			for (const o of items(c.fleets_manager?.owned_fleets))
 				if (typeof o?.fleet === 'number') fleetOwner[String(o.fleet)] = Number(id);
 			countries[id] = {
@@ -194,6 +198,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			tradeDeals,
 			agreements: q.at('/agreements/agreements') ?? {},
 			loyalty,
+			rivalsOfUs,
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
 			districtsDb: q.at('/districts') ?? {},
 			zones: q.at('/zones') ?? {},
@@ -1386,8 +1391,11 @@ export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames' | 
 				exhaustion: numOrNull(w[`${own}_war_exhaustion`]),
 				enemyExhaustion: numOrNull(w[`${enemy}_war_exhaustion`]),
 				battles: items(w.battles).map((b) => {
-					// a battle's sides are its own: whoever attacked in that system
-					const weAttacked = items(b?.attackers).some((c) => ours.includes(Number(c)));
+					// A battle's side lists name each other: in our first war we attacked their civilian
+					// ships and won every battle (the user, 2026-10-19), and the save had `defenders =
+					// { us } attacker_victory=yes defender_losses=4` — 4 of theirs. The losses and the
+					// victory follow the roles, not the lists.
+					const weAttacked = items(b?.defenders).some((c) => ours.includes(Number(c)));
 					const attackerWon = b?.attacker_victory === true || b?.attacker_victory === 'yes';
 					return {
 						date: String(b?.date ?? ''),

@@ -54,7 +54,10 @@ const AGREEMENTS: Record<string, string> = {
 	guarantee: 'guarantee',
 	closed_borders: 'closed borders',
 	migration_access: 'migration treaty',
-	waystation_pact: 'wayline pact'
+	waystation_pact: 'wayline pact',
+	is_rival: 'our rival',
+	rivals_us: 'rivals us',
+	subject: 'subject'
 };
 export const agreementName = (key: string) => AGREEMENTS[key] ?? key.replaceAll('_', ' ');
 

@@ -67,6 +67,7 @@ const raw: RawSave = {
 	tradeDeals: {},
 	agreements: {},
 	loyalty: {},
+	rivalsOfUs: [],
 	starbases: {},
 	megastructures: {},
 	bypasses: {},
@@ -1078,7 +1079,7 @@ describe('milestone fields', () => {
 				defenders: [{ call_type: 'primary', country: 4, caller: 4294967295 }],
 				battles: [
 					{
-						defenders: [0],
+						defenders: [0], // we attacked: the lists name each other (see wars())
 						attackers: [4],
 						system: 303,
 						attacker_victory: true,
@@ -1110,7 +1111,7 @@ describe('milestone fields', () => {
 				exhaustion: 0.11025,
 				enemyExhaustion: 0.0993,
 				battles: [
-					{ date: '2201.09.10', system: 'Aldebaran', type: 'ships', won: false, lost: 4, killed: 0 }
+					{ date: '2201.09.10', system: 'Aldebaran', type: 'ships', won: true, lost: 0, killed: 4 }
 				]
 			}
 		]);

@@ -574,8 +574,10 @@ date="2200.03.08" }` — each side lists what it **gives**; `length` is years (2
 - Wars (4.5.2, first seen 2026-10-19): `war.<id> = { name start_date attackers = { { call_type
 country caller } } defenders battles = { { attackers = { <ids> } defenders attacker_victory
 attacker_losses defender_losses system date type } } attacker_war_goal = { type actor target }
-defender_war_goal attacker_war_exhaustion defender_war_exhaustion }` (exhaustion 0–1). A battle's
-  sides are whoever attacked in that system, not the war's. An ended war leaves `<id>=none`;
+defender_war_goal attacker_war_exhaustion defender_war_exhaustion }` (exhaustion 0–1). **A
+  battle's `attackers`/`defenders` lists name each other**: we attacked their civilian ships and
+  won every fight, yet the save had `defenders = { us } attacker_victory=yes defender_losses=4`
+  (their 4); losses and victory follow the roles. An ended war leaves `<id>=none`;
   `truce` and `dead_war` stayed empty after a won subjugation war. Names: `war_vs_adjectives` =
   "$1$ - $2$ $3$". Shown on the contacts tab (`wars()` in save.ts).
 - Subjects: top-level `agreements.agreements.<id> = { owner target active_status date_added
@@ -584,6 +586,9 @@ can_subject_* … } subject_specialization = { level experience } }`, owner = th
   subject's country block holds `loyalty` (−45, the game's agreements screen), `overlord` and
   `subject_date`, and our relation to it `subject=yes`. The monthly loyalty change (+0.9) is not
   stored. Shown on the contacts tab (`subjects()` in save.ts).
+- Rivals (2026-10-19): declaring one adds `is_rival=yes` and `rival_date` (declaration + 10
+  years: 2205.05 → "2215.05.17") to our relation, `rivals = { country }` and `has_declared_rival`
+  to our country; their opinion of us fell to −460. Contacts: "our rival", "rivals us".
 - Pacts are **flags on the relation**: `country.relations_manager.relation = { country embassy
 research_agreement commercial_pact defensive_pact non_aggression_pledge guarantee closed_borders
 migration_access waystation_pact … }` (`=yes`; the last two are the migration treaty and the
@@ -713,14 +718,16 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 - **Migration treaties: a foreign colony's case** — the treaty's flag is known (`migration_access`,
   2026-10-19), but the throwaway game's partner had no pops moving yet; check `/migration` once
   they do.
-- **Battles, to check in game**: the throwaway war's two battles read as lost (4 and 1 ships)
-  from `defenders = { 0 } attacker_victory=yes` — a battle's sides are its own, not the war's;
-  compare with the game's war screen at the next war.
+- **Battles: only some are recorded** — the throwaway war had more fights (the station, single
+  civilian ships one by one) than its two `battles` entries; the station was killed by console
+  `damage`, which may not count. Check at the next war which fights the list keeps.
+- **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
+  (`is_rival=yes`); no AI rivalled us yet (2205.06).
 - **Subject terms in the game's words**: the contacts tab shows the save's term values made
   readable (`subject_can_not_be_integrated` → "can not be integrated"); the game says "Integration
   Prohibited". Needs the terms' localisation in the extraction (`common/agreement_terms`).
-- **Next topics (the user's, 2026-10-19)**: rivalries (AIs already have `rivals`, `is_rival`,
-  `rival_date` in their relations), the Shroud (`can_access_shroud`, `shroud_*` keys), and other
+- **Next topics (the user's, 2026-10-19)**: claims, ours and against us (none in a save yet —
+  needs a neighbour), the Shroud (`can_access_shroud`, `shroud_*` keys), and other
   empires' agreements with each other — their own relations hold them (2205.05: 10 research
   agreements, 12 migration treaties, 4 subjects among the AIs), but showing them needs the game's
   intel rules (`intel_manager`, `intel_level`), or it is a spoiler switch.
