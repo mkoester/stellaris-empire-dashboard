@@ -1,13 +1,14 @@
 import type { Point } from './mapView.ts';
 
-// Empire borders as the galaxy map draws territory: every system claims the space nearer to it
-// than to any other system (its Voronoi cell), at most a radius R around it. An empire's territory
-// is the union of its systems' cells; its border runs where a cell meets a system of another (or
-// no) owner, and along the arcs where nothing else is near. Unowned and unknown systems are sites
-// too, so a territory stops halfway to them. Systems of one owner joined by a hyperlane longer
-// than 2R would show as separate islands; as in the game, their territory follows the lane: each
-// claims a corridor along it (half-width CORRIDOR·R), which the bisector cuts at the midpoint.
-// Pure geometry in galaxy units, drawn by GalaxyMap.
+// Empire borders as the galaxy map draws territory: every owned system claims the space nearer to
+// it than to any other owned system (its Voronoi cell), at most a radius R around it. An empire's
+// territory is the union of its systems' cells; its border runs where a cell meets a system of
+// another owner, and along the arcs where nothing else is near. **Only owned systems are sites**:
+// as in the game, an unowned system inside the reach is simply covered (2205.07: one beside a
+// lane cut Cydran Concern's territory in two while they were sites). Systems of one owner joined
+// by a hyperlane longer than 2R would show as separate islands; as in the game, their territory
+// follows the lane: each claims a corridor along it (half-width CORRIDOR·R), which the bisector
+// cuts at the midpoint. Pure geometry in galaxy units, drawn by GalaxyMap.
 
 export type Site = Point & { id: number };
 /** An edge of a cell; `other` is the system across it, null on the outer arc. */
@@ -16,7 +17,9 @@ export type Cell = { id: number; poly: Point[]; edges: Edge[] };
 
 const ARC_STEPS = 72;
 /** A corridor's half-width, as a share of the claim radius. */
-export const CORRIDOR = 0.5;
+export const CORRIDOR = 0.7;
+/** The claim radius as a share of the typical distance between systems (claimRadius). */
+export const REACH = 1.25;
 
 /** Systems with the space they claim: the radius is about the distance to a typical neighbour. */
 export function claimRadius(sites: Point[]): number {

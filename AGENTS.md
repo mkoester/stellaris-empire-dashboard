@@ -319,8 +319,10 @@ L-Cluster (`lcluster`: star flags `lcluster*`) only exists once the gates open �
 `events/distant_stars_events_3.txt` `distar.11000` spawns it then, 550–560 from the galactic
 core at 44–46°, its other systems relative to that within ranges; then every gate links to its
 entrance `lcluster1` (`lgateTo`, a star), drawn like a wormhole in cyan. Before that the spoiler
-links every gate to `PREDICTED_LCLUSTER` (`situations.ts`, id −1): 555 from the core at 45°, read
-in the maths sense — unverified (2207.03.10: (392, 392), outside the galaxy's radius 356). Without the spoiler a
+links every gate to `PREDICTED_LCLUSTER` (`situations.ts`, id −1): 555 from the core at 45° from
+−x towards −y — calibrated 2026-10-19 by `event distar.11000` in a throwaway game: `lcluster1`
+(Final Egress) at (−395, −396), its eight other systems (`lcluster2`… `lcluster4b`) around it
+within ~70; the event did not set `lgates_activated_globally`. Without the spoiler a
 gate's link shows once both ends are visited. **First contact** markers take the game's map icon
 blue (`#6478c8` on `#284088`, sampled from a screenshot: `firstcontact_map_icon.dds` is a cyan
 saucer the map does not show).
@@ -707,10 +709,6 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 
 ## Open (needs a running game on Linux)
 
-- **The predicted L-Cluster's place**: `PREDICTED_LCLUSTER` assumes the angle runs from +x
-  towards +y; the game's origin and direction are unverified, so it may sit on another diagonal.
-  Calibrate from any save with the cluster open (a throwaway game, console `event distar.11000`):
-  compare `lcluster1`'s coordinates, then draw its other systems too (shape: same event).
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
   show a link never jumped through). At the first wormhole explored, diff its `bypasses.<id>`,
   `natural_wormholes.<id>` and the country block against an earlier save for a real marker.
@@ -724,9 +722,11 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   galaxy-map units (assumed); whether the in-system distance to
   the outermost body is what new ships of a mega shipyard travel (hyperlane arrival points are not
   stored); and whether the catapult's `max_jumps = 25` (another catapult) is a rule or AI weight.
-- **Factions, never seen in a save** (2207.03.10: no `pop_factions`, empty `pop_groups.*.factions`).
-  The government tab shows only what each faction type demands; at the first faction, find its
-  block (support, approval, members), read it and show it beside the demands.
+- **Our own factions, not seen yet**: `factions.spawnall` (2026-10-19) formed four for an AI
+  only: `pop_factions.<id> = { country type name support_percent support_power faction_approval
+members = { <ids> } last_month_pops pops_change last_month_colony_pops }`. `factions()` reads
+  ours from that shape; the government tab shows formed ones with support and approval — check
+  against the game's factions screen at our first faction.
 - **Faction Approval shows `+0.1`, not `+10%`**: `isPercentModifier` (`modifiers.ts`, copied from
   the planner's `civics.ts`) does not know `faction_approval`. Fix both copies together.
 

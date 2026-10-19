@@ -263,13 +263,13 @@ export function mapView(
 
 /**
  * Where the L-Cluster will spawn when the gates open: 4.5.2 events/distant_stars_events_3.txt
- * `distar.11000` puts its entrance 550–560 from the galactic core (the save's 0,0) at 44–46°. The
- * angle is read in the standard maths sense (from +x towards +y) — unverified: no save with the
- * cluster open has been seen, so it may sit on another diagonal (AGENTS.md "Open").
+ * `distar.11000` puts its entrance 550–560 from the galactic core (the save's 0,0) at 44–46°,
+ * measured from −x towards −y in save coordinates: a throwaway game (2026-10-19, console event)
+ * put `lcluster1` at (−395, −396), 559 out — the upper right of the map, x being drawn flipped.
  */
 export const PREDICTED_LCLUSTER = {
 	id: -1,
 	name: 'L-Cluster (predicted — spawns when the gates open)',
-	x: 555 * Math.cos(Math.PI / 4),
-	y: 555 * Math.sin(Math.PI / 4)
+	x: -555 * Math.cos(Math.PI / 4),
+	y: -555 * Math.sin(Math.PI / 4)
 };

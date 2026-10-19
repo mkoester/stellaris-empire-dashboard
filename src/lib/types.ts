@@ -301,6 +301,7 @@ export type Snapshot = {
 	subjects: Subject[] | null; // subject agreements, either side; null before 2026-10-19
 	galcom: GalacticCommunity | null; // null before it forms, and before 2026-10-19
 	claims: Claim[] | null; // ours, and on our systems; null before 2026-10-19
+	factions: Faction[] | null; // ours; null before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	// From the save's `meta`; null from the mod feed and in older snapshots.
@@ -501,6 +502,19 @@ export type War = {
 	enemyExhaustion: number | null;
 	battles: Battle[];
 };
+/**
+ * One of our factions: top-level `pop_factions.<id> = { country type name support_percent
+ * support_power faction_approval members last_month_pops … }` (4.5.2, first seen 2026-10-19 on an
+ * AI; `<id>=none` once dissolved).
+ */
+export type Faction = {
+	type: string; // faction type key, e.g. supremacist
+	name: string;
+	support: number; // 0–1, share of the empire's political power
+	approval: number; // 0–1
+	pops: number | null; // last month
+};
+
 /**
  * A claim on a system: `galactic_object.<id>.claims = { { owner date claims } }` (4.5.2, first
  * seen 2026-10-19), `owner` being the claimant. Ours, and others' on our systems — as the game's

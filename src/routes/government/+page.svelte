@@ -375,9 +375,14 @@
 <div class="mt-8">
 	<Panel
 		title="Factions"
-		note={data.factionTypes
-			? 'No faction has formed yet. The faction types the switches in ⚙ show, with what each demands — ✓ met, ✗ not, ? cannot be told from the save — and how to meet it.'
-			: 'No faction has formed yet. The faction types and their demands show with the switches in ⚙ (cheating).'}
+		note={(data.anyFormed
+			? 'Our factions with their support and approval, and what each demands'
+			: 'No faction has formed yet.') +
+			(data.factionTypes
+				? ' — the faction types the switches in ⚙ add too: ✓ met, ✗ not, ? cannot be told from the save, and how to meet it.'
+				: data.anyFormed
+					? ': ✓ met, ✗ not, ? cannot be told from the save, and how to meet it.'
+					: ' The faction types and their demands show with the switches in ⚙ (cheating).')}
 	>
 		<div class="grid gap-6 lg:grid-cols-2">
 			{#each data.factions as f (f.key)}
@@ -395,6 +400,13 @@
 				>{f.ethic ? pretty(f.ethic.replace(/^ethic_/, '')) : ''}</span
 			>
 		</h3>
+		{#if f.formed}<p class="mb-1 tabular-nums">
+				support <b>{Math.round(f.formed.support * 100)} %</b> · approval
+				<b class={f.formed.approval < 0.5 ? 'text-red-600' : 'text-green-600'}
+					>{Math.round(f.formed.approval * 100)} %</b
+				>{f.formed.pops !== null ? ` · ${f.formed.pops} pops` : ''}
+			</p>
+		{:else if data.anyFormed}<p class="mb-1 text-gray-500">not formed</p>{/if}
 		{#if f.description}<p class="mb-1 text-gray-500">{f.description}</p>{/if}
 		<table class="text-left">
 			<tbody>

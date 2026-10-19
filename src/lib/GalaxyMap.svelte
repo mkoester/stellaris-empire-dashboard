@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
-	import { borderEdges, cells, claimRadius } from './borders.ts';
+	import { borderEdges, cells, claimRadius, REACH } from './borders.ts';
 	import { fit, pan, toScreen, zoomAt, type Point, type View } from './mapView.ts';
 	import type { Territory } from './territories.ts';
 
@@ -60,9 +60,15 @@
 			const o = byId.get(to);
 			return o && keyOf(to) === keyOf(id) ? [o] : [];
 		});
+	// only owned systems claim space; the radius follows how dense the galaxy is
 	const territoryCells = $derived(
 		ownerOf.size
-			? cells(systems, new Set(ownerOf.keys()), claimRadius(systems), sameOwnerLanes)
+			? cells(
+					systems.filter((s) => ownerOf.has(s.id)),
+					new Set(ownerOf.keys()),
+					REACH * claimRadius(systems),
+					sameOwnerLanes
+				)
 			: []
 	);
 	// each wormhole once (both ends list each other), bent so it does not hide a lane; L-Gates

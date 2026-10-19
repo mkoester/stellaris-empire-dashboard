@@ -1,6 +1,6 @@
 import { addGameDays } from './series.ts';
 import { evaluate, type Facts } from './triggers.ts';
-import type { CouncilSeat, GameData, Modifier, Snapshot } from './types.ts';
+import type { CouncilSeat, Faction, GameData, Modifier, Snapshot } from './types.ts';
 
 // The government tab (council, agendas, policies, edicts, factions): the data DB's rules read
 // against one save. What the save cannot answer stays unknown (null), see #lib/triggers.ts.
@@ -167,6 +167,7 @@ export type DemandRow = GameData['factionTypes'][number]['demands'][number] & {
 export type FactionRow = Omit<GameData['factionTypes'][number], 'demands'> & {
 	ours: boolean; // its guiding ethic is one of ours (fanatic or not)
 	demands: DemandRow[];
+	formed?: Faction; // ours, as the save shows it
 };
 
 /** Faction types, those of our ethics first, each demand with whether it applies and is met. */

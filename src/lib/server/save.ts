@@ -32,6 +32,7 @@ import type {
 	TradeDeal,
 	War,
 	Subject,
+	Faction,
 	GalacticCommunity,
 	ResolutionVote,
 	Snapshot
@@ -110,6 +111,7 @@ export type RawSave = {
 	rivalsOfUs: number[]; // countries whose relation to us has `is_rival=yes`
 	galcom: Raw; // top-level galactic_community
 	resolutions: Record<string, Raw>; // top-level resolution: proposed and voted on
+	popFactions: Record<string, Raw>; // top-level pop_factions: every empire's factions
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -206,6 +208,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			rivalsOfUs,
 			galcom: q.at('/galactic_community'),
 			resolutions: q.at('/resolution') ?? {},
+			popFactions: q.at('/pop_factions') ?? {},
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
 			districtsDb: q.at('/districts') ?? {},
 			zones: q.at('/zones') ?? {},
@@ -331,6 +334,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		wars: wars(raw),
 		subjects: subjects(raw),
 		galcom: galacticCommunity(raw),
+		factions: factions(raw),
 		warLostDate:
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
 		tradeDeals: tradeDeals(raw),
@@ -1458,6 +1462,20 @@ export function galacticCommunity(
 		voting: typeof g.voting === 'number' ? vote(g.voting) : null,
 		proposed: ids(g.proposed).flatMap((id) => vote(id) ?? [])
 	};
+}
+
+/** Our factions (see `Faction`), by support. */
+export function factions(raw: Pick<RawSave, 'popFactions' | 'countryId'>): Faction[] {
+	return Object.values(raw.popFactions)
+		.filter((f) => f && typeof f === 'object' && f.country === raw.countryId)
+		.map((f) => ({
+			type: String(f.type ?? ''),
+			name: displayName(f.name),
+			support: num(f.support_percent),
+			approval: num(f.faction_approval),
+			pops: numOrNull(f.last_month_pops)
+		}))
+		.sort((a, b) => b.support - a.support);
 }
 
 /** Our active subject agreements, as overlord or as subject (see `Subject`). */

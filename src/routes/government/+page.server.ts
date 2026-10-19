@@ -42,6 +42,7 @@ export function load({ url }) {
 	}));
 	const edicts = edictRows(data.edicts, s, f);
 	const government = identity(snaps.findLast((x) => x.government !== null));
+	const formed = snaps.findLast((x) => x.factions !== null)?.factions ?? [];
 	const explanations = getExplanations();
 	const bonus = councilorBonus(s, data.councilorSkill);
 	const bonusTotal = bonus.reduce((a, b) => a + b.value, 0);
@@ -105,10 +106,12 @@ export function load({ url }) {
 		techNames: Object.fromEntries(
 			edicts.flatMap((e) => e.needs).map((t) => [t, data.techs[t]?.name ?? t])
 		),
-		// no faction has formed in a save yet, so only the switches show faction types (cheating)
-		factions: factionRows(data.factionTypes, f).filter(
-			(t) => allFactionTypes || (factionTypes && t.ours)
-		),
+		// formed factions as the game lists them; the types not formed only with the switches
+		factions: factionRows(data.factionTypes, f)
+			.map((t) => ({ ...t, formed: formed.find((x) => x.type === t.key) }))
+			.filter((t) => t.formed || allFactionTypes || (factionTypes && t.ours))
+			.sort((a, b) => (b.formed?.support ?? -1) - (a.formed?.support ?? -1)),
+		anyFormed: formed.length > 0,
 		factionTypes: factionTypes || allFactionTypes,
 		explain: pick(explanations, [
 			...seats.map((r) => `seat:${r.key}`),

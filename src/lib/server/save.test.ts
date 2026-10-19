@@ -30,6 +30,7 @@ import {
 	subjects,
 	sumSources,
 	galacticCommunity,
+	factions,
 	toSnapshot,
 	tradeDeals,
 	wars,
@@ -71,6 +72,7 @@ const raw: RawSave = {
 	rivalsOfUs: [],
 	galcom: undefined,
 	resolutions: {},
+	popFactions: {},
 	starbases: {},
 	megastructures: {},
 	bypasses: {},
@@ -1119,6 +1121,39 @@ describe('milestone fields', () => {
 			}
 		]);
 		expect(countryIds(w).sort()).toEqual([0, 4, 4, 7]);
+	});
+
+	it("reads our factions by support, not other empires' or dissolved ones", () => {
+		// 4.5.2, the throwaway game at 2205.08.01 (an AI's factions, given to us here)
+		const popFactions = {
+			'0': {
+				country: 0,
+				type: 'cyber_creed_labor',
+				name: { key: 'cyber_creed_labor' },
+				support_percent: 0.28559,
+				faction_approval: 0.45,
+				last_month_pops: 173
+			},
+			'1': {
+				country: 0,
+				type: 'cyber_creed_war',
+				name: { key: 'cyber_creed_war' },
+				support_percent: 0.4,
+				faction_approval: 0.6
+			},
+			'2': { country: 2, type: 'cyber_creed_research', support_percent: 0.9 },
+			'3': 'none'
+		};
+		expect(factions({ popFactions, countryId: 0 })).toEqual([
+			{ type: 'cyber_creed_war', name: 'cyber creed war', support: 0.4, approval: 0.6, pops: null },
+			{
+				type: 'cyber_creed_labor',
+				name: 'cyber creed labor',
+				support: 0.28559,
+				approval: 0.45,
+				pops: 173
+			}
+		]);
 	});
 
 	it('reads the Galactic Community: members, the vote and the proposals with our side', () => {

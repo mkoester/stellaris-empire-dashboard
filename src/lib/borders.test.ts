@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { borderEdges, cells, claimRadius } from './borders.ts';
+import { borderEdges, cells, claimRadius, CORRIDOR } from './borders.ts';
 
 describe('cells and borders', () => {
 	// three systems on a line, 20 units apart: 1 and 2 ours, 3 someone else's
@@ -52,10 +52,10 @@ describe('corridors along lanes', () => {
 		expect(a.edges.some((e) => e.other === 2)).toBe(true);
 	});
 
-	it('keeps the corridor narrow: half the radius to either side of the lane', () => {
+	it('keeps the corridor CORRIDOR·R to either side of the lane', () => {
 		const [a] = cells(sites, new Set([1, 2]), 20, linked);
 		const at40 = a.poly.filter((p) => Math.abs(p.x - 40) < 6).map((p) => Math.abs(p.y));
-		expect(Math.max(...at40)).toBeCloseTo(10, 0);
+		expect(Math.max(...at40)).toBeCloseTo(CORRIDOR * 20, 0);
 	});
 
 	it('stays a plain circle without links', () => {
@@ -63,7 +63,7 @@ describe('corridors along lanes', () => {
 		expect(Math.max(...a.poly.map((p) => p.x))).toBeCloseTo(20);
 	});
 
-	it('gives way to a third system near the lane', () => {
+	it('gives way to a third owned system near the lane', () => {
 		const third = { id: 3, x: 50, y: 8 };
 		const [a] = cells([...sites, third], new Set([1, 2]), 20, linked);
 		// the bisector towards system 3 cuts the corridor short of the midpoint
