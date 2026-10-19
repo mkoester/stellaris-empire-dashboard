@@ -129,6 +129,36 @@ export function loadExplanations(file: string): Explanations {
 				facts: []
 			};
 
+		// Galactic Community resolutions: `resolution:<key>`. Their effects are the static modifier
+		// of the same key (4.5.2: `modifier = { <its key> = 1 }`).
+		for (const r of rows<{
+			key: string;
+			name: string | null;
+			description: string | null;
+			category: string | null;
+			grp: string | null;
+			level: number | null;
+			target: number;
+			cost: number | null;
+		}>(
+			`SELECT r.key, r.name, r.description, c.name AS category, g.name AS grp, r.level, r.target,
+			        r.influence_cost AS cost
+			 FROM resolution r LEFT JOIN resolution_category c ON c.key = r.category_key
+			 LEFT JOIN resolution_group g ON g.key = c.group_key`
+		))
+			out[`resolution:${r.key}`] = {
+				title: r.name ?? pretty(r.key),
+				description: r.description,
+				modifiers: staticMods.get(r.key) ?? [],
+				text: null,
+				facts: [
+					[r.grp, r.category].filter(Boolean).join(' · '),
+					r.level !== null ? `level ${r.level}` : '',
+					r.target ? 'names a target empire' : '',
+					r.cost !== null ? `proposing costs ${r.cost} influence` : ''
+				].filter(Boolean)
+			};
+
 		// Deposits — planet features and blockers: `deposit:<key>`, with what they produce and what
 		// clearing a blocker takes.
 		const depositMods = grouped(

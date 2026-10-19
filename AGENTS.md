@@ -585,7 +585,16 @@ term_data = { agreement_preset discrete_terms = { { key value } } resource_terms
 can_subject_* … } subject_specialization = { level experience } }`, owner = the overlord; the
   subject's country block holds `loyalty` (−45, the game's agreements screen), `overlord` and
   `subject_date`, and our relation to it `subject=yes`. The monthly loyalty change (+0.9) is not
-  stored. Shown on the contacts tab (`subjects()` in save.ts).
+  stored. Shown on the contacts tab (`subjects()` in save.ts), the terms in the game's words
+  from the data DB (`diploNames`: `agreement_term*`, `agreement_preset`; hidden terms have no
+  name there and are left out — 7 shown, as the game's agreements screen).
+- Galactic Community (2026-10-19): `galactic_community = { members = { <ids> } proposed = {
+<resolution ids> } voting = <id> emissaries days election community_formed focus … }`,
+  `resolution.<id> = { type country supporters = { <ids> } opponents }` (the voted one also
+  `voting = { <country>=<date> }`). Our country holds no GalCom field (diplomatic weight is not
+  stored). Contacts tab: members, the vote, the proposals with our side; names and effects from
+  the data DB (`resolution`, its effects = the static modifier of the same key, `resolution:<key>`
+  popups).
 - Rivals (2026-10-19): declaring one adds `is_rival=yes` and `rival_date` (declaration + 10
   years: 2205.05 → "2215.05.17") to our relation, `rivals = { country }` and `has_declared_rival`
   to our country; their opinion of us fell to −460. Contacts: "our rival", "rivals us".
@@ -723,9 +732,12 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   `damage`, which may not count. Check at the next war which fights the list keeps.
 - **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
   (`is_rival=yes`); no AI rivalled us yet (2205.06).
-- **Subject terms in the game's words**: the contacts tab shows the save's term values made
-  readable (`subject_can_not_be_integrated` → "can not be integrated"); the game says "Integration
-  Prohibited". Needs the terms' localisation in the extraction (`common/agreement_terms`).
+- **Galactic Community, not yet understood**: `galactic_community.days` (541 while voting) and
+  `election` (180), and each voted resolution's `voting = { <country>=<date> }` — calibrate
+  against the game's community screen (days left, next election). No resolution has passed yet:
+  where passed ones are kept is still to see. Resolution descriptions lose loc commands
+  ("members of the should …" — `[global_event_country.GetGalCommunityOrGalImperium]`), an
+  extraction loc-cleanup gap.
 - **Next topics (the user's, 2026-10-19)**: claims, ours and against us (none in a save yet —
   needs a neighbour), the Shroud (`can_access_shroud`, `shroud_*` keys), and other
   empires' agreements with each other — their own relations hold them (2205.05: 10 research

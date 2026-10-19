@@ -32,6 +32,8 @@ import type {
 	TradeDeal,
 	War,
 	Subject,
+	GalacticCommunity,
+	ResolutionVote,
 	Snapshot
 } from '#lib/types.ts';
 import { MARKET_RESOURCES } from '#lib/market.ts';
@@ -105,6 +107,8 @@ export type RawSave = {
 	agreements: Record<string, Raw>; // agreements.agreements: every subject agreement
 	loyalty: Record<string, number>; // country → its `loyalty` as a subject
 	rivalsOfUs: number[]; // countries whose relation to us has `is_rival=yes`
+	galcom: Raw; // top-level galactic_community
+	resolutions: Record<string, Raw>; // top-level resolution: proposed and voted on
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -199,6 +203,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			agreements: q.at('/agreements/agreements') ?? {},
 			loyalty,
 			rivalsOfUs,
+			galcom: q.at('/galactic_community'),
+			resolutions: q.at('/resolution') ?? {},
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
 			districtsDb: q.at('/districts') ?? {},
 			zones: q.at('/zones') ?? {},
@@ -323,6 +329,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		origin: strOrNull(raw.country?.government?.origin),
 		wars: wars(raw),
 		subjects: subjects(raw),
+		galcom: galacticCommunity(raw),
 		warLostDate:
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
 		tradeDeals: tradeDeals(raw),
@@ -1409,6 +1416,46 @@ export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames' | 
 			}
 		];
 	});
+}
+
+/**
+ * The Galactic Community, or null before it forms: `galactic_community = { members = { <ids> }
+ * proposed = { <resolution ids> } voting = <resolution id> community_formed }`, the resolutions
+ * `resolution.<id> = { type country supporters = { <ids> } opponents }` (4.5.2, first seen
+ * 2026-10-19: one being voted on, seven proposed).
+ */
+export function galacticCommunity(
+	raw: Pick<RawSave, 'galcom' | 'resolutions' | 'countryId' | 'countries'>
+): GalacticCommunity | null {
+	const g = raw.galcom;
+	if (!g || typeof g !== 'object' || g.members === undefined) return null;
+	const ids = (v: Raw) => items(v).map(Number);
+	const name = (id: number) => raw.countries[String(id)]?.name ?? `empire ${id}`;
+	const vote = (id: number): ResolutionVote | null => {
+		const r = raw.resolutions[String(id)];
+		if (!r || typeof r !== 'object') return null;
+		const [support, oppose] = [ids(r.supporters), ids(r.opponents)];
+		return {
+			id,
+			type: String(r.type ?? ''),
+			proposer: name(Number(r.country)),
+			support: support.map(name),
+			oppose: oppose.map(name),
+			ours: support.includes(raw.countryId)
+				? 'for'
+				: oppose.includes(raw.countryId)
+					? 'against'
+					: null
+		};
+	};
+	const members = ids(g.members);
+	return {
+		formed: strOrNull(g.community_formed),
+		members: members.map(name),
+		member: members.includes(raw.countryId),
+		voting: typeof g.voting === 'number' ? vote(g.voting) : null,
+		proposed: ids(g.proposed).flatMap((id) => vote(id) ?? [])
+	};
 }
 
 /** Our active subject agreements, as overlord or as subject (see `Subject`). */

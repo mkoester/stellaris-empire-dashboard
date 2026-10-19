@@ -167,6 +167,16 @@ export function loadGameData(file: string): GameData {
 				(acc, r) => ({ ...acc, [r.owner]: { ...acc[r.owner], [r.key]: r.value } }),
 				{}
 			),
+			// hidden terms (protectorate, loyalty, …) are not on the game's agreements screen: unnamed
+			diploNames: Object.fromEntries(
+				rows<{ key: string; name: string }>(
+					`SELECT key, name FROM resolution WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM resolution_category WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM agreement_term WHERE name IS NOT NULL AND hidden = 0
+					 UNION ALL SELECT key, name FROM agreement_term_value WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM agreement_preset WHERE name IS NOT NULL`
+				).map((r) => [r.key, r.name])
+			),
 			identityNames: Object.fromEntries(
 				rows<{ key: string; name: string }>(
 					`SELECT key, name FROM civic WHERE name IS NOT NULL

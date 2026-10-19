@@ -299,6 +299,7 @@ export type Snapshot = {
 	origin: string | null; // e.g. origin_default
 	wars: War[] | null; // wars the country takes part in
 	subjects: Subject[] | null; // subject agreements, either side; null before 2026-10-19
+	galcom: GalacticCommunity | null; // null before it forms, and before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	// From the save's `meta`; null from the mod feed and in older snapshots.
@@ -499,6 +500,27 @@ export type War = {
 	enemyExhaustion: number | null;
 	battles: Battle[];
 };
+/** A resolution proposed or being voted on: top-level `resolution.<id>`. */
+export type ResolutionVote = {
+	id: number;
+	type: string; // resolution key
+	proposer: string;
+	support: string[]; // empire names
+	oppose: string[];
+	ours: 'for' | 'against' | null;
+};
+/**
+ * The Galactic Community: top-level `galactic_community = { members proposed voting
+ * community_formed … }` (4.5.2, first seen 2026-10-19). `days` and `election` are not understood
+ * yet and left out.
+ */
+export type GalacticCommunity = {
+	formed: string | null;
+	members: string[];
+	member: boolean; // we are one
+	voting: ResolutionVote | null;
+	proposed: ResolutionVote[];
+};
 /** One battle of a war, seen from our side: `war.<id>.battles`. */
 export type Battle = {
 	date: string;
@@ -620,6 +642,8 @@ export type GameData = {
 	districtColors: Record<string, string>; // district → its colour in game, '#rrggbb'
 	// civics, origins, authorities, ethics and government types by key
 	identityNames: Record<string, string>;
+	// resolutions, resolution categories, subject agreement terms, term values and presets by key
+	diploNames: Record<string, string>;
 	habitatEffects: Record<string, Record<string, number>>; // deposit → what a habitat gets from it
 	// what habitability is made of (#lib/habitability.ts): the species traits' `pc_<class>_habitability`,
 	// `pop_environment_tolerance` and `habitability_floor_add`, and the planet's own tolerance

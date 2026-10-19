@@ -8,6 +8,8 @@
 		type ContactView
 	} from '#lib/contacts.ts';
 	import { nameOf, pretty } from '#lib/format.ts';
+	import InfoPopup from '#lib/InfoPopup.svelte';
+	import type { ResolutionVote } from '#lib/types.ts';
 	import { followGame } from '#lib/live.ts';
 	import { putSettings } from '#lib/settings.ts';
 	import SortTable from '#lib/SortTable.svelte';
@@ -151,6 +153,62 @@
 	</div>
 {/if}
 
+{#if data.galcom}
+	{@const g = data.galcom}
+	<h2 class="mb-2 text-xl font-semibold">Galactic Community</h2>
+	<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
+		<div class="mb-2 text-gray-500">
+			since {g.formed ?? '?'} ·
+			<span title={g.members.join('\n')}>{g.members.length} members</span>{g.member
+				? ', we among them'
+				: ', we are not a member'}
+		</div>
+		{#if g.voting}
+			<div class="mb-2">
+				<b>voting on:</b>
+				{@render resolution(g.voting)}
+			</div>
+		{/if}
+		{#if g.proposed.length}
+			<table class="text-xs tabular-nums">
+				<thead class="text-gray-500"
+					><tr
+						><th class="pr-3 text-left">proposed</th><th class="pr-3 text-left">by</th><th
+							class="pr-3 text-right">for</th
+						><th class="pr-3 text-right">against</th><th class="text-left">we</th></tr
+					></thead
+				>
+				<tbody>
+					{#each g.proposed as r (r.id)}
+						<tr
+							><td class="pr-3"
+								><InfoPopup explanation={data.explain[`resolution:${r.type}`]}
+									>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
+								></td
+							><td class="pr-3">{r.proposer}</td><td
+								class="pr-3 text-right text-green-600"
+								title={r.support.join('\n')}>{r.support.length}</td
+							><td class="pr-3 text-right text-red-600" title={r.oppose.join('\n')}
+								>{r.oppose.length}</td
+							><td>{r.ours ?? '–'}</td></tr
+						>
+					{/each}
+				</tbody>
+			</table>
+		{/if}
+	</section>
+{/if}
+
+{#snippet resolution(r: ResolutionVote)}
+	<InfoPopup explanation={data.explain[`resolution:${r.type}`]}
+		>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
+	>
+	<span class="text-gray-500">by {r.proposer}</span> ·
+	<span class="text-green-600" title={r.support.join('\n')}>{r.support.length} for</span>,
+	<span class="text-red-600" title={r.oppose.join('\n')}>{r.oppose.length} against</span> · we {r.ours ??
+		'have not taken a side'}
+{/snippet}
+
 {#if data.subjects?.length}
 	<h2 class="mb-2 text-xl font-semibold">Subjects</h2>
 	<div class="mb-6 flex flex-col gap-3">
@@ -158,7 +216,10 @@
 			<section class="rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
 				<div class="mb-1 flex flex-wrap items-baseline gap-x-4">
 					<b class="text-base">{s.name}</b>
-					<span>{s.weAreOverlord ? 'our subject' : 'our overlord'}: {presetName(s.preset)}</span>
+					<span
+						>{s.weAreOverlord ? 'our subject' : 'our overlord'}: {data.diploNames[s.preset] ??
+							presetName(s.preset)}</span
+					>
 					<span class="text-gray-500 tabular-nums">since {s.since ?? '?'}</span>
 					{#if s.loyalty !== null}<span class="tabular-nums"
 							>loyalty <b class={s.loyalty < 0 ? 'text-red-600' : 'text-green-600'}>{s.loyalty}</b
@@ -170,7 +231,9 @@
 				</div>
 				<div class="text-gray-500">
 					{Object.entries(s.terms)
-						.map(([k, v]) => `${pretty(k.replace(/^subject_/, ''))}: ${termValue(v)}`)
+						// terms the game hides have no name: left out, as in its agreements screen
+						.filter(([k]) => data.diploNames[k])
+						.map(([k, v]) => `${data.diploNames[k]}: ${data.diploNames[v] ?? termValue(v)}`)
 						.join(' · ')}
 				</div>
 				{#if Object.values(s.subsidies).some((v) => v !== 0)}

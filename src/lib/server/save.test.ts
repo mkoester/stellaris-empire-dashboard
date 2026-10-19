@@ -29,6 +29,7 @@ import {
 	readSave,
 	subjects,
 	sumSources,
+	galacticCommunity,
 	toSnapshot,
 	tradeDeals,
 	wars,
@@ -68,6 +69,8 @@ const raw: RawSave = {
 	agreements: {},
 	loyalty: {},
 	rivalsOfUs: [],
+	galcom: undefined,
+	resolutions: {},
 	starbases: {},
 	megastructures: {},
 	bypasses: {},
@@ -1116,6 +1119,55 @@ describe('milestone fields', () => {
 			}
 		]);
 		expect(countryIds(w).sort()).toEqual([0, 4, 4, 7]);
+	});
+
+	it('reads the Galactic Community: members, the vote and the proposals with our side', () => {
+		// 4.5.2, the throwaway game at 2205.07.01 (shortened)
+		const raw = {
+			countryId: 0,
+			countries: { '0': { name: 'UNE' }, '4': { name: 'Tzynn' }, '7': { name: 'Blorg' } } as never,
+			galcom: {
+				members: [4, 0, 7],
+				proposed: [2, 3],
+				voting: 1,
+				days: 541,
+				election: 180,
+				community_formed: '2202.01.01'
+			},
+			resolutions: {
+				'1': {
+					type: 'resolution_mutualdefense_the_readied_shield',
+					country: 7,
+					supporters: [7],
+					opponents: [4],
+					voting: { '4': '2205.05.12' }
+				},
+				'2': {
+					type: 'resolution_divinity_comfort_the_fallen',
+					country: 4,
+					supporters: [4],
+					opponents: [7, 0]
+				},
+				'3': {
+					type: 'resolution_voidworm_eradication',
+					country: 7,
+					supporters: [7, 0],
+					opponents: []
+				}
+			}
+		};
+		const g = galacticCommunity(raw);
+		expect(g).toMatchObject({
+			formed: '2202.01.01',
+			members: ['Tzynn', 'UNE', 'Blorg'],
+			member: true,
+			voting: { id: 1, proposer: 'Blorg', support: ['Blorg'], oppose: ['Tzynn'], ours: null }
+		});
+		expect(g?.proposed.map((r) => [r.type, r.ours])).toEqual([
+			['resolution_divinity_comfort_the_fallen', 'against'],
+			['resolution_voidworm_eradication', 'for']
+		]);
+		expect(galacticCommunity({ ...raw, galcom: undefined })).toBeNull();
 	});
 
 	it("reads our subject agreements, either side, with the subject's loyalty", () => {

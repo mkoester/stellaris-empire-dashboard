@@ -43,6 +43,7 @@ const data: GameData = {
 	names: {},
 	districtColors: {},
 	identityNames: {},
+	diploNames: {},
 	habitatEffects: {},
 	habitability: { traits: {}, planet: {} },
 	blockers: [],
