@@ -537,6 +537,7 @@ export type Faction = {
 	support: number; // 0–1, share of the empire's political power
 	approval: number; // 0–1
 	pops: number | null; // last month
+	change: number | null; // pops_change, the game's "(+51)"; null before 2026-10-19
 };
 
 /**
@@ -574,6 +575,7 @@ export type GalacticCommunity = {
 	member: boolean; // we are one
 	voting: ResolutionVote | null;
 	proposed: ResolutionVote[];
+	passed: ResolutionVote[]; // in force: `galactic_community.passed = { <ids> }`
 };
 /**
  * One of our fleets' combats, from its last-combat record (`fleet.<id>.fleet_stats.combat_stats`,

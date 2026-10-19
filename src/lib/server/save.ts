@@ -1432,7 +1432,8 @@ export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames' | 
 
 /**
  * The Galactic Community, or null before it forms: `galactic_community = { members = { <ids> }
- * proposed = { <resolution ids> } voting = <resolution id> community_formed }`, the resolutions
+ * proposed = { <resolution ids> } voting = <resolution id> passed = { <ids in force> } last
+ * category_timers community_formed }` (passed: first seen 2212.03, The Readied Shield), the resolutions
  * `resolution.<id> = { type country supporters = { <ids> } opponents }` (4.5.2, first seen
  * 2026-10-19: one being voted on, seven proposed).
  */
@@ -1466,7 +1467,8 @@ export function galacticCommunity(
 		members: members.map(name),
 		member: members.includes(raw.countryId),
 		voting: typeof g.voting === 'number' ? vote(g.voting) : null,
-		proposed: ids(g.proposed).flatMap((id) => vote(id) ?? [])
+		proposed: ids(g.proposed).flatMap((id) => vote(id) ?? []),
+		passed: ids(g.passed).flatMap((id) => vote(id) ?? [])
 	};
 }
 
@@ -1543,7 +1545,8 @@ export function factions(raw: Pick<RawSave, 'popFactions' | 'countryId'>): Facti
 			name: displayName(f.name),
 			support: num(f.support_percent),
 			approval: num(f.faction_approval),
-			pops: numOrNull(f.last_month_pops)
+			pops: numOrNull(f.last_month_pops),
+			change: numOrNull(f.pops_change)
 		}))
 		.sort((a, b) => b.support - a.support);
 }

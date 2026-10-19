@@ -141,6 +141,8 @@ export function upgrade(
 			s.knownSystems && s.knownSystems.map((k) => ({ ...k, capital: k.capital ?? false })),
 		tradeDeals: s.tradeDeals && s.tradeDeals.map(upgradeDeal),
 		wars: s.wars && s.wars.map((w) => ({ ...WAR, ...w })),
+		factions: s.factions && s.factions.map((f) => ({ ...f, change: f.change ?? null })),
+		galcom: s.galcom && { ...s.galcom, passed: s.galcom.passed ?? [] },
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
 		// stored as plain keys for a day (2026-10-17), without the end date
 		countryModifiers:

@@ -213,6 +213,15 @@
 				? ', we among them'
 				: ', we are not a member'}
 		</div>
+		{#if g.passed.length}
+			<div class="mb-2">
+				<b>in force:</b>
+				{#each g.passed as r, i (r.id)}{i ? ', ' : ''}<InfoPopup
+						explanation={data.explain[`resolution:${r.type}`]}
+						>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
+					>{/each}
+			</div>
+		{/if}
 		{#if g.voting}
 			<div class="mb-1 text-xs text-gray-500">
 				counted in empires: the game weighs each vote by diplomatic weight, which the save does not

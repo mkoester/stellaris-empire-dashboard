@@ -401,10 +401,13 @@
 			>
 		</h3>
 		{#if f.formed}<p class="mb-1 tabular-nums">
-				support <b>{Math.round(f.formed.support * 100)} %</b> · approval
+				<!-- rounded down, as the game's factions screen: 5.72 % shows as 5 % -->
+				support <b>{Math.floor(f.formed.support * 100)} %</b> · approval
 				<b class={f.formed.approval < 0.5 ? 'text-red-600' : 'text-green-600'}
-					>{Math.round(f.formed.approval * 100)} %</b
-				>{f.formed.pops !== null ? ` · ${f.formed.pops} pops` : ''}
+					>{Math.floor(f.formed.approval * 100)} %</b
+				>{f.formed.pops !== null
+					? ` · ${f.formed.pops} pops${f.formed.change ? ` (${f.formed.change > 0 ? '+' : ''}${f.formed.change})` : ''}`
+					: ''}
 			</p>
 		{:else if data.anyFormed}<p class="mb-1 text-gray-500">not formed</p>{/if}
 		{#if f.description}<p class="mb-1 text-gray-500">{f.description}</p>{/if}

@@ -15,7 +15,9 @@ export function load({ url }) {
 	// the latest full save: the wars running and the subject agreements then
 	const save = snaps.findLast((x) => x.kind === 'save');
 	const galcom = save?.galcom ?? null;
-	const resolutions = galcom ? [galcom.voting, ...galcom.proposed].flatMap((r) => r ?? []) : [];
+	const resolutions = galcom
+		? [galcom.voting, ...galcom.proposed, ...galcom.passed].flatMap((r) => r ?? [])
+		: [];
 	const subjects = save?.subjects ?? null;
 	return {
 		wars: save?.wars ?? [],

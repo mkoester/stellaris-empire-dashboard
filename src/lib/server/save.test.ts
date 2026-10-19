@@ -1146,7 +1146,8 @@ describe('milestone fields', () => {
 				name: { key: 'cyber_creed_labor' },
 				support_percent: 0.28559,
 				faction_approval: 0.45,
-				last_month_pops: 173
+				last_month_pops: 173,
+				pops_change: 3
 			},
 			'1': {
 				country: 0,
@@ -1159,13 +1160,21 @@ describe('milestone fields', () => {
 			'3': 'none'
 		};
 		expect(factions({ popFactions, countryId: 0 })).toEqual([
-			{ type: 'cyber_creed_war', name: 'cyber creed war', support: 0.4, approval: 0.6, pops: null },
+			{
+				type: 'cyber_creed_war',
+				name: 'cyber creed war',
+				support: 0.4,
+				approval: 0.6,
+				pops: null,
+				change: null
+			},
 			{
 				type: 'cyber_creed_labor',
 				name: 'cyber creed labor',
 				support: 0.28559,
 				approval: 0.45,
-				pops: 173
+				pops: 173,
+				change: 3
 			}
 		]);
 	});
@@ -1218,6 +1227,7 @@ describe('milestone fields', () => {
 				members: [4, 0, 7],
 				proposed: [2, 3],
 				voting: 1,
+				passed: [3],
 				days: 541,
 				election: 180,
 				community_formed: '2202.01.01'
@@ -1255,6 +1265,7 @@ describe('milestone fields', () => {
 			['resolution_divinity_comfort_the_fallen', 'against'],
 			['resolution_voidworm_eradication', 'for']
 		]);
+		expect(g?.passed.map((r) => r.type)).toEqual(['resolution_voidworm_eradication']);
 		expect(galacticCommunity({ ...raw, galcom: undefined })).toBeNull();
 	});
 
