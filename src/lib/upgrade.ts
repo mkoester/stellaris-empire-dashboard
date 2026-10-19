@@ -1,4 +1,4 @@
-import type { Colony, Snapshot, TradeDeal } from './types.ts';
+import type { Colony, Snapshot, TradeDeal, War } from './types.ts';
 
 // Snapshots stored by an older dashboard lack the fields added since. The game deletes old
 // autosaves, so those snapshots cannot be rebuilt from the files: they are kept and brought up to
@@ -52,6 +52,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	governmentType: null,
 	origin: null,
 	wars: null,
+	subjects: null,
 	warLostDate: null,
 	tradeDeals: null,
 	gameVersion: null,
@@ -109,6 +110,17 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	planet: null
 };
 
+// what a war stored before 2026-10-19 lacks
+const WAR: Omit<War, 'id' | 'name' | 'start' | 'enemies'> = {
+	allies: [],
+	attacker: null,
+	goal: null,
+	enemyGoal: null,
+	exhaustion: null,
+	enemyExhaustion: null,
+	battles: []
+};
+
 export function upgrade(
 	stored: Partial<Snapshot> & Pick<Snapshot, 'kind' | 'campaign' | 'date'>
 ): Snapshot {
@@ -123,6 +135,7 @@ export function upgrade(
 		knownSystems:
 			s.knownSystems && s.knownSystems.map((k) => ({ ...k, capital: k.capital ?? false })),
 		tradeDeals: s.tradeDeals && s.tradeDeals.map(upgradeDeal),
+		wars: s.wars && s.wars.map((w) => ({ ...WAR, ...w })),
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
 		// stored as plain keys for a day (2026-10-17), without the end date
 		countryModifiers:

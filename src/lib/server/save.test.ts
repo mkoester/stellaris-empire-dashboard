@@ -27,6 +27,7 @@ import {
 	marketOrders,
 	progress,
 	readSave,
+	subjects,
 	sumSources,
 	toSnapshot,
 	tradeDeals,
@@ -64,6 +65,8 @@ const raw: RawSave = {
 	speciesDb: {},
 	wars: {},
 	tradeDeals: {},
+	agreements: {},
+	loyalty: {},
 	starbases: {},
 	megastructures: {},
 	bypasses: {},
@@ -1052,21 +1055,111 @@ describe('milestone fields', () => {
 
 	// ASSUMED shapes: no war or trade deal seen in a save yet
 	const names = { '0': 'UNE', '4': 'Tzynn', '7': 'Blorg' };
-	it('finds wars the country is in, with the other side as enemies', () => {
+	it('reads a war from our side: goals, exhaustion and battles', () => {
+		// 4.5.2, a throwaway game at 2201.09.29 (jomini reads `yes` as true); an ended war is `none`
 		const w = {
-			'1': {
-				name: { key: 'War of Aggression' },
-				start_date: '2210.01.01',
-				attackers: [{ country: 4 }],
-				defenders: [{ country: 0 }, { country: 7 }]
+			'0': {
+				name: {
+					key: 'war_vs_adjectives',
+					variables: [
+						{ key: '1', value: { key: 'UNE' } },
+						{
+							key: '2',
+							value: {
+								key: '%ADJECTIVE%',
+								variables: [{ key: 'adjective', value: { key: 'SPEC_Tzynn' } }]
+							}
+						},
+						{ key: '3', value: { key: 'War_of_Subjugation' } }
+					]
+				},
+				start_date: '2200.06.01',
+				attackers: [{ call_type: 'primary', country: 0, caller: 4294967295 }],
+				defenders: [{ call_type: 'primary', country: 4, caller: 4294967295 }],
+				battles: [
+					{
+						defenders: [0],
+						attackers: [4],
+						system: 303,
+						attacker_victory: true,
+						date: '2201.09.10',
+						attacker_losses: 0,
+						defender_losses: 4,
+						type: 'ships'
+					}
+				],
+				attacker_war_goal: { type: 'wg_subjugation', war: 0, actor: 0, target: 4, win: true },
+				defender_war_goal: { type: 'wg_humiliation', war: 0, actor: 4, target: 0 },
+				attacker_war_exhaustion: 0.11025,
+				defender_war_exhaustion: 0.0993
 			},
-			'2': { attackers: { country: 4 }, defenders: { country: 7 } },
-			'3': 'none'
+			'1': { attackers: [{ country: 4 }], defenders: [{ country: 7 }] },
+			'2': 'none'
 		};
-		expect(wars({ wars: w, countryId: 0, countryNames: names })).toEqual([
-			{ id: '1', name: 'War of Aggression', start: '2210.01.01', enemies: ['Tzynn'] }
+		const systems = { '303': { name: { key: 'NAME_Aldebaran' } } };
+		expect(wars({ wars: w, countryId: 0, countryNames: names, systems })).toEqual([
+			{
+				id: '0',
+				name: 'UNE - Tzynn War of Subjugation',
+				start: '2200.06.01',
+				enemies: ['Tzynn'],
+				allies: [],
+				attacker: true,
+				goal: 'wg_subjugation',
+				enemyGoal: 'wg_humiliation',
+				exhaustion: 0.11025,
+				enemyExhaustion: 0.0993,
+				battles: [
+					{ date: '2201.09.10', system: 'Aldebaran', type: 'ships', won: false, lost: 4, killed: 0 }
+				]
+			}
 		]);
-		expect(countryIds(w).sort()).toEqual([0, 4, 4, 7, 7]);
+		expect(countryIds(w).sort()).toEqual([0, 4, 4, 7]);
+	});
+
+	it("reads our subject agreements, either side, with the subject's loyalty", () => {
+		// 4.5.2, the same game at 2205.05.17: our protectorate, and an AI's scion we are not part of
+		const agreement = (owner: number, target: number, preset: string) => ({
+			owner,
+			target,
+			active_status: 'active',
+			date_added: '2205.05.12',
+			term_data: {
+				agreement_preset: preset,
+				discrete_terms: [
+					{ key: 'subject_integration', value: 'subject_can_not_be_integrated' },
+					{ key: 'protectorate', value: 'subject_is_protectorate' }
+				],
+				resource_terms: [{ key: 'resource_subsidies_basic', value: 0 }]
+			},
+			subject_specialization: { level: 0, experience: 0 }
+		});
+		const raw = {
+			agreements: {
+				'0': agreement(14, 16777220, 'preset_scion'),
+				'1': agreement(0, 4, 'preset_protectorate')
+			},
+			countryId: 0,
+			countries: { '4': { name: 'Tzynn' } } as never,
+			loyalty: { '4': -45 }
+		};
+		expect(subjects(raw)).toEqual([
+			{
+				countryId: 4,
+				name: 'Tzynn',
+				weAreOverlord: true,
+				preset: 'preset_protectorate',
+				since: '2205.05.12',
+				terms: {
+					subject_integration: 'subject_can_not_be_integrated',
+					protectorate: 'subject_is_protectorate'
+				},
+				subsidies: { resource_subsidies_basic: 0 },
+				specialistLevel: 0,
+				specialistExperience: 0,
+				loyalty: -45
+			}
+		]);
 	});
 
 	it('finds trade deals naming the country and reads both sides', () => {

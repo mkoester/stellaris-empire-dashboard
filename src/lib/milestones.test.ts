@@ -151,7 +151,21 @@ describe('milestones', () => {
 						{ id: 2, name: 'Sirius', x: 0, y: 0, owned: true, capital: false, lanes: [] }
 					],
 					species: [{ ...sp, traits: ['trait_adaptive', 'trait_strong'] }],
-					wars: [{ id: '5', name: 'Border War', start: '2202.01.20', enemies: ['Tzynn'] }],
+					wars: [
+						{
+							id: '5',
+							name: 'Border War',
+							start: '2202.01.20',
+							enemies: ['Tzynn'],
+							allies: [],
+							attacker: true,
+							goal: null,
+							enemyGoal: null,
+							exhaustion: null,
+							enemyExhaustion: null,
+							battles: []
+						}
+					],
 					warLostDate: '0.01.01',
 					ruler: { id: 2, name: 'Bo' },
 					policies: { war_philosophy: 'liberation_wars' }

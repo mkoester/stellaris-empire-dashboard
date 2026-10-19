@@ -298,6 +298,7 @@ export type Snapshot = {
 	governmentType: string | null; // e.g. gov_representative_democracy
 	origin: string | null; // e.g. origin_default
 	wars: War[] | null; // wars the country takes part in
+	subjects: Subject[] | null; // subject agreements, either side; null before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	// From the save's `meta`; null from the mod feed and in older snapshots.
@@ -484,7 +485,46 @@ export type CouncilSeat = {
 };
 
 /** A war the country is in. UNVERIFIED shape — no war seen in a save yet (see AGENTS.md). */
-export type War = { id: string; name: string; start: string | null; enemies: string[] };
+/** A war we take part in: top-level `war.<id>` (4.5.2, first seen 2026-10-19). */
+export type War = {
+	id: string;
+	name: string;
+	start: string | null;
+	enemies: string[];
+	allies: string[]; // our side without us
+	attacker: boolean | null; // null in snapshots before 2026-10-19
+	goal: string | null; // our side's war goal, e.g. wg_subjugation
+	enemyGoal: string | null;
+	exhaustion: number | null; // ours, 0–1
+	enemyExhaustion: number | null;
+	battles: Battle[];
+};
+/** One battle of a war, seen from our side: `war.<id>.battles`. */
+export type Battle = {
+	date: string;
+	system: string;
+	type: string; // ships, armies
+	won: boolean;
+	lost: number; // our losses
+	killed: number; // theirs
+};
+/**
+ * A subject agreement we are part of: top-level `agreements.agreements.<id> = { owner target
+ * active_status date_added term_data subject_specialization }`, owner = the overlord (4.5.2, first
+ * seen 2026-10-19). Loyalty is the subject country's `loyalty`.
+ */
+export type Subject = {
+	countryId: number;
+	name: string;
+	weAreOverlord: boolean;
+	preset: string; // term_data.agreement_preset, e.g. preset_protectorate
+	since: string | null;
+	terms: Record<string, string>; // term_data.discrete_terms: key → value
+	subsidies: Record<string, number>; // term_data.resource_terms
+	specialistLevel: number;
+	specialistExperience: number;
+	loyalty: number | null;
+};
 /** What one side of a trade deal hands over: resources monthly or once, and anything else. */
 export type DealSide = { monthly: Resources; once: Resources; other: string[] };
 

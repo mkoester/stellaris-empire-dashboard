@@ -11,7 +11,11 @@ export function load({ url }) {
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	const s = snaps.findLast((x) => x.relations !== null);
+	// the latest full save: the wars running and the subject agreements then
+	const save = snaps.findLast((x) => x.kind === 'save');
 	return {
+		wars: save?.wars ?? [],
+		subjects: save?.subjects ?? null,
 		...rest,
 		seenAt: s?.date ?? null,
 		view: contactView(),

@@ -31,6 +31,7 @@ import type {
 	DealSide,
 	TradeDeal,
 	War,
+	Subject,
 	Snapshot
 } from '#lib/types.ts';
 import { MARKET_RESOURCES } from '#lib/market.ts';
@@ -99,8 +100,10 @@ export type RawSave = {
 	systems: Record<string, Raw>; // galactic_object: names, planets, hyperlanes
 	sectors: Record<string, Raw>;
 	speciesDb: Record<string, Raw>;
-	wars: Record<string, Raw>; // top-level war (UNVERIFIED shape: empty in every save seen)
-	tradeDeals: Record<string, Raw>; // top-level trade_deal (UNVERIFIED shape, likewise)
+	wars: Record<string, Raw>; // top-level war (`0=none` once over)
+	tradeDeals: Record<string, Raw>; // top-level trade_deal
+	agreements: Record<string, Raw>; // agreements.agreements: every subject agreement
+	loyalty: Record<string, number>; // country → its `loyalty` as a subject
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -113,9 +116,11 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 		const countryId = Number(first(q.at('/player'))?.country ?? 0);
 		const allCountries: Record<string, Raw> = q.at('/country') ?? {};
 		const fleetOwner: Record<string, number> = {};
+		const loyalty: Record<string, number> = {};
 		const countries: RawSave['countries'] = {};
 		for (const [id, c] of Object.entries(allCountries)) {
 			if (!c || typeof c !== 'object') continue;
+			if (typeof c.loyalty === 'number') loyalty[id] = c.loyalty;
 			for (const o of items(c.fleets_manager?.owned_fleets))
 				if (typeof o?.fleet === 'number') fleetOwner[String(o.fleet)] = Number(id);
 			countries[id] = {
@@ -187,6 +192,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			speciesDb: q.at('/species_db') ?? {},
 			wars,
 			tradeDeals,
+			agreements: q.at('/agreements/agreements') ?? {},
+			loyalty,
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
 			districtsDb: q.at('/districts') ?? {},
 			zones: q.at('/zones') ?? {},
@@ -310,6 +317,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		governmentType: strOrNull(raw.country?.government?.type),
 		origin: strOrNull(raw.country?.government?.origin),
 		wars: wars(raw),
+		subjects: subjects(raw),
 		warLostDate:
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
 		tradeDeals: tradeDeals(raw),
@@ -1349,26 +1357,77 @@ export function migrationPartners(country: Raw): Set<number> {
 }
 
 /**
- * Wars the country takes part in: `war.<id> = { name start_date attackers = { { country } }
- * defenders = { … } }`. UNVERIFIED — assumed from earlier versions; no war seen in a save yet.
+ * Wars the country takes part in: `war.<id> = { name start_date attackers = { { country call_type }
+ * } defenders battles = { { attackers = { <ids> } defenders attacker_victory attacker_losses
+ * defender_losses system date type } } attacker_war_goal = { type } defender_war_goal
+ * attacker_war_exhaustion defender_war_exhaustion }` (4.5.2, first seen 2026-10-19). A war that
+ * ended leaves `<id>=none`.
  */
-export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames'>): War[] {
+export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames' | 'systems'>): War[] {
 	const side = (v: Raw) => items(v).map((p) => Number(p?.country));
+	const named = (ids: number[]) => ids.map((c) => raw.countryNames[String(c)] ?? `empire ${c}`);
 	return Object.entries(raw.wars).flatMap(([id, w]) => {
 		if (!w || typeof w !== 'object') return [];
 		const [attackers, defenders] = [side(w.attackers), side(w.defenders)];
-		const enemies = attackers.includes(raw.countryId)
-			? defenders
-			: defenders.includes(raw.countryId)
-				? attackers
-				: null;
-		if (!enemies) return [];
+		if (!attackers.includes(raw.countryId) && !defenders.includes(raw.countryId)) return [];
+		const attacker = attackers.includes(raw.countryId);
+		const [ours, theirs] = attacker ? [attackers, defenders] : [defenders, attackers];
+		const [own, enemy] = attacker ? ['attacker', 'defender'] : ['defender', 'attacker'];
 		return [
 			{
 				id,
 				name: displayName(w.name) || `war ${id}`,
-				start: typeof w.start_date === 'string' ? w.start_date : null,
-				enemies: enemies.map((c) => raw.countryNames[String(c)] ?? `empire ${c}`)
+				start: strOrNull(w.start_date),
+				enemies: named(theirs),
+				allies: named(ours.filter((c) => c !== raw.countryId)),
+				attacker,
+				goal: strOrNull(w[`${own}_war_goal`]?.type),
+				enemyGoal: strOrNull(w[`${enemy}_war_goal`]?.type),
+				exhaustion: numOrNull(w[`${own}_war_exhaustion`]),
+				enemyExhaustion: numOrNull(w[`${enemy}_war_exhaustion`]),
+				battles: items(w.battles).map((b) => {
+					// a battle's sides are its own: whoever attacked in that system
+					const weAttacked = items(b?.attackers).some((c) => ours.includes(Number(c)));
+					const attackerWon = b?.attacker_victory === true || b?.attacker_victory === 'yes';
+					return {
+						date: String(b?.date ?? ''),
+						system: displayName(raw.systems[String(b?.system)]?.name),
+						type: String(b?.type ?? ''),
+						won: weAttacked === attackerWon,
+						lost: Number((weAttacked ? b?.attacker_losses : b?.defender_losses) ?? 0),
+						killed: Number((weAttacked ? b?.defender_losses : b?.attacker_losses) ?? 0)
+					};
+				})
+			}
+		];
+	});
+}
+
+/** Our active subject agreements, as overlord or as subject (see `Subject`). */
+export function subjects(
+	raw: Pick<RawSave, 'agreements' | 'countryId' | 'countries' | 'loyalty'>
+): Subject[] {
+	const pairs = (v: Raw) => items(v).filter((x) => typeof x?.key === 'string');
+	return Object.values(raw.agreements).flatMap((a) => {
+		if (!a || typeof a !== 'object' || a.active_status !== 'active') return [];
+		const [owner, target] = [Number(a.owner), Number(a.target)];
+		if (owner !== raw.countryId && target !== raw.countryId) return [];
+		const other = owner === raw.countryId ? target : owner;
+		const t = a.term_data ?? {};
+		return [
+			{
+				countryId: other,
+				name: raw.countries[String(other)]?.name ?? `empire ${other}`,
+				weAreOverlord: owner === raw.countryId,
+				preset: String(t.agreement_preset ?? ''),
+				since: strOrNull(a.date_added),
+				terms: Object.fromEntries(pairs(t.discrete_terms).map((x) => [x.key, String(x.value)])),
+				subsidies: Object.fromEntries(
+					pairs(t.resource_terms).map((x) => [x.key, Number(x.value) || 0])
+				),
+				specialistLevel: Number(a.subject_specialization?.level ?? 0),
+				specialistExperience: Number(a.subject_specialization?.experience ?? 0),
+				loyalty: raw.loyalty[String(target)] ?? null
 			}
 		];
 	});
@@ -1648,6 +1707,11 @@ export function displayName(name: Raw): string {
 	if (colony && Array.isArray(name?.variables)) {
 		const base = name.variables.map((v: Raw) => displayName(v.value)).join(' ');
 		return `${base} ${COLONY_SUFFIX[Number(colony[1]) - 1] ?? colony[1]}`;
+	}
+	// War names: `war_vs_adjectives` / `war_vs_names` = "$1$ - $2$ $3$" (4.5.2 localisation).
+	if (/^war_vs_/.test(key) && Array.isArray(name?.variables)) {
+		const part = (k: string) => displayName(name.variables.find((x: Raw) => x?.key === k)?.value);
+		return `${part('1')} - ${part('2')} ${part('3')}`;
 	}
 	// Templates with variables — `%ADJECTIVE%`, `PLANET_NAME_FORMAT` (PARENT + NUMERAL: "Barnards
 	// Star I"), `PREFIX_NAME_FORMAT` (ship: "UNS Jordan"), `STAR_NAME_1_OF_1` — read as their parts.
