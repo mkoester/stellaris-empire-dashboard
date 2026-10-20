@@ -17,7 +17,7 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
   (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14.
 
-Cross-project conventions come from the OKF vault; workspace rules from `../CLAUDE.md`.
+Cross-project conventions come from the OKF vault; workspace rules from `../AGENTS.md`.
 
 ## Goals (from the start)
 
@@ -332,7 +332,7 @@ game lists them, maps only discovered space, factions only once formed. Everythi
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
 `unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`. A new view of hidden information follows the same pattern. **The
-check is the user's in-game screenshot** of the matching panel (workspace `CLAUDE.md`): it caught
+check is the user's in-game screenshot** of the matching panel (workspace `AGENTS.md`): it caught
 the edicts (58 → the game's 5), policies, agendas and focus cards here.
 
 **Government tab** (`/government`, `#lib/government.ts` and `#lib/triggers.ts`, both pure): the
