@@ -19,7 +19,7 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
 
 Cross-project conventions come from the OKF vault; workspace rules from `../CLAUDE.md`.
 
-## Goals (from the start, mkMac2017)
+## Goals (from the start)
 
 - A second screen next to the running game: the state of the empire at a glance, and its history.
 - **Going back in time must not break it.** Loading an older save starts a new timeline (a branch
