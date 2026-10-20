@@ -1,6 +1,8 @@
 import { EventEmitter } from 'node:events';
 import { mkdirSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname } from 'node:path';
+import { appDataDir, readConfig, resolvePaths, writeConfig, type Config } from './config.ts';
 import {
 	headCampaign,
 	headId,
@@ -17,13 +19,15 @@ import { tailLog, toLogSnapshot } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
 import { READER, setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
+import { ensureDataDb, extractorFromEnv } from './extract.ts';
 import { loadModDescriptors } from './mods.ts';
 import { watchSaves, type Watcher } from './watch.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
 // companion mod, and one event bus for live updates.
-// DASHBOARD_DB, STELLARIS_SAVE_DIR and STELLARIS_DATA_DB (the extraction's SQLite) are required — a default pointing at a real location fails
-// quietly against the wrong tree. STELLARIS_GAME_LOG is opt-in: set it when the mod is enabled.
+// The folders come from the environment or `config.json` (`config.ts`); while one is missing the
+// dashboard waits in `setup` and every page leads to /setup, which writes the config and starts it.
+// Without STELLARIS_DATA_DB the game data is extracted from the game folder first (`extract.ts`).
 
 // Kept on globalThis: Vite re-imports this module when a server file changes in dev, and a fresh
 // module-level copy would start a second watcher on the same DB (seen: it re-read the saves and
@@ -32,6 +36,9 @@ import { watchSaves, type Watcher } from './watch.ts';
 type State = {
 	updates: EventEmitter;
 	starting?: Promise<void>;
+	status: 'setup' | 'starting' | 'running';
+	/** why the last start failed, shown on /setup */
+	error?: string;
 	db?: Db;
 	gameData?: GameData;
 	explanations?: Explanations;
@@ -39,7 +46,7 @@ type State = {
 	watcher?: Watcher;
 };
 const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
-const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter() });
+const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter(), status: 'setup' });
 
 export const updates = state.updates;
 
@@ -64,12 +71,6 @@ export function getDb(): Db {
 	return state.db;
 }
 
-function required(name: string): string {
-	const v = process.env[name];
-	if (!v) throw new Error(`${name} is not set`);
-	return v;
-}
-
 function recorded(r: Recorded, source: string) {
 	console.log(`${r.isNew ? 'new ' : 'seen'} node ${r.nodeId} ← ${source}`);
 	for (const m of r.mismatches) console.warn(`mod and save disagree on net income: ${m}`);
@@ -88,15 +89,56 @@ export function refreshCampaign(campaign: string) {
 	});
 }
 
-/** Starts once per process; later calls (re-imports, a second init) get the same start-up. */
+const appDir = () => appDataDir(process.platform, process.env, homedir());
+
+export const status = () => state.status;
+
+/** What /setup shows: the stored folders and why the last start failed. */
+export function setupState() {
+	return {
+		status: state.status,
+		error: state.error,
+		appDir: appDir(),
+		config: readConfig(appDir())
+	};
+}
+
+/**
+ * Stores the folders and starts the dashboard with them. Once running, the new folders apply at
+ * the next start (`restart`): the watcher and DB stay as they are.
+ */
+export async function configure(config: Config): Promise<{ restart: boolean }> {
+	writeConfig(appDir(), config);
+	if (state.status === 'running') return { restart: true };
+	state.starting = undefined;
+	state.error = undefined;
+	await start();
+	return { restart: false };
+}
+
+/**
+ * Starts once per process; later calls (re-imports, a second init) get the same start-up. A failed
+ * start leaves the dashboard in `setup` with the reason, never a crashed server.
+ */
 export function start(): Promise<void> {
-	return (state.starting ??= run());
+	return (state.starting ??= run().catch((e: Error) => {
+		state.status = 'setup';
+		state.error = e.message;
+		console.error('cannot start:', e.message);
+	}));
 }
 
 async function run() {
-	const dbFile = required('DASHBOARD_DB');
-	const saveDir = required('STELLARIS_SAVE_DIR');
-	const dataDb = required('STELLARIS_DATA_DB');
+	const paths = resolvePaths(process.env, readConfig(appDir()), appDir());
+	if (!paths) {
+		state.status = 'setup';
+		console.log('game folders not set yet: open the dashboard to pick them (/setup)');
+		return;
+	}
+	state.status = 'starting';
+	const { dashboardDb: dbFile, saveDir, gameLog } = paths;
+	const dataDb =
+		paths.dataDb ?? (await ensureDataDb(paths.gameDir!, appDir(), extractorFromEnv(process.env)));
 	state.gameData = loadGameData(dataDb);
 	setPrescriptedNames(state.gameData.prescriptedNames);
 	state.explanations = loadExplanations(dataDb);
@@ -120,8 +162,8 @@ async function run() {
 		new Date().toISOString(),
 		nodes(store).find((n) => n.id === head)?.date ?? null
 	);
+	state.status = 'running';
 
-	const gameLog = process.env.STELLARIS_GAME_LOG;
 	if (gameLog) {
 		await tailLog(gameLog, {
 			onMonth: (m) => {

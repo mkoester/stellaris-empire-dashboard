@@ -19,3 +19,7 @@ vite.config.ts.timestamp-*
 
 # Local dashboard database (rebuilt from saves)
 /data
+
+# Release packaging (scripts/package.mjs)
+/dist
+/.cache
