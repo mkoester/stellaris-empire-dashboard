@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
+	import favicon from '#lib/assets/favicon.svg';
 
 	let { data, children } = $props();
 
@@ -142,6 +143,7 @@
 
 <svelte:head>
 	<title>Empire dashboard</title>
+	<link rel="icon" href={favicon} />
 </svelte:head>
 
 <main class="mx-auto max-w-[96rem] p-4">
