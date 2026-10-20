@@ -52,14 +52,16 @@ const cache = join(root, '.cache');
 const dist = join(root, 'dist');
 const name = `stellaris-empire-dashboard-${version}`;
 
+/** The extractor's tag; a release bundles exactly the one package.json pins (`extractorVersion`). */
 function extractorVersion() {
 	const git = (...a) => run('git', ['-C', extraction, ...a]).trim();
-	try {
-		return git('describe', '--tags', '--exact-match', 'HEAD');
-	} catch {
-		if (release) throw new Error(`release build: ${extraction} is not on a tag`);
-		return git('describe', '--tags', '--always', '--dirty');
-	}
+	const pinned = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).extractorVersion;
+	const tags = git('tag', '--points-at', 'HEAD').split('\n').filter(Boolean);
+	if (release && !tags.includes(pinned))
+		throw new Error(
+			`release build: ${extraction} must be on ${pinned} (package.json extractorVersion), is on ${tags.join(', ') || 'no tag'}`
+		);
+	return tags.includes(pinned) ? pinned : git('describe', '--tags', '--always', '--dirty');
 }
 
 async function download(url, sha256, file) {

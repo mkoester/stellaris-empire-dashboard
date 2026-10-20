@@ -76,7 +76,7 @@ its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`).
 `node scripts/package.mjs [--os windows|linux]` → `dist/stellaris-empire-dashboard-<version>-<os>-x64.zip`:
 the build plus `jomini` (the only external import left in the build), Node 24 (pinned, SHA-256
 from nodejs.org), the extractor from `../stellaris-data-extraction` by `git archive HEAD` (a
-release build refuses one that is not on a tag), on Windows Python's embeddable package (pinned,
+release build refuses one that is not on the tag `package.json` pins as `extractorVersion`), on Windows Python's embeddable package (pinned,
 SHA-256 from python.org's release API; its `._pth` gets `..\extractor`), and `release/`:
 `launcher.mjs`, `start.bat` / `start.sh` (checks `python3 ≥ 3.10`), `README.txt` for players.
 Downloads are cached in `.cache/`. **In the Claude Code sandbox** Node's `fetch` needs
@@ -88,8 +88,11 @@ without `ORIGIN` adapter-node 6 takes every request for `https`, and SvelteKit r
 app, `pnpm dev` never shows it. It marks each request `http` in a header named by `PROTOCOL_HEADER`,
 so 127.0.0.1, localhost and a LAN address (`--lan`) all work, and a foreign origin is still refused.
 
-The version in the header and the zip names is `scripts/version.mjs` (decorated with git state).
-Releasing: `RELEASE.md`. The Windows zip has not run on Windows yet — Wine cannot start in the
+The version in the header and the zip names is `scripts/version.mjs` (decorated with git state;
+a commit tagged `v<version>` counts as a release, since CI builds from the detached tag).
+Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
+which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
+creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. The Windows zip has not run on Windows yet — Wine cannot start in the
 sandbox (`wineserver` needs a writable `/tmp`).
 
 **One watcher per process.** `app.ts` keeps its state on `globalThis`: Vite re-imports server
