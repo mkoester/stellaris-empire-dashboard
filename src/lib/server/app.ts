@@ -6,6 +6,7 @@ import { appDataDir, readConfig, resolvePaths, writeConfig, type Config } from '
 import {
 	headCampaign,
 	headId,
+	loadedNode,
 	nodes,
 	noteModVersions,
 	openDb,
@@ -14,7 +15,7 @@ import {
 	type Recorded
 } from './db.ts';
 import { trackedMods } from '#lib/addons.ts';
-import type { GameData, ModInfo } from '#lib/types.ts';
+import type { GameData, ModInfo, Tick } from '#lib/types.ts';
 import { tailLog, toLogSnapshot } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
 import { READER, setPrescriptedNames } from './save.ts';
@@ -44,6 +45,8 @@ type State = {
 	explanations?: Explanations;
 	mods?: ModInfo[];
 	watcher?: Watcher;
+	/** The node of the save the player just loaded (the mod's `load` line), for the next observation. */
+	loadedFrom?: number | null;
 };
 const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
 const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter(), status: 'setup' });
@@ -69,6 +72,13 @@ export function getMods(): ModInfo[] {
 export function getDb(): Db {
 	if (!state.db) throw new Error('dashboard not started');
 	return state.db;
+}
+
+/** The loaded save's node, once: the observation after a load is its child. */
+function takeLoaded(): number | null {
+	const id = state.loadedFrom ?? null;
+	state.loadedFrom = null;
+	return id;
 }
 
 function recorded(r: Recorded, source: string) {
@@ -150,6 +160,7 @@ async function run() {
 	const data = statSync(dataDb);
 	state.watcher = await watchSaves(store, saveDir, {
 		onIngest: (r) => recorded(r, r.file),
+		loadedFrom: takeLoaded,
 		onRefresh: (r) => console.log(`re-read node ${r.nodeId} ← ${r.file}`),
 		onError: (file, e) => console.error(`cannot ingest ${file}:`, e),
 		reader: `${READER}:${data.mtimeMs}:${data.size}`
@@ -170,7 +181,19 @@ async function run() {
 				// game.log names no campaign; months belong to whatever is being played.
 				const campaign = headCampaign(store);
 				if (campaign === null) return console.warn(`mod month ${m.date} before any save; skipped`);
-				recorded(record(store, toLogSnapshot(m, campaign), 'game.log'), `game.log ${m.date}`);
+				recorded(
+					record(store, toLogSnapshot(m, campaign), 'game.log', takeLoaded()),
+					`game.log ${m.date}`
+				);
+			},
+			onTick: (t) => updates.emit('tick', t satisfies Tick),
+			onLoad: (date, id) => {
+				const campaign = headCampaign(store);
+				state.loadedFrom =
+					campaign === null || id === null ? null : loadedNode(store, campaign, date, id);
+				console.log(
+					`save loaded at ${date}: ${state.loadedFrom === null ? 'unknown node' : `node ${state.loadedFrom}`}`
+				);
 			},
 			onError: (e) => console.error('game.log:', e)
 		});

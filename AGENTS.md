@@ -25,9 +25,9 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
 - **Going back in time must not break it.** Loading an older save starts a new timeline (a branch
   of the save graph) instead of overwriting history, and one can **switch between timelines**
   (`/timeline`, `?node=`; planet pages follow the empire page).
-- Today a reload's branch point is a _guess_ when time goes backwards (marked, correctable on
-  `/timeline`). To make it exact, the companion mod could write a timeline identifier to the log —
-  see "Open".
+- Without the companion mod a reload's branch point is a _guess_ when time goes backwards (marked,
+  correctable on `/timeline`). With it (0.2.0+) the mod's `load` line names the loaded save exactly
+  — see "Companion mod".
 
 ## Running it
 
@@ -463,16 +463,53 @@ a swatch and tinted name by `DistrictName.svelte`; pages get them as `colors` ne
 **Two sources, one moment:** an autosave and the mod's line for the same date are merged into one
 node (`place()` → `merge`), otherwise the second would look like a reload. The merge compares the
 mod's income with the save's balance and logs `mod and save disagree on net income` on a mismatch.
+The save's reading wins, but what only the log knows — `logEvents`, `ticks`, and the timeline id if
+the save lacks it — is kept (`withLogFields()`), also when a save is read again.
 
 ## Companion mod (`mod/dashboard_feed`)
 
-Every month, for human players, one `game.log` line per resource:
-`SDASH|1|<date>|<resource>|<stockpile>|<monthly income>`, then `SDASH|1|<date>|end`. The format is
-shared with `feed.ts` — change both together and bump the `1`. Built from 4.5.2's own docs
-(`logs/script_documentation/effects.log`): `export_resource_stockpile_to_variable`,
-`export_resource_income_to_variable`, `[Scope.var]` and `[GetDate]` in loc. Loc commands inside a
-scripted effect are written `\\[...]` (vanilla `99_advanced_documentation.txt`). The resource list
-equals `common/strategic_resources/00_strategic_resources.txt` (26 keys) — re-diff on game updates.
+Hidden events write `game.log` lines for human players, all `SDASH|2|<date>|…` (format 2 since mod
+0.2.0; `feed.ts` still reads format 1's monthly lines). The format is shared with `feed.ts` —
+change both together and bump the number.
+
+| Line                                                                | When                 | From                                |
+| ------------------------------------------------------------------- | -------------------- | ----------------------------------- |
+| `timeline\|<id>\|<previous id>`                                     | monthly, first       | `on_monthly_pulse_country`          |
+| `<resource>\|<stockpile>\|<monthly income>` × 26, then `end`        | monthly              | same                                |
+| `tick\|<resource>\|<stockpile>` × 26, then `tick-end`               | daily                | a self-rescheduling event           |
+| `load\|<id>`                                                        | a save was loaded    | `on_single_player_save_game_load`   |
+| `event\|colony\|<planet>`                                           | colony established   | `on_colonized`                      |
+| `event\|war-started\|<war>` / `event\|war-ended\|<loser>\|<winner>` | at once              | `on_war_beginning` / `on_war_ended` |
+| `event\|leader-died\|<leader>`, `event\|ruler\|<name>`              | at once              | `on_leader_death`, `on_ruler_set`   |
+| `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`      | each battle we fight | `on_space_battle_won`               |
+
+- **The daily tick**: 4.5.2 has no sub-monthly on_action, so `sdash.2` re-fires itself with
+  `days = 1`. The stockpile moves within a month (spending, the market, rewards, deals); income
+  does not, so the tick logs stockpiles only. Pending events are saved with the game, so the chain
+  survives a load; `sdash.3` seeds it (game start, load, every month as a safety net) only without
+  the timed flag `sdash_tick_alive` each tick renews — else a load would run two chains.
+  `feed.ts` reports each day at once (`onTick` → the `tick` server event → the Resources panel's
+  "as of <date>" while the page shows the head) and keeps them with the next month
+  (`Snapshot.ticks`, drawn between months in the Stockpile chart, `stockpileSeries()`).
+- **Exact branch points**: each month a random six-digit id goes into the country variable
+  `sdash_tl` (old one: `sdash_tl_prev`; one `random_list` per digit — 4.5.2 has no random-value
+  effect), so every save carries it too (`country.variables`, read as `Snapshot.timelineId`). On
+  load the mod logs the loaded save's id; `loadedNode()` finds the latest node of that id not after
+  the load's date, and the next observation (log month or save) becomes its child, unflagged
+  (`takeLoaded()` in `app.ts`). A load also drops the events and days buffered since the last month.
+- **Events re-date milestones**: a month's events travel with its snapshot (`logEvents`, so they
+  follow the save graph). `milestones()` gives each to the earliest diffed milestone of the same
+  kind whose label contains its name, within 45 days after it (`fromLog()`), else shows it alone;
+  battles are a kind of their own (`combat`). **Not logged, because no loc command names them**
+  (4.5.2 `localizations.log`): the tech of `on_tech_increased` (`last_increased_tech` is a trigger
+  only), the tradition, perk, policy and government change — those stay dated by save diffs.
+- Built from 4.5.2's own docs (`logs/script_documentation/`, which the game rewrites on every
+  launch — empty while it loads; the `script_documentation` console command is gone):
+  `export_resource_stockpile_to_variable`, `export_resource_income_to_variable`, `[Scope.var]` and
+  `[GetDate]` in loc, `[From.GetName]`/`[FromFrom.GetName]` (both used in vanilla loc). Loc commands
+  inside a scripted effect are written `\\[...]` (vanilla `99_advanced_documentation.txt`). The
+  resource list equals `common/strategic_resources/00_strategic_resources.txt` (26 keys) — re-diff
+  on game updates.
 
 It changes the checksum: no achievements while enabled. Register it on Linux with
 `scripts/link-mod-proton.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace
@@ -832,7 +869,8 @@ ids> }` (2212.03: The Readied Shield, the game's "Active"), also `last` and `cat
   combat and is cleared some time after (2205.10.14's: in the 11.01 save, gone by 12.01), so the
   contacts tab's log (`combats()`, `combatLog()`) has what monthly saves caught. The losses are as
   of the save: 2 of the salvagers' 3 at 11.01, the game's report says 3 of 3. The companion mod
-  could log combats (an on_action) for the complete record.
+  0.2.0 logs every battle we fight (`combat` milestones); not yet seen in game, and the contacts
+  tab does not use them yet.
 - **The Shroud, open points** (2206.01.01, after the first delve; screenshot 2026_10_19_7): our
   `modules.standard_shroud_module = { attunement = { x y } month_start_attunement
 last_month_attunement_offset patron_relations = { <ids> } last_delve_date }`; top-level
@@ -851,10 +889,11 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   calling (tier, reward), its deeds and — negative — the opposite patron's (the save's five
   each), accords and covenant. Uncontacted patrons stay hidden, as in the game. Still to see: a
   completed calling, an accord unlocked, a favor.
-- **Exact branch points via the mod**: each month the mod rolls a random id and keeps the previous
-  one in a country variable, logging both (`SDASH|…|<date>|timeline|<id>|<previous id>`). After a
-  load, the first line's _previous id_ is the id of the loaded save's month — the parent, exactly.
-  The variables also land in every save. Needs the mod running (no achievements).
+- **Companion mod 0.2.0, not yet run in game** (written 2026-10-20 from 4.5.2's script docs):
+  the daily tick (one set of `tick` lines per date, also after save/load — never two), the `load`
+  line's id against the loaded save's `sdash_tl`, each event line's names (do `[From.GetName]` in
+  `on_war_beginning` and `[FromFromFrom.GetName]` in `on_space_battle_won` resolve, or print
+  blank?), and whether event labels match the diffed ones (no duplicates on `/events`).
 - **District caps via the mod, to check the computed ones**: the `free_district_slots` trigger
   (colony scope) can be exported with `export_trigger_value_to_variable`; no trigger for free
   building slots found. Matched by hand for Earth only.

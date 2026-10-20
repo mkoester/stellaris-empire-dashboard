@@ -235,7 +235,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '1';
+export const READER = '2';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -366,7 +366,11 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			])
 		),
 		leaderList: leaderList(raw),
-		speciesRights: speciesRights(raw.country)
+		speciesRights: speciesRights(raw.country),
+		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
+		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
+		logEvents: null,
+		ticks: null
 	};
 }
 

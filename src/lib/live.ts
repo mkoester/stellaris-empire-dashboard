@@ -1,5 +1,6 @@
 import { onMount } from 'svelte';
 import { invalidateAll } from '$app/navigation';
+import type { Tick } from './types.ts';
 
 /**
  * Reload the page whenever the server ingests a save — but only while `follow()` holds — and
@@ -11,6 +12,15 @@ export function followGame(follow: () => boolean) {
 		events.onmessage = (e) => {
 			if (e.data === 'refreshed' || follow()) invalidateAll();
 		};
+		return () => events.close();
+	});
+}
+
+/** Calls `onTick` with each day's stockpile the companion mod logs (the `tick` server event). */
+export function followTicks(onTick: (t: Tick) => void) {
+	onMount(() => {
+		const events = new EventSource('/api/events');
+		events.addEventListener('tick', (e) => onTick(JSON.parse(e.data)));
 		return () => events.close();
 	});
 }

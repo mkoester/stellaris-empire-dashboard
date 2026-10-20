@@ -51,6 +51,8 @@ export type WatchOptions = {
 	onError: (file: string, e: unknown) => void;
 	/** A save read again by a newer reader. */
 	onRefresh?: (r: Ingested) => void;
+	/** The node of a save just loaded in game, if known: a new save goes below it. Asked once per save. */
+	loadedFrom?: () => number | null;
 	/** Identifies the reader; a save read by another is read again. Default `READER`. */
 	reader?: string;
 	intervalMs?: number;
@@ -84,7 +86,8 @@ export async function watchSaves(db: Db, root: string, opts: WatchOptions): Prom
 
 	const ingest = async (file: string, version: string) => {
 		try {
-			const r = record(db, await readSnapshot(root, file), relative(root, file));
+			const snap = await readSnapshot(root, file);
+			const r = record(db, snap, relative(root, file), opts.loadedFrom?.() ?? null);
 			noteFile(db, relative(root, file), { version, reader });
 			opts.onIngest({ ...r, file });
 			done.set(file, version);

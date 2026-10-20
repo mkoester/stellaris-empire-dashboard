@@ -8,6 +8,7 @@ import {
 	popSeries,
 	researchSeries,
 	resourceSeries,
+	stockpileSeries,
 	withoutResearch,
 	xRange
 } from './series.ts';
@@ -122,5 +123,28 @@ describe('agendaSeries', () => {
 		expect(monthStarts('2200.04.01', '2200.05.02')).toBe(1);
 		expect(monthStarts('2200.05.01', '2200.05.02')).toBe(0);
 		expect(monthStarts('2200.11.15', '2201.02.01')).toBe(3);
+	});
+});
+
+describe('stockpileSeries', () => {
+	it("adds the mod's daily stockpiles between snapshots, never one at or before the last", () => {
+		const jan = {
+			date: '2200.01.01',
+			stockpile: { energy: 1 },
+			ticks: null
+		} as unknown as Snapshot;
+		const feb = {
+			date: '2200.02.01',
+			stockpile: { energy: 2, physics_research: 9 },
+			ticks: [
+				{ date: '2199.12.30', stockpile: { energy: 0 } },
+				{ date: '2200.01.16', stockpile: { energy: 7 } },
+				{ date: '2200.02.01', stockpile: { energy: 8 } }
+			]
+		} as unknown as Snapshot;
+		expect(stockpileSeries([jan, feb])).toEqual({
+			x: [2200, 2200 + 15 / 360, 2200 + 1 / 12],
+			lines: { energy: [1, 7, 2] }
+		});
 	});
 });

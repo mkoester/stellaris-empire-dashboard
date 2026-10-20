@@ -2,22 +2,33 @@
 	import { colorOf } from './colors.ts';
 	import { fmt, pretty } from './format.ts';
 	import { monthlyLimit } from './market.ts';
-	import type { MarketOrder, Resources } from './types.ts';
+	import { followTicks } from './live.ts';
+	import type { MarketOrder, Resources, Tick } from './types.ts';
 
 	// The game's top bar: stockpile and net change per month, in the game's order. Basic resources
 	// always show; strategic ones once the empire has or makes any.
 	// On the galactic market there are no per-empire monthly limits (see market.ts).
+	// With `live` (the page shows the head), the stockpile follows the companion mod's daily tick.
 	let {
-		stockpile,
+		stockpile: saved,
 		balance,
 		orders,
-		galactic = false
+		galactic = false,
+		date,
+		live = false
 	}: {
 		stockpile: Resources;
 		balance: Resources;
 		orders: MarketOrder[];
 		galactic?: boolean;
+		date: string;
+		live?: boolean;
 	} = $props();
+
+	let tick = $state<Tick | null>(null);
+	followTicks((t) => (tick = t));
+	const today = $derived(live && tick && tick.date > date ? tick : null);
+	const stockpile = $derived(today?.stockpile ?? saved);
 
 	const basic = ['energy', 'minerals', 'food', 'consumer_goods', 'alloys', 'trade'];
 	const last = ['unity', 'influence'];
@@ -41,6 +52,12 @@
 </script>
 
 <div class="mb-4 flex flex-wrap gap-x-5 gap-y-1">
+	{#if today}
+		<span
+			class="text-sm whitespace-nowrap text-gray-500"
+			title="stockpile from the companion mod's daily tick">as of {today.date}</span
+		>
+	{/if}
 	{#each shown as key (key)}
 		{@const net = balance[key] ?? 0}
 		<span class="whitespace-nowrap">

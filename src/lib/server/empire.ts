@@ -19,6 +19,7 @@ import {
 	researchSeries,
 	resourceSeries,
 	scalarSeries,
+	stockpileSeries,
 	withoutResearch,
 	xRange
 } from '#lib/series.ts';
@@ -106,7 +107,7 @@ export function empireData(url: URL) {
 			}),
 			empireSize: scalarSeries(snaps, 'empire size', (s) => s.empireSize),
 			research: researchSeries(snaps),
-			stockpile: resourceSeries(snaps, (s) => withoutResearch(s.stockpile)),
+			stockpile: stockpileSeries(snaps),
 			balance: resourceSeries(snaps, (s) => withoutResearch(s.balance)),
 			income: resourceSeries(snaps, (s) => withoutResearch(s.income))
 		}

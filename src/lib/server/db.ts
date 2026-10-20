@@ -174,7 +174,7 @@ export function record(
 		// Seen before: a save read by a newer dashboard has more fields — keep the fresh reading.
 		if (snap.kind === 'save')
 			db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
-				stored(db, snap),
+				stored(db, withLogFields(snap, snapshotOf(db, placement.nodeId))),
 				placement.nodeId
 			);
 		setHead(db, placement.nodeId);
@@ -189,7 +189,7 @@ export function record(
 			placement.nodeId
 		);
 		db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
-			stored(db, save),
+			stored(db, withLogFields(save, log)),
 			placement.nodeId
 		);
 		setHead(db, placement.nodeId);
@@ -237,8 +237,38 @@ export function refresh(db: Db, snap: Snapshot, source: string): Recorded {
 		.prepare('SELECT id FROM node WHERE campaign = ? AND fingerprint = ?')
 		.get(snap.campaign, snap.fingerprint) as { id: number } | undefined;
 	if (!row) return record(db, snap, source);
-	db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(stored(db, snap), row.id);
+	db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
+		stored(db, withLogFields(snap, snapshotOf(db, row.id))),
+		row.id
+	);
 	return { nodeId: row.id, isNew: false, mismatches: [] };
+}
+
+/** A save's reading with what only the mod's log knows (events, daily stockpiles) kept from `log`. */
+export function withLogFields(save: Snapshot, log: Snapshot): Snapshot {
+	return {
+		...save,
+		timelineId: save.timelineId ?? log.timelineId,
+		previousTimelineId: save.previousTimelineId ?? log.previousTimelineId,
+		logEvents: save.logEvents ?? log.logEvents,
+		ticks: save.ticks ?? log.ticks
+	};
+}
+
+/**
+ * The node of a loaded save, from the mod's `load` line: of the campaign's nodes in the month with
+ * that timeline id, the latest not after the load's date (the save itself, if it was read). Six
+ * random digits repeat across a long campaign, but hardly within one month's window.
+ */
+export function loadedNode(db: Db, campaign: string, date: string, id: number): number | null {
+	const row = db
+		.prepare(
+			`SELECT n.id FROM node n JOIN snapshot s ON s.node_id = n.id
+			WHERE n.campaign = ? AND n.date <= ? AND json_extract(s.json, '$.timelineId') = ?
+			ORDER BY n.date DESC, n.id DESC LIMIT 1`
+		)
+		.get(campaign, date, id) as { id: number } | undefined;
+	return row?.id ?? null;
 }
 
 /** A save file as last read: its `mtime:size` and the reader that read it. */

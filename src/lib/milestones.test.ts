@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { milestones } from './milestones.ts';
 import { upgrade } from './upgrade.ts';
-import type { Colony, Snapshot } from './types.ts';
+import type { Colony, LogEvent, Snapshot } from './types.ts';
 
 const names = {
 	techs: { tech_lasers_1: { name: 'Red Lasers', cost: 1, area: 'physics', tier: 1 } },
@@ -232,6 +232,43 @@ describe('milestones', () => {
 			'2203.03.01 dlc enabled: Nomads',
 			'2203.03.01 dlc disabled: Megacorp',
 			'2203.03.01 mod disabled: A'
+		]);
+	});
+});
+
+describe("milestones from the companion mod's events", () => {
+	const ev = (date: string, kind: LogEvent['kind'], ...fields: string[]): LogEvent => ({
+		date,
+		kind,
+		fields
+	});
+
+	it('re-dates the matching save-diffed milestone to the exact day, once', () => {
+		const snaps = [
+			save('2200.01.01', { colonies: [colony(1, 'Earth'), colony(2, 'Mars', true)] }),
+			save('2200.02.01', {
+				colonies: [colony(1, 'Earth'), colony(2, 'Mars')],
+				logEvents: [ev('2200.01.17', 'colony', 'Mars')]
+			})
+		];
+		expect(labels(snaps)).toEqual(['2200.01.17 colony established: Mars']);
+	});
+
+	it('keeps an event no save shows, and battles, which only the mod reports', () => {
+		const snaps = [
+			save('2200.01.01'),
+			log('2200.02.01'),
+			{
+				...log('2200.03.01'),
+				logEvents: [
+					ev('2200.02.11', 'combat', 'Us', '1st Fleet', 'Pirates', 'Raiders', 'Sol'),
+					ev('2200.02.12', 'leader-died', 'Ada')
+				]
+			}
+		];
+		expect(labels(snaps)).toEqual([
+			'2200.02.11 battle at Sol: Us (1st Fleet) beat Pirates (Raiders)',
+			'2200.02.12 leader died: Ada'
 		]);
 	});
 });

@@ -10,6 +10,7 @@ import {
 	getSetting,
 	headId,
 	history,
+	loadedNode,
 	nodes,
 	openDb,
 	record,
@@ -100,7 +101,11 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	focus: null,
 	techOptions: null,
 	leaderList: null,
-	speciesRights: null
+	speciesRights: null,
+	timelineId: null,
+	previousTimelineId: null,
+	logEvents: null,
+	ticks: null
 });
 
 describe('db', () => {
@@ -231,6 +236,45 @@ describe('merging the mod feed with saves', () => {
 		expect(merged.nodeId).toBe(saved);
 		expect(merged.mismatches).toEqual(['energy: mod 7 vs save 5']);
 		expect(history(db, saved)[0].pops).toBe(42);
+	});
+
+	it("keeps the log's events, daily stockpiles and timeline id through the merge and a re-read", () => {
+		const db = openDb(':memory:');
+		const events = [{ date: '2200.01.20', kind: 'colony' as const, fields: ['Mars'] }];
+		const ticks = [{ date: '2200.01.30', stockpile: { energy: 3 } }];
+		const log = { ...logSnap('2200.02.01', 2, 5), timelineId: 123456, logEvents: events, ticks };
+		const id = record(db, log, 'game.log').nodeId;
+		record(db, saveSnap('2200.02.01', 2, 5), 'b.sav');
+		refresh(db, saveSnap('2200.02.01', 2, 5), 'b.sav');
+		expect(history(db, id)[0]).toMatchObject({
+			pops: 42,
+			timelineId: 123456,
+			logEvents: events,
+			ticks
+		});
+	});
+});
+
+describe('loading a save', () => {
+	const at = (date: string, fingerprint: string, timelineId: number | null) => ({
+		...snap(date, fingerprint),
+		timelineId
+	});
+
+	it('finds the loaded save by its timeline id, and places what follows below it, not guessed', () => {
+		const db = openDb(':memory:');
+		const jan = record(db, at('2200.01.01', 'a', 111111), 't').nodeId;
+		const mid = record(db, at('2200.01.15', 'b', 111111), 't').nodeId; // a manual save that month
+		record(db, at('2200.02.01', 'c', 222222), 't');
+		record(db, at('2200.03.01', 'd', 333333), 't');
+
+		expect(loadedNode(db, 'c', '2200.01.15', 111111)).toBe(mid);
+		expect(loadedNode(db, 'c', '2200.01.10', 111111)).toBe(jan); // a save the dashboard never read
+		expect(loadedNode(db, 'c', '2200.01.15', 999999)).toBeNull();
+		expect(loadedNode(db, 'other', '2200.01.15', 111111)).toBeNull();
+
+		const next = record(db, at('2200.02.01', 'e', 444444), 't', jan).nodeId;
+		expect(nodes(db).find((n) => n.id === next)).toMatchObject({ parentId: jan, ambiguous: false });
 	});
 });
 

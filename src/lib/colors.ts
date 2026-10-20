@@ -29,6 +29,7 @@ const COLORS: Record<string, string> = {
 	'colony-gained': '#7cb342',
 	'colony-lost': '#c62828',
 	war: '#d0403a',
+	combat: '#a8322d', // war, darker
 	'tradition-tree': '#127a70',
 	tradition: '#22a99c', // unity
 	perk: '#8f6ad8',

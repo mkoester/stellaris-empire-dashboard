@@ -1,14 +1,15 @@
 import { sideSummary } from './deals.ts';
 import { nameOf, pretty } from './format.ts';
-import { gameYear } from './series.ts';
-import type { Colony, GameData, Snapshot } from './types.ts';
+import { addGameDays, gameYear } from './series.ts';
+import type { Colony, GameData, LogEvent, Snapshot } from './types.ts';
 
 // Milestones: the bigger events of a campaign (a colony founded, a tradition taken, a war lost …),
 // derived on read by comparing consecutive saves along the branch shown — so they follow the save
 // graph and cover the whole history for every field the snapshots hold. A field is compared only
 // between saves that both have it: a snapshot from before the field existed is "unknown", not
 // "everything is new". An event is dated to the first save that shows it, so up to a month late
-// with monthly autosaves. A new kind: add it to KINDS and a detector to DETECTORS.
+// with monthly autosaves — unless the companion mod logged it (`Snapshot.logEvents`): then it takes
+// the mod's exact date (`fromLog`). A new kind: add it to KINDS and a detector to DETECTORS.
 
 export const KINDS = [
 	{ kind: 'system', label: 'systems' },
@@ -19,6 +20,7 @@ export const KINDS = [
 	{ kind: 'district', label: 'districts built' },
 	{ kind: 'building', label: 'buildings done' },
 	{ kind: 'war', label: 'wars' },
+	{ kind: 'combat', label: 'space battles (companion mod)' },
 	{ kind: 'tradition-tree', label: 'tradition trees' },
 	{ kind: 'tradition', label: 'traditions' },
 	{ kind: 'perk', label: 'ascension perks' },
@@ -326,12 +328,67 @@ const DETECTORS = [
 	)
 ] satisfies ((snaps: Snapshot[], names: Names) => { s: Snapshot; found: Found[] }[])[];
 
+/**
+ * A mod event as the milestone it re-dates: its kind, the text a diffed label of that kind must
+ * contain to be the same event, and the label to show when no save shows it.
+ */
+function fromLog(e: LogEvent): { kind: EventKind; match: string | null; label: string } {
+	const [a, b, c, d, system] = e.fields;
+	switch (e.kind) {
+		case 'colony':
+			return {
+				kind: 'colony',
+				match: `colony established: ${a}`,
+				label: `colony established: ${a}`
+			};
+		case 'war-started':
+			return { kind: 'war', match: `war started: ${a}`, label: `war started: ${a}` };
+		case 'war-ended': // the war's name is not in the on_action's scopes
+			return { kind: 'war', match: 'war ended: ', label: `war ended: ${b} won, ${a} lost` };
+		case 'leader-died':
+			return { kind: 'leader', match: ` gone: ${a}`, label: `leader died: ${a}` };
+		case 'ruler':
+			return { kind: 'ruler', match: `new ruler: ${a}`, label: `new ruler: ${a}` };
+		case 'combat':
+			return {
+				kind: 'combat',
+				match: null, // no save diff to match
+				label: `battle at ${system}: ${a} (${b}) beat ${c} (${d})`
+			};
+	}
+}
+
+/** How far after a mod event the first save showing it may be: a month, and some slack. */
+const LOG_WINDOW_DAYS = 45;
+
 /** The branch's milestones, oldest first; `snaps` is the branch from its root to its tip. */
 export function milestones(snaps: Snapshot[], names: Names): Milestone[] {
 	const saves = snaps.filter((s) => s.kind === 'save');
-	return DETECTORS.flatMap((detect) =>
+	const diffed: Milestone[] = DETECTORS.flatMap((detect) =>
 		detect(saves, names).flatMap(({ s, found }) =>
 			found.map((f) => ({ ...f, date: s.date, x: gameYear(s.date) }))
 		)
-	).sort((a, b) => a.x - b.x);
+	);
+	// Each mod event takes over the earliest matching diffed milestone in its window, or stands alone.
+	const taken = new Set<Milestone>();
+	const logged = snaps
+		.flatMap((s) => s.logEvents ?? [])
+		.map((e): Milestone => {
+			const { kind, match, label } = fromLog(e);
+			const until = addGameDays(e.date, LOG_WINDOW_DAYS);
+			const same = diffed
+				.filter(
+					(m) =>
+						!taken.has(m) &&
+						m.kind === kind &&
+						m.date >= e.date &&
+						m.date <= until &&
+						match !== null &&
+						m.label.includes(match)
+				)
+				.sort((p, q) => p.x - q.x)[0];
+			if (same) taken.add(same);
+			return { ...(same ?? { kind, label }), date: e.date, x: gameYear(e.date) };
+		});
+	return [...diffed.filter((m) => !taken.has(m)), ...logged].sort((a, b) => a.x - b.x);
 }

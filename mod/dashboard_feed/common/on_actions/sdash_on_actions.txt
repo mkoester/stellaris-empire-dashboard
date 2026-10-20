@@ -1,6 +1,66 @@
-# this = country. on_actions merge additively; vanilla's monthly events keep firing.
+# on_actions merge additively; vanilla's events keep firing. Every event here is hidden and logs
+# SDASH|2|… lines to game.log for src/lib/server/feed.ts. Scopes from 4.5.2 00_on_actions.txt.
+
+# this = country
 on_monthly_pulse_country = {
 	events = {
 		sdash.1
+		sdash.3	# restarts the tick if its chain was lost (mod added mid-game)
+	}
+}
+
+# this = country
+on_game_start_country = {
+	events = {
+		sdash.3
+	}
+}
+
+# No scope; single player only
+on_single_player_save_game_load = {
+	events = {
+		sdash.4
+	}
+}
+
+# Scope = planet
+on_colonized = {
+	events = {
+		sdash.10
+	}
+}
+
+# Root = country (each country in the war), From = war
+on_war_beginning = {
+	events = {
+		sdash.11
+	}
+}
+
+# Root = loser, From = main winner
+on_war_ended = {
+	events = {
+		sdash.12
+	}
+}
+
+# This = country, From = leader
+on_leader_death = {
+	events = {
+		sdash.13
+	}
+}
+
+# This = country
+on_ruler_set = {
+	events = {
+		sdash.14
+	}
+}
+
+# This = winner's owner, From = loser's owner, FromFrom = winner fleet, FromFromFrom = loser fleet
+on_space_battle_won = {
+	events = {
+		sdash.15
 	}
 }

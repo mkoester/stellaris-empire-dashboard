@@ -42,11 +42,32 @@ export function resourceSeries(
 	history: Snapshot[],
 	pick: (s: Snapshot) => Resources | null
 ): Series {
-	const keys = [...new Set(history.flatMap((s) => Object.keys(pick(s) ?? {})))].sort();
+	return pointSeries(history.map((s) => ({ date: s.date, values: pick(s) })));
+}
+
+/**
+ * The stockpile per snapshot and, between snapshots, per day of the companion mod's tick (the
+ * stockpile moves within a month: spending, the market, rewards).
+ */
+export function stockpileSeries(history: Snapshot[]): Series {
+	return pointSeries(
+		history.flatMap((s, i) => {
+			const after = i > 0 ? history[i - 1].date : '';
+			const days = (s.ticks ?? []).filter((t) => t.date > after && t.date < s.date);
+			return [
+				...days.map((t) => ({ date: t.date, values: withoutResearch(t.stockpile) })),
+				{ date: s.date, values: withoutResearch(s.stockpile) }
+			];
+		})
+	);
+}
+
+function pointSeries(points: { date: string; values: Resources | null }[]): Series {
+	const keys = [...new Set(points.flatMap((p) => Object.keys(p.values ?? {})))].sort();
 	return {
-		x: history.map((s) => gameYear(s.date)),
+		x: points.map((p) => gameYear(p.date)),
 		lines: Object.fromEntries(
-			keys.map((k) => [k, history.map((s) => (pick(s) === null ? null : (pick(s)![k] ?? 0)))])
+			keys.map((k) => [k, points.map((p) => (p.values === null ? null : (p.values[k] ?? 0)))])
 		)
 	};
 }

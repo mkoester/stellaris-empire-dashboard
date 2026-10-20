@@ -337,7 +337,25 @@ export type Snapshot = {
 	leaderList: LeaderInfo[] | null; // every hired leader
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
+	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
+	// before; names the branch point when a save is loaded. null without the mod (0.2.0+).
+	timelineId: number | null;
+	previousTimelineId: number | null;
+	// From the mod's log only, kept through a merge with the save: what happened since the month
+	// before, exactly dated, and the daily stockpiles.
+	logEvents: LogEvent[] | null;
+	ticks: Tick[] | null;
 };
+
+/** One `SDASH|2|<date>|event|…` line of the companion mod; fields as `feed.ts` documents them. */
+export type LogEvent = {
+	date: string;
+	kind: 'colony' | 'war-started' | 'war-ended' | 'leader-died' | 'ruler' | 'combat';
+	fields: string[];
+};
+
+/** The stockpile on one day, from the mod's daily tick. */
+export type Tick = { date: string; stockpile: Resources };
 
 /** `country.focus` with its cards (top-level `focus_cards`). */
 export type EmpireFocus = {

@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Companion mod 0.2.0 (log format 2): the stockpile every day, shown live in the resources panel
+  and between months in the stockpile chart; the exact save you loaded, so a reload's branch is no
+  longer a guess; colonies, wars, leader deaths, new rulers and space battles at the day they
+  happen, on the events page and in the charts. The dashboard still reads the 0.1.0 mod's lines.
+
 ## [0.1.0] - 2026-10-20
 
 First public release.

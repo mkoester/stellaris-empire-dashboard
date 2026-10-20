@@ -82,7 +82,11 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	focus: null,
 	techOptions: null,
 	leaderList: null,
-	speciesRights: null
+	speciesRights: null,
+	timelineId: null,
+	previousTimelineId: null,
+	logEvents: null,
+	ticks: null
 };
 
 const COLONY: Omit<Colony, 'planetId' | 'name'> = {

@@ -147,6 +147,8 @@
 		balance={data.latest.balance}
 		orders={data.latest.marketOrders}
 		galactic={data.latest.market?.galactic}
+		date={data.latest.date}
+		live={data.isHead}
 	/>
 {:else if id === 'upcoming'}
 	<section>
