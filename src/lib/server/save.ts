@@ -233,6 +233,10 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 	});
 }
 
+// The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
+// in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
+export const READER = '1';
+
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
 	return {

@@ -1,5 +1,5 @@
-import { getDb } from '#lib/server/app.ts';
-import { campaignName, headId, nodes } from '#lib/server/db.ts';
+import { getDb, refreshCampaign } from '#lib/server/app.ts';
+import { campaignName, headCampaign, headId, nodes } from '#lib/server/db.ts';
 import { activeProfile, chartEvents, tabs, theme, viewedCampaign } from '#lib/server/settings.ts';
 import { campaignTips } from '#lib/timeline.ts';
 
@@ -11,12 +11,15 @@ export function load() {
 		...c,
 		name: campaignName(db, c.campaign) || c.campaign
 	}));
+	const campaign = viewedCampaign(db);
+	// another campaign's saves are read again by a newer reader once it is viewed
+	if (campaign !== null && campaign !== headCampaign(db)) refreshCampaign(campaign);
 	return {
 		theme: theme(),
 		tabs: tabs(),
 		chartEvents: chartEvents(),
 		profile: { id, name },
 		campaigns,
-		campaign: viewedCampaign(db)
+		campaign
 	};
 }

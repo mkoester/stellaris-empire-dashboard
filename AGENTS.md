@@ -55,8 +55,13 @@ next autosave as a branch (2201.06 under 2201.04).
 so snapshots of deleted saves exist nowhere else — never delete the DB or drop its tables.
 
 - **A new snapshot field needs a default in `upgrade()` (`src/lib/upgrade.ts`)**, which brings
-  stored snapshots to the current shape on read. Saves still on disk refresh their snapshot on
-  every start (a re-read save replaces its stored reading).
+  stored snapshots to the current shape on read, **and a `READER` bump (`server/save.ts`)**. A
+  start reads only saves that are new or changed (`save_file`: path, `mtime:size`, reader). Saves
+  still on disk that an older reader (or an older data DB) read are read again. The campaign
+  being played is re-read at start, any other campaign once it is viewed (`refreshCampaign`; pages
+  reload on the `refreshed` event). A re-read replaces the stored reading and leaves the head
+  alone (`refresh()` in `db.ts`). Forget the bump and the new field stays at its `upgrade()`
+  default until the save changes.
 - `SCHEMA` in `db.ts` versions the _tables_ only; bumping it drops all history. Change the tables
   with a migration instead.
 
@@ -72,7 +77,7 @@ temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save 
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
 each command its own network namespace.
 
-**How it works:** `watch.ts` polls the save folder (first backfill in mtime order, then every 2 s;
+**How it works:** `watch.ts` polls the save folder (first a backfill of what changed since the last run, in mtime order, then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
 `zip.ts` and queries the gamestate with jomini → `db.ts` places the snapshot in the save graph via
 `timeline.ts` and records it → `/api/events` tells open pages to reload. In parallel, `feed.ts`
@@ -427,8 +432,9 @@ root, launcher closed).
 
 ### Sandbox notes (Claude Code on the Mac)
 
-**While the game runs, an end-to-end check is slow**: a dev server on a DB copy backfills every new
-save first (minutes with a few dozen), and tests take 2–3× as long — run it in the background and
+**While the game runs, an end-to-end check is slow**: a dev server on a DB copy backfills every
+save new since the copy first (minutes with a few dozen; every save on disk after a `READER` bump
+in the played campaign), and tests take 2–3× as long — run it in the background and
 wait for its output; pick nodes by date from the copy's `node` table.
 
 On Linux (2026-10-17) Node 24 is first on PATH — no `fnm` prefix — and check, test, lint and a

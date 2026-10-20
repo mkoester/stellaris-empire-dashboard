@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, renameSync, utimesSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { history, nodes, openDb } from './db.ts';
+import { headId, history, nodes, openDb } from './db.ts';
 import { campaignOf, watchSaves, type Ingested } from './watch.ts';
 
 // A tiny but real save: zip of meta + gamestate in the game's text format, parsed by jomini.
@@ -49,7 +49,7 @@ describe('watchSaves', () => {
 		const db = openDb(':memory:');
 		const seen: Ingested[] = [];
 		const errors: unknown[] = [];
-		const stop = await watchSaves(db, root, {
+		const { stop } = await watchSaves(db, root, {
 			onIngest: (r) => seen.push(r),
 			onError: (_f, e) => errors.push(e),
 			intervalMs: 50
@@ -73,7 +73,7 @@ describe('watchSaves', () => {
 		mkdirSync(camp);
 		const db = openDb(':memory:');
 		const errors: string[] = [];
-		const stop = await watchSaves(db, root, {
+		const { stop } = await watchSaves(db, root, {
 			onIngest: () => {},
 			onError: (f) => errors.push(f),
 			intervalMs: 20,
@@ -96,7 +96,7 @@ describe('watchSaves', () => {
 		mkdirSync(join(root, 'empire_1'));
 		const db = openDb(':memory:');
 		const errors: string[] = [];
-		const stop = await watchSaves(db, root, {
+		const { stop } = await watchSaves(db, root, {
 			onIngest: () => {},
 			onError: (f) => errors.push(f),
 			intervalMs: 20,
@@ -110,6 +110,64 @@ describe('watchSaves', () => {
 			expect(nodes(db)).toEqual([]);
 		} finally {
 			stop();
+		}
+	});
+
+	it('reads at start only what changed since the last run', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'saves-'));
+		const camp = join(root, 'empire_1');
+		mkdirSync(camp);
+		const a = writeSave(camp, 'a.sav', '2200.01.01', 1, 10);
+		writeSave(camp, 'b.sav', '2201.01.01', 2, 20);
+		const db = openDb(':memory:');
+		const run = async () => {
+			const seen: string[] = [];
+			const w = await watchSaves(db, root, {
+				onIngest: (r) => seen.push(r.file),
+				onError: (_f, e) => {
+					throw e;
+				},
+				reader: 'r1'
+			});
+			w.stop();
+			return seen;
+		};
+		expect(await run()).toHaveLength(2);
+		expect(await run()).toEqual([]);
+		utimesSync(a, 5000, 5000); // the control: a changed file is read again
+		expect(await run()).toEqual([a]);
+	});
+
+	it('re-reads saves of an older reader: the head campaign at start, another once asked', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'saves-'));
+		mkdirSync(join(root, 'empire_1'));
+		mkdirSync(join(root, 'empire_2'));
+		const old = writeSave(join(root, 'empire_1'), 'a.sav', '2200.01.01', 1, 10);
+		const played = writeSave(join(root, 'empire_2'), 'b.sav', '2230.01.01', 2, 20);
+		utimesSync(old, 1000, 1000);
+		utimesSync(played, 2000, 2000);
+		const db = openDb(':memory:');
+		const quiet = { onIngest: () => {}, onError: () => {} };
+		(await watchSaves(db, root, { ...quiet, reader: 'r1' })).stop();
+		const head = headId(db);
+
+		const reread: string[] = [];
+		const ingested: string[] = [];
+		const w = await watchSaves(db, root, {
+			...quiet,
+			onIngest: (r) => ingested.push(r.file),
+			onRefresh: (r) => reread.push(r.file),
+			reader: 'r2'
+		});
+		try {
+			expect(ingested).toEqual([]);
+			expect(reread).toEqual([played]);
+			expect(await w.refreshCampaign('empire_1')).toBe(1);
+			expect(reread).toEqual([played, old]);
+			expect(headId(db)).toBe(head); // a re-read is no observation
+			expect(await w.refreshCampaign('empire_1')).toBe(0);
+		} finally {
+			w.stop();
 		}
 	});
 });

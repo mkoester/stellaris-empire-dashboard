@@ -14,7 +14,8 @@ import type {
 // The dashboard's own store: the save graph plus one snapshot per node. It is **history, not a
 // cache**: the game keeps only its last few autosaves, so most snapshots can no longer be rebuilt.
 // - A new snapshot field needs a default in `upgrade()` (#lib/upgrade.ts), which brings stored
-//   snapshots up to date on read; saves still on disk refresh theirs on every start.
+//   snapshots up to date on read, and a `READER` bump (save.ts): `save_file` remembers which reader
+//   read each save on disk, and a save is read again only when that changed.
 // - SCHEMA versions the *tables* only. Bumping it drops everything, history included — except the
 //   viewer's settings (`setting`: theme, custom tabs), which no schema change touches.
 // - The galaxy (`Snapshot.galaxy`: every system with its bodies) and the lists as if all were
@@ -70,6 +71,11 @@ export function openDb(file: string): Db {
 			campaign TEXT PRIMARY KEY,
 			date     TEXT NOT NULL,
 			json     TEXT NOT NULL
+		);
+		CREATE TABLE IF NOT EXISTS save_file (
+			path    TEXT PRIMARY KEY,
+			version TEXT NOT NULL,
+			reader  TEXT NOT NULL
 		);
 	`);
 	db.prepare("INSERT OR REPLACE INTO state (key, value) VALUES ('schema', ?)").run(SCHEMA);
@@ -220,6 +226,38 @@ export function record(
 		db.exec('ROLLBACK');
 		throw e;
 	}
+}
+
+/**
+ * Replaces the stored reading of a save seen before, without moving the head (a re-read by a newer
+ * reader is no observation). A save not in the graph is recorded.
+ */
+export function refresh(db: Db, snap: Snapshot, source: string): Recorded {
+	const row = db
+		.prepare('SELECT id FROM node WHERE campaign = ? AND fingerprint = ?')
+		.get(snap.campaign, snap.fingerprint) as { id: number } | undefined;
+	if (!row) return record(db, snap, source);
+	db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(stored(db, snap), row.id);
+	return { nodeId: row.id, isNew: false, mismatches: [] };
+}
+
+/** A save file as last read: its `mtime:size` and the reader that read it. */
+export type ReadFile = { version: string; reader: string };
+
+/** The save files read so far, by path below the save folder. */
+export function readFiles(db: Db): Map<string, ReadFile> {
+	const rows = db.prepare('SELECT path, version, reader FROM save_file').all() as ({
+		path: string;
+	} & ReadFile)[];
+	return new Map(rows.map((r) => [r.path, { version: r.version, reader: r.reader }]));
+}
+
+export function noteFile(db: Db, path: string, file: ReadFile) {
+	db.prepare('INSERT OR REPLACE INTO save_file (path, version, reader) VALUES (?, ?, ?)').run(
+		path,
+		file.version,
+		file.reader
+	);
 }
 
 /**

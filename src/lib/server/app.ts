@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, statSync } from 'node:fs';
 import { dirname } from 'node:path';
 import {
 	headCampaign,
@@ -15,10 +15,10 @@ import { trackedMods } from '#lib/addons.ts';
 import type { GameData, ModInfo } from '#lib/types.ts';
 import { tailLog, toLogSnapshot } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
-import { setPrescriptedNames } from './save.ts';
+import { READER, setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
 import { loadModDescriptors } from './mods.ts';
-import { watchSaves } from './watch.ts';
+import { watchSaves, type Watcher } from './watch.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
 // companion mod, and one event bus for live updates.
@@ -36,6 +36,7 @@ type State = {
 	gameData?: GameData;
 	explanations?: Explanations;
 	mods?: ModInfo[];
+	watcher?: Watcher;
 };
 const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
 const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter() });
@@ -75,6 +76,18 @@ function recorded(r: Recorded, source: string) {
 	updates.emit('update', r.nodeId);
 }
 
+/**
+ * Re-reads the campaign's saves left to an older reader, in the background, once; open pages
+ * reload when it is done.
+ */
+export function refreshCampaign(campaign: string) {
+	state.watcher?.refreshCampaign(campaign).then((n) => {
+		if (!n) return;
+		console.log(`re-read ${n} saves of ${campaign}`);
+		updates.emit('update', 'refreshed');
+	});
+}
+
 /** Starts once per process; later calls (re-imports, a second init) get the same start-up. */
 export function start(): Promise<void> {
 	return (state.starting ??= run());
@@ -83,16 +96,21 @@ export function start(): Promise<void> {
 async function run() {
 	const dbFile = required('DASHBOARD_DB');
 	const saveDir = required('STELLARIS_SAVE_DIR');
-	state.gameData = loadGameData(required('STELLARIS_DATA_DB'));
+	const dataDb = required('STELLARIS_DATA_DB');
+	state.gameData = loadGameData(dataDb);
 	setPrescriptedNames(state.gameData.prescriptedNames);
-	state.explanations = loadExplanations(required('STELLARIS_DATA_DB'));
+	state.explanations = loadExplanations(dataDb);
 	state.mods = loadModDescriptors(saveDir);
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));
 
-	await watchSaves(store, saveDir, {
+	// Snapshots carry names from the data DB (prescripted empires): a new one means a new reading.
+	const data = statSync(dataDb);
+	state.watcher = await watchSaves(store, saveDir, {
 		onIngest: (r) => recorded(r, r.file),
-		onError: (file, e) => console.error(`cannot ingest ${file}:`, e)
+		onRefresh: (r) => console.log(`re-read node ${r.nodeId} ← ${r.file}`),
+		onError: (file, e) => console.error(`cannot ingest ${file}:`, e),
+		reader: `${READER}:${data.mtimeMs}:${data.size}`
 	});
 	// after the backfill, so the note carries the latest game date
 	const head = headId(store);

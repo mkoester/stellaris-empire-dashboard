@@ -13,6 +13,7 @@ import {
 	nodes,
 	openDb,
 	record,
+	refresh,
 	setParent,
 	setSetting
 } from './db.ts';
@@ -285,5 +286,23 @@ describe('history', () => {
 		const { nodeId } = record(db, snap('2200.02.01', 'a', 1), 't');
 		record(db, snap('2200.02.01', 'a', 7), 't');
 		expect(history(db, nodeId)[0].stockpile.energy).toBe(7);
+	});
+});
+
+describe('refresh', () => {
+	it('replaces a stored reading without moving the head', () => {
+		const db = openDb(':memory:');
+		const first = record(db, snap('2200.01.01', 'a', 1), 's').nodeId;
+		const head = record(db, snap('2201.01.01', 'b', 2), 's').nodeId;
+		expect(refresh(db, snap('2200.01.01', 'a', 5), 's').nodeId).toBe(first);
+		expect(headId(db)).toBe(head);
+		expect(history(db, head).map((s) => s.stockpile.energy)).toEqual([5, 2]);
+	});
+
+	it('records a save not in the graph', () => {
+		const db = openDb(':memory:');
+		const r = refresh(db, snap('2200.01.01', 'a'), 's');
+		expect(r.isNew).toBe(true);
+		expect(headId(db)).toBe(r.nodeId);
 	});
 });
