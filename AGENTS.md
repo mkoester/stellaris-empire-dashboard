@@ -427,6 +427,10 @@ root, launcher closed).
 
 ### Sandbox notes (Claude Code on the Mac)
 
+**While the game runs, an end-to-end check is slow**: a dev server on a DB copy backfills every new
+save first (minutes with a few dozen), and tests take 2–3× as long — run it in the background and
+wait for its output; pick nodes by date from the copy's `node` table.
+
 On Linux (2026-10-17) Node 24 is first on PATH — no `fnm` prefix — and check, test, lint and a
 dev server on a DB copy all ran sandboxed. Kill that server by `$!`, not `pkill -f <pattern>`,
 which also matches the Bash command's own shell and ends it (exit 143).
