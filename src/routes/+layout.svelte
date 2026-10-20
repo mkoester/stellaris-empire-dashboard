@@ -147,45 +147,52 @@
 </svelte:head>
 
 <main class="mx-auto max-w-[96rem] p-4">
-	<nav
-		class="mb-4 flex flex-wrap items-end gap-1 border-b border-gray-200 text-sm dark:border-gray-800"
-	>
-		{#each data.tabs as t (t.id)}
-			<a class={tab(path === `/tab/${t.id}`)} href={tabHref(t.id)}>{t.name}</a>
-		{/each}
-		{#each fixed as t (t.name)}
-			<a class={tab(t.active)} href={t.href}>{t.name}</a>
-		{/each}
-		<button class={tab(false)} onclick={addTab} title="add a tab of your own">+</button>
-		<a
-			class="ml-auto {tab(path === '/settings')}"
-			href={node ? resolve(`/settings?node=${node}`) : resolve('/settings')}
-			title="config: profiles and display">⚙ {data.profile.name}</a
+	{#if data.setup}
+		{@render children()}
+	{:else}
+		<nav
+			class="mb-4 flex flex-wrap items-end gap-1 border-b border-gray-200 text-sm dark:border-gray-800"
 		>
-		{#if data.campaigns.length > 1}
+			{#each data.tabs as t (t.id)}
+				<a class={tab(path === `/tab/${t.id}`)} href={tabHref(t.id)}>{t.name}</a>
+			{/each}
+			{#each fixed as t (t.name)}
+				<a class={tab(t.active)} href={t.href}>{t.name}</a>
+			{/each}
+			<button class={tab(false)} onclick={addTab} title="add a tab of your own">+</button>
+			<a
+				class="ml-auto {tab(path === '/settings')}"
+				href={node ? resolve(`/settings?node=${node}`) : resolve('/settings')}
+				title="config: profiles and display">⚙ {data.profile.name}</a
+			>
+			{#if data.campaigns.length > 1}
+				<label class="pb-1 text-gray-500"
+					>game
+					<select
+						class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+						value={data.campaign}
+						onchange={(e) => switchCampaign(e.currentTarget.value)}
+					>
+						{#each data.campaigns as c (c.campaign)}
+							<option value={c.campaign}>{c.name} ({c.date})</option>
+						{/each}
+					</select>
+				</label>
+			{/if}
 			<label class="pb-1 text-gray-500"
-				>game
+				>theme
 				<select
 					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
-					value={data.campaign}
-					onchange={(e) => switchCampaign(e.currentTarget.value)}
+					value={data.theme}
+					onchange={(e) => setTheme(e.currentTarget.value as Theme)}
 				>
-					{#each data.campaigns as c (c.campaign)}
-						<option value={c.campaign}>{c.name} ({c.date})</option>
-					{/each}
+					{#each THEMES as t (t)}<option value={t}>{t}</option>{/each}
 				</select>
 			</label>
-		{/if}
-		<label class="pb-1 text-gray-500"
-			>theme
-			<select
-				class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
-				value={data.theme}
-				onchange={(e) => setTheme(e.currentTarget.value as Theme)}
+			<span class="pb-1 text-[11px] text-gray-400" title="dashboard version"
+				>v{__APP_VERSION__}</span
 			>
-				{#each THEMES as t (t)}<option value={t}>{t}</option>{/each}
-			</select>
-		</label>
-	</nav>
-	{@render children()}
+		</nav>
+		{@render children()}
+	{/if}
 </main>

@@ -209,4 +209,12 @@
 			>
 		{/each}
 	</section>
+	<section>
+		<h2 class="mb-1 text-xl font-semibold">Folders</h2>
+		<p class="text-gray-500">
+			The game install and the folder with your saves: <a class="underline" href={resolve('/setup')}
+				>change them</a
+			>.
+		</p>
+	</section>
 </div>
