@@ -31,9 +31,9 @@ Cross-project conventions come from the OKF vault; workspace rules from `../CLAU
 
 ## Running it
 
-Runs on the machine the game runs on (Linux/Proton) and binds to `127.0.0.1`. Paths are required
-settings with no defaults — a default pointing at a real location fails quietly against the wrong
-tree.
+Runs on the machine the game runs on and binds to `127.0.0.1`. **Players** get a zip per OS
+(below) and pick two folders on `/setup`; **development** passes every path explicitly, so a dev
+server never picks a real folder by itself:
 
 ```sh
 DASHBOARD_DB=<dir>/dashboard.sqlite \
@@ -46,6 +46,51 @@ pnpm dev --host 127.0.0.1
 `STELLARIS_DATA_DB` is the extraction's SQLite, read once at start for tech/agenda names and base
 costs and the cost defines — regenerate it after a game update (`../stellaris-data-extraction/AGENTS.md`).
 `STELLARIS_GAME_LOG` is opt-in: set it when the companion mod is enabled.
+
+**Configuration** (`server/config.ts`): environment variables win, then `config.json` in the app
+data folder (`%APPDATA%\stellaris-empire-dashboard`, `$XDG_DATA_HOME/stellaris-empire-dashboard`),
+which `/setup` writes: `{ gameDir, userDir, gameLog? }`. The save folder is `<userDir>/save games`,
+the dashboard DB `dashboard.sqlite` there unless `DASHBOARD_DB`. While a folder is missing,
+`run()` leaves the app in `setup` and `hooks.server.ts` sends every page to `/setup`; a failed
+start (no Python, a broken install) lands there too, with the reason — never a crashed server. The
+root layout's load returns empty data then (`setup: true`), the layout no tab bar.
+
+**Discovery** (`server/locate.ts`, for `/setup`): Steam libraries from every Steam root's
+`libraryfolders.vdf` (Windows: `SteamPath` from the registry; Linux: native, `~/.steam/steam`,
+Flatpak, Snap), GOG (registry `GOG.com\Games\*\path`, `C:\GOG Games`, `~/GOG Games`, Heroic),
+Microsoft Store (`<drive>:\XboxGames\Stellaris\Content`); user folders from the real Documents
+folder (registry `User Shell Folders\Personal`, so OneDrive redirection counts), Linux native,
+Proton's `compatdata/281990` in every library, Wine prefixes. A folder counts only when it holds the
+game's files (`isGameDir`, `isUserDir`); user folders rank by newest save. **Not yet confirmed on a
+real machine:** the Microsoft Store layout, GOG's registry key, Heroic/Lutris — players type the
+path when they are wrong. This machine has a native and a Proton user folder side by side (the
+Proton one holds the saves).
+
+**Game data** (`server/extract.ts`): without `STELLARIS_DATA_DB` the extractor runs at start
+against `gameDir` — `data/stellaris-<rawVersion>-<hash of the DLC folders>.sqlite`, so a game update
+or a new DLC extracts again (~5 s), older files stay. The packaged launcher names the extractor and
+its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`).
+
+## Packaging and releases
+
+`node scripts/package.mjs [--os windows|linux]` → `dist/stellaris-empire-dashboard-<version>-<os>-x64.zip`:
+the build plus `jomini` (the only external import left in the build), Node 24 (pinned, SHA-256
+from nodejs.org), the extractor from `../stellaris-data-extraction` by `git archive HEAD` (a
+release build refuses one that is not on a tag), on Windows Python's embeddable package (pinned,
+SHA-256 from python.org's release API; its `._pth` gets `..\extractor`), and `release/`:
+`launcher.mjs`, `start.bat` / `start.sh` (checks `python3 ≥ 3.10`), `README.txt` for players.
+Downloads are cached in `.cache/`. **In the Claude Code sandbox** Node's `fetch` needs
+`NODE_USE_ENV_PROXY=1` to reach nodejs.org (it ignores the proxy otherwise: `EAI_AGAIN`).
+
+**`launcher.mjs` serves the app through its own HTTP server**, not adapter-node's `index.js`:
+without `ORIGIN` adapter-node 6 takes every request for `https`, and SvelteKit rejects the forms
+(`/setup`, `/timeline`) as `Cross-site POST form submissions are forbidden` — only on the built
+app, `pnpm dev` never shows it. It marks each request `http` in a header named by `PROTOCOL_HEADER`,
+so 127.0.0.1, localhost and a LAN address (`--lan`) all work, and a foreign origin is still refused.
+
+The version in the header and the zip names is `scripts/version.mjs` (decorated with git state).
+Releasing: `RELEASE.md`. The Windows zip has not run on Windows yet — Wine cannot start in the
+sandbox (`wineserver` needs a writable `/tmp`).
 
 **One watcher per process.** `app.ts` keeps its state on `globalThis`: Vite re-imports server
 modules on edits, and a second watcher once re-read the saves, moved the head back and filed the
