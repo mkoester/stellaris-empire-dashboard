@@ -157,7 +157,14 @@ dev server ingests saves and moves the head). On the Linux game machine it lives
 `~/.local/share/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
-each command its own network namespace.
+each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
+`data` with `unflatten` from `node_modules/.pnpm/devalue@*/node_modules/devalue/index.js` (a
+`node --experimental-strip-types` script can import the pure `src/lib/*.ts` to recompute from it).
+A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{…}}`, with the
+page's `?node=`). A save-wide question (every colony across the history) is quickest as a
+throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
+updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
+server modules that call `getGameData()`/`getExplanations()` — delete it after.
 
 **How it works:** `watch.ts` polls the save folder (first what changed since the last run, in mtime order — the head campaign's at once, the others' in the background — then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
@@ -1027,6 +1034,10 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   capital). Habitability: `pop_groups.<id>.habitability` (0–1, seen 1 and 0.9), pops-weighted.
 
 ## Open (needs a running game on Linux)
+
+**The checks still owed from the 2026-10-22 session — what, how, which screenshot — are listed in
+`docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech
+screen, trade calibration, stored research, releases).
 
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
   show a link never jumped through). At the first wormhole explored, diff its `bypasses.<id>`,
