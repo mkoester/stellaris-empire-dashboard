@@ -84,13 +84,36 @@
 										<td class="p-1" colspan="3">not in the budget</td>
 										<td class="p-1 text-right">{p.unbooked.days.length ? signed(rest) : '–'}</td>
 									</tr>
-									{#if p.unbooked.days.length > 1}
-										{#each p.unbooked.days as d (d.date)}
-											<tr class="text-xs text-amber-600">
-												<td class="p-1 pl-4" colspan="3">{d.date}</td>
-												<td class="p-1 text-right">{signed(d.amount)}</td>
+									{#each p.unbooked.named as n, i (i)}
+										<tr class="text-xs">
+											<td class="p-1 pl-4" colspan="3">{n.date} · {n.label}</td>
+											<td
+												class="p-1 text-right"
+												title={n.approx ? 'base cost, before modifiers' : ''}
+												>{n.approx ? '≈ ' : ''}{signed(n.amount)}</td
+											>
+										</tr>
+									{/each}
+									{#if p.unbooked.days.length}
+										{@const open = Math.abs(p.unbooked.unexplained) >= 0.01}
+										<tr
+											class="text-xs {open ? 'text-amber-600' : 'text-gray-500'}"
+											title={p.unbooked.days
+												.map((d) => `${d.date}: ${signed(d.amount)}`)
+												.join('\n')}
+										>
+											<td class="p-1 pl-4" colspan="3">unexplained</td>
+											<td class="p-1 text-right">{open ? signed(p.unbooked.unexplained) : '–'}</td>
+										</tr>
+										{#if open && p.unbooked.causes.length}
+											<tr class="text-xs text-gray-500">
+												<td class="p-1 pl-8" colspan="4"
+													>maybe: {p.unbooked.causes
+														.map((c) => `${c.label} (${c.date})`)
+														.join(', ')}</td
+												>
 											</tr>
-										{/each}
+										{/if}
 									{/if}
 								{/if}
 							</tbody>

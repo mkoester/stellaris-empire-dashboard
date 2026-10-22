@@ -52,6 +52,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	automationBlocked: null,
 	planetBudget: null,
 	budget: null,
+	construction: null,
 	score: null,
 	fleets: null,
 	idleLeaders: null,

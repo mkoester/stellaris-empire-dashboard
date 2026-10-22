@@ -13,6 +13,11 @@
 		string?
 	][] = [
 		[
+			'tradeoffs',
+			'Trade-offs tab: stations, districts or buildings first — payback and a simulation',
+			'exploratory: estimates from your budget, with knobs for upcoming techs and traditions'
+		],
+		[
 			'habitatsAlways',
 			'Expansion: show habitat sites even before habitats can be built',
 			'later behind an “enable cheats” switch'

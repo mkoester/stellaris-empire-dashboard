@@ -43,7 +43,17 @@ const EVENT_FIELDS: Record<LogEvent['kind'], number> = {
 	'war-ended': 2, // loser, main winner
 	'leader-died': 1, // leader
 	ruler: 1, // the new ruler
-	combat: 5 // winner, winner's fleet, loser, loser's fleet, system
+	combat: 5, // winner, winner's fleet, loser, loser's fleet, system
+	// mod 0.3.0: spending outside the budget
+	'district-queued': 1, // colony
+	'district-unqueued': 1,
+	'building-queued': 1,
+	'building-unqueued': 1,
+	edict: 0, // the edict is not in the on_action's scope
+	decision: 1, // colony
+	'leader-hired': 1, // leader
+	'colonization-started': 1, // planet
+	'megastructure-started': 1 // system
 };
 
 /** Parses one log line; null for unrelated lines, throws on a malformed SDASH line. */
@@ -74,8 +84,9 @@ export function parseLine(raw: string): Line | null {
 		}
 		if (head === 'event') {
 			const [kind, ...fields] = args;
-			if (!(kind in EVENT_FIELDS) || fields.length !== EVENT_FIELDS[kind as LogEvent['kind']])
-				throw bad();
+			// a newer mod's kind: skipped, so an older dashboard keeps reading the rest
+			if (!(kind in EVENT_FIELDS)) return null;
+			if (fields.length !== EVENT_FIELDS[kind as LogEvent['kind']]) throw bad();
 			return { kind: 'event', event: { date, kind: kind as LogEvent['kind'], fields } };
 		}
 	}
@@ -189,6 +200,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		automationBlocked: null,
 		planetBudget: null,
 		budget: null,
+		construction: null,
 		score: null,
 		fleets: null,
 		idleLeaders: null,

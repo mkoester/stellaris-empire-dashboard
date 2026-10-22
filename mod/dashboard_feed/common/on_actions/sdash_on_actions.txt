@@ -64,3 +64,67 @@ on_space_battle_won = {
 		sdash.15
 	}
 }
+
+# Spending the budget does not book: one line each, with the place where the scope names one.
+# This = Colony
+on_district_queued = {
+	events = {
+		sdash.20
+	}
+}
+
+# This = Colony
+on_district_unqueued = {
+	events = {
+		sdash.21
+	}
+}
+
+# This = Colony
+on_building_queued = {
+	events = {
+		sdash.22
+	}
+}
+
+# This = Colony
+on_building_unqueued = {
+	events = {
+		sdash.23
+	}
+}
+
+# Root = Country
+on_edict_activated = {
+	events = {
+		sdash.24
+	}
+}
+
+# Root = Carrier, From = Carrier Owner
+on_decision_enacted = {
+	events = {
+		sdash.25
+	}
+}
+
+# This = Leader
+on_leader_hired = {
+	events = {
+		sdash.26
+	}
+}
+
+# Scope = Planet
+on_colonization_started = {
+	events = {
+		sdash.27
+	}
+}
+
+# Root = Country, From = System, FromFrom = Fleet
+on_megastructure_build_start = {
+	events = {
+		sdash.28
+	}
+}

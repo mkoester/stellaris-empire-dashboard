@@ -283,3 +283,147 @@ country_event = {
 		log = "SDASH|2|[GetDate]|event|combat|[This.GetName]|[FromFrom.GetName]|[From.GetName]|[FromFromFrom.GetName]|[FromFrom.GetStarName]"
 	}
 }
+
+# Spending outside the budget: what and where, never the item or its cost (the scopes do not
+# name them); feed.ts matches them with the save's construction items and the daily stockpile.
+
+# This = Colony
+carrier_event = {
+	id = sdash.20
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|district-queued|[This.GetName]"
+	}
+}
+
+# This = Colony
+carrier_event = {
+	id = sdash.21
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|district-unqueued|[This.GetName]"
+	}
+}
+
+# This = Colony
+carrier_event = {
+	id = sdash.22
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|building-queued|[This.GetName]"
+	}
+}
+
+# This = Colony
+carrier_event = {
+	id = sdash.23
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|building-unqueued|[This.GetName]"
+	}
+}
+
+# Root = Country (the edict is not in scope)
+country_event = {
+	id = sdash.24
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|edict"
+	}
+}
+
+# Root = Carrier, From = Carrier Owner (the decision is not in scope)
+carrier_event = {
+	id = sdash.25
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|decision|[Root.GetName]"
+	}
+}
+
+# This = Leader
+leader_event = {
+	id = sdash.26
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|leader-hired|[This.GetName]"
+	}
+}
+
+# Scope = Planet
+planet_event = {
+	id = sdash.27
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|colonization-started|[This.GetName]"
+	}
+}
+
+# Root = Country, From = System, FromFrom = Fleet
+country_event = {
+	id = sdash.28
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|megastructure-started|[From.GetName]"
+	}
+}

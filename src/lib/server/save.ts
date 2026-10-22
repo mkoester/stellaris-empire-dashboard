@@ -2,6 +2,7 @@ import { bypassLinks, distances, graph, type Graph } from '#lib/galaxyGraph.ts';
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
+	Construction,
 	KnownSystem,
 	MigrationColony,
 	Route,
@@ -235,7 +236,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '3';
+export const READER = '4';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -270,6 +271,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		automationBlocked: items(raw.automationResources).map(String),
 		planetBudget: planetBudget(budget),
 		budget: budgetSources(budget),
+		construction: construction(raw),
 		score: {
 			rank: num(raw.country?.victory_rank),
 			score: num(raw.country?.victory_score),
@@ -1806,25 +1808,79 @@ export function buildQueue(
 	const items = raw.construction?.item_mgr?.items ?? {};
 	return list(queue?.items).flatMap((id) => {
 		const item = items[String(id)];
-		const key = item && Object.keys(item).find((k) => k.startsWith('buildable_'));
-		if (!key) return [];
-		const kind = key.slice('buildable_'.length);
-		const what = item[key] ?? {};
-		// Ships (and colony ships) name no type, only a design: shown by its size and name.
-		const design = raw.shipDesigns?.[String(what.ship_design_implementation?.design)];
-		const name =
-			kind === 'clear_deposit_blocker'
-				? String(raw.deposits[String(what.deposit)]?.type ?? 'blocker')
-				: design
-					? String(first(design.growth_stages)?.ship_size ?? kind)
-					: String(Object.values(what).find((v) => typeof v === 'string') ?? kind);
+		const it = item && itemOf(raw, item);
+		return it
+			? [
+					{
+						kind: it.kind,
+						name: it.name,
+						...(it.design ? { design: it.design } : {}),
+						progress: num(item.progress),
+						needed: num(item.progress_needed)
+					}
+				]
+			: [];
+	});
+}
+
+/** What a construction item builds: its `buildable_<kind> = { … }` block, named. */
+function itemOf(
+	raw: Pick<RawSave, 'deposits'> & Partial<Pick<RawSave, 'shipDesigns'>>,
+	item: Raw
+): { kind: string; name: string; design?: string; what: Raw } | null {
+	const key = Object.keys(item).find((k) => k.startsWith('buildable_'));
+	if (!key) return null;
+	const kind = key.slice('buildable_'.length);
+	const what = item[key] ?? {};
+	// Ships (and colony ships) name no type, only a design: shown by its size and name.
+	const design = raw.shipDesigns?.[String(what.ship_design_implementation?.design)];
+	const name =
+		kind === 'clear_deposit_blocker'
+			? String(raw.deposits[String(what.deposit)]?.type ?? 'blocker')
+			: design
+				? String(first(design.growth_stages)?.ship_size ?? kind)
+				: String(Object.values(what).find((v) => typeof v === 'string') ?? kind);
+	return { kind, name, ...(design ? { design: displayName(design.name) } : {}), what };
+}
+
+/**
+ * Every construction item the country pays for (`paying_country`; the queues' owners differ —
+ * a sector's queue, a starbase's), with its cost — paid when queued, refunded when cancelled —
+ * and where: the planet, else the starbase's system. A `buildable_*.planet` is a **colony** id
+ * (2207.04.02: `planet=0` is Earth's colony 0, Earth being planet 3); `orbitable` names planets
+ * and starbases.
+ */
+export function construction(
+	raw: Pick<RawSave, 'countryId' | 'construction' | 'deposits' | 'planets' | 'systems'> &
+		Partial<Pick<RawSave, 'shipDesigns'>>
+): Construction[] {
+	const systemOf = (starbase: Raw) =>
+		Object.values(raw.systems).find((s) => list(s?.starbases).includes(Number(starbase)));
+	const ofColony = (colony: Raw) =>
+		Object.values(raw.planets).find((p) => p?.colony !== undefined && p.colony === Number(colony));
+	return Object.entries<Raw>(raw.construction?.item_mgr?.items ?? {}).flatMap(([id, item]) => {
+		if (item?.paying_country !== raw.countryId) return [];
+		const it = itemOf(raw, item);
+		if (!it) return [];
+		const planet =
+			it.what.planet !== undefined
+				? ofColony(it.what.planet)
+				: raw.planets[String(it.what.orbitable?.planet)];
+		const starbase = it.what.starbase ?? it.what.orbitable?.starbase;
+		const where =
+			planet !== undefined
+				? displayName(planet.name) || null
+				: starbase !== undefined
+					? displayName(systemOf(starbase)?.name) || null
+					: null;
 		return [
 			{
-				kind,
-				name,
-				...(design ? { design: displayName(design.name) } : {}),
-				progress: num(item.progress),
-				needed: num(item.progress_needed)
+				id: Number(id),
+				kind: it.kind,
+				name: it.name,
+				...(it.design ? { design: it.design } : {}),
+				where,
+				cost: resources(item.resources)
 			}
 		];
 	});

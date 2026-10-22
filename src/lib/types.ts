@@ -192,6 +192,16 @@ export type MegaShipyard = {
 };
 
 /** One entry of a planet's build queue, in queue order. */
+/** A construction item the country pays for, wherever it is queued. */
+export type Construction = {
+	id: number; // construction.item_mgr.items.<id>
+	kind: string; // as QueueItem
+	name: string;
+	design?: string;
+	where: string | null; // the planet, else the starbase's system
+	cost: Resources;
+};
+
 export type QueueItem = {
 	kind: string; // from buildable_<kind>: district, building, army, clear_deposit_blocker, …
 	name: string; // what is built: district/building key, army type, blocker deposit type, ship size
@@ -268,6 +278,7 @@ export type Snapshot = {
 	automationBlocked: string[] | null; // resources planet automation may not spend
 	planetBudget: BudgetSource[] | null; // the budget's planet_* and pop_* sources
 	budget: BudgetSource[] | null; // every budget source, the market's as `market:<source>`
+	construction: Construction[] | null; // construction items we pay for, with their cost
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
@@ -348,10 +359,24 @@ export type Snapshot = {
 	ticks: Tick[] | null;
 };
 
+export type MilestoneLogKind =
+	'colony' | 'war-started' | 'war-ended' | 'leader-died' | 'ruler' | 'combat';
+/** Spending the budget does not book (mod 0.3.0): what and where, not the item or its cost. */
+export type SpendLogKind =
+	| 'district-queued'
+	| 'district-unqueued'
+	| 'building-queued'
+	| 'building-unqueued'
+	| 'edict'
+	| 'decision'
+	| 'leader-hired'
+	| 'colonization-started'
+	| 'megastructure-started';
+
 /** One `SDASH|2|<date>|event|…` line of the companion mod; fields as `feed.ts` documents them. */
 export type LogEvent = {
 	date: string;
-	kind: 'colony' | 'war-started' | 'war-ended' | 'leader-died' | 'ruler' | 'combat';
+	kind: MilestoneLogKind | SpendLogKind;
 	fields: string[];
 };
 
@@ -417,6 +442,7 @@ export type Body = {
 	anomaly: string | null; // category; shown only where surveyed unless `surveyAll` (surveyView)
 	dist: number; // from the system's centre (in-system coordinates)
 	surveyed?: boolean; // by us (`surveyed_by`); since 2026-10-18
+	station?: boolean; // a station mines or researches its deposit; since 2026-10-22
 };
 
 export type CountryInfo = {
@@ -667,7 +693,22 @@ export type TimelineNode = {
 };
 
 /** Names, costs and rules from the extraction's SQLite (STELLARIS_DATA_DB), loaded once. */
+/** Base cost, upkeep and output of a thing the game builds (data DB, before modifiers). */
+export type Costs = { cost: Resources; upkeep: Resources; produces: Resources };
+
 export type GameData = {
+	costs: Record<'district' | 'ship' | 'building' | 'deposit', Record<string, Costs>>;
+	districtJobs: Record<string, Record<string, number>>; // district → job → positions (pops)
+	buildingJobs: Record<string, Record<string, number>>;
+	buildDays: Record<string, number>; // districts, ship sizes, buildings: base days
+	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
+	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
+	growthModifiers: Record<string, Record<string, number>>;
+	// what researching a tech needs: prerequisites, who can get it (`potential`), rarity
+	techRequirements: Record<
+		string,
+		{ prerequisites: string[]; potential: Trigger | null; rare: boolean; dangerous: boolean }
+	>; // `tech:`/`tradition:` key → cost and output modifiers
 	techs: Record<string, { name: string; cost: number | null; area: string; tier: number | null }>;
 	agendas: Record<
 		string,

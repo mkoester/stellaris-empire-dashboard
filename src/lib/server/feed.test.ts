@@ -68,8 +68,19 @@ describe('parseLine', () => {
 		});
 	});
 
-	it('refuses unknown events and wrong field counts (a "|" in a name)', () => {
-		expect(() => parseLine('SDASH|2|2201.03.07|event|nonsense|x')).toThrow(/malformed/);
+	it('reads the spending events, the edict without a field', () => {
+		expect(parseLine('SDASH|2|2201.03.07|event|district-queued|Earth')).toEqual({
+			kind: 'event',
+			event: { date: '2201.03.07', kind: 'district-queued', fields: ['Earth'] }
+		});
+		expect(parseLine('SDASH|2|2201.03.07|event|edict')).toEqual({
+			kind: 'event',
+			event: { date: '2201.03.07', kind: 'edict', fields: [] }
+		});
+	});
+
+	it('skips a newer mod\'s event kinds, refuses wrong field counts (a "|" in a name)', () => {
+		expect(parseLine('SDASH|2|2201.03.07|event|nonsense|x')).toBeNull();
 		expect(() => parseLine('SDASH|2|2201.03.07|event|colony|New|Hope')).toThrow(/malformed/);
 		expect(() => parseLine('SDASH|2|2201.03.07|tick|energy|')).toThrow(/malformed/);
 	});

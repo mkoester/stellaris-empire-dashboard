@@ -1,4 +1,5 @@
 import { stripOrder } from './resourceGroups.ts';
+import type { Spend } from './spending.ts';
 import type { Colony, Resources, Snapshot } from './types.ts';
 
 // Snapshot history → chart columns. Pure, shared by server and page.
@@ -89,6 +90,9 @@ export type Unbooked = {
 	actual: number; // the stockpile's change since `since`
 	booked: number; // the month's payout, the budget's net
 	days: { date: string; amount: number }[]; // the rest, per day of the mod's tick, else in one
+	named: { date: string; label: string; amount: number; approx: boolean }[]; // of the rest
+	unexplained: number; // the rest less what is named
+	causes: { date: string; label: string }[]; // named, but at a cost the game does not say
 };
 
 /**
@@ -98,7 +102,7 @@ export type Unbooked = {
  * as its balance (2207.03.10 → 04.02: energy −26.54 = +3.455 paid, −30 else; minerals −600 for a
  * district). Null when saves are missing for a month start in between.
  */
-export function unbooked(history: Snapshot[], key: string): Unbooked | null {
+export function unbooked(history: Snapshot[], key: string, spends: Spend[] = []): Unbooked | null {
 	const latest = history.at(-1);
 	if (!latest) return null;
 	const i = history.findLastIndex((s) => s.date < `${latest.date.slice(0, 8)}01`);
@@ -113,7 +117,13 @@ export function unbooked(history: Snapshot[], key: string): Unbooked | null {
 		return Math.abs(amount) < 0.01 ? [] : [{ date: p.date, amount }];
 	});
 	const actual = (latest.stockpile[key] ?? 0) - (base.stockpile[key] ?? 0);
-	return { since: base.date, actual, booked, days };
+	const window = spends.filter((s) => s.date > base.date && s.date <= latest.date);
+	const named = window.flatMap((s) =>
+		s.cost?.[key] ? [{ date: s.date, label: s.label, amount: -s.cost[key], approx: s.approx }] : []
+	);
+	const unexplained = named.reduce((rest, n) => rest - n.amount, actual - booked);
+	const causes = window.filter((s) => s.cost === null).map(({ date, label }) => ({ date, label }));
+	return { since: base.date, actual, booked, days, named, unexplained, causes };
 }
 
 /** The resources to chart one by one: the strip's always-shown ones and any ever held or moved. */

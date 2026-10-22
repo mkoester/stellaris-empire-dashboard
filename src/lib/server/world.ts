@@ -54,7 +54,10 @@ export function stationOwner(
 	return null;
 }
 
-function body(raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>, id: number): Body | null {
+export function body(
+	raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>,
+	id: number
+): Body | null {
 	const p = raw.planets[String(id)];
 	if (!p || typeof p !== 'object') return null;
 	const cls = String(p.planet_class ?? '');
@@ -72,7 +75,9 @@ function body(raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>, id: numb
 			.filter((t): t is string => typeof t === 'string' && t !== 'none'),
 		anomaly: typeof p.anomaly === 'string' ? p.anomaly : null,
 		dist: Math.hypot(num(p.coordinate?.x), num(p.coordinate?.y)),
-		surveyed: list(p.surveyed_by).includes(raw.countryId)
+		surveyed: list(p.surveyed_by).includes(raw.countryId),
+		// a mining or research station orbits it (`shipclass_orbital_station` = the ship's id)
+		station: p.shipclass_orbital_station !== undefined
 	};
 }
 

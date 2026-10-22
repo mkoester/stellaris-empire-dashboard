@@ -332,7 +332,7 @@ const DETECTORS = [
  * A mod event as the milestone it re-dates: its kind, the text a diffed label of that kind must
  * contain to be the same event, and the label to show when no save shows it.
  */
-function fromLog(e: LogEvent): { kind: EventKind; match: string | null; label: string } {
+function fromLog(e: LogEvent): { kind: EventKind; match: string | null; label: string } | null {
 	const [a, b, c, d, system] = e.fields;
 	switch (e.kind) {
 		case 'colony':
@@ -355,6 +355,8 @@ function fromLog(e: LogEvent): { kind: EventKind; match: string | null; label: s
 				match: null, // no save diff to match
 				label: `battle at ${system}: ${a} (${b}) beat ${c} (${d})`
 			};
+		default: // spending, shown on the resources tab
+			return null;
 	}
 }
 
@@ -373,8 +375,10 @@ export function milestones(snaps: Snapshot[], names: Names): Milestone[] {
 	const taken = new Set<Milestone>();
 	const logged = snaps
 		.flatMap((s) => s.logEvents ?? [])
-		.map((e): Milestone => {
-			const { kind, match, label } = fromLog(e);
+		.flatMap((e): Milestone[] => {
+			const found = fromLog(e);
+			if (!found) return [];
+			const { kind, match, label } = found;
 			const until = addGameDays(e.date, LOG_WINDOW_DAYS);
 			const same = diffed
 				.filter(
@@ -388,7 +392,7 @@ export function milestones(snaps: Snapshot[], names: Names): Milestone[] {
 				)
 				.sort((p, q) => p.x - q.x)[0];
 			if (same) taken.add(same);
-			return { ...(same ?? { kind, label }), date: e.date, x: gameYear(e.date) };
+			return [{ ...(same ?? { kind, label }), date: e.date, x: gameYear(e.date) }];
 		});
 	return [...diffed.filter((m) => !taken.has(m)), ...logged].sort((a, b) => a.x - b.x);
 }

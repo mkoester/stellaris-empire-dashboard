@@ -28,6 +28,7 @@ export type Display = {
 	showLocked: boolean; // government: agendas, edicts and policies the game does not list
 	factionTypes: boolean; // government: faction types of our ethics, before any has formed (cheating)
 	allFactionTypes: boolean; // … and those of ethics we do not hold (cheating)
+	tradeoffs: boolean; // the trade-offs tab: where to spend scarce resources (exploratory)
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
@@ -44,7 +45,8 @@ export const DEFAULT_DISPLAY: Display = {
 	surveyAll: false,
 	showLocked: false,
 	factionTypes: false,
-	allFactionTypes: false
+	allFactionTypes: false,
+	tradeoffs: false
 };
 
 export type ProfileSettings = {
@@ -91,7 +93,8 @@ export function parseDisplay(v: unknown): Display {
 		surveyAll: o.surveyAll === true,
 		showLocked: o.showLocked === true,
 		factionTypes: o.factionTypes === true,
-		allFactionTypes: o.allFactionTypes === true
+		allFactionTypes: o.allFactionTypes === true,
+		tradeoffs: o.tradeoffs === true
 	};
 }
 

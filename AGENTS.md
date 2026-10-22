@@ -67,8 +67,9 @@ path when they are wrong. This machine has a native and a Proton user folder sid
 Proton one holds the saves).
 
 **Game data** (`server/extract.ts`): without `STELLARIS_DATA_DB` the extractor runs at start
-against `gameDir` — `data/stellaris-<rawVersion>-<hash of the DLC folders>.sqlite`, so a game update
-or a new DLC extracts again (~5 s), older files stay. The packaged launcher names the extractor and
+against `gameDir` — `data/stellaris-<rawVersion>-<hash of the DLC folders and the extractor's
+`**version**`>.sqlite`, so a game update, a new DLC or a dashboard with a newer extractor (new
+tables) extracts again (~5 s), older files stay. The packaged launcher names the extractor and
 its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`).
 
 ## Packaging and releases
@@ -200,7 +201,8 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 left, net per month right (`resourcePanelSeries()`) — and the latest save's month by budget source
 (`Snapshot.budget`, every source, the market's as `market:<source>`; `resourceBudget()` in
 `#lib/flows.ts`; its total is the save's balance: 2207.04.02 energy +3.455 both), and below it
-what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")) and `events`
+what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
+`trade-offs` (only with its switch, below) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `shroud` (patrons and attunement), `focus`,
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `megastructures` (all below), `mods` and
 `dlc` (last; see
@@ -364,6 +366,30 @@ seats (3 at 2207.03.10, all held). The agenda being prepared shows progress / co
 percentage and months; every other open one "~N months if picked next" — the measured rate and
 size factor of the current agenda, started from 0. Same-status agendas sort alphabetically.
 
+**Trade-offs tab** (`/tradeoffs`, behind the profile's `tradeoffs` switch in ⚙ — exploratory, the
+user's ask 2026-10-22: "when to spend scarce resources on what"; `#lib/tradeoffs.ts` pure,
+inputs from `server/tradeoffs.ts`): what can be built now — stations at surveyed deposits in our
+systems without one (`Body.station`, the planet's `shipclass_orbital_station`), districts where a
+colony has room (the colonies tab's caps; jobs from data DB `district_job`), buildings of a type
+we have built before (so unlocked; not `government` ones) on the colony with most idle pops — with
+base costs (data DB, scaled by what our queued items of that kind cost), upkeep, build days
+(`build_time`; stations have none, ≈ 100 as their orders count) and outputs **measured**: a job's
+output per working pop from the budget (`jobFlows` ÷ filled), a station's as its deposit's base ×
+our stations' budget income ÷ their deposits' base. Ranked by payback (cost ÷ net value per
+month, values in energy at market base prices — editable weights); simulated month by month per
+strategy (best payback, each kind first, waiting for a cost cut, nothing), saving up for the next
+option, which needs the colony's idle pops. **Changes** ("from month M, output of station
+gatherers +10 %") come from presets — the research queue at its due dates, every tech **within
+reach** (`inReach()` in `#lib/techTiers.ts`: prerequisites researched — data DB
+`technology_requirement` —, its tier open **per field** (physics, society, engineering; the
+user's word), `potential` not false) dated as if researched next in its field, the traditions open
+in adopted trees at the next tradition — or the viewer's own. Not the cards on offer: those are
+chance (the user's call). Changes scale measured values, an approximation (the game adds
+multipliers). Not modelled: pop growth, housing, free building slots (not in the save), storage
+caps, one build at a time per queue. 2207.04.02: Civilian Industries on Earth 10 months, rural
+districts 11–20, stations 20–50; over 60 months every strategy ends within 1 % of the others
+(everything affordable gets built within ~2 years), 11 % above building nothing.
+
 **Revealing what the game hides is the user's choice, off by default** (their rule, 2026-10-18):
 the tabs show what the game's own panels show — agendas, edicts, policies, council seats as the
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
@@ -510,16 +536,17 @@ Hidden events write `game.log` lines for human players, all `SDASH|2|<date>|…`
 0.2.0; `feed.ts` still reads format 1's monthly lines). The format is shared with `feed.ts` —
 change both together and bump the number.
 
-| Line                                                                | When                 | From                                |
-| ------------------------------------------------------------------- | -------------------- | ----------------------------------- |
-| `timeline\|<id>\|<previous id>`                                     | monthly, first       | `on_monthly_pulse_country`          |
-| `<resource>\|<stockpile>\|<monthly income>` × 26, then `end`        | monthly              | same                                |
-| `tick\|<resource>\|<stockpile>` × 26, then `tick-end`               | daily                | a self-rescheduling event           |
-| `load\|<id>`                                                        | a save was loaded    | `on_single_player_save_game_load`   |
-| `event\|colony\|<planet>`                                           | colony established   | `on_colonized`                      |
-| `event\|war-started\|<war>` / `event\|war-ended\|<loser>\|<winner>` | at once              | `on_war_beginning` / `on_war_ended` |
-| `event\|leader-died\|<leader>`, `event\|ruler\|<name>`              | at once              | `on_leader_death`, `on_ruler_set`   |
-| `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`      | each battle we fight | `on_space_battle_won`               |
+| Line                                                                 | When                 | From                                                      |
+| -------------------------------------------------------------------- | -------------------- | --------------------------------------------------------- |
+| `timeline\|<id>\|<previous id>`                                      | monthly, first       | `on_monthly_pulse_country`                                |
+| `<resource>\|<stockpile>\|<monthly income>` × 26, then `end`         | monthly              | same                                                      |
+| `tick\|<resource>\|<stockpile>` × 26, then `tick-end`                | daily                | a self-rescheduling event                                 |
+| `load\|<id>`                                                         | a save was loaded    | `on_single_player_save_game_load`                         |
+| `event\|colony\|<planet>`                                            | colony established   | `on_colonized`                                            |
+| `event\|war-started\|<war>` / `event\|war-ended\|<loser>\|<winner>`  | at once              | `on_war_beginning` / `on_war_ended`                       |
+| `event\|leader-died\|<leader>`, `event\|ruler\|<name>`               | at once              | `on_leader_death`, `on_ruler_set`                         |
+| `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`       | each battle we fight | `on_space_battle_won`                                     |
+| `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0) | at once              | queued/cancelled, edict, decision, … (`#lib/spending.ts`) |
 
 - **The daily tick**: 4.5.2 has no sub-monthly on_action, so `sdash.2` re-fires itself with
   `days = 1`. The stockpile moves within a month (spending, the market, rewards, deals); income
@@ -771,17 +798,26 @@ migration_access waystation_pact … }` (`=yes`; the last two are the migration 
   the later one's balance, to the cent, unless something was paid outside it.
 - **One-off spending is booked nowhere**: construction, station builds, event rewards, one-off
   market trades, edicts, … show only as a stockpile change. `unbooked()` = change since the last
-  snapshot before the latest's month start − that month's payout, per day with the mod's ticks.
-  2207.03.10 → 04.02: energy −30 on 04.01 (two more `edicts` entries — a guess), minerals −600 on
-  04.02 = a city district on Earth (new `construction.item_mgr` item, `paying_country=0
-resources={ minerals=500 }`) + a constructor's station at a deposit (100, the user's word; a
-  ship order, priced nowhere in the save); the other six resources: 0.
-  **What for**: queue items carry `paying_country` and `resources`, so a save diff names
-  construction; the mod could log `on_district_queued|unqueued`, `on_building_queued|unqueued`
-  (scope: the colony, not the item), `on_edict_activated`, `on_decision_enacted`,
-  `on_leader_hired`, `on_colonization_started`, `on_megastructure_build_start` (4.5.2
-  `common/on_actions/00_on_actions.txt`). No hook for ship or starbase orders, one-off market
-  trades or event rewards — those stay unexplained.
+  snapshot before the latest's month start − that month's payout, per day with the mod's ticks;
+  `namedSpending()` (`#lib/spending.ts`) names what it can, the rest is "unexplained":
+  - **save diffs** between consecutive snapshots: new construction items we pay for
+    (`Snapshot.construction`, `paying_country`, cost exact — paid when queued), edicts newly active
+    (data DB `edict.cost_json` `cost`, before multipliers: the campaigns' 15 energy matched),
+    constructor build orders that **became current** (data DB `ship_size_resource`: stations 100
+    minerals, outposts 100 alloys) — a station is paid when its order starts, not when queued
+    (2207.04.02: three queued at Barnard's Star, 100 gone), leaders hired (cost unknown);
+  - **the mod's spending events** (0.3.0): `on_district_queued|unqueued`,
+    `on_building_queued|unqueued` (scope: the colony, not the item), `on_edict_activated` (the
+    edict not in scope), `on_decision_enacted`, `on_leader_hired`, `on_colonization_started`,
+    `on_megastructure_build_start` (4.5.2 `common/on_actions/00_on_actions.txt`). An event dates
+    the save-diff item of the same kind and place shown by the next save; the others stand alone
+    as "maybe" causes. No hook for ship or starbase orders, one-off market trades or event
+    rewards.
+    2207.03.10 → 04.02: energy −30 = Education + Recycling Campaign, minerals −600 = City District
+    on Earth 500 + research station at Barnard's Star II 100; unexplained 0 for every resource.
+- **A construction item's `buildable_*.planet` is a colony id** (2207.04.02: `planet=0` is
+  Earth's colony 0, Earth being planet 3 — planet 0 is Sol's star); `orbitable` names planets and
+  starbases.
 - Budget sources: `planet_<job>` (job output and inputs), `pop_category_<stratum>` (pop upkeep and
   trade), `planet_pops_traits` (food), `planet_buildings`, `planet_districts_*`.
 - Autosaves: `autosave=4` in `settings.txt` gave one per month (2200.02/03/04.01, observed).
@@ -944,6 +980,11 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   calling (tier, reward), its deeds and — negative — the opposite patron's (the save's five
   each), accords and covenant. Uncontacted patrons stay hidden, as in the game. Still to see: a
   completed calling, an accord unlocked, a favor.
+- **Companion mod 0.3.0's spending events, not yet run in game** (written 2026-10-22): whether
+  `carrier_event` is the right type for the "This = Colony" hooks (vanilla uses it for
+  `on_building_complete`), whether `[This.GetName]` there gives the planet's name as the save's
+  construction items name it, and whether a colonization's planet already has an `owner`. An older
+  dashboard skips the new kinds (`parseLine` returns null for an unknown kind).
 - **Companion mod 0.2.0, not yet run in game** (written 2026-10-20 from 4.5.2's script docs):
   the daily tick (one set of `tick` lines per date, also after save/load — never two), the `load`
   line's id against the loaded save's `sdash_tl`, each event line's names (do `[From.GetName]` in

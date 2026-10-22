@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { parseTrigger } from '#lib/triggers.ts';
-import type { CapEffect, GameData } from '#lib/types.ts';
+import type { CapEffect, Costs, GameData } from '#lib/types.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -410,6 +410,69 @@ export function loadGameData(file: string): GameData {
 					(r) => [r.key, r.level]
 				)
 			),
+			// before modifiers: districts', ship sizes' (stations, outposts) and buildings' build cost
+			// and upkeep; what deposits produce
+			costs: {
+				district: byKind(rows('SELECT key, kind, resource, amount FROM district_resource')),
+				ship: byKind(rows('SELECT key, kind, resource, amount FROM ship_size_resource')),
+				building: byKind(
+					rows('SELECT building_key AS key, kind, resource, amount FROM building_resource')
+				),
+				deposit: byKind(
+					rows('SELECT deposit_key AS key, kind, resource, amount FROM deposit_resource')
+				)
+			},
+			// jobs (positions, in pops) per district and building, build days, deposit categories
+			districtJobs: byKey(rows('SELECT key, job AS name, amount FROM district_job')),
+			buildingJobs: byKey(
+				rows('SELECT building_key AS key, job AS name, amount FROM building_job')
+			),
+			buildDays: Object.fromEntries(
+				rows<{ key: string; days: number }>('SELECT key, days FROM build_time').map((r) => [
+					r.key,
+					r.days
+				])
+			),
+			depositCategory: Object.fromEntries(
+				rows<{ key: string; category: string | null }>('SELECT key, category FROM deposit').map(
+					(r) => [r.key, r.category]
+				)
+			),
+			techRequirements: Object.fromEntries(
+				rows<{
+					tech_key: string;
+					prerequisites_json: string;
+					potential_json: string | null;
+					is_rare: number;
+					is_dangerous: number;
+				}>(
+					'SELECT tech_key, prerequisites_json, potential_json, is_rare, is_dangerous FROM technology_requirement'
+				).map((r) => [
+					r.tech_key,
+					{
+						prerequisites: jsonList(r.prerequisites_json),
+						potential: parseTrigger(r.potential_json),
+						rare: r.is_rare === 1,
+						dangerous: r.is_dangerous === 1
+					}
+				])
+			),
+			buildingCategory: Object.fromEntries(
+				rows<{ key: string; category: string | null }>('SELECT key, category FROM building').map(
+					(r) => [r.key, r.category]
+				)
+			),
+			// what techs and traditions change in costs, upkeep and output (the trade-offs tab)
+			growthModifiers: byKey(
+				rows(
+					`SELECT 'tech:' || tech_key AS key, modifier_key AS name, modifier_value AS amount
+					   FROM technology_modifier
+					 UNION ALL SELECT 'tradition:' || owner_key, modifier_key, modifier_value
+					   FROM tradition_modifier WHERE potential_json IS NULL`
+				).filter((r) =>
+					/_cost_mult$|_produces_mult$|^stations_upkeep_mult$/.test((r as { name: string }).name)
+				)
+			),
 			defines: Object.fromEntries(
 				rows<{ key: string; value: number }>('SELECT key, value FROM game_define').map((r) => [
 					r.key,
@@ -420,6 +483,29 @@ export function loadGameData(file: string): GameData {
 	} finally {
 		db.close();
 	}
+}
+
+/** `(key, kind, resource, amount)` rows → key → kind (cost, upkeep, produces) → resources. */
+export function byKind(rows: unknown[]): Record<string, Costs> {
+	const out: Record<string, Costs> = {};
+	for (const r of rows as { key: string; kind: string; resource: string; amount: number }[]) {
+		// own keys only: the ship size `constructor` would find Object's constructor through `??=`
+		if (!Object.hasOwn(out, r.key)) out[r.key] = { cost: {}, upkeep: {}, produces: {} };
+		const c = out[r.key];
+		if (r.kind === 'cost' || r.kind === 'upkeep' || r.kind === 'produces')
+			c[r.kind][r.resource] = r.amount;
+	}
+	return out;
+}
+
+/** `(key, name, amount)` rows → key → name → amount. */
+export function byKey(rows: unknown[]): Record<string, Record<string, number>> {
+	const out: Record<string, Record<string, number>> = {};
+	for (const r of rows as { key: string; name: string; amount: number }[]) {
+		if (!Object.hasOwn(out, r.key)) out[r.key] = {};
+		out[r.key][r.name] = r.amount;
+	}
+	return out;
 }
 
 function traditionTrees(

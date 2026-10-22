@@ -19,11 +19,21 @@ All notable changes to this project are documented here. The format follows
   what earns and spends it each month, source by source (ships, jobs, buildings, the market, …),
   and what changed the stockpile outside that budget (construction, events, …), by day with the
   companion mod.
+- The resources tab names that spending: what was queued for construction, edicts and campaigns,
+  stations, leaders hired — from the saves, and to the day with companion mod 0.3.0, which also
+  logs districts and buildings queued or cancelled, decisions, colonizations and megastructures.
+
+- A trade-offs tab (switched on in ⚙, exploratory): what pays back fastest right now — stations,
+  districts or buildings — measured from your own budget, and a month-by-month comparison of
+  strategies, with knobs for techs within reach and the next tradition.
 
 - A download for macOS (13.5 or newer), for Apple silicon and Intel Macs, with its own Python.
 - Every folder the dashboard looks in, per system and store, listed in the zip's `README.txt`.
 
 ### Changed
+
+- Game data is extracted again when a new dashboard brings a newer extractor, not only after a
+  game update or a new DLC.
 
 - A start reads only the game played last (the first start: the one with the newest save); the
   other games catch up in the background a few seconds later, the most recently played first.

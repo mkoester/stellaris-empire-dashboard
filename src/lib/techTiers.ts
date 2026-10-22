@@ -33,3 +33,34 @@ export function techTiers(
 		])
 	);
 }
+
+/**
+ * Techs within reach: not researched, every prerequisite researched, their tier open in their
+ * field, and not ruled out for this empire (`potential` false; unknown counts as possible — the
+ * save cannot answer every condition). Rare and dangerous ones included: they are within reach
+ * too, only offered less often.
+ */
+export function inReach(
+	researched: string[],
+	techs: GameData['techs'],
+	requirements: GameData['techRequirements'],
+	possible: (
+		potential: NonNullable<GameData['techRequirements'][string]>['potential']
+	) => boolean | null
+): string[] {
+	const done = new Set(researched);
+	const tiers = techTiers(researched, techs);
+	return Object.keys(techs)
+		.filter((k) => {
+			const t = techs[k];
+			const req = requirements[k];
+			return (
+				!done.has(k) &&
+				req !== undefined &&
+				req.prerequisites.every((p) => done.has(p)) &&
+				(t.tier === null || tiers[t.area]?.[t.tier]?.open !== false) &&
+				possible(req.potential) !== false
+			);
+		})
+		.sort();
+}

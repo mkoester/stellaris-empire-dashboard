@@ -36,7 +36,8 @@ describe('profiles', () => {
 				surveyAll: false,
 				showLocked: false,
 				factionTypes: false,
-				allFactionTypes: false
+				allFactionTypes: false,
+				tradeoffs: false
 			}
 		});
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('thick');
@@ -75,7 +76,8 @@ describe('profiles', () => {
 				surveyAll: false,
 				showLocked: false,
 				factionTypes: false,
-				allFactionTypes: false
+				allFactionTypes: false,
+				tradeoffs: false
 			}
 		});
 		const copy = profileAction(db, { action: 'create', name: 'default', copyOf: 'default' })!;

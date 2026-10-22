@@ -54,6 +54,15 @@
 			href: node ? resolve(`/resources?node=${node}`) : resolve('/resources'),
 			active: path === '/resources'
 		},
+		...(data.tradeoffs
+			? [
+					{
+						name: 'trade-offs',
+						href: node ? resolve(`/tradeoffs?node=${node}`) : resolve('/tradeoffs'),
+						active: path === '/tradeoffs'
+					}
+				]
+			: []),
 		{
 			name: 'events',
 			href: node ? resolve(`/events?node=${node}`) : resolve('/events'),

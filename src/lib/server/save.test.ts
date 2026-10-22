@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	budgetSources,
 	buildQueue,
+	construction,
 	countryIds,
 	colonyGrowth,
 	colonyJobs,
@@ -626,6 +627,71 @@ describe('budgetSources', () => {
 			{ source: 'trade_policy', income: { trade: 3 }, expenses: {} },
 			{ source: 'ships', income: {}, expenses: { energy: 4 } },
 			{ source: 'market:monthly_trades', income: { minerals: 42 }, expenses: { energy: 80 } }
+		]);
+	});
+});
+
+describe('construction', () => {
+	it('lists the items we pay for, wherever queued, with cost and place', () => {
+		// shapes as in the 2207.04.02 save
+		const raw = {
+			countryId: 0,
+			deposits: {},
+			planets: {
+				'0': { name: { key: 'NAME_Sol' } },
+				'3': { name: { key: 'NAME_Earth' }, colony: 0 }
+			},
+			systems: { '5': { name: { key: 'NAME_Sol System' }, starbases: [0] } },
+			shipDesigns: {
+				'2197': { name: { key: 'Corvette' }, growth_stages: [{ ship_size: 'corvette' }] }
+			},
+			construction: {
+				item_mgr: {
+					items: {
+						'67108877': {
+							queue: 0,
+							paying_country: 0,
+							resources: { minerals: 500 },
+							buildable_district: { district: 'district_city', planet: 0 }
+						},
+						'23': {
+							queue: 3,
+							paying_country: 0,
+							resources: { alloys: 60 },
+							buildable_ship: {
+								ship_design_implementation: { design: 2197 },
+								orbitable: { starbase: 0 }
+							}
+						},
+						'28': {
+							queue: 4210,
+							paying_country: 16777221,
+							resources: { food: 437.5 },
+							buildable_starbase_upgrade: {
+								starbase_upgrade: 'starbase_level_starport',
+								starbase: 53
+							}
+						}
+					}
+				}
+			}
+		};
+		expect(construction(raw)).toEqual([
+			{
+				id: 23,
+				kind: 'ship',
+				name: 'corvette',
+				design: 'Corvette',
+				where: 'Sol System',
+				cost: { alloys: 60 }
+			},
+			{
+				id: 67108877,
+				kind: 'district',
+				name: 'district_city',
+				where: 'Earth',
+				cost: { minerals: 500 }
+			}
 		]);
 	});
 });
