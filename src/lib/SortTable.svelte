@@ -50,6 +50,7 @@
 			{#each columns as c (c.id)}
 				<th class="p-1 {c.right ? 'text-right' : ''}" title={c.title}>
 					<button
+						style:color={c.color}
 						class="cursor-pointer whitespace-nowrap hover:underline {sort.column === c.id
 							? 'font-semibold'
 							: 'font-normal'}"
@@ -77,7 +78,7 @@
 			>
 				{#each columns as c (c.id)}
 					<td class="p-1 {c.right ? 'text-right tabular-nums' : ''}">
-						{#if c.cell}{@render c.cell(r)}{:else}{c.value(r) ?? '–'}{/if}
+						{#if c.cell}{@render c.cell(r, c.id)}{:else}{c.value(r) ?? '–'}{/if}
 					</td>
 				{/each}
 			</tr>

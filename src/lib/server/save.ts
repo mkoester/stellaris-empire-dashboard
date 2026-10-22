@@ -7,6 +7,7 @@ import type {
 	MigrationColony,
 	OrbitalStation,
 	AiIntel,
+	TraderEnclave,
 	QueuedTech,
 	Route,
 	CivilianShip,
@@ -120,6 +121,7 @@ export type RawSave = {
 	popFactions: Record<string, Raw>; // top-level pop_factions: every empire's factions
 	patronRelations: Record<string, Raw>; // top-level patron_relations: every empire's patrons
 	aiIntel: AiIntel[]; // empires we have communications with: their view of us and their economy
+	traderEnclaves: TraderEnclave[]; // trader enclaves we have communications with
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -136,6 +138,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 		const rivalsOfUs: number[] = [];
 		const countries: RawSave['countries'] = {};
 		const aiIntel: AiIntel[] = [];
+		const traderEnclaves: TraderEnclave[] = [];
+		const nomads = nomadCountries(q.at('/situations/situations') ?? {});
 		for (const [id, c] of Object.entries(allCountries)) {
 			if (!c || typeof c !== 'object') continue;
 			if (typeof c.loyalty === 'number') loyalty[id] = c.loyalty;
@@ -147,7 +151,10 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 				TRADING_TYPES.includes(String(c.type)) &&
 				(toUs?.communications === true || toUs?.communications === 'yes')
 			)
-				aiIntel.push(intelOf(Number(id), c, toUs, countryId));
+				aiIntel.push(intelOf(Number(id), c, toUs, countryId, nomads.has(Number(id))));
+			const enclave = traderEnclaveKind(c);
+			if (enclave !== null && (toUs?.communications === true || toUs?.communications === 'yes'))
+				traderEnclaves.push({ countryId: Number(id), name: displayName(c.name), kind: enclave });
 			if (toUs?.is_rival === true || toUs?.is_rival === 'yes') rivalsOfUs.push(Number(id));
 			for (const o of items(c.fleets_manager?.owned_fleets))
 				if (typeof o?.fleet === 'number') fleetOwner[String(o.fleet)] = Number(id);
@@ -228,6 +235,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			popFactions: q.at('/pop_factions') ?? {},
 			patronRelations: q.at('/patron_relations') ?? {},
 			aiIntel,
+			traderEnclaves,
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
 			districtsDb: q.at('/districts') ?? {},
 			zones: q.at('/zones') ?? {},
@@ -250,7 +258,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '10';
+export const READER = '11';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -288,6 +296,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		construction: construction(raw),
 		orbitalStations: orbitalStations(raw, ownSystems(raw)),
 		aiIntel: raw.aiIntel ?? [],
+		traderEnclaves: raw.traderEnclaves ?? [],
 		score: {
 			rank: num(raw.country?.victory_rank),
 			score: num(raw.country?.victory_score),
@@ -800,15 +809,41 @@ export function ownSystems(
 const TRADING_TYPES = ['default', 'fallen_empire', 'awakened_fallen_empire'];
 
 /**
+ * Nomadic empires: those running the `situation_nomad_economy` (their operational reserves).
+ * `is_nomadic` is the engine's, and the origin does not tell: 2212.06.01 had five of these
+ * situations but one nomad origin.
+ */
+export function nomadCountries(situations: Record<string, Raw>): Set<number> {
+	return new Set(
+		Object.values(situations)
+			.filter((s) => s?.type === 'situation_nomad_economy' && typeof s.country === 'number')
+			.map((s) => Number(s.country))
+	);
+}
+
+/**
+ * A trader enclave's kind — 1 XuraCorp, 2 Riggans, 3 Muutagan — from the flag its system
+ * initializer sets (`trader_enclave_country_<n>`, 4.5.2 leviathans_system_initializers.txt); null
+ * for any other country.
+ */
+export function traderEnclaveKind(c: Raw): 1 | 2 | 3 | null {
+	if (c?.type !== 'enclave') return null;
+	const flags = c.flags ?? {};
+	for (const k of [1, 2, 3] as const) if (`trader_enclave_country_${k}` in flags) return k;
+	return null;
+}
+
+/**
  * Another empire's view of us — what the diplomacy screen shows: personality, attitude towards us
  * (`ai.attitude`, the entry for our country), their opinion of us and its modifiers (their
  * relation to us: `relation_current`, `modifier = { modifier value }`) — and what it hides: their
  * stockpile and monthly net (the budget's balance, the market's included).
  */
-export function intelOf(id: number, c: Raw, toUs: Raw, us: number): AiIntel {
+export function intelOf(id: number, c: Raw, toUs: Raw, us: number, nomadic = false): AiIntel {
 	const budget = c.budget?.current_month ?? {};
 	return {
 		countryId: id,
+		nomadic,
 		personality: strOrNull(c.personality),
 		attitude: strOrNull(items(c.ai?.attitude).find((a) => a?.country === us)?.attitude),
 		opinion: numOrNull(toUs?.relation_current),

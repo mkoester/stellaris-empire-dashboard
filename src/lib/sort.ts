@@ -5,12 +5,16 @@ import type { Snippet } from 'svelte';
 
 export type SortValue = number | string | null;
 
-/** A column of `SortTable.svelte`: the value it sorts by and, optionally, how a cell shows it. */
+/**
+ * A column of `SortTable.svelte`: the value it sorts by and, optionally, how a cell shows it — the
+ * snippet gets the column's id too, so one serves every column of a matrix.
+ */
 export type Column<R> = {
 	id: string;
 	label: string;
 	value: (r: R) => SortValue;
-	cell?: Snippet<[R]>;
+	cell?: Snippet<[R, string]>;
+	color?: string; // the header's
 	title?: string;
 	right?: boolean; // numbers: right-aligned
 };

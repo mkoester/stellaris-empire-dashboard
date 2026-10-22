@@ -7,6 +7,8 @@ import {
 	orbitalStations,
 	techQueued,
 	intelOf,
+	nomadCountries,
+	traderEnclaveKind,
 	countryIds,
 	colonyGrowth,
 	colonyJobs,
@@ -81,6 +83,7 @@ const raw: RawSave = {
 	popFactions: {},
 	patronRelations: {},
 	aiIntel: [],
+	traderEnclaves: [],
 	starbases: {},
 	megastructures: {},
 	bypasses: {},
@@ -727,6 +730,7 @@ describe('intelOf', () => {
 		};
 		expect(intelOf(16777219, c, toUs, 0)).toEqual({
 			countryId: 16777219,
+			nomadic: false,
 			personality: 'hegemonic_imperialists',
 			attitude: 'loyal',
 			opinion: 293,
@@ -735,6 +739,29 @@ describe('intelOf', () => {
 			stockpile: { energy: 1181.8, alloys: 396.8 },
 			net: { energy: 8.2 }
 		});
+	});
+});
+
+describe('nomadCountries', () => {
+	it('names the empires running the nomad economy (2212.06.01 shapes)', () => {
+		const situations = {
+			10: { country: 1, type: 'situation_nomad_economy', progress: 18708.7 },
+			11: { country: 0, type: 'situation_cosmic_storms' },
+			12: { country: 7, type: 'situation_nomad_economy' }
+		};
+		expect(nomadCountries(situations)).toEqual(new Set([1, 7]));
+	});
+});
+
+describe('traderEnclaveKind', () => {
+	it('tells the trader enclaves apart by their flag', () => {
+		const flags = { trader_enclave_country: 62808000, trader_enclave_country_1: 62808000 };
+		expect(traderEnclaveKind({ type: 'enclave', flags })).toBe(1);
+		expect(traderEnclaveKind({ type: 'enclave', flags: { trader_enclave_country_3: 1 } })).toBe(3);
+		expect(traderEnclaveKind({ type: 'enclave', flags: { curator_enclave_country: 1 } })).toBe(
+			null
+		);
+		expect(traderEnclaveKind({ type: 'default', flags })).toBe(null);
 	});
 });
 

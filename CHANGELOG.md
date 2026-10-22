@@ -49,6 +49,11 @@ All notable changes to this project are documented here. The format follows
   — with what we know of it, what it cost (outpost, upgrades, modules, buildings, stations, their
   upkeep; colonies optionally) and what it earned, over time and in total, valued in trade, with a
   projection and the month it breaks even.
+- The trade tab's tables sort by any column; nomadic and fallen empires are marked; willingness,
+  opinion and trust run from red to green. Trade is a resource in the deal finder (default: trade
+  for energy), nomads never give their energy or minerals, and trader enclaves show what their
+  strategic resource costs. A new panel prices every resource in trade per empire: what you would
+  pay for it, what you would get for it, or both.
 
 - A download for macOS (13.5 or newer), for Apple silicon and Intel Macs, with its own Python.
 - Every folder the dashboard looks in, per system and store, listed in the zip's `README.txt`.

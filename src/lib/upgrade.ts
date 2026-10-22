@@ -29,6 +29,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	construction: null,
 	orbitalStations: null,
 	aiIntel: null,
+	traderEnclaves: null,
 	score: null,
 	fleets: null,
 	idleLeaders: null,
@@ -153,6 +154,7 @@ export function upgrade(
 		knownSystems:
 			s.knownSystems && s.knownSystems.map((k) => ({ ...k, capital: k.capital ?? false })),
 		tradeDeals: s.tradeDeals && s.tradeDeals.map(upgradeDeal),
+		aiIntel: s.aiIntel && s.aiIntel.map((a) => ({ ...a, nomadic: a.nomadic ?? false })),
 		wars: s.wars && s.wars.map((w) => ({ ...WAR, ...w })),
 		factions: s.factions && s.factions.map((f) => ({ ...f, change: f.change ?? null })),
 		galcom: s.galcom && { ...s.galcom, passed: s.galcom.passed ?? [] },

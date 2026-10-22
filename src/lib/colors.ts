@@ -67,3 +67,13 @@ const COLORS: Record<string, string> = {
 };
 
 export const colorOf = (key: string): string | undefined => COLORS[key];
+
+/**
+ * A value's place between the worst and the best of its column: red (worst) through amber to green
+ * (best), readable on both backgrounds. Null when every value is the same.
+ */
+export function scaleColor(v: number, worst: number, best: number): string | null {
+	if (worst === best) return null;
+	const t = Math.min(1, Math.max(0, (v - worst) / (best - worst)));
+	return `hsl(${Math.round(t * 120)} 70% 45%)`;
+}

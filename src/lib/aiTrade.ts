@@ -14,7 +14,12 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 // - it gives away nothing it holds less than it wants (`ai_wants`), nor anything once its want is
 //   at least 0.8 of its storage (OFFER_TRADE_MIN_RESOURCE_THRESHOLD);
 // - monthly payments count half (TRADE_VALUE_RESOURCE_MONTHLY_MULT) — for a monthly-for-monthly
-//   deal the rate is the same.
+//   deal the rate is the same;
+// - trade has no `ai_weight`: its worth is a guess (`tradeWeight`; the market prices energy and
+//   minerals at 1 trade each);
+// - a nomadic empire never gives energy or minerals — they are its operational reserves, which
+//   "can be bought on the market, but not sold" (concept_operational_reserves_desc; for deals our
+//   extrapolation).
 
 export type TradeModel = {
 	incomeBase: number;
@@ -23,6 +28,7 @@ export type TradeModel = {
 	needFactor: number; // value × this when it needs more (guess)
 	plentyFactor: number; // value × this when it has plenty (guess)
 	offerThreshold: number; // won't give away what it wants this share of its storage of
+	tradeWeight: number; // trade's worth in weight units (guess: it has no ai_weight)
 	calibrated: boolean;
 };
 
@@ -33,6 +39,7 @@ export const modelFrom = (defines: Record<string, number>): TradeModel => ({
 	needFactor: 2,
 	plentyFactor: 0.5,
 	offerThreshold: defines.OFFER_TRADE_MIN_RESOURCE_THRESHOLD ?? 0.8,
+	tradeWeight: 1,
 	calibrated: false
 });
 
@@ -53,18 +60,26 @@ export function stance(r: string, ai: AiIntel, info: Info, m: TradeModel): Stanc
 /** What a unit of `r` is worth to the AI, in its weight units; null: it does not trade it. */
 export function aiValue(r: string, ai: AiIntel, info: Info, m: TradeModel): number | null {
 	const i = info[r];
-	if (!i?.tradable || i.aiWeight === null) return null;
+	const weight = i?.aiWeight ?? (r === 'trade' ? m.tradeWeight : null);
+	if (!i?.tradable || weight === null) return null;
 	const income = Math.max(0, ai.net[r] ?? 0);
 	const s = stance(r, ai, info, m);
 	return (
-		i.aiWeight *
+		weight *
 		(m.incomeBase / (m.incomeBase + income)) *
 		(s === 'needs' ? m.needFactor : s === 'plenty' ? m.plentyFactor : 1)
 	);
 }
 
+/** A nomadic empire's reserve: it takes these, never gives them. */
+export const NOMAD_RESERVE = ['energy', 'minerals'];
+
+/** Whether an empire can hand `r` over at all. */
+export const canGive = (r: string, nomadic: boolean) => !(nomadic && NOMAD_RESERVE.includes(r));
+
 /** How much of `r` the AI would hand over at most: what it holds beyond its want. */
 export function spare(r: string, ai: AiIntel, info: Info, m: TradeModel): number {
+	if (!canGive(r, ai.nomadic)) return 0;
 	const i = info[r];
 	const want = i?.aiWants ?? 0;
 	if (i?.max && want >= m.offerThreshold * i.max) return 0;
@@ -118,6 +133,54 @@ export function marketRate(
 	const [pg, pr] = [prices[give], prices[get]];
 	if (!pg || !pr) return null;
 	return (pg * (1 - fee)) / (pr * (1 + fee));
+}
+
+/** Trade we pay for one unit of `r` from the AI (it gives `r` for our trade); null: no deal. */
+export function wantPrice(r: string, ai: AiIntel, t: Terms, info: Info, m: TradeModel) {
+	const x = rate('trade', r, ai, t, info, m);
+	return x === null || x <= 0 ? null : 1 / x;
+}
+
+/** Trade we receive for one unit of `r` given to the AI; null: no deal. */
+export const offerPrice = (r: string, ai: AiIntel, t: Terms, info: Info, m: TradeModel) =>
+	rate(r, 'trade', ai, t, info, m);
+
+/** The market's price of a unit in trade: buying pays the fee on top, selling loses it. */
+export function marketPrice(r: string, side: 'buy' | 'sell', prices: Resources, fee: number) {
+	const p = prices[r];
+	return p ? p * (side === 'buy' ? 1 + fee : 1 - fee) : null;
+}
+
+/**
+ * Trader enclaves sell one strategic resource each, for energy (4.5.2
+ * events/leviathans_events_1.txt, leviathans.130–132): 500·N energy at once, then
+ * `enclave_trade_N_<xur|rig|mut>` (static_modifiers) — +N of the resource and −10·N energy a
+ * month — for @traderDealDuration (3600 days), N = 1…5, one deal per enclave at a time.
+ */
+export const ENCLAVE_DEAL = {
+	resource: { 1: 'exotic_gases', 2: 'volatile_motes', 3: 'rare_crystals' } as const,
+	modifier: { 1: 'xur', 2: 'rig', 3: 'mut' } as const,
+	once: 500, // energy at once, per unit a month
+	monthly: 10, // energy per unit a month
+	months: 120,
+	maxPerMonth: 5
+};
+
+/** Energy per unit of an enclave deal over its run: the same for every N (≈ 14.2). */
+export const enclaveUnitCost = () =>
+	(ENCLAVE_DEAL.once + ENCLAVE_DEAL.monthly * ENCLAVE_DEAL.months) / ENCLAVE_DEAL.months;
+
+/** Our running deal with an enclave, from our country modifiers: units a month, until when. */
+export function enclaveDeal(
+	kind: 1 | 2 | 3,
+	modifiers: { key: string; until: string | null }[]
+): { perMonth: number; until: string | null } | null {
+	const re = new RegExp(`^enclave_trade_(\\d)_${ENCLAVE_DEAL.modifier[kind]}$`);
+	for (const m of modifiers) {
+		const hit = re.exec(m.key);
+		if (hit) return { perMonth: Number(hit[1]), until: m.until };
+	}
+	return null;
 }
 
 /** Months until a gift's opinion is gone at the modifier's monthly decay. */

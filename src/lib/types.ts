@@ -212,6 +212,7 @@ export type Construction = {
  */
 export type AiIntel = {
 	countryId: number;
+	nomadic: boolean; // runs the nomad economy: its energy and minerals are a reserve, never sold
 	personality: string | null; // e.g. "peaceful_traders"
 	attitude: string | null; // towards us, e.g. "cordial"
 	opinion: number | null; // theirs of us
@@ -220,6 +221,9 @@ export type AiIntel = {
 	stockpile: Resources;
 	net: Resources; // per month
 };
+
+/** A trader enclave we talk to; `kind` 1 XuraCorp, 2 Riggans, 3 Muutagan (#lib/aiTrade.ts). */
+export type TraderEnclave = { countryId: number; name: string; kind: 1 | 2 | 3 };
 
 /** A tech in a research queue: the first per field is being researched. */
 export type QueuedTech = { area: string; tech: string; progress: number; since: string | null };
@@ -306,6 +310,7 @@ export type Snapshot = {
 	construction: Construction[] | null; // construction items we pay for, with their cost
 	orbitalStations: OrbitalStation[] | null; // stations in our systems; since 2026-10-22
 	aiIntel: AiIntel[] | null; // empires we talk to: their view of us, their economy; since 2026-10-22
+	traderEnclaves: TraderEnclave[] | null; // since READER 11
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post

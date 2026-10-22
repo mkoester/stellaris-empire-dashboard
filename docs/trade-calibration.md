@@ -58,9 +58,17 @@ For each offer build it in the trade screen and note the **acceptance number** i
 | 18  | A      | find the most energy A gives for 100 alloys at acceptance ≥ 0 |                 | —      | (energy)   |
 | 19  | B      | the same                                                      |                 | —      | (energy)   |
 | 20  | C      | the same                                                      |                 | —      | (energy)   |
+| 21  | A      | 100 trade                                                     | —               | —      |            |
+| 22  | A      | 100 trade                                                     | 100 energy      | —      |            |
+| 23  | N      | —                                                             | 100 energy      | —      |            |
+| 24  | N      | —                                                             | 100 minerals    | —      |            |
 
 Rows 1–4 and 12–17 isolate one resource's value per empire; 5–6, 10–11 the exchange rates;
 7–9 how monthly payments and length count; 18–20 the break-even rate directly.
+21–22 trade's own worth (no `ai_weight` in the files: the model's `tradeWeight` guess is 1). N
+is a **nomadic** empire (marked on the trade tab): 23–24 whether it can put energy or minerals
+into a deal at all — the model assumes not, as on the market (note "not offered" if the trade
+screen does not list them).
 
 ## 2. Gifts and opinion
 

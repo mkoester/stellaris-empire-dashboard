@@ -434,9 +434,22 @@ Y on the market with the fee) and per empire and resource whether it is short (u
 its storage) or flush (over three quarters). **Estimated**: the AI's valuation is engine code;
 `TradeModel` holds the inputs from the files and the guesses (`needFactor` 2, `plentyFactor` 0.5,
 the income damping's form) until `docs/trade-calibration.md` is played through — then fit them,
-with the session's numbers as the test, and set `calibrated`. Not yet: what a gift buys in
-opinion (part 2 of the session), deals for monthly payments of different length, the produce
-tab's trade-deal option.
+with the session's numbers as the test, and set `calibrated`. **Trade is a resource** there
+(default trade → energy) though it has no `ai_weight`: `tradeWeight` is a guess (1; the market
+prices energy at 1 trade). **Nomadic empires** (`AiIntel.nomadic`, READER 11) are those running
+`situation_nomad_economy` — the origin misses most (2212.06.01: six such empires, one nomad
+origin); they never give energy or minerals (`NOMAD_RESERVE`; the game's
+`concept_operational_reserves_desc` says so for the market, for deals it is our assumption —
+calibration rows 23–24), nor do we when nomadic. **Trader enclaves** (`Snapshot.traderEnclaves`,
+flag `trader_enclave_country_1|2|3` = XuraCorp exotic gases, Riggans volatile motes, Muutagan rare
+crystals) sell for energy only, 500·N at once plus 10·N a month for +N a month over 3600 days
+(4.5.2 `leviathans.130–132`, `enclave_trade_N_*`) — 14.2 energy a unit whatever N
+(`ENCLAVE_DEAL`); shown without the spoiler, our running deal from `countryModifiers`. **What a
+resource costs in trade**: per empire the trade paid per unit (`wantPrice`) and received
+(`offerPrice`), against the market's buy and sell price. Tables are `SortTable`s (a cell snippet
+gets the column id, for matrices); willing, opinion and trust are tinted by `scaleColor()`. Not
+yet: what a gift buys in opinion (part 2 of the session), deals for monthly payments of different
+length, the produce tab's trade-deal option.
 
 **Growth tab** (`/growth`, `#lib/growth.ts` pure; the user's ask 2026-10-22, built before the
 capacity model — see "Pop growth: planet capacity" under Open): per colony, natural growth
