@@ -193,18 +193,58 @@ export function jumps(systems: KnownSystem[], from: Set<number>, to: number): nu
 	return null;
 }
 
-/** The influence an outpost `jumps` beyond our nearest system costs — an estimate. */
-export function outpostInfluence(j: number | null, defines: Record<string, number>): number {
+/**
+ * The influence an outpost `jumps` beyond our nearest system costs, × `mult` and rounded down —
+ * matched in game at 1–5 jumps (Planetforgers 2212.03.05, Reach for the Stars: 67, 135, 202, 270,
+ * 337; screenshots 2026_10_22_11–15).
+ */
+export function outpostInfluence(
+	j: number | null,
+	defines: Record<string, number>,
+	mult = 1
+): number {
 	const base = defines.EXPANSION_COST_BASE ?? 75;
 	const step = defines.EXPANSION_COST_DISTANCE ?? 75;
-	return Math.min(defines.EXPANSION_COST_MAX ?? 1000, base + step * Math.max(0, (j ?? 1) - 1));
+	const cost = Math.min(
+		defines.EXPANSION_COST_MAX ?? 1000,
+		base + step * Math.max(0, (j ?? 1) - 1)
+	);
+	return Math.floor(cost * mult + 1e-9);
+}
+
+// What lowers an outpost's cost, from what the save lists (4.5.2). Civics, origins, councilors and
+// Shroud cycles have such modifiers too; not read here yet.
+const OUTPOST_SOURCES: {
+	in: 'tradition' | 'perk' | 'policy';
+	key: string;
+	influence?: number;
+	alloys?: number;
+}[] = [
+	{ in: 'tradition', key: 'tr_expansion_reach_for_the_stars', influence: -0.1 }, // country_starbase_influence_cost_mult
+	{ in: 'perk', key: 'ap_interstellar_dominion', influence: -0.2 },
+	{ in: 'policy', key: 'diplo_stance_expansionist', alloys: -0.1 } // starbase_outpost_cost_mult
+];
+
+/** The outpost's influence and build cost multipliers in a save. */
+export function outpostMults(s: Snapshot): { influence: number; alloys: number } {
+	const found = {
+		tradition: s.traditions ?? [],
+		perk: s.ascensionPerks ?? [],
+		policy: Object.values(s.policies ?? {})
+	};
+	const hit = OUTPOST_SOURCES.filter((o) => found[o.in].includes(o.key));
+	return {
+		influence: 1 + hit.reduce((sum, o) => sum + (o.influence ?? 0), 0),
+		alloys: 1 + hit.reduce((sum, o) => sum + (o.alloys ?? 0), 0)
+	};
 }
 
 function outpost(s: Snapshot, systemId: number, before: Set<number>, data: SystemData) {
 	const others = before.size ? before : new Set([...owned(s)].filter((id) => id !== systemId));
 	const j = jumps(s.knownSystems ?? [], others, systemId);
-	return add((data.costs.ship.starbase_outpost ?? NONE).cost, {
-		influence: outpostInfluence(j, data.defines)
+	const mult = outpostMults(s);
+	return add(add({}, (data.costs.ship.starbase_outpost ?? NONE).cost, mult.alloys), {
+		influence: outpostInfluence(j, data.defines, mult.influence)
 	});
 }
 

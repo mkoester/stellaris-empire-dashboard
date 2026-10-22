@@ -4,8 +4,8 @@ import type { QueueItem, Snapshot } from './types.ts';
 // Upcoming events of the empire: when current research, the next tradition, the council agenda,
 // queued construction and the next election are due. Pure; the page shows them as one list.
 //
-// Rates are measured, not computed: progress between the two latest saves of the branch, so every
-// speed bonus is included. Costs are base costs from the game data scaled by what the save knows
+// Rates are measured, not computed: progress between saves of the branch, so every speed bonus is
+// included (research and agendas per month start, as both arrive monthly). Costs are base costs from the game data scaled by what the save knows
 // (empire size, galaxy cost sliders) — other cost modifiers are unknown, hence "estimated".
 
 import type { GameData } from './types.ts';
@@ -148,6 +148,31 @@ export const monthTicks = (from: string, to: string) => {
 };
 
 /**
+ * A tech's progress per month, or null without two saves to measure it. Research arrives once a
+ * month, after the autosave on the 1st (Planetforgers 2212.03.01 → 03.05: society +34.8, exactly
+ * the month's 24.7 × 1.41; the game's own tooltip: "+168.07 progress/month"), so a short window
+ * holds a whole month's chunk or none. Measured from the latest earlier save with a chunk between,
+ * per chunk.
+ */
+export function researchRate(tech: string, latest: Snapshot, earlier: Snapshot[]): number | null {
+	const at = (s: Snapshot) => s.progress?.research.find((x) => x.tech === tech)?.progress;
+	const now = at(latest);
+	const base = earlier.findLast(
+		(s) => at(s) !== undefined && researchTicks(s.date, latest.date) >= 1
+	);
+	return now === undefined || !base
+		? null
+		: (now - at(base)!) / researchTicks(base.date, latest.date);
+}
+
+/** Monthly research chunks between two saves: an autosave on the 1st still precedes its month's. */
+export const researchTicks = (from: string, to: string) => {
+	const period = (d: string) =>
+		Number(d.slice(0, 4)) * 12 + Number(d.slice(5, 7)) - (d.endsWith('.01') ? 1 : 0);
+	return period(to) - period(from);
+};
+
+/**
  * `latest` is the state shown; `previous` the save before it on the same branch (for daily rates),
  * `earlier` all its saves before `latest` (for monthly ones). Sorted by due date.
  */
@@ -171,11 +196,8 @@ export function upcoming(
 			p.costSettings.technology *
 			sizePenalty(latest.empireSize, d.EMPIRE_SIZE_TECH_COST_PENALTY, d) *
 			TECH_COST_OBSERVED_FACTOR;
-		const before = previous?.progress?.research.find((x) => x.tech === r.tech);
 		const rate =
-			before && elapsed > 0
-				? (r.progress - before.progress) / elapsed
-				: (latest.income?.[`${r.area}_research`] ?? 0);
+			researchRate(r.tech, latest, earlier) ?? latest.income?.[`${r.area}_research`] ?? 0;
 		const when = due(latest.date, cost - r.progress, rate);
 		if (when)
 			out.push({

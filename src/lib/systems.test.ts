@@ -5,6 +5,7 @@ import {
 	jumps,
 	ledger,
 	outpostInfluence,
+	outpostMults,
 	saveHistory,
 	systemHistory,
 	systemSpending,
@@ -83,6 +84,28 @@ describe('jumps and the outpost estimate', () => {
 		expect(outpostInfluence(1, data.defines)).toBe(75);
 		expect(outpostInfluence(3, data.defines)).toBe(225);
 		expect(outpostInfluence(40, data.defines)).toBe(1000);
+	});
+	it('applies the empire’s cost modifiers (game, Planetforgers 2212.03.05: 67 … 337, 90 alloys)', () => {
+		const s = {
+			traditions: ['tr_expansion_adopt', 'tr_expansion_reach_for_the_stars'],
+			ascensionPerks: [],
+			policies: { diplomatic_stance: 'diplo_stance_expansionist' }
+		} as unknown as Snapshot;
+		const mult = outpostMults(s);
+		expect(mult.alloys).toBeCloseTo(0.9);
+		expect([1, 2, 3, 4, 5].map((j) => outpostInfluence(j, data.defines, mult.influence))).toEqual([
+			67, 135, 202, 270, 337
+		]);
+		expect(
+			outpostMults({
+				traditions: null,
+				ascensionPerks: null,
+				policies: null
+			} as unknown as Snapshot)
+		).toEqual({
+			influence: 1,
+			alloys: 1
+		});
 	});
 });
 

@@ -1075,9 +1075,14 @@ screen, trade calibration, stored research, releases).
   - It also **fills while a field's queue is empty** (United Nations 2207.03.01: society 766, no
     society tech; Planetforgers 2207.10.02: society 930, none).
   - Planetforgers 2212.03.01: physics stored 0 → 1370 (an event), by 03.05 1310.66 — the drop,
-    59.34, is **exactly one month's physics gain** (budget income 59.35): used in a monthly chunk,
-    not daily? Yet Exotic Materials Labs gained +143 in those 4 days (~11 expected) — does not add
-    up; open.
+    59.34, is **exactly one month's physics gain** (budget income 59.35), and Exotic Materials Labs
+    gained +143 in those 4 days. **Explained 2026-10-22:** research arrives in one monthly chunk
+    *after* the autosave on the 1st (society +34.8, engineering +46.0 in the same 4 days — one
+    month each), so that window holds March's chunk: 59.34 drawn from stored. The game's research
+    tooltip at 03.05 (screenshot `2026_10_22_5`): "+168.07 progress/month" = base 59.60 × 1.41
+    (+84.04) plus "Stored Research: +84.03" — stored adds the *modified* monthly gain while
+    drawing the base from the stock. `researchRate()` (`events.ts`) now measures per chunk; it had
+    scaled 4 days to a month (+1072.6/month, "due in 1 month"; the game: 5).
     To check, in a throwaway game: note the monthly physics gain, `resource physics_research 1000`
     (does the console add to stored?), then a manual save every day for ~10 days
     (`fast_forward 1`): stored drop vs. progress per day, the tech view's "+Y/Day", and what a tech
@@ -1094,16 +1099,21 @@ screen, trade calibration, stored research, releases).
   districts, which varies with the habitability of the planet. Clearing blockers can further
   increase capacity" — engine code, no define or script. The save has `colony.total_housing`,
   `housing_usage`, `free_housing` and `last_month_growth_data` (`GROWTH_CAT_GROWTH` in pop units,
-  ×100) — no capacity. Housing alone does not fit: Embron 4985 pops / 9800 housing → 6.1 (seen 5,
+  ×100) — no capacity. **The game shows it** in the planet size tooltip ("Colony Capacity"):
+  Embron 12600 at 2212.03.05 (housing 9800, 3 free districts, 50 % habitability — confirmed in
+  game, "Species Habitability Cap 50 %"; screenshots `2026_10_22_3`, `4`); its growth tooltip has
+  no breakdown (+5 last month, 5.26 estimated next). Housing alone does not fit: Embron 4985 pops / 9800 housing → 6.1 (seen 5,
   the cap), Caugantu Prime 556 / 2900 → 1.1 (seen 1–2), Earth 5120 / 8000 → 4.6 (seen 5). Our
   saves have too few uncapped colonies (two) to separate the districts' share from the species'
   growth speed. Needed: the game's growth tooltip (base growth, capacity if shown, speed) for a
   few colonies of different size, free district room and habitability.
 
-- **Outpost influence, estimated**: the systems tab charges `75 + 75 × (jumps − 1)` from our
-  nearest system (4.5.2 `EXPANSION_COST_*`). Check against the game's cost tooltip before building
-  an outpost one, two and three jumps out, and whether `country_starbase_influence_cost_mult`
-  sources apply.
+- **Outpost cost, confirmed** (2026-10-22, Planetforgers 2212.03.05, screenshots
+  `2026_10_22_11`–`15`): influence 67, 135, 202, 270, 337 at 1–5 jumps from our nearest system =
+  floor(75 × jumps × 0.9) — the step formula holds, × `country_starbase_influence_cost_mult`
+  (Reach for the Stars −10 %); alloys 90 = 100 × the Expansionist stance's
+  `starbase_outpost_cost_mult` −10 %. `outpostMults()` (`systems.ts`) reads those from the save's
+  traditions, perks and policy; civics, origins, councilors and Shroud cycles are not read yet.
 
 - **Habitat district limits, not yet checked in game** (no habitat tech at 2207.03): whether
   `count_system_planet` counts the star as a major body (assumed yes: Sol 9 major → 8 districts),

@@ -7,51 +7,50 @@ Background for each is in `AGENTS.md` (sections named below).
 
 ## A. Screenshots from the real campaign (no cheats needed)
 
+Session 2026-10-22 (Planetforgers, 2212.03.05, screenshots `2026_10_22_1`–`15`) settled the
+outpost cost and the tech tab's rates; results in `AGENTS.md` → Open. What is left:
+
 ### 1. Pop growth: planet capacity — blocks the growth model
 
-`AGENTS.md` → Open → "Pop growth: planet capacity". Capacity is housing + room from undeveloped
-districts (more with better habitability) + cleared blockers; the formula is engine code.
+`AGENTS.md` → Open → "Pop growth: planet capacity". **Embron's capacity is 12600** (the planet
+size tooltip, "Colony Capacity"; housing 9800, 3 free districts, 50 % habitability), and the game
+confirms its 50 % habitability. The growth tooltip shows no breakdown (last month +5, "Estimated
+Growth Next Month" 5.26). Still needed for the fit:
 
-- **Do:** for **three colonies** — the capital, Caugantu Prime (small, 7 free districts, 80 %
-  habitability) and one more of another size or habitability — open the colony and hover the
-  **pop growth** number (the growth breakdown).
-- **Send:** a screenshot of that tooltip per colony (base growth, any capacity figure, growth
-  speed modifiers); if it names capacity anywhere else (the planet size tooltip), that one too;
-  plus the save's date. The dashboard's growth tab of the same date shows housing, free
-  districts and habitability for the fit.
-- **Also check on Embron:** the growth tab shows **50 % habitability** (the save's pop-weighted
-  value; it was 100 % at game start). Screenshot the planet's habitability (planet view or the
-  species tooltip there) — if the game says 100 %, our reading is wrong.
-
-### 2. Outpost influence cost — systems tab
-
-`AGENTS.md` → Open → "Outpost influence, estimated". We charge 75 + 75 × (jumps − 1) from the
-nearest own system.
-
-- **Do:** with a construction ship, hover "build outpost" on systems **1, 2 and 3 jumps** beyond
-  the border (before building).
-- **Send:** the three cost tooltips (influence and alloys), and the systems' names.
+- **Do:** hover **Caugantu Prime's planet size** (planet view, the size number) — "Colony
+  Capacity"; later, the same for a third colony of another size or habitability.
+- **Send:** the tooltip and the save's date.
 
 ### 3. Starbase costs — systems tab
 
-- **Do:** on a starport, hover the upgrade to starhold, one module (e.g. Trade Hub) and one
-  building (e.g. Hydroponics Bay) in the build menu.
-- **Send:** the three tooltips (cost, upkeep). Expected from the files: starhold 1000 alloys,
-  modules 50 alloys, hydroponics 50 alloys / 1 energy — differences are modifiers we do not
-  apply yet.
+Seen: modules and buildings 50 alloys as in the files (Crew Quarters upkeep 0.74 = 1 × (1 − 20 %
+Galactic Ambition − 6 % Minister of Defense)); outpost → starport **225 alloys, files 250** — a
+−10 % whose source is not found (the Expansionist stance's `starbase_outpost_cost_mult` covers
+outposts only by its name; no leader trait of ours matches).
+
+- **Do:** on Embrala (starport), hover the **upgrade to starhold** (files: 1000 alloys).
+- **Send:** the tooltip — 900 means a flat −10 % on upgrades, 1000 means it was the outpost's own.
 
 ### 4. Market buy price — produce tab
 
-- **Do:** open the market, select alloys (and one more resource).
-- **Send:** the screenshot showing the buy price per unit and the fee. Compare with the produce
-  tab's "Market: … trade per Alloys, fee … included".
+Internal market, fee 30 %: alloys buy 5.20 / sell 2.80 trade — the produce tab's 5.20 matches.
+Minerals: game 1.32, ours 1.31 (fluctuation +0.765 % → 1.3 × 1.00765 = 1.3099); 1.3 × (1 + 2 ×
+0.765 %) would give 1.32 — the fluctuation counted twice?
+
+- **Do:** select **energy** (fluctuation −4.36 %: ours 1.24, "twice" would be 1.19) and consumer
+  goods (−1.72 %: ours 2.56) in the market.
+- **Send:** the screenshot of each buy price.
 
 ### 5. Tech screen — tech tab
 
-- **Do:** open the research screen with a permanent option on offer (★ on the tech tab).
-- **Send:** a screenshot of the three fields' cards, and the hover over a field's research
-  showing **"Stored: X (+Y/Day)"** if it has stored research. Checks: the ★ techs, the progress
-  numbers, and the stored amount and its daily rate (see 7).
+Seen: the progress numbers match (753/1575, 1315/2750, 774/3300); rates fixed (see `AGENTS.md`).
+Left: **rare tier-2 techs cost ×1.10, not ×1.05** (Volcanic Forge 2750, Arc Furnace 3300; tier 1:
+1575) — rare or tier?
+
+- **Do:** in the research screen, open a field's choices and note a **non-rare tier-2** tech's
+  cost (e.g. Gravitic Sensors, base 2000: 2100 or 2200?). And a ★ permanent option when one is
+  on offer.
+- **Send:** the screenshot.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
@@ -69,15 +68,13 @@ Trade Deal" and the opinion, its decay over two months, one non-trading attitude
 
 ### 7. Stored research — tech tab
 
-`AGENTS.md` → Open → "Stored research". The game says stored research is used each month up to
-the monthly gain; our saves show a drop of exactly one month's gain in 4 days but +143 progress
-(~11 expected).
+`AGENTS.md` → Open → "Stored research". The 4-day puzzle is solved (a monthly chunk after the
+1st's autosave), and the game's tooltip shows stored research adding the modified monthly gain
+while drawing the base. Left: confirm the draw per month equals the *base* gain over a few months,
+and what a tech finishing mid-month does with its overflow — plain monthly autosaves of the
+campaign suffice, no cheats.
 
-- **Do:** note the monthly physics gain (top bar tooltip); console `resource physics_research 1000`
-  (check the order as in 6); then **10 days in a row**: `fast_forward 1` and a manual save. Also
-  let one tech finish mid-month and save the day after.
-- **Send:** the save folder name, and a screenshot of the research screen's "Stored: X (+Y/Day)"
-  on the first day. The rest comes from the saves (stored vs. progress per day).
+- **Send:** nothing; read from the next autosaves (`tech_status.stored_techpoints` vs. progress).
 
 ## C. Not in the game
 
@@ -92,8 +89,10 @@ as `extractorVersion` (`v0.1.0`): release the extraction first (its `RELEASE.md`
 
 - 1 → fit capacity (`#lib/growth.ts`), then add "what +1 district / a cleared blocker / a medical
   building / an edict gains" and the colony ranking to the growth tab.
-- 2, 3 → correct `outpostInfluence()` and apply cost modifiers in `#lib/systems.ts` if needed.
+- 3 → apply the upgrade cost modifier in `#lib/systems.ts` (`starbaseGain`).
+- 4 → `price()` in `#lib/market.ts`.
+- 5 → `TECH_COST_OBSERVED_FACTOR` in `#lib/events.ts`.
 - 6 → fit `TradeModel` (`#lib/aiTrade.ts`), add the session's numbers as its test, set
   `calibrated`; then gift → opinion, monthly deals by length, and the produce tab's trade-deal
   option.
-- 7 → fix the tech tab's "≈ N months at double speed".
+- 7 → the tech tab's "≈ N months at double speed" (stored ÷ base gain) stands if the draw is the base gain.
