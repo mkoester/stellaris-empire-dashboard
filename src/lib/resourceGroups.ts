@@ -30,3 +30,15 @@ export function splitByGroup(flows: Resources): { name: string; flows: Resources
 		flows: Object.fromEntries(Object.entries(flows).filter(([k]) => groupOf(k) === g.name))
 	})).filter((g) => Object.keys(g.flows).length > 0);
 }
+
+// The Resources strip's order: basic and advanced first, unity and influence last, the rest
+// (strategic, rare, mod resources) alphabetically between. Research has its own chart.
+const STRIP_FIRST = ['energy', 'minerals', 'food', 'consumer_goods', 'alloys', 'trade'];
+const STRIP_LAST = ['unity', 'influence'];
+const RESEARCH = ['physics_research', 'society_research', 'engineering_research'];
+
+/** `keys` plus the always-shown ones, in the Resources strip's order, research left out. */
+export function stripOrder(keys: string[]): string[] {
+	const skip = new Set([...STRIP_FIRST, ...STRIP_LAST, ...RESEARCH]);
+	return [...STRIP_FIRST, ...[...new Set(keys)].filter((k) => !skip.has(k)).sort(), ...STRIP_LAST];
+}

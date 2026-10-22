@@ -1,3 +1,4 @@
+import { stripOrder } from './resourceGroups.ts';
 import type { Colony, Resources, Snapshot } from './types.ts';
 
 // Snapshot history → chart columns. Pure, shared by server and page.
@@ -51,15 +52,41 @@ export function resourceSeries(
  */
 export function stockpileSeries(history: Snapshot[]): Series {
 	return pointSeries(
-		history.flatMap((s, i) => {
-			const after = i > 0 ? history[i - 1].date : '';
-			const days = (s.ticks ?? []).filter((t) => t.date > after && t.date < s.date);
-			return [
-				...days.map((t) => ({ date: t.date, values: withoutResearch(t.stockpile) })),
-				{ date: s.date, values: withoutResearch(s.stockpile) }
-			];
-		})
+		stockpilePoints(history).map((p) => ({ date: p.date, values: withoutResearch(p.stockpile) }))
 	);
+}
+
+/** The points of `stockpileSeries`; `snap` is the snapshot a point is, null on a tick's day. */
+function stockpilePoints(history: Snapshot[]) {
+	return history.flatMap((s, i) => {
+		const after = i > 0 ? history[i - 1].date : '';
+		const days = (s.ticks ?? []).filter((t) => t.date > after && t.date < s.date);
+		return [
+			...days.map((t) => ({ date: t.date, stockpile: t.stockpile, snap: null })),
+			{ date: s.date, stockpile: s.stockpile, snap: s as Snapshot | null }
+		];
+	});
+}
+
+/**
+ * One resource's chart: its stockpile (daily where the mod's tick has it) and its net per month,
+ * known at snapshots only — a gap on tick days, which the chart bridges.
+ */
+export function resourcePanelSeries(history: Snapshot[], key: string): Series {
+	const points = stockpilePoints(history);
+	return {
+		x: points.map((p) => gameYear(p.date)),
+		lines: {
+			stockpile: points.map((p) => p.stockpile[key] ?? 0),
+			'per month': points.map((p) => (p.snap ? (p.snap.balance[key] ?? 0) : null))
+		}
+	};
+}
+
+/** The resources to chart one by one: the strip's always-shown ones and any ever held or moved. */
+export function resourceKeys(history: Snapshot[]): string[] {
+	const moved = (r: Resources) => Object.keys(r).filter((k) => r[k] !== 0);
+	return stripOrder(history.flatMap((s) => [...moved(s.stockpile), ...moved(s.balance)]));
 }
 
 function pointSeries(points: { date: string; values: Resources | null }[]): Series {

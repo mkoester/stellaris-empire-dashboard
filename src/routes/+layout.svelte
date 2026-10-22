@@ -50,6 +50,11 @@
 			active: path === '/market'
 		},
 		{
+			name: 'resources',
+			href: node ? resolve(`/resources?node=${node}`) : resolve('/resources'),
+			active: path === '/resources'
+		},
+		{
 			name: 'events',
 			href: node ? resolve(`/events?node=${node}`) : resolve('/events'),
 			active: path === '/events'

@@ -195,7 +195,11 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 `map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
 (`/expansion`: the Expansion panel full-size, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
-(`/market`: prices over time and the standing orders, `#lib/market.ts`) and `events`
+(`/market`: prices over time and the standing orders, `#lib/market.ts`), `resources`
+(`/resources`: per resource, in the Resources strip's order (`stripOrder()`), a chart — stockpile
+left, net per month right (`resourcePanelSeries()`) — and the latest save's month by budget source
+(`Snapshot.budget`, every source, the market's as `market:<source>`; `resourceBudget()` in
+`#lib/flows.ts`; its total is the save's balance: 2207.04.02 energy +3.455 both)) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `shroud` (patrons and attunement), `focus`,
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `megastructures` (all below), `mods` and
 `dlc` (last; see

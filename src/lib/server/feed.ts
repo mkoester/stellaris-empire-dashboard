@@ -188,6 +188,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		defaultAutomation: null,
 		automationBlocked: null,
 		planetBudget: null,
+		budget: null,
 		score: null,
 		fleets: null,
 		idleLeaders: null,

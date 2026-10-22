@@ -7,6 +7,8 @@ import {
 	monthStarts,
 	popSeries,
 	researchSeries,
+	resourceKeys,
+	resourcePanelSeries,
 	resourceSeries,
 	stockpileSeries,
 	withoutResearch,
@@ -146,5 +148,47 @@ describe('stockpileSeries', () => {
 			x: [2200, 2200 + 15 / 360, 2200 + 1 / 12],
 			lines: { energy: [1, 7, 2] }
 		});
+	});
+});
+
+describe('resourcePanelSeries', () => {
+	it('gives the stockpile on every point and the net per month on snapshots only', () => {
+		const jan = {
+			date: '2200.01.01',
+			stockpile: { energy: 1 },
+			balance: { energy: 5 },
+			ticks: null
+		} as unknown as Snapshot;
+		const feb = {
+			date: '2200.02.01',
+			stockpile: { energy: 2 },
+			balance: {},
+			ticks: [{ date: '2200.01.16', stockpile: {} }]
+		} as unknown as Snapshot;
+		expect(resourcePanelSeries([jan, feb], 'energy')).toEqual({
+			x: [2200, 2200 + 15 / 360, 2200 + 1 / 12],
+			lines: { stockpile: [1, 0, 2], 'per month': [5, null, 0] }
+		});
+	});
+});
+
+describe('resourceKeys', () => {
+	it("lists the strip's resources and any ever held or moved, in the strip's order", () => {
+		const h = [
+			{ stockpile: { sr_zro: 0, volatile_motes: 3 }, balance: { physics_research: 9 } },
+			{ stockpile: {}, balance: { exotic_gases: -1 } }
+		] as unknown as Snapshot[];
+		expect(resourceKeys(h)).toEqual([
+			'energy',
+			'minerals',
+			'food',
+			'consumer_goods',
+			'alloys',
+			'trade',
+			'exotic_gases',
+			'volatile_motes',
+			'unity',
+			'influence'
+		]);
 	});
 });

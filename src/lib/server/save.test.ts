@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
+	budgetSources,
 	buildQueue,
 	countryIds,
 	colonyGrowth,
@@ -607,6 +608,24 @@ describe('planetBudget', () => {
 		).toEqual([
 			{ source: 'planet_artisans', income: { consumer_goods: 47 }, expenses: { minerals: 25 } },
 			{ source: 'pop_category_workers', income: {}, expenses: { consumer_goods: 5 } }
+		]);
+	});
+});
+
+describe('budgetSources', () => {
+	it("keeps every source, the market's apart", () => {
+		expect(
+			budgetSources({
+				income: { country_base: { energy: 20 }, trade_policy: { trade: 3 } },
+				expenses: { ships: { energy: 4 } },
+				trade_income: { monthly_trades: { minerals: 42 } },
+				trade_expenses: { monthly_trades: { energy: 80 } }
+			})
+		).toEqual([
+			{ source: 'country_base', income: { energy: 20 }, expenses: {} },
+			{ source: 'trade_policy', income: { trade: 3 }, expenses: {} },
+			{ source: 'ships', income: {}, expenses: { energy: 4 } },
+			{ source: 'market:monthly_trades', income: { minerals: 42 }, expenses: { energy: 80 } }
 		]);
 	});
 });

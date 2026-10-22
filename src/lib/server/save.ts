@@ -235,7 +235,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '2';
+export const READER = '3';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -269,6 +269,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		// 2200.05 after the player unticked all (in-game screenshot).
 		automationBlocked: items(raw.automationResources).map(String),
 		planetBudget: planetBudget(budget),
+		budget: budgetSources(budget),
 		score: {
 			rank: num(raw.country?.victory_rank),
 			score: num(raw.country?.victory_score),
@@ -1206,17 +1207,24 @@ export function hops(systems: Record<string, Raw>, start: Raw): Map<number, numb
 }
 
 /** The budget's per-source flows for pops and planets: jobs (`planet_<job>`), strata (`pop_category_*`), … */
-export function planetBudget(month: Raw): BudgetSource[] {
-	const sources = new Set(
-		[...Object.keys(month?.income ?? {}), ...Object.keys(month?.expenses ?? {})].filter((k) =>
-			/^(planet_|pop_)/.test(k)
-		)
-	);
-	return [...sources].map((source) => ({
-		source,
-		income: resources(month.income?.[source]),
-		expenses: resources(month.expenses?.[source])
-	}));
+export const planetBudget = (month: Raw): BudgetSource[] =>
+	budgetSources(month).filter((s) => /^(planet_|pop_)/.test(s.source));
+
+/**
+ * Every source of the month's budget with its income and expenses; the market's, booked apart
+ * (`trade_income|trade_expenses`), as `market:<source>`.
+ */
+export function budgetSources(month: Raw): BudgetSource[] {
+	const of = (income: Raw, expenses: Raw, prefix: string) =>
+		[...new Set([...Object.keys(income ?? {}), ...Object.keys(expenses ?? {})])].map((source) => ({
+			source: prefix + source,
+			income: resources(income?.[source]),
+			expenses: resources(expenses?.[source])
+		}));
+	return [
+		...of(month?.income, month?.expenses, ''),
+		...of(month?.trade_income, month?.trade_expenses, 'market:')
+	];
 }
 
 /** The country's envoys; one is in use while it has a `location = { assignment=… }`. */

@@ -25,6 +25,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	defaultAutomation: null,
 	automationBlocked: null,
 	planetBudget: null,
+	budget: null,
 	score: null,
 	fleets: null,
 	idleLeaders: null,

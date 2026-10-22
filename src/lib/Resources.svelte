@@ -3,6 +3,7 @@
 	import { fmt, pretty } from './format.ts';
 	import { monthlyLimit } from './market.ts';
 	import { followTicks } from './live.ts';
+	import { stripOrder } from './resourceGroups.ts';
 	import type { MarketOrder, Resources, Tick } from './types.ts';
 
 	// The game's top bar: stockpile and net change per month, in the game's order. Basic resources
@@ -30,23 +31,13 @@
 	const today = $derived(live && tick && tick.date > date ? tick : null);
 	const stockpile = $derived(today?.stockpile ?? saved);
 
-	const basic = ['energy', 'minerals', 'food', 'consumer_goods', 'alloys', 'trade'];
-	const last = ['unity', 'influence'];
-	const skip = new Set([
-		...basic,
-		...last,
-		'physics_research',
-		'society_research',
-		'engineering_research'
-	]);
-
-	const shown = $derived([
-		...basic,
-		...Object.keys({ ...stockpile, ...balance })
-			.filter((k) => !skip.has(k) && ((stockpile[k] ?? 0) !== 0 || (balance[k] ?? 0) !== 0))
-			.sort(),
-		...last
-	]);
+	const shown = $derived(
+		stripOrder(
+			Object.keys({ ...stockpile, ...balance }).filter(
+				(k) => (stockpile[k] ?? 0) !== 0 || (balance[k] ?? 0) !== 0
+			)
+		)
+	);
 
 	const signed = (n: number) => (n >= 0 ? '+' : '−') + fmt(Math.abs(n));
 </script>

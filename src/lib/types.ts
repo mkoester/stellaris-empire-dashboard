@@ -130,7 +130,7 @@ export type ExpansionPlanet = {
 	planet: PlanetState | null; // null in older snapshots
 };
 
-/** One budget source of pops (a job, a stratum's upkeep, buildings, …) for the month. */
+/** One budget source (a job, a stratum's upkeep, ships, the market, …) for the month. */
 export type BudgetSource = { source: string; income: Resources; expenses: Resources };
 
 /** A district type on a colony: how many are built, its zones (specialisations) and their buildings. */
@@ -267,6 +267,7 @@ export type Snapshot = {
 	defaultAutomation: string[] | null; // automation settings new colonies start with
 	automationBlocked: string[] | null; // resources planet automation may not spend
 	planetBudget: BudgetSource[] | null; // the budget's planet_* and pop_* sources
+	budget: BudgetSource[] | null; // every budget source, the market's as `market:<source>`
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
