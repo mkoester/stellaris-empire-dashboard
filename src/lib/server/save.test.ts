@@ -5,6 +5,7 @@ import {
 	buildQueue,
 	construction,
 	orbitalStations,
+	techQueued,
 	countryIds,
 	colonyGrowth,
 	colonyJobs,
@@ -695,6 +696,25 @@ describe('construction', () => {
 				systemId: 5,
 				cost: { minerals: 500 }
 			}
+		]);
+	});
+});
+
+describe('techQueued', () => {
+	it('lists every queued tech per field with its progress and start (2212.03.05 shapes)', () => {
+		const country = {
+			tech_status: {
+				physics_queue: [
+					{ progress: 753.4, technology: 'tech_basic_science_lab_2', date: '2211.09.02' },
+					{ progress: 120, technology: 'tech_sensors_2', date: '2211.01.01' }
+				],
+				society_queue: { progress: 1315.7, technology: 'tech_volcanic_forge', date: '2210.05.02' }
+			}
+		};
+		expect(techQueued(country)).toEqual([
+			{ area: 'physics', tech: 'tech_basic_science_lab_2', progress: 753.4, since: '2211.09.02' },
+			{ area: 'physics', tech: 'tech_sensors_2', progress: 120, since: '2211.01.01' },
+			{ area: 'society', tech: 'tech_volcanic_forge', progress: 1315.7, since: '2210.05.02' }
 		]);
 	});
 });

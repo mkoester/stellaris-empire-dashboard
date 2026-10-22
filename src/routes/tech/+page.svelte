@@ -39,16 +39,31 @@
 		</table>
 	</Panel>
 
-	<Panel title="On offer" note="The cards the game offers next, per field.">
+	<Panel
+		title="On offer"
+		note="The cards the game offers now, per field — redrawn once the field's current tech is done. ▶ being researched, ★ a permanent option (stays until researched), progress where a tech has some (only queued techs keep it in the save).{data.permanentKnown
+			? ''
+			: ' Permanent options show from the next save on.'}"
+	>
 		<table class="text-left text-sm">
 			<tbody>
 				{#each AREAS as area (area)}
 					<tr class="align-top">
 						<td class="p-1 pr-3" style:color={colorOf(`${area}_research`)}>{area}</td>
 						<td class="p-1">
-							{#each data.options[area] ?? [] as t, i (t.key)}{i ? ' · ' : ''}<InfoPopup
-									explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup
-								><span class="text-gray-500">{t.tier !== null ? ` T${t.tier}` : ''}</span>{/each}
+							{#each data.options[area] ?? [] as t, i (t.key)}{i ? ' · ' : ''}<span
+									class={t.researching ? 'font-semibold' : ''}
+									>{#if t.researching}▶
+									{/if}{#if t.permanent}<span title="a permanent option: stays until researched"
+											>★</span
+										>
+									{/if}<InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup
+									></span
+								><span class="text-gray-500"
+									>{t.tier !== null ? ` T${t.tier}` : ''}{t.progress !== null
+										? ` ${Math.round(t.progress)}${t.cost ? `/${t.cost} (${Math.round((100 * t.progress) / t.cost)} %)` : ''}`
+										: ''}</span
+								>{/each}
 						</td>
 					</tr>
 				{/each}
@@ -57,6 +72,32 @@
 	</Panel>
 
 	<ResearchTiers tiers={data.tiers} />
+
+	<Panel
+		title="Offered over time"
+		note="Each set of cards the saves showed per field, newest first, with the dates seen; bold: the one researched from it."
+	>
+		<table class="text-left text-sm">
+			<tbody>
+				{#each data.offers as o (`${o.area}:${o.from}`)}
+					<tr class="border-b border-gray-100 align-top dark:border-gray-900">
+						<td class="p-1 whitespace-nowrap text-gray-500 tabular-nums"
+							>{o.from}{o.to !== o.from ? ` – ${o.to}` : ''}</td
+						>
+						<td class="p-1" style:color={colorOf(`${o.area}_research`)}>{o.area}</td>
+						<td class="p-1"
+							>{#each o.cards as t, i (t.key)}{i ? ' · ' : ''}<span
+									class={o.picked === t.key ? 'font-semibold' : 'text-gray-500'}
+									><InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup></span
+								>{/each}</td
+						>
+					</tr>
+				{:else}
+					<tr><td class="p-1 text-gray-500">No offers recorded yet.</td></tr>
+				{/each}
+			</tbody>
+		</table>
+	</Panel>
 
 	<Panel title="Researched ({data.researched.length})">
 		{#each AREAS as area (area)}

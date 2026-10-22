@@ -6,6 +6,7 @@ import type {
 	KnownSystem,
 	MigrationColony,
 	OrbitalStation,
+	QueuedTech,
 	Route,
 	CivilianShip,
 	CouncilSeat,
@@ -237,7 +238,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '5';
+export const READER = '6';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -370,6 +371,9 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 				items(techs).map(String)
 			])
 		),
+		techQueued: techQueued(raw.country),
+		// options that stay until researched (focus rewards' `add_research_option`), repeated keys
+		techPermanent: items(raw.country?.tech_status?.always_available_tech).map(String),
 		leaderList: leaderList(raw),
 		speciesRights: speciesRights(raw.country),
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
@@ -1268,6 +1272,28 @@ export function envoys(leaders: Raw[]) {
 }
 
 const RESEARCH_AREAS = ['physics', 'society', 'engineering'];
+
+/**
+ * Every tech in the research queues with its progress (research points) and the date it was
+ * started: the first per field is being researched, the others wait with what they have. A tech
+ * left out of the queue keeps no progress in the save.
+ */
+export function techQueued(country: Raw): QueuedTech[] {
+	return RESEARCH_AREAS.flatMap((area) =>
+		items(country?.tech_status?.[`${area}_queue`]).flatMap((q) =>
+			q?.technology
+				? [
+						{
+							area,
+							tech: String(q.technology),
+							progress: num(q.progress),
+							since: typeof q.date === 'string' ? q.date : null
+						}
+					]
+				: []
+		)
+	);
+}
 
 /**
  * country.tech_status.<area>_queue holds the tech being researched first; the council agenda

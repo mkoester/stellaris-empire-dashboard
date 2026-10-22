@@ -27,6 +27,8 @@ All notable changes to this project are documented here. The format follows
   districts or buildings — measured from your own budget, and a month-by-month comparison of
   strategies, with knobs for techs within reach and the next tradition.
 
+- The tech tab: the cards on offer mark the one being researched, the permanent options and the
+  progress of queued techs; a new list of what was offered when, and what you picked.
 - A jobs tab: what each unit of a resource costs you, source by source (jobs with their workers'
   upkeep, stations, starbase modules), and how well each colony works its jobs for each resource
   against your empire's average — the colonies to specialise. Research, unity and the other

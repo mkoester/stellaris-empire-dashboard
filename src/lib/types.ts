@@ -204,6 +204,9 @@ export type Construction = {
 	cost: Resources;
 };
 
+/** A tech in a research queue: the first per field is being researched. */
+export type QueuedTech = { area: string; tech: string; progress: number; since: string | null };
+
 /** A mining, research or observation station in one of our systems, at the planet it orbits. */
 export type OrbitalStation = { systemId: number; planetId: number; deposits: string[] };
 
@@ -352,6 +355,8 @@ export type Snapshot = {
 	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
 	focus: EmpireFocus | null;
 	techOptions: Record<string, string[]> | null; // research field → the cards on offer
+	techQueued: QueuedTech[] | null; // every queued tech with its progress; since 2026-10-22
+	techPermanent: string[] | null; // options kept until researched (`always_available_tech`); since 2026-10-22
 	leaderList: LeaderInfo[] | null; // every hired leader
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;

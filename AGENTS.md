@@ -559,8 +559,11 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   `EffectTotals.svelte`, shared with the Government panel; text-only effects listed apart), every
   adopted tree in full with each tradition's effects (not yet active ones grey), the other trees,
   every perk (taken first, conditions not checked).
-- **tech**: the three queues with due dates (`events.ts`), the cards on offer
-  (`tech_status.alternatives`), research tiers, everything researched.
+- **tech**: the three queues with due dates (`events.ts`), the cards on offer **now**
+  (`tech_status.alternatives`; the game redraws a field's cards once its tech is done) with ▶ the
+  one being researched, ★ the permanent options and the progress of queued ones, "offered over
+  time" (`#lib/techOffers.ts`: a run of saves with the same cards is one offer, the pick = the
+  field's tech researched meanwhile), research tiers, everything researched.
 - **leaders**: `Snapshot.leaderList`, traits explained by `ltrait:<key>` (data DB `leader_trait`,
   each modifier labelled with its scope); class colours (`class-*` in `colors.ts`, envoys ours);
   envoys behind a switch, off by default.
@@ -914,7 +917,12 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   area — the user confirmed it, 2026-10-22) — and `potential` not false for the empire. The cards
   on offer (`tech_status.alternatives`) are a weighted random draw from those: never plan with them.
 - Progress: `country.tech_status.<area>_queue = { { progress technology date } }` (research points,
-  not percent); `country.government.council_agenda` + `council_agenda_progress`;
+  not percent; every queued tech keeps its own, `date` = started — `Snapshot.techQueued`, READER 6;
+  a tech not in a queue has no progress in the save); permanent research options (focus rewards'
+  `add_research_option`) are repeated `tech_status.always_available_tech="…"` keys
+  (`Snapshot.techPermanent`; 2212.03.05: Volcanic Forge, Doctrine: Fleet Support, Exotic Materials
+  Labs, each also among the cards); `stored_techpoints = { 1310.7 0 0 }` per field, meaning not
+  yet known; `country.government.council_agenda` + `council_agenda_progress`;
   `country.next_election`. **Agenda progress moves on the 1st only** (2207.02.01 → 03.01: +44,
   03.01 → 03.10: 0), research daily — so the agenda's rate is measured across month starts, or a
   mid-month manual save hides it. Galaxy cost sliders `galaxy.technology`, `galaxy.traditions`. Tech costs

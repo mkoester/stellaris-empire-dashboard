@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { techOffers } from '#lib/techOffers.ts';
 import { techTiers } from '#lib/techTiers.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -11,7 +12,12 @@ export function load({ url }) {
 	const { snaps, ...rest } = b;
 	const techs = getGameData().techs;
 	const progress = snaps.findLast((s) => s.progress !== null)?.progress ?? null;
-	const options = snaps.findLast((s) => s.techOptions !== null)?.techOptions ?? {};
+	const latest = snaps.findLast((s) => s.techOptions !== null);
+	const options = latest?.techOptions ?? {};
+	// progress of every queued tech; the permanent options (null: a save read before 2026-10-22)
+	const queued = Object.fromEntries((latest?.techQueued ?? []).map((q) => [q.tech, q.progress]));
+	const permanent = latest?.techPermanent ?? null;
+	const offers = techOffers(snaps).reverse();
 	const researched = progress?.researched ?? [];
 	const tech = (key: string) => ({
 		key,
@@ -28,8 +34,18 @@ export function load({ url }) {
 			due: rest.upcoming.find((u) => u.ref === `tech:${r.tech}`) ?? null
 		})),
 		options: Object.fromEntries(
-			Object.entries(options).map(([area, list]) => [area, list.map(tech)])
+			Object.entries(options).map(([area, list]) => [
+				area,
+				list.map((k) => ({
+					...tech(k),
+					researching: (progress?.research ?? []).some((r) => r.tech === k),
+					permanent: permanent?.includes(k) ?? false,
+					progress: queued[k] ?? null
+				}))
+			])
 		),
+		permanentKnown: permanent !== null,
+		offers: offers.map((o) => ({ ...o, cards: o.cards.map(tech) })),
 		researched: researched.map(tech).map((t) => ({ ...t, area: techs[t.key]?.area ?? '' })),
 		tiers: techTiers(researched, techs),
 		explain: pick(
@@ -37,6 +53,7 @@ export function load({ url }) {
 			[
 				...researched,
 				...Object.values(options).flat(),
+				...offers.flatMap((o) => o.cards),
 				...(progress?.research ?? []).map((r) => r.tech)
 			].map((k) => `tech:${k}`)
 		)
