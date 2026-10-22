@@ -21,6 +21,17 @@ fluctuation may lag the screen.
 - **Do:** at the next autosave on the 1st, open the market with minerals and consumer goods.
 - **Send:** the screenshot and the date.
 
+### 5. Trader enclave deal — trade tab
+
+The trade tab prices XuraCorp's exotic gases (and the Riggans' motes, Muutagan's crystals) from
+the 4.5.2 event script: 500·N energy at once, +N a month and −10·N energy a month for 10 years,
+N = 1…5 — 14.2 energy a unit whatever N. Not yet seen in game; a deal's modifier in the save
+(`enclave_trade_N_xur`) is what the tab reads as "our deal".
+
+- **Do:** open XuraCorp (in contact in the campaign) → strategic resource; hover the options.
+- **Send:** a screenshot of the options and their tooltips. If you take a deal, the date — the
+  next autosave should show it on the trade tab.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
@@ -29,7 +40,9 @@ Setup as in `AGENTS.md` → "Testing in a throwaway game".
 
 The whole session is written out in **`docs/trade-calibration.md`** (~1 hour): ~20 offers'
 acceptance numbers (not sent) with three empires of different personality, four gifts' "Favorable
-Trade Deal" and the opinion, its decay over two months, one non-trading attitude.
+Trade Deal" and the opinion, its decay over two months, one non-trading attitude. Rows 21–24
+(added with the trade price panel) pin down trade's own worth — the model's `tradeWeight` guess —
+and whether a nomadic empire can put energy or minerals into a deal at all.
 
 - **Send:** the filled tables (or screenshots of each offer's acceptance and each opinion
   tooltip) and the session's save folder name. Note whether `resource alloys 20000` or
