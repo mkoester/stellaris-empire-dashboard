@@ -56,6 +56,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	orbitalStations: null,
 	techQueued: null,
 	techPermanent: null,
+	techStored: null,
 	score: null,
 	fleets: null,
 	idleLeaders: null,

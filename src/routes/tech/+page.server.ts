@@ -18,6 +18,14 @@ export function load({ url }) {
 	const queued = Object.fromEntries((latest?.techQueued ?? []).map((q) => [q.tech, q.progress]));
 	const permanent = latest?.techPermanent ?? null;
 	const offers = techOffers(snaps).reverse();
+	// stored research per field and how long it lasts: each month up to the monthly gain is used
+	const stocked = snaps.findLast((s) => s.techStored !== null);
+	const stored = Object.entries(stocked?.techStored ?? {})
+		.filter(([, points]) => points > 0)
+		.map(([area, points]) => {
+			const gain = stocked?.income?.[`${area}_research`] ?? 0;
+			return { area, points, months: gain > 0 ? points / gain : null };
+		});
 	const researched = progress?.researched ?? [];
 	const tech = (key: string) => ({
 		key,
@@ -45,6 +53,7 @@ export function load({ url }) {
 			])
 		),
 		permanentKnown: permanent !== null,
+		stored,
 		offers: offers.map((o) => ({ ...o, cards: o.cards.map(tech) })),
 		researched: researched.map(tech).map((t) => ({ ...t, area: techs[t.key]?.area ?? '' })),
 		tiers: techTiers(researched, techs),

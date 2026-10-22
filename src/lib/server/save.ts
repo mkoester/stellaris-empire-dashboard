@@ -238,7 +238,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '6';
+export const READER = '7';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -372,6 +372,10 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			])
 		),
 		techQueued: techQueued(raw.country),
+		// per field (physics, society, engineering), in that order
+		techStored: Object.fromEntries(
+			items(raw.country?.tech_status?.stored_techpoints).map((v, i) => [RESEARCH_AREAS[i], num(v)])
+		),
 		// options that stay until researched (focus rewards' `add_research_option`), repeated keys
 		techPermanent: items(raw.country?.tech_status?.always_available_tech).map(String),
 		leaderList: leaderList(raw),

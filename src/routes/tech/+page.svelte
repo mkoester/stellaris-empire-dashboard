@@ -18,7 +18,7 @@
 <div class="grid gap-8 lg:grid-cols-2">
 	<Panel
 		title="Researching"
-		note="Costs are base costs; the due date comes from the measured rate."
+		note="Costs are base costs; the due date comes from the measured rate. Stored research (from events, or while a field researches nothing) is used each month up to the field's monthly gain on top of it — research runs at up to double speed until it is gone (the game's concept text, 4.5.2 concepts_l_english.yml)."
 	>
 		<table class="text-left text-sm">
 			<tbody>
@@ -37,6 +37,17 @@
 				{/each}
 			</tbody>
 		</table>
+		{#if data.stored.length}
+			<p class="mt-2 text-sm">
+				Stored:
+				{#each data.stored as s, i (s.area)}{i ? ' · ' : ''}<span
+						style:color={colorOf(`${s.area}_research`)}>{s.area}</span
+					>
+					{Math.round(s.points)}{s.months !== null
+						? ` (≈ ${Math.round(s.months * 10) / 10} months at double speed)`
+						: ''}{/each}
+			</p>
+		{/if}
 	</Panel>
 
 	<Panel
@@ -73,6 +84,17 @@
 
 	<ResearchTiers tiers={data.tiers} />
 
+	<Panel title="Researched ({data.researched.length})">
+		{#each AREAS as area (area)}
+			<div class="mb-2 text-sm">
+				<span style:color={colorOf(`${area}_research`)}>{area}:</span>
+				{#each data.researched.filter((t) => t.area === area) as t, i (t.key)}{i
+						? ' · '
+						: ''}<InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup>{/each}
+			</div>
+		{/each}
+	</Panel>
+
 	<Panel
 		title="Offered over time"
 		note="Each set of cards the saves showed per field, newest first, with the dates seen; bold: the one researched from it."
@@ -97,16 +119,5 @@
 				{/each}
 			</tbody>
 		</table>
-	</Panel>
-
-	<Panel title="Researched ({data.researched.length})">
-		{#each AREAS as area (area)}
-			<div class="mb-2 text-sm">
-				<span style:color={colorOf(`${area}_research`)}>{area}:</span>
-				{#each data.researched.filter((t) => t.area === area) as t, i (t.key)}{i
-						? ' · '
-						: ''}<InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup>{/each}
-			</div>
-		{/each}
 	</Panel>
 </div>

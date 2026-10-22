@@ -921,8 +921,8 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   a tech not in a queue has no progress in the save); permanent research options (focus rewards'
   `add_research_option`) are repeated `tech_status.always_available_tech="…"` keys
   (`Snapshot.techPermanent`; 2212.03.05: Volcanic Forge, Doctrine: Fleet Support, Exotic Materials
-  Labs, each also among the cards); `stored_techpoints = { 1310.7 0 0 }` per field, meaning not
-  yet known; `country.government.council_agenda` + `council_agenda_progress`;
+  Labs, each also among the cards); `stored_techpoints = { 1310.7 0 0 }` is **stored research** per
+  field (`Snapshot.techStored`, READER 7; see "Stored research" under Open); `country.government.council_agenda` + `council_agenda_progress`;
   `country.next_election`. **Agenda progress moves on the 1st only** (2207.02.01 → 03.01: +44,
   03.01 → 03.10: 0), research daily — so the agenda's rate is measured across month starts, or a
   mid-month manual save hides it. Galaxy cost sliders `galaxy.technology`, `galaxy.traditions`. Tech costs
@@ -1015,6 +1015,29 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   `support_percent` (read as 0).
 - **Faction Approval shows `+0.1`, not `+10%`**: `isPercentModifier` (`modifiers.ts`, copied from
   the planner's `civics.ts`) does not know `faction_approval`. Fix both copies together.
+
+- **Stored research — partly understood** (the user's question 2026-10-22: event research "never
+  seemed applied", so they skipped such rewards; their hypothesis: it applies when the next tech
+  starts). The game's own text (4.5.2 `concepts_l_english.yml` `concept_research_shared`): "Stored
+  Research is received from certain events or when no research is selected. Each month, Stored
+  Research equal to the Monthly Gain is used, increasing research speed" — the tech view shows
+  "Stored: X (+Y/Day)" (`TECH_POINTS_STORED_DESC`). So it is **not lost and not deferred**: it
+  trickles in, research at up to double speed until it is gone. Read from the saves on disk
+  (`tech_status.stored_techpoints` vs. the queues' progress):
+  - United Nations, society 2207.01 → 02: stored 383 → 359, Eco Simulation +49/month vs. ~+24
+    before — the doubling.
+  - Planetforgers, physics 2206.05 → 2207.10: stored 801 → 0 over ~14 months while researching.
+  - It also **fills while a field's queue is empty** (United Nations 2207.03.01: society 766, no
+    society tech; Planetforgers 2207.10.02: society 930, none).
+  - Planetforgers 2212.03.01: physics stored 0 → 1370 (an event), by 03.05 1310.66 — the drop,
+    59.34, is **exactly one month's physics gain** (budget income 59.35): used in a monthly chunk,
+    not daily? Yet Exotic Materials Labs gained +143 in those 4 days (~11 expected) — does not add
+    up; open.
+    To check, in a throwaway game: note the monthly physics gain, `resource physics_research 1000`
+    (does the console add to stored?), then a manual save every day for ~10 days
+    (`fast_forward 1`): stored drop vs. progress per day, the tech view's "+Y/Day", and what a tech
+    finishing mid-month does with its overflow. The tech tab shows stored research and "≈ N months
+    at double speed" (stored ÷ the field's monthly income) — revise once the rate is confirmed.
 
 - **Outpost influence, estimated**: the systems tab charges `75 + 75 × (jumps − 1)` from our
   nearest system (4.5.2 `EXPANSION_COST_*`). Check against the game's cost tooltip before building
