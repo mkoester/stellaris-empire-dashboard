@@ -169,7 +169,7 @@ async function run() {
 	state.watcher = await watchSaves(store, saveDir, {
 		onIngest: (r) => recorded(r, r.file),
 		loadedFrom: takeLoaded,
-		onRefresh: (r) => console.log(`re-read node ${r.nodeId} ← ${r.file}`),
+		onRefresh: (r) => console.log(`${r.isNew ? 'late' : 're-read'} node ${r.nodeId} ← ${r.file}`),
 		onError: (file, e) => console.error(`cannot ingest ${file}:`, e),
 		reader: `${READER}:${data.mtimeMs}:${data.size}`
 	});
