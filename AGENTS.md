@@ -536,7 +536,8 @@ Philosophy under both its categories), edicts those whose potential holds and th
 whose potential is not false (`from` = the country, folded in; `has_trait` = the species'),
 2207.03.10: Human as the game's panel, a few options more than the game shows (their conditions
 read scopes the save cannot answer). `is_nomadic` is
-built into the game and approximated as a Nomads origin.
+built into the game; read as running `situation_nomad_economy` (the origin misses most nomads,
+see the trade tab).
 
 **Situations tab** (`/situations`, `#lib/situations.ts` pure, readers in `server/world.ts`): first
 contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
@@ -1090,10 +1091,10 @@ screen, trade calibration, stored research, releases).
   - Planetforgers 2212.03.01: physics stored 0 → 1370 (an event), by 03.05 1310.66 — the drop,
     59.34, is **exactly one month's physics gain** (budget income 59.35), and Exotic Materials Labs
     gained +143 in those 4 days. **Explained 2026-10-22:** research arrives in one monthly chunk
-    *after* the autosave on the 1st (society +34.8, engineering +46.0 in the same 4 days — one
+    _after_ the autosave on the 1st (society +34.8, engineering +46.0 in the same 4 days — one
     month each), so that window holds March's chunk: 59.34 drawn from stored. The game's research
     tooltip at 03.05 (screenshot `2026_10_22_5`): "+168.07 progress/month" = base 59.60 × 1.41
-    (+84.04) plus "Stored Research: +84.03" — stored adds the *modified* monthly gain while
+    (+84.04) plus "Stored Research: +84.03" — stored adds the _modified_ monthly gain while
     drawing the base from the stock. `researchRate()` (`events.ts`) now measures per chunk; it had
     scaled 4 days to a month (+1072.6/month, "due in 1 month"; the game: 5). Confirmed by the
     next autosave: 03.05 → 04.01 left progress (753.42 / 1315.66 / 774.72) and stored (1310.66)

@@ -7,7 +7,7 @@
 	// `link` ties a row to a system: hovering the row sets `hovered` (bindable, shared with a map
 	// beside), and the row whose system is hovered there is highlighted. Binding `selected` as well
 	// makes a row click pick its system (again: unpick); a system picked elsewhere marks its row and
-	// scrolls it into view.
+	// scrolls it into view. `rowClass` sets a row apart (a reference row, say).
 	let {
 		rows,
 		columns,
@@ -15,7 +15,8 @@
 		sort = $bindable({ column: columns[0].id, desc: false }),
 		link,
 		hovered = $bindable(null),
-		selected = $bindable()
+		selected = $bindable(),
+		rowClass
 	}: {
 		rows: T[];
 		columns: Column<T>[];
@@ -24,6 +25,7 @@
 		link?: (r: T) => number | null;
 		hovered?: number | null;
 		selected?: number | null;
+		rowClass?: (r: T) => string;
 	} = $props();
 
 	const column = $derived(columns.find((c) => c.id === sort.column) ?? columns[0]);
@@ -70,7 +72,7 @@
 					? 'bg-amber-100 dark:bg-amber-900/40'
 					: selectable && sys !== null && selected === sys
 						? 'bg-sky-100 dark:bg-sky-900/40'
-						: ''} {selectable ? 'cursor-pointer' : ''}"
+						: (rowClass?.(r) ?? '')} {selectable ? 'cursor-pointer' : ''}"
 				data-system={sys}
 				onpointerenter={link ? () => (hovered = sys) : undefined}
 				onpointerleave={link ? () => (hovered = null) : undefined}

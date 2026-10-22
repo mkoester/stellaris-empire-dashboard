@@ -22,6 +22,7 @@ export type Facts = {
 	techs: string[];
 	atWar: boolean | null;
 	situations: number | null; // running situations
+	nomadic: boolean | null; // runs situation_nomad_economy (#lib/aiTrade.ts)
 	// parameter-free scripted triggers (data DB), looked into when a leaf is one of them
 	scripted?: Record<string, Trigger | null>;
 	traits?: string[]; // the species' traits, where a trigger is in a species' scope (rights)
@@ -99,8 +100,9 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 		case 'is_wilderness_empire':
 			return yes(f.origin === null ? null : f.origin === 'origin_wilderness');
 		case 'is_nomadic':
-			// built into the game; Nomads origins are the only way to be one (approximation)
-			return yes(f.origin === null ? null : f.origin.includes('nomad'));
+			// built into the game; a nomad runs the nomad economy situation — the origin misses
+			// most (2212.06.01: six such empires, one Nomads origin)
+			return yes(f.nomadic);
 		case 'any_situation':
 			// a scope we cannot look into — but with no situation running, none matches
 			return f.situations === 0 ? value === 'no' : null;

@@ -45,7 +45,8 @@ const facts: Facts = {
 	perks: [],
 	techs: [],
 	atWar: false,
-	situations: 0
+	situations: 0,
+	nomadic: false
 };
 
 describe('focusView', () => {

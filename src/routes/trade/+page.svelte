@@ -134,7 +134,12 @@
 	let priceMode: 'want' | 'offer' | 'both' = $state('want');
 	const priced = $derived(data.tradable.filter((r) => r !== 'trade'));
 	type Price = { pay: number | null; receive: number | null };
-	type PriceRow = Party & { key: string; market?: boolean; prices: Record<string, Price> };
+	type PriceRow = Party & {
+		key: string;
+		market?: boolean;
+		willing?: number | null; // empires only
+		prices: Record<string, Price>;
+	};
 	const marketPay = (r: string) => marketPrice(r, 'buy', prices, fee);
 	const marketReceive = (r: string) =>
 		canGive(r, data.weNomadic) ? marketPrice(r, 'sell', prices, fee) : null;
@@ -157,6 +162,7 @@
 			return {
 				...e,
 				key: `e${e.countryId}`,
+				willing: t.willingness,
 				prices: Object.fromEntries(
 					priced.map((r) => [
 						r,
@@ -179,6 +185,13 @@
 	]);
 	const priceColumns: Column<PriceRow>[] = $derived([
 		{ id: 'name', label: 'Empire', value: (p) => p.name, cell: party },
+		{
+			id: 'willing',
+			label: 'Willing',
+			value: (p) => p.willing ?? null,
+			cell: priceWilling,
+			right: true
+		},
 		...priced.map((r) => ({
 			id: r,
 			label: resName(r),
@@ -221,6 +234,11 @@
 {#snippet willing(e: Empire)}
 	{@const w = termsOf(e).willingness}
 	<span style:color={tint(w, willingSpan)}>{w ?? '?'}</span>
+{/snippet}
+{#snippet priceWilling(p: PriceRow)}
+	{#if p.willing !== undefined}<span style:color={tint(p.willing, willingSpan)}
+			>{p.willing ?? '?'}</span
+		>{/if}
 {/snippet}
 {#snippet attitude(e: Empire)}
 	{@const t = termsOf(e)}
@@ -416,6 +434,7 @@
 					<SortTable
 						rows={priceRows}
 						columns={priceColumns}
+						rowClass={(p) => (p.market ? 'bg-gray-100 dark:bg-gray-800/60' : '')}
 						key={(p) => p.key}
 						bind:sort={priceSort}
 					/>
