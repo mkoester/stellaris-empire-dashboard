@@ -3,13 +3,20 @@ import type { Colony, Snapshot } from './types.ts';
 // Pop growth per colony, as measured — pure. The game's rule (wiki "Population", 4.5): logistic
 // growth 1/400 × (pops − pops² / planet capacity − 1), all species together capped at the galaxy's
 // ceiling (5), times the species' growth speed; fastest at half the capacity, slow when the colony
-// is small and again near its capacity. Capacity is housing plus room from undeveloped districts
-// (more with better habitability) plus what cleared blockers add — the game computes it and the
-// save does not hold it, so this shows what feeds it, not the number. Growth here is the save's
-// `GROWTH_CAT_GROWTH` (natural growth, pop units), not migration or assembly.
+// is small and again near its capacity. Capacity, which the save does not hold: housing + 400 per
+// free district slot, queued districts counting as taken (matched to the game's "Colony Capacity"
+// over five readings, Planetforgers 2212.03–06; species habitability and housing usage do not
+// enter). Growth here is the save's `GROWTH_CAT_GROWTH` (natural growth, pop units), not
+// migration or assembly.
 
 export const GROWTH_CAP = 5; // LOGISTIC_CEILING_DEFAULT; the save's galaxy `logistic_ceiling_v2`
-const SAVES = 6; // growth is rolled (fractions are a chance): the mean of the colony's last saves
+const SAVES = 6;
+/**
+ * Capacity per free district slot on a normal planet (volcanic and arid matched). Players measured
+ * other values in 3.0 (×100 since 4.0): habitats 300, Gaia worlds ~600, tomb worlds ~200 —
+ * unconfirmed, so habitats get no capacity here.
+ */
+export const CAPACITY_PER_FREE_DISTRICT = 400; // growth is rolled (fractions are a chance): the mean of the colony's last saves
 
 export type GrowthRow = {
 	planetId: number;
@@ -21,14 +28,24 @@ export type GrowthRow = {
 	samples: number;
 	housing: number | null;
 	housingUsed: number | null;
-	free: number | null; // districts the planet's limit still allows
+	free: number | null; // districts the planet's limit still allows, queued ones taken
 	blocked: number | null; // more once its blockers are cleared
+	queued: number; // districts in the build queue: their room is gone already
+	capacity: number | null; // the game's planet capacity
 	habitability: number | null;
 	monthsPer100: number | null; // at the mean growth
 	flags: string[];
 };
 
 export type Room = { free: number | null; blocked: number | null };
+
+/** Districts in a colony's build queue. */
+export const queuedDistricts = (c: Colony) =>
+	c.buildQueue.filter((q) => q.kind === 'district').length;
+
+/** Planet capacity: housing plus each free district slot's room; null where either is unknown. */
+export const planetCapacity = (housing: number | null, free: number | null) =>
+	housing === null || free === null ? null : housing + CAPACITY_PER_FREE_DISTRICT * free;
 
 /** Natural growth of one colony in the saves along `history` (newest last), where known. */
 export function growthSamples(history: Snapshot[], planetId: number): number[] {
@@ -53,6 +70,11 @@ export function growthFlags(c: Colony, growth: number | null, cap = GROWTH_CAP):
 	if (c.habitability !== null && c.habitability < 1)
 		flags.push(`habitability ${Math.round(c.habitability * 100)} %: slower growth`);
 	if (growth !== null && growth <= 0) flags.push('not growing');
+	const queued = queuedDistricts(c);
+	if (queued)
+		flags.push(
+			`${queued} queued district${queued > 1 ? 's' : ''}: −${queued * CAPACITY_PER_FREE_DISTRICT} capacity now`
+		);
 	return flags;
 }
 
@@ -66,6 +88,7 @@ export function growthRows(
 		.map((c) => {
 			const samples = growthSamples(history, c.planetId).slice(-SAVES);
 			const growth = samples.length ? samples.reduce((a, b) => a + b, 0) / samples.length : null;
+			const r = room(c);
 			return {
 				planetId: c.planetId,
 				name: c.name,
@@ -76,7 +99,9 @@ export function growthRows(
 				samples: samples.length,
 				housing: c.housing,
 				housingUsed: c.housingUsed,
-				...room(c),
+				...r,
+				queued: queuedDistricts(c),
+				capacity: planetCapacity(c.housing, r.free),
 				habitability: c.habitability,
 				monthsPer100: growth !== null && growth > 0 ? 100 / growth : null,
 				flags: growthFlags(c, growth)

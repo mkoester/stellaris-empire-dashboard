@@ -53,13 +53,22 @@
 				'housing used of the total — capacity is this housing plus room from undeveloped districts'
 		},
 		{
+			id: 'capacity',
+			label: 'Capacity',
+			value: (r) => r.capacity,
+			right: true,
+			cell: capacity,
+			title:
+				"the game's planet capacity: housing + 400 per free district slot (normal planets); growth is fastest at half of it"
+		},
+		{
 			id: 'free',
 			label: 'Free districts',
 			value: (r) => r.free,
 			right: true,
 			cell: free,
 			title:
-				'districts the planet still allows — undeveloped room adds to the capacity; + more behind blockers'
+				'district slots still free, queued districts counted as taken — each adds 400 capacity; + more behind blockers'
 		},
 		{
 			id: 'hab',
@@ -67,7 +76,7 @@
 			value: (r) => r.habitability,
 			right: true,
 			cell: hab,
-			title: 'habitability: below 100 % slows growth, and changes what undeveloped districts add'
+			title: 'habitability: below 100 % slows growth (it does not change the capacity)'
 		},
 		{ id: 'flags', label: 'Notes', value: (r) => r.flags.join(', '), cell: flags }
 	];
@@ -86,6 +95,11 @@
 {#snippet housing(r: GrowthRow)}{#if r.housing !== null && r.housingUsed !== null}<span
 			title="{fmt(r.housingUsed)} of {fmt(r.housing)}">{pct(r.housingUsed / r.housing)}</span
 		>{/if}{/snippet}
+{#snippet capacity(r: GrowthRow)}{#if r.capacity !== null}<span
+			title="{fmt(r.housing ?? 0)} housing + {r.free} × 400{r.queued
+				? ` (${r.queued} queued district${r.queued > 1 ? 's' : ''} counted as taken)`
+				: ''}">{fmt(r.capacity)}</span
+		>{/if}{/snippet}
 {#snippet free(r: GrowthRow)}{r.free ?? ''}{#if r.blocked}<span class="text-gray-500">
 			(+{r.blocked})</span
 		>{/if}{/snippet}
@@ -100,7 +114,7 @@
 <div class="flex flex-col gap-6">
 	<Panel
 		title="Growth per colony"
-		note="Measured: natural growth per month, the mean of the colony's last saves (pop units; fractions are a chance in game). The game's rule (wiki, 4.5): 1/400 × (pops − pops² / planet capacity − 1), all species together at most {GROWTH_CAP}, times the species' growth speed — slow in a small colony, fastest at half the capacity, slow again near it. Planet capacity is housing plus room from undeveloped districts (more with better habitability) plus what cleared blockers add; the game does not save it, so the table shows what feeds it. More housing or free districts raise it; a colony at the cap gains nothing from more.{data.housingKnown
+		note="Measured: natural growth per month, the mean of the colony's last saves (pop units; fractions are a chance in game). The game's rule (wiki, 4.5): 1/400 × (pops − pops² / planet capacity − 1), all species together at most {GROWTH_CAP}, times the species' growth speed — slow in a small colony, fastest at half the capacity, slow again near it. Planet capacity (not in the save) is housing + 400 per free district slot on normal planets; a queued district takes its slot at once, long before its housing arrives — queue districts just in time. More housing or free districts raise it; a colony at the cap gains nothing from more.{data.housingKnown
 			? ''
 			: ' Housing shows from the next save on.'}"
 	>

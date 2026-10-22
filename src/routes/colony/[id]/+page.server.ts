@@ -29,10 +29,11 @@ export function load({ url, params }) {
 			.filter((c) => c.planetId >= 0)
 			.map((c) => ({ planetId: c.planetId, name: c.name })),
 		colony: colonyAt(b.latest) ?? null,
-		details: colonyDetails(colonyAt(b.latest)),
+		details: colonyDetails(colonyAt(b.latest), b.snaps.findLast((s) => s.kind === 'save') ?? null),
 		blockerHints: colonyBlockerHints(
 			b.latest.colonies.filter((c) => c.planetId === planetId),
-			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? []
+			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [],
+			b.snaps.findLast((s) => s.kind === 'save') ?? null
 		),
 		jobRows: b.jobs[planetId] ?? [],
 		classNames: Object.fromEntries(

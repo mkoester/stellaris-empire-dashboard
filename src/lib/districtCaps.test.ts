@@ -89,4 +89,29 @@ describe('districtCaps', () => {
 	it('leaves the limit open for habitats', () => {
 		expect(districtCaps({ ...earth, habitat: true }, {}, effects).limit).toBeNull();
 	});
+
+	it("adds the empire's civics and traditions (Embron 2212.06.01: the game's 25)", () => {
+		const fx = {
+			'civic:civic_world_forgers': [{ key: 'pc_volcanic_max_districts_add', value: 3 }],
+			'tradition:tr_expansion_finish': [
+				{ key: 'planet_non_artificial_max_districts_add', value: 1 },
+				{ key: 'habitat_max_districts_add', value: 1 }
+			],
+			'tradition:tr_adaptability_adaptive_ecology': [
+				{ key: 'planet_non_artificial_max_districts_add', value: 1 }
+			]
+		};
+		const owners = Object.keys(fx);
+		const planet = (planetClass: string, size: number) => ({
+			size,
+			habitat: false,
+			planetClass,
+			buildings: [],
+			modifiers: [],
+			deposits: []
+		});
+		expect(districtCaps(planet('pc_volcanic', 20), {}, fx, [], owners).limit).toBe(25);
+		expect(districtCaps(planet('pc_arid', 12), {}, fx, [], owners).limit).toBe(14); // Caugantu
+		expect(districtCaps(planet('pc_volcanic', 20), {}, fx).limit).toBe(20);
+	});
 });

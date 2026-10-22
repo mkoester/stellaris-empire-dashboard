@@ -99,13 +99,13 @@ function starbaseOptions(save: Snapshot): ProduceOption[] {
 /** Clearing a blocker and building a district in the room it makes, per district type. */
 function blockerOptions(save: Snapshot, staffed: (jobs: Record<string, number>) => Resources) {
 	const data = getGameData();
-	const { hints } = colonyBlockerHints(save.colonies, save.progress?.researched ?? []);
+	const { hints } = colonyBlockerHints(save.colonies, save.progress?.researched ?? [], save);
 	const factor = paidFactor(save, 'district');
 	return hints
 		.filter((h) => !blocked(h) && !h.clearing)
 		.flatMap((h): ProduceOption[] => {
 			const colony = save.colonies.find((c) => c.planetId === h.planetId);
-			const caps = colonyDetails(colony)?.caps;
+			const caps = colonyDetails(colony, save)?.caps;
 			if (!colony || !caps) return [];
 			return caps.types.flatMap((t): ProduceOption[] => {
 				const jobs = data.districtJobs[t.district];

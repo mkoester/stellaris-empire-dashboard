@@ -65,7 +65,8 @@ export function empireData(url: URL) {
 		// what clearing blockers would give, at the latest full save
 		blockerHints: colonyBlockerHints(
 			b.snaps.findLast((s) => s.kind === 'save')?.colonies ?? [],
-			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? []
+			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [],
+			b.snaps.findLast((s) => s.kind === 'save') ?? null
 		),
 		// Researched techs per field and tier, at the latest full save.
 		tiers: techTiers(b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [], data.techs),

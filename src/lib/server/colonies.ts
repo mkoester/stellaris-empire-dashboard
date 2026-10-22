@@ -21,11 +21,13 @@ export function colonyRows(b: NonNullable<ReturnType<typeof branch>>) {
 	const explain = getExplanations();
 	const colonies = b.latest.colonies.filter((c) => c.planetId >= 0);
 	const species = speciesChoices(b.snaps.findLast((s) => s.species !== null)?.species ?? []);
+	const save = b.snaps.findLast((s) => s.kind === 'save') ?? null;
 	const hints = colonyBlockerHints(
 		colonies,
-		b.snaps.findLast((s) => s.progress)?.progress?.researched ?? []
+		b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [],
+		save
 	);
-	const details = new Map(colonies.map((c) => [c.planetId, colonyDetails(c)]));
+	const details = new Map(colonies.map((c) => [c.planetId, colonyDetails(c, save)]));
 	const names = {
 		...b.names,
 		...hints.names,

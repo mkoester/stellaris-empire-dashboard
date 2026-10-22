@@ -1089,29 +1089,21 @@ screen, trade calibration, stored research, releases).
     finishing mid-month does with its overflow. The tech tab shows stored research and "≈ N months
     at double speed" (stored ÷ the field's monthly income) — revise once the rate is confirmed.
 
-- **Pop growth: planet capacity is not in the save or the files** (2026-10-22, for the planned
-  growth view). The wiki ("Population", 4.5): logistic growth = 1/400 × (species pops − species
-  pops² / planet capacity − 1), all species together capped at 5.0 (the galaxy's
-  `logistic_ceiling_v2=5`; `growth_scale=0.25` is the Country Growth Scale penalty, both in the
-  save's top-level `galaxy`), × the species' pop growth speed (habitability below 100 % among it);
-  flat "bonus growth" ignores both; fractions are a chance. Capacity, per the game's own text
-  (`concept_planet_capacity_desc`): "determined by housing and additional space from undeveloped
-  districts, which varies with the habitability of the planet. Clearing blockers can further
-  increase capacity" — engine code, no define or script. The save has `colony.total_housing`,
-  `housing_usage`, `free_housing` and `last_month_growth_data` (`GROWTH_CAT_GROWTH` in pop units,
-  ×100) — no capacity. **The game shows it** in the planet size tooltip ("Colony Capacity"):
-  Embron 12600 at 2212.03.05 (housing 9800, 3 free districts, 50 % habitability — confirmed in
-  game, "Species Habitability Cap 50 %"; screenshots `2026_10_22_3`, `4`), Caugantu Prime 6100
-  (size 12, housing 2900, 5 districts built, 80 %). The growth tooltip has no breakdown (Embron +5
-  last month, 5.26 estimated next; Caugantu +2, 1.39). With those capacities the defines'
-  logistic term fits: `LOGISTIC_POP_GROWTH_R` 0.0025 × pops × (1 − pops / capacity) — Caugantu
-  1.28 (game 1.39, the rest growth speed), Embron 7.5, capped at 5 (game 5.26). Capacity minus
-  housing: Embron +2800 for 3 undeveloped districts at 50 %, Caugantu +3200 for 7 at 80 % — not
-  per district × habitability; open (`docs/open-checks.md` 1). `MAX_CARRYING_CAPACITY` 50000. Housing alone does not fit: Embron 4985 pops / 9800 housing → 6.1 (seen 5,
-  the cap), Caugantu Prime 556 / 2900 → 1.1 (seen 1–2), Earth 5120 / 8000 → 4.6 (seen 5). Our
-  saves have too few uncapped colonies (two) to separate the districts' share from the species'
-  growth speed. Needed: the game's growth tooltip (base growth, capacity if shown, speed) for a
-  few colonies of different size, free district room and habitability.
+- **Pop growth: planet capacity, solved** (2026-10-22, Planetforgers 2212.03.05–06.01, screenshots
+  `2026_10_22_4`, `22`–`24`; not in the save). **Capacity = housing + 400 × free district slots**
+  on normal planets (volcanic, arid), free = the game's max districts − built − **queued**
+  districts — a district queued even far back takes its 400 at once, long before its housing
+  arrives (`growthFlags` warns). Five readings matched exactly (Embron 12600 / 12200 queued /
+  12600 with one more slot, Caugantu Prime 6100 / 6500). Species habitability (Caugantu 80 → 90 %)
+  and housing usage (Adaptability −10 %) do not enter; a queued building does not. The max
+  districts come from the game's tooltip: Embron 25 = 20 size + 3 `civic_world_forgers`
+  (`pc_volcanic_max_districts_add`) + 1 Expansion finished + 1 Adaptive Ecology — `districtCaps`
+  now reads civics, origin, traditions and perks (`empireOwners`, `planets.ts`). Players measured
+  other per-slot values in 3.0 (×100 since 4.0): habitats 300, Gaia ~600, tomb worlds ~200, and
+  ~400 per cleared blocker (r/Stellaris "Population growth strategies in 3.0", 2021) — not
+  checked; habitats get no capacity. The logistic term from the defines fits:
+  `LOGISTIC_POP_GROWTH_R` 0.0025 × pops × (1 − pops / capacity), capped at 5 — Caugantu 1.28
+  (game 1.39, the rest growth speed). The growth tab shows the capacity (`planetCapacity`).
 
 - **Outpost cost, confirmed** (2026-10-22, Planetforgers 2212.03.05, screenshots
   `2026_10_22_11`–`15`): influence 67, 135, 202, 270, 337 at 1–5 jumps from our nearest system =

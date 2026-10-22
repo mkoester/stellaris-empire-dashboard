@@ -145,7 +145,7 @@ export function tradeoffData(b: NonNullable<ReturnType<typeof branch>>) {
 
 	const colonies = save.colonies.filter((c) => c.planetId >= 0 && !c.colonizing);
 	const districts: TradeOption[] = colonies.flatMap((c) => {
-		const caps = colonyDetails(c)?.caps;
+		const caps = colonyDetails(c, save)?.caps;
 		if (!caps || caps.limit === null) return [];
 		const room = caps.limit - caps.built;
 		return caps.types.flatMap((t): TradeOption[] => {

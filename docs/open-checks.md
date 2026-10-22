@@ -11,17 +11,6 @@ Session 2026-10-22 (Planetforgers, 2212.03.05, screenshots `2026_10_22_1`–`21`
 and starbase costs, the market price formula, tech costs and research rates; results in
 `AGENTS.md` → Open. What is left:
 
-### 1. Pop growth: planet capacity — blocks the growth model
-
-`AGENTS.md` → Open → "Pop growth: planet capacity": the logistic formula holds with the game's
-capacity, but two colonies do not separate what capacity is built from (Embron 12600: housing
-9800, 3 undeveloped districts at 50 %; Caugantu Prime 6100: housing 2900, 7 at 80 %).
-
-- **Do:** hover a colony's **planet size** ("Colony Capacity") **before and after a district
-  finishes** there (normal play, no cheats) — the difference is one district's share at that
-  habitability; and the same for a third colony when there is one.
-- **Send:** the tooltips, the colony and the dates.
-
 ### 4. Market buy price — produce tab (small remainder)
 
 The formula is confirmed (base × (1 + fluctuation) × (1 + fee)): alloys 5.20, energy 1.24, food
@@ -67,8 +56,9 @@ as `extractorVersion` (`v0.1.0`): release the extraction first (its `RELEASE.md`
 
 ### 9. After the answers come in
 
-- 1 → fit capacity (`#lib/growth.ts`), then add "what +1 district / a cleared blocker / a medical
-  building / an edict gains" and the colony ranking to the growth tab.
+- Growth (capacity done): add "what +1 district / a cleared blocker / a medical building / an
+  edict gains" and the colony ranking to the growth tab; check the per-slot value on a habitat or
+  Gaia world when there is one.
 - 4 → `price()` in `#lib/market.ts`.
 - 6 → fit `TradeModel` (`#lib/aiTrade.ts`), add the session's numbers as its test, set
   `calibrated`; then gift → opinion, monthly deals by length, and the produce tab's trade-deal

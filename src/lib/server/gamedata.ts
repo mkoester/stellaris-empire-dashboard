@@ -370,7 +370,11 @@ export function loadGameData(file: string): GameData {
 					`SELECT 'deposit:' || deposit_key AS owner, modifier_key AS key, modifier_value AS value FROM deposit_modifier
 					 UNION ALL SELECT 'modifier:' || static_key, modifier_key, modifier_value FROM static_modifier_modifier
 					 UNION ALL SELECT 'building:' || building_key, modifier_key, value FROM building_modifier
-					   WHERE scope = 'planet' AND condition IS NULL`
+					   WHERE scope = 'planet' AND condition IS NULL
+					 UNION ALL SELECT 'civic:' || civic_key, modifier_key, modifier_value FROM civic_modifier
+					 UNION ALL SELECT 'origin:' || origin_key, modifier_key, modifier_value FROM origin_modifier
+					 UNION ALL SELECT 'tradition:' || owner_key, modifier_key, modifier_value FROM tradition_modifier
+					   WHERE potential_json IS NULL`
 				)
 			),
 			blockerInfo: blockerInfo(
@@ -585,15 +589,18 @@ function traditionTrees(
 	);
 }
 
-const CAP = /^(district_\w+_max_(add|mult)|planet_max_districts_(add|mult))$/;
+const CAP =
+	/^(district_\w+_max_(add|mult)|(planet|planet_non_artificial|pc_\w+)_max_districts_(add|mult))$/;
 
 /** The district cap modifiers among `rows`, grouped by owner. */
 export function capEffects(
 	rows: { owner: string; key: string; value: number }[]
 ): Record<string, CapEffect[]> {
 	const out: Record<string, CapEffect[]> = {};
+	// a tradition's alternative modifier sets are keyed `<tradition>#<n>`
 	for (const r of rows)
-		if (CAP.test(r.key)) (out[r.owner] ??= []).push({ key: r.key, value: r.value });
+		if (CAP.test(r.key))
+			(out[r.owner.replace(/#\w+$/, '')] ??= []).push({ key: r.key, value: r.value });
 	return out;
 }
 

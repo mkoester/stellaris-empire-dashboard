@@ -1,7 +1,7 @@
 import { blockerHints, type BlockerHint } from '#lib/blockers.ts';
 import { districtCaps, type PlanetDetailsData } from '#lib/districtCaps.ts';
 import { pretty } from '#lib/format.ts';
-import type { Colony, PlanetState } from '#lib/types.ts';
+import type { Colony, PlanetState, Snapshot } from '#lib/types.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
 
@@ -11,14 +11,22 @@ import { pick } from './explain.ts';
  */
 export function planetDetails(
 	planet: PlanetState,
-	p: { size: number; planetClass: string; buildings: string[]; built: Record<string, number> }
+	p: { size: number; planetClass: string; buildings: string[]; built: Record<string, number> },
+	empire: string[] = []
 ): PlanetDetailsData {
 	const data = getGameData();
 	const caps = districtCaps(
-		{ ...planet, size: p.size, habitat: p.planetClass === 'pc_habitat', buildings: p.buildings },
+		{
+			...planet,
+			size: p.size,
+			habitat: p.planetClass === 'pc_habitat',
+			planetClass: p.planetClass,
+			buildings: p.buildings
+		},
 		p.built,
 		data.capEffects,
-		data.blockers
+		data.blockers,
+		empire
 	);
 	const keys = [
 		...caps.types.map((t) => t.district),
@@ -44,15 +52,32 @@ export function planetDetails(
 const buildingsOf = (c: Colony) =>
 	c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings));
 
-/** A colony's planet details (null before snapshots had the planet). */
-export function colonyDetails(c: Colony | undefined): PlanetDetailsData | null {
+/** What of the empire can raise its planets' district limits, as `districtCaps` owners. */
+export const empireOwners = (s: Snapshot | null): string[] =>
+	s
+		? [
+				...(s.government ?? []).map((k) => `civic:${k}`),
+				...(s.origin ? [`origin:${s.origin}`] : []),
+				...[...(s.traditions ?? []), ...(s.ascensionPerks ?? [])].map((k) => `tradition:${k}`)
+			]
+		: [];
+
+/** A colony's planet details (null before snapshots had the planet); `s` adds the empire's part. */
+export function colonyDetails(
+	c: Colony | undefined,
+	s: Snapshot | null = null
+): PlanetDetailsData | null {
 	if (!c?.planet) return null;
-	return planetDetails(c.planet, {
-		size: c.planetSize,
-		planetClass: c.planetClass,
-		buildings: buildingsOf(c),
-		built: Object.fromEntries(c.districtList.map((d) => [d.type, d.built]))
-	});
+	return planetDetails(
+		c.planet,
+		{
+			size: c.planetSize,
+			planetClass: c.planetClass,
+			buildings: buildingsOf(c),
+			built: Object.fromEntries(c.districtList.map((d) => [d.type, d.built]))
+		},
+		empireOwners(s)
+	);
 }
 
 /**
@@ -61,12 +86,13 @@ export function colonyDetails(c: Colony | undefined): PlanetDetailsData | null {
  */
 export function colonyBlockerHints(
 	colonies: Colony[],
-	researched: string[]
+	researched: string[],
+	s: Snapshot | null = null
 ): { hints: BlockerHint[]; names: Record<string, string> } {
 	const data = getGameData();
 	const hints = blockerHints(
 		colonies.flatMap((c) => {
-			const d = colonyDetails(c);
+			const d = colonyDetails(c, s);
 			if (!d) return [];
 			return [
 				{
