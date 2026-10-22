@@ -1101,8 +1101,13 @@ screen, trade calibration, stored research, releases).
   `housing_usage`, `free_housing` and `last_month_growth_data` (`GROWTH_CAT_GROWTH` in pop units,
   ×100) — no capacity. **The game shows it** in the planet size tooltip ("Colony Capacity"):
   Embron 12600 at 2212.03.05 (housing 9800, 3 free districts, 50 % habitability — confirmed in
-  game, "Species Habitability Cap 50 %"; screenshots `2026_10_22_3`, `4`); its growth tooltip has
-  no breakdown (+5 last month, 5.26 estimated next). Housing alone does not fit: Embron 4985 pops / 9800 housing → 6.1 (seen 5,
+  game, "Species Habitability Cap 50 %"; screenshots `2026_10_22_3`, `4`), Caugantu Prime 6100
+  (size 12, housing 2900, 5 districts built, 80 %). The growth tooltip has no breakdown (Embron +5
+  last month, 5.26 estimated next; Caugantu +2, 1.39). With those capacities the defines'
+  logistic term fits: `LOGISTIC_POP_GROWTH_R` 0.0025 × pops × (1 − pops / capacity) — Caugantu
+  1.28 (game 1.39, the rest growth speed), Embron 7.5, capped at 5 (game 5.26). Capacity minus
+  housing: Embron +2800 for 3 undeveloped districts at 50 %, Caugantu +3200 for 7 at 80 % — not
+  per district × habitability; open (`docs/open-checks.md` 1). `MAX_CARRYING_CAPACITY` 50000. Housing alone does not fit: Embron 4985 pops / 9800 housing → 6.1 (seen 5,
   the cap), Caugantu Prime 556 / 2900 → 1.1 (seen 1–2), Earth 5120 / 8000 → 4.6 (seen 5). Our
   saves have too few uncapped colonies (two) to separate the districts' share from the species'
   growth speed. Needed: the game's growth tooltip (base growth, capacity if shown, speed) for a
@@ -1114,6 +1119,16 @@ screen, trade calibration, stored research, releases).
   (Reach for the Stars −10 %); alloys 90 = 100 × the Expansionist stance's
   `starbase_outpost_cost_mult` −10 %. `outpostMults()` (`systems.ts`) reads those from the save's
   traditions, perks and policy; civics, origins, councilors and Shroud cycles are not read yet.
+  **Starbase upgrades**: outpost → starport cost 225 alloys of 250, starhold 1000 of 1000 — the
+  outpost's modifier covers its starport upgrade only (`starbaseGain`). Modules and buildings
+  50 alloys as in the files.
+- **Market price, confirmed** (2026-10-22, internal market, screenshots `2026_10_22_6`, `7`,
+  `16`–`18`): buy = base × (1 + fluctuation %) × (1 + fee), in trade — alloys 5.20, energy 1.24,
+  food 1.30 as `price()`; minerals and consumer goods off by 0.01 in the direction of that month's
+  automatic trades.
+- **Tech cost, confirmed** (2026-10-22, screenshots `2026_10_22_19`–`21`): base × (1 + 0.05 ×
+  tier), rounded down — tier 1 1575 / 1312 / 1050, tier 2 2200 / 2750, rare or not
+  (`techCostFactor`, `events.ts`).
 
 - **Habitat district limits, not yet checked in game** (no habitat tech at 2207.03): whether
   `count_system_planet` counts the star as a major body (assumed yes: Sol 9 major → 8 districts),

@@ -41,11 +41,12 @@ export type Upcoming = {
 };
 
 /**
- * Tech costs in game were ×1.05 of the base cost at empire size 50 (4.5.2, cadet, technology
- * slider 1, "scaling_normal"): 1575 for a 1500 tech, 1050 for 1000. Source unconfirmed —
- * possibly TECH_COST_DIFFICULTY_SCALE_MULT (0.025) × 2.
+ * Tech costs in game are × (1 + 0.05 × tier) of the base cost, rounded down (4.5.2, technology
+ * slider 1, empire size ≤ 100): tier 1 1575 / 1312 / 1050 for 1500 / 1250 / 1000, tier 2 2200 for
+ * 2000 and 2750 for 2500, rare or not (Planetforgers 2212.03.05, screenshots 2026_10_22_19–21).
+ * Source unconfirmed — no define names it.
  */
-const TECH_COST_OBSERVED_FACTOR = 1.05;
+export const techCostFactor = (tier: number | null) => 1 + 0.05 * (tier ?? 1);
 
 // ── Game calendar: 12 months of 30 days ────────────────────────────────────
 
@@ -191,11 +192,13 @@ export function upcoming(
 	for (const r of p.research) {
 		const tech = data.techs[r.tech];
 		if (!tech?.cost) continue;
-		const cost =
+		const cost = Math.floor(
 			tech.cost *
-			p.costSettings.technology *
-			sizePenalty(latest.empireSize, d.EMPIRE_SIZE_TECH_COST_PENALTY, d) *
-			TECH_COST_OBSERVED_FACTOR;
+				p.costSettings.technology *
+				sizePenalty(latest.empireSize, d.EMPIRE_SIZE_TECH_COST_PENALTY, d) *
+				techCostFactor(tech.tier) +
+				1e-9
+		);
 		const rate =
 			researchRate(r.tech, latest, earlier) ?? latest.income?.[`${r.area}_research`] ?? 0;
 		const when = due(latest.date, cost - r.progress, rate);

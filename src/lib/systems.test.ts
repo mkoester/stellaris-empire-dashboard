@@ -177,6 +177,12 @@ describe('systemSpending', () => {
 		]);
 		expect(spends[0].cost).toEqual({ alloys: 100, influence: 75 });
 	});
+	it('lets the outpost cost modifier cover the starport upgrade (game: 225 of 250)', () => {
+		const stance = { policies: { diplomatic_stance: 'diplo_stance_expansionist' } };
+		const withStance = history.map((s) => ({ ...s, ...stance }) as Snapshot);
+		const starport = systemSpending(withStance, data, false).find((x) => x.label === 'starport');
+		expect(starport?.cost.alloys).toBeCloseTo(225);
+	});
 	it('takes exact construction items when both saves list them', () => {
 		const exact = [
 			snap('2205.01.01', { knownSystems: known([1, 2]), construction: [] }),

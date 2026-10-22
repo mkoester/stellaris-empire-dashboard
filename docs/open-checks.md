@@ -7,50 +7,30 @@ Background for each is in `AGENTS.md` (sections named below).
 
 ## A. Screenshots from the real campaign (no cheats needed)
 
-Session 2026-10-22 (Planetforgers, 2212.03.05, screenshots `2026_10_22_1`–`15`) settled the
-outpost cost and the tech tab's rates; results in `AGENTS.md` → Open. What is left:
+Session 2026-10-22 (Planetforgers, 2212.03.05, screenshots `2026_10_22_1`–`21`) settled outpost
+and starbase costs, the market price formula, tech costs and research rates; results in
+`AGENTS.md` → Open. What is left:
 
 ### 1. Pop growth: planet capacity — blocks the growth model
 
-`AGENTS.md` → Open → "Pop growth: planet capacity". **Embron's capacity is 12600** (the planet
-size tooltip, "Colony Capacity"; housing 9800, 3 free districts, 50 % habitability), and the game
-confirms its 50 % habitability. The growth tooltip shows no breakdown (last month +5, "Estimated
-Growth Next Month" 5.26). Still needed for the fit:
+`AGENTS.md` → Open → "Pop growth: planet capacity": the logistic formula holds with the game's
+capacity, but two colonies do not separate what capacity is built from (Embron 12600: housing
+9800, 3 undeveloped districts at 50 %; Caugantu Prime 6100: housing 2900, 7 at 80 %).
 
-- **Do:** hover **Caugantu Prime's planet size** (planet view, the size number) — "Colony
-  Capacity"; later, the same for a third colony of another size or habitability.
-- **Send:** the tooltip and the save's date.
+- **Do:** hover a colony's **planet size** ("Colony Capacity") **before and after a district
+  finishes** there (normal play, no cheats) — the difference is one district's share at that
+  habitability; and the same for a third colony when there is one.
+- **Send:** the tooltips, the colony and the dates.
 
-### 3. Starbase costs — systems tab
+### 4. Market buy price — produce tab (small remainder)
 
-Seen: modules and buildings 50 alloys as in the files (Crew Quarters upkeep 0.74 = 1 × (1 − 20 %
-Galactic Ambition − 6 % Minister of Defense)); outpost → starport **225 alloys, files 250** — a
-−10 % whose source is not found (the Expansionist stance's `starbase_outpost_cost_mult` covers
-outposts only by its name; no leader trait of ours matches).
+The formula is confirmed (base × (1 + fluctuation) × (1 + fee)): alloys 5.20, energy 1.24, food
+1.30 match. Minerals (game 1.32, ours 1.31) and consumer goods (2.55, ours 2.56) lean the way the
+monthly automatic trades push them (buy 42 minerals, sell 10 consumer goods) — the save's
+fluctuation may lag the screen.
 
-- **Do:** on Embrala (starport), hover the **upgrade to starhold** (files: 1000 alloys).
-- **Send:** the tooltip — 900 means a flat −10 % on upgrades, 1000 means it was the outpost's own.
-
-### 4. Market buy price — produce tab
-
-Internal market, fee 30 %: alloys buy 5.20 / sell 2.80 trade — the produce tab's 5.20 matches.
-Minerals: game 1.32, ours 1.31 (fluctuation +0.765 % → 1.3 × 1.00765 = 1.3099); 1.3 × (1 + 2 ×
-0.765 %) would give 1.32 — the fluctuation counted twice?
-
-- **Do:** select **energy** (fluctuation −4.36 %: ours 1.24, "twice" would be 1.19) and consumer
-  goods (−1.72 %: ours 2.56) in the market.
-- **Send:** the screenshot of each buy price.
-
-### 5. Tech screen — tech tab
-
-Seen: the progress numbers match (753/1575, 1315/2750, 774/3300); rates fixed (see `AGENTS.md`).
-Left: **rare tier-2 techs cost ×1.10, not ×1.05** (Volcanic Forge 2750, Arc Furnace 3300; tier 1:
-1575) — rare or tier?
-
-- **Do:** in the research screen, open a field's choices and note a **non-rare tier-2** tech's
-  cost (e.g. Gravitic Sensors, base 2000: 2100 or 2200?). And a ★ permanent option when one is
-  on offer.
-- **Send:** the screenshot.
+- **Do:** at the next autosave on the 1st, open the market with minerals and consumer goods.
+- **Send:** the screenshot and the date.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
@@ -89,9 +69,7 @@ as `extractorVersion` (`v0.1.0`): release the extraction first (its `RELEASE.md`
 
 - 1 → fit capacity (`#lib/growth.ts`), then add "what +1 district / a cleared blocker / a medical
   building / an edict gains" and the colony ranking to the growth tab.
-- 3 → apply the upgrade cost modifier in `#lib/systems.ts` (`starbaseGain`).
 - 4 → `price()` in `#lib/market.ts`.
-- 5 → `TECH_COST_OBSERVED_FACTOR` in `#lib/events.ts`.
 - 6 → fit `TradeModel` (`#lib/aiTrade.ts`), add the session's numbers as its test, set
   `calibrated`; then gift → opinion, monthly deals by length, and the produce tab's trade-deal
   option.

@@ -252,12 +252,22 @@ function outpost(s: Snapshot, systemId: number, before: Set<number>, data: Syste
 function starbaseGain(
 	from: { level: string; modules: string[]; buildings: string[] } | null,
 	to: { level: string; modules: string[]; buildings: string[] },
-	data: SystemData
+	data: SystemData,
+	outpostMult = 1
 ): { label: string; cost: Resources }[] {
 	const out: { label: string; cost: Resources }[] = [];
 	const lo = from ? LEVELS.indexOf(from.level) : 0;
+	// The outpost's cost modifier covers its upgrade to a starport, not the next ones (2212.03.05,
+	// Expansionist stance: starport 225 of 250, starhold 1000 of 1000)
 	for (const level of LEVELS.slice(lo + 1, LEVELS.indexOf(to.level) + 1))
-		out.push({ label: level, cost: (data.costs.ship[`starbase_${level}`] ?? NONE).cost });
+		out.push({
+			label: level,
+			cost: add(
+				{},
+				(data.costs.ship[`starbase_${level}`] ?? NONE).cost,
+				level === 'starport' ? outpostMult : 1
+			)
+		});
 	const extra = (a: string[], b: string[]) => {
 		const left = [...a];
 		return b.filter((x) => {
@@ -326,7 +336,7 @@ export function systemSpending(
 			const from =
 				prevBases.get(id) ??
 				(prev && before.has(id) ? null : { level: 'outpost', modules: [], buildings: [] });
-			for (const g of starbaseGain(from, st, data))
+			for (const g of starbaseGain(from, st, data, outpostMults(s).alloys))
 				push(s, id, prev ? g.label : `${g.label} (before history)`, g.cost);
 		}
 		if (exact) {

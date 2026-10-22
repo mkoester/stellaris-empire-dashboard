@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	researchRate,
 	researchTicks,
+	techCostFactor,
 	deficits,
 	fromDays,
 	monthTicks,
@@ -175,6 +176,11 @@ describe('upcoming', () => {
 		expect(researchTicks('2212.02.01', '2212.03.01')).toBe(1);
 		expect(researchTicks('2212.02.15', '2212.03.05')).toBe(1);
 		expect(researchTicks('2212.03.05', '2212.03.30')).toBe(0);
+	});
+
+	it('scales tech costs by tier (game, 2212.03.05: 1575, 1312, 2200, 2750)', () => {
+		const at = (base: number, tier: number) => Math.floor(base * techCostFactor(tier) + 1e-9);
+		expect([at(1500, 1), at(1250, 1), at(2000, 2), at(2500, 2)]).toEqual([1575, 1312, 2200, 2750]);
 	});
 
 	it('falls back to income when there is no earlier save', () => {
