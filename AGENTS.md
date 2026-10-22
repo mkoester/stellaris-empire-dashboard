@@ -1082,12 +1082,22 @@ screen, trade calibration, stored research, releases).
     tooltip at 03.05 (screenshot `2026_10_22_5`): "+168.07 progress/month" = base 59.60 × 1.41
     (+84.04) plus "Stored Research: +84.03" — stored adds the *modified* monthly gain while
     drawing the base from the stock. `researchRate()` (`events.ts`) now measures per chunk; it had
-    scaled 4 days to a month (+1072.6/month, "due in 1 month"; the game: 5).
+    scaled 4 days to a month (+1072.6/month, "due in 1 month"; the game: 5). Confirmed by the
+    next autosave: 03.05 → 04.01 left progress (753.42 / 1315.66 / 774.72) and stored (1310.66)
+    unchanged — April's chunk comes after it.
     To check, in a throwaway game: note the monthly physics gain, `resource physics_research 1000`
     (does the console add to stored?), then a manual save every day for ~10 days
     (`fast_forward 1`): stored drop vs. progress per day, the tech view's "+Y/Day", and what a tech
     finishing mid-month does with its overflow. The tech tab shows stored research and "≈ N months
     at double speed" (stored ÷ the field's monthly income) — revise once the rate is confirmed.
+
+- **Embron's 50 % habitability is a ceiling, not its value** (2026-10-22, screenshot
+  `2026_10_22_3`): the tooltip sums 110 % (Volcanic Preference, Planet Forgers, Red Giant, …,
+  Devouring Giant −50 %) but "Species Habitability Cap: 50 %" — `red_giant_stage_4` (the Red
+  Giant Expansion situation around Embrala) carries `habitability_ceil_add −0.5` and
+  `pop_environment_tolerance −0.5`; stage 5 has −0.7 (a 30 % cap). The save's per-species value
+  already includes the cap, so the dashboard shows it right; a hint before the next stage would
+  need the situation's stage thresholds.
 
 - **Pop growth: planet capacity, solved** (2026-10-22, Planetforgers 2212.03.05–06.01, screenshots
   `2026_10_22_4`, `22`–`24`; not in the save). **Capacity = housing + 400 × free district slots**
