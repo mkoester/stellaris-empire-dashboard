@@ -63,6 +63,8 @@ const data: GameData = {
 	depositCategory: {},
 	buildingCategory: {},
 	growthModifiers: {},
+	starbaseSlots: {},
+	edictModifiers: {},
 	techRequirements: {},
 	defines: {
 		EMPIRE_SIZE_BASE: 100,

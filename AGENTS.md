@@ -194,7 +194,7 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
 `map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
-(`/expansion`: the Expansion panel full-size, see below), `systems` (`/systems`, see below), `trade deals`
+(`/expansion`: the Expansion panel full-size, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`), `resources`
 (`/resources`: per resource, in the Resources strip's order (`stripOrder()`), a chart — stockpile
@@ -411,6 +411,26 @@ shows counts as "before history" (approximate), except the capital's starbase. T
 toggle (`systemView.colonies`) adds each colony's `produces`/`upkeep` and the construction on it
 (colony → system from the latest galaxy's bodies). Not counted: ships built at a system's shipyard,
 refunds of cancelled items, the influence of claims.
+
+**Produce tab** (`/produce`, `#lib/produce.ts` pure, inputs from `server/produce.ts`; the user's
+ask 2026-10-22: "the best way to generate resource X, real and normalised costs"): pick a
+resource, every option that adds it ranked by **trade per unit** over a horizon (1, 5, 10 years):
+(one-off cost + months × what it uses per month) ÷ (months × units), other resources at market
+base prices — the market's buy price (`price × (1 + marketFee)`, the save's fluctuation) is the
+same unit, shown above the table, and "beats buying after" is the payback against it. What else an
+option yields is shown, **not netted**: netted, a mining district's minerals made it the cheapest
+alloys source (Planetforgers' miners yield a little alloys) at a negative price. Options: the
+trade-offs tab's stations, districts and buildings (`tradeoffData()`; `jobMeasure()` and
+`paidFactor()` shared from `server/tradeoffs.ts`), starbase modules and buildings of types we have
+built where a starbase has a free slot (data DB `starbase_level` slots; output and upkeep scaled
+by what the budget books for the built ones), a blocker cleared plus a district in the room it
+makes (cost both, days both), and edicts we could enact (`edictRows`: possible, unlocked, not
+active) — their output modifiers (`edictModifiers`, data DB `tradition_modifier`) as a share of
+what the group yields today (`groupFlows()`: per job, stratum and station kind; `changeGain()`),
+marked `estimated`, an upper bound since the game adds multipliers. Values of what the market
+does not sell (influence, unity, research) are the viewer's, in `produceView.weights`. Not
+offered: buildings never built (no unlock data per building), designations, job swaps, new
+colonies, trade deals (step 4).
 
 **Revealing what the game hides is the user's choice, off by default** (their rule, 2026-10-18):
 the tabs show what the game's own panels show — agendas, edicts, policies, council seats as the

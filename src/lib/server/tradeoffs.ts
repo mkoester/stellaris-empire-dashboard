@@ -39,6 +39,48 @@ const add = (a: Resources, b: Resources): Resources => {
 	return out;
 };
 
+/**
+ * Jobs measured from the budget's per-job sources: what a set of positions yields when filled
+ * (each job's output per working pop) and the groups a change can target. A job nobody works yet
+ * yields nothing and is noted in `unmeasured`.
+ */
+export function jobMeasure(save: Snapshot) {
+	const data = getGameData();
+	const filled: Record<string, number> = {};
+	for (const j of save.colonies.flatMap((c) => c.jobs))
+		filled[j.type] = (filled[j.type] ?? 0) + j.filled;
+	const perPop = Object.fromEntries(
+		Object.entries(jobFlows(save.planetBudget ?? [], data.jobs))
+			.filter(([job]) => filled[job] > 0)
+			.map(([job, flows]) => [job, scaled(flows, 1 / filled[job])])
+	);
+	const unmeasured = new Set<string>();
+	const staffed = (jobs: Record<string, number>) => {
+		let out: Resources = {};
+		for (const [job, n] of Object.entries(jobs)) {
+			if (perPop[job]) out = add(out, scaled(perPop[job], n));
+			else unmeasured.add(data.jobs[job]?.name ?? job);
+		}
+		return out;
+	};
+	const jobGroups = (jobs: Record<string, number>) => [
+		'jobs',
+		...Object.keys(jobs).map(jobGroup),
+		...Object.keys(jobs).flatMap((j) =>
+			data.jobs[j]?.category ? [`stratum:${data.jobs[j].category}`] : []
+		)
+	];
+	return { staffed, jobGroups, unmeasured };
+}
+
+/** Costs as paid: our queued items of a kind against their base cost (1 without any). */
+export function paidFactor(save: Snapshot, kind: 'district' | 'building') {
+	const data = getGameData();
+	const items = (save.construction ?? []).filter((c) => c.kind === kind);
+	const base = items.reduce((s, c) => s + total(data.costs[kind][c.name]?.cost ?? {}), 0);
+	return base > 0 ? items.reduce((s, c) => s + total(c.cost), 0) / base : 1;
+}
+
 export type Preset = { label: string; month: number; source: string; changes: Change[] };
 
 export function tradeoffData(b: NonNullable<ReturnType<typeof branch>>) {
@@ -91,38 +133,8 @@ export function tradeoffData(b: NonNullable<ReturnType<typeof branch>>) {
 			});
 	});
 
-	// Jobs: output per working pop, from the budget's per-job sources
-	const filled: Record<string, number> = {};
-	for (const j of save.colonies.flatMap((c) => c.jobs))
-		filled[j.type] = (filled[j.type] ?? 0) + j.filled;
-	const perPop = Object.fromEntries(
-		Object.entries(jobFlows(save.planetBudget ?? [], data.jobs))
-			.filter(([job]) => filled[job] > 0)
-			.map(([job, flows]) => [job, scaled(flows, 1 / filled[job])])
-	);
-	const unmeasured = new Set<string>();
-	const staffed = (jobs: Record<string, number>) => {
-		let out: Resources = {};
-		for (const [job, n] of Object.entries(jobs)) {
-			if (perPop[job]) out = add(out, scaled(perPop[job], n));
-			else unmeasured.add(data.jobs[job]?.name ?? job);
-		}
-		return out;
-	};
-	const jobGroups = (jobs: Record<string, number>) => [
-		'jobs',
-		...Object.keys(jobs).map(jobGroup),
-		...Object.keys(jobs).flatMap((j) =>
-			data.jobs[j]?.category ? [`stratum:${data.jobs[j].category}`] : []
-		)
-	];
-
-	// Costs as paid: our queued items against their base cost, per kind
-	const costFactor = (kind: 'district' | 'building') => {
-		const items = (save.construction ?? []).filter((c) => c.kind === kind);
-		const base = items.reduce((s, c) => s + total(data.costs[kind][c.name]?.cost ?? {}), 0);
-		return base > 0 ? items.reduce((s, c) => s + total(c.cost), 0) / base : 1;
-	};
+	const { staffed, jobGroups, unmeasured } = jobMeasure(save);
+	const costFactor = (kind: 'district' | 'building') => paidFactor(save, kind);
 
 	const colonies = save.colonies.filter((c) => c.planetId >= 0 && !c.colonizing);
 	const districts: TradeOption[] = colonies.flatMap((c) => {

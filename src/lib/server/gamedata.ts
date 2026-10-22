@@ -467,6 +467,23 @@ export function loadGameData(file: string): GameData {
 					(r) => [r.key, r.category]
 				)
 			),
+			// modules and buildings a starbase of each level holds (`starbase_level_starport` → starport)
+			starbaseSlots: Object.fromEntries(
+				rows<{ key: string; module_slots: number; building_slots: number }>(
+					'SELECT key, module_slots, building_slots FROM starbase_level'
+				).map((r) => [
+					r.key.replace(/^starbase_level_/, ''),
+					{ modules: r.module_slots, buildings: r.building_slots }
+				])
+			),
+			// what an edict changes while active (its unconditional modifiers; the produce tab)
+			edictModifiers: byKey(
+				rows(
+					`SELECT owner_key AS key, modifier_key AS name, modifier_value AS amount
+					   FROM tradition_modifier
+					  WHERE potential_json IS NULL AND owner_key IN (SELECT key FROM edict)`
+				)
+			),
 			// what techs and traditions change in costs, upkeep and output (the trade-offs tab)
 			growthModifiers: byKey(
 				rows(

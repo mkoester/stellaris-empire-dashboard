@@ -4,6 +4,7 @@ import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from '
 import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
+import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
 // Profiles: named sets of viewer settings — one per playstyle or play-through. Everything but the
@@ -58,6 +59,7 @@ export type ProfileSettings = {
 	contactView: ContactView;
 	megastructureView: MegaView;
 	systemView: SystemView;
+	produceView: ProduceView;
 	mapFilter: MapFilter;
 	display: Display;
 };
@@ -71,6 +73,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	contactView: DEFAULT_CONTACT_VIEW,
 	megastructureView: DEFAULT_MEGA_VIEW,
 	systemView: DEFAULT_SYSTEM_VIEW,
+	produceView: DEFAULT_PRODUCE_VIEW,
 	mapFilter: DEFAULT_MAP_FILTER,
 	display: DEFAULT_DISPLAY
 };
@@ -112,6 +115,7 @@ export function parseSettings(v: unknown): ProfileSettings {
 		contactView: parseContactView(o.contactView),
 		megastructureView: parseMegaView(o.megastructureView),
 		systemView: parseSystemView(o.systemView),
+		produceView: parseProduceView(o.produceView),
 		mapFilter: parseMapFilter(o.mapFilter),
 		display: parseDisplay(o.display)
 	};
