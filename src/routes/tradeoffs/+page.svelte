@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Chart from '#lib/Chart.svelte';
+	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { colorOf } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
@@ -34,7 +35,9 @@
 	);
 	let weights = $state<Resources>({});
 	$effect(() => {
-		for (const [k, v] of Object.entries(defaultWeights(keys))) if (!(k in weights)) weights[k] = v;
+		// the market's base price, else what a unit costs us (the jobs tab)
+		for (const [k, v] of Object.entries(defaultWeights(keys)))
+			if (!(k in weights)) weights[k] = data.values[k] ?? v;
 	});
 	let picked = $state<Record<number, { on: boolean; month: number }>>({});
 	let own = $state<Change[]>([]);
@@ -61,6 +64,15 @@
 	});
 	const range = $derived<[number, number]>([x0, x0 + months / 12]);
 
+	// the presets by where they come from, each group folded but the research queue
+	const GROUPS_OF_PRESETS = [
+		'research queue',
+		'within reach',
+		'next tradition',
+		'ascension perk, if picked'
+	];
+	const groupOf = (p: { source: string }) =>
+		GROUPS_OF_PRESETS.find((g) => p.source.startsWith(g)) ?? p.source;
 	const GROUPS = [
 		'station',
 		'station_gatherers',
@@ -92,7 +104,7 @@
 		Exploratory. What you can build now, as of {t.date}: stations at surveyed deposits in your
 		systems, districts where a colony has room, buildings you have built before. Costs are the
 		game's base costs (scaled by what your queued items cost), outputs are measured from your budget
-		— a job's output per pop, a station's against its deposit. Values in energy at the market's base
+		— a job's output per pop, a station's against its deposit. Values in trade at the market's base
 		prices unless you change the weights. Not modelled: pop growth, housing, free building slots,
 		storage caps, one build at a time per queue.
 		{#if t.unmeasured.length}Jobs nobody works yet count as 0: {t.unmeasured.join(', ')}.{/if}
@@ -100,38 +112,52 @@
 
 	<section class="mb-6 grid gap-4 lg:grid-cols-2">
 		<div>
-			<h2 class="mb-1 font-semibold">Upcoming techs and traditions</h2>
+			<h2 class="mb-1 font-semibold">Upcoming techs, traditions and perks</h2>
 			<p class="mb-1 text-xs text-gray-500">
 				Tick one to apply what it changes from its month on (editable). Techs within reach are dated
 				as if researched next in their field.
 			</p>
-			<div class="max-h-72 overflow-y-auto text-sm">
-				{#each t.presets as p, i (i)}
-					<label class="flex items-baseline gap-2 py-0.5">
-						<input
-							type="checkbox"
-							checked={picked[i]?.on ?? false}
-							onchange={(e) =>
-								(picked[i] = { on: e.currentTarget.checked, month: picked[i]?.month ?? p.month })}
-						/>
-						<span class="flex-1"
-							>{p.label} <span class="text-xs text-gray-500">({p.source})</span>
-							<span class="text-xs">{p.changes.map(describe).join('; ')}</span></span
-						>
-						<span class="text-xs text-gray-500">month</span>
-						<input
-							class="w-14 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
-							type="number"
-							min="0"
-							value={picked[i]?.month ?? p.month}
-							oninput={(e) =>
-								(picked[i] = { on: picked[i]?.on ?? false, month: Number(e.currentTarget.value) })}
-						/>
-					</label>
-				{:else}
-					<p class="text-gray-500">None of them changes what these options cost or yield.</p>
-				{/each}
-			</div>
+			{#each GROUPS_OF_PRESETS as g (g)}
+				{@const shown = t.presets.map((p, i) => ({ p, i })).filter(({ p }) => groupOf(p) === g)}
+				{#if shown.length}
+					<details class="text-sm" open={g === 'research queue'}>
+						<summary class="cursor-pointer text-gray-500">{g} ({shown.length})</summary>
+						{#each shown as { p, i } (i)}
+							<label class="flex items-baseline gap-2 py-0.5">
+								<input
+									type="checkbox"
+									checked={picked[i]?.on ?? false}
+									onchange={(e) =>
+										(picked[i] = {
+											on: e.currentTarget.checked,
+											month: picked[i]?.month ?? p.month
+										})}
+								/>
+								<span class="flex-1"
+									><InfoPopup explanation={data.explain[p.ref]}>{p.label}</InfoPopup>
+									<span class="text-xs text-gray-500">({p.source})</span>
+									<span class="text-xs">{p.changes.map(describe).join('; ')}</span></span
+								>
+								<span class="text-xs text-gray-500">month</span>
+								<input
+									class="w-14 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+									type="number"
+									min="0"
+									value={picked[i]?.month ?? p.month}
+									oninput={(e) =>
+										(picked[i] = {
+											on: picked[i]?.on ?? false,
+											month: Number(e.currentTarget.value)
+										})}
+								/>
+							</label>
+						{/each}
+					</details>
+				{/if}
+			{/each}
+			{#if !t.presets.length}
+				<p class="text-sm text-gray-500">None of them changes what these options cost or yield.</p>
+			{/if}
 		</div>
 		<div>
 			<h2 class="mb-1 font-semibold">Your own changes</h2>
@@ -173,7 +199,7 @@
 				</div>
 			{/each}
 			<button class="mt-1 rounded border px-2 text-sm" onclick={addChange}>+ change</button>
-			<h2 class="mt-4 mb-1 font-semibold">Weights (value of one unit, in energy)</h2>
+			<h2 class="mt-4 mb-1 font-semibold">Weights (value of one unit, in trade)</h2>
 			<div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
 				{#each keys as k (k)}
 					<label class="whitespace-nowrap"
@@ -255,7 +281,7 @@
 
 	<section class="grid gap-4 lg:grid-cols-2">
 		{#key runs.map((r) => r.name).join('|')}
-			<Chart title="Stockpile value by strategy (energy)" series={series((r) => r.value)} {range} />
+			<Chart title="Stockpile value by strategy (trade)" series={series((r) => r.value)} {range} />
 			<Chart title="Net income value per month by strategy" series={series((r) => r.net)} {range} />
 		{/key}
 	</section>

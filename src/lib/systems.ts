@@ -402,12 +402,17 @@ export function systemFacts(g: GalaxySystem, data: Pick<SystemData, 'costs'>) {
 
 /** The tab's view, the profile's: systems shown, colonies counted, projection, the system picked. */
 export type SystemView = {
-	range: string; // 'mine' | '0'…'10' jumps beyond the border | 'all'
+	range: string; // 'mine' | '1'…'10' jumps beyond the border | 'all'
 	colonies: boolean; // count the colonies' output, upkeep and construction
 	months: number; // projection
 	selected: number | null;
 };
-export const SYSTEM_RANGES = ['mine', ...Array.from({ length: 11 }, (_, i) => String(i)), 'all'];
+// +0 beyond the border is our own systems: the same as 'mine'
+export const SYSTEM_RANGES = [
+	'mine',
+	...Array.from({ length: 10 }, (_, i) => String(i + 1)),
+	'all'
+];
 export const PROJECTION_MONTHS = [12, 24, 60, 120];
 export const DEFAULT_SYSTEM_VIEW: SystemView = {
 	range: 'mine',

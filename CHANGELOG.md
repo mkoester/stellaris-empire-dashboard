@@ -27,6 +27,12 @@ All notable changes to this project are documented here. The format follows
   districts or buildings — measured from your own budget, and a month-by-month comparison of
   strategies, with knobs for techs within reach and the next tradition.
 
+- A jobs tab: what each unit of a resource costs you, source by source (jobs with their workers'
+  upkeep, stations, starbase modules), and how well each colony works its jobs for each resource
+  against your empire's average — the colonies to specialise. Research, unity and the other
+  resources the market does not sell are now valued at what they cost you, on every tab.
+- The trade-offs tab: each tech, tradition and ascension perk shows all it does on hover; values
+  are in trade.
 - A produce tab: pick a resource and see every way to get more of it — stations, districts,
   buildings, starbase modules, clearing a blocker, edicts — each with its cost, upkeep and what
   else it yields, ranked by what it costs per unit in trade against buying it on the market.

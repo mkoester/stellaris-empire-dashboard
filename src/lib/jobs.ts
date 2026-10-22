@@ -46,20 +46,31 @@ export function jobRows(jobs: ColonyJob[], info: JobInfo): JobRow[] {
  * `planet_metallurgists` → foundry "Metallurgist"), sometimes singular (`planet_technician`).
  */
 export function jobFlows(budget: BudgetSource[], info: JobInfo): Record<string, Resources> {
+	return Object.fromEntries(
+		Object.entries(jobSources(budget, info)).map(([job, s]) => {
+			const flows = { ...s.income };
+			for (const [k, v] of Object.entries(s.expenses)) flows[k] = (flows[k] ?? 0) - v;
+			return [job, flows];
+		})
+	);
+}
+
+/** Each job's budget source (`jobFlows`' matching), income and inputs apart. */
+export function jobSources(
+	budget: BudgetSource[],
+	info: JobInfo
+): Record<string, { income: Resources; expenses: Resources }> {
 	const norm = (s: string) => s.toLowerCase().replace(/s$/, '');
 	// Keys win over names: primitive_farmer is also named "Farmer".
 	const byName = new Map<string, string>();
 	for (const [key, j] of Object.entries(info))
 		if (!byName.has(norm(j.name))) byName.set(norm(j.name), key);
 	for (const key of Object.keys(info)) byName.set(norm(key), key);
-	const out: Record<string, Resources> = {};
+	const out: Record<string, { income: Resources; expenses: Resources }> = {};
 	for (const s of budget) {
 		if (!s.source.startsWith('planet_')) continue;
 		const job = byName.get(norm(s.source.slice('planet_'.length)));
-		if (!job) continue;
-		const flows = { ...s.income };
-		for (const [k, v] of Object.entries(s.expenses)) flows[k] = (flows[k] ?? 0) - v;
-		out[job] = flows;
+		if (job) out[job] = { income: s.income, expenses: s.expenses };
 	}
 	return out;
 }

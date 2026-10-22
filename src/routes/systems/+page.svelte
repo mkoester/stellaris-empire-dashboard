@@ -34,8 +34,8 @@
 	const setSelected = (id: number | null | undefined) => save({ ...view, selected: id ?? null });
 
 	type Row = (typeof data.rows)[number];
-	// values in trade at the market's base prices (research, unity, influence count 1)
-	const trade = (r: Resources) => valueOf(r, {});
+	// values in trade: the market's base prices, else what a unit costs us (the jobs tab)
+	const trade = (r: Resources) => valueOf(r, data.values);
 	const money = (r: Row) => (r.money ? (view.colonies ? r.money.colonies : r.money.plain) : null);
 	const totals = (r: Row) => {
 		const m = money(r);
@@ -43,7 +43,7 @@
 		if (!m || !last) return null;
 		const invested = trade(last.invested);
 		const earned = trade(last.earned);
-		const net = netValue(m.flow, {});
+		const net = netValue(m.flow, data.values);
 		return {
 			invested,
 			earned,

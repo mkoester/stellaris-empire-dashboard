@@ -30,13 +30,16 @@
 		void putSettings({ produceView: v });
 	};
 
+	// what a unit costs us where the market does not sell it, unless the viewer set a value
+	const weights = $derived({ ...data.values, ...view.weights });
+	const ownValue = (k: string) => Math.round((data.values[k] ?? NOT_TRADED) * 100) / 100;
 	const choices = $derived(p ? producible(p.options, p.order) : []);
 	const resource = $derived(
 		view.resource && choices.includes(view.resource) ? view.resource : (choices[0] ?? null)
 	);
 	const buy = $derived(resource && p?.market ? (p.market.buy[resource] ?? null) : null);
 	const rows = $derived(
-		p && resource ? rankFor(resource, p.options, view.weights, view.months, buy) : []
+		p && resource ? rankFor(resource, p.options, weights, view.months, buy) : []
 	);
 	// what has no market price is valued by the viewer (1 trade each unless changed)
 	const unpriced = $derived(
@@ -187,7 +190,7 @@
 	<div class="flex flex-col gap-6">
 		<Panel
 			title={resource ? `More ${pretty(resource)}` : 'Nothing to produce'}
-			note="As of {p.date}. Each option at its cost now (base costs scaled by what your queued items cost) and its output measured from your budget — a job's output per working pop, a station's or starbase module's against its base value; edicts as their modifier's share of what you yield today (the game adds multipliers, so this is an upper bound). Trade per unit: what it costs in trade per unit over the horizon — its cost plus what it uses per month, other resources at market base prices; what else it yields is shown beside it, not subtracted. Below the market's price it is green. Starbase options are the types you have built before; buildings too.{p
+			note="As of {p.date}. Each option at its cost now (base costs scaled by what your queued items cost) and its output measured from your budget — a job's output per working pop, a station's or starbase module's against its base value; edicts as their modifier's share of what you yield today (the game adds multipliers, so this is an upper bound). Trade per unit: what it costs in trade per unit over the horizon — its cost plus what it uses per month, other resources at market base prices (or what a unit costs us, where the market does not sell it); what else it yields is shown beside it, not subtracted. Below the market's price it is green. Starbase options are the types you have built before; buildings too.{p
 				.unmeasured.length
 				? ` Jobs nobody works yet count as 0: ${p.unmeasured.join(', ')}.`
 				: ''}"
@@ -199,7 +202,7 @@
 		{#if unpriced.length}
 			<Panel
 				title="Values without a market price"
-				note="Trade per unit of what the market does not sell, for the columns above (1 unless changed). Stored with the profile."
+				note="Trade per unit of what the market does not sell, for the columns above: what a unit costs us (the jobs tab) unless you set your own. Yours are stored with the profile."
 			>
 				<div class="flex flex-wrap gap-4 text-sm">
 					{#each unpriced as k (k)}
@@ -210,13 +213,23 @@
 								type="number"
 								min="0"
 								step="0.5"
-								value={view.weights[k] ?? NOT_TRADED}
+								value={view.weights[k] ?? ownValue(k)}
 								onchange={(e) =>
 									save({
 										...view,
 										weights: { ...view.weights, [k]: Number(e.currentTarget.value) }
 									})}
-							/></label
+							/>{#if view.weights[k] !== undefined}<button
+									class="text-xs text-gray-500 underline"
+									title="back to what a unit costs us: {ownValue(k)}"
+									onclick={() =>
+										save({
+											...view,
+											weights: Object.fromEntries(
+												Object.entries(view.weights).filter(([x]) => x !== k)
+											)
+										})}>ours</button
+								>{/if}</label
 						>
 					{/each}
 				</div>

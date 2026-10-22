@@ -81,7 +81,14 @@ export function paidFactor(save: Snapshot, kind: 'district' | 'building') {
 	return base > 0 ? items.reduce((s, c) => s + total(c.cost), 0) / base : 1;
 }
 
-export type Preset = { label: string; month: number; source: string; changes: Change[] };
+// `ref`: its popup key (tech:, tradition:, perk:)
+export type Preset = {
+	label: string;
+	month: number;
+	source: string;
+	ref: string;
+	changes: Change[];
+};
 
 export function tradeoffData(b: NonNullable<ReturnType<typeof branch>>) {
 	const data = getGameData();
@@ -222,9 +229,9 @@ function presets(
 ): Preset[] {
 	const data = getGameData();
 	const out: Preset[] = [];
-	const push = (label: string, month: number, source: string, key: string) => {
+	const push = (label: string, month: number, source: string, key: string, ref = key) => {
 		const changes = changesOf(label, month, data.growthModifiers[key] ?? {});
-		if (changes.length) out.push({ label, month, source, changes });
+		if (changes.length) out.push({ label, month, source, ref, changes });
 	};
 	const research = upcoming.filter((e) => e.kind === 'research' && e.ref?.startsWith('tech:'));
 	for (const e of research) push(e.what, Math.round(e.months), 'research queue', e.ref!);
@@ -261,5 +268,17 @@ function presets(
 						`next tradition (${tree.name})`,
 						`tradition:${t.key}`
 					);
+	// perks not taken, as if picked at the next tradition (when a slot opens is not in the save);
+	// their modifiers sit with the traditions' in the data DB
+	const perks = new Set(save.ascensionPerks ?? []);
+	for (const [key, name] of Object.entries(data.perks))
+		if (!perks.has(key))
+			push(
+				name,
+				Math.round(next?.months ?? 12),
+				'ascension perk, if picked',
+				`tradition:${key}`,
+				`perk:${key}`
+			);
 	return out.sort((a, b) => a.month - b.month || a.label.localeCompare(b.label));
 }

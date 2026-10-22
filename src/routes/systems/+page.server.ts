@@ -14,6 +14,7 @@ import { display, systemView } from '#lib/server/settings.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
+import { valuesOf } from '#lib/server/unitCosts.ts';
 
 /** One variant of a system's money: without or with its colonies. */
 type Money = { points: SystemPoint[]; spends: SystemSpend[]; flow: Flow };
@@ -85,6 +86,8 @@ export function load({ url }) {
 		hasStations: latest?.orbitalStations !== null && latest?.orbitalStations !== undefined,
 		hasBudget: latest?.budget !== null && latest?.budget !== undefined,
 		view: systemView(),
+		// research, unity … at what they cost us: a system that makes only those can break even
+		values: valuesOf(snaps),
 		rows,
 		names: game.names,
 		territories: territoriesOf(snaps),

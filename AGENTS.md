@@ -194,7 +194,7 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
 `map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
-(`/expansion`: the Expansion panel full-size, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
+(`/expansion`: the Expansion panel full-size, see below), `jobs` (`/jobs`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`), `resources`
 (`/resources`: per resource, in the Resources strip's order (`stripOrder()`), a chart — stockpile
@@ -393,9 +393,10 @@ districts 11–20, stations 20–50; over 60 months every strategy ends within 1
 **Systems tab** (`/systems`, `#lib/systems.ts` pure; the user's ask 2026-10-22): our systems — and
 the discovered ones up to +0…+10 jumps beyond the border, or all (`systemView.range`, facts only) —
 with what the galaxy knows (star, bodies, deposits' base yield, anomalies, megastructures,
-bypasses), what each **cost** and **earned**, cumulative per save, in trade (`#lib/value.ts`: the
-market's base price per unit, `market_price / market_amount` — trade is the market's currency;
-research, unity, influence count 1), a projection (12–120 months) and the break-even month.
+bypasses), what each **cost** and **earned**, cumulative per save, in trade (the shared values,
+see the jobs tab — without them a system making only research could never break even), a
+projection (12–120 months) and the break-even month. `+0` beyond the border is `mine` (the user's
+call), so the ranges start at +1.
 Monthly: the starbase's level, modules and buildings and the stations (`Snapshot.orbitalStations`,
 since READER 5) have base upkeep and output in the data DB (`costs.ship`, `costs.module`,
 `costs.starbaseBuilding`, deposits); the budget books them per kind empire-wide (`starbases`,
@@ -411,6 +412,32 @@ shows counts as "before history" (approximate), except the capital's starbase. T
 toggle (`systemView.colonies`) adds each colony's `produces`/`upkeep` and the construction on it
 (colony → system from the latest galaxy's bodies). Not counted: ships built at a system's shipyard,
 refunds of cancelled items, the influence of claims.
+
+**Jobs tab and the shared values** (`/jobs`, `#lib/unitCosts.ts` pure, `server/unitCosts.ts`; the
+user's asks 2026-10-22: "normalised costs for everything we produce" and "how well does each job
+perform on each colony, which colonies should be specialised"):
+
+- **What a unit costs us**, per source from the latest budget: a job's inputs plus its workers'
+  upkeep — the stratum's `pop_category_<stratum>s` expenses per pop **and** what every pop eats,
+  `planet_pops_traits` (food; alloys for the Planetforgers' species) per pop; without the latter
+  worker jobs came out near free (technicians 0.02 trade per energy) —, stations' and starbase
+  modules' upkeep. Several outputs split the cost by value. Not counted: what building it cost,
+  building and district upkeep.
+- **Values** (`unitValues()`, `valuesOf(snaps)`): the market's base price where it sells (trade
+  = 1), else the output-weighted mean of its sources' cost per unit, iterated to a fixed point.
+  The systems, produce and trade-offs tabs value resources at these (the produce tab's own
+  overrides on top, "ours" resets one). 2212.03.05: physics 0.74, society 1.53, engineering 1.49,
+  unity 0.95.
+- **Colonies × resources**: a colony's output (`Colony.produces`) against its filled jobs at the
+  empire's mean per pop (budget `planet_<job>` income ÷ filled) — 100 % average; shown only where
+  its jobs make at least 1 a month (flat building output read Caugantu's alloys as 604 %). The
+  best colony per resource is bold; the per-job output per colony is not in the save, so this is
+  per resource.
+
+**Trade-offs presets** have a popup each (`Preset.ref`: `tech:`, `tradition:`, `perk:`; the
+explanations of the tech tab), grouped and folded by source; untaken ascension perks are presets
+too, dated at the next tradition (when a slot opens is not in the save; their modifiers are in
+the data DB's `tradition_modifier`). Weights are in trade.
 
 **Produce tab** (`/produce`, `#lib/produce.ts` pure, inputs from `server/produce.ts`; the user's
 ask 2026-10-22: "the best way to generate resource X, real and normalised costs"): pick a
