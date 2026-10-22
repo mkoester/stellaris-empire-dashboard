@@ -40,6 +40,11 @@
 			active: path === '/expansion'
 		},
 		{
+			name: 'systems',
+			href: node ? resolve(`/systems?node=${node}`) : resolve('/systems'),
+			active: path === '/systems'
+		},
+		{
 			name: 'trade deals',
 			href: node ? resolve(`/deals?node=${node}`) : resolve('/deals'),
 			active: path === '/deals'

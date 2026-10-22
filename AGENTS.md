@@ -194,7 +194,7 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
 `map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
-(`/expansion`: the Expansion panel full-size, see below), `trade deals`
+(`/expansion`: the Expansion panel full-size, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`), `resources`
 (`/resources`: per resource, in the Resources strip's order (`stripOrder()`), a chart — stockpile
@@ -389,6 +389,28 @@ multipliers). Not modelled: pop growth, housing, free building slots (not in the
 caps, one build at a time per queue. 2207.04.02: Civilian Industries on Earth 10 months, rural
 districts 11–20, stations 20–50; over 60 months every strategy ends within 1 % of the others
 (everything affordable gets built within ~2 years), 11 % above building nothing.
+
+**Systems tab** (`/systems`, `#lib/systems.ts` pure; the user's ask 2026-10-22): our systems — and
+the discovered ones up to +0…+10 jumps beyond the border, or all (`systemView.range`, facts only) —
+with what the galaxy knows (star, bodies, deposits' base yield, anomalies, megastructures,
+bypasses), what each **cost** and **earned**, cumulative per save, in trade (`#lib/value.ts`: the
+market's base price per unit, `market_price / market_amount` — trade is the market's currency;
+research, unity, influence count 1), a projection (12–120 months) and the break-even month.
+Monthly: the starbase's level, modules and buildings and the stations (`Snapshot.orbitalStations`,
+since READER 5) have base upkeep and output in the data DB (`costs.ship`, `costs.module`,
+`costs.starbaseBuilding`, deposits); the budget books them per kind empire-wide (`starbases`,
+`starbase_modules`, `starbase_buildings`, `station_gatherers|researchers`,
+`orbital_mining|research_deposits` — read from the 2212.03.05 save), and `allocate()` splits each
+booked total over the systems by base share, so modifiers count. One-off: the outpost when a
+system turns ours in `knownSystems` (100 alloys + influence **estimated** as
+`EXPANSION_COST_BASE + EXPANSION_COST_DISTANCE × (jumps − 1)` from our nearest system, capped —
+the engine's distance basis is not in the files); construction items in the system
+(`Construction.systemId`, since READER 5; exact) when both saves list construction, else what the
+starbase gained, at data DB prices; new stations at their size's cost. What the first save already
+shows counts as "before history" (approximate), except the capital's starbase. The colonies
+toggle (`systemView.colonies`) adds each colony's `produces`/`upkeep` and the construction on it
+(colony → system from the latest galaxy's bodies). Not counted: ships built at a system's shipyard,
+refunds of cancelled items, the influence of claims.
 
 **Revealing what the game hides is the user's choice, off by default** (their rule, 2026-10-18):
 the tabs show what the game's own panels show — agendas, edicts, policies, council seats as the
@@ -938,6 +960,11 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
   `support_percent` (read as 0).
 - **Faction Approval shows `+0.1`, not `+10%`**: `isPercentModifier` (`modifiers.ts`, copied from
   the planner's `civics.ts`) does not know `faction_approval`. Fix both copies together.
+
+- **Outpost influence, estimated**: the systems tab charges `75 + 75 × (jumps − 1)` from our
+  nearest system (4.5.2 `EXPANSION_COST_*`). Check against the game's cost tooltip before building
+  an outpost one, two and three jumps out, and whether `country_starbase_influence_cost_mult`
+  sources apply.
 
 - **Habitat district limits, not yet checked in game** (no habitat tech at 2207.03): whether
   `count_system_planet` counts the star as a major body (assumed yes: Sol 9 major → 8 districts),

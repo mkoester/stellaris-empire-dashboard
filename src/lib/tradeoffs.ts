@@ -1,4 +1,4 @@
-import { basePrice } from './market.ts';
+import { valueOf } from './value.ts';
 import type { Resources } from './types.ts';
 
 // Where to put scarce resources: stations, districts or buildings — pure. Each option has a cost,
@@ -38,14 +38,7 @@ export type Change = {
 
 export type Knobs = { weights: Resources; changes: Change[]; months: number };
 
-const NOT_TRADED = 1; // research, unity, trade: no market price, valued as one energy
-
-/** The value of one unit of each resource, in energy: its market base price, else 1. */
-export const defaultWeights = (keys: string[]): Resources =>
-	Object.fromEntries(keys.map((k) => [k, basePrice(k) ?? NOT_TRADED]));
-
-export const valueOf = (r: Resources, weights: Resources) =>
-	Object.entries(r).reduce((sum, [k, v]) => sum + v * (weights[k] ?? NOT_TRADED), 0);
+export { defaultWeights, valueOf } from './value.ts';
 
 const applies = (c: Change, o: TradeOption, month: number, target: Change['target']) =>
 	c.target === target && c.month <= month && c.groups.some((g) => o.groups.includes(g));

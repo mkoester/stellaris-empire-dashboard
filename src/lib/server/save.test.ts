@@ -4,6 +4,7 @@ import {
 	budgetSources,
 	buildQueue,
 	construction,
+	orbitalStations,
 	countryIds,
 	colonyGrowth,
 	colonyJobs,
@@ -639,7 +640,7 @@ describe('construction', () => {
 			deposits: {},
 			planets: {
 				'0': { name: { key: 'NAME_Sol' } },
-				'3': { name: { key: 'NAME_Earth' }, colony: 0 }
+				'3': { name: { key: 'NAME_Earth' }, colony: 0, coordinate: { origin: 5 } }
 			},
 			systems: { '5': { name: { key: 'NAME_Sol System' }, starbases: [0] } },
 			shipDesigns: {
@@ -683,6 +684,7 @@ describe('construction', () => {
 				name: 'corvette',
 				design: 'Corvette',
 				where: 'Sol System',
+				systemId: 5,
 				cost: { alloys: 60 }
 			},
 			{
@@ -690,8 +692,26 @@ describe('construction', () => {
 				kind: 'district',
 				name: 'district_city',
 				where: 'Earth',
+				systemId: 5,
 				cost: { minerals: 500 }
 			}
+		]);
+	});
+});
+
+describe('orbitalStations', () => {
+	it('lists the planets a station orbits in our systems, with their deposits', () => {
+		const raw = {
+			systems: { '5': { planet: [10, 11] }, '6': { planet: [12] } },
+			planets: {
+				'10': { shipclass_orbital_station: 900, deposits: [1] },
+				'11': { deposits: [2] }, // no station
+				'12': { shipclass_orbital_station: 901, deposits: [3] } // not our system
+			},
+			deposits: { '1': { type: 'd_minerals_2' }, '2': { type: 'd_energy_1' }, '3': { type: 'd_x' } }
+		};
+		expect(orbitalStations(raw, new Set([5]))).toEqual([
+			{ systemId: 5, planetId: 10, deposits: ['d_minerals_2'] }
 		]);
 	});
 });
@@ -1003,6 +1023,7 @@ describe('stations', () => {
 			{
 				id: 0,
 				system: 'Sol',
+				systemId: 380,
 				level: 'starport',
 				modules: ['shipyard', 'solar_panel_network'],
 				buildings: ['crew_quarters'],
@@ -1026,6 +1047,7 @@ describe('stations', () => {
 			{
 				id: 42,
 				system: 'Alpha Centauri',
+				systemId: 52,
 				level: 'outpost',
 				modules: [],
 				buildings: [],

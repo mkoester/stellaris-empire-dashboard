@@ -27,6 +27,11 @@ All notable changes to this project are documented here. The format follows
   districts or buildings — measured from your own budget, and a month-by-month comparison of
   strategies, with knobs for techs within reach and the next tradition.
 
+- A systems tab: every system of ours — and, if you like, those up to ten jumps beyond the border
+  — with what we know of it, what it cost (outpost, upgrades, modules, buildings, stations, their
+  upkeep; colonies optionally) and what it earned, over time and in total, valued in trade, with a
+  projection and the month it breaks even.
+
 - A download for macOS (13.5 or newer), for Apple silicon and Intel Macs, with its own Python.
 - Every folder the dashboard looks in, per system and store, listed in the zip's `README.txt`.
 

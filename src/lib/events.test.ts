@@ -56,7 +56,7 @@ const data: GameData = {
 	perks: {},
 	flagColors: {},
 	anomalyLevels: { GEN_PLAYGROUND_CAT: 3 },
-	costs: { district: {}, ship: {}, building: {}, deposit: {} },
+	costs: { district: {}, ship: {}, building: {}, deposit: {}, module: {}, starbaseBuilding: {} },
 	districtJobs: {},
 	buildingJobs: {},
 	buildDays: {},

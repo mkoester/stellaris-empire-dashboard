@@ -173,6 +173,7 @@ export type MigrationColony = {
 export type Station = {
 	id: number;
 	system: string;
+	systemId?: number | null; // since 2026-10-22; older snapshots name the system only
 	level: string; // outpost, starport, starhold, star fortress, citadel
 	modules: string[];
 	buildings: string[];
@@ -199,8 +200,12 @@ export type Construction = {
 	name: string;
 	design?: string;
 	where: string | null; // the planet, else the starbase's system
+	systemId?: number | null; // the system it is built in; since 2026-10-22
 	cost: Resources;
 };
+
+/** A mining, research or observation station in one of our systems, at the planet it orbits. */
+export type OrbitalStation = { systemId: number; planetId: number; deposits: string[] };
 
 export type QueueItem = {
 	kind: string; // from buildable_<kind>: district, building, army, clear_deposit_blocker, …
@@ -279,6 +284,7 @@ export type Snapshot = {
 	planetBudget: BudgetSource[] | null; // the budget's planet_* and pop_* sources
 	budget: BudgetSource[] | null; // every budget source, the market's as `market:<source>`
 	construction: Construction[] | null; // construction items we pay for, with their cost
+	orbitalStations: OrbitalStation[] | null; // stations in our systems; since 2026-10-22
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
@@ -697,7 +703,11 @@ export type TimelineNode = {
 export type Costs = { cost: Resources; upkeep: Resources; produces: Resources };
 
 export type GameData = {
-	costs: Record<'district' | 'ship' | 'building' | 'deposit', Record<string, Costs>>;
+	// module, starbaseBuilding: a starbase's modules and buildings
+	costs: Record<
+		'district' | 'ship' | 'building' | 'deposit' | 'module' | 'starbaseBuilding',
+		Record<string, Costs>
+	>;
 	districtJobs: Record<string, Record<string, number>>; // district → job → positions (pops)
 	buildingJobs: Record<string, Record<string, number>>;
 	buildDays: Record<string, number>; // districts, ship sizes, buildings: base days
@@ -770,7 +780,7 @@ export type GameData = {
 			climate: string | null;
 		}
 	>;
-	names: Record<string, string>; // display names of buildings, deposits, districts and zones
+	names: Record<string, string>; // display names of buildings, deposits, districts, zones, starbase modules and buildings
 	districtColors: Record<string, string>; // district → its colour in game, '#rrggbb'
 	// civics, origins, authorities, ethics and government types by key
 	identityNames: Record<string, string>;

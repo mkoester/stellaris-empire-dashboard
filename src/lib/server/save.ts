@@ -5,6 +5,7 @@ import type {
 	Construction,
 	KnownSystem,
 	MigrationColony,
+	OrbitalStation,
 	Route,
 	CivilianShip,
 	CouncilSeat,
@@ -236,7 +237,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '4';
+export const READER = '5';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -272,6 +273,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		planetBudget: planetBudget(budget),
 		budget: budgetSources(budget),
 		construction: construction(raw),
+		orbitalStations: orbitalStations(raw, ownSystems(raw)),
 		score: {
 			rank: num(raw.country?.victory_rank),
 			score: num(raw.country?.victory_score),
@@ -774,6 +776,31 @@ export function ownSystems(
 	return out;
 }
 
+/**
+ * Mining, research and observation stations in our systems: the planets a station orbits
+ * (`shipclass_orbital_station`, the station ship's id) with their deposits.
+ */
+export function orbitalStations(
+	raw: Pick<RawSave, 'systems' | 'planets' | 'deposits'>,
+	own: Set<number>
+): OrbitalStation[] {
+	return [...own].flatMap((systemId) =>
+		list(raw.systems[String(systemId)]?.planet).flatMap((planetId) => {
+			const p = raw.planets[String(planetId)];
+			if (p?.shipclass_orbital_station === undefined) return [];
+			return [
+				{
+					systemId,
+					planetId: Number(planetId),
+					deposits: list(p.deposits)
+						.map((d) => raw.deposits[String(d)]?.type)
+						.filter((t): t is string => typeof t === 'string' && t !== 'none')
+				}
+			];
+		})
+	);
+}
+
 export const countBy = (keys: string[]): Record<string, number> =>
 	keys.reduce<Record<string, number>>((acc, k) => ({ ...acc, [k]: (acc[k] ?? 0) + 1 }), {});
 
@@ -824,9 +851,10 @@ export function stations(
 		'countryId' | 'construction' | 'deposits' | 'shipDesigns' | 'starbases' | 'systems'
 	>
 ): Station[] {
-	const systemOf = new Map<number, string>();
-	for (const sys of Object.values(raw.systems))
-		for (const sb of list(sys?.starbases)) systemOf.set(sb, displayName(sys.name));
+	const systemOf = new Map<number, { id: number; name: string }>();
+	for (const [id, sys] of Object.entries(raw.systems))
+		for (const sb of list(sys?.starbases))
+			systemOf.set(sb, { id: Number(id), name: displayName(sys.name) });
 	// A starbase is the country's when its own build queue is: the queue's `location.id` is the
 	// starbase's station ship, not the starbase (both 0 for Sol, which hid it; outposts differ).
 	const queues = raw.construction?.queue_mgr?.queues ?? {};
@@ -841,7 +869,8 @@ export function stations(
 		return [
 			{
 				id,
-				system: systemOf.get(id) ?? '',
+				system: systemOf.get(id)?.name ?? '',
+				systemId: systemOf.get(id)?.id ?? null,
 				level: String(sb.level ?? '').replace(/^starbase_level_/, ''),
 				modules,
 				buildings: Object.values(sb.buildings ?? {}).map(String),
@@ -1855,7 +1884,7 @@ export function construction(
 		Partial<Pick<RawSave, 'shipDesigns'>>
 ): Construction[] {
 	const systemOf = (starbase: Raw) =>
-		Object.values(raw.systems).find((s) => list(s?.starbases).includes(Number(starbase)));
+		Object.entries(raw.systems).find(([, s]) => list(s?.starbases).includes(Number(starbase)));
 	const ofColony = (colony: Raw) =>
 		Object.values(raw.planets).find((p) => p?.colony !== undefined && p.colony === Number(colony));
 	return Object.entries<Raw>(raw.construction?.item_mgr?.items ?? {}).flatMap(([id, item]) => {
@@ -1871,7 +1900,14 @@ export function construction(
 			planet !== undefined
 				? displayName(planet.name) || null
 				: starbase !== undefined
-					? displayName(systemOf(starbase)?.name) || null
+					? displayName(systemOf(starbase)?.[1]?.name) || null
+					: null;
+		const starbaseSystem = starbase !== undefined ? systemOf(starbase)?.[0] : undefined;
+		const systemId =
+			planet !== undefined
+				? numOrNull(planet.coordinate?.origin)
+				: starbaseSystem !== undefined
+					? Number(starbaseSystem)
 					: null;
 		return [
 			{
@@ -1880,6 +1916,7 @@ export function construction(
 				name: it.name,
 				...(it.design ? { design: it.design } : {}),
 				where,
+				systemId,
 				cost: resources(item.resources)
 			}
 		];

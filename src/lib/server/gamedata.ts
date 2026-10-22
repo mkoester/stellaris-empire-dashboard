@@ -140,7 +140,8 @@ export function loadGameData(file: string): GameData {
 					`SELECT key, name FROM building WHERE name IS NOT NULL
 					 UNION ALL SELECT key, name FROM deposit WHERE name IS NOT NULL
 					 UNION ALL SELECT key, name FROM district WHERE name IS NOT NULL
-					 UNION ALL SELECT key, name FROM zone WHERE name IS NOT NULL`
+					 UNION ALL SELECT key, name FROM zone WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM starbase_part WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name.replace(/^Blocker /, '')])
 			),
 			// the border colour of each district's grid-box icon; districts without one are left out
@@ -420,6 +421,10 @@ export function loadGameData(file: string): GameData {
 				),
 				deposit: byKind(
 					rows('SELECT deposit_key AS key, kind, resource, amount FROM deposit_resource')
+				),
+				module: byKind(rows('SELECT key, kind, resource, amount FROM starbase_module_resource')),
+				starbaseBuilding: byKind(
+					rows('SELECT key, kind, resource, amount FROM starbase_building_resource')
 				)
 			},
 			// jobs (positions, in pops) per district and building, build days, deposit categories

@@ -3,6 +3,7 @@ import type { ContactView } from './contacts.ts';
 import type { ExpansionView } from './expansion.ts';
 import type { MapFilter } from './mapLayers.ts';
 import type { MegaView } from './megastructures.ts';
+import type { SystemView } from './systems.ts';
 import type { Display } from './profiles.ts';
 import { KIND_IDS, type EventKind } from './milestones.ts';
 
@@ -149,6 +150,7 @@ export async function putSettings(patch: {
 	expansionView?: ExpansionView;
 	contactView?: ContactView;
 	megastructureView?: MegaView;
+	systemView?: SystemView;
 	mapFilter?: MapFilter;
 	display?: Display;
 }) {
