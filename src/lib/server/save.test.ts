@@ -196,6 +196,8 @@ describe('toSnapshot', () => {
 				civilians: 1500,
 				stability: 75.2,
 				freeHousing: 0,
+				housing: null,
+				housingUsed: null,
 				freeAmenities: 0,
 				planetClass: '',
 				planetSize: 0,

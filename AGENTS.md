@@ -194,7 +194,7 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
 `map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
-(`/expansion`: the Expansion panel full-size, see below), `jobs` (`/jobs`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
+(`/expansion`: the Expansion panel full-size, see below), `growth` (`/growth`, see below), `jobs` (`/jobs`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`), `resources`
 (`/resources`: per resource, in the Resources strip's order (`stripOrder()`), a chart — stockpile
@@ -412,6 +412,16 @@ shows counts as "before history" (approximate), except the capital's starbase. T
 toggle (`systemView.colonies`) adds each colony's `produces`/`upkeep` and the construction on it
 (colony → system from the latest galaxy's bodies). Not counted: ships built at a system's shipyard,
 refunds of cancelled items, the influence of claims.
+
+**Growth tab** (`/growth`, `#lib/growth.ts` pure; the user's ask 2026-10-22, built before the
+capacity model — see "Pop growth: planet capacity" under Open): per colony, natural growth
+(`GROWTH_CAT_GROWTH`) as the mean of its last six saves (fractions are a chance: Embron 5, 6, 5 …
+→ 5.33, so the cap of 5 rounds up too), months per 100 pops, housing used of the total
+(`Colony.housing`, `housingUsed` — `total_housing`, `housing_usage`, READER 8), free districts
+under the limit and more behind blockers (`colonyDetails().caps`), habitability, and notes: at the
+cap, overcrowded (growth stops at 1.15 × housing, `OVERCROWDING_NO_GROWTH_THRESHOLD`), low
+habitability, not growing. Still to come once capacity is fitted: what +1 district, a cleared
+blocker, a medical building or an edict would gain, and the colonies ranked by it.
 
 **Jobs tab and the shared values** (`/jobs`, `#lib/unitCosts.ts` pure, `server/unitCosts.ts`; the
 user's asks 2026-10-22: "normalised costs for everything we produce" and "how well does each job
@@ -1038,6 +1048,22 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
     (`fast_forward 1`): stored drop vs. progress per day, the tech view's "+Y/Day", and what a tech
     finishing mid-month does with its overflow. The tech tab shows stored research and "≈ N months
     at double speed" (stored ÷ the field's monthly income) — revise once the rate is confirmed.
+
+- **Pop growth: planet capacity is not in the save or the files** (2026-10-22, for the planned
+  growth view). The wiki ("Population", 4.5): logistic growth = 1/400 × (species pops − species
+  pops² / planet capacity − 1), all species together capped at 5.0 (the galaxy's
+  `logistic_ceiling_v2=5`; `growth_scale=0.25` is the Country Growth Scale penalty, both in the
+  save's top-level `galaxy`), × the species' pop growth speed (habitability below 100 % among it);
+  flat "bonus growth" ignores both; fractions are a chance. Capacity, per the game's own text
+  (`concept_planet_capacity_desc`): "determined by housing and additional space from undeveloped
+  districts, which varies with the habitability of the planet. Clearing blockers can further
+  increase capacity" — engine code, no define or script. The save has `colony.total_housing`,
+  `housing_usage`, `free_housing` and `last_month_growth_data` (`GROWTH_CAT_GROWTH` in pop units,
+  ×100) — no capacity. Housing alone does not fit: Embron 4985 pops / 9800 housing → 6.1 (seen 5,
+  the cap), Caugantu Prime 556 / 2900 → 1.1 (seen 1–2), Earth 5120 / 8000 → 4.6 (seen 5). Our
+  saves have too few uncapped colonies (two) to separate the districts' share from the species'
+  growth speed. Needed: the game's growth tooltip (base growth, capacity if shown, speed) for a
+  few colonies of different size, free district room and habitability.
 
 - **Outpost influence, estimated**: the systems tab charges `75 + 75 × (jumps − 1)` from our
   nearest system (4.5.2 `EXPANSION_COST_*`). Check against the game's cost tooltip before building

@@ -18,6 +18,8 @@ export type Colony = {
 	civilians: number; // pops without a job (the 4.x "civilian" stratum)
 	stability: number;
 	freeHousing: number;
+	housing: number | null; // total_housing; null before 2026-10-22
+	housingUsed: number | null; // housing_usage: pops × their housing need
 	freeAmenities: number;
 	districts: number;
 	districtList: ColonyDistrict[]; // per district type: built, zones and their buildings

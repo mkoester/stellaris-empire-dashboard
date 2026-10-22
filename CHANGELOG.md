@@ -27,6 +27,8 @@ All notable changes to this project are documented here. The format follows
   districts or buildings — measured from your own budget, and a month-by-month comparison of
   strategies, with knobs for techs within reach and the next tradition.
 
+- A growth tab: natural pop growth per colony as measured, months per 100 pops, housing used,
+  free districts (more behind blockers), habitability, and what holds a colony back.
 - The tech tab: the cards on offer mark the one being researched, the permanent options and the
   progress of queued techs; stored research per field (from events — used up at up to double
   research speed); a new list of what was offered when, and what you picked.

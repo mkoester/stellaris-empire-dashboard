@@ -104,6 +104,8 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	civilians: 0,
 	stability: 0,
 	freeHousing: 0,
+	housing: null,
+	housingUsed: null,
 	freeAmenities: 0,
 	districts: 0,
 	districtList: [],

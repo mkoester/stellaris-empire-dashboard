@@ -238,7 +238,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '7';
+export const READER = '8';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1351,6 +1351,8 @@ function playerColonies(raw: RawSave): Colony[] {
 			civilians: num(c.civilian),
 			stability: num(c.stability),
 			freeHousing: num(c.free_housing),
+			housing: numOrNull(c.total_housing),
+			housingUsed: numOrNull(c.housing_usage),
 			freeAmenities: num(c.free_amenities),
 			...colonyDistricts(raw, list(c.districts)),
 			planetClass: String(planet?.planet_class ?? ''),
