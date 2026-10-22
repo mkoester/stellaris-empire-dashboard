@@ -60,6 +60,11 @@
 			active: path === '/systems'
 		},
 		{
+			name: 'trade',
+			href: node ? resolve(`/trade?node=${node}`) : resolve('/trade'),
+			active: path === '/trade'
+		},
+		{
 			name: 'trade deals',
 			href: node ? resolve(`/deals?node=${node}`) : resolve('/deals'),
 			active: path === '/deals'

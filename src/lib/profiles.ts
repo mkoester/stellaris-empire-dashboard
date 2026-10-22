@@ -31,6 +31,7 @@ export type Display = {
 	factionTypes: boolean; // government: faction types of our ethics, before any has formed (cheating)
 	allFactionTypes: boolean; // … and those of ethics we do not hold (cheating)
 	tradeoffs: boolean; // the trade-offs tab: where to spend scarce resources (exploratory)
+	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
@@ -48,7 +49,8 @@ export const DEFAULT_DISPLAY: Display = {
 	showLocked: false,
 	factionTypes: false,
 	allFactionTypes: false,
-	tradeoffs: false
+	tradeoffs: false,
+	tradeIntel: false
 };
 
 export type ProfileSettings = {
@@ -100,7 +102,8 @@ export function parseDisplay(v: unknown): Display {
 		showLocked: o.showLocked === true,
 		factionTypes: o.factionTypes === true,
 		allFactionTypes: o.allFactionTypes === true,
-		tradeoffs: o.tradeoffs === true
+		tradeoffs: o.tradeoffs === true,
+		tradeIntel: o.tradeIntel === true
 	};
 }
 

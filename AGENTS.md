@@ -194,7 +194,7 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
 `map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
-(`/expansion`: the Expansion panel full-size, see below), `growth` (`/growth`, see below), `jobs` (`/jobs`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
+(`/expansion`: the Expansion panel full-size, see below), `growth` (`/growth`, see below), `jobs` (`/jobs`, see below), `trade` (`/trade`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`), `resources`
 (`/resources`: per resource, in the Resources strip's order (`stripOrder()`), a chart — stockpile
@@ -413,6 +413,24 @@ toggle (`systemView.colonies`) adds each colony's `produces`/`upkeep` and the co
 (colony → system from the latest galaxy's bodies). Not counted: ships built at a system's shipyard,
 refunds of cancelled items, the influence of claims.
 
+**Trade tab** (`/trade`, `#lib/aiTrade.ts` pure; the user's biggest pain point, 2026-10-22: "who
+trades what, both directions, for how much, normalised by trade"): the empires we have
+communications with — regular and fallen ones only (`TRADING_TYPES` in save.ts; pre-FTL
+civilisations, monsters, enclaves and the game's event countries also have communications) —
+with what the diplomacy screen shows: personality and its `trade_willingness`, attitude towards
+us (one that does not trade refuses everything: data DB `attitude.trade`), their opinion of us
+with its modifiers, trust, our deals, a gift's "Favorable Trade Deal" and the months until it has
+faded (data DB `opinion_modifier`: +1 a point, max 100, decay 2). With the **`tradeIntel`**
+spoiler (cheating — their stockpiles and income; the route strips them otherwise): the deal
+finder (we give X, for Y: per empire the most Y it would give per X, against selling X and buying
+Y on the market with the fee) and per empire and resource whether it is short (under a third of
+its storage) or flush (over three quarters). **Estimated**: the AI's valuation is engine code;
+`TradeModel` holds the inputs from the files and the guesses (`needFactor` 2, `plentyFactor` 0.5,
+the income damping's form) until `docs/trade-calibration.md` is played through — then fit them,
+with the session's numbers as the test, and set `calibrated`. Not yet: what a gift buys in
+opinion (part 2 of the session), deals for monthly payments of different length, the produce
+tab's trade-deal option.
+
 **Growth tab** (`/growth`, `#lib/growth.ts` pure; the user's ask 2026-10-22, built before the
 capacity model — see "Pop growth: planet capacity" under Open): per colony, natural growth
 (`GROWTH_CAT_GROWTH`) as the mean of its last six saves (fractions are a chance: Embron 5, 6, 5 …
@@ -474,7 +492,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`. A new view of hidden information follows the same pattern. **The
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`. A new view of hidden information follows the same pattern. **The
 check is the user's in-game screenshot** of the matching panel (workspace `AGENTS.md`): it caught
 the edicts (58 → the game's 5), policies, agendas and focus cards here.
 
@@ -866,6 +884,12 @@ capital_scope = { solar_system = { add_claims = { who = prevprevprev num_of_clai
 - Rivals (2026-10-19): declaring one adds `is_rival=yes` and `rival_date` (declaration + 10
   years: 2205.05 → "2215.05.17") to our relation, `rivals = { country }` and `has_declared_rival`
   to our country; their opinion of us (Themlar Principality) fell to −460. Contacts: "our rival", "rivals us".
+- **Another empire's view of us** (`Snapshot.aiIntel`, READER 9–10; `intelOf()`): its
+  `personality` (top level of its country block), `ai.attitude = { { country attitude weight
+priority date } }` — the entry for our country is its attitude towards us ("loyal" for our
+  subject) —, its relation **to us** (`relation_current` 293 vs. our 292 to them; `modifier = {
+modifier value }`, one or a list: `opinion_fellow_galcom_member` 50, a gift's
+  `opinion_trade_gift`), its stockpile and its budget's balance like ours (2212.03.05).
 - Pacts are **flags on the relation**: `country.relations_manager.relation = { country embassy
 research_agreement commercial_pact defensive_pact non_aggression_pledge guarantee closed_borders
 migration_access waystation_pact … }` (`=yes`; the last two are the migration treaty and the

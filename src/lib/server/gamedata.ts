@@ -467,6 +467,44 @@ export function loadGameData(file: string): GameData {
 					(r) => [r.key, r.category]
 				)
 			),
+			// what the AI makes of a trade: each resource's weight, stockpile target and base storage;
+			// personalities' willingness, which attitudes trade, opinion modifiers (the trade tab)
+			resourceInfo: Object.fromEntries(
+				rows<{
+					key: string;
+					name: string | null;
+					ai_weight: number | null;
+					ai_wants: number | null;
+					max: number | null;
+					tradable: number;
+				}>('SELECT key, name, ai_weight, ai_wants, max, tradable FROM strategic_resource').map(
+					(r) => [
+						r.key,
+						{
+							name: r.name ?? r.key,
+							aiWeight: r.ai_weight,
+							aiWants: r.ai_wants,
+							max: r.max,
+							tradable: r.tradable === 1
+						}
+					]
+				)
+			),
+			personalities: Object.fromEntries(
+				rows<{ key: string; name: string | null; trade_willingness: number | null }>(
+					'SELECT key, name, trade_willingness FROM personality'
+				).map((r) => [r.key, { name: r.name ?? r.key, willingness: r.trade_willingness }])
+			),
+			attitudes: Object.fromEntries(
+				rows<{ key: string; name: string | null; trade: number }>(
+					'SELECT key, name, trade FROM attitude'
+				).map((r) => [r.key, { name: r.name ?? r.key, trade: r.trade === 1 }])
+			),
+			opinionModifiers: Object.fromEntries(
+				rows<{ key: string; name: string | null; max: number | null; decay: number | null }>(
+					'SELECT key, name, max, decay FROM opinion_modifier'
+				).map((r) => [r.key, { name: r.name ?? r.key, max: r.max, decay: r.decay }])
+			),
 			// modules and buildings a starbase of each level holds (`starbase_level_starport` → starport)
 			starbaseSlots: Object.fromEntries(
 				rows<{ key: string; module_slots: number; building_slots: number }>(

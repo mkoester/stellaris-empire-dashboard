@@ -202,6 +202,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		budget: null,
 		construction: null,
 		orbitalStations: null,
+		aiIntel: null,
 		techQueued: null,
 		techPermanent: null,
 		techStored: null,

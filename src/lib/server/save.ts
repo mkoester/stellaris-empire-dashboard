@@ -6,6 +6,7 @@ import type {
 	KnownSystem,
 	MigrationColony,
 	OrbitalStation,
+	AiIntel,
 	QueuedTech,
 	Route,
 	CivilianShip,
@@ -118,6 +119,7 @@ export type RawSave = {
 	resolutions: Record<string, Raw>; // top-level resolution: proposed and voted on
 	popFactions: Record<string, Raw>; // top-level pop_factions: every empire's factions
 	patronRelations: Record<string, Raw>; // top-level patron_relations: every empire's patrons
+	aiIntel: AiIntel[]; // empires we have communications with: their view of us and their economy
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -133,10 +135,19 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 		const loyalty: Record<string, number> = {};
 		const rivalsOfUs: number[] = [];
 		const countries: RawSave['countries'] = {};
+		const aiIntel: AiIntel[] = [];
 		for (const [id, c] of Object.entries(allCountries)) {
 			if (!c || typeof c !== 'object') continue;
 			if (typeof c.loyalty === 'number') loyalty[id] = c.loyalty;
 			const toUs = items(c.relations_manager?.relation).find((r) => r?.country === countryId);
+			// empires that trade: regular and fallen ones, not pre-FTL civilisations, monsters or the
+			// game's event countries (all of which can have communications with us)
+			if (
+				Number(id) !== countryId &&
+				TRADING_TYPES.includes(String(c.type)) &&
+				(toUs?.communications === true || toUs?.communications === 'yes')
+			)
+				aiIntel.push(intelOf(Number(id), c, toUs, countryId));
 			if (toUs?.is_rival === true || toUs?.is_rival === 'yes') rivalsOfUs.push(Number(id));
 			for (const o of items(c.fleets_manager?.owned_fleets))
 				if (typeof o?.fleet === 'number') fleetOwner[String(o.fleet)] = Number(id);
@@ -216,6 +227,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			resolutions: q.at('/resolution') ?? {},
 			popFactions: q.at('/pop_factions') ?? {},
 			patronRelations: q.at('/patron_relations') ?? {},
+			aiIntel,
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
 			districtsDb: q.at('/districts') ?? {},
 			zones: q.at('/zones') ?? {},
@@ -238,7 +250,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '8';
+export const READER = '10';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -275,6 +287,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		budget: budgetSources(budget),
 		construction: construction(raw),
 		orbitalStations: orbitalStations(raw, ownSystems(raw)),
+		aiIntel: raw.aiIntel ?? [],
 		score: {
 			rank: num(raw.country?.victory_rank),
 			score: num(raw.country?.victory_score),
@@ -782,6 +795,30 @@ export function ownSystems(
 	for (const [id, sys] of Object.entries(raw.systems))
 		if (list(sys?.starbases).some((sb) => mine.has(sb))) out.add(Number(id));
 	return out;
+}
+
+const TRADING_TYPES = ['default', 'fallen_empire', 'awakened_fallen_empire'];
+
+/**
+ * Another empire's view of us — what the diplomacy screen shows: personality, attitude towards us
+ * (`ai.attitude`, the entry for our country), their opinion of us and its modifiers (their
+ * relation to us: `relation_current`, `modifier = { modifier value }`) — and what it hides: their
+ * stockpile and monthly net (the budget's balance, the market's included).
+ */
+export function intelOf(id: number, c: Raw, toUs: Raw, us: number): AiIntel {
+	const budget = c.budget?.current_month ?? {};
+	return {
+		countryId: id,
+		personality: strOrNull(c.personality),
+		attitude: strOrNull(items(c.ai?.attitude).find((a) => a?.country === us)?.attitude),
+		opinion: numOrNull(toUs?.relation_current),
+		trust: num(toUs?.trust),
+		opinionModifiers: items(toUs?.modifier)
+			.filter((m) => typeof m?.modifier === 'string')
+			.map((m) => ({ key: String(m.modifier), value: num(m.value) })),
+		stockpile: resources(c.modules?.standard_economy_module?.resources),
+		net: addResources(sumSources(budget.balance), sumSources(budget.trade_balance))
+	};
 }
 
 /**

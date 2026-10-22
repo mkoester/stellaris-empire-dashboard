@@ -206,6 +206,21 @@ export type Construction = {
 	cost: Resources;
 };
 
+/**
+ * An empire we have communications with: its view of us (shown in game) and its economy (hidden —
+ * the trade tab's `tradeIntel` spoiler).
+ */
+export type AiIntel = {
+	countryId: number;
+	personality: string | null; // e.g. "peaceful_traders"
+	attitude: string | null; // towards us, e.g. "cordial"
+	opinion: number | null; // theirs of us
+	trust: number;
+	opinionModifiers: { key: string; value: number }[]; // e.g. opinion_trade_gift
+	stockpile: Resources;
+	net: Resources; // per month
+};
+
 /** A tech in a research queue: the first per field is being researched. */
 export type QueuedTech = { area: string; tech: string; progress: number; since: string | null };
 
@@ -290,6 +305,7 @@ export type Snapshot = {
 	budget: BudgetSource[] | null; // every budget source, the market's as `market:<source>`
 	construction: Construction[] | null; // construction items we pay for, with their cost
 	orbitalStations: OrbitalStation[] | null; // stations in our systems; since 2026-10-22
+	aiIntel: AiIntel[] | null; // empires we talk to: their view of us, their economy; since 2026-10-22
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
@@ -724,7 +740,20 @@ export type GameData = {
 	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
 	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
 	growthModifiers: Record<string, Record<string, number>>;
-	starbaseSlots: Record<string, { modules: number; buildings: number }>; // per level: outpost, starport …
+	starbaseSlots: Record<string, { modules: number; buildings: number }>;
+	resourceInfo: Record<
+		string,
+		{
+			name: string;
+			aiWeight: number | null;
+			aiWants: number | null;
+			max: number | null;
+			tradable: boolean;
+		}
+	>;
+	personalities: Record<string, { name: string; willingness: number | null }>;
+	attitudes: Record<string, { name: string; trade: boolean }>;
+	opinionModifiers: Record<string, { name: string; max: number | null; decay: number | null }>; // per level: outpost, starport …
 	edictModifiers: Record<string, Record<string, number>>; // edict → modifier → value
 	// what researching a tech needs: prerequisites, who can get it (`potential`), rarity
 	techRequirements: Record<

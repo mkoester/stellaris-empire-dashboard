@@ -37,7 +37,8 @@ describe('profiles', () => {
 				showLocked: false,
 				factionTypes: false,
 				allFactionTypes: false,
-				tradeoffs: false
+				tradeoffs: false,
+				tradeIntel: false
 			}
 		});
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('thick');
@@ -77,7 +78,8 @@ describe('profiles', () => {
 				showLocked: false,
 				factionTypes: false,
 				allFactionTypes: false,
-				tradeoffs: false
+				tradeoffs: false,
+				tradeIntel: false
 			}
 		});
 		const copy = profileAction(db, { action: 'create', name: 'default', copyOf: 'default' })!;

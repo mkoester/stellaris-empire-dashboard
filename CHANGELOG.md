@@ -27,6 +27,10 @@ All notable changes to this project are documented here. The format follows
   districts or buildings — measured from your own budget, and a month-by-month comparison of
   strategies, with knobs for techs within reach and the next tradition.
 
+- A trade tab: the empires you talk to with their personality (how good a deal must be), attitude,
+  opinion of you and what makes it up, and how long a gift's goodwill lasts; with a switch in ⚙
+  (cheating), what each would give for what — estimated until calibrated against the game
+  (`docs/trade-calibration.md`) — and what they are short of or flush with.
 - A growth tab: natural pop growth per colony as measured, months per 100 pops, housing used,
   free districts (more behind blockers), habitability, and what holds a colony back.
 - The tech tab: the cards on offer mark the one being researched, the permanent options and the

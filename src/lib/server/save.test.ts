@@ -6,6 +6,7 @@ import {
 	construction,
 	orbitalStations,
 	techQueued,
+	intelOf,
 	countryIds,
 	colonyGrowth,
 	colonyJobs,
@@ -79,6 +80,7 @@ const raw: RawSave = {
 	resolutions: {},
 	popFactions: {},
 	patronRelations: {},
+	aiIntel: [],
 	starbases: {},
 	megastructures: {},
 	bypasses: {},
@@ -699,6 +701,40 @@ describe('construction', () => {
 				cost: { minerals: 500 }
 			}
 		]);
+	});
+});
+
+describe('intelOf', () => {
+	it('reads another empire’s view of us and its economy (2212.03.05 shapes)', () => {
+		const c = {
+			personality: 'hegemonic_imperialists',
+			ai: {
+				attitude: [
+					{ country: 15, attitude: 'cordial' },
+					{ country: 0, attitude: 'loyal' }
+				]
+			},
+			modules: { standard_economy_module: { resources: { energy: 1181.8, alloys: 396.8 } } },
+			budget: {
+				current_month: { balance: { country_base: { energy: 20 }, ships: { energy: -11.8 } } }
+			}
+		};
+		const toUs = {
+			country: 0,
+			relation_current: 293,
+			trust: 49.2,
+			modifier: { modifier: 'opinion_fellow_galcom_member', value: 50 }
+		};
+		expect(intelOf(16777219, c, toUs, 0)).toEqual({
+			countryId: 16777219,
+			personality: 'hegemonic_imperialists',
+			attitude: 'loyal',
+			opinion: 293,
+			trust: 49.2,
+			opinionModifiers: [{ key: 'opinion_fellow_galcom_member', value: 50 }],
+			stockpile: { energy: 1181.8, alloys: 396.8 },
+			net: { energy: 8.2 }
+		});
 	});
 });
 

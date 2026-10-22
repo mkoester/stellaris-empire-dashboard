@@ -18,6 +18,11 @@
 			'exploratory: estimates from your budget, with knobs for upcoming techs and traditions'
 		],
 		[
+			'tradeIntel',
+			'Trade: other empires’ stockpiles and income, and what they would trade at what rate',
+			'cheating — the game shows neither; estimated until calibrated (docs/trade-calibration.md)'
+		],
+		[
 			'habitatsAlways',
 			'Expansion: show habitat sites even before habitats can be built',
 			'later behind an “enable cheats” switch'

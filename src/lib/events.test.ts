@@ -64,6 +64,10 @@ const data: GameData = {
 	buildingCategory: {},
 	growthModifiers: {},
 	starbaseSlots: {},
+	resourceInfo: {},
+	personalities: {},
+	attitudes: {},
+	opinionModifiers: {},
 	edictModifiers: {},
 	techRequirements: {},
 	defines: {
