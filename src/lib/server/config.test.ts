@@ -10,6 +10,11 @@ describe('appDataDir', () => {
 			join('C:\\Users\\a\\AppData\\Roaming', 'stellaris-empire-dashboard')
 		);
 	});
+	it('uses ~/Library/Application Support on macOS, whatever XDG_DATA_HOME says', () => {
+		expect(appDataDir('darwin', { XDG_DATA_HOME: '/x' }, '/Users/a')).toBe(
+			'/Users/a/Library/Application Support/stellaris-empire-dashboard'
+		);
+	});
 	it('uses XDG_DATA_HOME, else ~/.local/share', () => {
 		expect(appDataDir('linux', { XDG_DATA_HOME: '/x' }, '/home/a')).toBe(
 			'/x/stellaris-empire-dashboard'

@@ -27,9 +27,13 @@ type Env = Record<string, string | undefined>;
 
 export const APP = 'stellaris-empire-dashboard';
 
-/** `%APPDATA%\<app>` on Windows, `$XDG_DATA_HOME/<app>` (default `~/.local/share`) elsewhere. */
+/**
+ * `%APPDATA%\<app>` on Windows, `~/Library/Application Support/<app>` on macOS,
+ * `$XDG_DATA_HOME/<app>` (default `~/.local/share`) elsewhere.
+ */
 export function appDataDir(platform: string, env: Env, home: string): string {
 	if (platform === 'win32') return join(env.APPDATA || join(home, 'AppData', 'Roaming'), APP);
+	if (platform === 'darwin') return join(home, 'Library', 'Application Support', APP);
 	return join(env.XDG_DATA_HOME || join(home, '.local', 'share'), APP);
 }
 

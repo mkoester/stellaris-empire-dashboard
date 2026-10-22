@@ -10,17 +10,20 @@ starts a new branch instead of overwriting your history.
 
 1. Download the zip for your system from the
    [latest release](https://github.com/mkoester/stellaris-empire-dashboard/releases/latest):
-   `…-windows-x64.zip` or `…-linux-x64.zip`.
-2. Unzip it anywhere and start `start.bat` (Windows) or `./start.sh` (Linux; needs `python3` 3.10
-   or newer, which most distributions and SteamOS have).
+   `…-windows-x64.zip`, `…-macos-arm64.zip` or `…-linux-x64.zip`.
+2. Unzip it anywhere and start `start.bat` (Windows), `start.command` (macOS) or `./start.sh`
+   (Linux; needs `python3` 3.10 or newer, which most distributions and SteamOS have).
 3. Your browser opens the dashboard. The first time, pick the game's install folder and the folder
-   with your saves; it offers what it finds (Steam, GOG, Microsoft Store, Linux native, Proton).
+   with your saves; it offers what it finds (Steam, GOG, Microsoft Store, macOS, Linux native,
+   Proton). Every folder it looks in, per system and store:
+   [Where things are](release/README.txt) (also in the zip).
 4. Play. Every autosave shows up within seconds — monthly autosaves give the smoothest history.
 
 It only reads the game's files and your saves, stores its history in your user profile
-(`%APPDATA%\stellaris-empire-dashboard`, `~/.local/share/stellaris-empire-dashboard`) and sends
-nothing anywhere. Windows may warn that the app is unrecognised (it is not code-signed): "More
-info" → "Run anyway". More in the zip's `README.txt`.
+(`%APPDATA%\stellaris-empire-dashboard`, `~/Library/Application Support/stellaris-empire-dashboard`,
+`~/.local/share/stellaris-empire-dashboard`) and sends nothing anywhere. It is not code-signed:
+Windows may warn that the app is unrecognised ("More info" → "Run anyway"), macOS refuses it the
+first time (System Settings → Privacy & Security → "Open Anyway"). More in the zip's `README.txt`.
 
 Planning an empire before you play? The
 [Stellaris Empire Planner](https://stellaris-empire-planner.mirkokoester.de/) is the companion web

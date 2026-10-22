@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-// Builds the player downloads: one zip per OS with the dashboard, its own Node, the extractor
-// (from the sibling stellaris-data-extraction repo, as committed) and, on Windows, Python.
-// Linux uses the system's python3. Runtimes are pinned and checked against their published
-// SHA-256 (nodejs.org SHASUMS256.txt, python.org's release API).
+// Builds the player downloads: one zip per OS and architecture with the dashboard, its own Node,
+// the extractor (from the sibling stellaris-data-extraction repo, as committed) and, on Windows
+// and macOS, Python. Linux uses the system's python3; a Mac has none recent enough (only Apple's
+// 3.9 with the Command Line Tools). Runtimes are pinned and checked against their published
+// SHA-256 (nodejs.org SHASUMS256.txt, python.org's release API, python-build-standalone's
+// GitHub release assets).
 //
-//   node scripts/package.mjs [--os windows|linux] [--extraction <repo>]   → dist/*.zip
+//   node scripts/package.mjs [--os windows|linux|macos] [--extraction <repo>]   → dist/*.zip
 //
 // A release build (clean `main`, see RELEASE.md) refuses an extractor that is not on a tag.
 import { execFileSync } from 'node:child_process';
@@ -28,11 +30,20 @@ import { decoratedVersion } from './version.mjs';
 
 const NODE = '24.22.0';
 const NODE_SHA256 = {
-	windows: 'f9683a19877e12a9b167305c8db71040d812876359de21f0d2e97c3f321f80c3', // win-x64.zip
-	linux: 'cc2f601cee82d9a5a233302fe307abc600727035fd7d2c3a3571755989e95008' // linux-x64.tar.xz
+	'windows-x64': 'f9683a19877e12a9b167305c8db71040d812876359de21f0d2e97c3f321f80c3', // win-x64.zip
+	'linux-x64': 'cc2f601cee82d9a5a233302fe307abc600727035fd7d2c3a3571755989e95008', // linux-x64.tar.xz
+	'macos-arm64': '75ddfb875bbd868ebe57536f4442225f54dd10f6d2178dd439de869a5c648dc3', // darwin-arm64.tar.xz
+	'macos-x64': 'b890d687983ddc811641f6739c3ce99d2912c58f9e44b68aa25944037b425305' // darwin-x64.tar.xz
 };
 const PYTHON = '3.14.8';
 const PYTHON_SHA256 = 'a93abe456ab01bd96d7a085b3cdb6566b3063f4241360d114142fbdb07f0a310'; // embed-amd64.zip
+// macOS: python-build-standalone's relocatable CPython, the same version as Windows'
+const PBS_RELEASE = '20261013';
+const PBS_SHA256 = {
+	'macos-arm64': '994adadc202c5df0b4570192cc9a70e3f2c131e512f4a125c56efa8562f44b28', // aarch64-apple-darwin
+	'macos-x64': 'f0137337ecf6234b30c9c955219dae2d71e1a00387c4d204d6c6929e24bf9a90' // x86_64-apple-darwin
+};
+const PBS_ARCH = { 'macos-arm64': 'aarch64', 'macos-x64': 'x86_64' };
 /** packages whose code ends up in the build; their licences (and their dependencies') ship along */
 const BUNDLED = ['jomini', 'uplot', 'svelte', '@sveltejs/kit', '@sveltejs/adapter-node'];
 
@@ -46,7 +57,10 @@ const run = (cmd, args, opts = {}) =>
 
 const version = decoratedVersion();
 const release = !version.includes('-');
-const targets = arg('os') ? [arg('os')] : ['windows', 'linux'];
+/** `--os macos` builds both Mac architectures */
+const TARGETS = ['windows-x64', 'linux-x64', 'macos-arm64', 'macos-x64'];
+const targets = arg('os') ? TARGETS.filter((t) => t.startsWith(`${arg('os')}-`)) : TARGETS;
+if (!targets.length) throw new Error(`unknown --os ${arg('os')}`);
 const extraction = resolve(root, arg('extraction') ?? '../stellaris-data-extraction');
 const cache = join(root, '.cache');
 const dist = join(root, 'dist');
@@ -153,7 +167,7 @@ function stageCommon(dir, extractorRef) {
 async function stageWindows(dir) {
 	const nodeZip = await download(
 		`https://nodejs.org/dist/v${NODE}/node-v${NODE}-win-x64.zip`,
-		NODE_SHA256.windows,
+		NODE_SHA256['windows-x64'],
 		`node-v${NODE}-win-x64.zip`
 	);
 	const tmp = join(cache, 'unpack-win');
@@ -184,13 +198,14 @@ async function stageWindows(dir) {
 	for (const f of ['start.bat', 'README.txt']) crlf(join(dir, f));
 }
 
-async function stageLinux(dir) {
+/** Node's `bin/node` and licence from the nodejs.org tarball for `platform` (`linux-x64`, …). */
+async function stageNodeTarball(dir, platform, sha256) {
 	const tarball = await download(
-		`https://nodejs.org/dist/v${NODE}/node-v${NODE}-linux-x64.tar.xz`,
-		NODE_SHA256.linux,
-		`node-v${NODE}-linux-x64.tar.xz`
+		`https://nodejs.org/dist/v${NODE}/node-v${NODE}-${platform}.tar.xz`,
+		sha256,
+		`node-v${NODE}-${platform}.tar.xz`
 	);
-	const top = `node-v${NODE}-linux-x64`;
+	const top = `node-v${NODE}-${platform}`;
 	mkdirSync(join(dir, 'node'));
 	run('tar', [
 		'-xJf',
@@ -201,8 +216,49 @@ async function stageLinux(dir) {
 		`${top}/bin/node`,
 		`${top}/LICENSE`
 	]);
+}
+
+async function stageLinux(dir) {
+	await stageNodeTarball(dir, 'linux-x64', NODE_SHA256['linux-x64']);
 	cpSync(join(root, 'release', 'start.sh'), join(dir, 'start.sh'));
 	chmodSync(join(dir, 'start.sh'), 0o755);
+}
+
+async function stageMac(dir, target) {
+	const arch = target.slice('macos-'.length);
+	await stageNodeTarball(dir, `darwin-${arch}`, NODE_SHA256[target]);
+	const file = `cpython-${PYTHON}+${PBS_RELEASE}-${PBS_ARCH[target]}-apple-darwin-install_only_stripped.tar.gz`;
+	const tarball = await download(
+		`https://github.com/astral-sh/python-build-standalone/releases/download/${PBS_RELEASE}/${encodeURIComponent(file)}`,
+		PBS_SHA256[target],
+		file
+	);
+	run('tar', ['-xzf', tarball, '-C', dir]); // → python/bin/python3, python/lib/…
+	// The extractor needs the interpreter and the standard library only (sqlite3, json, re: built
+	// into the static bin/python3.14). What embeds, builds or installs Python, and Tk, stays out.
+	const minor = PYTHON.split('.').slice(0, 2).join('.');
+	const lib = `lib/python${minor}`;
+	const unused = [
+		'include',
+		'share',
+		...['idle3', 'pip', 'pip3', 'pydoc3', 'python3-config']
+			.flatMap((f) => [f, f.replace('3', minor)])
+			.map((f) => `bin/${f}`),
+		// libpython (for embedding) and Tcl/Tk
+		...readdirSync(join(dir, 'python', 'lib'))
+			.filter((f) => f !== `python${minor}`)
+			.map((f) => `lib/${f}`),
+		...['site-packages', 'ensurepip', 'idlelib', 'tkinter', 'turtledemo', 'test', 'lib-dynload']
+			.concat(`config-${minor}-darwin`)
+			.map((f) => `${lib}/${f}`)
+	];
+	for (const f of unused) rmSync(join(dir, 'python', f), { recursive: true, force: true });
+	appendFileSync(
+		join(dir, 'VERSIONS.txt'),
+		`python ${PYTHON} (python-build-standalone ${PBS_RELEASE})\n`
+	);
+	cpSync(join(root, 'release', 'start.command'), join(dir, 'start.command'));
+	chmodSync(join(dir, 'start.command'), 0o755);
 }
 
 const crlf = (file) => writeFileSync(file, readFileSync(file, 'utf8').replace(/\r?\n/g, '\r\n'));
@@ -213,16 +269,18 @@ console.log(
 const extractorRef = extractorVersion();
 run('pnpm', ['run', 'build'], { stdio: 'inherit' });
 mkdirSync(dist, { recursive: true });
-for (const os of targets) {
-	if (!['windows', 'linux'].includes(os)) throw new Error(`unknown --os ${os}`);
-	const stage = join(cache, `stage-${os}`);
+for (const target of targets) {
+	const stage = join(cache, `stage-${target}`);
 	rmSync(stage, { recursive: true, force: true });
 	const dir = join(stage, name);
 	mkdirSync(dir, { recursive: true });
 	stageCommon(dir, extractorRef);
-	await (os === 'windows' ? stageWindows(dir) : stageLinux(dir));
-	const zip = join(dist, `${name}-${os}-x64.zip`);
+	if (target === 'windows-x64') await stageWindows(dir);
+	else if (target === 'linux-x64') await stageLinux(dir);
+	else await stageMac(dir, target);
+	const zip = join(dist, `${name}-${target}.zip`);
 	rmSync(zip, { force: true });
-	run('zip', ['-q', '-r', '-X', zip, name], { cwd: stage });
+	// -y: symlinks as symlinks (macOS's python3 → python3.14), not as copies
+	run('zip', ['-q', '-r', '-X', '-y', zip, name], { cwd: stage });
 	console.log(`→ ${zip}`);
 }

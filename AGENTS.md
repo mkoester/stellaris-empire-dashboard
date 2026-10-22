@@ -73,14 +73,29 @@ its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`).
 
 ## Packaging and releases
 
-`node scripts/package.mjs [--os windows|linux]` → `dist/stellaris-empire-dashboard-<version>-<os>-x64.zip`:
-the build plus `jomini` (the only external import left in the build), Node 24 (pinned, SHA-256
-from nodejs.org), the extractor from `../stellaris-data-extraction` by `git archive HEAD` (a
-release build refuses one that is not on the tag `package.json` pins as `extractorVersion`), on Windows Python's embeddable package (pinned,
-SHA-256 from python.org's release API; its `._pth` gets `..\extractor`), and `release/`:
-`launcher.mjs`, `start.bat` / `start.sh` (checks `python3 ≥ 3.10`), `README.txt` for players.
-Downloads are cached in `.cache/`. **In the Claude Code sandbox** Node's `fetch` needs
-`NODE_USE_ENV_PROXY=1` to reach nodejs.org (it ignores the proxy otherwise: `EAI_AGAIN`).
+`node scripts/package.mjs [--os windows|linux|macos]` →
+`dist/stellaris-empire-dashboard-<version>-<os>-<arch>.zip` (`windows-x64`, `linux-x64`,
+`macos-arm64`, `macos-x64`): the build plus `jomini` (the only external import left in the build),
+Node 24 (pinned, SHA-256 from nodejs.org; it needs macOS 13.5+), the extractor from
+`../stellaris-data-extraction` by `git archive HEAD` (a release build refuses one that is not on
+the tag `package.json` pins as `extractorVersion`), Python where the system has none recent
+enough, and `release/`: `launcher.mjs`, `start.bat` / `start.command` / `start.sh` (checks
+`python3 ≥ 3.10`), `README.txt` for players — **its "Where things are" is the list of every
+folder for players**; a new discovery path in `locate.ts` goes there too.
+
+- **Windows**: Python's embeddable package (pinned, SHA-256 from python.org's release API; its
+  `._pth` gets `..\extractor`).
+- **macOS**: python-build-standalone's `install_only_stripped` CPython (pinned release and
+  SHA-256 from its GitHub release assets), the same version as Windows'. Apple ships only 3.9
+  with the Command Line Tools. The interpreter is static, so `libpython`, Tcl/Tk, pip, headers
+  and `lib-dynload` (only `_tkinter`, `_dbm`) are pruned (69 → 53 MB zip). Checked 2026-10-22
+  with the same prune of the release's _Linux_ build here: a full extraction, 281 civics and 77
+  origins. Zips store symlinks as symlinks (`zip -y`: `python3 → python3.14`). `start.command`
+  clears the quarantine mark on its own folder (`xattr -dr com.apple.quarantine .`) once the
+  player has allowed it in Privacy & Security; the bundled Python is not notarized, Node is.
+  **The Mac zips have not run on a Mac yet** — first run per `RELEASE.md`.
+  Downloads are cached in `.cache/`. **In the Claude Code sandbox** Node's `fetch` needs
+  `NODE_USE_ENV_PROXY=1` to reach nodejs.org (it ignores the proxy otherwise: `EAI_AGAIN`).
 
 **`launcher.mjs` serves the app through its own HTTP server**, not adapter-node's `index.js`:
 without `ORIGIN` adapter-node 6 takes every request for `https`, and SvelteKit rejects the forms

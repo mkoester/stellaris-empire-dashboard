@@ -1,6 +1,6 @@
 // Starts the packaged dashboard (scripts/package.mjs builds the folder around this file): names
 // the bundled extractor and its Python, serves the app on a free local port and opens the
-// browser. start.bat / start.sh run it with the bundled Node. `--lan` also serves other devices
+// browser. start.bat / start.command / start.sh run it with the bundled Node. `--lan` also serves other devices
 // on the local network (a tablet as the second screen).
 //
 // It runs its own HTTP server around adapter-node's handler rather than the adapter's
@@ -15,12 +15,18 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const win = process.platform === 'win32';
+const mac = process.platform === 'darwin';
 const lan = process.argv.includes('--lan');
 const PROTO = 'x-dashboard-proto';
 
 process.env.PROTOCOL_HEADER = PROTO;
 process.env.STELLARIS_EXTRACTOR ||= join(here, 'extractor', 'stellaris-extract.py');
-process.env.STELLARIS_PYTHON ||= win ? join(here, 'python', 'python.exe') : 'python3';
+// Windows and macOS bring their own Python, Linux uses the system's
+process.env.STELLARIS_PYTHON ||= win
+	? join(here, 'python', 'python.exe')
+	: mac
+		? join(here, 'python', 'bin', 'python3')
+		: 'python3';
 
 /** Listens on the first free port from `from`. */
 async function listen(server, from, host) {
@@ -38,7 +44,7 @@ async function listen(server, from, host) {
 }
 
 function openBrowser(url) {
-	const [cmd, args] = win ? ['cmd', ['/c', 'start', '', url]] : ['xdg-open', [url]];
+	const [cmd, args] = win ? ['cmd', ['/c', 'start', '', url]] : [mac ? 'open' : 'xdg-open', [url]];
 	spawn(cmd, args, { detached: true, stdio: 'ignore', windowsHide: true })
 		.on('error', () => console.log(`Open ${url} in your browser.`))
 		.unref();
@@ -55,5 +61,5 @@ const port = await listen(server, Number(process.env.PORT) || 5174, lan ? '0.0.0
 const url = `http://127.0.0.1:${port}/`;
 console.log(`Stellaris Empire Dashboard — ${url}`);
 if (lan) console.log(`Also on this computer's network address, port ${port}.`);
-console.log(win ? 'Close this window to stop it.' : 'Press Ctrl+C to stop it.');
+console.log(win || mac ? 'Close this window to stop it.' : 'Press Ctrl+C to stop it.');
 openBrowser(url);

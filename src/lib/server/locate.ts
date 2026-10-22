@@ -6,7 +6,9 @@ import { join, posix, win32 } from 'node:path';
 // folder counts only if it holds what the game puts there (`isGameDir`, `isUserDir`), so a wrong
 // candidate never shows. Not yet seen on a real machine, from community reports only: the
 // Microsoft Store / Game Pass layout (`XboxGames\Stellaris\Content`), GOG's registry key and the
-// Heroic/Lutris folders — /setup's own fields are the fallback.
+// Heroic/Lutris folders, and macOS (Steam's folder from the workspace notes; the user folder from
+// the game's own `gameDataPath`, `%USER_DOCUMENTS%/Paradox Interactive/Stellaris`) — /setup's own
+// fields are the fallback.
 
 const STEAM_APP = '281990';
 const PDX = 'Paradox Interactive';
@@ -93,6 +95,7 @@ export function steamRoots(m: Machine): string[] {
 			p.join(m.env.ProgramFiles || 'C:\\Program Files', 'Steam')
 		];
 	}
+	if (m.platform === 'darwin') return [p.join(m.home, 'Library', 'Application Support', 'Steam')];
 	const data = m.env.XDG_DATA_HOME || p.join(m.home, '.local', 'share');
 	return [
 		p.join(data, 'Steam'),
@@ -136,6 +139,7 @@ export function gameDirGuesses(m: Machine, libraries: string[]): [string, string
 			)
 		];
 	}
+	if (m.platform === 'darwin') return steam;
 	return [
 		...steam,
 		[p.join(m.home, 'GOG Games', 'Stellaris', 'game'), 'GOG'],
@@ -172,6 +176,7 @@ export function userDirGuesses(
 			.map((n) => [p.join(dir, n), source] as [string, string]);
 	if (m.platform === 'win32')
 		return documentsDirs(m).flatMap((d) => stellarisIn(p.join(d, PDX), 'Windows'));
+	if (m.platform === 'darwin') return stellarisIn(p.join(m.home, 'Documents', PDX), 'macOS');
 
 	const data = m.env.XDG_DATA_HOME || p.join(m.home, '.local', 'share');
 	const docs = (prefix: string, user: string) =>

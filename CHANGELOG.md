@@ -15,6 +15,9 @@ All notable changes to this project are documented here. The format follows
 - Cleaning up: the config tab lists the games in the history, each can be deleted; a game whose
   saves are all gone from disk is offered for deletion once.
 
+- A download for macOS (13.5 or newer), for Apple silicon and Intel Macs, with its own Python.
+- Every folder the dashboard looks in, per system and store, listed in the zip's `README.txt`.
+
 ### Changed
 
 - A start reads only the game played last (the first start: the one with the newest save); the
