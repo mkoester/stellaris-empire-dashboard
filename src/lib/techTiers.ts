@@ -2,7 +2,8 @@ import type { GameData } from './types.ts';
 
 // Researched techs per field and tier. A tier opens once 6 techs of the tier below are researched
 // (`previously_unlocked = 6` for tiers 2–5, 0 for tier 1: common/technology/tier/00_tier.txt,
-// 4.5.2); per field, as the wiki says and research alternatives show. Totals are the techs the
+// 4.5.2); per research area (physics, society, engineering) — the file does not say so, the user
+// confirmed it 2026-10-22. Totals are the techs the
 // game files define — not every empire can get all of them (DLC, civics, events).
 
 export const TIERS = [0, 1, 2, 3, 4, 5];

@@ -837,6 +837,13 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   while it has `location = { assignment=… }` (seen: `first_contact`). **Not stored: the naval
   capacity maximum** — only script can read it (`max_naval_capacity` trigger, exportable with
   `export_trigger_value_to_variable`), i.e. the companion mod.
+- **Which techs can be researched** (`techTiers()`, `inReach()` in `#lib/techTiers.ts`): every
+  prerequisite researched (data DB `technology_requirement.prerequisites_json`) **and** its tier
+  open — a tier opens once 6 techs of the tier below are researched **in the same research area**
+  (physics, society, engineering), `previously_unlocked` in 4.5.2
+  `common/technology/tier/00_tier.txt` (0 for tier 1, 6 for tiers 2–5; the file does not say per
+  area — the user confirmed it, 2026-10-22) — and `potential` not false for the empire. The cards
+  on offer (`tech_status.alternatives`) are a weighted random draw from those: never plan with them.
 - Progress: `country.tech_status.<area>_queue = { { progress technology date } }` (research points,
   not percent); `country.government.council_agenda` + `council_agenda_progress`;
   `country.next_election`. **Agenda progress moves on the 1st only** (2207.02.01 → 03.01: +44,
