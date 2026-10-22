@@ -83,6 +83,39 @@ export function resourcePanelSeries(history: Snapshot[], key: string): Series {
 	};
 }
 
+/** What the budget does not explain: the stockpile's change less the month's payout, by day. */
+export type Unbooked = {
+	since: string;
+	actual: number; // the stockpile's change since `since`
+	booked: number; // the month's payout, the budget's net
+	days: { date: string; amount: number }[]; // the rest, per day of the mod's tick, else in one
+};
+
+/**
+ * The latest month's resource changes outside the budget (construction, events, one-off market
+ * trades, decisions, income lost at the cap, …), from the last snapshot before the latest's month
+ * start on. The game pays the budget on the 1st, and a snapshot in that month holds that payout
+ * as its balance (2207.03.10 → 04.02: energy −26.54 = +3.455 paid, −30 else; minerals −600 for a
+ * district). Null when saves are missing for a month start in between.
+ */
+export function unbooked(history: Snapshot[], key: string): Unbooked | null {
+	const latest = history.at(-1);
+	if (!latest) return null;
+	const i = history.findLastIndex((s) => s.date < `${latest.date.slice(0, 8)}01`);
+	if (i < 0 || monthStarts(history[i].date, latest.date) !== 1) return null;
+	const base = history[i];
+	const booked = latest.balance[key] ?? 0;
+	const points = stockpilePoints(history.slice(i)).filter((p) => p.date >= base.date);
+	const days = points.slice(1).flatMap((p, j) => {
+		const before = points[j];
+		const paid = monthStarts(before.date, p.date) > 0 ? booked : 0;
+		const amount = (p.stockpile[key] ?? 0) - (before.stockpile[key] ?? 0) - paid;
+		return Math.abs(amount) < 0.01 ? [] : [{ date: p.date, amount }];
+	});
+	const actual = (latest.stockpile[key] ?? 0) - (base.stockpile[key] ?? 0);
+	return { since: base.date, actual, booked, days };
+}
+
 /** The resources to chart one by one: the strip's always-shown ones and any ever held or moved. */
 export function resourceKeys(history: Snapshot[]): string[] {
 	const moved = (r: Resources) => Object.keys(r).filter((k) => r[k] !== 0);

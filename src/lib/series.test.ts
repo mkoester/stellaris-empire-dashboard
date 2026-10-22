@@ -8,6 +8,7 @@ import {
 	popSeries,
 	researchSeries,
 	resourceKeys,
+	unbooked,
 	resourcePanelSeries,
 	resourceSeries,
 	stockpileSeries,
@@ -190,5 +191,49 @@ describe('resourceKeys', () => {
 			'unity',
 			'influence'
 		]);
+	});
+});
+
+describe('unbooked', () => {
+	const snap = (date: string, energy: number, balance: number, ticks: [string, number][] = []) =>
+		({
+			date,
+			stockpile: { energy },
+			balance: { energy: balance },
+			ticks: ticks.map(([date, energy]) => ({ date, stockpile: { energy } }))
+		}) as unknown as Snapshot;
+
+	it("splits the change since the month's start into the payout and the rest", () => {
+		// as 2207.03.10 → 04.01 → 04.02: −26.54 = +3.455 paid on the 1st, −30 else
+		const h = [snap('2207.03.10', 4726.33, 34.58), snap('2207.04.01', 4699.79, 3.455)];
+		const u = unbooked(h, 'energy')!;
+		expect(u.since).toBe('2207.03.10');
+		expect(u.booked).toBe(3.455);
+		expect(u.actual).toBeCloseTo(-26.54);
+		expect(u.days).toHaveLength(1);
+		expect(u.days[0].date).toBe('2207.04.01');
+		expect(u.days[0].amount).toBeCloseTo(-29.995);
+	});
+
+	it("dates the rest by the mod's daily ticks, the payout taken off the day crossing the 1st", () => {
+		const h = [
+			snap('2207.03.01', 100, 10),
+			snap('2207.04.02', 50, 10, [
+				['2207.03.15', 100],
+				['2207.03.16', 70],
+				['2207.04.01', 80]
+			])
+		];
+		expect(unbooked(h, 'energy')!.days).toEqual([
+			{ date: '2207.03.16', amount: -30 },
+			{ date: '2207.04.02', amount: -30 }
+		]);
+	});
+
+	it('gives nothing to show when the budget explains it all, and null across a missing month', () => {
+		expect(
+			unbooked([snap('2207.03.01', 100, 5), snap('2207.04.01', 105, 5)], 'energy')!.days
+		).toEqual([]);
+		expect(unbooked([snap('2207.02.01', 100, 5), snap('2207.04.01', 110, 5)], 'energy')).toBeNull();
 	});
 });

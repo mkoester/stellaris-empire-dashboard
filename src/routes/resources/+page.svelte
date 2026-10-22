@@ -71,6 +71,28 @@
 									<td class="p-1 text-right">{fmt(b.total.expenses)}</td>
 									<td class="p-1 text-right {tone(b.total.net)}">{signed(b.total.net)}</td>
 								</tr>
+								{#if p.unbooked}
+									{@const rest = p.unbooked.actual - p.unbooked.booked}
+									<tr class="text-gray-500">
+										<td class="p-1" colspan="3">stockpile change since {p.unbooked.since}</td>
+										<td class="p-1 text-right">{signed(p.unbooked.actual)}</td>
+									</tr>
+									<tr
+										class={p.unbooked.days.length ? 'text-amber-600' : 'text-gray-500'}
+										title="construction, events, one-off market trades, decisions, income lost at the storage cap, … — the game books none of them in the budget"
+									>
+										<td class="p-1" colspan="3">not in the budget</td>
+										<td class="p-1 text-right">{p.unbooked.days.length ? signed(rest) : '–'}</td>
+									</tr>
+									{#if p.unbooked.days.length > 1}
+										{#each p.unbooked.days as d (d.date)}
+											<tr class="text-xs text-amber-600">
+												<td class="p-1 pl-4" colspan="3">{d.date}</td>
+												<td class="p-1 text-right">{signed(d.amount)}</td>
+											</tr>
+										{/each}
+									{/if}
+								{/if}
 							</tbody>
 						</table>
 					</div>

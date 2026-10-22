@@ -199,7 +199,8 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/resources`: per resource, in the Resources strip's order (`stripOrder()`), a chart — stockpile
 left, net per month right (`resourcePanelSeries()`) — and the latest save's month by budget source
 (`Snapshot.budget`, every source, the market's as `market:<source>`; `resourceBudget()` in
-`#lib/flows.ts`; its total is the save's balance: 2207.04.02 energy +3.455 both)) and `events`
+`#lib/flows.ts`; its total is the save's balance: 2207.04.02 energy +3.455 both), and below it
+what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `shroud` (patrons and attunement), `focus`,
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `megastructures` (all below), `mods` and
 `dlc` (last; see
@@ -764,6 +765,23 @@ migration_access waystation_pact … }` (`=yes`; the last two are the migration 
   (+210, +142 … matched, screenshot 2026_10_19_1).
 - Manual saves: a save with the same date as the head but another state continues the head (a
   manual save after the autosave); only an earlier date counts as a reload.
+- **The budget holds monthly flows only.** The game pays it on the 1st; a save on the 1st (or
+  later that month) holds that payout as `current_month`, `last_month` the one before (2207.04.01:
+  `last_month` = 2207.03.10's `current_month`). Stockpile change between two monthly autosaves =
+  the later one's balance, to the cent, unless something was paid outside it.
+- **One-off spending is booked nowhere**: construction, station builds, event rewards, one-off
+  market trades, edicts, … show only as a stockpile change. `unbooked()` = change since the last
+  snapshot before the latest's month start − that month's payout, per day with the mod's ticks.
+  2207.03.10 → 04.02: energy −30 on 04.01 (two more `edicts` entries — a guess), minerals −600 on
+  04.02 = a city district on Earth (new `construction.item_mgr` item, `paying_country=0
+resources={ minerals=500 }`) + a constructor's station at a deposit (100, the user's word; a
+  ship order, priced nowhere in the save); the other six resources: 0.
+  **What for**: queue items carry `paying_country` and `resources`, so a save diff names
+  construction; the mod could log `on_district_queued|unqueued`, `on_building_queued|unqueued`
+  (scope: the colony, not the item), `on_edict_activated`, `on_decision_enacted`,
+  `on_leader_hired`, `on_colonization_started`, `on_megastructure_build_start` (4.5.2
+  `common/on_actions/00_on_actions.txt`). No hook for ship or starbase orders, one-off market
+  trades or event rewards — those stay unexplained.
 - Budget sources: `planet_<job>` (job output and inputs), `pop_category_<stratum>` (pop upkeep and
   trade), `planet_pops_traits` (food), `planet_buildings`, `planet_districts_*`.
 - Autosaves: `autosave=4` in `settings.txt` gave one per month (2200.02/03/04.01, observed).
@@ -954,5 +972,9 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   user picks which to keep, then drop the rest.
 - **Next, the user's plan:** a configurable main dashboard (custom tabs pick empire panels now;
   the migration and planet panels are not pickable yet).
+- **The daily tick on the 1st, before or after the payout?** `unbooked()` takes the payout off
+  the step that crosses a month start. Saves on the 1st are after it (checked); if the mod's tick
+  or monthly line on the 1st runs before it, a month shows +payout on the 1st and −payout on the
+  2nd. Check on the first campaign played with mod 0.2.0.
 - **Hint rules**: not started.
 - Cross-check the parsed numbers against the in-game UI.

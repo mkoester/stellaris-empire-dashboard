@@ -16,7 +16,9 @@ All notable changes to this project are documented here. The format follows
   saves are all gone from disk is offered for deletion once.
 
 - A resources tab: per resource a chart of its stockpile and its net per month, and a table of
-  what earns and spends it each month, source by source (ships, jobs, buildings, the market, …).
+  what earns and spends it each month, source by source (ships, jobs, buildings, the market, …),
+  and what changed the stockpile outside that budget (construction, events, …), by day with the
+  companion mod.
 
 - A download for macOS (13.5 or newer), for Apple silicon and Intel Macs, with its own Python.
 - Every folder the dashboard looks in, per system and store, listed in the zip's `README.txt`.
