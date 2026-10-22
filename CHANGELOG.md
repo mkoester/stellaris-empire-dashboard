@@ -12,6 +12,16 @@ All notable changes to this project are documented here. The format follows
   and between months in the stockpile chart; the exact save you loaded, so a reload's branch is no
   longer a guess; colonies, wars, leader deaths, new rulers and space battles at the day they
   happen, on the events page and in the charts. The dashboard still reads the 0.1.0 mod's lines.
+- Cleaning up: the config tab lists the games in the history, each can be deleted; a game whose
+  saves are all gone from disk is offered for deletion once.
+
+### Changed
+
+- A start reads only the game played last (the first start: the one with the newest save); the
+  other games catch up in the background a few seconds later, the most recently played first.
+- The history is upgraded in place when a new version changes its tables, after a copy beside it
+  (`dashboard.v15.sqlite`). An older version started by mistake refuses a newer history instead
+  of discarding it.
 
 ## [0.1.0] - 2026-10-20
 

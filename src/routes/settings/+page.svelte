@@ -2,7 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { ROW_LINES, type Display, type RowLine } from '#lib/profiles.ts';
-	import { profileAction, putSettings } from '#lib/settings.ts';
+	import { campaignAction, profileAction, putSettings } from '#lib/settings.ts';
 
 	let { data } = $props();
 
@@ -62,6 +62,16 @@
 			'spoilers — the save knows them before you have communications'
 		]
 	];
+
+	// Deleting a game's history; the saves still on disk are not read in again.
+	const deleteGame = (g: { campaign: string; name: string; onDisk: boolean }) => {
+		const what = g.name || g.campaign;
+		const note = g.onDisk
+			? 'Its saves stay on disk but are not read in again; a new save starts it afresh.'
+			: 'Its saves are gone, so it cannot be read back.';
+		if (confirm(`Delete the history of ${what}? ${note}`))
+			act(() => campaignAction('delete', g.campaign));
+	};
 
 	let failure = $state('');
 	// every change reloads the page data (and the layout's tab bar, which shows the profile)
@@ -208,6 +218,28 @@
 				{#if note}<span class="text-gray-500">({note})</span>{/if}</label
 			>
 		{/each}
+	</section>
+	<section>
+		<h2 class="mb-1 text-xl font-semibold">Games</h2>
+		<p class="mb-1 text-gray-500">
+			The history kept for each game. It is the only copy of what the game's autosaves no longer
+			hold.
+		</p>
+		<table class="text-left">
+			<tbody>
+				{#each data.games as g (g.campaign)}
+					<tr class="border-b border-gray-200 dark:border-gray-800">
+						<td class="p-1">{g.name || g.campaign}</td>
+						<td class="p-1 text-gray-500">{g.date}</td>
+						<td class="p-1 text-gray-500">{g.nodes} states</td>
+						<td class="p-1 text-gray-500">{g.onDisk ? 'saves on disk' : 'no saves on disk'}</td>
+						<td class="p-1">
+							<button class="text-red-600 underline" onclick={() => deleteGame(g)}>delete</button>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
 	</section>
 	<section>
 		<h2 class="mb-1 text-xl font-semibold">Folders</h2>

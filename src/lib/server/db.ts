@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { path, place } from '#lib/timeline.ts';
 import { upgrade } from '#lib/upgrade.ts';
@@ -16,33 +17,41 @@ import type {
 // - A new snapshot field needs a default in `upgrade()` (#lib/upgrade.ts), which brings stored
 //   snapshots up to date on read, and a `READER` bump (save.ts): `save_file` remembers which reader
 //   read each save on disk, and a save is read again only when that changed.
-// - SCHEMA versions the *tables* only. Bumping it drops everything, history included — except the
-//   viewer's settings (`setting`: theme, custom tabs), which no schema change touches.
+// - The tables change only by a step appended to MIGRATIONS (`migrate`), never by dropping them.
+//   A new DB is built the same way: the 0.1.0 tables, then every step.
 // - The galaxy (`Snapshot.galaxy`: every system with its bodies) and the lists as if all were
 //   surveyed (`Snapshot.surveyedAll`) are not stored per node (~1.6 MB at 2207.03.10): `galaxy`
 //   keeps each campaign's latest reading, the snapshots go without them.
 
-const SCHEMA = '15';
+// The version is SQLite's `user_version`. 0.1.0 kept it as `state.schema` = '15'.
+const BASE = 15;
+
+/**
+ * MIGRATIONS[i] brings the tables from version BASE + i to BASE + i + 1. Append only: a released
+ * step has run on players' DBs, so it is never edited or removed.
+ */
+const MIGRATIONS: ((db: Db) => void)[] = [];
+
+export const VERSION = BASE + MIGRATIONS.length;
 
 export type Db = DatabaseSync;
 
-export function openDb(file: string): Db {
+export function openDb(file: string, steps = MIGRATIONS): Db {
 	const db = new DatabaseSync(file);
+	db.exec('PRAGMA journal_mode = WAL');
+	migrate(db, file, steps);
+	return db;
+}
+
+/**
+ * The tables of 0.1.0 (version 15), where every DB starts. Builds before it added tables to
+ * version 15 without a bump (a DB of 2026-10-18 lacks `save_file`), so a version-15 DB gets the
+ * ones it is missing.
+ */
+function createBase(db: Db) {
 	db.exec(`
 		CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS setting (key TEXT PRIMARY KEY, json TEXT NOT NULL);
-	`);
-	const version = db.prepare("SELECT value FROM state WHERE key = 'schema'").get() as
-		{ value: string } | undefined;
-	if (version?.value !== SCHEMA) {
-		db.exec(`
-			DROP TABLE IF EXISTS snapshot;
-			DROP TABLE IF EXISTS node;
-			DELETE FROM state;
-		`);
-	}
-	db.exec(`
-		PRAGMA journal_mode = WAL;
 		CREATE TABLE IF NOT EXISTS node (
 			id          INTEGER PRIMARY KEY,
 			kind        TEXT NOT NULL,
@@ -78,8 +87,54 @@ export function openDb(file: string): Db {
 			reader  TEXT NOT NULL
 		);
 	`);
-	db.prepare("INSERT OR REPLACE INTO state (key, value) VALUES ('schema', ?)").run(SCHEMA);
-	return db;
+}
+
+/** The DB's version: `user_version`, else 0.1.0's `state.schema`, else 0 for a new DB. */
+function versionOf(db: Db): number {
+	const v = (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+	if (v) return v;
+	const hasState = db.prepare("SELECT 1 FROM sqlite_master WHERE name = 'state'").get();
+	if (!hasState) return 0;
+	const row = db.prepare("SELECT value FROM state WHERE key = 'schema'").get() as
+		{ value: string } | undefined;
+	return row ? Number(row.value) : 0;
+}
+
+/**
+ * Brings the tables to the current version, each step in its own transaction, after a copy of the
+ * DB beside it (`dashboard.v15.sqlite`). Refuses a DB of a newer dashboard, or of a development
+ * build before 0.1.0, rather than drop the history it holds.
+ */
+export function migrate(db: Db, file: string, steps = MIGRATIONS) {
+	const latest = BASE + steps.length;
+	const v = versionOf(db);
+	if (v > latest)
+		throw new Error(
+			`${file} was written by a newer dashboard (version ${v}, this one knows up to ${latest}): start the newer one`
+		);
+	if (v !== 0 && v < BASE)
+		throw new Error(`${file} is from a development build before 0.1.0 (version ${v})`);
+	const inTransaction = (to: number, f: () => void) => {
+		db.exec('BEGIN');
+		try {
+			f();
+			db.exec(`PRAGMA user_version = ${to}`);
+			db.exec('COMMIT');
+		} catch (e) {
+			db.exec('ROLLBACK');
+			throw e;
+		}
+	};
+	if (v <= BASE)
+		inTransaction(BASE, () => {
+			createBase(db);
+			db.exec("DELETE FROM state WHERE key = 'schema'");
+		});
+	if (v !== 0 && v < latest && file !== ':memory:') {
+		const copy = file.replace(/(\.sqlite)?$/, `.v${v}.sqlite`);
+		if (!existsSync(copy)) db.prepare('VACUUM INTO ?').run(copy);
+	}
+	for (let i = Math.max(v, BASE); i < latest; i++) inTransaction(i + 1, () => steps[i - BASE](db));
 }
 
 /** A stored setting, or undefined when never set. */
@@ -132,6 +187,35 @@ export function headCampaign(db: Db): string | null {
 	return nodes(db).find((n) => n.id === id)?.campaign ?? null;
 }
 
+/** The campaign's node observed last (where the player left it), or null for an unknown one. */
+export function lastNode(db: Db, campaign: string): number | null {
+	const row = db.prepare('SELECT max(id) AS id FROM node WHERE campaign = ?').get(campaign) as {
+		id: number | null;
+	};
+	return row.id;
+}
+
+/**
+ * Forgets a campaign's history: its nodes, snapshots and galaxy, and the head if it was there.
+ * `save_file` keeps its rows, so saves still on disk are not read back in; the next new save of
+ * the campaign starts it afresh.
+ */
+export function deleteCampaign(db: Db, campaign: string) {
+	db.exec('BEGIN');
+	try {
+		if (headCampaign(db) === campaign) db.exec("DELETE FROM state WHERE key = 'head'");
+		db.prepare(
+			'DELETE FROM snapshot WHERE node_id IN (SELECT id FROM node WHERE campaign = ?)'
+		).run(campaign);
+		db.prepare('DELETE FROM node WHERE campaign = ?').run(campaign);
+		db.prepare('DELETE FROM galaxy WHERE campaign = ?').run(campaign);
+		db.exec('COMMIT');
+	} catch (e) {
+		db.exec('ROLLBACK');
+		throw e;
+	}
+}
+
 /** The empire's name in the campaign's latest save ('' before one; game.log nodes carry none). */
 export function campaignName(db: Db, campaign: string): string {
 	const row = db
@@ -144,7 +228,7 @@ export function campaignName(db: Db, campaign: string): string {
 	return row?.name ?? '';
 }
 
-function setHead(db: Db, id: number) {
+function setHeadTo(db: Db, id: number) {
 	db.prepare("INSERT OR REPLACE INTO state (key, value) VALUES ('head', ?)").run(String(id));
 }
 
@@ -162,14 +246,20 @@ export type Recorded = {
 	mismatches: string[];
 };
 
-/** Adds an observation to the graph (or recognises it, or merges it) and makes it the head. */
+/**
+ * Adds an observation to the graph (or recognises it, or merges it) and makes it the head. With
+ * `at`, it is placed as if `at` were the head, and the head stays: catching up on a campaign that
+ * is not being played.
+ */
 export function record(
 	db: Db,
 	snap: Snapshot,
 	source: string,
-	loadedFrom: number | null = null
+	loadedFrom: number | null = null,
+	at?: number | null
 ): Recorded {
-	const placement = place(nodes(db), headId(db), snap, loadedFrom);
+	const placement = place(nodes(db), at === undefined ? headId(db) : at, snap, loadedFrom);
+	const setHead = (id: number) => at === undefined && setHeadTo(db, id);
 	if (placement.kind === 'duplicate') {
 		// Seen before: a save read by a newer dashboard has more fields — keep the fresh reading.
 		if (snap.kind === 'save')
@@ -177,7 +267,7 @@ export function record(
 				stored(db, withLogFields(snap, snapshotOf(db, placement.nodeId))),
 				placement.nodeId
 			);
-		setHead(db, placement.nodeId);
+		setHead(placement.nodeId);
 		return { nodeId: placement.nodeId, isNew: false, mismatches: [] };
 	}
 	if (placement.kind === 'merge') {
@@ -192,7 +282,7 @@ export function record(
 			stored(db, withLogFields(save, log)),
 			placement.nodeId
 		);
-		setHead(db, placement.nodeId);
+		setHead(placement.nodeId);
 		return {
 			nodeId: placement.nodeId,
 			isNew: false,
@@ -219,7 +309,7 @@ export function record(
 			);
 		const nodeId = Number(lastInsertRowid);
 		db.prepare('INSERT INTO snapshot (node_id, json) VALUES (?, ?)').run(nodeId, stored(db, snap));
-		setHead(db, nodeId);
+		setHead(nodeId);
 		db.exec('COMMIT');
 		return { nodeId, isNew: true, mismatches: [] };
 	} catch (e) {
@@ -230,13 +320,14 @@ export function record(
 
 /**
  * Replaces the stored reading of a save seen before, without moving the head (a re-read by a newer
- * reader is no observation). A save not in the graph is recorded.
+ * reader is no observation). A save not in the graph was read before and its campaign deleted
+ * since (`deleteCampaign`): it stays out, null.
  */
-export function refresh(db: Db, snap: Snapshot, source: string): Recorded {
+export function refresh(db: Db, snap: Snapshot): Recorded | null {
 	const row = db
 		.prepare('SELECT id FROM node WHERE campaign = ? AND fingerprint = ?')
 		.get(snap.campaign, snap.fingerprint) as { id: number } | undefined;
-	if (!row) return record(db, snap, source);
+	if (!row) return null;
 	db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
 		stored(db, withLogFields(snap, snapshotOf(db, row.id))),
 		row.id

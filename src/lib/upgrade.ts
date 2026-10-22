@@ -3,7 +3,7 @@ import type { Colony, Snapshot, TradeDeal, War } from './types.ts';
 // Snapshots stored by an older dashboard lack the fields added since. The game deletes old
 // autosaves, so those snapshots cannot be rebuilt from the files: they are kept and brought up to
 // the current shape on read, with what is not known as null or empty.
-// A new Snapshot or Colony field needs its default here — no SCHEMA bump (that would drop history).
+// A new Snapshot or Colony field needs its default here — no table change (`MIGRATIONS` in db.ts).
 
 const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'empireName'> = {
 	countryId: null,

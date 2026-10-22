@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, renameSync, utimesSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { headId, history, nodes, openDb } from './db.ts';
+import { deleteCampaign, headCampaign, headId, history, nodes, openDb } from './db.ts';
 import { campaignOf, watchSaves, type Ingested } from './watch.ts';
 
 // A tiny but real save: zip of meta + gamestate in the game's text format, parsed by jomini.
@@ -148,7 +148,9 @@ describe('watchSaves', () => {
 		utimesSync(played, 2000, 2000);
 		const db = openDb(':memory:');
 		const quiet = { onIngest: () => {}, onError: () => {} };
-		(await watchSaves(db, root, { ...quiet, reader: 'r1' })).stop();
+		const w1 = await watchSaves(db, root, { ...quiet, reader: 'r1' });
+		await w1.catchUp();
+		w1.stop();
 		const head = headId(db);
 
 		const reread: string[] = [];
@@ -166,6 +168,132 @@ describe('watchSaves', () => {
 			expect(reread).toEqual([played, old]);
 			expect(headId(db)).toBe(head); // a re-read is no observation
 			expect(await w.refreshCampaign('empire_1')).toBe(0);
+		} finally {
+			w.stop();
+		}
+	});
+});
+
+describe('starting with several campaigns', () => {
+	// three campaigns, `played` last, each with two saves
+	function setup() {
+		const root = mkdtempSync(join(tmpdir(), 'saves-'));
+		const files: Record<string, string[]> = {};
+		let t = 1000;
+		for (const [c, year] of [
+			['oldest', 2200],
+			['played', 2300],
+			['middle', 2250]
+		] as const) {
+			mkdirSync(join(root, c));
+			files[c] = [1, 2].map((m) => {
+				const f = writeSave(join(root, c), `${m}.sav`, `${year}.0${m}.01`, year + m, m);
+				utimesSync(f, (t += 10), t);
+				return f;
+			});
+		}
+		// `played` holds the newest save, `middle` the next
+		utimesSync(files.played[1], 5000, 5000);
+		return { root, files };
+	}
+	const quiet = {
+		onIngest: () => {},
+		onError: (_f: string, e: unknown) => {
+			throw e;
+		}
+	};
+	const campaigns = (db: ReturnType<typeof openDb>) => [
+		...new Set(nodes(db).map((n) => n.campaign))
+	];
+
+	it("reads only the newest save's campaign at first, the others in the background, newest first", async () => {
+		const { root } = setup();
+		const db = openDb(':memory:');
+		const w = await watchSaves(db, root, { ...quiet, intervalMs: 50 });
+		try {
+			expect(campaigns(db)).toEqual(['played']);
+			const head = headId(db);
+			const order: [string, number][] = [];
+			await w.catchUp((c, n) => order.push([c, n]));
+			expect(order).toEqual([
+				['middle', 2],
+				['oldest', 2]
+			]);
+			expect(headId(db)).toBe(head); // the background is no observation
+			const middle = nodes(db).filter((n) => n.campaign === 'middle');
+			expect(middle.map((n) => n.parentId)).toEqual([null, middle[0].id]);
+			expect(w.onDisk()).toEqual(new Set(['oldest', 'played', 'middle']));
+		} finally {
+			w.stop();
+		}
+	});
+
+	it('reads the head campaign at a later start, even when another holds newer saves', async () => {
+		const { root } = setup();
+		const db = openDb(':memory:');
+		const w1 = await watchSaves(db, root, quiet);
+		await w1.catchUp();
+		w1.stop();
+		const before = nodes(db).length;
+		expect(headCampaign(db)).toBe('played');
+		// meanwhile the player went on in `oldest`, then in `played`, then in `middle`
+		for (const [c, at] of [
+			['oldest', 6000],
+			['played', 7000],
+			['middle', 8000]
+		] as const) {
+			writeSave(join(root, c), 'new.sav', '2400.01.01', at, 9);
+			utimesSync(join(root, c, 'new.sav'), at, at);
+		}
+		const w = await watchSaves(db, root, quiet);
+		try {
+			expect(nodes(db).length).toBe(before + 1);
+			expect(nodes(db).at(-1)?.campaign).toBe('played');
+			const order: string[] = [];
+			await w.catchUp((c) => order.push(c));
+			expect(order).toEqual(['middle', 'oldest']);
+			expect(nodes(db).length).toBe(before + 3);
+			expect(headCampaign(db)).toBe('played');
+		} finally {
+			w.stop();
+		}
+	});
+
+	it('reads a campaign played before its turn at once: what came before first', async () => {
+		const { root } = setup();
+		const db = openDb(':memory:');
+		const seen: Ingested[] = [];
+		const w = await watchSaves(db, root, {
+			...quiet,
+			onIngest: (r) => seen.push(r),
+			intervalMs: 20
+		});
+		try {
+			writeSave(join(root, 'oldest'), '3.sav', '2200.03.01', 2203, 3);
+			await until(() => seen.some((r) => r.file.endsWith('3.sav')));
+			const oldest = nodes(db).filter((n) => n.campaign === 'oldest');
+			expect(oldest.map((n) => n.date)).toEqual(['2200.01.01', '2200.02.01', '2200.03.01']);
+			expect(oldest.map((n) => n.parentId)).toEqual([null, oldest[0].id, oldest[1].id]);
+			expect(headCampaign(db)).toBe('oldest'); // a live save is an observation
+			const order: string[] = [];
+			await w.catchUp((c) => order.push(c));
+			expect(order).toEqual(['middle']); // nothing of `oldest` left
+		} finally {
+			w.stop();
+		}
+	});
+
+	it('does not read a deleted campaign back in, not even for a newer reader', async () => {
+		const { root } = setup();
+		const db = openDb(':memory:');
+		const w1 = await watchSaves(db, root, { ...quiet, reader: 'r1' });
+		await w1.catchUp();
+		w1.stop();
+		deleteCampaign(db, 'oldest');
+		const w = await watchSaves(db, root, { ...quiet, reader: 'r2' });
+		try {
+			await w.catchUp();
+			expect(campaigns(db).sort()).toEqual(['middle', 'played']);
 		} finally {
 			w.stop();
 		}

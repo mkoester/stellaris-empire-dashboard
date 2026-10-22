@@ -54,7 +54,12 @@ Updating
 --------
 
 Download the new version, unzip it next to the old one, start it. Your history and settings stay
-(they are in the folder above); then delete the old folder.
+(they are in the folder above); then delete the old folder. If a new version changes how the
+history is stored, it keeps a copy of the old one beside it (dashboard.v15.sqlite, ...); an older
+version refuses a history the newer one has changed, so start the new one.
+
+The history of a game you no longer want: the gear tab, "Games", delete. When all saves of a game
+are gone, the dashboard asks once whether to keep its history.
 
 
 More

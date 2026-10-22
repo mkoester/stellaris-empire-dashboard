@@ -105,13 +105,31 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
 - **A new snapshot field needs a default in `upgrade()` (`src/lib/upgrade.ts`)**, which brings
   stored snapshots to the current shape on read, **and a `READER` bump (`server/save.ts`)**. A
   start reads only saves that are new or changed (`save_file`: path, `mtime:size`, reader). Saves
-  still on disk that an older reader (or an older data DB) read are read again. The campaign
-  being played is re-read at start, any other campaign once it is viewed (`refreshCampaign`; pages
-  reload on the `refreshed` event). A re-read replaces the stored reading and leaves the head
-  alone (`refresh()` in `db.ts`). Forget the bump and the new field stays at its `upgrade()`
-  default until the save changes.
-- `SCHEMA` in `db.ts` versions the _tables_ only; bumping it drops all history. Change the tables
-  with a migration instead.
+  still on disk that an older reader (or an older data DB) read are read again. A re-read replaces
+  the stored reading and leaves the head alone (`refresh()` in `db.ts`). Forget the bump and the
+  new field stays at its `upgrade()` default until the save changes.
+- **A start reads one campaign, the rest follows in the background** (`watch.ts`): before the
+  dashboard is up, only the head campaign's saves to read (new, changed, or of an older reader) —
+  with an empty DB the campaign of the newest save. The other campaigns wait in a backlog that
+  `catchUp` works off 3 s after `running` (`CATCH_UP_DELAY_MS` in `app.ts`), the most recently
+  played first, one save per turn of the watcher's lock, so live autosaves and pages get through.
+  A backlog read places a save after the campaign's node read last (`record(…, at)`) and **never
+  moves the head** — game.log months go to the head's campaign. A campaign viewed meanwhile
+  (`refreshCampaign`) or played meanwhile (a new autosave in it) has its backlog read at once,
+  first. Pages reload on the `refreshed` event. Checked 2026-10-22 on a copy of this machine's DB:
+  the head campaign's 10 saves before the first page, the other campaign's 27 within 34 s.
+- **Cleaning up** (`campaigns.ts`, `POST /api/campaigns`): the config tab lists every campaign in
+  the history with a delete; a campaign with no saves left on disk (`Watcher.onDisk`, from the last
+  scan) gets a banner once — "keep it" goes to the `keptCampaigns` setting, never asked again.
+  `deleteCampaign` drops its nodes, snapshots and galaxy but keeps its `save_file` rows, so saves
+  still on disk are not read back in (`refresh` leaves a save not in the graph out); a new save of
+  that campaign starts it afresh.
+- **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
+  only — a released step has run on players' DBs). The version is SQLite's `user_version` (0.1.0's
+  `state.schema = '15'` is taken over as 15); a new DB is the 0.1.0 tables plus every step, so each
+  step runs in every test. Before migrating, `openDb` leaves a copy beside the DB
+  (`dashboard.v<old>.sqlite`); a DB of a newer dashboard is refused (the reason shows on `/setup`),
+  never dropped — a player who starts an older zip by mistake keeps their history.
 
 `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`; vitest swallows its
 `console.log` dump unless run with `--silent=false`. Its assertions fit our 4.5.2 campaign (a
@@ -125,7 +143,7 @@ temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save 
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
 each command its own network namespace.
 
-**How it works:** `watch.ts` polls the save folder (first a backfill of what changed since the last run, in mtime order, then every 2 s;
+**How it works:** `watch.ts` polls the save folder (first what changed since the last run, in mtime order — the head campaign's at once, the others' in the background — then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
 `zip.ts` and queries the gamestate with jomini → `db.ts` places the snapshot in the save graph via
 `timeline.ts` and records it → `/api/events` tells open pages to reload. In parallel, `feed.ts`
@@ -223,7 +241,7 @@ The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel)
 panels by id (`EmpirePanel.svelte`);
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
 goes there and into `EmpirePanel`**. Settings are stored server-side in the `setting` table
-(`PUT /api/settings`), which a `SCHEMA` bump does not drop. The theme (`system`/`light`/`dark`)
+(`PUT /api/settings`), which no migration touches. The theme (`system`/`light`/`dark`)
 is global; everything else (custom tabs, chart events, the colonies and expansion views, display options) lives
 in a **profile** (`#lib/profiles.ts`, `server/settings.ts`): rows `profiles`, `profile:<id>`,
 `activeProfile`, `campaignProfiles`. The profile in use is the **viewed** campaign's — the

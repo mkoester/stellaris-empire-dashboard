@@ -1,9 +1,9 @@
 <script lang="ts">
 	import './layout.css';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { putSettings, THEMES, type Theme } from '#lib/settings.ts';
+	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
 
@@ -135,6 +135,19 @@
 		await goto(same?.href ?? resolve(`/?node=${c.tip}`));
 	}
 
+	// A campaign whose saves are gone: its history here is the only copy left.
+	async function answerGone(action: 'keep' | 'delete', c: { campaign: string; name: string }) {
+		const what = c.name || c.campaign;
+		if (
+			action === 'delete' &&
+			!confirm(`Delete the history of ${what}? Its saves are gone, so it cannot be read back.`)
+		)
+			return;
+		await campaignAction(action, c.campaign);
+		if (action === 'delete' && data.campaign === c.campaign) await goto(resolve('/'));
+		await invalidateAll();
+	}
+
 	async function setTheme(theme: Theme) {
 		applyTheme(theme);
 		await putSettings({ theme });
@@ -193,6 +206,20 @@
 				>v{__APP_VERSION__}</span
 			>
 		</nav>
+		{#each data.gone as c (c.campaign)}
+			<p
+				class="mb-2 flex flex-wrap items-center gap-2 rounded border border-amber-400 px-3 py-1 text-sm"
+			>
+				<span
+					>The saves of <b>{c.name || c.campaign}</b> (last {c.date}) are no longer on disk; its
+					history is kept here only.</span
+				>
+				<button class="rounded border px-2" onclick={() => answerGone('keep', c)}>keep it</button>
+				<button class="rounded border px-2 text-red-600" onclick={() => answerGone('delete', c)}
+					>delete it</button
+				>
+			</p>
+		{/each}
 		{@render children()}
 	{/if}
 </main>

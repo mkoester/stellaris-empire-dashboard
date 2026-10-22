@@ -87,17 +87,25 @@ function recorded(r: Recorded, source: string) {
 	updates.emit('update', r.nodeId);
 }
 
+function caughtUp(campaign: string, n: number) {
+	if (!n) return;
+	console.log(`read ${n} saves of ${campaign} in the background`);
+	updates.emit('update', 'refreshed');
+}
+
 /**
- * Re-reads the campaign's saves left to an older reader, in the background, once; open pages
- * reload when it is done.
+ * Reads the campaign's saves still in the backlog (new since the last run, or left to an older
+ * reader) in the background, once; open pages reload when it is done.
  */
 export function refreshCampaign(campaign: string) {
-	state.watcher?.refreshCampaign(campaign).then((n) => {
-		if (!n) return;
-		console.log(`re-read ${n} saves of ${campaign}`);
-		updates.emit('update', 'refreshed');
-	});
+	state.watcher?.refreshCampaign(campaign).then((n) => caughtUp(campaign, n));
 }
+
+/** The campaigns with saves on disk; empty before the start. */
+export const campaignsOnDisk = (): Set<string> => state.watcher?.onDisk() ?? new Set();
+
+/** How long after the start the other campaigns' backlog is read: the first pages come first. */
+const CATCH_UP_DELAY_MS = 3000;
 
 const appDir = () => appDataDir(process.platform, process.env, homedir());
 
@@ -174,6 +182,12 @@ async function run() {
 		nodes(store).find((n) => n.id === head)?.date ?? null
 	);
 	state.status = 'running';
+	setTimeout(() => {
+		state.watcher
+			?.catchUp(caughtUp)
+			.then(() => console.log('every campaign is up to date'))
+			.catch((e) => console.error('catching up:', e));
+	}, CATCH_UP_DELAY_MS);
 
 	if (gameLog) {
 		await tailLog(gameLog, {

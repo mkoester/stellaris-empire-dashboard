@@ -176,3 +176,13 @@ export async function profileAction(
 	if (!r.ok) throw new Error(`${body.action} failed: ${r.status} ${await r.text()}`);
 	return ((await r.json()) as { id: string }).id;
 }
+
+/** Keeps a campaign whose saves are gone (not asked again), or deletes its history. */
+export async function campaignAction(action: 'keep' | 'delete', campaign: string) {
+	const r = await fetch('/api/campaigns', {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ action, campaign })
+	});
+	if (!r.ok) throw new Error(`${action} failed: ${r.status} ${await r.text()}`);
+}
