@@ -10,6 +10,7 @@
 		monthlyCap,
 		offerPrice,
 		rate,
+		room,
 		spare,
 		stance,
 		terms,
@@ -84,7 +85,14 @@
 	let get = $state('energy');
 	const giveable = $derived(data.tradable.filter((r) => canGive(r, data.weNomadic)));
 	// spare: at once (null: an enclave sells monthly only); perMonth: a month at most (null: unknown)
-	type Offer = Party & { key: string; r: number; spare: number | null; perMonth: number | null };
+	// takes: how much of what we give it takes in at worth (0.8 of its storage); null: no limit known
+	type Offer = Party & {
+		key: string;
+		r: number;
+		spare: number | null;
+		perMonth: number | null;
+		takes: number | null;
+	};
 	const offers: Offer[] = $derived([
 		...data.empires.flatMap((e) => {
 			const r = rate(give, get, e, termsOf(e), data.resourceInfo, data.model);
@@ -96,7 +104,8 @@
 							key: `e${e.countryId}`,
 							r,
 							spare: spare(get, e, data.resourceInfo, data.model),
-							perMonth: monthlyCap(get, e, data.model)
+							perMonth: monthlyCap(get, e, data.model),
+							takes: room(give, e, data.resourceInfo, data.model)
 						}
 					];
 		}),
@@ -109,7 +118,8 @@
 				key: `x${x.countryId}`,
 				r: 1 / enclaveUnitCost(),
 				spare: null,
-				perMonth: ENCLAVE_DEAL.maxPerMonth
+				perMonth: ENCLAVE_DEAL.maxPerMonth,
+				takes: null
 			}))
 	]);
 	const market = $derived(marketRate(give, get, prices, fee));
@@ -127,6 +137,13 @@
 			label: 'vs market',
 			value: (o) => (market ? o.r / market : null),
 			cell: vsMarket,
+			right: true
+		},
+		{
+			id: 'takes',
+			label: `They take ${resName(give)}`,
+			value: (o) => o.takes,
+			cell: offerTakes,
 			right: true
 		},
 		{ id: 'spare', label: 'They spare', value: (o) => o.spare, cell: offerSpare, right: true },
@@ -361,6 +378,12 @@
 		>{market ? `${fmt(o.r / market)} ×` : ''}</span
 	>
 {/snippet}
+{#snippet offerTakes(o: Offer)}<span
+		title="at worth: up to {Math.round(
+			data.model.fullShare * 100
+		)} % of their storage — more counts nothing (their base storage; modifiers unknown)"
+		>{o.takes === null ? '–' : fmt(o.takes)}</span
+	>{/snippet}
 {#snippet offerSpare(o: Offer)}{o.spare === null ? '–' : fmt(o.spare)}{/snippet}
 {#snippet monthlyPerMonth(o: MonthlyRow)}<span
 		title={o.capped

@@ -29,9 +29,11 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 //   "Favorable Trade Deal" (accumulates to 100) came out the tooltip or one less, at 13 empires
 //   given 1000 energy (2212.08) and 8 given 1000 minerals (2213.01). It did not fade: the files
 //   say −2 a month, the saves showed every energy gift unchanged four months on (2212.09–2213.01);
-// - a gift into full storage is worth nothing: both fallen empires, at their 135,000 minerals,
-//   valued 1000 minerals at 0 (2213.01) — though they counted minerals a month (2212.08). Not
-//   modelled: their storage is not in the save.
+// - it takes in at worth only what fits under 0.8 of its storage (`room()`): 10,000 energy, food
+//   and consumer goods to KhellZen (2214.01) counted 6,379, 1,026 and 8,377 units — exactly
+//   0.8 × max − stockpile; the fallen empires, over it with minerals, valued 1000 at 0. Monthly
+//   payments did count there (2212.08). The max is the resource's base; storage modifiers (fallen
+//   empires +100,000, techs) are not in the save.
 // - a nomadic empire never gives energy or minerals but takes them (seen in game): they are its
 //   operational reserves, which "can be bought on the market, but not sold"
 //   (concept_operational_reserves_desc).
@@ -59,6 +61,7 @@ export type TradeModel = {
 	monthlyMult: number; // a unit a month is worth this × the months of one at once
 	offerThreshold: number; // won't give away what it wants this share of its storage of
 	keep: number; // keeps at least this much of anything (TRADE_MIN_RESOURCE_STOCKPILE)
+	fullShare: number; // takes in, at worth, only up to this share of its storage
 	worth: typeof WORTH;
 	calibrated: boolean;
 };
@@ -70,6 +73,7 @@ export const modelFrom = (defines: Record<string, number>): TradeModel => ({
 	monthlyMult: defines.TRADE_VALUE_RESOURCE_MONTHLY_MULT ?? 0.5,
 	offerThreshold: defines.OFFER_TRADE_MIN_RESOURCE_THRESHOLD ?? 0.8,
 	keep: defines.TRADE_MIN_RESOURCE_STOCKPILE ?? 500,
+	fullShare: defines.OFFER_TRADE_MIN_RESOURCE_THRESHOLD ?? 0.8,
 	worth: WORTH,
 	calibrated: true
 });
@@ -94,6 +98,24 @@ export function aiValue(r: string, ai: AiIntel, info: Info, m: TradeModel): numb
 	if (!info[r]?.tradable || w === undefined) return null;
 	const income = Math.max(0, ai.income[r] ?? 0);
 	return w.p * (w.base / (w.base + income));
+}
+
+/**
+ * How much of `r` the AI takes in at worth: up to `fullShare` (0.8) of its storage; the rest counts
+ * nothing (measured 2214.01: 10,000 energy to KhellZen at 13,621 of 25,000 counted 6,379). Null:
+ * storage unknown, no limit. Storage is the resource's base max — modifiers are not in the save.
+ */
+export function room(r: string, ai: AiIntel, info: Info, m: TradeModel): number | null {
+	const max = info[r]?.max ?? null;
+	return max === null || max <= 0 ? null : Math.max(0, m.fullShare * max - (ai.stockpile[r] ?? 0));
+}
+
+/** What `amount` of `r` at once is worth to the AI, up to its room; null: not valued. */
+export function worthOf(r: string, amount: number, ai: AiIntel, info: Info, m: TradeModel) {
+	const v = aiValue(r, ai, info, m);
+	if (v === null) return null;
+	const fits = room(r, ai, info, m);
+	return (fits === null ? amount : Math.min(amount, fits)) * v;
 }
 
 /** A nomadic empire's reserve: it takes these, never gives them. */
@@ -168,9 +190,9 @@ export function giftOpinion(
 	m: TradeModel,
 	cap: { max: number | null; current: number }
 ): number | null {
-	const v = aiValue(r, ai, info, m);
-	if (v === null) return null;
-	const worth = Math.floor(amount * v * (t.willingness ?? 1));
+	const w = worthOf(r, amount, ai, info, m);
+	if (w === null) return null;
+	const worth = Math.floor(w * (t.willingness ?? 1));
 	return cap.max === null ? worth : Math.max(0, Math.min(worth, cap.max - cap.current));
 }
 
@@ -201,10 +223,10 @@ export function lumpForMonthly(
 	m: TradeModel
 ): MonthlyDeal | null {
 	if (!t.trades || give === get || !canGive(get, ai.nomadic)) return null;
-	const [vg, vr] = [aiValue(give, ai, info, m), aiValue(get, ai, info, m)];
-	if (vg === null || vr === null || vr <= 0) return null;
+	const [wg, vr] = [worthOf(give, amount, ai, info, m), aiValue(get, ai, info, m)];
+	if (wg === null || vr === null || vr <= 0) return null;
 	const months = years * 12;
-	const worth = amount * vg * (t.willingness ?? 1);
+	const worth = wg * (t.willingness ?? 1);
 	const fair = Math.floor(worth / (vr * m.monthlyMult * months));
 	const cap = monthlyCap(get, ai, m);
 	const perMonth = cap === null ? fair : Math.min(fair, cap);

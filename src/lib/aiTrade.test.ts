@@ -12,10 +12,12 @@ import {
 	monthlyCap,
 	offerPrice,
 	rate,
+	room,
 	spare,
 	stance,
 	terms,
 	wantPrice,
+	worthOf,
 	WORTH
 } from './aiTrade.ts';
 import type { AiIntel } from './types.ts';
@@ -519,16 +521,95 @@ describe('rate', () => {
 	});
 	it('a gift buys its worth in opinion, up to the cap', () => {
 		const cap = { max: 100, current: 0 };
+		const a = ai({ stockpile: { energy: 5000 } }); // room for it under 0.8 × 25,000
 		const worth = 1000 * WORTH.energy.p; // no income: 67.6
-		expect(giftOpinion('energy', 1000, ai({}), t, info, m, cap)).toBe(Math.floor(worth));
-		expect(giftOpinion('energy', 1000, ai({}), t, info, m, { max: 100, current: 80 })).toBe(20);
-		expect(giftOpinion('energy', 1000, ai({}), t, info, m, { max: null, current: 0 })).toBe(
+		expect(giftOpinion('energy', 1000, a, t, info, m, cap)).toBe(Math.floor(worth));
+		expect(giftOpinion('energy', 1000, a, t, info, m, { max: 100, current: 80 })).toBe(20);
+		expect(giftOpinion('energy', 1000, a, t, info, m, { max: null, current: 0 })).toBe(
 			Math.floor(worth)
 		);
-		expect(giftOpinion('unity', 1000, ai({}), t, info, m, cap)).toBeNull();
+		expect(giftOpinion('unity', 1000, a, t, info, m, cap)).toBeNull();
 		// an attitude that refuses trades still takes gifts
 		const rival = terms(ai({ attitude: 'rival' }), personalities, attitudes);
-		expect(giftOpinion('energy', 1000, ai({}), rival, info, m, cap)).toBe(Math.floor(worth));
+		expect(giftOpinion('energy', 1000, a, rival, info, m, cap)).toBe(Math.floor(worth));
+		// into full storage: nothing (the default empire holds 20,000 of 25,000)
+		expect(giftOpinion('energy', 1000, ai({}), t, info, m, cap)).toBe(0);
+	});
+});
+
+// 10,000 of each at once, nothing sent (2214.01.01; we had just filled our own storage by console —
+// it changed nothing): what an AI takes in counts only up to 0.8 of its storage
+describe('room in storage', () => {
+	const game = {
+		energy: { name: 'Energy', aiWeight: 1.5, aiWants: 500, max: 25000, tradable: true },
+		minerals: { name: 'Minerals', aiWeight: 1, aiWants: 1000, max: 15000, tradable: true },
+		food: { name: 'Food', aiWeight: 1, aiWants: 500, max: 15000, tradable: true },
+		trade: { name: 'Trade', aiWeight: null, aiWants: null, max: 50000, tradable: true },
+		consumer_goods: { name: 'CG', aiWeight: 5, aiWants: 500, max: 15000, tradable: true },
+		alloys: { name: 'Alloys', aiWeight: 5, aiWants: 500, max: 15000, tradable: true },
+		sr_living_metal: { name: 'LM', aiWeight: 100, aiWants: 5, max: 15000, tradable: true }
+	};
+	const khellZen = ai({
+		stockpile: {
+			energy: 13621,
+			minerals: 444,
+			food: 10974,
+			trade: 2081,
+			consumer_goods: 3623,
+			alloys: 341,
+			sr_living_metal: 119
+		},
+		income: {
+			energy: 180.68,
+			minerals: 102.91,
+			food: 119.66,
+			trade: 166.58,
+			consumer_goods: 75.03,
+			alloys: 24.1
+		}
+	});
+	const lolehndra = ai({
+		stockpile: {
+			energy: 877,
+			minerals: 224,
+			food: 1188,
+			trade: 1147,
+			consumer_goods: 666,
+			alloys: 137
+		},
+		income: {
+			energy: 118.18,
+			minerals: 84.67,
+			food: 106.44,
+			trade: 25.8,
+			consumer_goods: 64.23,
+			alloys: 22.32
+		}
+	});
+	const cases: [string, AiIntel, number, string, number][] = [
+		['KhellZen', khellZen, 0.95, 'energy', 273], // 6,379 fit
+		['KhellZen', khellZen, 0.95, 'minerals', 522],
+		['KhellZen', khellZen, 0.95, 'food', 78], // 1,026 fit
+		['KhellZen', khellZen, 0.95, 'trade', 444],
+		['KhellZen', khellZen, 0.95, 'consumer_goods', 714], // 8,377 fit
+		['KhellZen', khellZen, 0.95, 'alloys', 1202],
+		['KhellZen', khellZen, 0.95, 'sr_living_metal', 2980],
+		['Lolehndra', lolehndra, 0.8, 'energy', 422],
+		['Lolehndra', lolehndra, 0.8, 'minerals', 465],
+		['Lolehndra', lolehndra, 0.8, 'food', 683],
+		['Lolehndra', lolehndra, 0.8, 'trade', 617],
+		['Lolehndra', lolehndra, 0.8, 'consumer_goods', 746],
+		['Lolehndra', lolehndra, 0.8, 'alloys', 1021],
+		['Lolehndra', lolehndra, 0.8, 'sr_living_metal', 2509]
+	];
+	it.each(cases)('%s: 10,000 %s → %d', (_, a, willingness, r, tip) => {
+		const w = worthOf(r, 10000, a, game, m)! * willingness;
+		expect(Math.abs(w / tip - 1)).toBeLessThan(0.025);
+	});
+	it('room is 0.8 of storage less the stockpile', () => {
+		expect(room('energy', khellZen, game, m)).toBeCloseTo(0.8 * 25000 - 13621);
+		expect(room('food', khellZen, game, m)).toBeCloseTo(1026);
+		expect(room('food', ai({ stockpile: { food: 14000 } }), game, m)).toBe(0);
 	});
 });
 
