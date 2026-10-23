@@ -425,10 +425,14 @@ date's level (`LEVEL` in `aiTrade.test.ts`).
 | 2213.08 | 42, 53, 78, 43, 86, 122, 43 (145)                                 | 42, 47, 70, 59, 74, 102, 36 (145) |
 | 2213.09 | 42, 53, 77, 43, 86, 122, 45 (151)                                 | 42, 47, 69, 59, 74, 102, 37 (151) |
 | 2213.10 | 42, 52, 77, 43, 86, 122, 47 (158)                                 | 42, 47, 69, 59, 74, 102, 39 (158) |
+| 2213.11 | 42, 52, 77, 44, 85, 120, 48 (164)                                 | 42, 46, 69, 60, 74, 102, 41 (164) |
 
 Incomes unchanged within 0.2; every value within 2.6 % of the model. **No drift in these two
 months** — food 78 → 77 and KhellZen's minerals 53 → 52 are the tooltip rounding down (the model
-puts minerals at 53.0, on the boundary); living metal is the same per unit. With 6–9 % over each earlier half year, the drift comes in
+puts minerals at 53.0, on the boundary); living metal is the same per unit. 2213.11: KhellZen's alloy, consumer goods and trade income
+moved (21.4 → 24.1, 69.6 → 75.0, 174.7 → 166.6) and its values with them, as the model predicts
+(all 14 within 2.9 %); Lolehndra's minerals 47 → 46 at the same income (model 47.1) — rounding,
+or the first step down. With 6–9 % over each earlier half year, the drift comes in
 steps rather than smoothly — the months it steps, compared save to save, should show its cause.
 
 ### What does not explain food (and the minerals drift), 2026-10-23

@@ -455,8 +455,29 @@ describe('a year and a half on', () => {
 		['2213.09', 'Lolehndra', 'sr_living_metal', 151, 37],
 		['2213.10', 'KhellZen', 'minerals', 1000, 52],
 		['2213.10', 'KhellZen', 'sr_living_metal', 158, 47],
-		['2213.10', 'Lolehndra', 'sr_living_metal', 158, 39]
+		['2213.10', 'Lolehndra', 'sr_living_metal', 158, 39],
+		['2213.11', 'Lolehndra', 'minerals', 1000, 46],
+		['2213.11', 'Lolehndra', 'sr_living_metal', 164, 41]
 	];
+	// 2213.11.01: KhellZen's alloy, consumer goods and trade income moved, and its values with them
+	const khellZen11 = {
+		...income.KhellZen,
+		energy: 179.8,
+		trade: 166.61,
+		consumer_goods: 75.03,
+		alloys: 24.1
+	};
+	const moved: [string, number, number][] = [
+		['energy', 1000, 42],
+		['trade', 1000, 44],
+		['consumer_goods', 1000, 85],
+		['alloys', 1000, 120],
+		['sr_living_metal', 164, 48]
+	];
+	it.each(moved)('2213.11: KhellZen: %s %d → %d', (r, amount, tip) => {
+		const v = aiValue(r, ai({ income: khellZen11 }), game, m)!;
+		expect(Math.abs((amount * v * willingness.KhellZen) / tip - 1)).toBeLessThan(0.03);
+	});
 	it.each(nextMonths)('%s: %s: %s %d → %d', (_, who, r, amount, tip) => {
 		const v = aiValue(r, ai({ income: income[who] }), game, m)!;
 		expect(Math.abs((amount * v * willingness[who]) / tip - 1)).toBeLessThan(0.03);
