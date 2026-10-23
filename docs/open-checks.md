@@ -89,13 +89,14 @@ cheats — tooltips set up, not sent — not in a throwaway game. Open:
   1000 energy, minerals, food, trade, consumer goods and alloys at KhellZen and Lolehndra (set
   up, not sent), plus a manual save. Does the market move what a resource is worth to an AI, or
   the drift?;
-- volatile motes, exotic gases, rare crystals and the other strategic resources: monthly deals
-  with tooltips, in the nomad test game (nomads have them from the start);
-- one deal (not a gift) offered to an empire whose attitude does not trade: the −1000 the defines
-  give (`OFFER_TRADE_ACCEPTANCE_ATTITUDE`) is not seen yet.
-- an AI's real storage (room = 0.8 × max − stockpile uses the base max): fallen empires hold
-  135,000 where base + `fallen_empire_base`'s 100,000 is 115,000 — techs and other modifiers are
-  not in the save. A 10,000 offer to a fallen empire shows where its room really ends.
+- strategic resources: at once measured (2200.03.01 throwaway game, `docs/trade-calibration.md`);
+  left: one monthly deal to confirm the 0.5 × months rule holds for them too (nanites are not
+  tradable);
+- the basic resources' curves at game start differ from the campaign's (consumer goods, alloys,
+  food, trade; same file): when do they change — a step at some event, or gradually?;
+- a fallen empire's real storage: `room()` uses base + 100,000 (2200.03.01: 15,000 alloys counted
+  in full), but the campaign's held 135,000 minerals — techs add more, not in the save. Where it
+  ends, at a resource it values enough to show (alloys: offer up to its room).
 
 ### 7. Stored research — tech tab
 

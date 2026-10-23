@@ -32,8 +32,9 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 // - it takes in at worth only what fits under 0.8 of its storage (`room()`): 10,000 energy, food
 //   and consumer goods to KhellZen (2214.01) counted 6,379, 1,026 and 8,377 units — exactly
 //   0.8 × max − stockpile; the fallen empires, over it with minerals, valued 1000 at 0. Monthly
-//   payments did count there (2212.08). The max is the resource's base; storage modifiers (fallen
-//   empires +100,000, techs) are not in the save.
+//   payments did count there (2212.08). The max is the resource's base, a fallen empire's
+//   +100,000 (`fallen_empire_base`; 15,000 alloys counted in full, 2200.03); techs are not in the
+//   save.
 // - a nomadic empire never gives energy or minerals but takes them (seen in game): they are its
 //   operational reserves, which "can be bought on the market, but not sold"
 //   (concept_operational_reserves_desc).
@@ -51,7 +52,14 @@ export const WORTH: Record<string, { p: number; base: number }> = {
 	trade: { p: 0.0884, base: 185 },
 	consumer_goods: { p: 0.1253, base: 195 },
 	alloys: { p: 0.1468, base: 165 },
-	sr_living_metal: { p: 0.3144, base: 105 }
+	sr_living_metal: { p: 0.3144, base: 105 },
+	// a throwaway game at 2200.03.01: four empires holding none, two fallen empires earning 17–161
+	// a month (docs/trade-calibration.md); living metal there was 1/3 too, 6 % over the campaign's
+	volatile_motes: { p: 1 / 3, base: 100 },
+	exotic_gases: { p: 1 / 3, base: 100 },
+	rare_crystals: { p: 1 / 3, base: 100 },
+	sr_dark_matter: { p: 1 / 3, base: 100 },
+	sr_zro: { p: 0.31, base: 100 }
 };
 
 export type TradeModel = {
@@ -103,15 +111,33 @@ export function aiValue(r: string, ai: AiIntel, info: Info, m: TradeModel): numb
 /**
  * How much of `r` the AI takes in at worth: up to `fullShare` (0.8) of its storage; the rest counts
  * nothing (measured 2214.01: 10,000 energy to KhellZen at 13,621 of 25,000 counted 6,379). Null:
- * storage unknown, no limit. Storage is the resource's base max — modifiers are not in the save.
+ * storage unknown, no limit. Storage is the resource's base max, a fallen empire's plus
+ * `fallen_empire_base`'s 100,000 (2200.03: 15,000 alloys counted in full) — other modifiers are not
+ * in the save (the campaign's fallen empires held 135,000 minerals).
  */
-export function room(r: string, ai: AiIntel, info: Info, m: TradeModel): number | null {
-	const max = info[r]?.max ?? null;
-	return max === null || max <= 0 ? null : Math.max(0, m.fullShare * max - (ai.stockpile[r] ?? 0));
+export function room(
+	r: string,
+	ai: AiIntel & { fallen?: boolean },
+	info: Info,
+	m: TradeModel
+): number | null {
+	const base = info[r]?.max ?? null;
+	if (base === null || base <= 0) return null;
+	const max = base + (ai.fallen ? FALLEN_STORAGE : 0);
+	return Math.max(0, m.fullShare * max - (ai.stockpile[r] ?? 0));
 }
 
+/** `fallen_empire_base`'s `country_resource_max_add` (4.5.2 `00_static_modifiers.txt`). */
+export const FALLEN_STORAGE = 100_000;
+
 /** What `amount` of `r` at once is worth to the AI, up to its room; null: not valued. */
-export function worthOf(r: string, amount: number, ai: AiIntel, info: Info, m: TradeModel) {
+export function worthOf(
+	r: string,
+	amount: number,
+	ai: AiIntel & { fallen?: boolean },
+	info: Info,
+	m: TradeModel
+) {
 	const v = aiValue(r, ai, info, m);
 	if (v === null) return null;
 	const fits = room(r, ai, info, m);

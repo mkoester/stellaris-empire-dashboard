@@ -10,8 +10,9 @@ model is `#lib/aiTrade.ts`; every tooltip line is a case in `aiTrade.test.ts`.
 
 **Acceptance.** Our side's worth × the AI's personality's `trade_willingness` (shown beside the
 acceptance) minus its side's worth. Nothing else showed in any tooltip: not opinion, trust,
-attitude, embassy or pacts (below). An attitude that does not trade (rival, unfriendly,
-dismissive, hostile, …) adds −1000 to a deal — but not to a gift.
+attitude, embassy or pacts (below). An attitude that does not trade (rival, unfriendly — the game
+calls it "Suspicious" —, dismissive, hostile, …) makes a deal's acceptance −1000 flat, the only
+line in the tooltip ("Suspicious attitude: −1000"; seen 2200.03.01) — but not a gift's.
 
 **A unit's worth** at once, in the tooltip's points: p × base / (base + the AI's **gross**
 monthly income of it), p and base fitted per resource (`WORTH`) — not `ai_weight`, not the
@@ -20,9 +21,10 @@ prices. Linear in the amount, however large; the tooltip rounds down. A unit a m
 0.5 × the months of one at once (`TRADE_VALUE_RESOURCE_MONTHLY_MULT`), for 10 years as for 30.
 An AI takes in at worth only up to **0.8 of its storage** (`room()`, 0.8 × max − its stockpile);
 more counts nothing — so into full storage a resource is worth nothing (fallen empires, minerals
-at 135,000). Our own stockpile does not count. Measured:
-energy, minerals, food, trade, consumer goods, alloys, living metal; strategic resources wait for
-the nomad test game.
+at 135,000). A fallen empire's storage is the base + 100,000 (`fallen_empire_base`): 15,000 alloys
+counted in full at 2200.03.01. Our own stockpile does not count. Nanites cannot be traded. Measured:
+energy, minerals, food, trade, consumer goods, alloys, living metal; the other strategic
+resources at game start (p 1/3, base 100, zro 0.31; a throwaway game 2200.03.01, below).
 
 **What it gives at most.** At once its stockpile above max(`ai_wants`, 500)
 (`TRADE_MIN_RESOURCE_STOCKPILE`); a month 0.3 × its gross income of it, rounded down
@@ -113,8 +115,8 @@ from tooltips (results below). Kept for its offer list.
 
 1. New game, small galaxy, 8+ AI empires, **no** `debug_yesmen`. Play until 2200.02.01.
 2. Console: `contact`, `communications` (meet everyone), `debugtooltip` (ids in tooltips).
-3. Give yourself plenty: `cash 50000`, `minerals 50000`, `resource alloys 20000`,
-   `resource consumer_goods 20000`, `resource food 20000`, `resource volatile_motes 500` (AGENTS.md lists the form as `resource <n> <res>` — if the console refuses, swap the order).
+3. Give yourself plenty: `cash 50000`, `minerals 50000`, `alloys 20000`,
+   `consumer_goods 20000`, `food 20000`, `resource volatile_motes 500` (forms: AGENTS.md → "Testing in a throwaway game").
 4. Start the dashboard against a **separate** DB (`DASHBOARD_DB=$TMPDIR/trade/dashboard.sqlite`)
    with the trade tab's `tradeIntel` switch on (⚙), so each manual save shows the AIs' stockpiles.
 5. Pick **three empires with different personalities** (the diplomacy screen names it), e.g. a
@@ -478,6 +480,81 @@ the basic resources sit ~1.2 % under the 2213.08 level (KhellZen minerals 52.2 p
 52.9; Lolehndra minerals 46.5 / 47.0, food 68.3 / 69.2): no step since 2213.08, at most a slow
 fall. With 6–9 % over each earlier half year, the drift comes in
 steps rather than smoothly — the months it steps, compared save to save, should show its cause.
+
+### 2026-10-23: a throwaway game at 2200.03.01 (strategic resources, and the curves at game start)
+
+Throwaway game `yorphianextractorate_888024433` (we are a Machine Intelligence: Shroud-Forged,
+Entropy Drinkers, Factory Overclocking; resources from the console). Manual save `2200.03.01`;
+screenshots `~/Pictures/Screenshots/screenshot_2026-10-23_23-51-28` … `23-53-44` (two per empire:
+basics, strategic). 1000 of each at once, nothing sent. Empires matched to the save by the
+willingness the screen shows (`personality.trade_willingness`):
+
+| Empire (id, personality, w)                                               | energy | minerals | food | trade | consumer goods | alloys | motes, gases, crystals, living metal, dark matter | zro |
+| ------------------------------------------------------------------------- | ------ | -------- | ---- | ----- | -------------- | ------ | ------------------------------------------------- | --- |
+| Wandering Andarian Wayfarers (16777220, ruthless_capitalists, 1.0, nomad) | 52     | 0        | 92   | 45    | 146            | 170    | 333                                               | 308 |
+| Lahtrepian Hierarchy (9, hegemonic_imperialists, 0.8)                     | 48     | 53       | 85   | 45    | 121            | 141    | 266                                               | 246 |
+| Nomadic Buhavilaan Unity (16777226, hive_mind, 0.7, nomad)                | 36     | 0        | 67   | 28    | 96             | 116    | 233                                               | 216 |
+
+Against `WORTH` (game ÷ model, incomes from the save):
+
+- **Energy and minerals fit** (0.98–1.00), food is 3–4 % over: the 2213.08 curves hold at game start.
+- **Minerals 0 at both nomads is room, not nomadism**: they hold 14,926 and 14,888 of 15,000
+  (room = 0.8 × max − stockpile = 0). Both still value energy (they hold ~1,060).
+- **Off by a level, the same at all three:** alloys × 1.25–1.27, trade × 0.79–0.85, consumer goods
+  × 1.42–1.44 (the hive mind × 1.09: it has no consumer goods and no income of them, so it does not
+  value them like the others). The campaign held these three steady from 2212.08 to 2214.01. So
+  their level changes at some point, while minerals, which drifted in the campaign, start where
+  2213.08 ended: the drift is not game time alone.
+- **Strategic resources: 1/3 per unit × willingness**, at every empire alike. None of the three has
+  any stockpile or income of them. Zro is 0.308 (× 0.925) for a reason not known yet. Living metal is
+  0.333 here at no income, against `WORTH`'s p = 0.3144 from the campaign (2212–2213): 6 % higher.
+
+Same date, more empires (screenshots `screenshot_2026-10-24_00-00-00` … `00-03-27`): the two fallen
+empires, both **dismissive** and at willingness 0.5 — Barcalan Conservers (14,
+fallen_empire_materialist) and Evaritan Progenitors (16777229, fallen_empire_xenophile), matched
+by their minerals line — plus Avallonian Corporate Union (16777223, ruthless_capitalists, 1.0,
+**unfriendly**, −80). Avallonian's strategic line was the same as Andarian's (333, zro 308).
+
+| Empire        | energy | minerals | food | trade | consumer goods | alloys | motes | gases | crystals | living metal, dark matter | zro | 10,000 energy |
+| ------------- | ------ | -------- | ---- | ----- | -------------- | ------ | ----- | ----- | -------- | ------------------------- | --- | ------------- |
+| Barcalan (FE) | 2      | 4        | 3    | 8     | 14             | 24     | 71    | 73    | 73       | 142                       | 133 | 21            |
+| Evaritan (FE) | 2      | 3        | 2    | 6     | 10             | 18     | 65    | 63    | 64       | 136                       | 128 | 20            |
+| Avallonian    | 53     | 65       | 105  | 48    | 138            | 170    | 333   | 333   | 333      | 333                       | 308 | —             |
+
+- **Strategic resources: p = 1/3, base B = 100** (zro p 0.31), solved at both fallen empires for
+  each resource alone (B 98–100). Now in `WORTH` with tests.
+- **The basic resources at game start, refitted on all six empires** (four normal, two fallen
+  empires; every tooltip within its rounding), against the campaign's `WORTH`:
+
+  | resource       | p, B at 2200.03 | campaign (2213.08) |
+  | -------------- | --------------- | ------------------ |
+  | energy         | 0.0768, 241     | 0.0747, 280        |
+  | minerals       | 0.0811, 219     | 0.0795, 240        |
+  | food           | 0.191, 91       | 0.1574, 130        |
+  | trade          | 0.0674, 236     | 0.0884, 185        |
+  | consumer goods | 0.197, 124      | 0.1253, 195        |
+  | alloys         | 0.190, 128      | 0.1468, 165        |
+
+  Energy and minerals hardly differ. The rest have a different curve, not just a different scale.
+  `WORTH` keeps the campaign's values, because the campaign is what the tab is used on.
+
+- **No −1000 for dismissive or unfriendly — but every one of these offers was a gift** (one-sided),
+  and gifts never carry it. The two-sided deal is still owed.
+- **10,000 energy to a fallen empire: 21 and 20**, ≈ 10 × the 1000 line. At about 0.002 a unit
+  the tooltip's rounding cannot show where the room ends. Use a resource the fallen empire values
+  more, e.g. alloys: Barcalan holds 308, so 0.8 × 15,000 leaves 11,700 of room at base storage.
+
+Two-sided deals and fallen-empire storage (screenshots `screenshot_2026-10-24_00-09-07` …
+`00-10-13`, same date):
+
+- **1000 alloys for 1 energy: −1000 flat** at Avallonian ("Suspicious attitude: −1000") and at
+  Barcalan ("Dismissive attitude: −1000"). There are no offer totals: the attitude replaces the sum
+  rather than adding to it. `terms()` already refuses such empires.
+- **Alloys to Barcalan: 10,000 → 241, 15,000 → 362** (× 1.50, linear). At base storage the room
+  would end at 11,692 (0.8 × 15,000 − 308) and 15,000 would show about 282. So its storage is
+  above the base, as `fallen_empire_base`'s +100,000 gives. `room()` now adds that for fallen
+  empires (test from these numbers).
+- Nanites are not tradable (the trade screen does not list them; extraction `tradable = 0`).
 
 ### What does not explain food (and the minerals drift), 2026-10-23
 

@@ -499,6 +499,54 @@ describe('a year and a half on', () => {
 	});
 });
 
+describe('strategic resources at game start (a throwaway game, 2200.03.01)', () => {
+	const game = Object.fromEntries(
+		Object.keys(WORTH).map((r) => [
+			r,
+			{ name: r, aiWeight: 1, aiWants: 0, max: 5000, tradable: true }
+		])
+	);
+	const none = {};
+	// the two fallen empires' incomes of motes, gases, crystals and zro / dark matter
+	const barcalan = {
+		volatile_motes: 132.5,
+		exotic_gases: 128.2,
+		rare_crystals: 126.5,
+		sr_zro: 17,
+		sr_dark_matter: 17
+	};
+	const evaritan = {
+		volatile_motes: 156.1,
+		exotic_gases: 161.2,
+		rare_crystals: 160.3,
+		sr_zro: 22,
+		sr_dark_matter: 22
+	};
+	// 1000 each at once: [empire, willingness, its income, resource, tooltip]
+	const tips: [string, number, Record<string, number>, string, number][] = [
+		['Andarian', 1, none, 'volatile_motes', 333],
+		['Andarian', 1, none, 'sr_zro', 308],
+		['Lahtrepian', 0.8, none, 'exotic_gases', 266],
+		['Lahtrepian', 0.8, none, 'sr_zro', 246],
+		['Buhavilaan', 0.7, none, 'sr_dark_matter', 233],
+		['Buhavilaan', 0.7, none, 'sr_zro', 216],
+		['Barcalan', 0.5, barcalan, 'volatile_motes', 71],
+		['Barcalan', 0.5, barcalan, 'exotic_gases', 73],
+		['Barcalan', 0.5, barcalan, 'rare_crystals', 73],
+		['Barcalan', 0.5, barcalan, 'sr_zro', 133],
+		['Barcalan', 0.5, barcalan, 'sr_dark_matter', 142],
+		['Evaritan', 0.5, evaritan, 'volatile_motes', 65],
+		['Evaritan', 0.5, evaritan, 'exotic_gases', 63],
+		['Evaritan', 0.5, evaritan, 'rare_crystals', 64],
+		['Evaritan', 0.5, evaritan, 'sr_zro', 128],
+		['Evaritan', 0.5, evaritan, 'sr_dark_matter', 136]
+	];
+	it.each(tips)('%s (%d): %s → %d', (_, w, income, r, tip) => {
+		const v = aiValue(r, ai({ income }), game, m)!;
+		expect(Math.abs((1000 * v * w) / tip - 1)).toBeLessThan(0.03);
+	});
+});
+
 describe('rate', () => {
 	const t = terms(ai({}), personalities, attitudes);
 	it('gives our unit’s worth to it in its own resource, times its willingness', () => {
@@ -610,6 +658,18 @@ describe('room in storage', () => {
 		expect(room('energy', khellZen, game, m)).toBeCloseTo(0.8 * 25000 - 13621);
 		expect(room('food', khellZen, game, m)).toBeCloseTo(1026);
 		expect(room('food', ai({ stockpile: { food: 14000 } }), game, m)).toBe(0);
+	});
+	// 2200.03.01, a throwaway game: Barcalan Conservers (fallen, willingness 0.5) at 308 alloys
+	it('a fallen empire takes 15,000 alloys in full: +100,000 storage', () => {
+		const barcalan = ai({ stockpile: { alloys: 308 }, income: { alloys: 385.3 } });
+		const worth = (fallen: boolean, amount: number) =>
+			worthOf('alloys', amount, { ...barcalan, fallen }, game, m)! * 0.5;
+		const fit = (amount: number, tip: number) => Math.abs(worth(true, amount) / tip - 1);
+		expect(worth(true, 15000) / worth(true, 10000)).toBeCloseTo(1.5);
+		expect(worth(false, 15000) / worth(false, 10000)).toBeLessThan(1.2); // base storage: 11,692
+		// the campaign's alloy curve: 9 % under the game's 241 and 362 at game start
+		expect(fit(10000, 241)).toBeLessThan(0.1);
+		expect(fit(15000, 362)).toBeLessThan(0.1);
 	});
 });
 
