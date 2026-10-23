@@ -438,7 +438,8 @@ acceptance is our side's worth × the AI's willingness minus its side's, linear 
 however large; a unit a month is worth 0.5 × the months of one at once, 10 years or 30; a unit is worth p ×
 base/(base + its **gross** income of it), both per resource and fitted (`WORTH`; not `ai_weight`,
 not the defines' income base of 50), every tooltip line within 3 % (minerals deals of 2212.08: 7 %,
-unexplained; food ±12 %: no curve fits it); a gift buys that worth at the AI's willingness in opinion (`giftOpinion()`, whatever
+unexplained; food ±12 %: no curve fits it, 2212.08 under and 2213 over
+the curve — something time-dependent); a gift buys that worth at the AI's willingness in opinion (`giftOpinion()`, whatever
 its attitude — rivals and unfriendly ones took gifts; the "What a gift buys" table; "Favorable
 Trade Deal", max 100 — it did not fade in four months, whatever the files say; worth nothing into
 full storage); a resource not measured gets no estimate. It gives at once its

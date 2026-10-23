@@ -267,6 +267,42 @@ fitted to the first three empires (now refitted on four). Food came out 16 % abo
 food a month, values it 28 % above Lolehndra at 105 — no p × base / (base + gross) fits the four
 points better than ±12 %, nor net income, stockpile or upkeep. Something else moves food's worth.
 
+### 2026-10-23: two more empires (2213.02.01)
+
+1000 (living metal 108) at once, nothing sent; "Our Offer Total", with gross income a month:
+
+| Resource       | Cydran (1.0) | Dekron (0.9) |
+| -------------- | ------------ | ------------ |
+| food           | 132 (21.5)   | 129 (0)      |
+| trade          | 38 (238)     | 43 (156)     |
+| consumer goods | 95 (63)      | 75 (101)     |
+| alloys         | 121 (33)     | 110 (32)     |
+| living metal   | 33 (0)       | 30 (0)       |
+
+Fitted on the first three empires, trade, consumer goods, alloys and living metal predicted
+Ikaanan, Cydran and Dekron within 2.4 % — the form holds. Food did not: refitted on all six it
+leaves ±12 %, its 2212.08 points (KhellZen, Lolehndra) ~9 % under the curve and its 2213.02 ones
+~8 % over — the same direction as minerals between 2212.08 and 2213.01. Something that changed in
+those months moves the basic resources; not the empires' own market prices (Dekron's alloys at
++50 % fit within 0.2 %).
+
+### What does not explain food (and the minerals drift), 2026-10-23
+
+- **Consumption:** Dekron (machine, no food income or upkeep at all) values food highest
+  (0.144 a unit); Cydran (machine) uses food only for its Anglers artisans. Organic, cyborg and
+  machine empires scatter alike around the curve.
+- **Bio ships** (`country_uses_bio_ships`: shipsets `biogenesis_01|02`, `biogenesis_01_fallen_empire`;
+  +10,000 food storage, ships and components cost food): only Karkato and Hydarian use them,
+  neither measured for food yet.
+- **Catalytic processing:** no empire in this galaxy has it.
+- **The drift is outside the empire's economy:** Lolehndra's minerals at 2212.08 and 2213.01 —
+  gross 84.4 and 84.3 from the same sources, upkeep 59.4 both times — came out 0.0505 and 0.0550
+  (+9 %); KhellZen's +9 % too, its stockpile up (346 → 453) where Lolehndra's fell (901 → 626).
+  Not the AI's `ai_resource_target_records` (unchanged), not our economy (unchanged), not their
+  market prices. Trade, consumer goods and alloys do not drift: fitted on 2212.08, they predicted
+  2213.02 within 2.4 %. So far the drift is a basic-resource (minerals, food) effect; energy is
+  unmeasured after 2212.08.
+
 ### A unit's worth
 
 At once, as the empire gives it (what it gets ÷ its willingness; a month's unit ÷ 60), in the
@@ -276,15 +312,15 @@ tooltip's unit, with the empire's gross income of it a month:
 | -------------- | ------------ | ------------ | -------------- | ------ | ---- |
 | energy         | 0.0412 (182) | 0.0483 (118) | 0.0039 (4,571) | 0.0676 | 280  |
 | minerals       | 0.0483 (100) | 0.0505 (84)  | 0.0061 (2,679) | 0.0733 | 240  |
-| food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 0.1325 | 135  |
-| trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 0.0883 | 185  |
-| consumer goods | 0.0909 (70)  | 0.0924 (64)  | 0.0176 (1,190) | 0.1244 | 195  |
-| alloys         | 0.1304 (21)  | 0.1300 (22)  | 0.0333 (561)   | 0.1470 | 165  |
-| living metal   | 0.316 (0)    | 0.317 (0)    | 0.26 (22)      | 0.3163 | 100  |
+| food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 0.1444 | 120  |
+| trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 0.0884 | 185  |
+| consumer goods | 0.0909 (70)  | 0.0924 (64)  | 0.0176 (1,190) | 0.1253 | 195  |
+| alloys         | 0.1304 (21)  | 0.1300 (22)  | 0.0333 (561)   | 0.1468 | 165  |
+| living metal   | 0.316 (0)    | 0.317 (0)    | 0.26 (22)      | 0.3144 | 105  |
 
 Worth = p × base / (base + gross income), per resource: every tooltip line and every gift within
-3 %, but the 2212.08 mineral deals 7 % and food 12 % (above). Ikaanan's tooltips (2213.02) are in
-the fit too. Energy's base rests on 16 empires (the gifts put it
+3 %, but the 2212.08 mineral deals 7 % and food 12 % (above). Ikaanan's, Cydran's and Dekron's
+tooltips (2213.02) are in the fit too. Energy's base rests on 16 empires (the gifts put it
 at 280 with an exponent of 0.98 — so the plain form), minerals' on 16 (240); the others' two
 numbers on three points each, a best fit until gifts test them. Other forms, fitted the same way (least squares on the log): one base for all (200)
 6 % rms, the gifts then 3–17 % high; P × (1 + 50/(50 + net)) — the defines' income base on net

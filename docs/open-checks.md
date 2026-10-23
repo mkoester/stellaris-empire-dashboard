@@ -43,8 +43,9 @@ The trade model is fitted to three empires' tooltips (one fallen) and gifts of e
 
 - the gift's decay: none in four months (the files say −2 a month) — does it start later, or only
   below some value? Watch the autosaves;
-- food: what moves its worth besides income (Ikaanan 28 % above Lolehndra at less income) —
-  1000 food's tooltip (set up, not sent) at every empire, compared with their food economy;
+- food (and minerals): what moves their worth besides income — 2212.08 values sit ~8 % under
+  the curve, 2213 ones ~8 % over. 1000 food's tooltip (set up, not sent) at every empire in one
+  save, then again a few years later at the same empires;
 - volatile motes, exotic gases, rare crystals and the other strategic resources: monthly deals
   with tooltips, in the nomad test game (nomads have them from the start);
 - one offer to an empire whose attitude does not trade.

@@ -190,6 +190,14 @@ describe('a unit’s worth against the game’s tooltips', () => {
 				alloys: 26.84
 			}
 		},
+		Cydran: {
+			willingness: 1,
+			income: { food: 21.5, trade: 237.99, consumer_goods: 63.46, alloys: 33.28 }
+		},
+		Dekron: {
+			willingness: 0.9,
+			income: { food: 0, trade: 156.23, consumer_goods: 101.13, alloys: 31.87 }
+		},
 		Syvaal: {
 			willingness: 0.5,
 			income: {
@@ -255,7 +263,17 @@ describe('a unit’s worth against the game’s tooltips', () => {
 		['Ikaanan', 'trade', 1000, false, 'we', 50],
 		['Ikaanan', 'consumer_goods', 1000, false, 'we', 73],
 		['Ikaanan', 'alloys', 1000, false, 'we', 94],
-		['Ikaanan', 'sr_living_metal', 108, false, 'we', 25]
+		['Ikaanan', 'sr_living_metal', 108, false, 'we', 25],
+		['Cydran', 'food', 1000, false, 'we', 132],
+		['Cydran', 'trade', 1000, false, 'we', 38],
+		['Cydran', 'consumer_goods', 1000, false, 'we', 95],
+		['Cydran', 'alloys', 1000, false, 'we', 121],
+		['Cydran', 'sr_living_metal', 108, false, 'we', 33],
+		['Dekron', 'food', 1000, false, 'we', 129],
+		['Dekron', 'trade', 1000, false, 'we', 43],
+		['Dekron', 'consumer_goods', 1000, false, 'we', 75],
+		['Dekron', 'alloys', 1000, false, 'we', 110],
+		['Dekron', 'sr_living_metal', 108, false, 'we', 30]
 	];
 	// the fit: every line within 3 %, but food (12 %: no curve fits it) and minerals at the regular empires in 2212.08: 7 % under what
 	// the same empires gave minerals at in 2213.01 (the gifts below) — unexplained
