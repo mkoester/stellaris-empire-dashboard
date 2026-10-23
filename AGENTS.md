@@ -1007,7 +1007,17 @@ opponents }`; only the one voted on has `voting = { <country>=<date> }`, the vot
   `is_active_resolution`, `has_global_flag` (`GalacticCommunity.globalFlags`) and the council
   leaves — custodian, emperor and council seats false before `galactic_council_formed`, unknown
   after (their save fields not seen yet). Costs × our `resolutions_cost_mult` (Gravitas −25 %,
-  Pioneer Politics). Not modelled: TYPE_VOTE_COOLDOWN (5040 days, "a referendum of a given type" —
+  Pioneer Politics). Filters (per viewer): in force, proposed, proposable now (on), blocked
+  (locked, cooldown, no target), other (needs a target, unknown). **Success** of what we can
+  propose now (`#lib/votes.ts`): each AI member's weight = the resolution's `ai_weight` (data DB
+  `ai_weight_json`: base × the factors whose conditions hold for that AI — its identity from the
+  save, the rest unknown, marked ?) × its opinion of us (0.5 at −750, 1.0 neutral, 1.3 at 750,
+  linear between — assumed from the defines' comments); for at 7.0, against under 5.5, abstain
+  between; success = the decided weight's share for it, with our weight for it and without.
+  Checked 2214.02.01: Buzzword Standardization's predicted supporters are exactly the game's
+  "Empires likely to support this Resolution" (screenshot `2026_10_23_11`). The game's own labels
+  ("Intermediate Support", "Weak Support") are not reproduced — their thresholds are not in the
+  files. Not modelled: TYPE_VOTE_COOLDOWN (5040 days, "a referendum of a given type" —
   not seen in a save), emergency measures, favours. **History** (milestone kind `galcom`, also listed on the galcom tab):
   proposed, put to the vote, passed, failed, withdrawn (`Milestone.galcom` keeps the parts, so the
   list names resolutions with popups and proposers in colour) — a proposal that leaves the queue neither

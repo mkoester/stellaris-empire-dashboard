@@ -3,10 +3,35 @@ import { proposalDates } from '#lib/contacts.ts';
 import { diploWeight } from '#lib/diploWeight.ts';
 import { facts } from '#lib/government.ts';
 import { proposable } from '#lib/proposable.ts';
+import type { Facts } from '#lib/triggers.ts';
+import type { CountryInfo } from '#lib/types.ts';
+import { outlook } from '#lib/votes.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { contactView } from '#lib/server/settings.ts';
+
+/**
+ * What the save tells about another empire, for the conditions of its AI's vote: its identity;
+ * the rest (flags, traditions, techs) is unknown.
+ */
+function aiFacts(c: CountryInfo, nomadic: boolean): Facts {
+	return {
+		countryType: c.type,
+		government: [...c.ethics, ...c.civics, ...(c.authority ? [c.authority] : [])],
+		origin: c.origin,
+		governmentType: c.governmentType,
+		dlcs: null,
+		policyFlags: null,
+		countryFlags: null,
+		traditions: null,
+		perks: null,
+		techs: null,
+		atWar: null,
+		situations: null,
+		nomadic
+	} as unknown as Facts;
+}
 
 /** Pops-weighted happiness over the colonies that report it. */
 function happinessOf(colonies: { pops: number; happiness: number | null }[]): number | null {
@@ -75,6 +100,32 @@ export function load({ url }) {
 						null
 				)
 			: null;
+	// how each resolution we could propose now would fare: every AI member's vote
+	const ourName = save?.countries?.find((c) => c.id === save.countryId)?.name ?? '';
+	const byName = new Map((save?.countries ?? []).map((c) => [c.name, c]));
+	const opinion = new Map((save?.aiIntel ?? []).map((a) => [a.countryId, a.opinion]));
+	const nomads = new Set((save?.diplomacy ?? []).filter((c) => c.nomadic).map((c) => c.id));
+	const members = (galcom?.members ?? []).flatMap((name) => {
+		const c = byName.get(name);
+		return name === ourName || !c
+			? []
+			: [
+					{
+						name,
+						weight: galcom?.weights[name]?.value ?? 0,
+						facts: aiFacts(c, nomads.has(c.id)),
+						opinionOfUs: opinion.get(c.id) ?? null
+					}
+				];
+	});
+	const outlooks = Object.fromEntries(
+		proposals
+			.filter((p) => p.status === 'proposable')
+			.map((p) => [
+				p.key,
+				outlook(data.resolutions[p.key].aiWeight, members, galcom?.weights[ourName]?.value ?? 0)
+			])
+	);
 	// the resolutions shown: in the community now, in its history, and those we could propose
 	const resolutions = [
 		...(galcom
@@ -90,6 +141,7 @@ export function load({ url }) {
 		proposals,
 		costMult,
 		weight,
+		outlooks,
 		// when each proposal first showed up in a save: the game stores no date
 		proposalDates: proposalDates(snaps),
 		// the game's words for resolutions and their categories; resolution effects as popups

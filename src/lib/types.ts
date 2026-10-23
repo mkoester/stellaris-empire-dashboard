@@ -1,6 +1,7 @@
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
+import type { AiWeight } from './votes.ts';
 
 export type Resources = Record<string, number>;
 
@@ -896,6 +897,7 @@ export type GameData = {
 			potential: Trigger | null;
 			allow: Trigger | null;
 			validTarget: Trigger | null; // target: which empire it may name
+			aiWeight: AiWeight | null; // how an AI weighs it (#lib/votes.ts)
 		}
 	>;
 	resolutionCostMult: Record<string, number>; // `tradition:<key>`, `modifier:<key>` → resolutions_cost_mult

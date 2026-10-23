@@ -17,6 +17,7 @@ const resolution = (
 	potential: null,
 	allow: null,
 	validTarget: null,
+	aiWeight: null,
 	...r
 });
 // 4.5.2's Industry chain, two tiers and the repeal of the first, and the Galactic Market

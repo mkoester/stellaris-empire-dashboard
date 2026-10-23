@@ -159,11 +159,24 @@
 		}
 	];
 	// what we could propose (#lib/proposable.ts), per viewer: all or only what is open now
-	let onlyNow = $state(false);
+	// which statuses are shown: per viewer, the open and the done ones by default
+	const FILTERS = [
+		{ id: 'in force', label: 'in force' },
+		{ id: 'proposed', label: 'proposed' },
+		{ id: 'proposable', label: 'proposable now' },
+		{ id: 'blocked', label: 'blocked' },
+		{ id: 'other', label: 'other' }
+	] as const;
+	type Filter = (typeof FILTERS)[number]['id'];
+	const filterOf = (p: ProposableRow): Filter =>
+		p.status === 'in force' || p.status === 'proposed' || p.status === 'proposable'
+			? p.status
+			: p.status === 'locked' || p.status === 'cooldown' || p.status === 'no target'
+				? 'blocked'
+				: 'other';
+	let filters: Filter[] = $state(['in force', 'proposed', 'proposable']);
 	let proposableSort = $state({ column: '', desc: false });
-	const shownProposals = $derived(
-		onlyNow ? data.proposals.filter((p) => p.status === 'proposable') : data.proposals
-	);
+	const shownProposals = $derived(data.proposals.filter((p) => filters.includes(filterOf(p))));
 	// in the given order, a line above each category's first row
 	const firstOfCategory = $derived(
 		new Set(
@@ -216,6 +229,23 @@
 			cell: proposableStatus
 		},
 		{
+			id: 'withUs',
+			label: 'Success with us',
+			value: (p) => data.outlooks[p.key]?.withUs ?? null,
+			cell: withUs,
+			right: true,
+			title:
+				'the share of the decided weight for it if we propose and support it, from how each AI weighs it (its ai_weight, its opinion of us)'
+		},
+		{
+			id: 'withoutUs',
+			label: 'without us',
+			value: (p) => data.outlooks[p.key]?.withoutUs ?? null,
+			cell: withoutUs,
+			right: true,
+			title: 'the same with our weight left out: we abstain'
+		},
+		{
 			id: 'cost',
 			label: 'Cost',
 			value: (p) => (p.cost === null ? null : Math.round(p.cost)),
@@ -223,6 +253,27 @@
 			title: 'influence'
 		}
 	];
+	const percent = (v: number | null | undefined) =>
+		v === null || v === undefined ? '' : `${Math.round(v * 100)} %`;
+	const tone = (v: number | null | undefined) =>
+		v === null || v === undefined ? '' : v > 0.5 ? 'text-green-600' : 'text-red-600';
+	const voters = (key: string) => {
+		const o = data.outlooks[key];
+		if (!o) return '';
+		const list = (vote: 'for' | 'abstain' | 'against') =>
+			o.votes
+				.filter((v) => v.vote === vote)
+				.map((v) => `${v.name}${v.uncertain ? '?' : ''}`)
+				.join(', ') || 'nobody';
+		const unknown = o.votes.filter((v) => v.vote === null).map((v) => v.name);
+		return [
+			`for: ${list('for')}`,
+			`abstain: ${list('abstain')}`,
+			`against: ${list('against')}`,
+			...(unknown.length ? [`unknown (no opinion of us known): ${unknown.join(', ')}`] : []),
+			'? = a condition of its weighing the save cannot answer'
+		].join('\n');
+	};
 </script>
 
 <header class="mb-4 flex items-start gap-4">
@@ -418,11 +469,32 @@
 				? `, ${Math.round(data.costMult * 100)} % from our traditions and modifiers`
 				: ''}.
 		</p>
-		<label class="mb-2 flex items-center gap-1"
-			><input type="checkbox" bind:checked={onlyNow} /> only what we can propose now ({data.proposals.filter(
-				(p) => p.status === 'proposable'
-			).length})</label
-		>
+		<div class="mb-2 flex flex-wrap items-center gap-1">
+			<span class="text-gray-500">show:</span>
+			{#each FILTERS as f (f.id)}
+				<label
+					class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {filters.includes(
+						f.id
+					)
+						? ''
+						: 'opacity-40'}"
+					title={f.id === 'blocked'
+						? 'held back by a rule: the tier below not in force, the category’s cooldown, no empire it could name'
+						: f.id === 'other'
+							? 'what the save cannot settle: needs a target, a condition unknown, or we are no member'
+							: ''}
+					><input
+						type="checkbox"
+						class="sr-only"
+						checked={filters.includes(f.id)}
+						onchange={() =>
+							(filters = filters.includes(f.id)
+								? filters.filter((x) => x !== f.id)
+								: [...filters, f.id])}
+					/>{f.label} ({data.proposals.filter((p) => filterOf(p) === f.id).length})</label
+				>
+			{/each}
+		</div>
 		<SortTable
 			rows={shownProposals}
 			columns={proposableColumns}
@@ -436,6 +508,14 @@
 	</section>
 {/if}
 
+{#snippet withUs(p: ProposableRow)}<span
+		class={tone(data.outlooks[p.key]?.withUs)}
+		title={voters(p.key)}>{percent(data.outlooks[p.key]?.withUs)}</span
+	>{/snippet}
+{#snippet withoutUs(p: ProposableRow)}<span
+		class={tone(data.outlooks[p.key]?.withoutUs)}
+		title={voters(p.key)}>{percent(data.outlooks[p.key]?.withoutUs)}</span
+	>{/snippet}
 {#snippet categoryCell(p: ProposableRow)}<span
 		class="whitespace-nowrap"
 		style:color={galcomGroupColor(data.resolutionGroups[p.category])}

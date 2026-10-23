@@ -195,9 +195,10 @@ export function loadGameData(file: string): GameData {
 					potential_json: string | null;
 					allow_json: string | null;
 					valid_target_json: string | null;
+					ai_weight_json: string | null;
 				}>(
 					`SELECT key, category_key, level, target, influence_cost, repeal, potential_json,
-					        allow_json, valid_target_json FROM resolution
+					        allow_json, valid_target_json, ai_weight_json FROM resolution
 					 WHERE category_key IS NOT NULL ORDER BY sort_order`
 				).map((r) => [
 					r.key,
@@ -209,7 +210,8 @@ export function loadGameData(file: string): GameData {
 						repeal: r.repeal === 1,
 						potential: parseTrigger(r.potential_json),
 						allow: parseTrigger(r.allow_json),
-						validTarget: parseTrigger(r.valid_target_json)
+						validTarget: parseTrigger(r.valid_target_json),
+						aiWeight: r.ai_weight_json ? JSON.parse(r.ai_weight_json) : null
 					}
 				])
 			),
