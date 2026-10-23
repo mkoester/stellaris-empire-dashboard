@@ -7,7 +7,6 @@
 		marketPrice,
 		marketRate,
 		monthlyCap,
-		monthsLeft,
 		offerPrice,
 		rate,
 		spare,
@@ -33,7 +32,7 @@
 	const termsOf = (e: Empire) => terms(e, data.personalities, data.attitudes);
 	const GIFT = 'opinion_trade_gift';
 	const gift = (e: Empire) => e.opinionModifiers.find((m) => m.key === GIFT)?.value ?? null;
-	const decay = $derived(data.opinionModifiers[GIFT]?.decay ?? null);
+	const decay = $derived(data.opinionModifiers[GIFT]?.decay ?? null); // in the files; not seen
 	const modifierName = (k: string) => data.opinionModifiers[k]?.name ?? pretty(k);
 	const resName = (r: string) => data.resourceInfo[r]?.name ?? pretty(r);
 	const fee = $derived(data.market.fee);
@@ -289,9 +288,7 @@
 {/snippet}
 {#snippet giftCell(e: Empire)}
 	{@const g = gift(e)}
-	{#if g !== null}+{fmt(g)}<span class="text-xs text-gray-500">
-			· {monthsLeft(g, decay) ?? '?'} mo left</span
-		>{/if}
+	{#if g !== null}+{fmt(g)}{/if}
 {/snippet}
 {#snippet giftBuys(e: Empire, r: string)}
 	{@const v = giftFor(e, r)}
@@ -351,8 +348,8 @@
 		<Panel
 			title="Empires we talk to"
 			note="As the diplomacy screen shows them: personality (and how good a deal must be for it — at 1.0 it accepts a deal equally good for both sides, at 0 none), attitude towards us (some attitudes refuse every trade), their opinion of us and what makes it up. Willing, opinion and trust run from red (the lowest here) to green (the highest). A gift's 'Favorable Trade Deal' adds up to {data
-				.opinionModifiers[GIFT]?.max ?? 100} and fades by {decay ??
-				2} a month. Nomadic empires take energy and minerals but never give them{data.weNomadic
+				.opinionModifiers[GIFT]?.max ?? 100} — the files say it fades by {decay ??
+				2} a month, but none was seen over four months. Nomadic empires take energy and minerals but never give them{data.weNomadic
 				? ' — nor can we, being nomadic'
 				: ''}."
 		>
@@ -417,7 +414,7 @@
 				title="Who would trade what (estimated)"
 				note="For what we give, what each empire would give at most per unit, against selling ours and buying theirs on the {marketName} market ({Math.round(
 					fee * 100
-				)} % fee). Estimated: the game decides in its engine; the model is fitted to the game's own tooltips at three empires, one fallen (a unit's worth by resource, less the more the empire earns of it; its personality's willingness) — within 8 % at regular empires, 14 % at a fallen one; other resources are not measured, an empire shows – for them (docs/trade-calibration.md{data
+				)} % fee). Estimated: the game decides in its engine; the model is fitted to the game's own tooltips at three empires (one fallen) and to gifts at 13 more (a unit's worth by resource, less the more the empire earns of it; its personality's willingness) — within 3 %, energy and minerals best measured; other resources are not measured, an empire shows – for them (docs/trade-calibration.md{data
 					.model.calibrated
 					? ''
 					: ', not done yet'}. Monthly for monthly: the same rate; they pay at most {Math.round(
@@ -491,8 +488,7 @@
 					GIFT_AMOUNT
 				)} of each resource given: its worth to them at their willingness, as the trade screen's acceptance shows it (measured: that figure or one less) — 'Favorable Trade Deal', at most {data
 					.opinionModifiers[GIFT]?.max ??
-					100} (so less where earlier gifts are left), fading {decay ??
-					'?'} a month. Every attitude takes gifts, rivals and unfriendly ones too: a way to mend one that refuses trades."
+					100} (so less where earlier gifts are left; it did not fade over four months, whatever the files say). An empire whose storage of the resource is full takes it for nothing (seen at the fallen empires). Every attitude takes gifts, rivals and unfriendly ones too: a way to mend one that refuses trades."
 			>
 				<div class="overflow-x-auto">
 					<SortTable
@@ -516,9 +512,9 @@
 
 		<p class="text-sm text-gray-500">
 			Gifts: a gift raises an empire's opinion of us by what the trade screen's acceptance shows for
-			it (its worth to them at their willingness) — "Favorable Trade Deal", at most 100, fading 2 a
-			month — whatever their attitude. With the spoiler on, "What a gift buys" estimates it per
-			empire.
+			it (its worth to them at their willingness) — "Favorable Trade Deal", at most 100, not fading
+			in four months — whatever their attitude. With the spoiler on, "What a gift buys" estimates it
+			per empire.
 		</p>
 	</div>
 {/if}

@@ -41,9 +41,11 @@ Setup as in `AGENTS.md` → "Testing in a throwaway game".
 The trade model is fitted to three empires' tooltips (one fallen) and gifts of energy to 13 more
 (2026-10-23, `docs/trade-calibration.md` → Results). Open:
 
-- the gift's decay (−2 a month expected): the next autosaves show it;
-- the other resources as gifts, one a month to every empire: each tests that resource's fitted
-  base (minerals, food, trade, consumer goods, alloys — cheapest first, the cap is 100);
+- the gift's decay: none in four months (the files say −2 a month) — does it start later, or only
+  below some value? Watch the autosaves;
+- the other resources as gifts, one a month to every empire with room under the cap of 100 (the
+  trade tab's gift table shows it): food, trade, consumer goods, alloys each test that resource's
+  fitted base (energy and minerals done);
 - volatile motes, exotic gases, rare crystals and the other strategic resources: monthly deals
   with tooltips, in the nomad test game (nomads have them from the start);
 - one offer to an empire whose attitude does not trade.

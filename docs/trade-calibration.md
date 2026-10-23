@@ -208,8 +208,37 @@ Deal" in the 2212.09.01 autosave, with the empire's willingness and gross energy
 | Ti-Zru (fallen) | 0.33        | 4,423        | 0       | none    |
 
 A gift buys its worth to them at their willingness in opinion: the tooltip or one less. Ti-Zru's
-acceptance showed a line "Gift: +1" of its own. The decay (−2 a month) shows from the next
-autosave on.
+acceptance showed a line "Gift: +1" of its own. **No decay**: the 2213.01.02 save shows every one of
+these values unchanged, four months on (the files: −2 a month).
+
+### 2026-10-23: gifts of 1000 minerals
+
+Proposed 2213.01.02 to every other empire; the rise of the "Favorable Trade Deal" by the 2213.02.01
+autosave (— capped at 100, or not accepted yet):
+
+| Empire          | Willingness | Gross minerals | Tooltip | Rise |
+| --------------- | ----------- | -------------- | ------- | ---- |
+| test nomads     | 0.95        | 0              | 71      | —    |
+| Ikaanan         | 0.75        | 92             | 40      | 39   |
+| Dekron          | 0.9         | 179            | 38      | 37   |
+| Lolehndra       | 0.8         | 84             | 44      | 43   |
+| YlKhahan        | 0.7         | 0              | 52      | 51   |
+| Cydran          | 1.0         | 123            | 49      | 48   |
+| Karkato         | 0.25        | 117            | 12      | 11   |
+| Landless Kobar. | 1.0         | 0              | 74      | —    |
+| Oklarran        | 0.9         | 0              | 67      | —    |
+| Mandate Dekrus  | 0.5         | 117            | 25      | —    |
+| Hydarian        | 0.8         | 0              | 59      | 58   |
+| KhellZen        | 0.95        | 102            | 50      | 49   |
+| Themlaran       | 0.75        | 103            | 39      | —    |
+| Syvaal (fallen) | 0.5         | 2,679          | 0       | none |
+| Ti-Zru (fallen) | 0.33        | 4,712          | 0       | none |
+
+The nomads (no mineral income) all put a unit at 0.0744 at once — the curve's p, measured
+directly. The fallen empires, both at 135,000 minerals (their full storage), valued it at **0**:
+a gift into full storage is worth nothing — though they had counted 113 minerals a month at 0.0062
+a unit (2212.08). At KhellZen and Lolehndra, minerals came out 8 % higher than in their 2212.08
+deals, at nearly the same income and stockpile — unexplained.
 
 ### A unit's worth
 
@@ -219,7 +248,7 @@ tooltip's unit, with the empire's gross income of it a month:
 | Resource       | KhellZen     | Lolehndra    | Syvaal         | p      | base |
 | -------------- | ------------ | ------------ | -------------- | ------ | ---- |
 | energy         | 0.0412 (182) | 0.0483 (118) | 0.0039 (4,571) | 0.0676 | 280  |
-| minerals       | 0.0483 (100) | 0.0505 (84)  | 0.0061 (2,679) | 0.0664 | 270  |
+| minerals       | 0.0483 (100) | 0.0505 (84)  | 0.0061 (2,679) | 0.0733 | 240  |
 | food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 0.1153 | 160  |
 | trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 0.0898 | 180  |
 | consumer goods | 0.0909 (70)  | 0.0924 (64)  | 0.0176 (1,190) | 0.1224 | 200  |
@@ -227,9 +256,9 @@ tooltip's unit, with the empire's gross income of it a month:
 | living metal   | 0.316 (0)    | 0.317 (0)    | 0.26 (22)      | 0.3167 | 100  |
 
 Worth = p × base / (base + gross income), per resource: every tooltip line and every gift within
-2.3 %. Energy's base rests on 16 empires (the gifts put it at 280 with an exponent of 0.98 — so
-the plain form); the others' two numbers on three points each, a best fit until the next gifts
-test them. Other forms, fitted the same way (least squares on the log): one base for all (200)
+3 %, but the 2212.08 mineral deals 7 % (above). Energy's base rests on 16 empires (the gifts put it
+at 280 with an exponent of 0.98 — so the plain form), minerals' on 16 (240); the others' two
+numbers on three points each, a best fit until gifts test them. Other forms, fitted the same way (least squares on the log): one base for all (200)
 6 % rms, the gifts then 3–17 % high; P × (1 + 50/(50 + net)) — the defines' income base on net
 income — fits the two regular empires to 1–2 % but puts the fallen one 8× too high (66 % rms). Not
 `ai_weight` (energy 1.5, minerals 1, living metal 100), not market prices, not the stockpile

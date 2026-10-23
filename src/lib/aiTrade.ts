@@ -15,12 +15,16 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 //   (energy 181.9 a month → 54);
 // - a unit at once is worth P × B / (B + its gross income of it per month), short of it or flush,
 //   P and B per resource (`WORTH`), in the tooltip's own unit — not ai_weight, not the defines'
-//   income base (50, on net income). Every tooltip line within 2.3 %: energy from 16 empires (B 280),
-//   the rest from 3 each, two of them regular, one fallen (two numbers from three points: the next
-//   gifts test them). A resource not measured is not valued (null): no estimate for it;
+//   income base (50, on net income). Every tooltip line within 3 %: energy from 16 empires (base 280), minerals
+//   from 16 (240; deals of 2212.08 came out 7 % under the gifts of 2213.01 at the same empires —
+//   unexplained), the rest from 3 each (two numbers from three points: the next gifts test them). A resource not measured is not valued (null): no estimate for it;
 // - a gift raises its opinion of us by its worth as the acceptance shows it (`giftOpinion()`):
-//   "Favorable Trade Deal" (accumulates to 100, −2 a month) came out the tooltip or one less, at 13
-//   empires given 1000 energy (2212.08).
+//   "Favorable Trade Deal" (accumulates to 100) came out the tooltip or one less, at 13 empires
+//   given 1000 energy (2212.08) and 8 given 1000 minerals (2213.01). It did not fade: the files
+//   say −2 a month, the saves showed every energy gift unchanged four months on (2212.09–2213.01);
+// - a gift into full storage is worth nothing: both fallen empires, at their 135,000 minerals,
+//   valued 1000 minerals at 0 (2213.01) — though they counted minerals a month (2212.08). Not
+//   modelled: their storage is not in the save.
 // - a nomadic empire never gives energy or minerals but takes them (seen in game): they are its
 //   operational reserves, which "can be bought on the market, but not sold"
 //   (concept_operational_reserves_desc).
@@ -33,7 +37,7 @@ import type { AiIntel, GameData, Resources } from './types.ts';
  */
 export const WORTH: Record<string, { p: number; base: number }> = {
 	energy: { p: 0.0676, base: 280 },
-	minerals: { p: 0.0664, base: 270 },
+	minerals: { p: 0.0733, base: 240 },
 	food: { p: 0.1153, base: 160 },
 	trade: { p: 0.0898, base: 180 },
 	consumer_goods: { p: 0.1224, base: 200 },
@@ -223,7 +227,3 @@ export function enclaveDeal(
 	}
 	return null;
 }
-
-/** Months until a gift's opinion is gone at the modifier's monthly decay. */
-export const monthsLeft = (value: number, decay: number | null) =>
-	decay && decay > 0 ? Math.ceil(value / decay) : null;
