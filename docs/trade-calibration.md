@@ -79,7 +79,8 @@ modifiers an AI's room depends on; the acceptance of embassies, pacts and subjug
 
 ## Paused (2026-10-23) — where to pick it up
 
-The topic is paused; the campaign is kept to come back to it.
+The topic is paused; the campaign is kept to come back to it. The general findings are written up for
+other modders in `stellaris-modding-insights` (docs 16 and 17).
 
 - **Campaign:** `pyrragthulplanetforgers_-2145618317` (Linux, Proton), last measured at
   2214.01.01. Manual saves of measured moments: `2212.08.02_after_energy_gifts`,
