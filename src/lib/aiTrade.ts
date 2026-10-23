@@ -143,7 +143,8 @@ export function rate(
 /**
  * The opinion a gift of `amount` of `r` buys: its worth to the AI at its willingness, rounded down
  * (the game showed the acceptance's figure or one less), up to the modifier's cap less what is
- * left of earlier gifts. Null when it is not valued.
+ * left of earlier gifts. Whatever its attitude: unfriendly, rival and dismissive empires took gifts
+ * (2212.08). Null when it is not valued.
  */
 export function giftOpinion(
 	r: string,
@@ -155,7 +156,7 @@ export function giftOpinion(
 	cap: { max: number | null; current: number }
 ): number | null {
 	const v = aiValue(r, ai, info, m);
-	if (v === null || !t.trades) return null;
+	if (v === null) return null;
 	const worth = Math.floor(amount * v * (t.willingness ?? 1));
 	return cap.max === null ? worth : Math.max(0, Math.min(worth, cap.max - cap.current));
 }

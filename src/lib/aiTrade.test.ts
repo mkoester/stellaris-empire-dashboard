@@ -308,6 +308,9 @@ describe('rate', () => {
 		expect(giftOpinion('energy', 1000, ai({}), t, info, m, { max: 100, current: 80 })).toBe(20);
 		expect(giftOpinion('energy', 1000, ai({}), t, info, m, { max: null, current: 0 })).toBe(67);
 		expect(giftOpinion('unity', 1000, ai({}), t, info, m, cap)).toBeNull();
+		// an attitude that refuses trades still takes gifts
+		const rival = terms(ai({ attitude: 'rival' }), personalities, attitudes);
+		expect(giftOpinion('energy', 1000, ai({}), rival, info, m, cap)).toBe(Math.floor(worth));
 	});
 });
 

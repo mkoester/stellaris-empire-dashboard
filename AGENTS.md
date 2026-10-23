@@ -438,8 +438,9 @@ acceptance is our side's worth × the AI's willingness minus its side's, linear 
 however large; a unit a month is worth 0.5 × the months of one at once; a unit is worth p ×
 base/(base + its **gross** income of it), both per resource and fitted (`WORTH`; not `ai_weight`,
 not the defines' income base of 50), every tooltip line within 2.3 %; a gift buys that worth at
-the AI's willingness in opinion (`giftOpinion()`, the deal finder's gift column; "Favorable Trade
-Deal", max 100, −2 a month); a resource not measured gets no estimate. It gives at once its
+the AI's willingness in opinion (`giftOpinion()`, whatever its attitude — rivals and unfriendly
+ones took gifts; the "What a gift buys" table; "Favorable Trade Deal", max 100, −2 a month); a
+resource not measured gets no estimate. It gives at once its
 stockpile above max(`ai_wants`, 500) (`spare()`, `TRADE_MIN_RESOURCE_STOCKPILE`) and a month at
 most 0.3 of its **gross** income (`TRADE_MAX_RESOURCE_PERCENT`, `monthlyCap()`; `AiIntel.income`,
 READER 12). Open: motes, gases, crystals and the other strategic resources (the nomad test game).

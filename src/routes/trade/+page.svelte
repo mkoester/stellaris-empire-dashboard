@@ -84,15 +84,7 @@
 	let get = $state('energy');
 	const giveable = $derived(data.tradable.filter((r) => canGive(r, data.weNomadic)));
 	// spare: at once (null: an enclave sells monthly only); perMonth: a month at most (null: unknown)
-	// gift: the opinion 1000 of what we give buys (null: an enclave, or not valued)
-	type Offer = Party & {
-		key: string;
-		r: number;
-		spare: number | null;
-		perMonth: number | null;
-		gift: number | null;
-	};
-	const GIFT_AMOUNT = 1000;
+	type Offer = Party & { key: string; r: number; spare: number | null; perMonth: number | null };
 	const offers: Offer[] = $derived([
 		...data.empires.flatMap((e) => {
 			const r = rate(give, get, e, termsOf(e), data.resourceInfo, data.model);
@@ -104,11 +96,7 @@
 							key: `e${e.countryId}`,
 							r,
 							spare: spare(get, e, data.resourceInfo, data.model),
-							perMonth: monthlyCap(get, e, data.model),
-							gift: giftOpinion(give, GIFT_AMOUNT, e, termsOf(e), data.resourceInfo, data.model, {
-								max: data.opinionModifiers[GIFT]?.max ?? null,
-								current: gift(e) ?? 0
-							})
+							perMonth: monthlyCap(get, e, data.model)
 						}
 					];
 		}),
@@ -121,8 +109,7 @@
 				key: `x${x.countryId}`,
 				r: 1 / enclaveUnitCost(),
 				spare: null,
-				perMonth: ENCLAVE_DEAL.maxPerMonth,
-				gift: null
+				perMonth: ENCLAVE_DEAL.maxPerMonth
 			}))
 	]);
 	const market = $derived(marketRate(give, get, prices, fee));
@@ -148,13 +135,6 @@
 			label: 'They pay a month',
 			value: (o) => o.perMonth,
 			cell: offerPerMonth,
-			right: true
-		},
-		{
-			id: 'gift',
-			label: `${fmt(GIFT_AMOUNT)} as a gift`,
-			value: (o) => o.gift,
-			cell: offerGift,
 			right: true
 		}
 	]);
@@ -234,6 +214,29 @@
 	]);
 	let priceSort = $state({ column: 'name', desc: false });
 
+	// what a gift buys: opinion per empire, for 1000 of each resource — whatever the attitude
+	const GIFT_AMOUNT = 1000;
+	const giftable = $derived(data.tradable.filter((r) => r in data.model.worth));
+	const giftFor = (e: Empire, r: string) =>
+		giftOpinion(r, GIFT_AMOUNT, e, termsOf(e), data.resourceInfo, data.model, {
+			max: data.opinionModifiers[GIFT]?.max ?? null,
+			current: gift(e) ?? 0
+		});
+	const giftColumns: Column<Empire>[] = $derived([
+		{ id: 'name', label: 'Empire', value: (e) => e.name, cell: party },
+		{ id: 'attitude', label: 'Attitude', value: (e) => e.attitude, cell: attitude },
+		{ id: 'gift', label: 'Gift now', value: gift, cell: giftCell },
+		...giftable.map((r) => ({
+			id: r,
+			label: resName(r),
+			value: (e: Empire) => giftFor(e, r),
+			cell: giftBuys,
+			color: colorOf(r),
+			right: true
+		}))
+	]);
+	let giftSort = $state({ column: 'name', desc: false });
+
 	// what they need and have to spare
 	const needColumns: Column<Empire>[] = $derived([
 		{ id: 'name', label: 'Empire', value: (e) => e.name, cell: party },
@@ -290,6 +293,10 @@
 			· {monthsLeft(g, decay) ?? '?'} mo left</span
 		>{/if}
 {/snippet}
+{#snippet giftBuys(e: Empire, r: string)}
+	{@const v = giftFor(e, r)}
+	{v === null ? '–' : `+${fmt(v)}`}
+{/snippet}
 {#snippet opinionFrom(e: Empire)}
 	<span class="text-xs"
 		>{e.opinionModifiers
@@ -304,10 +311,6 @@
 	>
 {/snippet}
 {#snippet offerSpare(o: Offer)}{o.spare === null ? '–' : fmt(o.spare)}{/snippet}
-{#snippet offerGift(o: Offer)}<span
-		title="opinion: its worth to them at their willingness, up to the cap less what is left of earlier gifts"
-		>{o.gift === null ? '–' : `+${fmt(o.gift)}`}</span
-	>{/snippet}
 {#snippet offerPerMonth(o: Offer)}<span
 		title={o.perMonth === null
 			? 'read before the dashboard knew their gross income: the next save tells'
@@ -417,7 +420,7 @@
 				)} % fee). Estimated: the game decides in its engine; the model is fitted to the game's own tooltips at three empires, one fallen (a unit's worth by resource, less the more the empire earns of it; its personality's willingness) — within 8 % at regular empires, 14 % at a fallen one; other resources are not measured, an empire shows – for them (docs/trade-calibration.md{data
 					.model.calibrated
 					? ''
-					: ', not done yet'}. A gift raises their opinion by its worth to them (measured; −2 a month, at most 100). Monthly for monthly: the same rate; they pay at most {Math.round(
+					: ', not done yet'}. Monthly for monthly: the same rate; they pay at most {Math.round(
 					data.model.monthlyShare * 100
 				)} % of their gross income of it a month (measured). Trader enclaves take energy only."
 			>
@@ -483,6 +486,25 @@
 			</Panel>
 
 			<Panel
+				title="What a gift buys (estimated)"
+				note="Opinion per empire for {fmt(
+					GIFT_AMOUNT
+				)} of each resource given: its worth to them at their willingness, as the trade screen's acceptance shows it (measured: that figure or one less) — 'Favorable Trade Deal', at most {data
+					.opinionModifiers[GIFT]?.max ??
+					100} (so less where earlier gifts are left), fading {decay ??
+					'?'} a month. Every attitude takes gifts, rivals and unfriendly ones too: a way to mend one that refuses trades."
+			>
+				<div class="overflow-x-auto">
+					<SortTable
+						rows={data.empires}
+						columns={giftColumns}
+						key={(e) => e.countryId}
+						bind:sort={giftSort}
+					/>
+				</div>
+			</Panel>
+
+			<Panel
 				title="What they need and have to spare"
 				note="Per empire and resource: ↑ short of it (under a third of its storage — it pays more), ↓ flush (over three quarters — it gives it cheaper), and the stockpile. A resource it holds less of than it wants is not on offer."
 			>
@@ -495,7 +517,8 @@
 		<p class="text-sm text-gray-500">
 			Gifts: a gift raises an empire's opinion of us by what the trade screen's acceptance shows for
 			it (its worth to them at their willingness) — "Favorable Trade Deal", at most 100, fading 2 a
-			month. With the spoiler on, the deal finder estimates it per empire for 1000 of what we give.
+			month — whatever their attitude. With the spoiler on, "What a gift buys" estimates it per
+			empire.
 		</p>
 	</div>
 {/if}
