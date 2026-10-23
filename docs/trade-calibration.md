@@ -72,10 +72,36 @@ payment (the deal finder's monthly mode shows their net income after paying and 
 stockpile lasts), the lump is gone if it breaks, and the return comes spread over 10 years
 (doubling over 10 years paid evenly ≈ 13–14 % a year).
 
-**Open:** the drift's cause (a monthly series at KhellZen, then compare saves); strategic
-resources (nomad game); whether the galactic market changes any of it; when exactly a deal breaks
-(zero stockpile or negative net); the acceptance of embassies, pacts and subjugation. All in
+**Open:** the drift's cause; strategic resources (nomad game); whether the galactic market
+changes any of it; when exactly a deal breaks (zero stockpile or negative net); the storage
+modifiers an AI's room depends on; the acceptance of embassies, pacts and subjugation. All in
 `docs/open-checks.md`.
+
+## Paused (2026-10-23) — where to pick it up
+
+The topic is paused; the campaign is kept to come back to it.
+
+- **Campaign:** `pyrragthulplanetforgers_-2145618317` (Linux, Proton), last measured at
+  2214.01.01. Manual saves of measured moments: `2212.08.02_after_energy_gifts`,
+  `2213.01.02_mineral_gifts_offered`, `2213.02.01_trade_deal_checks`, `2213.08.01_trade_checks`,
+  `2214.01.01_resolution_passed`; screenshots in `~/Pictures/Screenshots` (desktop tool,
+  2026-10-23 13:22–19:23), not the game's own folder. Its dashboard DB is the `-test` one (the
+  auto-memory on this machine names it).
+- **Reference empires:** KhellZen Republic (`16777227`, federation_builders 0.95, rich: energy
+  13,000+, food 11,000) and Lolehndra Galactic League (`16777219`, our subject, hegemonic
+  imperialists 0.8, poor: every stockpile under 1,200). Measuring both separates income effects
+  from storage room. The monthly series ran 2213.08–2214.01: seven resources at once, 1000 each
+  (10,000 at 2214.01).
+- **Reading an AI's economy from a save:** gross income = `country.<id>.budget.current_month.income`
+  summed over sources (net = `balance`), stockpile = `modules.standard_economy_module.resources`;
+  `intelOf()` reads both (`AiIntel.income`, `net`, `stockpile`). Unzip the `.sav` into `$TMPDIR`
+  and parse `gamestate` with the dashboard's `jomini`; the `aiIntel` in the DB has it too.
+- **Checking a new number:** `aiValue()` × amount (`worthOf()` where room matters) ×
+  willingness against the tooltip; add it as a dated case to `aiTrade.test.ts` (older dates at
+  their `LEVEL`). Refit `WORTH` only with several empires at one date.
+- **Ideas not yet tried for the drift:** the AI's war/peace or threat state; tech count (tech
+  power rose 372 → 385 at KhellZen); the galactic market's founding; a per-year AI recalculation
+  on the anniversary of something (game start 2200.01.01? KhellZen's first contact?).
 
 ## The original session plan (2026-10-22, superseded)
 

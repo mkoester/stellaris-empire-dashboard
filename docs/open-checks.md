@@ -36,11 +36,11 @@ N = 1…5 — 14.2 energy a unit whatever N. Not yet seen in game; a deal's modi
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
 
-### 6. Trade calibration — the rest
+### 6. Trade calibration — the rest (paused 2026-10-23)
 
 The trade model is fitted to tooltips at 16 empires, gifts and deals (2026-10-23; summary in
-`docs/trade-calibration.md` → What we know). Done in the campaign without cheats — tooltips set
-up, not sent — not in a throwaway game. Open:
+`docs/trade-calibration.md` → What we know, how to resume → Paused). Done in the campaign without
+cheats — tooltips set up, not sent — not in a throwaway game. Open:
 
 - the gift's decay: none in four months (the files say −2 a month) — does it start later, or only
   below some value? Watch the autosaves;
@@ -61,6 +61,9 @@ up, not sent — not in a throwaway game. Open:
   with tooltips, in the nomad test game (nomads have them from the start);
 - one deal (not a gift) offered to an empire whose attitude does not trade: the −1000 the defines
   give (`OFFER_TRADE_ACCEPTANCE_ATTITUDE`) is not seen yet.
+- an AI's real storage (room = 0.8 × max − stockpile uses the base max): fallen empires hold
+  135,000 where base + `fallen_empire_base`'s 100,000 is 115,000 — techs and other modifiers are
+  not in the save. A 10,000 offer to a fallen empire shows where its room really ends.
 
 ### 7. Stored research — tech tab
 
