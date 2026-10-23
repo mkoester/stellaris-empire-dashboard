@@ -1019,7 +1019,7 @@ opponents }`; only the one voted on has `voting = { <country>=<date> }`, the vot
   save, the rest unknown, marked ?) × its opinion of us (0.5 at −750, 1.0 neutral, 1.3 at 750,
   linear between — assumed from the defines' comments); for at 7.0, against under 5.5, abstain
   between; success = the decided weight's share for it, as we vote for it, abstain or vote against
-  it (`ifFor`, `ifAbstain`, `ifAgainst`).
+  it (`ifFor`, `ifAbstain`, `ifAgainst`). In the queue, the cell of our vote now is ringed (not cast yet = abstain).
   For a resolution already in the queue the same two columns come from the votes cast
   (`actualOutlook()`: undecided members on neither side, our own vote set aside — 2214.02.01:
   Security Contractors 49 % if we abstain, 54 % if we vote for it). Checked 2214.02.01: Buzzword Standardization's predicted supporters are exactly the game's

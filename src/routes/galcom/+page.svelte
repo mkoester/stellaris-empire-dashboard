@@ -269,6 +269,20 @@
 			title: 'influence'
 		}
 	];
+	// in the queue: our vote now, the cell of its case ringed (not cast yet = we abstain)
+	const ourVote = (p: ProposableRow) =>
+		p.status === 'proposed'
+			? ([data.galcom?.voting, ...(data.galcom?.proposed ?? [])].find((r) => r?.type === p.key)
+					?.ours ?? null)
+			: null;
+	const ourVoteColumn = (p: ProposableRow) =>
+		p.status !== 'proposed'
+			? null
+			: ourVote(p) === 'for'
+				? 'ifFor'
+				: ourVote(p) === 'against'
+					? 'ifAgainst'
+					: 'ifAbstain';
 	const percent = (v: number | null | undefined) =>
 		v === null || v === undefined ? '' : `${Math.round(v * 100)} %`;
 	const tone = (v: number | null | undefined) =>
@@ -530,8 +544,12 @@
 
 {#snippet chance(p: ProposableRow, id: string)}{@const v =
 		data.outlooks[p.key]?.[id as 'ifFor' | 'ifAbstain' | 'ifAgainst']}<span
-		class={tone(v)}
-		title={voters(p.key)}>{percent(v)}</span
+		class="-m-1 block rounded p-1 {tone(v)} {ourVoteColumn(p) === id
+			? 'ring-1 ring-sky-500/70 ring-inset dark:ring-sky-300/60'
+			: ''}"
+		title={ourVoteColumn(p) === id
+			? `our vote now: ${ourVote(p) ?? 'not cast yet'}\n${voters(p.key)}`
+			: voters(p.key)}>{percent(v)}</span
 	>{/snippet}
 {#snippet categoryCell(p: ProposableRow)}<span
 		class="whitespace-nowrap"
