@@ -5,6 +5,7 @@
 		enclaveUnitCost,
 		marketPrice,
 		marketRate,
+		monthlyCap,
 		monthsLeft,
 		offerPrice,
 		rate,
@@ -81,7 +82,8 @@
 	let give = $state('trade');
 	let get = $state('energy');
 	const giveable = $derived(data.tradable.filter((r) => canGive(r, data.weNomadic)));
-	type Offer = Party & { key: string; r: number; spare: number; monthly: boolean };
+	// spare: at once (null: an enclave sells monthly only); perMonth: a month at most (null: unknown)
+	type Offer = Party & { key: string; r: number; spare: number | null; perMonth: number | null };
 	const offers: Offer[] = $derived([
 		...data.empires.flatMap((e) => {
 			const r = rate(give, get, e, termsOf(e), data.resourceInfo, data.model);
@@ -93,7 +95,7 @@
 							key: `e${e.countryId}`,
 							r,
 							spare: spare(get, e, data.resourceInfo, data.model),
-							monthly: false
+							perMonth: monthlyCap(get, e, data.model)
 						}
 					];
 		}),
@@ -105,8 +107,8 @@
 				enclave: true,
 				key: `x${x.countryId}`,
 				r: 1 / enclaveUnitCost(),
-				spare: ENCLAVE_DEAL.maxPerMonth,
-				monthly: true
+				spare: null,
+				perMonth: ENCLAVE_DEAL.maxPerMonth
 			}))
 	]);
 	const market = $derived(marketRate(give, get, prices, fee));
@@ -126,7 +128,14 @@
 			cell: vsMarket,
 			right: true
 		},
-		{ id: 'spare', label: 'They spare', value: (o) => o.spare, cell: offerSpare, right: true }
+		{ id: 'spare', label: 'They spare', value: (o) => o.spare, cell: offerSpare, right: true },
+		{
+			id: 'perMonth',
+			label: 'They pay a month',
+			value: (o) => o.perMonth,
+			cell: offerPerMonth,
+			right: true
+		}
 	]);
 	let offerSort = $state({ column: 'rate', desc: true });
 
@@ -273,7 +282,12 @@
 		>{market ? `${fmt(o.r / market)} ×` : ''}</span
 	>
 {/snippet}
-{#snippet offerSpare(o: Offer)}{fmt(o.spare)}{o.monthly ? ' /month' : ''}{/snippet}
+{#snippet offerSpare(o: Offer)}{o.spare === null ? '–' : fmt(o.spare)}{/snippet}
+{#snippet offerPerMonth(o: Offer)}<span
+		title={o.perMonth === null
+			? 'read before the dashboard knew their gross income: the next save tells'
+			: ''}>{o.perMonth === null ? '?' : fmt(o.perMonth)}</span
+	>{/snippet}
 {#snippet priceCell(p: PriceRow, r: string)}
 	{@const x = p.prices[r]}
 	{@const payBetter = !p.market && x.pay !== null && (marketPay(r) ?? Infinity) > x.pay}
@@ -378,7 +392,9 @@
 				)} % fee). Estimated: the game decides in its engine; the model uses its files' inputs (resource weights, the empire's stockpile, storage and income, its personality) and guesses how they combine — trade's own worth among them, it has no weight in the files — calibrated by docs/trade-calibration.md{data
 					.model.calibrated
 					? ''
-					: ', not done yet'}. Monthly for monthly: the same rate. Trader enclaves take energy only."
+					: ', not done yet'}. Monthly for monthly: the same rate; they pay at most {Math.round(
+					data.model.monthlyShare * 100
+				)} % of their gross income of it a month (measured). Trader enclaves take energy only."
 			>
 				<div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
 					<label

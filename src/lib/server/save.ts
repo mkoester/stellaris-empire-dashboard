@@ -258,7 +258,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '11';
+export const READER = '12';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -852,7 +852,8 @@ export function intelOf(id: number, c: Raw, toUs: Raw, us: number, nomadic = fal
 			.filter((m) => typeof m?.modifier === 'string')
 			.map((m) => ({ key: String(m.modifier), value: num(m.value) })),
 		stockpile: resources(c.modules?.standard_economy_module?.resources),
-		net: addResources(sumSources(budget.balance), sumSources(budget.trade_balance))
+		net: addResources(sumSources(budget.balance), sumSources(budget.trade_balance)),
+		income: addResources(sumSources(budget.income), sumSources(budget.trade_income))
 	};
 }
 

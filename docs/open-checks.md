@@ -44,6 +44,11 @@ Trade Deal" and the opinion, its decay over two months, one non-trading attitude
 (added with the trade price panel) pin down trade's own worth — the model's `tradeWeight` guess —
 and whether a nomadic empire can put energy or minerals into a deal at all.
 
+Partly done in the campaign (2026-10-23, `docs/trade-calibration.md` → Results): the
+acceptance's form, energy and minerals, the monthly cap. Open: what food, consumer goods, alloys,
+strategic resources and trade are worth (a second empire), a one-off payment against monthly, and
+the gifts.
+
 - **Send:** the filled tables (or screenshots of each offer's acceptance and each opinion
   tooltip) and the session's save folder name. Note whether `resource alloys 20000` or
   `resource 20000 alloys` worked in the console.
@@ -52,7 +57,7 @@ and whether a nomadic empire can put energy or minerals into a deal at all.
 
 `AGENTS.md` → Open → "Stored research". The 4-day puzzle is solved (a monthly chunk after the
 1st's autosave), and the game's tooltip shows stored research adding the modified monthly gain
-while drawing the base. Left: confirm the draw per month equals the *base* gain over a few months,
+while drawing the base. Left: confirm the draw per month equals the _base_ gain over a few months,
 and what a tech finishing mid-month does with its overflow — plain monthly autosaves of the
 campaign suffice, no cheats.
 
@@ -73,7 +78,7 @@ as `extractorVersion` (`v0.1.0`): release the extraction first (its `RELEASE.md`
   edict gains" and the colony ranking to the growth tab; check the per-slot value on a habitat or
   Gaia world when there is one.
 - 4 → `price()` in `#lib/market.ts`.
-- 6 → fit `TradeModel` (`#lib/aiTrade.ts`), add the session's numbers as its test, set
+- 6 → fit the rest of `TradeModel` (`#lib/aiTrade.ts`), add the numbers to its test, set
   `calibrated`; then gift → opinion, monthly deals by length, and the produce tab's trade-deal
   option.
 - 7 → the tech tab's "≈ N months at double speed" (stored ÷ base gain) stands if the draw is the base gain.

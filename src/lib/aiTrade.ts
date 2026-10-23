@@ -1,32 +1,34 @@
 import type { AiIntel, GameData, Resources } from './types.ts';
 
 // What another empire makes of a trade — pure, and **estimated**: the game decides in the engine;
-// its files give only the inputs (4.5.2, docs/trade-calibration.md). The model, until the
-// calibration session's numbers replace its guesses (`TradeModel`):
-// - a unit of a resource is worth `ai_weight` to the AI (energy 1.5, minerals and food 1, alloys
-//   and consumer goods 5, motes 10, rare 100), less the more it earns of it per month
-//   (× INCOME_BASE / (INCOME_BASE + income), TRADE_VALUE_RESOURCE_INCOME_BASE = 50), more when its
-//   stockpile is under a third of its storage and less over three quarters
-//   (TRADE_RESOURCE_STOCKPILE_UNDER / OVER — the factors themselves are guesses);
-// - it accepts when what it gets is worth what it gives ÷ its personality's trade willingness
-//   ("at 1.0 they accept a deal that is equally good for both sides"); a willingness of 0 trades
+// its files give only the inputs (4.5.2, docs/trade-calibration.md). Measured in game (2212.08.01,
+// one empire — the calibration doc's results):
+// - the acceptance is the worth of what we offer minus the worth of what it offers, each linear in
+//   the amount — no term for attitude or opinion beside them;
+// - energy and minerals are worth `ai_weight` (1.5, 1) × INCOME_BASE / (INCOME_BASE + its net income
+//   per month) (TRADE_VALUE_RESOURCE_INCOME_BASE = 50) — even when it is short (minerals at 2 % of
+//   storage counted no more);
+// - its personality's willingness (shown beside the acceptance) is no term of its own: if it scales
+//   the worth, it scales both sides alike, so a rate does not see it; a willingness of 0 trades
 //   nothing, and an attitude that does not trade refuses everything;
+// - it pays at most TRADE_MAX_RESOURCE_PERCENT (0.3) of its gross monthly income a month, rounded
+//   down (energy 181.9 a month → 54).
+// Still guessed: every other resource follows the same form (food was worth more, consumer goods,
+// alloys and living metal far less — the form is wrong for them); trade's worth (`tradeWeight`, no
+// ai_weight); and, from the defines:
 // - it gives away nothing it holds less than it wants (`ai_wants`), nor anything once its want is
 //   at least 0.8 of its storage (OFFER_TRADE_MIN_RESOURCE_THRESHOLD);
 // - monthly payments count half (TRADE_VALUE_RESOURCE_MONTHLY_MULT) — for a monthly-for-monthly
 //   deal the rate is the same;
-// - trade has no `ai_weight`: its worth is a guess (`tradeWeight`; the market prices energy and
-//   minerals at 1 trade each);
 // - a nomadic empire never gives energy or minerals — they are its operational reserves, which
 //   "can be bought on the market, but not sold" (concept_operational_reserves_desc; for deals our
 //   extrapolation).
 
 export type TradeModel = {
 	incomeBase: number;
-	under: number; // stockpile below this share of storage: it needs more
-	over: number; // above it: it has plenty
-	needFactor: number; // value × this when it needs more (guess)
-	plentyFactor: number; // value × this when it has plenty (guess)
+	under: number; // stockpile below this share of storage: short (shown, not valued)
+	over: number; // above it: flush
+	monthlyShare: number; // pays at most this share of its gross income a month
 	offerThreshold: number; // won't give away what it wants this share of its storage of
 	tradeWeight: number; // trade's worth in weight units (guess: it has no ai_weight)
 	calibrated: boolean;
@@ -36,8 +38,7 @@ export const modelFrom = (defines: Record<string, number>): TradeModel => ({
 	incomeBase: defines.TRADE_VALUE_RESOURCE_INCOME_BASE ?? 50,
 	under: defines.TRADE_RESOURCE_STOCKPILE_UNDER ?? 0.33,
 	over: defines.TRADE_RESOURCE_STOCKPILE_OVER ?? 0.75,
-	needFactor: 2,
-	plentyFactor: 0.5,
+	monthlyShare: defines.TRADE_MAX_RESOURCE_PERCENT ?? 0.3,
 	offerThreshold: defines.OFFER_TRADE_MIN_RESOURCE_THRESHOLD ?? 0.8,
 	tradeWeight: 1,
 	calibrated: false
@@ -47,7 +48,7 @@ type Info = GameData['resourceInfo'];
 
 export type Stance = 'needs' | 'plenty' | 'normal';
 
-/** How the AI stands on a resource: short of it, flush with it, or neither. */
+/** How the AI stands on a resource: short of it, flush with it, or neither (not in its value). */
 export function stance(r: string, ai: AiIntel, info: Info, m: TradeModel): Stance {
 	const max = info[r]?.max ?? null;
 	const have = ai.stockpile[r] ?? 0;
@@ -63,12 +64,7 @@ export function aiValue(r: string, ai: AiIntel, info: Info, m: TradeModel): numb
 	const weight = i?.aiWeight ?? (r === 'trade' ? m.tradeWeight : null);
 	if (!i?.tradable || weight === null) return null;
 	const income = Math.max(0, ai.net[r] ?? 0);
-	const s = stance(r, ai, info, m);
-	return (
-		weight *
-		(m.incomeBase / (m.incomeBase + income)) *
-		(s === 'needs' ? m.needFactor : s === 'plenty' ? m.plentyFactor : 1)
-	);
+	return weight * (m.incomeBase / (m.incomeBase + income));
 }
 
 /** A nomadic empire's reserve: it takes these, never gives them. */
@@ -84,6 +80,14 @@ export function spare(r: string, ai: AiIntel, info: Info, m: TradeModel): number
 	const want = i?.aiWants ?? 0;
 	if (i?.max && want >= m.offerThreshold * i.max) return 0;
 	return Math.max(0, (ai.stockpile[r] ?? 0) - want);
+}
+
+/** How much of `r` the AI would pay a month at most; null: its gross income is not known. */
+export function monthlyCap(r: string, ai: AiIntel, m: TradeModel): number | null {
+	if (!canGive(r, ai.nomadic)) return 0;
+	const income = ai.income[r];
+	if (income === undefined) return Object.keys(ai.income).length ? 0 : null;
+	return Math.max(0, Math.floor(m.monthlyShare * income));
 }
 
 export type Terms = {
@@ -102,9 +106,9 @@ export function terms(
 }
 
 /**
- * Units of `get` the AI gives for one unit of `give` from us, at most: our unit's worth to it ×
- * its willingness ÷ its unit's worth. Null when it does not trade, either resource is off the
- * table, or it has none of `get` to spare.
+ * Units of `get` the AI gives for one unit of `give` from us, at most: our unit's worth to it ÷
+ * its unit's worth. Null when it does not trade, either resource is off the table, or it has none
+ * of `get` to spare.
  */
 export function rate(
 	give: string,
@@ -117,7 +121,7 @@ export function rate(
 	if (!t.trades || give === get) return null;
 	const [vg, vr] = [aiValue(give, ai, info, m), aiValue(get, ai, info, m)];
 	if (vg === null || vr === null || vr <= 0 || spare(get, ai, info, m) <= 0) return null;
-	return (vg * (t.willingness ?? 1)) / vr;
+	return vg / vr;
 }
 
 /**

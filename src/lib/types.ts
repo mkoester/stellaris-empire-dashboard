@@ -220,6 +220,7 @@ export type AiIntel = {
 	opinionModifiers: { key: string; value: number }[]; // e.g. opinion_trade_gift
 	stockpile: Resources;
 	net: Resources; // per month
+	income: Resources; // per month, gross (the cap on what it pays a month); {} before READER 12
 };
 
 /** A trader enclave we talk to; `kind` 1 XuraCorp, 2 Riggans, 3 Muutagan (#lib/aiTrade.ts). */

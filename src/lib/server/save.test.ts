@@ -719,7 +719,10 @@ describe('intelOf', () => {
 			},
 			modules: { standard_economy_module: { resources: { energy: 1181.8, alloys: 396.8 } } },
 			budget: {
-				current_month: { balance: { country_base: { energy: 20 }, ships: { energy: -11.8 } } }
+				current_month: {
+					income: { country_base: { energy: 20 } },
+					balance: { country_base: { energy: 20 }, ships: { energy: -11.8 } }
+				}
 			}
 		};
 		const toUs = {
@@ -737,7 +740,8 @@ describe('intelOf', () => {
 			trust: 49.2,
 			opinionModifiers: [{ key: 'opinion_fellow_galcom_member', value: 50 }],
 			stockpile: { energy: 1181.8, alloys: 396.8 },
-			net: { energy: 8.2 }
+			net: { energy: 8.2 },
+			income: { energy: 20 }
 		});
 	});
 });

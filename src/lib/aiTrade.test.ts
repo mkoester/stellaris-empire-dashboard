@@ -7,6 +7,7 @@ import {
 	marketPrice,
 	marketRate,
 	modelFrom,
+	monthlyCap,
 	monthsLeft,
 	offerPrice,
 	rate,
@@ -35,6 +36,7 @@ const ai = (fields: Partial<AiIntel>): AiIntel => ({
 	opinionModifiers: [],
 	stockpile: { energy: 20000, minerals: 5000, alloys: 300, trade: 30000 },
 	net: { energy: 50, minerals: 0, alloys: 0, trade: 0 },
+	income: {},
 	...fields
 });
 const personalities = {
@@ -47,16 +49,16 @@ const attitudes = {
 };
 
 describe('aiValue and stance', () => {
-	it('weighs by ai_weight, less with income, by how full its storage is', () => {
+	it('weighs by ai_weight, less with income; how full its storage is shows, not counts', () => {
 		const a = ai({});
 		expect(stance('energy', a, info, m)).toBe('plenty'); // 20000 > 0.75 × 25000 = 18750
 		expect(stance('alloys', a, info, m)).toBe('needs'); // 300 < 0.33 × 15000
 		expect(stance('minerals', a, info, m)).toBe('needs');
-		// energy: 1.5 × 50 / (50 + 50) × 0.5
-		expect(aiValue('energy', a, info, m)).toBeCloseTo(0.375);
-		expect(aiValue('alloys', a, info, m)).toBe(10);
+		// energy: 1.5 × 50 / (50 + 50)
+		expect(aiValue('energy', a, info, m)).toBeCloseTo(0.75);
+		expect(aiValue('alloys', a, info, m)).toBe(5);
 		expect(aiValue('unity', a, info, m)).toBeNull();
-		// trade: the guessed weight, its storage between a third and three quarters
+		// trade: the guessed weight
 		expect(aiValue('trade', a, info, m)).toBe(m.tradeWeight);
 	});
 	it('spares only what it holds beyond its want', () => {
@@ -74,11 +76,45 @@ describe('aiValue and stance', () => {
 	});
 });
 
+// The calibration session (docs/trade-calibration.md, results): KhellZen Republic in the
+// 2212.08.01 autosave — federation_builders (willingness 0.95), friendly, opinion 240 — offering
+// energy a month for ours a month, 10 years. Its economy as the save has it.
+describe('the game’s numbers (2212.08.01)', () => {
+	const khellZen = ai({
+		personality: 'federation_builders',
+		attitude: 'friendly',
+		opinion: 240,
+		stockpile: { energy: 13063.4, minerals: 346.2 },
+		net: { energy: 95.18744, minerals: 40.60642 },
+		income: { energy: 181.89494, minerals: 100.20642 }
+	});
+	const game = { ...info, minerals: { ...info.minerals, max: 15000 } };
+	const t = terms(khellZen, { federation_builders: { name: '', willingness: 0.95 } }, attitudes);
+	it('its energy at the tooltip’s worth: 36 a month 89, 25 a month 62', () => {
+		const e = aiValue('energy', khellZen, game, m)!;
+		// the tooltip's unit is the model's × a constant (≈ 4.79): one fits both
+		const k = 89 / (36 * e);
+		expect(Math.round(25 * e * k)).toBe(62);
+	});
+	it('takes 46 minerals a month for 50 energy, not 45 — within 2 %', () => {
+		// 50 / 46 = 1.087 … 50 / 45 = 1.111 minerals' worth in energy
+		const r = rate('minerals', 'energy', khellZen, t, game, m)!;
+		expect(r).toBeGreaterThan(1.087 * 0.98);
+		expect(r).toBeLessThan(1.111);
+	});
+	it('pays at most 54 energy a month: 0.3 of its gross income, rounded down', () => {
+		expect(monthlyCap('energy', khellZen, m)).toBe(54);
+		expect(monthlyCap('alloys', khellZen, m)).toBe(0); // no income of it
+		expect(monthlyCap('energy', ai({}), m)).toBeNull(); // read before READER 12
+		expect(monthlyCap('energy', { ...khellZen, nomadic: true }, m)).toBe(0);
+	});
+});
+
 describe('rate', () => {
 	const t = terms(ai({}), personalities, attitudes);
-	it('gives our unit’s worth to it in its own resource, times its willingness', () => {
-		// 1 alloy (10) for energy (0.375 each): 26.7 energy
-		expect(rate('alloys', 'energy', ai({}), t, info, m)).toBeCloseTo(26.67, 1);
+	it('gives our unit’s worth to it in its own resource', () => {
+		// 1 alloy (5) for energy (0.75 each): 6.67 energy
+		expect(rate('alloys', 'energy', ai({}), t, info, m)).toBeCloseTo(6.67, 2);
 		// it has no alloys to spare
 		expect(rate('energy', 'alloys', ai({}), t, info, m)).toBeNull();
 	});
@@ -101,10 +137,10 @@ describe('rate', () => {
 describe('prices in trade', () => {
 	const t = terms(ai({}), personalities, attitudes);
 	it('what we pay for a unit and what we get for one', () => {
-		// it gives energy (0.375) for trade (1): 2.67 energy per trade, so 0.375 trade per energy
-		expect(wantPrice('energy', ai({}), t, info, m)).toBeCloseTo(0.375);
-		// alloys (10) for its trade (1): 10 trade per alloy
-		expect(offerPrice('alloys', ai({}), t, info, m)).toBeCloseTo(10);
+		// it gives energy (0.75) for trade (1): 1.33 energy per trade, so 0.75 trade per energy
+		expect(wantPrice('energy', ai({}), t, info, m)).toBeCloseTo(0.75);
+		// alloys (5) for its trade (1): 5 trade per alloy
+		expect(offerPrice('alloys', ai({}), t, info, m)).toBeCloseTo(5);
 		// no alloys to spare
 		expect(wantPrice('alloys', ai({}), t, info, m)).toBeNull();
 		// a nomad sells no energy for trade

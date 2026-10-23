@@ -432,9 +432,13 @@ spoiler (cheating — their stockpiles and income; the route strips them otherwi
 finder (we give X, for Y: per empire the most Y it would give per X, against selling X and buying
 Y on the market with the fee) and per empire and resource whether it is short (under a third of
 its storage) or flush (over three quarters). **Estimated**: the AI's valuation is engine code;
-`TradeModel` holds the inputs from the files and the guesses (`needFactor` 2, `plentyFactor` 0.5,
-the income damping's form) until `docs/trade-calibration.md` is played through — then fit them,
-with the session's numbers as the test, and set `calibrated`. **Trade is a resource** there
+measured 2026-10-23 on one empire (`docs/trade-calibration.md` → Results, the test in
+`aiTrade.test.ts`): the acceptance is the two sides' worth summed, linear in the amount; energy and
+minerals are worth `ai_weight` × 50/(50 + net income), short or not; willingness is no term of its
+own (rates ignore it); an empire pays at most 0.3 of its **gross** income a month
+(`TRADE_MAX_RESOURCE_PERCENT`, `monthlyCap()`; `AiIntel.income`, READER 12). Every other resource
+still uses that form and is wrong (food worth more, alloys and strategic resources far less) — fit
+it from the next empire's numbers, then set `calibrated`. **Trade is a resource** there
 (default trade → energy) though it has no `ai_weight`: `tradeWeight` is a guess (1; the market
 prices energy at 1 trade). **Nomadic empires** (`AiIntel.nomadic`, READER 11) are those running
 `situation_nomad_economy` — the origin misses most (2212.06.01: six such empires, one nomad
@@ -910,7 +914,9 @@ capital_scope = { solar_system = { add_claims = { who = prevprevprev num_of_clai
 priority date } }` — the entry for our country is its attitude towards us ("loyal" for our
   subject) —, its relation **to us** (`relation_current` 293 vs. our 292 to them; `modifier = {
 modifier value }`, one or a list: `opinion_fellow_galcom_member` 50, a gift's
-  `opinion_trade_gift`), its stockpile and its budget's balance like ours (2212.03.05).
+  `opinion_trade_gift`), its stockpile and its budget's balance like ours (2212.03.05), and its
+  gross income (`budget.current_month.income`, READER 12: the cap on what it pays a month). Its
+  `ai.ai_resource_target_records` (energy 10, minerals 25, … — percentages?) is not read.
 - Pacts are **flags on the relation**: `country.relations_manager.relation = { country embassy
 research_agreement commercial_pact defensive_pact non_aggression_pledge guarantee closed_borders
 migration_access waystation_pact … }` (`=yes`; the last two are the migration treaty and the

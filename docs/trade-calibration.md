@@ -90,6 +90,47 @@ Then `fast_forward 30` twice and note the line each time (the decay; expected �
 If any empire shows unfriendly, rival, hostile, domineering or threatened: one offer (row 1's)
 to it, its acceptance.
 
+## Results so far
+
+### 2026-10-23: one empire in the campaign (no cheats)
+
+KhellZen Republic in `autosave_2212.08.01` — federation_builders (willingness 0.95, shown as 95 %
+beside the acceptance), friendly, opinion 240. It offers energy a month, we give one resource a
+month, 10 years, nothing sent. Rows: the least we give that it still accepts; the tooltip where
+there was one. Its economy from the save: energy 13,063 (net +95.2, gross 181.9), minerals 346
+(+40.6), food 9,864 (+64.9), consumer goods 3,122 (+28.8), alloys 261 (+17.5), trade 1,108
+(+57.2), living metal 119 (0).
+
+| We give a month   | It gives a month | Tooltip (ours / theirs / acceptance) |
+| ----------------- | ---------------- | ------------------------------------ |
+| 46 minerals       | 50 energy        | —                                    |
+| 33 food           | 50 energy        | —                                    |
+| 48 trade          | 50 energy        | —                                    |
+| 25 consumer goods | 50 energy        | —                                    |
+| 17 alloys         | 50 energy        | —                                    |
+| 5 living metal    | 36 energy        | +90 / −89 / 1                        |
+| 17 food           | 25 energy        | +64 / −62 / 2                        |
+| 9 alloys          | 25 energy        | +67 / −62 / 5                        |
+| —                 | 55 energy        | −1000: "wants to trade away less"    |
+
+What it settles (in `#lib/aiTrade.ts` with these numbers as its test):
+
+- The acceptance is the sum of the two sides' worth, each linear in the amount (energy: 36 → 89,
+  25 → 62); nothing for attitude or opinion beside them.
+- Energy and minerals: `ai_weight` × 50 / (50 + net income) — minerals within 2 %, though at 2 % of
+  its storage: no extra worth for being short. The tooltip's unit is that × ≈ 4.79 (5 × 0.95?
+  a one-off payment would tell).
+- It pays at most `TRADE_MAX_RESOURCE_PERCENT` (0.3) of its gross monthly income, rounded down:
+  54 of 181.9 energy (55 → −1000). We could give no more living metal than our income (5.25).
+
+Not settled — worth per unit a month in the tooltip's unit against that form: food 3.8 (form 2.1),
+consumer goods ≈ 5.0 (15), alloys 7.4 (18), living metal 18 (478); trade ≈ 2.6 (`tradeWeight` 1
+gives 2.2). Neither market prices, its own market (no fluctuations), its storage, `ai_wants`, gross
+income nor our economy explains them; the AI's `ai_resource_target_records` (energy 10, minerals
+25, food 10, trade 10, consumer goods 10, alloys 20) neither. Next: the same rows with a second
+empire of a different economy, with tooltips, and one one-off payment against the same amount a
+month.
+
 ## Afterwards
 
 Send the filled tables and the session's saves folder name. The fitted constants go into the

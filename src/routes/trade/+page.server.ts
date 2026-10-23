@@ -29,6 +29,7 @@ export function load({ url }) {
 			// hidden by the game: only with the spoiler on
 			stockpile: tradeIntel ? ai.stockpile : {},
 			net: tradeIntel ? ai.net : {},
+			income: tradeIntel ? ai.income : {},
 			deals: (latest?.tradeDeals ?? []).filter((d) => d.partner === names.get(ai.countryId)).length
 		}));
 	const fee = latest ? (marketFee(latest)?.fee ?? null) : null;
