@@ -13,15 +13,33 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 // - it gives at once at most its stockpile above max(`ai_wants`, TRADE_MIN_RESOURCE_STOCKPILE 500),
 //   and a month at most TRADE_MAX_RESOURCE_PERCENT (0.3) of its gross monthly income, rounded down
 //   (energy 181.9 a month → 54).
-// Still guessed: a unit's worth. The model takes `ai_weight` × INCOME_BASE / (INCOME_BASE + its net
-// income per month) (TRADE_VALUE_RESOURCE_INCOME_BASE = 50), short or not; against energy the game
-// had minerals 9 % and food 92 % worth more, consumer goods, alloys and living metal far less, and
-// trade 23 % more than `tradeWeight` 1 (it has no ai_weight). Unmeasured, from the defines:
+// - a unit is worth P × (1 + INCOME_BASE / (INCOME_BASE + its net income of it per month))
+//   (TRADE_VALUE_RESOURCE_INCOME_BASE = 50), short of it or not. P is not in the files: `WORTH`,
+//   measured on two empires (energy 1). Energy and minerals share it (the defines' comment on
+//   TRADE_VALUE_RESOURCE: "for minerals and energy"); energy, food, alloys and living metal fit
+//   both empires within 1.5 %, minerals 2 %, consumer goods 4 %, trade 12 % (its income moves it more than the form
+//   says). A resource not measured is not valued (null): no estimate for it.
+// Unmeasured, from the defines:
 // - it gives nothing once its want is at least 0.8 of its storage
 //   (OFFER_TRADE_MIN_RESOURCE_THRESHOLD);
 // - a nomadic empire never gives energy or minerals — they are its operational reserves, which
 //   "can be bought on the market, but not sold" (concept_operational_reserves_desc; for deals our
 //   extrapolation).
+
+/**
+ * A unit's worth to the AI before its income, energy = 1 (docs/trade-calibration.md → Results:
+ * tooltips at KhellZen and Lolehndra, 2212.08.01). Not ai_weight: energy (1.5) and minerals (1)
+ * come out the same, living metal (100) at 5.
+ */
+export const WORTH: Record<string, number> = {
+	energy: 1,
+	minerals: 1,
+	food: 1.52,
+	consumer_goods: 1.74,
+	alloys: 2.45,
+	sr_living_metal: 5.16,
+	trade: 1.16
+};
 
 export type TradeModel = {
 	incomeBase: number;
@@ -30,7 +48,7 @@ export type TradeModel = {
 	monthlyShare: number; // pays at most this share of its gross income a month
 	offerThreshold: number; // won't give away what it wants this share of its storage of
 	keep: number; // keeps at least this much of anything (TRADE_MIN_RESOURCE_STOCKPILE)
-	tradeWeight: number; // trade's worth in weight units (guess: it has no ai_weight)
+	worth: Record<string, number>; // P, a unit's worth before its income (energy 1)
 	calibrated: boolean;
 };
 
@@ -41,8 +59,8 @@ export const modelFrom = (defines: Record<string, number>): TradeModel => ({
 	monthlyShare: defines.TRADE_MAX_RESOURCE_PERCENT ?? 0.3,
 	offerThreshold: defines.OFFER_TRADE_MIN_RESOURCE_THRESHOLD ?? 0.8,
 	keep: defines.TRADE_MIN_RESOURCE_STOCKPILE ?? 500,
-	tradeWeight: 1,
-	calibrated: false
+	worth: WORTH,
+	calibrated: true
 });
 
 type Info = GameData['resourceInfo'];
@@ -61,11 +79,10 @@ export function stance(r: string, ai: AiIntel, info: Info, m: TradeModel): Stanc
 
 /** What a unit of `r` is worth to the AI, in its weight units; null: it does not trade it. */
 export function aiValue(r: string, ai: AiIntel, info: Info, m: TradeModel): number | null {
-	const i = info[r];
-	const weight = i?.aiWeight ?? (r === 'trade' ? m.tradeWeight : null);
-	if (!i?.tradable || weight === null) return null;
+	const p = m.worth[r];
+	if (!info[r]?.tradable || p === undefined) return null;
 	const income = Math.max(0, ai.net[r] ?? 0);
-	return weight * (m.incomeBase / (m.incomeBase + income));
+	return p * (1 + m.incomeBase / (m.incomeBase + income));
 }
 
 /** A nomadic empire's reserve: it takes these, never gives them. */

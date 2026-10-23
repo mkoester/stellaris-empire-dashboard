@@ -33,7 +33,8 @@ export function load({ url }) {
 			deals: (latest?.tradeDeals ?? []).filter((d) => d.partner === names.get(ai.countryId)).length
 		}));
 	const fee = latest ? (marketFee(latest)?.fee ?? null) : null;
-	// trade has no ai_weight; the model guesses its worth
+	// trade has no ai_weight but is traded; an empire values only what is measured (#lib/aiTrade.ts),
+	// the rest stays listed for the trader enclaves
 	const tradable = Object.entries(data.resourceInfo)
 		.filter(([key, r]) => r.tradable && (r.aiWeight !== null || key === 'trade'))
 		.map(([key]) => key);

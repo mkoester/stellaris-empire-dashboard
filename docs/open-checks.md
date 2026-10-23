@@ -44,9 +44,10 @@ Trade Deal" and the opinion, its decay over two months, one non-trading attitude
 (added with the trade price panel) pin down trade's own worth — the model's `tradeWeight` guess —
 and whether a nomadic empire can put energy or minerals into a deal at all.
 
-Partly done in the campaign (2026-10-23, `docs/trade-calibration.md` → Results): the
-acceptance's form with willingness, monthly against one-off, what an empire gives at most. Open:
-what a unit of each resource is worth (a second empire), and the gifts.
+Mostly done in the campaign (2026-10-23, `docs/trade-calibration.md` → Results): the trade model
+is fitted to two empires' tooltips. Open: what volatile motes, exotic gases, rare crystals and the
+other strategic resources are worth (the same monthly deals for them, with tooltips), and the
+gifts (part 2).
 
 - **Send:** the filled tables (or screenshots of each offer's acceptance and each opinion
   tooltip) and the session's save folder name. Note whether `resource alloys 20000` or
@@ -77,7 +78,7 @@ as `extractorVersion` (`v0.1.0`): release the extraction first (its `RELEASE.md`
   edict gains" and the colony ranking to the growth tab; check the per-slot value on a habitat or
   Gaia world when there is one.
 - 4 → `price()` in `#lib/market.ts`.
-- 6 → fit the rest of `TradeModel` (`#lib/aiTrade.ts`), add the numbers to its test, set
-  `calibrated`; then gift → opinion, monthly deals by length, and the produce tab's trade-deal
+- 6 → add P for each newly measured resource to `WORTH` (`#lib/aiTrade.ts`) and its tooltips to
+  the test; then gift → opinion, monthly deals by length, and the produce tab's trade-deal
   option.
 - 7 → the tech tab's "≈ N months at double speed" (stored ÷ base gain) stands if the draw is the base gain.

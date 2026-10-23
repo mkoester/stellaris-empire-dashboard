@@ -143,14 +143,45 @@ What it settles (in `#lib/aiTrade.ts` with these numbers as its test):
 - It pays at most `TRADE_MAX_RESOURCE_PERCENT` (0.3) of its gross monthly income a month, rounded
   down: 54 of 181.9 energy (55 → −1000). We could give no more living metal than our income (5.25).
 
-A unit's worth at once as it gives it (received ÷ 0.95; the tooltip's unit): energy 0.0413,
-minerals 0.048, food 0.067, trade 0.046, consumer goods 0.091, alloys 0.131, living metal 0.32.
-Not settled: the model's `ai_weight` × 50 / (50 + net income) gives, against energy, minerals 1.07
-(game 1.17), food 0.84 (1.61), consumer goods 6.1 (2.2), alloys 7.2 (3.2), living metal 194 (7.6).
-Neither market prices, its own market (no fluctuations), its storage, `ai_wants`, gross income nor
-our economy explains them; the AI's `ai_resource_target_records` (energy 10, minerals 25, food
-10, trade 10, consumer goods 10, alloys 20) neither. Next: the same with a second empire of a
-different economy.
+### 2026-10-23: a second empire
+
+Lolehndra Galactic League (our subject), same save — hegemonic_imperialists (willingness 0.80),
+loyal. Its economy: energy 869 (net +37.3), minerals 901 (+25.0), food 625 (+50.6), trade 1,079
+(+8.8), consumer goods 538 (+11.5), alloys 489 (+18.6), no living metal.
+
+| We give a month   | It gives a month | Tooltip (ours / theirs / acceptance) |
+| ----------------- | ---------------- | ------------------------------------ |
+| 57 energy         | 31 food          | +132 / −130 / 2                      |
+| 54 minerals       | 31 food          | +131 / −130 / 1                      |
+| 37 trade          | 31 food          | +131 / −130 / 1                      |
+| 30 consumer goods | 31 food          | +133 / −130 / 3                      |
+| 21 alloys         | 31 food          | +131 / −130 / 1                      |
+| 5 living metal    | 18 food          | +76 / −75 / 1                        |
+
+### A unit's worth
+
+At once, as the empire gives it (what it gets ÷ its willingness; a month's unit ÷ 60), in the
+tooltip's unit:
+
+| Resource       | KhellZen (net) | Lolehndra (net) | P (energy 1) |
+| -------------- | -------------- | --------------- | ------------ |
+| energy         | 0.0412 (+95)   | 0.0483 (+37)    | 1            |
+| minerals       | 0.0483 (+41)   | 0.0505 (+25)    | 1.00         |
+| food           | 0.0667 (+65)   | 0.0697 (+51)    | 1.52         |
+| consumer goods | 0.0909 (+29)   | 0.0924 (+12)    | 1.74 (±4 %)  |
+| alloys         | 0.1304 (+18)   | 0.1300 (+19)    | 2.45         |
+| living metal   | 0.316 (0)      | 0.317 (0)       | 5.16         |
+| trade          | 0.046 (+57)    | 0.074 (+9)      | 1.16 (±12 %) |
+
+Worth = P × (1 + 50 / (50 + net income)) (`TRADE_VALUE_RESOURCE_INCOME_BASE`), with energy's P =
+0.0307 in the tooltip's unit: energy, food, alloys and living metal within 1.5 % at both empires,
+minerals 2 %. Energy and minerals share P (the defines on `TRADE_VALUE_RESOURCE`: "for minerals and
+energy"). Not `ai_weight` (energy 1.5, minerals 1, living metal 100), not market prices (food would
+equal energy), not the stockpile (KhellZen's 13,063 energy and Lolehndra's 869 differ only by their
+income's effect). Trade moves with income more than the form allows (its two values need a base of
+~70, energy's ~300 under the plain 50 / (50 + net)) — `WORTH` in `#lib/aiTrade.ts` holds P, the
+test every tooltip line above. Not measured: volatile motes, exotic gases, rare crystals, zro, dark
+matter and the rest — a third empire's tooltips for those, and gifts (part 2), are what is left.
 
 ## Afterwards
 
