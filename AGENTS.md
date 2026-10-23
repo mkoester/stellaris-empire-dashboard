@@ -966,7 +966,10 @@ stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included
   economy × 0.15 + technology × 0.1, × `WEIGHT_SCALE` 2.6), marked ≈. **Checked 2214.01.01**
   (screenshots `2026_10_23_1`–`4`): the game's "Diplomatic Support" of a proposal is the summed
   weight of the empires **for** it, no council factor (all four shown matched to ±1 — the screen
-  rounds each weight), and **the proposal queue is ranked by it** (the "#" column; ties in save
+  rounds each weight), and **the proposal queue is ranked by it**; confirmed 2214.02.01 with
+  the mod's exact weights (screenshots `2026_10_23_5`–`8`: all 12 sums and the order), the game
+  **rounding down** sums and the per-empire tooltip lines (4306.72 → 4306; the member icons round
+  normally, 521.8 → 522) (the "#" column; ties in save
   order; all 12 in the game's order); the save's supporter lists matched every icon row. Solving
   the sums gave all 13 members' weights (138–643): game ÷ defines' terms 1.0–3.3, median 2.6, and a
   linear fit with pops was off by up to 227 — modifiers dominate, the estimate stays rough. The
@@ -975,7 +978,11 @@ stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included
 opponents }`; only the one voted on has `voting = { <country>=<date> }`, the votes cast):
   `proposalDates()` dates it between the last save without it and the first with it, or "by" the
   first save of the history (2214.01.01: five to the month, seven by 2205.03.01, the campaign's
-  first save read). Names and effects from the data DB (`resolution`, its
+  first save read). **History** (milestone kind `galcom`, also listed on the contacts tab):
+  proposed, put to the vote, passed, failed, withdrawn — a proposal that leaves the queue neither
+  voted on nor passed; the save keeps no record of who withdrew it. A vote counts as failed only
+  if no save along the branch lists it as passed (snapshots before READER 13 have no passed list:
+  2208.01.01 had shown The Readied Shield "failed"). Names and effects from the data DB (`resolution`, its
   effects = the static modifier of the same key, `resolution:<key>` popups).
 - Claims (2026-10-19): on the system, `galactic_object.<id>.claims = { { owner date claims } }`
   — `owner` is the claimant, `claims` the strength. The game's claims view lists only ours (with
@@ -1288,11 +1295,9 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   calling (tier, reward), its deeds and — negative — the opposite patron's (the save's five
   each), accords and covenant. Uncontacted patrons stay hidden, as in the game. Still to see: a
   completed calling, an accord unlocked, a favor.
-- **Companion mod 0.4.0's diplomatic weight, not yet run in game** (written 2026-10-23): whether
-  `export_trigger_value_to_variable = { trigger = diplomacy_weight … }` exports the number the
-  game's Galactic Community screen shows per empire (then the saves carry `variables.sdash_dw` on
-  every member), and how far the estimate is off — compare both with a screenshot of the voting
-  screen; the council's × 1.5 is not applied in either.
+- **Companion mod 0.4.0's diplomatic weight: confirmed** (2214.02.01, the first autosave with
+  it): `variables.sdash_dw` on all 13 members, equal to the game's screen (642.41 → 642, …) and to
+  the weights solved from the 2214.01.01 tallies. Open: the council's × 1.5 (no council yet).
 - **Companion mod 0.3.0's spending events, not yet run in game** (written 2026-10-22): whether
   `carrier_event` is the right type for the "This = Colony" hooks (vanilla uses it for
   `on_building_complete`), whether `[This.GetName]` there gives the planet's name as the save's

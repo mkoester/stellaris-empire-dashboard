@@ -1,7 +1,14 @@
 import { sideSummary } from './deals.ts';
 import { nameOf, pretty } from './format.ts';
 import { addGameDays, gameYear } from './series.ts';
-import type { Colony, GameData, LogEvent, Snapshot } from './types.ts';
+import type {
+	Colony,
+	GalacticCommunity,
+	GameData,
+	LogEvent,
+	ResolutionVote,
+	Snapshot
+} from './types.ts';
 
 // Milestones: the bigger events of a campaign (a colony founded, a tradition taken, a war lost …),
 // derived on read by comparing consecutive saves along the branch shown — so they follow the save
@@ -28,6 +35,7 @@ export const KINDS = [
 	{ kind: 'species', label: 'species' },
 	{ kind: 'trade-deal', label: 'trade deals' },
 	{ kind: 'agenda', label: 'agendas passed' },
+	{ kind: 'galcom', label: 'Galactic Community: proposals, votes, withdrawals' },
 	{ kind: 'leader', label: 'leaders' },
 	{ kind: 'ruler', label: 'ruler' },
 	{ kind: 'government', label: 'government: civics, ethics, authority, type, origin' },
@@ -50,7 +58,14 @@ export type Milestone = {
 
 type Names = Pick<
 	GameData,
-	'techs' | 'agendas' | 'edicts' | 'traditionTrees' | 'perks' | 'names' | 'identityNames'
+	| 'techs'
+	| 'agendas'
+	| 'edicts'
+	| 'traditionTrees'
+	| 'perks'
+	| 'names'
+	| 'identityNames'
+	| 'diploNames'
 >;
 type Found = Omit<Milestone, 'date' | 'x'>;
 
@@ -243,6 +258,38 @@ const DETECTORS = [
 				.map((d) => ({ kind: 'trade-deal' as const, label: `trade deal ended: ${d.partner}` }))
 		]
 	),
+	// The Galactic Community, by its resolution ids. The save keeps no history: a proposal that
+	// leaves the queue neither voted on nor passed was withdrawn (by its proposer, or the game);
+	// passed and withdrawn only for resolutions the earlier save listed — older snapshots have no
+	// `passed` list (before READER 13), which must not read as everything passing, nor a vote that
+	// passed as failed: a resolution any save along the branch lists as passed has passed.
+	(snaps: Snapshot[], names: Names) => {
+		const passedEver = new Set(snaps.flatMap((s) => s.galcom?.passed.map((r) => r.id) ?? []));
+		return field(
+			(s) => s.galcom,
+			(a, b, names) => {
+				const name = (r: ResolutionVote) =>
+					names.diploNames[r.type] ?? pretty(r.type.replace(/^resolution_/, ''));
+				const queued = (g: GalacticCommunity) => [...(g.voting ? [g.voting] : []), ...g.proposed];
+				const has = (list: ResolutionVote[], r: ResolutionVote) => list.some((x) => x.id === r.id);
+				const found: Found[] = [];
+				const say = (label: string) => found.push({ kind: 'galcom', label });
+				if (a.member !== b.member)
+					say(b.member ? 'we joined the Galactic Community' : 'we left the Galactic Community');
+				for (const r of queued(b))
+					if (!has(queued(a), r) && !has(a.passed, r))
+						say(`resolution proposed: ${name(r)} (by ${r.proposer})`);
+				if (b.voting && b.voting.id !== a.voting?.id) say(`put to the vote: ${name(b.voting)}`);
+				for (const r of queued(a)) {
+					if (has(queued(b), r)) continue;
+					if (has(b.passed, r) || passedEver.has(r.id)) say(`resolution passed: ${name(r)}`);
+					else if (a.voting?.id === r.id) say(`resolution failed: ${name(r)}`);
+					else say(`resolution withdrawn: ${name(r)} (by ${r.proposer})`);
+				}
+				return found;
+			}
+		)(snaps, names);
+	},
 	field(
 		(s) => s.agendasDone,
 		(a, b, names) =>

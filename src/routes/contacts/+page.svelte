@@ -167,9 +167,17 @@
 				? 'bg-red-50 dark:bg-red-950/40'
 				: '';
 	};
+	const galcomHistory = $derived(
+		data.milestones.filter((m) => m.kind === 'galcom').map((m, i) => ({ ...m, i }))
+	);
+	const historyColumns: Column<(typeof galcomHistory)[number]>[] = [
+		{ id: 'date', label: 'Date', value: (m) => m.date },
+		{ id: 'event', label: 'Event', value: (m) => m.label }
+	];
 	const proposedOf = (r: ResolutionVote) => data.proposalDates[`${r.id}:${r.type}`] ?? null;
+	// rounded down, as the game's tooltips and totals (2214.02.01: 4306.72 shown as 4306)
 	const weightLabel = (w: { value: number; exact: boolean } | null) =>
-		w === null ? '?' : `${w.exact ? '' : '≈'}${Math.round(w.value)}`;
+		w === null ? '?' : `${w.exact ? '' : '≈'}${Math.floor(w.value)}`;
 	const sideWeight = (names: string[]) => names.reduce((n, x) => n + (weightOf(x)?.value ?? 0), 0);
 	const estimated = (names: string[]) => names.some((x) => !weightOf(x)?.exact);
 	const anyEstimated = $derived(Object.values(data.galcom?.weights ?? {}).some((w) => !w.exact));
@@ -387,6 +395,21 @@
 				rowClass={standingClass}
 			/>
 		{:else}<p class="text-gray-500">Nothing proposed.</p>{/if}
+		{#if galcomHistory.length}
+			<h3 class="mt-4 mb-1 font-semibold">History</h3>
+			<p class="mb-1 text-xs text-gray-500">
+				from the saves, each dated to the first save showing it; a proposal that left the queue
+				without a vote was withdrawn — the game keeps no record of it
+			</p>
+			<div class="max-h-80 overflow-y-auto">
+				<SortTable
+					rows={galcomHistory}
+					columns={historyColumns}
+					key={(m) => m.i}
+					sort={{ column: 'date', desc: true }}
+				/>
+			</div>
+		{/if}
 	</section>
 {/if}
 
@@ -424,10 +447,10 @@
 			? '1 · up next'
 			: r.place}{/snippet}
 {#snippet forWeight(r: Proposal)}<span class="text-green-600"
-		>{estimated(r.support) ? '≈' : ''}{Math.round(sideWeight(r.support))}</span
+		>{estimated(r.support) ? '≈' : ''}{Math.floor(sideWeight(r.support))}</span
 	>{/snippet}
 {#snippet againstWeight(r: Proposal)}<span class="text-red-600"
-		>{estimated(r.oppose) ? '≈' : ''}{Math.round(sideWeight(r.oppose))}</span
+		>{estimated(r.oppose) ? '≈' : ''}{Math.floor(sideWeight(r.oppose))}</span
 	>{/snippet}
 {#snippet proposerCell(r: Proposal)}<EmpireName name={r.proposer} bold={false} />{/snippet}
 {#snippet battleResult(b: Battle)}<span class={b.won ? 'text-green-600' : 'text-red-600'}
