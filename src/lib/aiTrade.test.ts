@@ -6,6 +6,7 @@ import {
 	enclaveUnitCost,
 	marketPrice,
 	marketRate,
+	giftOpinion,
 	modelFrom,
 	monthlyCap,
 	monthsLeft,
@@ -55,12 +56,13 @@ describe('aiValue and stance', () => {
 		expect(stance('energy', a, info, m)).toBe('plenty'); // 20000 > 0.75 × 25000 = 18750
 		expect(stance('alloys', a, info, m)).toBe('needs'); // 300 < 0.33 × 15000
 		expect(stance('minerals', a, info, m)).toBe('needs');
-		// no gross income: P itself
-		expect(aiValue('energy', a, info, m)).toBe(1);
-		expect(aiValue('energy', { ...a, income: { energy: 200 } }, info, m)).toBe(0.5);
-		expect(aiValue('alloys', a, info, m)).toBe(WORTH.alloys);
+		// no gross income: p itself; an income of its base halves it
+		expect(aiValue('energy', a, info, m)).toBe(WORTH.energy.p);
+		const halved = { ...a, income: { energy: WORTH.energy.base } };
+		expect(aiValue('energy', halved, info, m)).toBeCloseTo(WORTH.energy.p / 2);
+		expect(aiValue('alloys', a, info, m)).toBe(WORTH.alloys.p);
 		expect(aiValue('unity', a, info, m)).toBeNull();
-		expect(aiValue('trade', a, info, m)).toBe(WORTH.trade);
+		expect(aiValue('trade', a, info, m)).toBe(WORTH.trade.p);
 		// tradable, but not measured
 		expect(aiValue('motes', a, { ...info, motes: { ...info.alloys } }, m)).toBeNull();
 	});
@@ -147,7 +149,7 @@ describe('the game’s numbers (2212.08.01)', () => {
 // Every tooltip line of the calibration (docs/trade-calibration.md → Results): what one unit at once
 // is worth to the empire, in the tooltip's unit — a month's unit over 10 years counts 60 (0.5 × 120),
 // and what it gets counts at its willingness. Lines under 15 are left out (rounding: ±3 % and more).
-describe('a unit’s worth against three empires’ tooltips', () => {
+describe('a unit’s worth against the game’s tooltips', () => {
 	const game = Object.fromEntries(
 		Object.keys(WORTH).map((r) => [
 			r,
@@ -158,7 +160,6 @@ describe('a unit’s worth against three empires’ tooltips', () => {
 	const empires = {
 		KhellZen: {
 			willingness: 0.95,
-			tolerance: 0.08,
 			income: {
 				energy: 181.89,
 				minerals: 100.21,
@@ -170,7 +171,6 @@ describe('a unit’s worth against three empires’ tooltips', () => {
 		},
 		Lolehndra: {
 			willingness: 0.8,
-			tolerance: 0.08,
 			income: {
 				energy: 118.18,
 				minerals: 84.38,
@@ -183,7 +183,6 @@ describe('a unit’s worth against three empires’ tooltips', () => {
 		// fallen: stockpiles in the 100,000s, incomes in the 1,000s
 		Syvaal: {
 			willingness: 0.5,
-			tolerance: 0.15,
 			income: {
 				energy: 4570.68,
 				minerals: 2678.82,
@@ -243,20 +242,48 @@ describe('a unit’s worth against three empires’ tooltips', () => {
 		['Syvaal', 'minerals', 113, true, 'we', 21],
 		['Syvaal', 'sr_living_metal', 5, true, 'we', 39]
 	];
-	const SCALE = 0.0827; // the tooltip's unit per model unit (energy's P)
+	// the fit: every line within 2.3 %
 	it.each(lines)('%s: %s %d (a month: %s) from %s → %d', (who, r, amount, monthly, giver, tip) => {
 		const e = empires[who];
 		const seen = tip / amount / (monthly ? 60 : 1) / (giver === 'we' ? e.willingness : 1);
-		const model = aiValue(r, ai({ income: e.income }), game, m)! * SCALE;
-		expect(Math.abs(model / seen - 1)).toBeLessThan(e.tolerance);
+		const model = aiValue(r, ai({ income: e.income }), game, m)!;
+		expect(Math.abs(model / seen - 1)).toBeLessThan(0.03);
 	});
+	// 1000 energy given to each empire (2212.08.01): its gross energy income, willingness, the
+	// acceptance's figure, and the "Favorable Trade Deal" the 2212.09.01 autosave shows
+	const gifts: [string, number, number, number, number][] = [
+		['test nomads', 139, 0.95, 43, 42],
+		['Ikaanan', 110, 0.75, 36, 36],
+		['Dekron', 337, 0.9, 27, 27],
+		['Lolehndra', 118, 0.8, 38, 37],
+		['YlKhahan', 107, 0.7, 34, 33],
+		['Cydran', 240, 1, 36, 35],
+		['Karkato', 118, 0.25, 12, 11],
+		['Kobarian', 113, 1, 48, 47],
+		['Oklarran', 37, 0.9, 54, 53],
+		['Dekrus', 189, 0.5, 20, 19],
+		['Hydarian', 155, 0.8, 35, 34],
+		['KhellZen', 182, 0.95, 39, 38],
+		['Themlaran', 140, 0.75, 34, 33]
+	];
+	it.each(gifts)(
+		'1000 energy to %s (gross energy income %d)',
+		(_, income, willingness, tip, opinion) => {
+			const a = ai({ income: { energy: income } });
+			const t = { willingness, trades: true };
+			const got = giftOpinion('energy', 1000, a, t, game, m, { max: 100, current: 0 })!;
+			expect(Math.abs(got - tip)).toBeLessThanOrEqual(1);
+			expect(Math.abs(got - opinion)).toBeLessThanOrEqual(1);
+		}
+	);
 });
 
 describe('rate', () => {
 	const t = terms(ai({}), personalities, attitudes);
 	it('gives our unit’s worth to it in its own resource, times its willingness', () => {
-		// 1 alloy (1.67) for energy (1 each)
-		expect(rate('alloys', 'energy', ai({}), t, info, m)).toBeCloseTo(WORTH.alloys);
+		expect(rate('alloys', 'energy', ai({}), t, info, m)).toBeCloseTo(
+			WORTH.alloys.p / WORTH.energy.p
+		);
 		// it has no alloys to spare
 		expect(rate('energy', 'alloys', ai({}), t, info, m)).toBeNull();
 	});
@@ -274,15 +301,22 @@ describe('rate', () => {
 	it('counts a gift’s months at its decay', () => {
 		expect(monthsLeft(30, 2)).toBe(15);
 	});
+	it('a gift buys its worth in opinion, up to the cap', () => {
+		const cap = { max: 100, current: 0 };
+		const worth = 1000 * WORTH.energy.p; // no income: 67.6
+		expect(giftOpinion('energy', 1000, ai({}), t, info, m, cap)).toBe(Math.floor(worth));
+		expect(giftOpinion('energy', 1000, ai({}), t, info, m, { max: 100, current: 80 })).toBe(20);
+		expect(giftOpinion('energy', 1000, ai({}), t, info, m, { max: null, current: 0 })).toBe(67);
+		expect(giftOpinion('unity', 1000, ai({}), t, info, m, cap)).toBeNull();
+	});
 });
 
 describe('prices in trade', () => {
 	const t = terms(ai({}), personalities, attitudes);
 	it('what we pay for a unit and what we get for one', () => {
-		// it gives energy (1) for trade (1.03): 1.03 energy per trade
-		expect(wantPrice('energy', ai({}), t, info, m)).toBeCloseTo(1 / WORTH.trade);
-		// alloys (1.67) for its trade (1.03)
-		expect(offerPrice('alloys', ai({}), t, info, m)).toBeCloseTo(WORTH.alloys / WORTH.trade);
+		// trade per energy: energy's worth over trade's
+		expect(wantPrice('energy', ai({}), t, info, m)).toBeCloseTo(WORTH.energy.p / WORTH.trade.p);
+		expect(offerPrice('alloys', ai({}), t, info, m)).toBeCloseTo(WORTH.alloys.p / WORTH.trade.p);
 		// no alloys to spare
 		expect(wantPrice('alloys', ai({}), t, info, m)).toBeNull();
 		// a nomad sells no energy for trade

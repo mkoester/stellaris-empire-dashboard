@@ -183,31 +183,59 @@ and food are full but energy only at ~60 %.
 
 Willingness holds here too: 19 of our alloys a month +19, 19 of its −38.
 
+### 2026-10-23: gifts of 1000 energy
+
+To every other empire, proposed 2212.08.01; the AIs accepted on different days through August
+(12th, 20th, 29th, …). The acceptance's figure ("Our Offer Total") against the "Favorable Trade
+Deal" in the 2212.09.01 autosave, with the empire's willingness and gross energy income:
+
+| Empire          | Willingness | Gross energy | Tooltip | Opinion |
+| --------------- | ----------- | ------------ | ------- | ------- |
+| test nomads     | 0.95        | 139          | 43      | 42      |
+| Ikaanan         | 0.75        | 110          | 36      | 36      |
+| Dekron          | 0.9         | 337          | 27      | 27      |
+| Lolehndra       | 0.8         | 118          | 38      | 37      |
+| YlKhahan        | 0.7         | 107          | 34      | 33      |
+| Cydran          | 1.0         | 240          | 36      | 35      |
+| Karkato         | 0.25        | 118          | 12      | 11      |
+| Landless Kobar. | 1.0         | 113          | 48      | 47      |
+| Oklarran        | 0.9         | 37           | 54      | 53      |
+| Mandate Dekrus  | 0.5         | 189          | 20      | 19      |
+| Hydarian        | 0.8         | 155          | 35      | 34      |
+| KhellZen        | 0.95        | 182          | 39      | 38      |
+| Themlaran       | 0.75        | 140          | 34      | 33      |
+| Syvaal (fallen) | 0.5         | 4,571        | 1       | none    |
+| Ti-Zru (fallen) | 0.33        | 4,423        | 0       | none    |
+
+A gift buys its worth to them at their willingness in opinion: the tooltip or one less. Ti-Zru's
+acceptance showed a line "Gift: +1" of its own. The decay (−2 a month) shows from the next
+autosave on.
+
 ### A unit's worth
 
 At once, as the empire gives it (what it gets ÷ its willingness; a month's unit ÷ 60), in the
 tooltip's unit, with the empire's gross income of it a month:
 
-| Resource       | KhellZen     | Lolehndra    | Syvaal         | P (energy 1) |
-| -------------- | ------------ | ------------ | -------------- | ------------ |
-| energy         | 0.0412 (182) | 0.0483 (118) | 0.0039 (4,571) | 1            |
-| minerals       | 0.0483 (100) | 0.0505 (84)  | 0.0061 (2,679) | 0.93         |
-| food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 1.23         |
-| trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 1.03         |
-| consumer goods | 0.0909 (70)  | 0.0924 (64)  | 0.0176 (1,190) | 1.48         |
-| alloys         | 0.1304 (21)  | 0.1300 (22)  | 0.0333 (561)   | 1.67         |
-| living metal   | 0.316 (0)    | 0.317 (0)    | 0.26 (22)      | 3.71         |
+| Resource       | KhellZen     | Lolehndra    | Syvaal         | p      | base |
+| -------------- | ------------ | ------------ | -------------- | ------ | ---- |
+| energy         | 0.0412 (182) | 0.0483 (118) | 0.0039 (4,571) | 0.0676 | 280  |
+| minerals       | 0.0483 (100) | 0.0505 (84)  | 0.0061 (2,679) | 0.0664 | 270  |
+| food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 0.1153 | 160  |
+| trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 0.0898 | 180  |
+| consumer goods | 0.0909 (70)  | 0.0924 (64)  | 0.0176 (1,190) | 0.1224 | 200  |
+| alloys         | 0.1304 (21)  | 0.1300 (22)  | 0.0333 (561)   | 0.1487 | 160  |
+| living metal   | 0.316 (0)    | 0.317 (0)    | 0.26 (22)      | 0.3167 | 100  |
 
-Worth = P × 200 / (200 + gross income), energy's P = 0.0827 in the tooltip's unit: every line within
-8 % at the regular empires, 14 % at the fallen one (the residue splits regular from fallen, so the
-true form differs somewhat). Other forms, fitted the same way (least squares on the log): P ×
-(1 + 50/(50 + net)) — the defines' income base on net income — fits the two regular empires to
-1–2 % but puts the fallen one 8× too high (66 % rms); P × B/(B + net) 26 %; a power on the gross
-form gains little (5 % against 6 %). Not `ai_weight` (energy 1.5, minerals 1, living metal 100),
-not market prices, not the stockpile (KhellZen's 13,063 energy and Lolehndra's 869 differ only by
-income). `WORTH` and `incomeBase` in `#lib/aiTrade.ts` hold it, the test every tooltip line above.
-Not measured: volatile motes, exotic gases, rare crystals, zro, dark matter and the rest — and gifts
-(part 2).
+Worth = p × base / (base + gross income), per resource: every tooltip line and every gift within
+2.3 %. Energy's base rests on 16 empires (the gifts put it at 280 with an exponent of 0.98 — so
+the plain form); the others' two numbers on three points each, a best fit until the next gifts
+test them. Other forms, fitted the same way (least squares on the log): one base for all (200)
+6 % rms, the gifts then 3–17 % high; P × (1 + 50/(50 + net)) — the defines' income base on net
+income — fits the two regular empires to 1–2 % but puts the fallen one 8× too high (66 % rms). Not
+`ai_weight` (energy 1.5, minerals 1, living metal 100), not market prices, not the stockpile
+(KhellZen's 13,063 energy and Lolehndra's 869 differ only by income). `WORTH` in `#lib/aiTrade.ts`
+holds it, the test every line above. Not measured: volatile motes, exotic gases, rare crystals,
+zro, dark matter and the rest (the nomad test game).
 
 ## Afterwards
 

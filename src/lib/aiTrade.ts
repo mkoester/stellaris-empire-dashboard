@@ -13,46 +13,45 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 // - it gives at once at most its stockpile above max(`ai_wants`, TRADE_MIN_RESOURCE_STOCKPILE 500),
 //   and a month at most TRADE_MAX_RESOURCE_PERCENT (0.3) of its gross monthly income, rounded down
 //   (energy 181.9 a month → 54);
-// - a unit is worth P × 200 / (200 + its gross income of it per month), short of it or flush. Both
-//   P (`WORTH`, energy 1) and the 200 are fitted, not in the files: not ai_weight, not the defines'
-//   income base (50, on net income: right for the two regular empires, 8× too high for the fallen
-//   one). Every tooltip line within 8 % at the regular empires, 14 % at the fallen one. A resource
-//   not measured is not valued (null): no estimate for it.
-// Unmeasured, from the defines:
-// - it gives nothing once its want is at least 0.8 of its storage
-//   (OFFER_TRADE_MIN_RESOURCE_THRESHOLD);
-// - a nomadic empire never gives energy or minerals — they are its operational reserves, which
-//   "can be bought on the market, but not sold" (concept_operational_reserves_desc; for deals our
-//   extrapolation). It does take them in a deal (seen in game, 2026-10-23).
+// - a unit at once is worth P × B / (B + its gross income of it per month), short of it or flush,
+//   P and B per resource (`WORTH`), in the tooltip's own unit — not ai_weight, not the defines'
+//   income base (50, on net income). Every tooltip line within 2.3 %: energy from 16 empires (B 280),
+//   the rest from 3 each, two of them regular, one fallen (two numbers from three points: the next
+//   gifts test them). A resource not measured is not valued (null): no estimate for it;
+// - a gift raises its opinion of us by its worth as the acceptance shows it (`giftOpinion()`):
+//   "Favorable Trade Deal" (accumulates to 100, −2 a month) came out the tooltip or one less, at 13
+//   empires given 1000 energy (2212.08).
+// - a nomadic empire never gives energy or minerals but takes them (seen in game): they are its
+//   operational reserves, which "can be bought on the market, but not sold"
+//   (concept_operational_reserves_desc).
+// Unmeasured, from the defines: it gives nothing once its want is at least 0.8 of its storage
+// (OFFER_TRADE_MIN_RESOURCE_THRESHOLD).
 
 /**
- * A unit's worth to the AI before its income, energy = 1 (docs/trade-calibration.md → Results:
- * tooltips at KhellZen, Lolehndra and the Syvaal Forerunners, 2212.08.01). Not ai_weight: energy
- * (1.5) and minerals (1) come out alike, living metal (100) under 4.
+ * A unit's worth to the AI at once: `p` with no income of it, falling by base / (base + gross
+ * income); in the trade screen's acceptance points (docs/trade-calibration.md → Results).
  */
-export const WORTH: Record<string, number> = {
-	energy: 1,
-	minerals: 0.93,
-	food: 1.23,
-	consumer_goods: 1.48,
-	alloys: 1.67,
-	sr_living_metal: 3.71,
-	trade: 1.03
+export const WORTH: Record<string, { p: number; base: number }> = {
+	energy: { p: 0.0676, base: 280 },
+	minerals: { p: 0.0664, base: 270 },
+	food: { p: 0.1153, base: 160 },
+	trade: { p: 0.0898, base: 180 },
+	consumer_goods: { p: 0.1224, base: 200 },
+	alloys: { p: 0.1487, base: 160 },
+	sr_living_metal: { p: 0.3167, base: 100 }
 };
 
 export type TradeModel = {
-	incomeBase: number; // worth × incomeBase / (incomeBase + gross income) (fitted)
 	under: number; // stockpile below this share of storage: short (shown, not valued)
 	over: number; // above it: flush
 	monthlyShare: number; // pays at most this share of its gross income a month
 	offerThreshold: number; // won't give away what it wants this share of its storage of
 	keep: number; // keeps at least this much of anything (TRADE_MIN_RESOURCE_STOCKPILE)
-	worth: Record<string, number>; // P, a unit's worth before its income (energy 1)
+	worth: typeof WORTH;
 	calibrated: boolean;
 };
 
 export const modelFrom = (defines: Record<string, number>): TradeModel => ({
-	incomeBase: 200,
 	under: defines.TRADE_RESOURCE_STOCKPILE_UNDER ?? 0.33,
 	over: defines.TRADE_RESOURCE_STOCKPILE_OVER ?? 0.75,
 	monthlyShare: defines.TRADE_MAX_RESOURCE_PERCENT ?? 0.3,
@@ -76,12 +75,12 @@ export function stance(r: string, ai: AiIntel, info: Info, m: TradeModel): Stanc
 	return 'normal';
 }
 
-/** What a unit of `r` is worth to the AI, in its weight units; null: it does not trade it. */
+/** What a unit of `r` at once is worth to the AI, in acceptance points; null: not measured. */
 export function aiValue(r: string, ai: AiIntel, info: Info, m: TradeModel): number | null {
-	const p = m.worth[r];
-	if (!info[r]?.tradable || p === undefined) return null;
+	const w = m.worth[r];
+	if (!info[r]?.tradable || w === undefined) return null;
 	const income = Math.max(0, ai.income[r] ?? 0);
-	return p * (m.incomeBase / (m.incomeBase + income));
+	return w.p * (w.base / (w.base + income));
 }
 
 /** A nomadic empire's reserve: it takes these, never gives them. */
@@ -139,6 +138,26 @@ export function rate(
 	const [vg, vr] = [aiValue(give, ai, info, m), aiValue(get, ai, info, m)];
 	if (vg === null || vr === null || vr <= 0 || spare(get, ai, info, m) <= 0) return null;
 	return (vg * (t.willingness ?? 1)) / vr;
+}
+
+/**
+ * The opinion a gift of `amount` of `r` buys: its worth to the AI at its willingness, rounded down
+ * (the game showed the acceptance's figure or one less), up to the modifier's cap less what is
+ * left of earlier gifts. Null when it is not valued.
+ */
+export function giftOpinion(
+	r: string,
+	amount: number,
+	ai: AiIntel,
+	t: Terms,
+	info: Info,
+	m: TradeModel,
+	cap: { max: number | null; current: number }
+): number | null {
+	const v = aiValue(r, ai, info, m);
+	if (v === null || !t.trades) return null;
+	const worth = Math.floor(amount * v * (t.willingness ?? 1));
+	return cap.max === null ? worth : Math.max(0, Math.min(worth, cap.max - cap.current));
 }
 
 /**

@@ -60,7 +60,8 @@ All notable changes to this project are documented here. The format follows
   of energy, minerals, food, consumer goods, alloys, living metal and trade is worth to them, how
   much they hand over at once (all but 500 of a resource) and a month (30 % of their income of it),
   and how their personality's willingness discounts what you offer. Other strategic resources show
-  no estimate until measured.
+  no estimate until measured. The deal finder also shows the opinion a gift of 1000 buys at each
+  empire.
 
 - A download for macOS (13.5 or newer), for Apple silicon and Intel Macs, with its own Python.
 - Every folder the dashboard looks in, per system and store, listed in the zip's `README.txt`.

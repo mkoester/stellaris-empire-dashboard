@@ -432,17 +432,19 @@ spoiler (cheating — their stockpiles and income; the route strips them otherwi
 finder (we give X, for Y: per empire the most Y it would give per X, against selling X and buying
 Y on the market with the fee) and per empire and resource whether it is short (under a third of
 its storage) or flush (over three quarters). **Estimated**: the AI's valuation is engine code;
-measured 2026-10-23 on three empires, one fallen (`docs/trade-calibration.md` → Results;
-every tooltip line is a case in `aiTrade.test.ts`): the acceptance is our side's worth × the AI's
-willingness minus its side's, linear in the amount however large; a unit a month is worth 0.5 × the
-months of one at once; a unit is worth P × 200/(200 + its **gross** income of it), P per resource
-and the 200 fitted (`WORTH`, `incomeBase`; energy 1 — not `ai_weight`, not the defines' income
-base of 50), within 8 % at regular empires and 14 % at a fallen one; a resource not measured gets
-no estimate. It gives at once its stockpile above max(`ai_wants`, 500) (`spare()`,
-`TRADE_MIN_RESOURCE_STOCKPILE`) and a month at most 0.3 of its **gross** income
-(`TRADE_MAX_RESOURCE_PERCENT`, `monthlyCap()`; `AiIntel.income`, READER 12). Open: motes, gases,
-crystals and the other strategic resources, and gifts. **Trade is a resource** there (default
-trade → energy) though it has no `ai_weight`: measured like the rest (P 1.03). **Nomadic empires** (`AiIntel.nomadic`, READER 11) are those running
+measured 2026-10-23 on three empires (one fallen) and gifts to 13 more
+(`docs/trade-calibration.md` → Results; every tooltip line is a case in `aiTrade.test.ts`): the
+acceptance is our side's worth × the AI's willingness minus its side's, linear in the amount
+however large; a unit a month is worth 0.5 × the months of one at once; a unit is worth p ×
+base/(base + its **gross** income of it), both per resource and fitted (`WORTH`; not `ai_weight`,
+not the defines' income base of 50), every tooltip line within 2.3 %; a gift buys that worth at
+the AI's willingness in opinion (`giftOpinion()`, the deal finder's gift column; "Favorable Trade
+Deal", max 100, −2 a month); a resource not measured gets no estimate. It gives at once its
+stockpile above max(`ai_wants`, 500) (`spare()`, `TRADE_MIN_RESOURCE_STOCKPILE`) and a month at
+most 0.3 of its **gross** income (`TRADE_MAX_RESOURCE_PERCENT`, `monthlyCap()`; `AiIntel.income`,
+READER 12). Open: motes, gases, crystals and the other strategic resources (the nomad test game).
+**Trade is a resource** there (default trade → energy) though it has no `ai_weight`: measured like
+the rest. **Nomadic empires** (`AiIntel.nomadic`, READER 11) are those running
 `situation_nomad_economy` — the origin misses most (2212.06.01: six such empires, one nomad
 origin); they never give energy or minerals (`NOMAD_RESERVE`; the game's
 `concept_operational_reserves_desc` says so for the market, for deals it is our assumption —
@@ -454,8 +456,8 @@ crystals) sell for energy only, 500·N at once plus 10·N a month for +N a month
 resource costs in trade**: per empire the trade paid per unit (`wantPrice`) and received
 (`offerPrice`), against the market's buy and sell price. Tables are `SortTable`s (a cell snippet
 gets the column id, for matrices); willing, opinion and trust are tinted by `scaleColor()`. Not
-yet: what a gift buys in opinion (part 2 of the session), deals for monthly payments of different
-length, the produce tab's trade-deal option.
+yet: deals of another length than 10 years (measured only there), the produce tab's trade-deal
+option.
 
 **Growth tab** (`/growth`, `#lib/growth.ts` pure; the user's ask 2026-10-22, built before the
 capacity model — see "Pop growth: planet capacity" under Open): per colony, natural growth
