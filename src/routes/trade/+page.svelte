@@ -20,7 +20,7 @@
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
-	import EmpireBadges from '#lib/EmpireBadges.svelte';
+	import EmpireName from '#lib/EmpireName.svelte';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 
@@ -28,7 +28,7 @@
 	followGame(() => data.isHead);
 
 	type Empire = (typeof data.empires)[number];
-	type Enclave = (typeof data.enclaves)[number];
+	type EnclaveRow = (typeof data.enclaves)[number];
 	// who a row is: an empire, an enclave or the market, with its marks
 	type Party = { name: string; nomadic?: boolean; fallen?: boolean; enclave?: boolean };
 
@@ -225,7 +225,7 @@
 	const marketReceive = (r: string) =>
 		canGive(r, data.weNomadic) ? marketPrice(r, 'sell', prices, fee) : null;
 	// an enclave's resource, paid in energy we could have sold
-	const enclavePay = (x: Enclave, r: string) => {
+	const enclavePay = (x: EnclaveRow, r: string) => {
 		const energy = marketPrice('energy', 'sell', prices, fee);
 		return x.resource === r && energy !== null ? enclaveUnitCost() * energy : null;
 	};
@@ -320,10 +320,57 @@
 			right: true
 		}))
 	]);
+	const enclaveColumns: Column<EnclaveRow>[] = [
+		{ id: 'name', label: 'EnclaveRow', value: (x) => x.name, cell: enclaveName },
+		{ id: 'sells', label: 'Sells', value: (x) => resName(x.resource), cell: sells },
+		{
+			id: 'energy',
+			label: 'Energy per unit',
+			value: () => enclaveUnitCost(),
+			cell: energyPer,
+			right: true
+		},
+		{
+			id: 'trade',
+			label: 'Trade per unit',
+			value: (x) => enclavePay(x, x.resource),
+			cell: tradePer,
+			right: true
+		},
+		{
+			id: 'market',
+			label: 'Market buys at',
+			value: (x) => marketPay(x.resource),
+			cell: marketAt,
+			right: true
+		},
+		{ id: 'deal', label: 'Our deal', value: (x) => x.running?.perMonth ?? null, cell: deal }
+	];
 </script>
 
+{#snippet enclaveName(x: EnclaveRow)}<EmpireName
+		name={x.name}
+		bold={false}
+		kind="enclaves"
+	/>{/snippet}
+{#snippet sells(x: EnclaveRow)}<span style:color={colorOf(x.resource)}>{resName(x.resource)}</span
+	>{/snippet}
+{#snippet energyPer()}{fmt(enclaveUnitCost())}{/snippet}
+{#snippet tradePer(x: EnclaveRow)}{@const pay = enclavePay(x, x.resource)}{@const buy = marketPay(
+		x.resource
+	)}<span class={pay !== null && buy !== null && pay < buy ? 'text-green-600' : ''}
+		>{pay === null ? '–' : fmt(pay)}</span
+	>{/snippet}
+{#snippet marketAt(x: EnclaveRow)}{@const buy = marketPay(x.resource)}{buy === null
+		? '–'
+		: fmt(buy)}{/snippet}
+{#snippet deal(x: EnclaveRow)}{x.running
+		? `+${x.running.perMonth}/month until ${x.running.until ?? '?'}`
+		: '–'}{/snippet}
 {#snippet party(p: Party)}
-	{p.name}<EmpireBadges
+	<EmpireName
+		name={p.name}
+		bold={false}
 		kind={p.fallen ? 'fallen' : p.enclave ? 'enclaves' : null}
 		nomadic={p.nomadic}
 	/>
@@ -459,40 +506,7 @@
 					enclaveUnitCost()
 				)} energy per unit over the deal, whatever its size. In trade at the energy we could sell instead."
 			>
-				<table class="text-sm">
-					<thead>
-						<tr class="text-left text-gray-500">
-							<th class="pr-3">Enclave</th>
-							<th class="pr-3">Sells</th>
-							<th class="pr-3 text-right">Energy per unit</th>
-							<th class="pr-3 text-right">Trade per unit</th>
-							<th class="pr-3 text-right">Market buys at</th>
-							<th>Our deal</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each data.enclaves as x (x.countryId)}
-							{@const pay = enclavePay(x, x.resource)}
-							{@const buy = marketPay(x.resource)}
-							<tr class="border-t border-gray-200 dark:border-gray-800">
-								<td class="pr-3">{x.name}</td>
-								<td class="pr-3" style:color={colorOf(x.resource)}>{resName(x.resource)}</td>
-								<td class="pr-3 text-right tabular-nums">{fmt(enclaveUnitCost())}</td>
-								<td
-									class="pr-3 text-right tabular-nums {pay !== null && buy !== null && pay < buy
-										? 'text-green-600'
-										: ''}">{pay === null ? '–' : fmt(pay)}</td
-								>
-								<td class="pr-3 text-right tabular-nums">{buy === null ? '–' : fmt(buy)}</td>
-								<td
-									>{x.running
-										? `+${x.running.perMonth}/month until ${x.running.until ?? '?'}`
-										: '–'}</td
-								>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
+				<SortTable rows={data.enclaves} columns={enclaveColumns} key={(x) => x.countryId} />
 			</Panel>
 		{/if}
 

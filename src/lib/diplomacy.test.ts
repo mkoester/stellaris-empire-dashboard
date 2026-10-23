@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+	agglomerate,
+	clusters,
 	diplomacyView,
 	levelOf,
 	neighbours,
 	pairOffsets,
 	parseDiplomacyView,
+	type DiploNode,
 	type DiploSnap
 } from './diplomacy.ts';
 import type { DiploCountry, Relation } from './types.ts';
@@ -159,8 +162,64 @@ describe('the graph', () => {
 		expect(parseDiplomacyView({ layout: 'x', hiddenEdges: ['embassy', 'nope'] })).toEqual({
 			communicationsOnly: true,
 			kinds: ['empires'],
-			layout: 'map',
-			hiddenEdges: ['embassy']
+			layout: 'circle',
+			hiddenEdges: ['embassy'],
+			cluster: 'blocs',
+			threshold: 100
 		});
+		expect(parseDiplomacyView({ layout: 'map', cluster: 'pacts' })).toMatchObject({
+			layout: 'map',
+			cluster: 'pacts'
+		});
+	});
+});
+
+describe('clusters', () => {
+	const node = (id: number, n: Partial<DiploNode> = {}): DiploNode => ({
+		id,
+		name: `E${id}`,
+		type: 'default',
+		kind: 'empires',
+		color: null,
+		us: false,
+		nomadic: false,
+		communications: true,
+		intel: 50,
+		government: null,
+		capital: null,
+		federation: null,
+		overlord: null,
+		unmet: 0,
+		...n
+	});
+	const known = <T>(value: T) => ({ value, asOf: '2210.01.01', stale: false });
+
+	it('merges the groups that like each other most, ignoring what is unknown', () => {
+		const like: Record<string, number> = { '1:2': 300, '2:3': 150, '1:3': 120, '3:4': -50 };
+		const aff = (a: number, b: number) => like[`${Math.min(a, b)}:${Math.max(a, b)}`] ?? null;
+		expect(agglomerate([1, 2, 3, 4], aff, 100)).toEqual([[4], [3, 1, 2]]);
+		expect(agglomerate([1, 2, 3, 4], aff, 200)).toEqual([[3], [4], [1, 2]]);
+	});
+
+	it('groups by blocs, opinion and pacts', () => {
+		const nodes = [
+			node(1, { federation: known('Alliance') }),
+			node(2, { federation: known('Alliance') }),
+			node(3, { overlord: 1 }),
+			node(4)
+		];
+		const ids = (cs: { ids: number[] }[]) => cs.map((c) => [...c.ids].sort());
+		const blocs = clusters({ opinions: {} }, nodes, [], 'blocs', 100);
+		expect(ids(blocs)).toEqual([[1, 2, 3], [4]]);
+		expect(blocs[0].label).toBe('Alliance');
+
+		const opinions = { '1:4': known(200), '4:1': known(100), '2:3': known(-100) };
+		expect(ids(clusters({ opinions }, nodes, [], 'opinion', 100))).toEqual([[1, 4], [2], [3]]);
+
+		const edges = [
+			{ kind: 'defensive_pact', from: 2, to: 3, asOf: '', stale: false },
+			{ kind: 'war', from: 1, to: 2, asOf: '', stale: false }
+		];
+		expect(ids(clusters({ opinions: {} }, nodes, edges, 'pacts', 100))[0]).toEqual([2, 3]);
 	});
 });

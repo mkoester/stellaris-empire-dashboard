@@ -44,7 +44,29 @@
 			title: 'in the latest save'
 		}
 	];
+	type Update = (typeof data.updates)[number] & { i: number };
+	const updateColumns: Column<Update>[] = [
+		{ id: 'seen', label: 'Seen', value: (u) => u.to.seenAt.slice(0, 10), cell: seen },
+		{ id: 'mod', label: 'Mod', value: (u) => u.name, cell: modName },
+		{ id: 'version', label: 'Version', value: (u) => u.to.version ?? null, cell: version },
+		{ id: 'updated', label: 'Updated', value: (u) => u.to.updated ?? null, cell: updated }
+	];
 </script>
+
+{#snippet seen(u: Update)}<span class="text-gray-500 tabular-nums">{u.to.seenAt.slice(0, 10)}</span
+	>{/snippet}
+{#snippet modName(u: Update)}<b>{u.name}</b>{/snippet}
+{#snippet version(u: Update)}{#if u.from.version !== u.to.version}{u.from.version ?? '?'} → {u.to
+			.version ?? '?'}{:else}{u.to.version ??
+			''}{/if}{#if u.from.supportedVersion !== u.to.supportedVersion}
+		<span class="text-gray-500"
+			>for game {u.from.supportedVersion ?? '?'} → {u.to.supportedVersion ?? '?'}</span
+		>{/if}{/snippet}
+{#snippet updated(u: Update)}<span class="text-gray-500"
+		>{u.to.updated ? `updated ${u.to.updated.slice(0, 10)}` : ''}{u.to.gameDate
+			? ` · game ${u.to.gameDate}`
+			: ''}</span
+	>{/snippet}
 
 {#snippet name(r: ModRow)}
 	{#if r.steamId}<a
@@ -120,27 +142,10 @@
 {#if data.updates.length === 0}
 	<p class="text-sm text-gray-500">No mod updated between the dashboard's starts yet.</p>
 {:else}
-	<table class="text-left text-sm">
-		<tbody>
-			{#each data.updates as u, i (i)}
-				<tr class="border-b border-gray-100 align-top dark:border-gray-900">
-					<td class="p-1 text-gray-500 tabular-nums">{u.to.seenAt.slice(0, 10)}</td>
-					<td class="p-1"><b>{u.name}</b></td>
-					<td class="p-1"
-						>{#if u.from.version !== u.to.version}{u.from.version ?? '?'} → {u.to.version ??
-								'?'}{:else}{u.to.version ??
-								''}{/if}{#if u.from.supportedVersion !== u.to.supportedVersion}
-							<span class="text-gray-500"
-								>for game {u.from.supportedVersion ?? '?'} → {u.to.supportedVersion ?? '?'}</span
-							>{/if}</td
-					>
-					<td class="p-1 text-gray-500"
-						>{u.to.updated ? `updated ${u.to.updated.slice(0, 10)}` : ''}{u.to.gameDate
-							? ` · game ${u.to.gameDate}`
-							: ''}</td
-					>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<SortTable
+		rows={data.updates.map((u, i) => ({ ...u, i }))}
+		columns={updateColumns}
+		key={(u) => u.i}
+		sort={{ column: '', desc: false }}
+	/>
 {/if}

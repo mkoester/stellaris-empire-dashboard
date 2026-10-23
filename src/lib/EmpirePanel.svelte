@@ -4,6 +4,9 @@
 	import Chart from './Chart.svelte';
 	import Flows from './Flows.svelte';
 	import Jobs from './Jobs.svelte';
+	import SortTable from './SortTable.svelte';
+	import type { Column } from './sort.ts';
+	import type { Colony } from './types.ts';
 	import { automationSummary } from './automation.ts';
 	import { budgetRows } from './flows.ts';
 	import { openJobs } from './jobs.ts';
@@ -40,6 +43,63 @@
 	let { id, data }: { id: PanelId; data: EmpireData } = $props();
 
 	const pct = (v: number | null) => (v === null ? '–' : `${Math.round(v * 100)}%`);
+	const colonyColumns: Column<Colony>[] = [
+		{ id: 'name', label: 'Colony', value: (c) => c.name, cell: colonyName },
+		{ id: 'designation', label: 'Designation', value: (c) => pretty(c.designation) },
+		{ id: 'pops', label: 'Pops', value: (c) => c.pops, cell: numCell, right: true },
+		{
+			id: 'growth',
+			label: '±/mo',
+			value: (c) => c.growth?.net ?? null,
+			cell: colonyGrowth,
+			right: true,
+			title: 'last month: growth, migration, …'
+		},
+		{ id: 'employed', label: 'Employed', value: (c) => c.employed, cell: numCell, right: true },
+		{ id: 'civilians', label: 'Civilians', value: (c) => c.civilians, cell: numCell, right: true },
+		{
+			id: 'open',
+			label: 'Open jobs',
+			value: (c) => openJobs(c).open,
+			cell: colonyOpen,
+			right: true
+		},
+		{ id: 'stability', label: 'Stability', value: (c) => c.stability, cell: numCell, right: true },
+		{
+			id: 'happiness',
+			label: 'Happiness',
+			value: (c) => c.happiness,
+			cell: happinessCell,
+			right: true
+		},
+		{
+			id: 'housing',
+			label: 'Free housing',
+			value: (c) => c.freeHousing,
+			cell: numCell,
+			right: true
+		},
+		{
+			id: 'amenities',
+			label: 'Free amenities',
+			value: (c) => c.freeAmenities,
+			cell: numCell,
+			right: true
+		},
+		{ id: 'districts', label: 'Districts', value: (c) => c.districts, right: true },
+		{
+			id: 'queue',
+			label: 'Build queue',
+			value: (c) => c.buildQueue.length,
+			cell: colonyQueue,
+			right: true
+		},
+		{
+			id: 'automation',
+			label: 'Automation',
+			value: (c) => (c.automation.enabled ? automationSummary(c.automation.settings) : 'off')
+		}
+	];
 
 	const events = $derived(data.upcoming);
 	// Research per field (physics, society, engineering), then tradition, then agenda.
@@ -168,96 +228,13 @@
 	<section>
 		<h2 class="mb-2 text-xl font-semibold">Colonies</h2>
 		<div class="overflow-x-auto">
-			<table class="w-full text-left text-sm">
-				<thead>
-					<tr class="border-b border-gray-300 dark:border-gray-700">
-						<th class="p-1">Colony</th>
-						<th class="p-1">Designation</th>
-						<th class="p-1 text-right">Pops</th>
-						<th class="p-1 text-right" title="last month: growth, migration, …">±/mo</th>
-						<th class="p-1 text-right">Employed</th>
-						<th class="p-1 text-right">Civilians</th>
-						<th class="p-1 text-right">Open jobs</th>
-						<th class="p-1 text-right">Stability</th>
-						<th class="p-1 text-right">Happiness</th>
-						<th class="p-1 text-right">Free housing</th>
-						<th class="p-1 text-right">Free amenities</th>
-						<th class="p-1 text-right">Districts</th>
-						<th class="p-1 text-right">Build queue</th>
-						<th class="p-1">Automation</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each data.latest.colonies as c (c.planetId + ':' + c.name)}
-						{@const jobs = openJobs(c)}
-						<tr>
-							<td class="p-1">
-								{#if c.planetId >= 0}
-									<a class="underline" href={colonyHref(c.planetId)}>{c.name}</a
-									>{#if c.colonizing}&nbsp;<span
-											class="text-xs text-green-700"
-											title="being settled: complete at 100 colonists"
-											>colonizing {fmt(c.pops)}/100</span
-										>{/if}
-								{:else}
-									{c.name}
-								{/if}
-							</td>
-							<td class="p-1">{pretty(c.designation)}</td>
-							<td class="p-1 text-right">{fmt(c.pops)}</td>
-							<td
-								class="p-1 text-right {(c.growth?.net ?? 0) < 0
-									? 'text-red-600'
-									: (c.growth?.net ?? 0) > 0
-										? 'text-green-600'
-										: ''}"
-								title={c.growth
-									? Object.entries(c.growth.by)
-											.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
-											.join(', ')
-									: ''}>{c.growth ? (c.growth.net > 0 ? '+' : '') + fmt(c.growth.net) : ''}</td
-							>
-							<td class="p-1 text-right">{fmt(c.employed)}</td>
-							<td class="p-1 text-right">{fmt(c.civilians)}</td>
-							<td class="p-1 text-right">
-								{fmt(jobs.open)}{#if jobs.reserved}&nbsp;<span
-										class="cursor-help text-gray-500"
-										title="{jobs.reserved} open enforcer job{jobs.reserved === 1
-											? ''
-											: 's'} not counted: crime automation fills them as needed"
-										>({fmt(jobs.reserved)})</span
-									>{/if}
-							</td>
-							<td class="p-1 text-right">{fmt(c.stability)}</td>
-							<td class="p-1 text-right">{pct(c.happiness)}</td>
-							<td class="p-1 text-right">{fmt(c.freeHousing)}</td>
-							<td class="p-1 text-right">{fmt(c.freeAmenities)}</td>
-							<td class="p-1 text-right">{c.districts}</td>
-							<td class="p-1 text-right"
-								>{#if c.buildQueue.length}<DistrictName
-										name={nameOf(data.names, c.buildQueue[0].name)}
-										color={data.colors[c.buildQueue[0].name]}
-									/>{#if c.buildQueue.length > 1}&nbsp;(+{c.buildQueue.length -
-											1}){/if}{:else}∅{/if}</td
-							>
-							<td class="p-1"
-								>{c.automation.enabled ? automationSummary(c.automation.settings) : 'off'}</td
-							>
-						</tr>
-						<!-- second row: districts built and the buildings per zone -->
-						<tr class="border-b border-gray-200 text-xs dark:border-gray-800">
-							<td></td>
-							<td class="p-1 pb-2" colspan="14">
-								<DistrictSummary
-									districts={c.districtList}
-									names={data.names}
-									colors={data.colors}
-								/>
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+			<SortTable
+				rows={data.latest.colonies}
+				columns={colonyColumns}
+				key={(c) => c.planetId + ':' + c.name}
+				sort={{ column: 'pops', desc: true }}
+				below={colonyDistricts}
+			/>
 		</div>
 	</section>
 {:else if id === 'events'}
@@ -357,6 +334,49 @@
 	/>
 {/if}
 
+{#snippet numCell(c: Colony, id: string)}{fmt(
+		Number(colonyColumns.find((x) => x.id === id)!.value(c) ?? 0)
+	)}{/snippet}
+{#snippet happinessCell(c: Colony)}{pct(c.happiness)}{/snippet}
+{#snippet colonyName(c: Colony)}
+	{#if c.planetId >= 0}
+		<a class="underline" href={colonyHref(c.planetId)}>{c.name}</a>{#if c.colonizing}&nbsp;<span
+				class="text-xs text-green-700"
+				title="being settled: complete at 100 colonists">colonizing {fmt(c.pops)}/100</span
+			>{/if}
+	{:else}
+		{c.name}
+	{/if}
+{/snippet}
+{#snippet colonyGrowth(c: Colony)}<span
+		class={(c.growth?.net ?? 0) < 0
+			? 'text-red-600'
+			: (c.growth?.net ?? 0) > 0
+				? 'text-green-600'
+				: ''}
+		title={c.growth
+			? Object.entries(c.growth.by)
+					.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
+					.join(', ')
+			: ''}>{c.growth ? (c.growth.net > 0 ? '+' : '') + fmt(c.growth.net) : ''}</span
+	>{/snippet}
+{#snippet colonyOpen(c: Colony)}{@const jobs = openJobs(c)}{fmt(
+		jobs.open
+	)}{#if jobs.reserved}&nbsp;<span
+			class="cursor-help text-gray-500"
+			title="{jobs.reserved} open enforcer job{jobs.reserved === 1
+				? ''
+				: 's'} not counted: crime automation fills them as needed">({fmt(jobs.reserved)})</span
+		>{/if}{/snippet}
+{#snippet colonyQueue(c: Colony)}{#if c.buildQueue.length}<DistrictName
+			name={nameOf(data.names, c.buildQueue[0].name)}
+			color={data.colors[c.buildQueue[0].name]}
+		/>{#if c.buildQueue.length > 1}&nbsp;(+{c.buildQueue.length - 1}){/if}{:else}∅{/if}{/snippet}
+{#snippet colonyDistricts(c: Colony)}<DistrictSummary
+		districts={c.districtList}
+		names={data.names}
+		colors={data.colors}
+	/>{/snippet}
 {#snippet progress(e: (typeof events)[number])}
 	<span
 		style:color={colorOf(e.tint)}

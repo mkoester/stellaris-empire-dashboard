@@ -27,9 +27,13 @@ export function load({ url }) {
 		galcom,
 		// the game's words for resolutions and subject terms; resolution effects as popups
 		diploNames: pick(getGameData().diploNames, [
-			...resolutions.map((r) => r.type),
+			...resolutions.flatMap((r) => [r.type, getGameData().resolutionCategories[r.type] ?? '']),
 			...(subjects ?? []).flatMap((s) => [s.preset, ...Object.entries(s.terms).flat()])
 		]),
+		resolutionCategories: pick(
+			getGameData().resolutionCategories,
+			resolutions.map((r) => r.type)
+		),
 		explain: pick(
 			getExplanations(),
 			resolutions.map((r) => `resolution:${r.type}`)

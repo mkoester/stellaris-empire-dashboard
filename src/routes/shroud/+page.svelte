@@ -2,6 +2,7 @@
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import type { DeedRow } from '#lib/shroud.ts';
+	import SortTable from '#lib/SortTable.svelte';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -13,18 +14,30 @@
 	const fmt = (v: number) => (Math.abs(v) < 1 ? v.toFixed(1) : String(Math.round(v)));
 </script>
 
+{#snippet weightUp(d: DeedRow)}<span class="text-green-600"
+		>{d.weight > 0 ? '+' : ''}{fmt(d.weight)}</span
+	>{/snippet}
+{#snippet weightDown(d: DeedRow)}<span class="text-red-600"
+		>{d.weight > 0 ? '+' : ''}{fmt(d.weight)}</span
+	>{/snippet}
 {#snippet deeds(rows: DeedRow[], tone: string)}
-	<table class="text-sm tabular-nums">
-		<tbody>
-			{#each rows as d (d.key)}
-				<tr
-					><td class="pr-4">{d.name}</td><td class="text-right {tone}"
-						>{d.weight > 0 ? '+' : ''}{fmt(d.weight)}</td
-					></tr
-				>
-			{/each}
-		</tbody>
-	</table>
+	<div class="text-sm">
+		<SortTable
+			{rows}
+			columns={[
+				{ id: 'name', label: 'Deed', value: (d) => d.name },
+				{
+					id: 'weight',
+					label: 'Weight',
+					value: (d) => d.weight,
+					cell: tone === 'text-red-600' ? weightDown : weightUp,
+					right: true
+				}
+			]}
+			key={(d) => d.key}
+			sort={{ column: '', desc: false }}
+		/>
+	</div>
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">

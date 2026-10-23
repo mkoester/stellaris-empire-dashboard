@@ -19,23 +19,145 @@ export type DiplomacyView = {
 	kinds: ContactKind[];
 	layout: 'map' | 'circle';
 	hiddenEdges: string[]; // edge kinds not drawn
+	cluster: ClusterMode; // the circle's grouping
+	threshold: number; // opinion clusters: the mutual opinion a group needs
 };
 export const DEFAULT_DIPLOMACY_VIEW: DiplomacyView = {
 	communicationsOnly: true,
 	kinds: ['empires'],
-	layout: 'map',
-	hiddenEdges: ['embassy', 'closed_borders']
+	layout: 'circle',
+	hiddenEdges: ['embassy', 'closed_borders'],
+	cluster: 'blocs',
+	threshold: 100
 };
 export function parseDiplomacyView(v: unknown): DiplomacyView {
 	const o = (v && typeof v === 'object' ? v : {}) as Partial<DiplomacyView>;
 	return {
 		communicationsOnly: o.communicationsOnly !== false,
 		kinds: parseKinds(o.kinds),
-		layout: o.layout === 'circle' ? 'circle' : 'map',
+		layout: o.layout === 'map' ? 'map' : 'circle',
 		hiddenEdges: Array.isArray(o.hiddenEdges)
 			? EDGE_KINDS.filter((k) => (o.hiddenEdges as unknown[]).includes(k))
-			: DEFAULT_DIPLOMACY_VIEW.hiddenEdges
+			: DEFAULT_DIPLOMACY_VIEW.hiddenEdges,
+		cluster: CLUSTER_MODES.includes(o.cluster as ClusterMode)
+			? (o.cluster as ClusterMode)
+			: 'blocs',
+		threshold: typeof o.threshold === 'number' && Number.isFinite(o.threshold) ? o.threshold : 100
 	};
+}
+
+/**
+ * How the circle groups empires: `blocs` — federations, and overlords with their subjects;
+ * `opinion` — empires whose known opinions of each other average at least the threshold;
+ * `pacts` — empires tied by pacts (`PACT_SCORE`), rivalries and wars pushing apart.
+ */
+export const CLUSTER_MODES = ['blocs', 'opinion', 'pacts'] as const;
+export type ClusterMode = (typeof CLUSTER_MODES)[number];
+
+// how much a relation pulls two empires together (pacts mode); ours, not the game's
+const PACT_SCORE: Record<string, number> = {
+	defensive_pact: 3,
+	subject: 2,
+	guarantee: 2,
+	research_agreement: 1,
+	commercial_pact: 1,
+	migration_access: 1,
+	non_aggression_pledge: 1,
+	waystation_pact: 1,
+	embassy: 0.5,
+	closed_borders: -1,
+	is_rival: -3,
+	war: -5
+};
+
+/** A group of empires on the circle: a name where it has one (federation, overlord). */
+export type Cluster = { label: string | null; ids: number[] };
+
+/**
+ * Average-linkage grouping: start with each empire alone, merge the two groups that like each
+ * other most while that is at least `min`. `affinity` is null where nothing is known — such pairs
+ * do not count towards the average.
+ */
+export function agglomerate(
+	ids: number[],
+	affinity: (a: number, b: number) => number | null,
+	min: number
+): number[][] {
+	let groups = ids.map((id) => [id]);
+	for (;;) {
+		let best: { i: number; j: number; v: number } | null = null;
+		for (let i = 0; i < groups.length; i++)
+			for (let j = i + 1; j < groups.length; j++) {
+				const vs = groups[i].flatMap((a) =>
+					groups[j].flatMap((b) => {
+						const v = affinity(a, b);
+						return v === null ? [] : [v];
+					})
+				);
+				if (!vs.length) continue;
+				const v = vs.reduce((x, y) => x + y, 0) / vs.length;
+				if (v >= min && (!best || v > best.v)) best = { i, j, v };
+			}
+		if (!best) return groups;
+		const { i, j } = best;
+		groups = [...groups.filter((_, k) => k !== i && k !== j), [...groups[i], ...groups[j]]];
+	}
+}
+
+export function clusters(
+	d: Pick<Diplomacy, 'opinions'>,
+	nodes: DiploNode[],
+	edges: DiploEdge[],
+	mode: ClusterMode,
+	threshold: number
+): Cluster[] {
+	const ids = nodes.map((n) => n.id);
+	const byId = new Map(nodes.map((n) => [n.id, n]));
+	let groups: number[][];
+	if (mode === 'blocs') {
+		// overlord with subjects, then federation members together
+		const root = (id: number): number => {
+			const o = byId.get(id)?.overlord;
+			return o !== null && o !== undefined && byId.has(o) ? root(o) : id;
+		};
+		const key = (id: number) => byId.get(root(id))?.federation?.value ?? `root:${root(id)}`;
+		const m = new Map<string, number[]>();
+		for (const id of ids) m.set(key(id), [...(m.get(key(id)) ?? []), id]);
+		groups = [...m.values()];
+	} else if (mode === 'opinion') {
+		const op = (a: number, b: number) => d.opinions[`${a}:${b}`]?.value;
+		groups = agglomerate(
+			ids,
+			(a, b) => {
+				const vs = [op(a, b), op(b, a)].filter((v) => v !== undefined);
+				return vs.length ? vs.reduce((x, y) => x + y, 0) / vs.length : null;
+			},
+			threshold
+		);
+	} else {
+		const score = new Map<string, number>();
+		const pair = (a: number, b: number) => `${Math.min(a, b)}:${Math.max(a, b)}`;
+		for (const e of edges)
+			score.set(
+				pair(e.from, e.to),
+				(score.get(pair(e.from, e.to)) ?? 0) + (PACT_SCORE[e.kind] ?? 0)
+			);
+		// no relation counts as 0: a group holds together by its pacts, on average one per pair
+		groups = agglomerate(ids, (a, b) => score.get(pair(a, b)) ?? 0, 1);
+	}
+	const label = (g: number[]): string | null => {
+		if (g.length < 2) return null;
+		if (mode !== 'blocs') return null;
+		const n = byId.get(g[0]);
+		return (
+			n?.federation?.value ??
+			byId.get(g.find((id) => byId.get(id)?.overlord === null) ?? g[0])?.name ??
+			null
+		);
+	};
+	return groups
+		.map((g) => ({ label: label(g), ids: g }))
+		.sort((a, b) => b.ids.length - a.ids.length);
 }
 
 /** How each kind of relation is drawn: its matrix abbreviation, colour and line width. */

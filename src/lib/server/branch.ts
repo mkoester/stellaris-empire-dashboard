@@ -3,6 +3,7 @@ import { jobFlows, jobRows, withFlows } from '#lib/jobs.ts';
 import { getDb, getGameData } from './app.ts';
 import { headId, history, nodes } from './db.ts';
 import { pick } from './explain.ts';
+import { empireColors } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
 
@@ -54,6 +55,11 @@ export function branch(url: URL) {
 		),
 		empireJobs,
 		blockers: getGameData().blockers.filter((k) => colonies.some((c) => c.deposits.includes(k))),
+		// every known empire's map colour by name, for EmpireName
+		empireColors: empireColors(
+			snaps.findLast((s) => s.countries !== null),
+			getGameData().flagColors
+		),
 		tip,
 		isHead: tip === headId(db),
 		snaps,

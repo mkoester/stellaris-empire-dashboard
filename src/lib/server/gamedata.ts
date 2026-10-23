@@ -184,6 +184,11 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT key, name FROM agreement_preset WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name])
 			),
+			resolutionCategories: Object.fromEntries(
+				rows<{ key: string; category: string }>(
+					'SELECT key, category_key AS category FROM resolution WHERE category_key IS NOT NULL'
+				).map((r) => [r.key, r.category])
+			),
 			shroud: {
 				patrons: Object.fromEntries(
 					rows<{

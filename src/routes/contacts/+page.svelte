@@ -11,10 +11,13 @@
 		type ContactRow,
 		type ContactView
 	} from '#lib/contacts.ts';
+	import { totalEffects } from '#lib/effects.ts';
+	import Effects from '#lib/Effects.svelte';
+	import EffectTotals from '#lib/EffectTotals.svelte';
 	import { nameOf, pretty } from '#lib/format.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import InfoPopup from '#lib/InfoPopup.svelte';
-	import type { ResolutionVote } from '#lib/types.ts';
+	import type { Battle, Claim, Combat, ResolutionVote } from '#lib/types.ts';
 	import { followGame } from '#lib/live.ts';
 	import { putSettings } from '#lib/settings.ts';
 	import SortTable from '#lib/SortTable.svelte';
@@ -88,6 +91,110 @@
 	// "subject_can_not_be_integrated" → "can not be integrated"
 	const termValue = (v: string) => pretty(v.replace(/^subject_(is_|does_|gets_)?/, ''));
 	const percent = (v: number | null) => (v === null ? '?' : `${Math.round(v * 100)} %`);
+
+	const battleColumns: Column<Battle & { i: number }>[] = [
+		{ id: 'date', label: 'Date', value: (b) => b.date },
+		{ id: 'system', label: 'System', value: (b) => b.system },
+		{ id: 'type', label: 'Type', value: (b) => b.type },
+		{ id: 'result', label: 'Result', value: (b) => (b.won ? 1 : 0), cell: battleResult },
+		{ id: 'lost', label: 'Lost', value: (b) => b.lost, right: true },
+		{ id: 'killed', label: 'Killed', value: (b) => b.killed, right: true }
+	];
+	const combatColumns: Column<Combat>[] = [
+		{ id: 'date', label: 'Date', value: (c) => c.date },
+		{ id: 'fleet', label: 'Our fleet', value: (c) => c.fleet },
+		{ id: 'enemy', label: 'Against', value: (c) => c.enemy, cell: combatEnemy },
+		{ id: 'lost', label: 'Our losses', value: (c) => c.lost, cell: combatLost, right: true },
+		{ id: 'killed', label: 'Theirs', value: (c) => c.enemyLost, cell: combatKilled, right: true }
+	];
+	const claimColumns: Column<Claim>[] = [
+		{ id: 'system', label: 'System', value: (c) => c.system },
+		{ id: 'holder', label: 'Held by', value: (c) => c.holder, cell: claimHolder },
+		{
+			id: 'claimant',
+			label: 'Claimed by',
+			value: (c) => (c.ours ? 'us' : c.claimant),
+			cell: claimant
+		},
+		{ id: 'claims', label: 'Claims', value: (c) => c.claims, right: true },
+		{ id: 'since', label: 'Since', value: (c) => c.since }
+	];
+
+	// the Galactic Community: in force by category (or flat), proposals with their sides' weight
+	const categoryOf = (type: string) => {
+		const c = data.resolutionCategories[type];
+		return c ? (data.diploNames[c] ?? pretty(c.replace(/^resolution_category_/, ''))) : null;
+	};
+	const inForce = $derived.by(() => {
+		const passed = data.galcom?.passed ?? [];
+		if (view.galcomFlat) return [{ category: null as string | null, items: passed }];
+		const m = new Map<string, ResolutionVote[]>();
+		for (const r of passed) {
+			const c = categoryOf(r.type) ?? 'other';
+			m.set(c, [...(m.get(c) ?? []), r]);
+		}
+		return [...m]
+			.sort(([a], [b]) => a.localeCompare(b))
+			.map(([category, items]) => ({ category: category as string | null, items }));
+	});
+	const activeEffects = $derived(
+		totalEffects(
+			(data.galcom?.passed ?? []).map((r) => ({
+				name: data.diploNames[r.type] ?? pretty(r.type),
+				modifiers: data.explain[`resolution:${r.type}`]?.modifiers ?? []
+			}))
+		)
+	);
+	type Proposal = ResolutionVote & { status: 'voting' | 'proposed' };
+	const proposals: Proposal[] = $derived([
+		...(data.galcom?.voting ? [{ ...data.galcom.voting, status: 'voting' as const }] : []),
+		...(data.galcom?.proposed ?? []).map((r) => ({ ...r, status: 'proposed' as const }))
+	]);
+	const weightOf = (name: string) => data.galcom?.weights[name] ?? null;
+	const weightLabel = (w: { value: number; exact: boolean } | null) =>
+		w === null ? '?' : `${w.exact ? '' : '≈'}${Math.round(w.value)}`;
+	const sideWeight = (names: string[]) => names.reduce((n, x) => n + (weightOf(x)?.value ?? 0), 0);
+	const estimated = (names: string[]) => names.some((x) => !weightOf(x)?.exact);
+	const anyEstimated = $derived(Object.values(data.galcom?.weights ?? {}).some((w) => !w.exact));
+	const proposalColumns: Column<Proposal>[] = [
+		{
+			id: 'name',
+			label: 'Resolution',
+			value: (r) => data.diploNames[r.type] ?? r.type,
+			cell: resolutionCell
+		},
+		{
+			id: 'status',
+			label: 'Status',
+			value: (r) => (r.status === 'voting' ? 'voting now' : 'proposed')
+		},
+		{ id: 'by', label: 'By', value: (r) => r.proposer, cell: proposerCell },
+		{ id: 'for', label: 'For', value: (r) => r.support.length, right: true, title: 'empires for' },
+		{
+			id: 'against',
+			label: 'Against',
+			value: (r) => r.oppose.length,
+			right: true,
+			title: 'empires against'
+		},
+		{
+			id: 'forWeight',
+			label: 'For weight',
+			value: (r) => sideWeight(r.support),
+			cell: forWeight,
+			right: true,
+			title: 'the diplomatic weight of the empires for'
+		},
+		{
+			id: 'againstWeight',
+			label: 'Against weight',
+			value: (r) => sideWeight(r.oppose),
+			cell: againstWeight,
+			right: true,
+			title: 'the diplomatic weight of the empires against'
+		},
+		{ id: 'we', label: 'We', value: (r) => r.ours }
+	];
 </script>
 
 {#snippet name(r: ContactRow)}
@@ -108,6 +215,11 @@
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
 </header>
 
+{#snippet who(names: string[])}{#each names as n, i (n)}{i ? ', ' : ''}<EmpireName
+			name={n}
+			bold={false}
+		/>{/each}{/snippet}
+
 {#if data.wars.length > 0}
 	<h2 class="mb-2 text-xl font-semibold">Wars</h2>
 	<div class="mb-6 flex flex-col gap-3">
@@ -118,9 +230,8 @@
 					<span class="text-gray-500 tabular-nums">since {w.start ?? '?'}</span>
 				</div>
 				<div>
-					we {w.attacker ? 'attack' : 'defend'}{w.allies.length
-						? ` with ${w.allies.join(', ')}`
-						: ''} against <b>{w.enemies.join(', ')}</b>
+					we {w.attacker ? 'attack' : 'defend'}{#if w.allies.length}
+						with {@render who(w.allies)}{/if} against <b>{@render who(w.enemies)}</b>
 				</div>
 				<div>
 					war goals: ours {w.goal ? goalName(w.goal) : '–'}, theirs {w.enemyGoal
@@ -131,29 +242,13 @@
 					war exhaustion: ours {percent(w.exhaustion)}, theirs {percent(w.enemyExhaustion)}
 				</div>
 				{#if w.battles.length}
-					<table class="mt-2 text-xs tabular-nums">
-						<thead class="text-gray-500"
-							><tr
-								><th class="pr-3 text-left">date</th><th class="pr-3 text-left">system</th><th
-									class="pr-3 text-left">type</th
-								><th class="pr-3 text-left">result</th><th class="pr-3 text-right">lost</th><th
-									class="text-right">killed</th
-								></tr
-							></thead
-						>
-						<tbody>
-							{#each w.battles as b, i (i)}
-								<tr
-									><td class="pr-3">{b.date}</td><td class="pr-3">{b.system}</td><td class="pr-3"
-										>{b.type}</td
-									><td class="pr-3 {b.won ? 'text-green-600' : 'text-red-600'}"
-										>{b.won ? 'won' : 'lost'}</td
-									><td class="pr-3 text-right">{b.lost}</td><td class="text-right">{b.killed}</td
-									></tr
-								>
-							{/each}
-						</tbody>
-					</table>
+					<div class="mt-2 text-xs">
+						<SortTable
+							rows={w.battles.map((b, i) => ({ ...b, i }))}
+							columns={battleColumns}
+							key={(b) => b.i}
+						/>
+					</div>
 				{/if}
 			</section>
 		{/each}
@@ -165,123 +260,148 @@
 	<p class="mb-1 text-xs text-gray-500">
 		what the saves caught: a fleet's combat record is cleared some time after the fight
 	</p>
-	<table class="mb-6 text-sm tabular-nums">
-		<thead class="text-xs text-gray-500"
-			><tr
-				><th class="pr-4 text-left">date</th><th class="pr-4 text-left">our fleet</th><th
-					class="pr-4 text-left">against</th
-				><th class="pr-4 text-right">our losses</th><th class="text-right">theirs</th></tr
-			></thead
-		>
-		<tbody>
-			{#each data.combats as c (`${c.fleetId}:${c.date}`)}
-				<tr
-					><td class="pr-4">{c.date}</td><td class="pr-4">{c.fleet}</td><td class="pr-4"
-						>{c.enemyFleets} <span class="text-gray-500">({c.enemy})</span></td
-					><td class="pr-4 text-right {c.lost ? 'text-red-600' : ''}">{c.lost} / {c.ships}</td><td
-						class="text-right {c.enemyLost ? 'text-green-600' : ''}"
-						>{c.enemyLost} / {c.enemyShips}</td
-					></tr
-				>
-			{/each}
-		</tbody>
-	</table>
+	<div class="mb-6">
+		<SortTable
+			rows={data.combats}
+			columns={combatColumns}
+			key={(c) => `${c.fleetId}:${c.date}`}
+			sort={{ column: 'date', desc: true }}
+		/>
+	</div>
 {/if}
 
 {#if data.claims.length}
 	<h2 class="mb-2 text-xl font-semibold">Claims</h2>
-	<table class="mb-6 text-sm tabular-nums">
-		<thead class="text-xs text-gray-500"
-			><tr
-				><th class="pr-4 text-left">system</th><th class="pr-4 text-left">held by</th><th
-					class="pr-4 text-left">claimed by</th
-				><th class="pr-4 text-right">claims</th><th class="text-left">since</th></tr
-			></thead
-		>
-		<tbody>
-			{#each data.claims as c (`${c.systemId}:${c.claimant}`)}
-				<tr
-					><td class="pr-4">{c.system}</td><td class="pr-4">{c.holder ?? '–'}</td><td
-						class="pr-4 {c.ours ? '' : 'text-red-600'}">{c.ours ? 'us' : c.claimant}</td
-					><td class="pr-4 text-right">{c.claims}</td><td>{c.since ?? '?'}</td></tr
-				>
-			{/each}
-		</tbody>
-	</table>
+	<div class="mb-6">
+		<SortTable
+			rows={data.claims}
+			columns={claimColumns}
+			key={(c) => `${c.systemId}:${c.claimant}`}
+		/>
+	</div>
 {/if}
 
 {#if data.galcom}
 	{@const g = data.galcom}
-	<h2 class="mb-2 text-xl font-semibold">Galactic Community</h2>
+	<h2 class="mb-2 text-xl font-semibold">Galactic Community: in force</h2>
 	<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
-		<div class="mb-2 text-gray-500">
-			since {g.formed ?? '?'} ·
-			<span title={g.members.join('\n')}>{g.members.length} members</span>{g.member
-				? ', we among them'
-				: ', we are not a member'}
+		<div class="mb-2 flex flex-wrap items-center gap-x-4 text-gray-500">
+			<span
+				>since {g.formed ?? '?'} ·
+				<span title={g.members.join('\n')}>{g.members.length} members</span>{g.member
+					? ', we among them'
+					: ', we are not a member'}</span
+			>
+			{#if g.passed.length}
+				<label class="flex items-center gap-1"
+					><input
+						type="checkbox"
+						checked={view.galcomFlat}
+						onchange={(e) => save({ ...view, galcomFlat: e.currentTarget.checked })}
+					/> flat list</label
+				>
+			{/if}
 		</div>
-		{#if g.passed.length}
-			<div class="mb-2">
-				<b>in force:</b>
-				{#each g.passed as r, i (r.id)}{i ? ', ' : ''}<InfoPopup
-						explanation={data.explain[`resolution:${r.type}`]}
-						>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
-					>{/each}
-			</div>
+		{#if !g.passed.length}
+			<p class="text-gray-500">No resolution in force.</p>
+		{:else}
+			{#each inForce as group (group.category)}
+				{#if group.category}<h3 class="mt-2 mb-1 font-semibold">{group.category}</h3>{/if}
+				<ul class="mb-2 space-y-1">
+					{#each group.items as r (r.id)}
+						<li>
+							<InfoPopup explanation={data.explain[`resolution:${r.type}`]}
+								>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
+							>{#if view.galcomFlat && categoryOf(r.type)}<span class="text-xs text-gray-500">
+									· {categoryOf(r.type)}</span
+								>{/if}
+							<span class="text-gray-500">by <EmpireName name={r.proposer} bold={false} /></span>
+							<div class="ml-4"><Effects explanation={data.explain[`resolution:${r.type}`]} /></div>
+						</li>
+					{/each}
+				</ul>
+			{/each}
+			{#if activeEffects.length}
+				<h3 class="mt-3 mb-1 font-semibold">All active effects</h3>
+				<EffectTotals effects={activeEffects} />
+			{/if}
 		{/if}
+	</section>
+
+	<h2 class="mb-2 text-xl font-semibold">Galactic Community: proposed</h2>
+	<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
 		{#if g.voting}
-			<div class="mb-1 text-xs text-gray-500">
-				counted in empires: the game weighs each vote by diplomatic weight, which the save does not
-				store
-			</div>
 			<div class="mb-2">
 				<b>voting on:</b>
-				{@render resolution(g.voting)}{#if g.voteEnds}<span class="text-gray-500">
+				{data.diploNames[g.voting.type] ?? pretty(g.voting.type)}{#if g.voteEnds}<span
+						class="text-gray-500"
+					>
 						· decided {g.voteEnds}</span
 					>{/if}
 			</div>
 		{:else if g.nextVote}
 			<div class="mb-2 text-gray-500">in recess: the next vote starts {g.nextVote}</div>
 		{/if}
-		{#if g.proposed.length}
-			<table class="text-xs tabular-nums">
-				<thead class="text-gray-500"
-					><tr
-						><th class="pr-3 text-left">proposed</th><th class="pr-3 text-left">by</th><th
-							class="pr-3 text-right">for</th
-						><th class="pr-3 text-right">against</th><th class="text-left">we</th></tr
-					></thead
-				>
-				<tbody>
-					{#each g.proposed as r (r.id)}
-						<tr
-							><td class="pr-3"
-								><InfoPopup explanation={data.explain[`resolution:${r.type}`]}
-									>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
-								></td
-							><td class="pr-3">{r.proposer}</td><td
-								class="pr-3 text-right text-green-600"
-								title={r.support.join('\n')}>{r.support.length}</td
-							><td class="pr-3 text-right text-red-600" title={r.oppose.join('\n')}
-								>{r.oppose.length}</td
-							><td>{r.ours ?? '–'}</td></tr
-						>
-					{/each}
-				</tbody>
-			</table>
-		{/if}
+		<p class="mb-2 text-xs text-gray-500">
+			Weight: each empire's diplomatic weight, summed over its side — {anyEstimated
+				? '≈ estimated from its naval, economic and technological power where companion mod 0.4.0 has not stored the game’s value (modifiers and the council’s × 1.5 are not counted)'
+				: 'the game’s values, stored by companion mod 0.4.0 (the council’s × 1.5 not counted)'}.
+			Click a resolution for who is for and against.
+		</p>
+		{#if proposals.length}
+			<SortTable rows={proposals} columns={proposalColumns} key={(r) => r.id} />
+		{:else}<p class="text-gray-500">Nothing proposed.</p>{/if}
 	</section>
 {/if}
 
-{#snippet resolution(r: ResolutionVote)}
-	<InfoPopup explanation={data.explain[`resolution:${r.type}`]}
-		>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
-	>
-	<span class="text-gray-500">by {r.proposer}</span> ·
-	<span class="text-green-600" title={r.support.join('\n')}>{r.support.length} empires for</span>,
-	<span class="text-red-600" title={r.oppose.join('\n')}>{r.oppose.length} against</span> · we {r.ours ??
-		'have not taken a side'}
+{#snippet resolutionCell(r: Proposal)}
+	<details>
+		<summary class="cursor-pointer"
+			><InfoPopup explanation={data.explain[`resolution:${r.type}`]}
+				>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
+			></summary
+		>
+		<div class="mt-1 grid grid-cols-2 gap-x-6 text-xs">
+			{#each [['for', r.support, 'text-green-600'], ['against', r.oppose, 'text-red-600']] as const as [label, side, tone] (label)}
+				<div>
+					<div class="font-semibold {tone}">{label}</div>
+					{#each [...side].sort((a, b) => (weightOf(b)?.value ?? 0) - (weightOf(a)?.value ?? 0)) as n (n)}
+						<div class="flex justify-between gap-2">
+							<EmpireName name={n} bold={false} /><span class="text-gray-500 tabular-nums"
+								>{weightLabel(weightOf(n))}</span
+							>
+						</div>
+					{:else}<div class="text-gray-500">nobody</div>{/each}
+				</div>
+			{/each}
+		</div>
+	</details>
 {/snippet}
+{#snippet forWeight(r: Proposal)}<span class="text-green-600"
+		>{estimated(r.support) ? '≈' : ''}{Math.round(sideWeight(r.support))}</span
+	>{/snippet}
+{#snippet againstWeight(r: Proposal)}<span class="text-red-600"
+		>{estimated(r.oppose) ? '≈' : ''}{Math.round(sideWeight(r.oppose))}</span
+	>{/snippet}
+{#snippet proposerCell(r: Proposal)}<EmpireName name={r.proposer} bold={false} />{/snippet}
+{#snippet battleResult(b: Battle)}<span class={b.won ? 'text-green-600' : 'text-red-600'}
+		>{b.won ? 'won' : 'lost'}</span
+	>{/snippet}
+{#snippet combatEnemy(c: Combat)}{c.enemyFleets}
+	<span class="text-gray-500">({@render who(c.enemy.split(', '))})</span>{/snippet}
+{#snippet combatLost(c: Combat)}<span class={c.lost ? 'text-red-600' : ''}
+		>{c.lost} / {c.ships}</span
+	>{/snippet}
+{#snippet combatKilled(c: Combat)}<span class={c.enemyLost ? 'text-green-600' : ''}
+		>{c.enemyLost} / {c.enemyShips}</span
+	>{/snippet}
+{#snippet claimHolder(c: Claim)}{#if c.holder}<EmpireName
+			name={c.holder}
+			bold={false}
+		/>{:else}–{/if}{/snippet}
+{#snippet claimant(c: Claim)}{#if c.ours}us{:else}<span class="text-red-600"
+			><EmpireName name={c.claimant} bold={false} /></span
+		>{/if}{/snippet}
 
 {#if data.subjects?.length}
 	<h2 class="mb-2 text-xl font-semibold">Subjects</h2>
@@ -289,7 +409,7 @@
 		{#each data.subjects as s (s.countryId)}
 			<section class="rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
 				<div class="mb-1 flex flex-wrap items-baseline gap-x-4">
-					<b class="text-base">{s.name}</b>
+					<span class="text-base"><EmpireName name={s.name} /></span>
 					<span
 						>{s.weAreOverlord ? 'our subject' : 'our overlord'}: {data.diploNames[s.preset] ??
 							presetName(s.preset)}</span

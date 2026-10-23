@@ -700,6 +700,9 @@ export type GalacticCommunity = {
 	passed: ResolutionVote[]; // in force: `galactic_community.passed = { <ids> }`
 	voteEnds: string | null; // the vote's end: `days` in session of RESOLUTION_VOTE_TIMER (1440)
 	nextVote: string | null; // the recess's end: `cooldown` days (SENATE_RECESS_TIMER 720)
+	// each member's diplomatic weight by name: exact from companion mod 0.4.0's `sdash_dw`, else
+	// estimated (`estimatedWeight()`); since READER 15
+	weights: Record<string, { value: number; exact: boolean }>;
 };
 /**
  * One of our fleets' combats, from its last-combat record (`fleet.<id>.fleet_stats.combat_stats`,
@@ -874,6 +877,7 @@ export type GameData = {
 	identityNames: Record<string, string>;
 	// resolutions, resolution categories, subject agreement terms, term values and presets by key
 	diploNames: Record<string, string>;
+	resolutionCategories: Record<string, string>; // resolution → its category key
 	shroud: {
 		patrons: Record<
 			string,

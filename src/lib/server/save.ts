@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '14';
+export const READER = '15';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1618,7 +1618,10 @@ export function allWars(raw: Pick<RawSave, 'wars'>): WarSides[] {
  * 2026-10-19: one being voted on, seven proposed).
  */
 export function galacticCommunity(
-	raw: Pick<RawSave, 'galcom' | 'resolutions' | 'countryId' | 'countries' | 'date'>
+	raw: Pick<
+		RawSave,
+		'galcom' | 'resolutions' | 'countryId' | 'countries' | 'date' | 'countryBlocks'
+	>
 ): GalacticCommunity | null {
 	const g = raw.galcom;
 	if (!g || typeof g !== 'object' || g.members === undefined) return null;
@@ -1646,6 +1649,18 @@ export function galacticCommunity(
 		formed: strOrNull(g.community_formed),
 		members: members.map(name),
 		member: members.includes(raw.countryId),
+		weights: Object.fromEntries(
+			members.map((id) => {
+				const c = raw.countryBlocks[String(id)];
+				const exact = numOrNull(c?.variables?.sdash_dw);
+				return [
+					name(id),
+					exact === null
+						? { value: estimatedWeight(c), exact: false }
+						: { value: exact, exact: true }
+				];
+			})
+		),
 		voting: typeof g.voting === 'number' ? vote(g.voting) : null,
 		proposed: ids(g.proposed).flatMap((id) => vote(id) ?? []),
 		passed: ids(g.passed).flatMap((id) => vote(id) ?? []),
@@ -1658,6 +1673,16 @@ export function galacticCommunity(
 		nextVote:
 			typeof g.cooldown === 'number' && g.cooldown > 0 ? addGameDays(raw.date, g.cooldown) : null
 	};
+}
+
+/**
+ * A country's diplomatic weight as the defines build it (4.5.2 `00_defines.txt`
+ * `DIPLOMACY_WEIGHT_*`): naval power × 0.025 + economy power × 0.15 + technology × 0.1. Not
+ * counted: the pops' share (0.01 + 2 × happiness each), every `diplomatic_weight` modifier, the
+ * council's × 1.5 — an estimate until companion mod 0.4.0 stores the game's value.
+ */
+export function estimatedWeight(c: Raw): number {
+	return num(c?.military_power) * 0.025 + num(c?.economy_power) * 0.15 + num(c?.tech_power) * 0.1;
 }
 
 /** Days a resolution stays on the senate floor (RESOLUTION_VOTE_TIMER, 4.5.2). */

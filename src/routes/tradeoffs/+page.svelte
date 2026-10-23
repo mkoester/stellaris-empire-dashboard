@@ -4,6 +4,8 @@
 	import { colorOf } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
+	import SortTable from '#lib/SortTable.svelte';
+	import type { Column } from '#lib/sort.ts';
 	import { gameYear } from '#lib/series.ts';
 	import {
 		defaultWeights,
@@ -90,7 +92,55 @@
 		`${c.groups.map((g) => g.replace(/^(job|stratum):/, '')).join(', ')}${c.resource ? ` ${pretty(c.resource)}` : ''} ${c.target} ${c.pct > 0 ? '+' : '−'}${Math.round(Math.abs(c.pct) * 100)} %`;
 	const res = (r: Resources) => Object.entries(r).filter(([, v]) => Math.abs(v) >= 0.01);
 	const months1 = (n: number | null) => (n === null ? 'never' : `${fmt(n)} mo`);
+	type Option = (typeof ranked)[number];
+	const total = (r: Resources) => Object.values(r).reduce((n, v) => n + v, 0);
+	const columns: Column<Option>[] = [
+		{ id: 'build', label: 'Build', value: (o) => o.label },
+		{ id: 'where', label: 'Where', value: (o) => o.where },
+		{ id: 'count', label: '×', value: (o) => o.count, right: true },
+		{ id: 'cost', label: 'Cost', value: (o) => total(o.cost), cell: cost },
+		{
+			id: 'flows',
+			label: 'Per month',
+			value: (o) => total(o.output) - total(o.upkeep),
+			cell: flows
+		},
+		{
+			id: 'pops',
+			label: 'Pops',
+			value: (o) => (o.colony === null ? null : o.pops),
+			cell: pops,
+			right: true,
+			title: 'workers it needs / idle pops there'
+		},
+		{ id: 'days', label: 'Days', value: (o) => o.days, cell: days, right: true },
+		{
+			id: 'value',
+			label: 'Value/mo',
+			value: (o) => o.netValue,
+			cell: value,
+			right: true,
+			title: 'output − upkeep, weighted'
+		},
+		{ id: 'payback', label: 'Payback', value: (o) => o.payback, cell: payback, right: true }
+	];
 </script>
+
+{#snippet cost(o: Option)}{#each res(o.cost) as [k, v] (k)}<span class="mr-2 whitespace-nowrap"
+			><span style:color={colorOf(k)}>{pretty(k)}</span> {fmt(v)}</span
+		>{/each}{/snippet}
+{#snippet flows(o: Option)}{#each res(o.output) as [k, v] (k)}<span
+			class="mr-2 whitespace-nowrap text-green-700"
+			>+{fmt(v)} <span style:color={colorOf(k)}>{pretty(k)}</span></span
+		>{/each}{#each res(o.upkeep) as [k, v] (k)}<span class="mr-2 whitespace-nowrap text-red-600"
+			>−{fmt(v)} <span style:color={colorOf(k)}>{pretty(k)}</span></span
+		>{/each}{/snippet}
+{#snippet pops(o: Option)}{#if o.colony !== null && t}{fmt(o.pops)} / {fmt(
+			t.start.idle[o.colony] ?? 0
+		)}{/if}{/snippet}
+{#snippet days(o: Option)}{fmt(o.days)}{/snippet}
+{#snippet value(o: Option)}{fmt(o.netValue)}{/snippet}
+{#snippet payback(o: Option)}<b>{months1(o.payback)}</b>{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Trade-offs</h1>
@@ -230,52 +280,9 @@
 	<section class="mb-6">
 		<h2 class="mb-1 font-semibold">Ranked by payback</h2>
 		<div class="overflow-x-auto">
-			<table class="w-full text-left text-sm tabular-nums">
-				<thead>
-					<tr class="border-b border-gray-300 dark:border-gray-700">
-						<th class="p-1">Build</th>
-						<th class="p-1">Where</th>
-						<th class="p-1 text-right">×</th>
-						<th class="p-1">Cost</th>
-						<th class="p-1">Per month</th>
-						<th class="p-1 text-right" title="workers it needs / idle pops there">Pops</th>
-						<th class="p-1 text-right">Days</th>
-						<th class="p-1 text-right" title="output − upkeep, weighted">Value/mo</th>
-						<th class="p-1 text-right">Payback</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each ranked as o (o.id)}
-						<tr class="border-b border-gray-200 dark:border-gray-800">
-							<td class="p-1">{o.label}</td>
-							<td class="p-1">{o.where}</td>
-							<td class="p-1 text-right">{o.count}</td>
-							<td class="p-1"
-								>{#each res(o.cost) as [k, v] (k)}<span class="mr-2 whitespace-nowrap"
-										><span style:color={colorOf(k)}>{pretty(k)}</span> {fmt(v)}</span
-									>{/each}</td
-							>
-							<td class="p-1"
-								>{#each res(o.output) as [k, v] (k)}<span
-										class="mr-2 whitespace-nowrap text-green-700"
-										>+{fmt(v)} <span style:color={colorOf(k)}>{pretty(k)}</span></span
-									>{/each}{#each res(o.upkeep) as [k, v] (k)}<span
-										class="mr-2 whitespace-nowrap text-red-600"
-										>−{fmt(v)} <span style:color={colorOf(k)}>{pretty(k)}</span></span
-									>{/each}</td
-							>
-							<td class="p-1 text-right"
-								>{#if o.colony !== null}{fmt(o.pops)} / {fmt(t.start.idle[o.colony] ?? 0)}{/if}</td
-							>
-							<td class="p-1 text-right">{fmt(o.days)}</td>
-							<td class="p-1 text-right">{fmt(o.netValue)}</td>
-							<td class="p-1 text-right font-semibold">{months1(o.payback)}</td>
-						</tr>
-					{:else}
-						<tr><td class="p-1 text-gray-500" colspan="9">Nothing to build right now.</td></tr>
-					{/each}
-				</tbody>
-			</table>
+			{#if ranked.length}
+				<SortTable rows={ranked} {columns} key={(o) => o.id} sort={{ column: '', desc: false }} />
+			{:else}<p class="text-sm text-gray-500">Nothing to build right now.</p>{/if}
 		</div>
 	</section>
 

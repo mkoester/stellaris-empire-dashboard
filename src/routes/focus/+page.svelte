@@ -4,6 +4,8 @@
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
+	import SortTable from '#lib/SortTable.svelte';
+	import type { Column } from '#lib/sort.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -12,7 +14,26 @@
 	const done = $derived(data.view?.cards.filter((c) => c.done) ?? []);
 	// the game's colours per category: exploration blue, conquest red, development gold
 	const tint = (category: string | null) => colorOf(`focus-${category}`);
+	type RewardRow = NonNullable<typeof data.view>['rewards'][number];
+	const rewardColumns: Column<RewardRow>[] = [
+		{ id: 'category', label: 'Category', value: (r) => r.name, cell: category },
+		{ id: 'progress', label: 'Progress', value: (r) => r.progress, cell: progress, right: true },
+		{ id: 'reward', label: 'Next reward', value: (r) => r.now?.cost ?? null, cell: rewardCell }
+	];
 </script>
+
+{#snippet category(r: RewardRow)}<span
+		class="whitespace-nowrap {r.priority ? 'font-semibold' : ''}"
+		style:color={tint(r.category)}>{r.name}{r.priority ? ' ★' : ''}</span
+	>{/snippet}
+{#snippet progress(r: RewardRow)}<span class="whitespace-nowrap"
+		>{r.progress}{r.now?.cost != null ? ` / ${r.now.cost}` : ''}</span
+	>{/snippet}
+{#snippet rewardCell(r: RewardRow)}{#if r.now}{@render reward(r.now)}{/if}{#if r.next}<div
+			class="text-gray-500"
+		>
+			then at {r.next.cost}: {@render reward(r.next)}
+		</div>{/if}{/snippet}
 
 {#snippet reward(r: Reward)}
 	{#each r.options.filter((o) => o.ours !== false) as o, i (o.tech)}{i ? ' or ' : ''}<InfoPopup
@@ -44,26 +65,12 @@
 			title="Rewards"
 			note="Per category: progress towards the next reward and the one after it, each the tech your empire gets (hover for why, and the others)."
 		>
-			<table class="text-left text-sm">
-				<tbody>
-					{#each data.view.rewards as r (r.category)}
-						<tr class="border-b border-gray-100 align-top dark:border-gray-900">
-							<th
-								class="p-1 pr-3 whitespace-nowrap {r.priority ? 'font-semibold' : 'font-normal'}"
-								style:color={tint(r.category)}>{r.name}{r.priority ? ' ★' : ''}</th
-							>
-							<td class="p-1 whitespace-nowrap tabular-nums"
-								>{r.progress}{r.now?.cost != null ? ` / ${r.now.cost}` : ''}</td
-							>
-							<td class="p-1"
-								>{#if r.now}{@render reward(r.now)}{/if}{#if r.next}<div class="text-gray-500">
-										then at {r.next.cost}: {@render reward(r.next)}
-									</div>{/if}</td
-							>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+			<SortTable
+				rows={data.view.rewards}
+				columns={rewardColumns}
+				key={(r) => r.category}
+				sort={{ column: '', desc: false }}
+			/>
 		</Panel>
 
 		<Panel

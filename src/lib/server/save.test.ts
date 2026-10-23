@@ -1423,6 +1423,11 @@ describe('milestone fields', () => {
 			countryId: 0,
 			date: '2207.01.01',
 			countries: { '0': { name: 'UNE' }, '4': { name: 'Tzynn' }, '7': { name: 'Blorg' } } as never,
+			// Blorg with companion mod 0.4.0's exported weight, the others estimated from their power
+			countryBlocks: {
+				'0': { military_power: 1000, economy_power: 400, tech_power: 300 },
+				'7': { variables: { sdash_dw: 812.5 } }
+			},
 			galcom: {
 				members: [4, 0, 7],
 				proposed: [2, 3],
@@ -1466,6 +1471,11 @@ describe('milestone fields', () => {
 			['resolution_voidworm_eradication', 'for']
 		]);
 		expect(g?.passed.map((r) => r.type)).toEqual(['resolution_voidworm_eradication']);
+		expect(g?.weights).toEqual({
+			UNE: { value: 1000 * 0.025 + 400 * 0.15 + 300 * 0.1, exact: false },
+			Tzynn: { value: 0, exact: false },
+			Blorg: { value: 812.5, exact: true }
+		});
 		// 541 days in session: 899 to go, as the game showed ("Senate is in session 899")
 		expect(g?.voteEnds).toBe(addGameDays('2207.01.01', 899));
 		expect(g?.nextVote).toBeNull();

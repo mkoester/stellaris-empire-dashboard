@@ -4,13 +4,32 @@
 	import { resourceBudget } from '#lib/flows.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
+	import SortTable from '#lib/SortTable.svelte';
+	import type { Column } from '#lib/sort.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
 
 	const signed = (n: number) => (n >= 0 ? '+' : '−') + fmt(Math.abs(n));
 	const tone = (n: number) => (n < 0 ? 'text-red-600' : n > 0 ? 'text-green-600' : 'text-gray-500');
+	type Row = ReturnType<typeof resourceBudget>['rows'][number] & { i: number };
+	const columns: Column<Row>[] = [
+		{ id: 'source', label: 'Source', value: (r) => r.label },
+		{ id: 'income', label: 'Income', value: (r) => r.income || null, cell: income, right: true },
+		{
+			id: 'expenses',
+			label: 'Spending',
+			value: (r) => r.expenses || null,
+			cell: expenses,
+			right: true
+		},
+		{ id: 'net', label: 'Net', value: (r) => r.net, cell: net, right: true }
+	];
 </script>
+
+{#snippet income(r: Row)}{r.income ? fmt(r.income) : ''}{/snippet}
+{#snippet expenses(r: Row)}{r.expenses ? fmt(r.expenses) : ''}{/snippet}
+{#snippet net(r: Row)}<span class={tone(r.net)}>{signed(r.net)}</span>{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Resources</h1>
@@ -47,24 +66,15 @@
 					<p class="text-sm text-gray-500">Nothing earns or spends it.</p>
 				{:else}
 					<div class="max-h-64 overflow-y-auto">
+						<SortTable
+							rows={b.rows.map((r, i) => ({ ...r, i }))}
+							{columns}
+							key={(r) => r.i}
+							sort={{ column: '', desc: false }}
+						/>
+						<!-- the statement under it: total, and what the budget does not explain -->
 						<table class="w-full text-left text-sm tabular-nums">
-							<thead>
-								<tr class="border-b border-gray-300 dark:border-gray-700">
-									<th class="p-1">Source</th>
-									<th class="p-1 text-right">Income</th>
-									<th class="p-1 text-right">Spending</th>
-									<th class="p-1 text-right">Net</th>
-								</tr>
-							</thead>
 							<tbody>
-								{#each b.rows as r, i (i)}
-									<tr>
-										<td class="p-1">{r.label}</td>
-										<td class="p-1 text-right">{r.income ? fmt(r.income) : ''}</td>
-										<td class="p-1 text-right">{r.expenses ? fmt(r.expenses) : ''}</td>
-										<td class="p-1 text-right {tone(r.net)}">{signed(r.net)}</td>
-									</tr>
-								{/each}
 								<tr class="border-t border-gray-300 font-semibold dark:border-gray-700">
 									<td class="p-1">total</td>
 									<td class="p-1 text-right">{fmt(b.total.income)}</td>

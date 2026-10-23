@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- The diplomacy tab's circle is the default graph and groups empires by blocs (federations,
+  overlords and subjects), mutual opinion (you pick how high) or cooperation (pacts); relations
+  switch all on or off at once; names no longer run off the edge.
+- The contacts tab splits the Galactic Community: resolutions in force by category (or one list)
+  with all their effects summed, and proposals with the diplomatic weight for and against — click
+  one to see who votes how. Companion mod 0.4.0 stores each member's weight; without it the weight
+  is an estimate, marked ≈.
+- Empire names carry their map colour everywhere, and every list can be sorted by any column.
+
 - A diplomacy tab: every empire you know and the relations between them — pacts, rivalries,
   subjects, wars, opinions — as a table, a matrix and a graph (on the galaxy map at their capitals,
   or on a circle), in each empire's own colour. It shows what your intel on each empire reveals, as

@@ -1,11 +1,13 @@
 <script lang="ts">
 	import DistrictName from '../DistrictName.svelte';
 	import { nameOf } from '../format.ts';
+	import SortTable from '../SortTable.svelte';
+	import type { Column } from '../sort.ts';
 	import type { ColonyDistrict } from '../types.ts';
 	import Panel from './Panel.svelte';
 
 	// A colony's districts in detail: how many are built, its zones (specialisations) and their
-	// buildings by name.
+	// buildings by name — a row per zone.
 	let {
 		districts,
 		names,
@@ -15,42 +17,45 @@
 		names: Record<string, string>;
 		colors: Record<string, string>;
 	} = $props();
+
+	type Row = {
+		key: string;
+		type: string;
+		built: number;
+		zone: string | null;
+		buildings: string[] | null;
+	};
+	const rows: Row[] = $derived(
+		districts.flatMap((d) =>
+			(d.zones.length ? d.zones : [null]).map((z, i) => ({
+				key: `${d.type}:${i}`,
+				type: d.type,
+				built: d.built,
+				zone: z ? nameOf(names, z.type) : null,
+				buildings: z ? z.buildings.map((b) => nameOf(names, b)) : null
+			}))
+		)
+	);
+	const columns: Column<Row>[] = [
+		{ id: 'district', label: 'District', value: (r) => nameOf(names, r.type), cell: district },
+		{ id: 'built', label: 'Built', value: (r) => r.built, right: true },
+		{ id: 'zone', label: 'Zone', value: (r) => r.zone },
+		{
+			id: 'buildings',
+			label: 'Buildings',
+			value: (r) => (r.buildings === null ? null : r.buildings.join(', ') || 'none yet')
+		}
+	];
 </script>
+
+{#snippet district(r: Row)}<DistrictName
+		name={nameOf(names, r.type)}
+		color={colors[r.type]}
+	/>{/snippet}
 
 <Panel
 	title="Districts"
 	note="Free district slots: see the planet's district caps. Free building slots are computed by the game and not in the save."
 >
-	<table class="text-left text-sm">
-		<thead>
-			<tr class="border-b border-gray-300 dark:border-gray-700">
-				<th class="p-1">District</th>
-				<th class="p-1 text-right">Built</th>
-				<th class="p-1">Zone</th>
-				<th class="p-1">Buildings</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each districts as d (d.type)}
-				{#each d.zones.length ? d.zones : [null] as z, i (i)}
-					<tr
-						class="align-top {i === d.zones.length - 1 || !d.zones.length
-							? 'border-b border-gray-200 dark:border-gray-800'
-							: ''}"
-					>
-						<td class="p-1"
-							>{#if !i}<DistrictName name={nameOf(names, d.type)} color={colors[d.type]} />{/if}</td
-						>
-						<td class="p-1 text-right">{i ? '' : d.built}</td>
-						<td class="p-1">{z ? nameOf(names, z.type) : '–'}</td>
-						<td class="p-1">
-							{#if z}
-								{z.buildings.map((b) => nameOf(names, b)).join(', ') || 'none yet'}
-							{/if}
-						</td>
-					</tr>
-				{/each}
-			{/each}
-		</tbody>
-	</table>
+	<SortTable {rows} {columns} key={(r) => r.key} sort={{ column: '', desc: false }} />
 </Panel>

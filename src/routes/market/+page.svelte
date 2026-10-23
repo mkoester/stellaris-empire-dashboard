@@ -2,6 +2,8 @@
 	import Chart from '#lib/Chart.svelte';
 	import { colorOf } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
+	import SortTable from '#lib/SortTable.svelte';
+	import type { Column } from '#lib/sort.ts';
 	import { followGame } from '#lib/live.ts';
 	import { basePrice, monthlyLimit, price } from '#lib/market.ts';
 	import { byTopBar } from '#lib/resourceGroups.ts';
@@ -37,7 +39,40 @@
 	const withFee = (p: number | null, side: 1 | -1) =>
 		p === null || !data.fee ? null : p * (1 + side * data.fee.fee);
 	const signed = (n: number) => (n >= 0 ? '+' : '−') + fmt(Math.abs(n)) + ' %';
+	type Row = (typeof rows)[number];
+	const columns: Column<Row>[] = $derived([
+		{ id: 'resource', label: 'Resource', value: (r) => pretty(r.resource), cell: resource },
+		{ id: 'base', label: 'Base', value: (r) => r.base, cell: base, right: true },
+		{ id: 'price', label: 'Price', value: (r) => r.price, cell: priceCell, right: true },
+		{ id: 'vs', label: 'vs. base', value: (r) => r.fluctuation, cell: vs, right: true },
+		{ id: 'buy', label: 'Buy', value: (r) => withFee(r.price, 1), cell: buy, right: true },
+		{ id: 'sell', label: 'Sell', value: (r) => withFee(r.price, -1), cell: sell, right: true },
+		{
+			id: 'orders',
+			label: 'Your monthly orders',
+			value: (r) => r.orders.length || null,
+			cell: orders
+		}
+	]);
 </script>
+
+{#snippet resource(r: Row)}<span style:color={colorOf(r.resource)}>{pretty(r.resource)}</span
+	>{/snippet}
+{#snippet base(r: Row)}<span class="text-gray-500">{money(r.base)}</span>{/snippet}
+{#snippet priceCell(r: Row)}<b>{money(r.price)}</b>{/snippet}
+{#snippet vs(r: Row)}<span class="text-gray-500">{signed(r.fluctuation)}</span>{/snippet}
+{#snippet buy(r: Row)}{money(withFee(r.price, 1))}{/snippet}
+{#snippet sell(r: Row)}{money(withFee(r.price, -1))}{/snippet}
+{#snippet orders(r: Row)}
+	{#each r.orders as o, i (i)}
+		{@const limit = monthlyLimit(o, galactic)}
+		<span class="mr-3 whitespace-nowrap"
+			>{o.kind}
+			<b class={limit !== null && o.amount > limit ? 'text-red-600' : ''}>{fmt(o.amount)}</b
+			>{#if limit !== null}<span class="text-gray-500">&thinsp;/&thinsp;{limit}</span>{/if}</span
+		>
+	{/each}
+{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Market</h1>
@@ -73,43 +108,9 @@
 		</p>
 	{/if}
 
-	<table class="mb-6 text-sm tabular-nums">
-		<thead class="text-left text-gray-500">
-			<tr>
-				<th class="pr-6 font-normal">resource</th>
-				<th class="pr-6 text-right font-normal">base</th>
-				<th class="pr-6 text-right font-normal">price</th>
-				<th class="pr-6 text-right font-normal">vs. base</th>
-				<th class="pr-6 text-right font-normal">buy</th>
-				<th class="pr-6 text-right font-normal">sell</th>
-				<th class="font-normal">your monthly orders</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each rows as r (r.resource)}
-				<tr>
-					<td class="pr-6" style:color={colorOf(r.resource)}>{pretty(r.resource)}</td>
-					<td class="pr-6 text-right text-gray-500">{money(r.base)}</td>
-					<td class="pr-6 text-right font-semibold">{money(r.price)}</td>
-					<td class="pr-6 text-right text-gray-500">{signed(r.fluctuation)}</td>
-					<td class="pr-6 text-right">{money(withFee(r.price, 1))}</td>
-					<td class="pr-6 text-right">{money(withFee(r.price, -1))}</td>
-					<td>
-						{#each r.orders as o, i (i)}
-							{@const limit = monthlyLimit(o, galactic)}
-							<span class="mr-3 whitespace-nowrap"
-								>{o.kind}
-								<b class={limit !== null && o.amount > limit ? 'text-red-600' : ''}
-									>{fmt(o.amount)}</b
-								>{#if limit !== null}<span class="text-gray-500">&thinsp;/&thinsp;{limit}</span
-									>{/if}</span
-							>
-						{/each}
-					</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<div class="mb-6">
+		<SortTable {rows} {columns} key={(r) => r.resource} sort={{ column: '', desc: false }} />
+	</div>
 
 	<div class="flex flex-col gap-6">
 		{#if Object.keys(data.basic.lines).length > 0}

@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { pretty } from '#lib/format.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
+	import EmpireName from '#lib/EmpireName.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import type { ContactRow, SituationRow } from '#lib/situations.ts';
@@ -37,7 +38,13 @@
 	const seenColumns: Column<SeenRow>[] = [
 		{ id: 'system', label: 'System', value: (r) => r.system },
 		{ id: 'shipset', label: 'Shipset', value: (r) => r.shipset },
-		{ id: 'territory', label: 'Owner', value: (r) => r.territory, title: 'known, or our guess' },
+		{
+			id: 'territory',
+			label: 'Owner',
+			value: (r) => r.territory,
+			cell: territory,
+			title: 'known, or our guess'
+		},
 		{ id: 'first', label: 'First seen', value: (r) => r.first },
 		{ id: 'last', label: 'Last seen', value: (r) => r.last }
 	];
@@ -88,11 +95,70 @@
 		{ id: 'approach', label: 'Approach', value: (r) => r.approachName },
 		{ id: 'stage', label: 'Stage', value: (r) => (r.stage ? pretty(r.stage) : null) }
 	];
+	type Anomaly = (typeof data.anomalies)[number];
+	type Project = (typeof data.projects)[number];
+	type Dig = (typeof data.digSites)[number];
+	const anomalyColumns: Column<Anomaly>[] = [
+		{ id: 'name', label: 'Anomaly', value: (a) => a.name, cell: bold },
+		{ id: 'where', label: 'Where', value: (a) => `${a.planet}, ${a.system}` },
+		{ id: 'level', label: 'Level', value: (a) => a.level ?? null, right: true },
+		{
+			id: 'outcomes',
+			label: 'Leads to',
+			value: (a) => a.outcomes?.length ?? null,
+			cell: anomalyOutcomes
+		}
+	];
+	const projectColumns: Column<Project>[] = [
+		{ id: 'name', label: 'Project', value: (p) => p.name, cell: bold },
+		{ id: 'system', label: 'System', value: (p) => p.system },
+		{
+			id: 'department',
+			label: 'Department',
+			value: (p) => (p.department ? pretty(p.department.replace(/_technology$/, '')) : null)
+		},
+		{ id: 'days', label: 'Days', value: (p) => p.days || null, right: true },
+		{
+			id: 'outcomes',
+			label: 'Leads to',
+			value: (p) => p.outcomes?.length ?? null,
+			cell: projectOutcomes
+		}
+	];
+	const digColumns: Column<Dig>[] = [
+		{
+			id: 'type',
+			label: 'Site',
+			value: (d) => pretty(d.type.replace(/^site_/, '')),
+			cell: digName
+		},
+		{ id: 'system', label: 'System', value: (d) => d.system },
+		{ id: 'difficulty', label: 'Difficulty', value: (d) => d.difficulty, right: true },
+		{ id: 'clues', label: 'Clues', value: (d) => d.clues, right: true },
+		{
+			id: 'excavating',
+			label: 'Excavated',
+			value: (d) => (d.excavating ? 'being excavated' : null)
+		}
+	];
 </script>
 
+{#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{/snippet}
+{#snippet digName(d: Dig)}<b>{pretty(d.type.replace(/^site_/, ''))}</b>{/snippet}
+{#snippet anomalyOutcomes(a: Anomaly)}<span class="text-gray-500"
+		>{@render outcomes(a.outcomes)}</span
+	>{/snippet}
+{#snippet projectOutcomes(p: Project)}<span class="text-gray-500"
+		>{@render outcomes(p.outcomes)}</span
+	>{/snippet}
+
+{#snippet territory(r: SeenRow)}{#if r.territory}<EmpireName
+			name={r.territory}
+			bold={false}
+		/>{:else}–{/if}{/snippet}
 {#snippet contactName(r: ContactRow)}
-	<b>{r.name}</b>{#if r.country && r.communications}<span class="text-gray-500">
-			· {r.country.name}</span
+	<EmpireName name={r.name} />{#if r.country && r.communications}<span class="text-gray-500">
+			· <EmpireName name={r.country.name} bold={false} /></span
 		>{/if}
 {/snippet}
 {#snippet difficulty(r: ContactRow)}<span style:color={hard(r.difficulty)}>{r.difficulty}</span
@@ -233,18 +299,7 @@
 			: 'What they can lead to: switch on the spoilers in ⚙.'}"
 	>
 		{#if data.anomalies.length}
-			<table class="text-left text-sm">
-				<tbody>
-					{#each data.anomalies as a (a.planetId)}
-						<tr class="border-b border-gray-100 align-top dark:border-gray-900">
-							<td class="p-1"><b>{a.name}</b></td>
-							<td class="p-1">{a.planet}, {a.system}</td>
-							<td class="p-1 text-gray-500">level {a.level ?? '?'}</td>
-							<td class="p-1 text-gray-500">{@render outcomes(a.outcomes)}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+			<SortTable rows={data.anomalies} columns={anomalyColumns} key={(a) => a.planetId} />
 		{:else}<p class="text-sm text-gray-500">None waiting.</p>{/if}
 	</Panel>
 
@@ -255,42 +310,13 @@
 			: 'What they lead to: switch on the spoilers in ⚙.'}"
 	>
 		{#if data.projects.length}
-			<table class="text-left text-sm">
-				<tbody>
-					{#each data.projects as p (p.id)}
-						<tr class="border-b border-gray-100 align-top dark:border-gray-900">
-							<td class="p-1"><b>{p.name}</b></td>
-							<td class="p-1">{p.system}</td>
-							<td class="p-1 text-gray-500"
-								>{p.department ? pretty(p.department.replace(/_technology$/, '')) : ''}{p.days
-									? `, ${p.days} days`
-									: ''}</td
-							>
-							<td class="p-1 text-gray-500">{@render outcomes(p.outcomes)}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+			<SortTable rows={data.projects} columns={projectColumns} key={(p) => p.id} />
 		{:else}<p class="text-sm text-gray-500">None on offer.</p>{/if}
 	</Panel>
 
 	<Panel title="Dig sites" note="Archaeological sites in systems you visited.">
 		{#if data.digSites.length}
-			<table class="text-left text-sm">
-				<tbody>
-					{#each data.digSites as d (d.id)}
-						<tr class="border-b border-gray-100 align-top dark:border-gray-900">
-							<td class="p-1"><b>{pretty(d.type.replace(/^site_/, ''))}</b></td>
-							<td class="p-1">{d.system}</td>
-							<td class="p-1 text-gray-500"
-								>difficulty {d.difficulty}, {d.clues} clues{d.excavating
-									? ', being excavated'
-									: ''}</td
-							>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+			<SortTable rows={data.digSites} columns={digColumns} key={(d) => d.id} />
 		{:else}<p class="text-sm text-gray-500">None found.</p>{/if}
 	</Panel>
 

@@ -213,8 +213,15 @@ what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `shroud` (patrons and attunement), `focus`,
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `diplomacy`, `megastructures` (all below), `mods` and
 `dlc` (last; see
-"DLCs and mods" below); tabs keep `?node=`. Tables on the newer tabs sort through
-`SortTable.svelte` (columns as `Column<T>` from `#lib/sort.ts`), maps through `GalaxyMap.svelte`
+"DLCs and mods" below); tabs keep `?node=`. **Every list is a `SortTable.svelte`** (the user's ask
+2026-10-23: "make all tables sortable"; columns as `Column<T>` from `#lib/sort.ts`; `sort={{
+column: '', desc: false }}` keeps the given order — the game's, a queue's — until a header is
+clicked; `rowClass`/`rowStyle` set a row apart, `below` adds a details line under each row). Left
+plain: key/value layouts (council seats, policies, species rights, tech queues and cards by
+field, the Government panel), the matrices (migration heatmap, research tiers, the diplomacy
+matrix), the build queue (its order is the queue) and the forms on ⚙. **Empire names are
+`EmpireName.svelte`**: its colour is the page's `empireColors` (name → map colour, from
+`branch()`, so every page has it) unless passed. Maps through `GalaxyMap.svelte`
 (pan, zoom, resize, lanes, systems with an optional `fill`; the page draws its `layer`;
 `MigrationMap` is one such layer). **Maps show only what is discovered**: visited or own systems
 (the save's `terra_incognita.systems` is the same list; its 256×256 `data` grid is run-length
@@ -652,8 +659,13 @@ every country but `other`, the relations between them (pacts and rivalries are f
 country's `relations_manager.relation`; subjects `country.overlord`; wars every `war`), as a table,
 a matrix (row's opinion of the column, pact abbreviations) and a graph — on the galaxy map at the
 capitals (`GalaxyMap` `selected` bound to the empire whose capital is clicked; capitals not yet
-discovered are added faint, the intel names them) or on a circle (`DiplomacyCircle.svelte`). Edge
-kinds toggle (`diplomacyView.hiddenEdges`, embassies and closed borders off by default); a click
+discovered are added faint, the intel names them) or on a circle (`DiplomacyCircle.svelte`, the
+default), its empires grouped by `clusters()`: **blocs** (federations, overlords with their
+subjects), **mutual opinion** (average-linkage merging while the known opinions between two groups
+average at least `diplomacyView.threshold`, 100; unknown pairs do not count) or **cooperation**
+(`PACT_SCORE`: defensive pact 3 … rivalry −3, war −5 — our weights, not the game's; a group needs
+on average one point per pair) — each group an arc, listed under the circle. Edge kinds toggle
+(`diplomacyView.hiddenEdges`, all/none buttons, embassies and closed borders off by default); a click
 focuses one empire and fades the rest (per viewer, Esc clears). **What we know is the game's intel
 model**: our `intel_manager` value per country (0–100) → a level per category (4.5.2
 `common/intel_levels/00_intel_levels.txt`), and what a level reveals
@@ -714,6 +726,9 @@ change both together and bump the number.
 | `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`       | each battle we fight | `on_space_battle_won`                                     |
 | `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0) | at once              | queued/cancelled, edict, decision, … (`#lib/spending.ts`) |
 
+- **Diplomatic weight** (0.4.0): no log line — each month the player's event exports every
+  Galactic Community member's `diplomacy_weight` trigger into its country variable `sdash_dw`, so
+  every save carries it (`galacticCommunity()` reads it).
 - **The daily tick**: 4.5.2 has no sub-monthly on_action, so `sdash.2` re-fires itself with
   `days = 1`. The stockpile moves within a month (spending, the market, rewards, deals); income
   does not, so the tick logs stockpiles only. Pending events are saved with the game, so the chain
@@ -940,10 +955,17 @@ stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included
 - Galactic Community (2026-10-19): `galactic_community = { members = { <ids> } proposed = {
 <resolution ids> } voting = <id> emissaries days election community_formed focus … }`,
   `resolution.<id> = { type country supporters = { <ids> } opponents }` (the voted one also
-  `voting = { <country>=<date> }`). Our country holds no GalCom field (diplomatic weight is not
-  stored). Contacts tab: members, the vote, the proposals with our side; names and effects from
-  the data DB (`resolution`, its effects = the static modifier of the same key, `resolution:<key>`
-  popups).
+  `voting = { <country>=<date> }`). Our country holds no GalCom field, and **no country stores
+  its diplomatic weight** (`diplomacy_weight` in the save is per fleet: its military power).
+  Contacts tab, two panels: **in force** by category (data DB `resolution.category_key`, or a
+  flat list: `contactView.galcomFlat`), each with its effects and all of them summed
+  (`totalEffects`); **proposed** (and the one on the floor) as a table with the empires and the
+  summed diplomatic weight for and against, each row expandable to who votes how. Weights
+  (`GalacticCommunity.weights`, by name, READER 15): exact from companion mod 0.4.0's country
+  variable `sdash_dw`, else **estimated** (`estimatedWeight()`: the defines' naval × 0.025 +
+  economy × 0.15 + technology × 0.1 — the pops' share, `diplomatic_weight` modifiers and the
+  council's × 1.5 left out), marked ≈. Names and effects from the data DB (`resolution`, its
+  effects = the static modifier of the same key, `resolution:<key>` popups).
 - Claims (2026-10-19): on the system, `galactic_object.<id>.claims = { { owner date claims } }`
   — `owner` is the claimant, `claims` the strength. The game's claims view lists only ours (with
   the next claim's influence cost, not stored); others' claims on our systems reach us as
@@ -1223,7 +1245,8 @@ screen, trade calibration, stored research, releases).
   Facilitation): days 1411 on 2213.12.01, `pass_date` 2213.12.30, cooldown 719 on 2214.01.01;
   `category_timers.<category>` = the pass date. `galacticCommunity()` gives `voteEnds` and
   `nextVote` (READER 13), the contacts tab shows them. Still unknown: `election` (180), and
-  **votes are weighed by diplomatic weight**, which no country stores: the tab counts empires.
+  **votes are weighed by diplomatic weight**, which no country stores: companion mod 0.4.0
+  exports it, else the tab estimates it (see "Galactic Community" above).
   Passed resolutions: `galactic_community.passed = { <ids> }`; resolution descriptions lose loc
   commands ("members of the should …" — `[global_event_country.GetGalCommunityOrGalImperium]`), an
   extraction loc-cleanup gap.
@@ -1254,6 +1277,11 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   calling (tier, reward), its deeds and — negative — the opposite patron's (the save's five
   each), accords and covenant. Uncontacted patrons stay hidden, as in the game. Still to see: a
   completed calling, an accord unlocked, a favor.
+- **Companion mod 0.4.0's diplomatic weight, not yet run in game** (written 2026-10-23): whether
+  `export_trigger_value_to_variable = { trigger = diplomacy_weight … }` exports the number the
+  game's Galactic Community screen shows per empire (then the saves carry `variables.sdash_dw` on
+  every member), and how far the estimate is off — compare both with a screenshot of the voting
+  screen; the council's × 1.5 is not applied in either.
 - **Companion mod 0.3.0's spending events, not yet run in game** (written 2026-10-22): whether
   `carrier_event` is the right type for the "This = Colony" hooks (vanilla uses it for
   `on_building_complete`), whether `[This.GetName]` there gives the planet's name as the save's

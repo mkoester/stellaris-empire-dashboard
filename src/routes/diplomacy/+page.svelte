@@ -3,6 +3,8 @@
 	import { CONTACT_KINDS, KIND_LABELS, kindTypes } from '#lib/contacts.ts';
 	import DiplomacyCircle from '#lib/DiplomacyCircle.svelte';
 	import {
+		CLUSTER_MODES,
+		clusters,
 		EDGE_KINDS,
 		edgeLabel,
 		edgeStyle,
@@ -48,6 +50,16 @@
 		)
 	);
 	const kindsPresent = $derived(new Set((d?.edges ?? []).map((e) => e.kind)));
+
+	const groups = $derived(d ? clusters(d, nodes, edges, view.cluster, view.threshold) : []);
+	const CLUSTER_LABELS = { blocs: 'blocs', opinion: 'mutual opinion', pacts: 'cooperation' };
+	const CLUSTER_TITLES = {
+		blocs: 'federations together, overlords with their subjects',
+		opinion:
+			'empires whose known opinions of each other average at least the number given (unknown opinions do not count)',
+		pacts:
+			'empires tied by pacts — defensive pacts weigh most; rivalries, closed borders and wars push apart (the relations shown count)'
+	};
 
 	// focus: one empire and its relations, the rest faded; a click on it again or Esc clears it
 	let focus: number | null = $state(null);
@@ -228,7 +240,7 @@
 			>
 			<span class="flex items-center gap-1"
 				>graph
-				{#each ['map', 'circle'] as const as l (l)}
+				{#each ['circle', 'map'] as const as l (l)}
 					<button
 						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {view.layout ===
 						l
@@ -261,6 +273,14 @@
 		</div>
 		<div class="flex flex-wrap items-center gap-1">
 			<span class="text-gray-500">relations:</span>
+			<button
+				class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"
+				onclick={() => save({ ...view, hiddenEdges: [] })}>all</button
+			>
+			<button
+				class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"
+				onclick={() => save({ ...view, hiddenEdges: [...EDGE_KINDS] })}>none</button
+			>
 			{#each EDGE_KINDS.filter((k) => kindsPresent.has(k)) as k (k)}
 				{@const st = edgeStyle(k)}
 				<label
@@ -366,7 +386,46 @@
 				</p>
 			{/if}
 		{:else}
-			<DiplomacyCircle {nodes} {edges} bind:focus />
+			<div class="mb-2 flex flex-wrap items-center gap-2 text-sm">
+				<span class="text-gray-500">group by</span>
+				{#each CLUSTER_MODES as m (m)}
+					<button
+						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {view.cluster ===
+						m
+							? 'font-semibold'
+							: 'opacity-60'}"
+						title={CLUSTER_TITLES[m]}
+						onclick={() => save({ ...view, cluster: m })}>{CLUSTER_LABELS[m]}</button
+					>
+				{/each}
+				{#if view.cluster === 'opinion'}
+					<label class="flex items-center gap-1"
+						>at least
+						<input
+							type="number"
+							step="25"
+							class="w-20 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+							value={view.threshold}
+							onchange={(e) => save({ ...view, threshold: Number(e.currentTarget.value) || 0 })}
+						/></label
+					>
+				{/if}
+			</div>
+			<DiplomacyCircle {nodes} {edges} {groups} bind:focus />
+			{#if groups.some((g) => g.ids.length > 1)}
+				<ul class="mt-2 text-sm">
+					{#each groups.filter((g) => g.ids.length > 1) as g, i (g.ids.join())}
+						<li>
+							<span class="text-gray-500">{g.label ?? `group ${i + 1}`}:</span>
+							{#each g.ids as id, j (id)}{j ? ', ' : ''}<button
+									class="cursor-pointer hover:underline {faded(id) ? 'opacity-30' : ''}"
+									style:color={byId.get(id)?.color ?? undefined}
+									onclick={() => (focus = focus === id ? null : id)}>{byId.get(id)?.name}</button
+								>{/each}
+						</li>
+					{/each}
+				</ul>
+			{/if}
 		{/if}
 	</Panel>
 

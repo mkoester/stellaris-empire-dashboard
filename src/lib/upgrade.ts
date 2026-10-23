@@ -166,7 +166,8 @@ export function upgrade(
 			...s.galcom,
 			passed: s.galcom.passed ?? [],
 			voteEnds: s.galcom.voteEnds ?? null,
-			nextVote: s.galcom.nextVote ?? null
+			nextVote: s.galcom.nextVote ?? null,
+			weights: s.galcom.weights ?? {}
 		},
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
 		// stored as plain keys for a day (2026-10-17), without the end date

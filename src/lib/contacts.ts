@@ -72,12 +72,14 @@ export type ContactView = {
 	hostile: 'any' | 'hostile' | 'peaceful';
 	kinds: ContactKind[]; // kinds shown
 	columns: ContactColumn[];
+	galcomFlat: boolean; // resolutions in force as one list, not by category
 };
 export const DEFAULT_CONTACT_VIEW: ContactView = {
 	communicationsOnly: true,
 	hostile: 'any',
 	kinds: ['empires'],
-	columns: [...CONTACT_COLUMNS]
+	columns: [...CONTACT_COLUMNS],
+	galcomFlat: false
 };
 
 /** A stored list of kinds, repaired; the default where none is stored. */
@@ -92,7 +94,8 @@ export function parseContactView(v: unknown): ContactView {
 		kinds: parseKinds(o.kinds),
 		columns: Array.isArray(o.columns)
 			? CONTACT_COLUMNS.filter((c) => (o.columns as unknown[]).includes(c))
-			: [...CONTACT_COLUMNS]
+			: [...CONTACT_COLUMNS],
+		galcomFlat: o.galcomFlat === true
 	};
 }
 
@@ -139,6 +142,31 @@ export function contactTable(
 		firstContact:
 			contacts.find((c) => c.countryId === r.countryId && c.status === 'in_progress') ?? null
 	}));
+}
+
+/**
+ * Each empire's galaxy-map colour by name — the name we know it by (before communications its
+ * pre-communications one) and its own — for `EmpireName` on every page.
+ */
+export function empireColors(
+	s: { countries: CountryInfo[] | null; relations: Relation[] | null } | undefined,
+	flagColors: Record<string, string>
+): Record<string, string> {
+	const color = new Map(
+		(s?.countries ?? []).flatMap((c) => {
+			const hex = flagColors[c.flagColor ?? ''];
+			return hex ? [[c.id, hex]] : [];
+		})
+	);
+	return Object.fromEntries(
+		[
+			...(s?.countries ?? []),
+			...(s?.relations ?? []).map((r) => ({ id: r.countryId, name: r.name }))
+		].flatMap((c) => {
+			const hex = color.get(c.id);
+			return hex ? [[c.name, hex]] : [];
+		})
+	);
 }
 
 export const shown = (rows: ContactRow[], v: ContactView) =>

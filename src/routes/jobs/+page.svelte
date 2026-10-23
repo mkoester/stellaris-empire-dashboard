@@ -4,6 +4,8 @@
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import ResourceChips from '#lib/ResourceChips.svelte';
+	import SortTable from '#lib/SortTable.svelte';
+	import type { Column } from '#lib/sort.ts';
 	import { byTopBar } from '#lib/resourceGroups.ts';
 	import { marketValue } from '#lib/unitCosts.ts';
 
@@ -45,7 +47,79 @@
 	const tone = (ratio: number) =>
 		ratio >= 1.1 ? 'text-green-600' : ratio <= 0.9 ? 'text-red-600' : '';
 	const bestAt = (planetId: number) => resources.filter((r) => best[r] === planetId);
+
+	type ColonyRow = NonNullable<typeof e>['colonies'][number];
+	const colonyColumns: Column<ColonyRow>[] = $derived([
+		{ id: 'name', label: 'Colony', value: (c) => c.name, cell: colonyName },
+		{
+			id: 'designation',
+			label: 'Designation',
+			value: (c) => pretty(c.designation.replace(/^col_/, '')),
+			cell: designation
+		},
+		...resources.map((r) => ({
+			id: r,
+			label: pretty(r),
+			color: colorOf(r) ?? undefined,
+			value: (c: ColonyRow) => c.ratio[r] ?? null,
+			cell: ratio,
+			right: true
+		})),
+		{
+			id: 'best',
+			label: 'Best at',
+			value: (c) => bestAt(c.planetId).length || null,
+			cell: bestCell
+		}
+	]);
+	type Source = NonNullable<typeof e>['costs'][number];
+	const sourceColumns = (market: number | null): Column<Source>[] => [
+		{ id: 'source', label: 'Source', value: (s) => s.source.label, cell: sourceName },
+		{ id: 'amount', label: 'Made', value: (s) => s.amount, cell: amount, right: true },
+		{
+			id: 'uses',
+			label: 'Uses',
+			value: (s) => Object.keys(s.source.uses).length || null,
+			cell: uses
+		},
+		{
+			id: 'perUnit',
+			label: 'Per unit',
+			value: (s) => s.perUnit,
+			cell: market === null ? perUnit : perUnitMarket,
+			right: true,
+			title: 'trade per unit'
+		}
+	];
+	const marketOf = (s: Source) => marketValue(s.resource);
 </script>
+
+{#snippet colonyName(c: ColonyRow)}<span title={c.jobs.map((j) => data.jobNames[j] ?? j).join(', ')}
+		>{c.name}</span
+	>{/snippet}
+{#snippet designation(c: ColonyRow)}<span class="text-gray-500"
+		>{pretty(c.designation.replace(/^col_/, ''))}</span
+	>{/snippet}
+{#snippet ratio(c: ColonyRow, r: string)}{#if c.ratio[r] !== undefined}<span
+			class="{tone(c.ratio[r])} {best[r] === c.planetId ? 'font-bold' : ''}"
+			title="{fmt(c.actual[r] ?? 0)} made, {fmt(c.expected[r])} at the empire's mean"
+			>{Math.round(c.ratio[r] * 100)} %</span
+		>{/if}{/snippet}
+{#snippet bestCell(c: ColonyRow)}{#each bestAt(c.planetId) as r (r)}<span
+			class="mr-2"
+			style:color={colorOf(r)}>{pretty(r)}</span
+		>{/each}{/snippet}
+{#snippet sourceName(s: Source)}{s.source.label}{#if s.source.pops}<span
+			class="text-xs text-gray-500"
+		>
+			· {fmt(s.source.pops)} pops</span
+		>{/if}{/snippet}
+{#snippet amount(s: Source)}{fmt(s.amount)}/mo{/snippet}
+{#snippet uses(s: Source)}<ResourceChips flows={neg(s.source.uses)} />{/snippet}
+{#snippet perUnit(s: Source)}{fmt(s.perUnit)}{/snippet}
+{#snippet perUnitMarket(s: Source)}<span
+		class={s.perUnit < (marketOf(s) ?? -Infinity) ? 'text-green-600' : ''}>{fmt(s.perUnit)}</span
+	>{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Jobs</h1>
@@ -61,44 +135,12 @@
 			note="As of {e.date}. Per colony and resource: what it makes against what its filled jobs make at the empire's mean per pop — 100 % is average; above it the colony's designation, features and buildings work for that resource, so its jobs for it belong there. A colony's output also counts flat building output, which reads as higher. Bold: the best colony for that resource (of those making at least 1 a month)."
 		>
 			<div class="overflow-x-auto">
-				<table class="text-sm">
-					<thead>
-						<tr class="text-left text-gray-500">
-							<th class="pr-3">Colony</th>
-							<th class="pr-3">Designation</th>
-							{#each resources as r (r)}<th class="px-2 text-right" style:color={colorOf(r)}
-									>{pretty(r)}</th
-								>{/each}
-							<th class="pl-3">Best at</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each e.colonies as c (c.planetId)}
-							<tr class="border-t border-gray-200 dark:border-gray-800">
-								<td class="pr-3" title={c.jobs.map((j) => data.jobNames[j] ?? j).join(', ')}
-									>{c.name}</td
-								>
-								<td class="pr-3 text-gray-500">{pretty(c.designation.replace(/^col_/, ''))}</td>
-								{#each resources as r (r)}
-									<td
-										class="px-2 text-right tabular-nums {c.ratio[r] === undefined
-											? ''
-											: tone(c.ratio[r])} {best[r] === c.planetId ? 'font-bold' : ''}"
-										title={c.ratio[r] === undefined
-											? ''
-											: `${fmt(c.actual[r] ?? 0)} made, ${fmt(c.expected[r])} at the empire's mean`}
-										>{c.ratio[r] === undefined ? '' : `${Math.round(c.ratio[r] * 100)} %`}</td
-									>
-								{/each}
-								<td class="pl-3">
-									{#each bestAt(c.planetId) as r (r)}<span class="mr-2" style:color={colorOf(r)}
-											>{pretty(r)}</span
-										>{/each}
-								</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
+				<SortTable
+					rows={e.colonies}
+					columns={colonyColumns}
+					key={(c) => c.planetId}
+					sort={{ column: '', desc: false }}
+				/>
 			</div>
 		</Panel>
 
@@ -117,26 +159,12 @@
 									)} trade per unit (what it costs us){/if}</span
 							>
 						</h2>
-						<table class="w-full text-sm">
-							<tbody>
-								{#each g.sources as s (s.source.id)}
-									<tr class="border-t border-gray-200 dark:border-gray-800">
-										<td class="pr-2"
-											>{s.source.label}{#if s.source.pops}<span class="text-xs text-gray-500">
-													· {fmt(s.source.pops)} pops</span
-												>{/if}</td
-										>
-										<td class="pr-2 text-right tabular-nums">{fmt(s.amount)}/mo</td>
-										<td class="pr-2"><ResourceChips flows={neg(s.source.uses)} /></td>
-										<td
-											class="text-right tabular-nums {g.market !== null && s.perUnit < g.market
-												? 'text-green-600'
-												: ''}">{fmt(s.perUnit)}</td
-										>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
+						<SortTable
+							rows={g.sources}
+							columns={sourceColumns(g.market)}
+							key={(s) => s.source.id}
+							sort={{ column: 'perUnit', desc: false }}
+						/>
 					</div>
 				{/each}
 			</div>
