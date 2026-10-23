@@ -46,9 +46,10 @@ The trade model is fitted to three empires' tooltips (one fallen) and gifts of e
 - when a monthly deal breaks: in game it ended with "the other empire can't afford the monthly
   rate of resource X" — at a zero stockpile, or a negative net income? The deal finder's monthly
   mode assumes the stockpile runs out (net income after paying, months it lasts);
-- the drift of basic resources (energy 10 %, minerals 9 %, food 17 % up between 2212.08 and
-  2213; alloys steady): 1000 energy and 1000 food at KhellZen and Lolehndra again some years
-  later — does it keep rising, with the year, or with something in their state?;
+- the drift of basic resources (minerals and food up 6–9 % every half year, energy 10 % then
+  flat, the rest steady; ruled out so far: `docs/trade-calibration.md`): its shape — KhellZen's
+  seven-resource tooltip (nothing sent) at every monthly autosave for a few months. Smooth points
+  to time, steps to a state change on their side (then compare that month's save);
 - once the **galactic market** is founded (`Snapshot.market.galactic`): the same tooltips again —
   1000 energy, minerals, food, trade, consumer goods and alloys at KhellZen and Lolehndra (set
   up, not sent), plus a manual save. Does the market move what a resource is worth to an AI, or

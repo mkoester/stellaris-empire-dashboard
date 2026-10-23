@@ -366,6 +366,19 @@ date's level (`LEVEL` in `aiTrade.test.ts`).
   market prices. Trade, consumer goods and alloys do not drift: fitted on 2212.08, they predicted
   2213.02 within 2.4 %. So far the drift is a basic-resource (minerals, food) effect; energy is
   unmeasured after 2212.08.
+- **Their own economy:** KhellZen across 2212.08 → 2213.08 — pops 5,931 → 5,915, economy power
+  665 → 667, empire size 102 → 103, minerals and food income unchanged — while its minerals rose
+  16 % and food 23 %. Not size, not growth.
+- **The AI's economic plans** (`common/economic_plans/`, `inline_scripts/ai/ai_base*.txt`): the
+  save's `ai_resource_target_records` (energy 10, minerals 25, food 10, alloys 20, …) are the base
+  plan's income targets (`@economic_plan_*_target`) — fixed, hence unchanged. The plan's scaling
+  subplans raise targets for exactly energy (+10), minerals (+10) and food (+20) a pass, while the
+  income is under 40 / 50 / 50 and the stockpile under 25,000 — a "need" that grows at constant
+  income. It does not fit: KhellZen's food (net 65, scaling off) rose most, Lolehndra's energy (net
+  27–37, scaling on) stopped rising. Which plan an empire is on is not in the save.
+- **Online (2026-10-23):** nobody describes the AI's deal valuation or a drift — forum threads
+  and guides cover the market and trade value only. A patch note says the AI recalculates its
+  trade value yearly; that is the economy's trade value, and food rose within one year.
 
 ### A unit's worth
 
