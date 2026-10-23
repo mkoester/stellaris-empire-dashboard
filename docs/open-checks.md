@@ -43,6 +43,9 @@ The trade model is fitted to three empires' tooltips (one fallen) and gifts of e
 
 - the gift's decay: none in four months (the files say −2 a month) — does it start later, or only
   below some value? Watch the autosaves;
+- when a monthly deal breaks: in game it ended with "the other empire can't afford the monthly
+  rate of resource X" — at a zero stockpile, or a negative net income? The deal finder's monthly
+  mode assumes the stockpile runs out (net income after paying, months it lasts);
 - the drift of basic resources (energy 10 %, minerals 9 %, food 17 % up between 2212.08 and
   2213; alloys steady): 1000 energy and 1000 food at KhellZen and Lolehndra again some years
   later — does it keep rising, with the year, or with something in their state?;
@@ -72,6 +75,22 @@ The extraction gained tables (starbase parts and levels, market lots, AI data, d
 systems, produce, jobs and trade tabs need. Player zips bundle the extractor from the tag pinned
 as `extractorVersion` (`v0.1.0`): release the extraction first (its `RELEASE.md`), bump
 `extractorVersion`, then the dashboard (workspace `AGENTS.md`: release order).
+
+### 10. Which empire would accept an embassy, a pact, subjugation — trade tab (idea, 2026-10-23)
+
+Open question: can the trade tab show, per empire, whether it would accept an embassy, each pact
+(non-aggression, commercial, research, migration, defensive) and vassalization — and why not? What
+the files give (4.5.2 `common/defines/00_defines.txt`, `*_ACCEPTANCE_*`): per action a sum of
+opinion × a factor (embassy 0.5, commercial 0.4, research 0.4, NAP 0.2, defensive 0.2, migration
+0.5), the AI's attitude (alliance / coexist / other), existing pacts of that kind (−30 or −50 each),
+border distance, shared rivals, allies and threat, relative strength; commercial pacts add the
+trade value collected (`COMMERCIAL_PACT_ACCEPTANCE_GIVEN/TAKEN_VALUE`), research agreements the
+techs one has and the other not; vassalization power difference, pops, loyalty and threat; plus
+each action's `AI_acceptance_base_value` in `common/diplomatic_actions/00_actions.txt` (commercial
+pact −50). Most inputs are in the save (opinion, attitude, pacts, rivals, relations; distance and
+strength need work); the engine may add terms the files do not show, as the trade valuation did.
+**Calibrate like trade:** the diplomacy screen's acceptance tooltip per action at a few empires,
+against the formula — the files are a starting point, not the answer.
 
 ### 9. After the answers come in
 

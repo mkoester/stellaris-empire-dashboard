@@ -63,6 +63,11 @@ All notable changes to this project are documented here. The format follows
   no estimate until measured. A new table shows the opinion a gift of 1000 of each resource buys at
   every empire — rivals and empires that refuse trades take gifts too.
 
+- The trade tab's deal finder has a second mode: pay once, receive monthly. An empire values a
+  monthly payment at half a one-off, so over the deal it pays you twice what it would at once; the
+  table shows what each pays a month, the total, against the market, and whether it can afford the
+  payment — a deal it cannot afford breaks.
+
 - A download for macOS (13.5 or newer), for Apple silicon and Intel Macs, with its own Python.
 - Every folder the dashboard looks in, per system and store, listed in the zip's `README.txt`.
 

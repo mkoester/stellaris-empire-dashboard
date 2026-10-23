@@ -7,6 +7,7 @@ import {
 	marketPrice,
 	marketRate,
 	giftOpinion,
+	lumpForMonthly,
 	modelFrom,
 	monthlyCap,
 	offerPrice,
@@ -420,6 +421,49 @@ describe('rate', () => {
 		// an attitude that refuses trades still takes gifts
 		const rival = terms(ai({ attitude: 'rival' }), personalities, attitudes);
 		expect(giftOpinion('energy', 1000, ai({}), rival, info, m, cap)).toBe(Math.floor(worth));
+	});
+});
+
+describe('pay once, receive monthly', () => {
+	// KhellZen at 2213.02.01: 1000 alloys at once (tooltip 122) for energy a month
+	const khellZen = ai({
+		personality: 'federation_builders',
+		stockpile: { energy: 14633, alloys: 260 },
+		net: { energy: 94.02, alloys: 17.17 },
+		income: { energy: 182.71, alloys: 21.37 }
+	});
+	const t = { willingness: 0.95, trades: true };
+	const game = Object.fromEntries(
+		['energy', 'alloys'].map((r) => [
+			r,
+			{ name: r, aiWeight: 1, aiWants: 500, max: 15000, tradable: true }
+		])
+	);
+	it('pays twice the one-off swap over the deal, whatever its length', () => {
+		const once = 1000 * rate('alloys', 'energy', khellZen, t, game, m)!;
+		const ten = lumpForMonthly('alloys', 1000, 'energy', 10, khellZen, t, game, m)!;
+		const thirty = lumpForMonthly('alloys', 1000, 'energy', 30, khellZen, t, game, m)!;
+		expect(ten.perMonth).toBe(Math.floor((2 * once) / 120)); // ≈ 45
+		expect(ten.total / (2 * once)).toBeGreaterThan(0.97);
+		expect(thirty.perMonth).toBe(Math.floor((2 * once) / 360)); // ≈ 15
+		expect(ten.capped).toBe(false);
+	});
+	it('is held to its monthly cap, and tells how long it can afford it', () => {
+		const big = lumpForMonthly('alloys', 3000, 'energy', 10, khellZen, t, game, m)!;
+		expect(big.perMonth).toBe(54); // 0.3 × 182.71
+		expect(big.capped).toBe(true);
+		expect(big.netAfter).toBeCloseTo(94.02 - 54);
+		expect(big.monthsLeft).toBeNull();
+		// a poorer payer: net 10 a month, 500 in store, 45 a month due → 14 months
+		const poor = { ...khellZen, net: { energy: 10 }, stockpile: { energy: 500 } };
+		const deal = lumpForMonthly('alloys', 1000, 'energy', 10, poor, t, game, m)!;
+		expect(deal.monthsLeft).toBe(Math.floor(500 / (deal.perMonth - 10)));
+	});
+	it('nothing from a nomad’s reserve, nor when it does not trade', () => {
+		const nomad = { ...khellZen, nomadic: true };
+		expect(lumpForMonthly('alloys', 1000, 'energy', 10, nomad, t, game, m)).toBeNull();
+		const refuses = { willingness: 0.95, trades: false };
+		expect(lumpForMonthly('alloys', 1000, 'energy', 10, khellZen, refuses, game, m)).toBeNull();
 	});
 });
 

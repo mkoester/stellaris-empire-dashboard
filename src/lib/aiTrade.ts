@@ -56,6 +56,7 @@ export type TradeModel = {
 	under: number; // stockpile below this share of storage: short (shown, not valued)
 	over: number; // above it: flush
 	monthlyShare: number; // pays at most this share of its gross income a month
+	monthlyMult: number; // a unit a month is worth this × the months of one at once
 	offerThreshold: number; // won't give away what it wants this share of its storage of
 	keep: number; // keeps at least this much of anything (TRADE_MIN_RESOURCE_STOCKPILE)
 	worth: typeof WORTH;
@@ -66,6 +67,7 @@ export const modelFrom = (defines: Record<string, number>): TradeModel => ({
 	under: defines.TRADE_RESOURCE_STOCKPILE_UNDER ?? 0.33,
 	over: defines.TRADE_RESOURCE_STOCKPILE_OVER ?? 0.75,
 	monthlyShare: defines.TRADE_MAX_RESOURCE_PERCENT ?? 0.3,
+	monthlyMult: defines.TRADE_VALUE_RESOURCE_MONTHLY_MULT ?? 0.5,
 	offerThreshold: defines.OFFER_TRADE_MIN_RESOURCE_THRESHOLD ?? 0.8,
 	keep: defines.TRADE_MIN_RESOURCE_STOCKPILE ?? 500,
 	worth: WORTH,
@@ -170,6 +172,51 @@ export function giftOpinion(
 	if (v === null) return null;
 	const worth = Math.floor(amount * v * (t.willingness ?? 1));
 	return cap.max === null ? worth : Math.max(0, Math.min(worth, cap.max - cap.current));
+}
+
+export type MonthlyDeal = {
+	perMonth: number; // what it pays a month, rounded down
+	capped: boolean; // held to its monthly cap: our lump buys more than it may pay
+	total: number; // over the deal
+	// the deal breaks when it "can't afford the monthly rate" (seen in game): its net income of it
+	// after paying, and if that is negative, the months its stockpile lasts
+	netAfter: number;
+	monthsLeft: number | null;
+};
+
+/**
+ * We pay `amount` of `give` at once, it pays `get` every month for `years`: our lump's worth to it
+ * (× its willingness) buys a unit a month at monthlyMult × the months of one at once — twice the
+ * units of a one-off swap over the deal, whatever its length. Held to its monthly cap. Null when it
+ * does not trade, either resource is not valued, or it cannot pay `get` a month.
+ */
+export function lumpForMonthly(
+	give: string,
+	amount: number,
+	get: string,
+	years: number,
+	ai: AiIntel,
+	t: Terms,
+	info: Info,
+	m: TradeModel
+): MonthlyDeal | null {
+	if (!t.trades || give === get || !canGive(get, ai.nomadic)) return null;
+	const [vg, vr] = [aiValue(give, ai, info, m), aiValue(get, ai, info, m)];
+	if (vg === null || vr === null || vr <= 0) return null;
+	const months = years * 12;
+	const worth = amount * vg * (t.willingness ?? 1);
+	const fair = Math.floor(worth / (vr * m.monthlyMult * months));
+	const cap = monthlyCap(get, ai, m);
+	const perMonth = cap === null ? fair : Math.min(fair, cap);
+	if (perMonth <= 0) return null;
+	const netAfter = (ai.net[get] ?? 0) - perMonth;
+	return {
+		perMonth,
+		capped: cap !== null && fair > cap,
+		total: perMonth * months,
+		netAfter,
+		monthsLeft: netAfter >= 0 ? null : Math.floor((ai.stockpile[get] ?? 0) / -netAfter)
+	};
 }
 
 /**

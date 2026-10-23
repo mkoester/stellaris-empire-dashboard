@@ -456,7 +456,11 @@ calibration rows 23–24), nor do we when nomadic. **Trader enclaves** (`Snapsho
 flag `trader_enclave_country_1|2|3` = XuraCorp exotic gases, Riggans volatile motes, Muutagan rare
 crystals) sell for energy only, 500·N at once plus 10·N a month for +N a month over 3600 days
 (4.5.2 `leviathans.130–132`, `enclave_trade_N_*`) — 14.2 energy a unit whatever N
-(`ENCLAVE_DEAL`); shown without the spoiler, our running deal from `countryModifiers`. **What a
+(`ENCLAVE_DEAL`); shown without the spoiler, our running deal from `countryModifiers`. **Pay once, receive monthly** (the deal finder's second mode, `lumpForMonthly()`): our lump's
+worth buys a unit a month at 0.5 × the months of one at once (`TRADE_VALUE_RESOURCE_MONTHLY_MULT`),
+so over the deal the AI pays twice a swap's units, the same total for any length — held to its
+monthly cap; a deal breaks when the payer "can't afford the monthly rate" (seen in game), so the
+mode shows its net income after paying and how long its stockpile lasts. **What a
 resource costs in trade**: per empire the trade paid per unit (`wantPrice`) and received
 (`offerPrice`), against the market's buy and sell price. Tables are `SortTable`s (a cell snippet
 gets the column id, for matrices); willing, opinion and trust are tinted by `scaleColor()`. Not

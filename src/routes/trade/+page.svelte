@@ -4,6 +4,7 @@
 		ENCLAVE_DEAL,
 		enclaveUnitCost,
 		giftOpinion,
+		lumpForMonthly,
 		marketPrice,
 		marketRate,
 		monthlyCap,
@@ -138,6 +139,59 @@
 		}
 	]);
 	let offerSort = $state({ column: 'rate', desc: true });
+
+	// the same finder, paying once for a monthly deal: twice the units of a swap over the deal
+	let dealMode: 'swap' | 'monthly' = $state('swap');
+	let lump = $state(1000);
+	let years = $state(10);
+	type MonthlyRow = Party & { key: string } & NonNullable<ReturnType<typeof lumpForMonthly>>;
+	const monthlyRows: MonthlyRow[] = $derived(
+		data.empires.flatMap((e) => {
+			if (!(lump > 0)) return [];
+			const d = lumpForMonthly(
+				give,
+				lump,
+				get,
+				years,
+				e,
+				termsOf(e),
+				data.resourceInfo,
+				data.model
+			);
+			return d === null ? [] : [{ ...e, key: `e${e.countryId}`, ...d }];
+		})
+	);
+	const monthlyColumns: Column<MonthlyRow>[] = $derived([
+		{ id: 'name', label: 'Empire', value: (o) => o.name, cell: party },
+		{
+			id: 'perMonth',
+			label: `${resName(get)} a month`,
+			value: (o) => o.perMonth,
+			cell: monthlyPerMonth,
+			right: true
+		},
+		{
+			id: 'total',
+			label: `over ${years} years`,
+			value: (o) => o.total,
+			cell: monthlyTotal,
+			right: true
+		},
+		{
+			id: 'market',
+			label: 'vs market',
+			value: (o) => (market ? o.total / (lump * market) : null),
+			cell: monthlyVsMarket,
+			right: true
+		},
+		{
+			id: 'safe',
+			label: 'Can they afford it',
+			value: (o) => (o.monthsLeft === null ? Infinity : o.monthsLeft),
+			cell: monthlySafe
+		}
+	]);
+	let monthlySort = $state({ column: 'total', desc: true });
 
 	// what a resource costs, or fetches, in trade at each empire
 	let priceMode: 'want' | 'offer' | 'both' = $state('want');
@@ -308,6 +362,28 @@
 	>
 {/snippet}
 {#snippet offerSpare(o: Offer)}{o.spare === null ? '–' : fmt(o.spare)}{/snippet}
+{#snippet monthlyPerMonth(o: MonthlyRow)}<span
+		title={o.capped
+			? `their cap: ${Math.round(data.model.monthlyShare * 100)} % of their gross income of it — the lump buys more`
+			: ''}>{fmt(o.perMonth)}{o.capped ? ' (cap)' : ''}</span
+	>{/snippet}
+{#snippet monthlyTotal(o: MonthlyRow)}{fmt(o.total)}{/snippet}
+{#snippet monthlyVsMarket(o: MonthlyRow)}
+	{@const x = market ? o.total / (lump * market) : null}
+	<span class={x !== null && x > 1 ? 'text-green-600' : ''}>{x === null ? '–' : `${fmt(x)}×`}</span>
+{/snippet}
+{#snippet monthlySafe(o: MonthlyRow)}
+	{#if o.monthsLeft === null}<span
+			class="text-green-600"
+			title="their net income of it after paying">yes, net {fmt(o.netAfter)}/month left</span
+		>{:else}<span
+			class={o.monthsLeft < years * 12 ? 'text-red-600' : ''}
+			title="paying puts them at {fmt(
+				o.netAfter
+			)}/month; the deal breaks when they cannot afford it"
+			>stockpile lasts {fmt(o.monthsLeft)} months</span
+		>{/if}
+{/snippet}
 {#snippet offerPerMonth(o: Offer)}<span
 		title={o.perMonth === null
 			? 'read before the dashboard knew their gross income: the next save tells'
@@ -438,13 +514,56 @@
 							{#each data.tradable as r (r)}<option value={r}>{resName(r)}</option>{/each}
 						</select></label
 					>
+					<select
+						class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+						bind:value={dealMode}
+					>
+						<option value="swap">swap at once</option>
+						<option value="monthly">we pay once, they pay monthly</option>
+					</select>
+					{#if dealMode === 'monthly'}
+						<label
+							><input
+								type="number"
+								min="1"
+								step="100"
+								class="w-20 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+								bind:value={lump}
+							/> at once</label
+						>
+						<label
+							>for <select
+								class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+								bind:value={years}
+							>
+								{#each [10, 15, 20, 25, 30] as y (y)}<option value={y}>{y}</option>{/each}
+							</select> years</label
+						>
+					{/if}
 					<span class="text-gray-500"
 						>market: {market === null
 							? '–'
 							: `${fmt(market)} ${resName(get)} per ${resName(give)}`}</span
 					>
 				</div>
-				{#if offers.length}
+				{#if dealMode === 'monthly'}
+					<p class="mb-2 text-sm text-gray-500">
+						A unit a month is worth half as much to them, so over the deal they pay twice what they
+						would at once — the same total for any length, so the shortest gets it soonest. Their
+						monthly payment is capped at {Math.round(data.model.monthlyShare * 100)} % of their gross
+						income of it, and the deal breaks when they can no longer afford it: check the last column.
+					</p>
+					{#if monthlyRows.length}
+						<SortTable
+							rows={monthlyRows}
+							columns={monthlyColumns}
+							key={(o) => o.key}
+							bind:sort={monthlySort}
+						/>
+					{:else}
+						<p class="text-sm text-gray-500">Nobody would make this deal.</p>
+					{/if}
+				{:else if offers.length}
 					<SortTable
 						rows={offers}
 						columns={offerColumns}
