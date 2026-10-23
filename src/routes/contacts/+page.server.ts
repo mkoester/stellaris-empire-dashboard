@@ -38,6 +38,8 @@ export function load({ url }) {
 		seenAt: s?.date ?? null,
 		view: contactView(),
 		rows: s ? contactTable(s.relations ?? [], s.countries ?? [], s.firstContacts ?? []) : [],
-		names: getGameData().identityNames
+		names: getGameData().identityNames,
+		flagColors: getGameData().flagColors,
+		nomads: (s?.diplomacy ?? []).filter((c) => c.nomadic).map((c) => c.id)
 	};
 }

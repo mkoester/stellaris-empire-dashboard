@@ -16,28 +16,80 @@ export const CONTACT_COLUMNS = [
 ] as const;
 export type ContactColumn = (typeof CONTACT_COLUMNS)[number];
 
+// Kinds of contact, as the filters offer them; every country type not listed is `other` (factions,
+// the Shroud, the game's event countries). From 4.5.2 `common/country_types/*` — re-check on game
+// updates. An entry ending in `*` is a prefix.
+const KIND_TYPES = {
+	empires: ['default'],
+	fallen: ['fallen_empire', 'awakened_fallen_empire'],
+	enclaves: ['enclave', 'mindwarden_enclave', 'enclave_mercenary'],
+	traders: ['caravaneer_home', 'caravaneer_fleet'],
+	preFtl: ['primitive'],
+	fauna: [
+		'tiyanki*',
+		'amoeba*',
+		'crystal*',
+		'drone*',
+		'cloud',
+		'voidworms*',
+		'frenzied_voidworms',
+		'cutholoids',
+		'guardian*',
+		'ldragon_country',
+		'behemoth_hatchling',
+		'abandoned_hatchery',
+		'clutch_of_whelps',
+		'lured_fauna_faction'
+	],
+	marauders: ['dormant_marauders', 'ruined_marauders', 'awakened_marauders', 'marauder_raiders'],
+	other: []
+} as const satisfies Record<string, readonly string[]>;
+export type ContactKind = keyof typeof KIND_TYPES;
+export const CONTACT_KINDS = Object.keys(KIND_TYPES) as ContactKind[];
+export const KIND_LABELS: Record<ContactKind, string> = {
+	empires: 'other empires',
+	fallen: 'fallen empires',
+	enclaves: 'enclaves',
+	traders: 'traders',
+	preFtl: 'pre-FTL civilisations',
+	fauna: 'space fauna',
+	marauders: 'marauders',
+	other: 'other'
+};
+/** The country types a kind covers, for its tooltip (prefixes end in `*`). */
+export const kindTypes = (k: ContactKind): readonly string[] => KIND_TYPES[k];
+
+const matches = (type: string, t: string) =>
+	t.endsWith('*') ? type.startsWith(t.slice(0, -1)) : type === t;
+export function kindOf(type: string): ContactKind {
+	for (const k of CONTACT_KINDS) if (KIND_TYPES[k].some((t) => matches(type, t))) return k;
+	return 'other';
+}
+
 /** The contacts tab's filters and columns, in the profile. */
 export type ContactView = {
 	communicationsOnly: boolean;
 	hostile: 'any' | 'hostile' | 'peaceful';
-	hiddenTypes: string[]; // country types not shown, e.g. caravaneer_fleet
+	kinds: ContactKind[]; // kinds shown
 	columns: ContactColumn[];
 };
 export const DEFAULT_CONTACT_VIEW: ContactView = {
 	communicationsOnly: true,
 	hostile: 'any',
-	hiddenTypes: [],
+	kinds: ['empires'],
 	columns: [...CONTACT_COLUMNS]
 };
+
+/** A stored list of kinds, repaired; the default where none is stored. */
+export const parseKinds = (v: unknown): ContactKind[] =>
+	Array.isArray(v) ? CONTACT_KINDS.filter((k) => v.includes(k)) : ['empires'];
 
 export function parseContactView(v: unknown): ContactView {
 	const o = (v && typeof v === 'object' ? v : {}) as Partial<ContactView>;
 	return {
 		communicationsOnly: o.communicationsOnly !== false,
 		hostile: o.hostile === 'hostile' || o.hostile === 'peaceful' ? o.hostile : 'any',
-		hiddenTypes: Array.isArray(o.hiddenTypes)
-			? o.hiddenTypes.filter((t) => typeof t === 'string')
-			: [],
+		kinds: parseKinds(o.kinds),
 		columns: Array.isArray(o.columns)
 			? CONTACT_COLUMNS.filter((c) => (o.columns as unknown[]).includes(c))
 			: [...CONTACT_COLUMNS]
@@ -94,5 +146,5 @@ export const shown = (rows: ContactRow[], v: ContactView) =>
 		(r) =>
 			(!v.communicationsOnly || r.communications) &&
 			(v.hostile === 'any' || r.hostile === (v.hostile === 'hostile')) &&
-			!v.hiddenTypes.includes(r.country?.type ?? '')
+			v.kinds.includes(kindOf(r.country?.type ?? ''))
 	);

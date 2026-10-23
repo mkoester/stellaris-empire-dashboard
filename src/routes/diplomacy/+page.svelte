@@ -1,0 +1,474 @@
+<script lang="ts">
+	import { scaleColor } from '#lib/colors.ts';
+	import { CONTACT_KINDS, KIND_LABELS, kindTypes } from '#lib/contacts.ts';
+	import DiplomacyCircle from '#lib/DiplomacyCircle.svelte';
+	import {
+		EDGE_KINDS,
+		edgeLabel,
+		edgeStyle,
+		neighbours,
+		pairOffsets,
+		type DiploEdge,
+		type DiploNode,
+		type DiplomacyView,
+		type Known
+	} from '#lib/diplomacy.ts';
+	import EmpireName from '#lib/EmpireName.svelte';
+	import { nameOf } from '#lib/format.ts';
+	import GalaxyMap from '#lib/GalaxyMap.svelte';
+	import { followGame } from '#lib/live.ts';
+	import Panel from '#lib/panels/Panel.svelte';
+	import { putSettings } from '#lib/settings.ts';
+	import SortTable from '#lib/SortTable.svelte';
+	import type { Column } from '#lib/sort.ts';
+
+	let { data } = $props();
+	followGame(() => data.isHead);
+
+	// the view is the profile's: changed here, stored at once
+	let view: DiplomacyView = $derived(data.view);
+	const save = (v: DiplomacyView) => {
+		view = v;
+		void putSettings({ diplomacyView: v });
+	};
+	const flip = <T,>(all: readonly T[], list: T[], x: T) =>
+		all.filter((y) => (y === x) !== list.includes(y));
+
+	const d = $derived(data.diplomacy);
+	const nodes = $derived(
+		(d?.nodes ?? []).filter(
+			(n) => n.us || (view.kinds.includes(n.kind) && (!view.communicationsOnly || n.communications))
+		)
+	);
+	const ids = $derived(new Set(nodes.map((n) => n.id)));
+	const byId = $derived(new Map(nodes.map((n) => [n.id, n])));
+	const edges = $derived(
+		(d?.edges ?? []).filter(
+			(e) => ids.has(e.from) && ids.has(e.to) && !view.hiddenEdges.includes(e.kind)
+		)
+	);
+	const kindsPresent = $derived(new Set((d?.edges ?? []).map((e) => e.kind)));
+
+	// focus: one empire and its relations, the rest faded; a click on it again or Esc clears it
+	let focus: number | null = $state(null);
+	const lit = $derived(focus === null ? null : neighbours(edges, focus));
+	const faded = (id: number) => lit !== null && !lit.has(id);
+
+	const stale = <T,>(k: Known<T> | null) => (k?.stale ? ` — unverified since ${k.asOf}` : '');
+	// the oldest date one of an empire's facts was last verified, if any is stale
+	const unverified = (n: DiploNode) =>
+		[
+			n.government,
+			n.capital,
+			n.federation,
+			...(d?.edges ?? []).filter((e) => e.from === n.id || e.to === n.id)
+		]
+			.flatMap((k) => (k?.stale ? [k.asOf] : []))
+			.sort()[0] ?? null;
+	const opinionOf = (from: number, to: number) => d?.opinions[`${from}:${to}`] ?? null;
+	const name = (id: number | null) => (id === null ? '–' : (byId.get(id)?.name ?? `empire ${id}`));
+
+	// --- map
+	const pos = $derived(new Map(data.systems.map((s) => [s.id, s])));
+	const capitalOf = (id: number) => {
+		const c = data.capitals[id];
+		return c === undefined ? undefined : pos.get(c);
+	};
+	const ownerOf = $derived(new Map(Object.entries(data.capitals).map(([e, s]) => [s, Number(e)])));
+	const offMap = $derived(nodes.filter((n) => !capitalOf(n.id)));
+	const offsets = $derived(pairOffsets(edges));
+
+	// --- matrix
+	const between = $derived.by(() => {
+		const m = new Map<string, DiploEdge[]>();
+		for (const e of edges) {
+			const k = `${Math.min(e.from, e.to)}:${Math.max(e.from, e.to)}`;
+			m.set(k, [...(m.get(k) ?? []), e]);
+		}
+		return m;
+	});
+	const pairEdges = (a: number, b: number) =>
+		between.get(`${Math.min(a, b)}:${Math.max(a, b)}`) ?? [];
+	const matrixRows = $derived(
+		[...nodes].sort((a, b) => (a.us ? -1 : b.us ? 1 : a.name.localeCompare(b.name)))
+	);
+	const opinionColor = (v: number) => scaleColor(v, -200, 200);
+
+	// --- table
+	const pacts = (n: DiploNode) =>
+		edges.filter(
+			(e) => (e.from === n.id || e.to === n.id) && !['war', 'subject', 'is_rival'].includes(e.kind)
+		).length;
+	const columns: Column<DiploNode>[] = $derived([
+		{ id: 'name', label: 'Empire', value: (n) => n.name, cell: empire },
+		{
+			id: 'intel',
+			label: 'Intel',
+			value: (n) => n.intel,
+			right: true,
+			title:
+				"our intel on them, 0–100: government shows from 10, rivals from 20, pacts and opinions from 50 (the game's intel levels)"
+		},
+		{
+			id: 'ethics',
+			label: 'Ethics',
+			value: (n) => n.government?.value.ethics.map((e) => nameOf(data.names, e)).join(', ') ?? null,
+			cell: gov
+		},
+		{
+			id: 'federation',
+			label: 'Federation',
+			value: (n) => n.federation?.value ?? null,
+			cell: fed
+		},
+		{
+			id: 'overlord',
+			label: 'Overlord',
+			value: (n) => (n.overlord === null ? null : name(n.overlord))
+		},
+		{
+			id: 'subjects',
+			label: 'Subjects',
+			value: (n) => nodes.filter((x) => x.overlord === n.id).length || null,
+			right: true
+		},
+		{ id: 'pacts', label: 'Pacts', value: (n) => pacts(n) || null, right: true },
+		{
+			id: 'rivals',
+			label: 'Rivals',
+			value: (n) =>
+				edges
+					.filter((e) => e.kind === 'is_rival' && e.from === n.id)
+					.map((e) => name(e.to))
+					.join(', ') || null
+		},
+		{
+			id: 'wars',
+			label: 'Wars',
+			value: (n) =>
+				(d?.wars ?? []).filter((w) => [...w.attackers, ...w.defenders].includes(n.id)).length ||
+				null,
+			right: true
+		},
+		{
+			id: 'opinionOfUs',
+			label: 'Opinion of us',
+			value: (n) =>
+				n.us ? null : (opinionOf(n.id, nodes.find((x) => x.us)?.id ?? 0)?.value ?? null),
+			right: true
+		},
+		{
+			id: 'unverified',
+			label: 'Unverified since',
+			value: unverified,
+			title: 'our intel no longer shows some of what we knew of it: shown as it was last seen'
+		},
+		{
+			id: 'unmet',
+			label: 'Unmet',
+			value: (n) => n.unmet || null,
+			right: true,
+			title: 'relations with countries we have not met, not drawn'
+		}
+	]);
+</script>
+
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (focus = null)} />
+
+{#snippet empire(n: DiploNode)}
+	<EmpireName name={n.name} color={n.color} kind={n.kind} nomadic={n.nomadic} />
+{/snippet}
+{#snippet gov(n: DiploNode)}
+	{#if n.government}<span
+			class={n.government.stale ? 'text-amber-600' : ''}
+			title={[n.government.value.governmentType, n.government.value.authority]
+				.flatMap((k) => (k ? [nameOf(data.names, k)] : []))
+				.join(', ') + stale(n.government)}
+			>{n.government.value.ethics.map((e) => nameOf(data.names, e)).join(', ')}</span
+		>{:else}<span class="text-gray-400" title="our intel does not reach their government"
+			>unknown</span
+		>{/if}
+{/snippet}
+{#snippet fed(n: DiploNode)}
+	{#if n.federation}<span
+			class={n.federation.stale ? 'text-amber-600' : ''}
+			title={stale(n.federation)}>{n.federation.value}</span
+		>{:else}–{/if}
+{/snippet}
+
+<header class="mb-4 flex items-start gap-4">
+	<h1 class="flex-1 text-2xl font-bold">Diplomacy</h1>
+	<span class="shrink-0 text-2xl font-bold tabular-nums">{d?.date ?? data.latest.date}</span>
+</header>
+
+{#if !d}
+	<p class="text-sm text-amber-600">
+		No save read since this tab exists; it fills after the next one.
+	</p>
+{:else}
+	<p class="mb-3 text-sm text-gray-500">
+		{#if data.cheat}<span class="text-red-600"
+				>Cheat on (⚙): every empire and relation, whatever our intel.</span
+			>
+		{:else}What our intel shows: an empire's government from intel 10, its rivals and federation
+			from 20, its pacts and opinions from 50 — through either side of a pact. Subjects and wars
+			count as public. What intel showed once but no longer does is kept as last seen,
+			<span class="text-amber-600">unverified since</span> then (dashed lines).{/if}
+		Click an empire to show it and its relations alone; Esc clears.
+	</p>
+
+	<div class="mb-4 flex flex-col gap-2 text-sm">
+		<div class="flex flex-wrap items-center gap-4">
+			<label class="flex items-center gap-1"
+				><input
+					type="checkbox"
+					checked={view.communicationsOnly}
+					onchange={(e) => save({ ...view, communicationsOnly: e.currentTarget.checked })}
+				/> with communications only</label
+			>
+			<span class="flex items-center gap-1"
+				>graph
+				{#each ['map', 'circle'] as const as l (l)}
+					<button
+						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {view.layout ===
+						l
+							? 'font-semibold'
+							: 'opacity-60'}"
+						onclick={() => save({ ...view, layout: l })}>{l}</button
+					>
+				{/each}
+			</span>
+			<span class="text-gray-500">{nodes.length} of {d.nodes.length}</span>
+		</div>
+		<div class="flex flex-wrap items-center gap-1">
+			<span class="text-gray-500">show:</span>
+			{#each CONTACT_KINDS as k (k)}
+				<label
+					class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {view.kinds.includes(
+						k
+					)
+						? ''
+						: 'opacity-40'}"
+					title={kindTypes(k).join(', ') || 'every other country type'}
+					><input
+						type="checkbox"
+						class="sr-only"
+						checked={view.kinds.includes(k)}
+						onchange={() => save({ ...view, kinds: flip(CONTACT_KINDS, view.kinds, k) })}
+					/>{KIND_LABELS[k]}</label
+				>
+			{/each}
+		</div>
+		<div class="flex flex-wrap items-center gap-1">
+			<span class="text-gray-500">relations:</span>
+			{#each EDGE_KINDS.filter((k) => kindsPresent.has(k)) as k (k)}
+				{@const st = edgeStyle(k)}
+				<label
+					class="flex items-center gap-1 rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {view.hiddenEdges.includes(
+						k
+					)
+						? 'opacity-40'
+						: ''}"
+					><input
+						type="checkbox"
+						class="sr-only"
+						checked={!view.hiddenEdges.includes(k)}
+						onchange={() => save({ ...view, hiddenEdges: flip(EDGE_KINDS, view.hiddenEdges, k) })}
+					/><span class="inline-block w-4" style:border-top="{st.width}px solid {st.color}"></span>
+					{edgeLabel(k)}</label
+				>
+			{/each}
+		</div>
+	</div>
+
+	<Panel title="Relations graph">
+		{#if view.layout === 'map'}
+			<GalaxyMap
+				systems={data.systems}
+				territories={data.territories}
+				focus={[
+					{
+						label: 'capitals',
+						points: nodes.flatMap((n) => capitalOf(n.id) ?? [])
+					}
+				]}
+				heightKey="diplomacy-map-height"
+				label="Relations on the galaxy map"
+				bind:selected={
+					() => (focus === null ? null : (data.capitals[focus] ?? null)),
+					(id) => (focus = id === null || id === undefined ? null : (ownerOf.get(id) ?? null))
+				}
+			>
+				{#snippet layer(at)}
+					{#each edges as e, i (`${e.kind}:${e.from}:${e.to}`)}
+						{@const a = capitalOf(e.from)}
+						{@const b = capitalOf(e.to)}
+						{#if a && b}
+							{@const p = at(a)}
+							{@const q = at(b)}
+							{@const len = Math.hypot(q.x - p.x, q.y - p.y) || 1}
+							{@const o = {
+								x: (-(q.y - p.y) / len) * offsets[i] * 4,
+								y: ((q.x - p.x) / len) * offsets[i] * 4
+							}}
+							{@const st = edgeStyle(e.kind)}
+							<line
+								class="pointer-events-none"
+								x1={p.x + o.x}
+								y1={p.y + o.y}
+								x2={q.x + o.x}
+								y2={q.y + o.y}
+								stroke={st.color}
+								stroke-width={st.width}
+								stroke-dasharray={e.stale ? '4 3' : undefined}
+								opacity={focus === null
+									? e.stale
+										? 0.55
+										: 0.85
+									: e.from === focus || e.to === focus
+										? 1
+										: 0.06}
+							/>
+						{/if}
+					{/each}
+					{#each nodes as n (n.id)}
+						{@const c = capitalOf(n.id)}
+						{#if c}
+							{@const p = at(c)}
+							<g class="pointer-events-none" opacity={faded(n.id) ? 0.2 : 1}>
+								<circle
+									cx={p.x}
+									cy={p.y}
+									r={n.us ? 8 : 6}
+									fill={n.color ?? '#9ca3af'}
+									stroke={focus === n.id ? '#0ea5e9' : 'currentColor'}
+									stroke-width={focus === n.id ? 3 : 1}
+								/>
+								<text x={p.x + 10} y={p.y + 4} class="fill-current text-[12px] font-semibold"
+									>{n.name}</text
+								>
+							</g>
+						{/if}
+					{/each}
+				{/snippet}
+			</GalaxyMap>
+			{#if offMap.length}
+				<p class="mt-2 text-sm">
+					<span class="text-gray-500">capital unknown, not on the map:</span>
+					{#each offMap as n (n.id)}
+						<button
+							class="ml-1 rounded border border-gray-300 px-1 dark:border-gray-700 {faded(n.id)
+								? 'opacity-30'
+								: ''} {focus === n.id ? 'ring-2 ring-sky-500' : ''}"
+							onclick={() => (focus = focus === n.id ? null : n.id)}>{n.name}</button
+						>
+					{/each}
+				</p>
+			{/if}
+		{:else}
+			<DiplomacyCircle {nodes} {edges} bind:focus />
+		{/if}
+	</Panel>
+
+	<Panel
+		title="Matrix"
+		note="Row to column: the row's opinion of the column (tinted) and the relations between them. Grey ? = our intel does not show it; amber = unverified since the date in the tooltip."
+	>
+		<div class="overflow-x-auto">
+			<table class="text-xs tabular-nums">
+				<thead>
+					<tr>
+						<th></th>
+						{#each matrixRows as c (c.id)}
+							<th class="p-1 align-bottom {faded(c.id) ? 'opacity-20' : ''}">
+								<button
+									class="rotate-180 cursor-pointer whitespace-nowrap [writing-mode:vertical-rl] {focus ===
+									c.id
+										? 'text-sky-600'
+										: ''}"
+									style:color={focus === c.id ? undefined : (c.color ?? undefined)}
+									onclick={() => (focus = focus === c.id ? null : c.id)}>{c.name}</button
+								>
+							</th>
+						{/each}
+					</tr>
+				</thead>
+				<tbody>
+					{#each matrixRows as r (r.id)}
+						<tr class={faded(r.id) ? 'opacity-20' : ''}>
+							<th class="pr-2 text-left whitespace-nowrap">
+								<button
+									class="cursor-pointer {focus === r.id ? 'text-sky-600' : ''}"
+									onclick={() => (focus = focus === r.id ? null : r.id)}
+									><EmpireName name={r.name} color={r.color} /></button
+								>
+							</th>
+							{#each matrixRows as c (c.id)}
+								{#if r.id === c.id}
+									<td class="bg-gray-100 dark:bg-gray-800"></td>
+								{:else}
+									{@const o = opinionOf(r.id, c.id)}
+									{@const es = pairEdges(r.id, c.id)}
+									<td
+										class="border border-gray-200 p-1 text-center dark:border-gray-800 {o?.stale ||
+										es.some((e) => e.stale)
+											? 'border-dashed border-amber-500'
+											: ''} {faded(c.id) ? 'opacity-20' : ''}"
+										title={[
+											o
+												? `${r.name}'s opinion of ${c.name}: ${o.value}${stale(o)}`
+												: `${r.name}'s opinion of ${c.name}: unknown`,
+											...es.map(
+												(e) =>
+													`${edgeLabel(e.kind)}${e.kind === 'subject' || e.kind === 'is_rival' ? ` (${name(e.from)} → ${name(e.to)})` : ''}${e.stale ? ` — unverified since ${e.asOf}` : ''}`
+											)
+										].join('\n')}
+									>
+										{#if o}<div style:color={opinionColor(o.value)}>{o.value}</div>{:else}<div
+												class="text-gray-400"
+											>
+												?
+											</div>{/if}
+										{#each es as e (`${e.kind}:${e.from}`)}<span
+												class="mx-px font-semibold"
+												style:color={edgeStyle(e.kind).color}>{edgeStyle(e.kind).short}</span
+											>{/each}
+									</td>
+								{/if}
+							{/each}
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	</Panel>
+
+	<Panel title="Empires">
+		<SortTable
+			rows={nodes}
+			{columns}
+			key={(n) => n.id}
+			link={(n) => n.id}
+			bind:selected={focus}
+			rowClass={(n) => (faded(n.id) ? 'opacity-30' : '')}
+		/>
+	</Panel>
+
+	{#if d.wars.length}
+		<Panel title="Wars">
+			<ul class="text-sm">
+				{#each d.wars as w (w.id)}
+					<li
+						class={lit && ![...w.attackers, ...w.defenders].some((id) => id === focus)
+							? 'opacity-30'
+							: ''}
+					>
+						<b>{w.name}</b>
+						<span class="text-gray-500">since {w.start ?? '?'}</span>:
+						{w.attackers.map(name).join(', ')} against {w.defenders.map(name).join(', ')}
+					</li>
+				{/each}
+			</ul>
+		</Panel>
+	{/if}
+{/if}

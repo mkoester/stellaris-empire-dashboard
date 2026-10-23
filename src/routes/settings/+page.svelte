@@ -18,6 +18,11 @@
 			'exploratory: estimates from your budget, with knobs for upcoming techs and traditions'
 		],
 		[
+			'diplomacyAll',
+			'Diplomacy: every empire and every relation between them, whatever our intel shows',
+			'cheating — the game shows what your intel on each empire reveals'
+		],
+		[
 			'tradeIntel',
 			'Trade: other empires’ stockpiles and income, and what they would trade at what rate',
 			'cheating — the game shows neither; estimated until calibrated (docs/trade-calibration.md)'

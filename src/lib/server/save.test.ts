@@ -55,6 +55,8 @@ const raw: RawSave = {
 	meta: { version: 'Cygnus v4.5.2', dlcs: ['Utopia'], mods: [] },
 	councilPositions: {},
 	countries: {},
+	countryBlocks: {},
+	federations: {},
 	fleetOwner: {},
 	firstContacts: {},
 	situations: {},

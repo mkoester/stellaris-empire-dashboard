@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- A diplomacy tab: every empire you know and the relations between them — pacts, rivalries,
+  subjects, wars, opinions — as a table, a matrix and a graph (on the galaxy map at their capitals,
+  or on a circle), in each empire's own colour. It shows what your intel on each empire reveals, as
+  the game does; what it showed once but no longer does stays, marked "unverified since" that date.
+  Click an empire to see it and its relations alone. A cheat in ⚙ shows everything.
+- The contacts tab's relations table is titled and filters by kind — other empires, fallen
+  empires, enclaves, traders, pre-FTL civilisations, space fauna, marauders — and names carry
+  their colour and the fallen, nomadic, enclave, … badges of the trade tab.
+
 - Companion mod 0.2.0 (log format 2): the stockpile every day, shown live in the resources panel
   and between months in the stockpile chart; the exact save you loaded, so a reload's branch is no
   longer a guess; colonies, wars, leader deaths, new rulers and space battles at the day they

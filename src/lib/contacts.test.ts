@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { agreementName, combatLog, contactTable, parseContactView, shown } from './contacts.ts';
+import {
+	agreementName,
+	combatLog,
+	contactTable,
+	kindOf,
+	parseContactView,
+	shown
+} from './contacts.ts';
 import type { Relation } from './types.ts';
 
 const rel = (countryId: number, r: Partial<Relation> = {}): Relation => ({
@@ -36,22 +43,41 @@ describe('contacts', () => {
 		[]
 	);
 
-	it('filters by communications, hostility and country type', () => {
-		const view = { ...parseContactView({}), communicationsOnly: false };
+	it('filters by communications, hostility and kind', () => {
+		const view = {
+			...parseContactView({}),
+			communicationsOnly: false,
+			kinds: parseContactView({ kinds: ['traders', 'other'] }).kinds
+		};
 		expect(shown(rows, view).length).toBe(3);
-		// the default
-		expect(shown(rows, parseContactView({})).map((r) => r.countryId)).toEqual([20, 16]);
+		// the default: other empires with communications only — neither the cloud nor the traders
+		expect(shown(rows, parseContactView({})).map((r) => r.countryId)).toEqual([]);
 		expect(shown(rows, { ...view, hostile: 'hostile' }).map((r) => r.countryId)).toEqual([20]);
-		expect(
-			shown(rows, { ...view, hiddenTypes: ['caravaneer_fleet'] }).map((r) => r.countryId)
-		).toEqual([16777220, 20]);
+		expect(shown(rows, { ...view, kinds: ['other'] }).map((r) => r.countryId)).toEqual([
+			16777220, 20
+		]);
+	});
+
+	it('sorts country types into kinds', () => {
+		expect(kindOf('default')).toBe('empires');
+		expect(kindOf('awakened_fallen_empire')).toBe('fallen');
+		expect(kindOf('caravaneer_fleet')).toBe('traders');
+		expect(kindOf('primitive')).toBe('preFtl');
+		expect(kindOf('tiyanki_garrison')).toBe('fauna');
+		expect(kindOf('guardian_sphere')).toBe('fauna');
+		expect(kindOf('dormant_marauders')).toBe('marauders');
+		expect(kindOf('mindwarden_enclave')).toBe('enclaves');
+		expect(kindOf('global_event')).toBe('other');
+		expect(kindOf('')).toBe('other');
 	});
 
 	it('repairs a stored view', () => {
 		expect(parseContactView({ hostile: 'x', columns: ['opinion', 'nope'] })).toMatchObject({
 			hostile: 'any',
+			kinds: ['empires'],
 			columns: ['opinion']
 		});
+		expect(parseContactView({ kinds: ['fauna', 'x'] }).kinds).toEqual(['fauna']);
 	});
 });
 

@@ -20,6 +20,7 @@
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
+	import EmpireBadges from '#lib/EmpireBadges.svelte';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 
@@ -322,17 +323,10 @@
 </script>
 
 {#snippet party(p: Party)}
-	{p.name}{#if p.fallen}<span
-			class="ml-1 rounded bg-purple-100 px-1 text-xs text-purple-800 dark:bg-purple-900/50 dark:text-purple-200"
-			>fallen</span
-		>{/if}{#if p.nomadic}<span
-			class="ml-1 rounded bg-amber-100 px-1 text-xs text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
-			title="Nomadic: takes energy and minerals, never gives them (its operational reserves)"
-			>nomadic</span
-		>{/if}{#if p.enclave}<span
-			class="ml-1 rounded bg-sky-100 px-1 text-xs text-sky-800 dark:bg-sky-900/50 dark:text-sky-200"
-			>enclave</span
-		>{/if}
+	{p.name}<EmpireBadges
+		kind={p.fallen ? 'fallen' : p.enclave ? 'enclaves' : null}
+		nomadic={p.nomadic}
+	/>
 {/snippet}
 {#snippet willing(e: Empire)}
 	{@const w = termsOf(e).willingness}

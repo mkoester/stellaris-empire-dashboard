@@ -36,6 +36,7 @@ import type {
 	DealSide,
 	TradeDeal,
 	War,
+	WarSides,
 	Subject,
 	Faction,
 	Combat,
@@ -52,10 +53,12 @@ import {
 	bypassList,
 	claims,
 	digSites,
+	diplomacy,
 	stationsSeen,
 	firstContacts,
 	galaxy as galaxySystems,
 	knownCountries,
+	ourIntel,
 	relations,
 	situations,
 	specialProjects
@@ -92,6 +95,8 @@ export type RawSave = {
 	meta: { version: string | null; dlcs: string[]; mods: string[] }; // the save's `meta` file
 	councilPositions: Record<string, Raw>; // council_positions.council_positions: every empire's seats
 	countries: Record<string, Omit<CountryInfo, 'id'>>; // every country, in brief
+	countryBlocks: Record<string, Raw>; // top-level country: every country's block
+	federations: Record<string, Raw>; // top-level federation
 	fleetOwner: Record<string, number>; // fleet → country, from each `fleets_manager.owned_fleets`
 	firstContacts: Record<string, Raw>; // first_contacts.contacts
 	situations: Record<string, Raw>; // situations.situations
@@ -197,6 +202,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			randomCount: Number(q.at('/random_count') ?? 0),
 			countryId,
 			country: allCountries[String(countryId)],
+			countryBlocks: allCountries,
+			federations: q.at('/federation') ?? {},
 			colonies,
 			planets,
 			countryNames,
@@ -258,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '13';
+export const READER = '14';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -504,6 +511,9 @@ function world(raw: RawSave) {
 	return {
 		galaxy: gal,
 		relations: rel,
+		intel: ourIntel(raw),
+		diplomacy: diplomacy(raw),
+		allWars: allWars(raw),
 		claims: claims(raw, own),
 		firstContacts: contacts,
 		countries: knownCountries(raw, [
@@ -1580,6 +1590,24 @@ export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames' | 
 			}
 		];
 	});
+}
+
+/** Every war being fought, by its sides (the diplomacy tab). */
+export function allWars(raw: Pick<RawSave, 'wars'>): WarSides[] {
+	const side = (v: Raw) => items(v).map((p) => Number(p?.country));
+	return Object.entries(raw.wars).flatMap(([id, w]) =>
+		w && typeof w === 'object'
+			? [
+					{
+						id,
+						name: displayName(w.name) || `war ${id}`,
+						start: strOrNull(w.start_date),
+						attackers: side(w.attackers),
+						defenders: side(w.defenders)
+					}
+				]
+			: []
+	);
 }
 
 /**

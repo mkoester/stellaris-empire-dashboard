@@ -1,5 +1,6 @@
 import type { ColonyView } from './colonyTable.ts';
 import type { ContactView } from './contacts.ts';
+import type { DiplomacyView } from './diplomacy.ts';
 import type { ExpansionView } from './expansion.ts';
 import type { MapFilter } from './mapLayers.ts';
 import type { MegaView } from './megastructures.ts';
@@ -150,6 +151,7 @@ export async function putSettings(patch: {
 	colonyView?: ColonyView;
 	expansionView?: ExpansionView;
 	contactView?: ContactView;
+	diplomacyView?: DiplomacyView;
 	megastructureView?: MegaView;
 	systemView?: SystemView;
 	produceView?: ProduceView;

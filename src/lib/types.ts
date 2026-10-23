@@ -370,6 +370,11 @@ export type Snapshot = {
 	surveyedAll: { expansion: ExpansionPlanet[]; habitatSites: HabitatSite[] } | null;
 	countries: CountryInfo[] | null; // empires in contact, or owning a station in a visited system
 	relations: Relation[] | null;
+	// our intel on each country (`intel_manager`, 0–100) and the galaxy's relations, for the
+	// diplomacy tab; since READER 14
+	intel: { countryId: number; intel: number }[] | null;
+	diplomacy: DiploCountry[] | null;
+	allWars: WarSides[] | null;
 	firstContacts: FirstContact[] | null;
 	situations: SituationInfo[] | null;
 	anomalies: AnomalyInfo[] | null; // found, not yet researched
@@ -517,6 +522,40 @@ export type Relation = {
 	// its other `<key>=yes` flags: embassy, research_agreement, commercial_pact, defensive_pact,
 	// non_aggression_pledge, guarantee, closed_borders (4.5.2), and whatever else the game adds
 	agreements: string[];
+};
+
+/**
+ * One country's relation to another, as the save has it (`relations_manager.relation` of `from`):
+ * true whatever we know — the diplomacy tab decides what our intel shows (#lib/diplomacy.ts).
+ */
+export type DiploRelation = {
+	countryId: number; // the other side
+	opinion: number | null; // relation_current: `from`'s opinion of it
+	hostile: boolean;
+	// pacts and rivalry, as flags: embassy, research_agreement, commercial_pact, defensive_pact,
+	// non_aggression_pledge, guarantee, closed_borders, migration_access, waystation_pact, is_rival
+	agreements: string[];
+};
+
+/** A country in the galaxy's diplomacy (every kind but `other`, #lib/contacts.ts), us included. */
+export type DiploCountry = {
+	id: number;
+	capitalSystem: number | null;
+	overlord: number | null;
+	federation: string | null; // its federation's name
+	nomadic: boolean;
+	// to other countries kept here, with communications; only between the diplomatic kinds
+	// (empires, fallen, enclaves, traders, marauders) — fauna and pre-FTL civilisations have none
+	relations: DiploRelation[];
+};
+
+/** A war anyone fights: `war.<id>`'s sides. */
+export type WarSides = {
+	id: string;
+	name: string;
+	start: string | null;
+	attackers: number[];
+	defenders: number[];
 };
 
 /** `first_contacts.contacts.<id>`, ours. */

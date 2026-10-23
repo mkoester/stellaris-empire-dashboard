@@ -2,12 +2,17 @@
 	import {
 		agreementName,
 		CONTACT_COLUMNS,
+		CONTACT_KINDS,
+		KIND_LABELS,
+		kindOf,
+		kindTypes,
 		shown,
 		type ContactColumn,
 		type ContactRow,
 		type ContactView
 	} from '#lib/contacts.ts';
 	import { nameOf, pretty } from '#lib/format.ts';
+	import EmpireName from '#lib/EmpireName.svelte';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import type { ResolutionVote } from '#lib/types.ts';
 	import { followGame } from '#lib/live.ts';
@@ -24,7 +29,6 @@
 		view = v;
 		void putSettings({ contactView: v });
 	};
-	const types = $derived([...new Set(data.rows.map((r) => r.country?.type ?? ''))].sort());
 	const rows = $derived(shown(data.rows, view));
 	const yesNo = (v: boolean) => (v ? 1 : 0);
 
@@ -84,12 +88,15 @@
 	// "subject_can_not_be_integrated" → "can not be integrated"
 	const termValue = (v: string) => pretty(v.replace(/^subject_(is_|does_|gets_)?/, ''));
 	const percent = (v: number | null) => (v === null ? '?' : `${Math.round(v * 100)} %`);
-	const toggle = <T,>(list: T[], x: T) =>
-		list.includes(x) ? list.filter((y) => y !== x) : [...list, x];
 </script>
 
 {#snippet name(r: ContactRow)}
-	<b>{r.name}</b>{#if r.hostile}<span class="text-red-600"> · hostile</span>{/if}
+	<EmpireName
+		name={r.name}
+		color={data.flagColors[r.country?.flagColor ?? ''] ?? null}
+		kind={kindOf(r.country?.type ?? '')}
+		nomadic={data.nomads.includes(r.countryId)}
+	/>{#if r.hostile}<span class="text-red-600"> · hostile</span>{/if}
 {/snippet}
 {#snippet comms(r: ContactRow)}{r.communications ? '✓' : '–'}{/snippet}
 {#snippet fc(r: ContactRow)}{r.firstContact
@@ -316,6 +323,7 @@
 	</div>
 {/if}
 
+<h2 class="mb-2 text-xl font-semibold">Relations</h2>
 <div class="mb-4 flex flex-col gap-2 text-sm">
 	<div class="flex flex-wrap items-center gap-4">
 		<label class="flex items-center gap-1"
@@ -341,20 +349,25 @@
 		<span class="text-gray-500">{rows.length} of {data.rows.length}</span>
 	</div>
 	<div class="flex flex-wrap items-center gap-1">
-		<span class="text-gray-500">types:</span>
-		{#each types as t (t)}
+		<span class="text-gray-500">show:</span>
+		{#each CONTACT_KINDS as k (k)}
 			<label
-				class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {view.hiddenTypes.includes(
-					t
+				class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {view.kinds.includes(
+					k
 				)
-					? 'opacity-40'
-					: ''}"
+					? ''
+					: 'opacity-40'}"
+				title={kindTypes(k).join(', ') || 'every other country type'}
 				><input
 					type="checkbox"
 					class="sr-only"
-					checked={!view.hiddenTypes.includes(t)}
-					onchange={() => save({ ...view, hiddenTypes: toggle(view.hiddenTypes, t) })}
-				/>{pretty(t || '?')}</label
+					checked={view.kinds.includes(k)}
+					onchange={() =>
+						save({
+							...view,
+							kinds: CONTACT_KINDS.filter((x) => (x === k) !== view.kinds.includes(x))
+						})}
+				/>{KIND_LABELS[k]}</label
 			>
 		{/each}
 	</div>

@@ -211,7 +211,7 @@ left, net per month right (`resourcePanelSeries()`) — and the latest save's mo
 what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
 `trade-offs` (only with its switch, below) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `shroud` (patrons and attunement), `focus`,
-`traditions`, `tech`, `leaders`, `species`, `contacts`, `megastructures` (all below), `mods` and
+`traditions`, `tech`, `leaders`, `species`, `contacts`, `diplomacy`, `megastructures` (all below), `mods` and
 `dlc` (last; see
 "DLCs and mods" below); tabs keep `?node=`. Tables on the newer tabs sort through
 `SortTable.svelte` (columns as `Column<T>` from `#lib/sort.ts`), maps through `GalaxyMap.svelte`
@@ -530,7 +530,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`. A new view of hidden information follows the same pattern. **The
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`. A new view of hidden information follows the same pattern. **The
 check is the user's in-game screenshot** of the matching panel (workspace `AGENTS.md`): it caught
 the edicts (58 → the game's 5), policies, agendas and focus cards here.
 
@@ -638,8 +638,35 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   class, a row of its own; more picks wrap into more rows), trait budget, rights. System names
   from random-name lists that are localisation keys (`VOIDWORM_SYSTEM_12` = Papqaqtet) resolve
   through the data DB's `prescripted_name`.
-- **contacts** (`#lib/contacts.ts`): the relations table, its filters and columns being the
-  profile's `contactView` (stored at once, `PUT /api/settings`).
+- **contacts** (`#lib/contacts.ts`): the relations table ("Relations"), its filters and columns
+  being the profile's `contactView` (stored at once, `PUT /api/settings`). Filters by **kind**
+  (`kindOf()`, `KIND_TYPES` from 4.5.2 `common/country_types/*` — re-check on game updates):
+  other empires (`default`, the only one on by default), fallen, enclaves, traders (the
+  Caravaneers), pre-FTL civilisations (`primitive`), space fauna (leviathans and guardians
+  included), marauders, other (factions, the Shroud, event countries). Names are `EmpireName`
+  (map-colour swatch) with `EmpireBadges` (fallen, enclave, nomadic, … — shared with the trade tab).
+
+**Diplomacy tab** (`/diplomacy`, `#lib/diplomacy.ts` pure, `diplomacy()` and `ourIntel()` in
+`server/world.ts`; the user's ask 2026-10-23: "all the player knows(!) about all other empires"):
+every country but `other`, the relations between them (pacts and rivalries are flags on each
+country's `relations_manager.relation`; subjects `country.overlord`; wars every `war`), as a table,
+a matrix (row's opinion of the column, pact abbreviations) and a graph — on the galaxy map at the
+capitals (`GalaxyMap` `selected` bound to the empire whose capital is clicked; capitals not yet
+discovered are added faint, the intel names them) or on a circle (`DiplomacyCircle.svelte`). Edge
+kinds toggle (`diplomacyView.hiddenEdges`, embassies and closed borders off by default); a click
+focuses one empire and fades the rest (per viewer, Esc clears). **What we know is the game's intel
+model**: our `intel_manager` value per country (0–100) → a level per category (4.5.2
+`common/intel_levels/00_intel_levels.txt`), and what a level reveals
+(`common/intel_categories/*`): government 1 (intel 10) ethics, civics, capital; diplomacy 1 (20)
+rivalries, federation; diplomacy 2 (50) pacts and opinions. A pact shows through either side,
+their opinion of us always; subjects and wars are **assumed public** (Open). `diplomacyView()`
+walks the branch's saves: a fact keeps its reading from the last save whose intel showed it — gone
+if that save showed it gone, else **"unverified since"** that date when the intel no longer shows
+it. Snapshots keep relations only among the diplomatic kinds (empires, fallen, enclaves, traders,
+marauders) and with communications (`Snapshot.diplomacy`, `intel`, `allWars`, READER 14). The
+`diplomacyAll` cheat (⚙) is the latest save's truth; the route strips nothing else, since the
+model never passes hidden facts. 2214.01.01: 47 countries, 113 relations shown of 141, 115
+opinions of 228.
 
 **DLCs and mods** (`/dlc`, `/mods`, `#lib/addons.ts`, pure): what is active comes from each
 save's `meta` (`required_dlcs`, `mods`: names; `version`) → `Snapshot.dlcs|mods|gameVersion`;
@@ -905,6 +932,11 @@ can_subject_* … } subject_specialization = { level experience } }`, owner = th
   stored. Shown on the contacts tab (`subjects()` in save.ts), the terms in the game's words
   from the data DB (`diploNames`: `agreement_term*`, `agreement_preset`; hidden terms have no
   name there and are left out — 7 shown, as the game's agreements screen).
+- **Intel** (2214.01.01): our country's `intel_manager = { intel = { { <country> { intel=40.6
+stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included (20 there);
+  `stale_intel` was empty everywhere, so staleness is ours (`diplomacyView()`). The floors from
+  pacts are defines (`INTEL_FROM_*`), already in the value. **`country.capital` is a colony id**
+  (ours `capital=0` = colony 0 on planet 3), as a construction item's planet.
 - Galactic Community (2026-10-19): `galactic_community = { members = { <ids> } proposed = {
 <resolution ids> } voting = <id> emissaries days election community_formed focus … }`,
   `resolution.<id> = { type country supporters = { <ids> } opponents }` (the voted one also
@@ -1177,6 +1209,11 @@ screen, trade calibration, stored research, releases).
 - **Battles: only some are recorded** — the throwaway war had more fights (the station, single
   civilian ships one by one) than its two `battles` entries; the station was killed by console
   `damage`, which may not count. Check at the next war which fights the list keeps.
+- **Diplomacy tab: subjects and wars between others are assumed public**, and which pacts the
+  game's diplomacy screen shows at which intel is from the files only. Check: a screenshot of an
+  empire's diplomacy view at intel < 50 (no pacts expected) and one ≥ 50 against the tab; at the
+  first intel drop (lost embassy or pact), whether the tab marks its facts "unverified since".
+  Federations (`federation.<id>.name`, `country.federation`) are not yet seen in a save.
 - **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
   (`is_rival=yes`); no AI rivalled us yet (2205.06).
 - **Galactic Community: session timing, solved** (2214.01.01): `galactic_community.days` counts
