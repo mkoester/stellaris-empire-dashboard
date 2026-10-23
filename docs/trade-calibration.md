@@ -418,6 +418,17 @@ Minerals and food keep rising (~6–8 % a half year); energy has stopped; the re
 model now holds 2213.08 (minerals p 0.0795, food 0.1574); the test checks every older line at its
 date's level (`LEVEL` in `aiTrade.test.ts`).
 
+### 2026-10-23: the monthly series (KhellZen and Lolehndra, all at once, nothing sent)
+
+| Date    | KhellZen: energy, minerals, food, trade, CG, alloys, living metal | Lolehndra: the same               |
+| ------- | ----------------------------------------------------------------- | --------------------------------- |
+| 2213.08 | 42, 53, 78, 43, 86, 122, 43 (145)                                 | 42, 47, 70, 59, 74, 102, 36 (145) |
+| 2213.09 | 42, 53, 77, 43, 86, 122, 45 (151)                                 | 42, 47, 69, 59, 74, 102, 37 (151) |
+
+Incomes unchanged within 0.2; every value within 2.6 % of the model. **No drift in this month**
+(food −1 is the tooltip's rounding). With 6–9 % over each earlier half year, the drift comes in
+steps rather than smoothly — the months it steps, compared save to save, should show its cause.
+
 ### What does not explain food (and the minerals drift), 2026-10-23
 
 - **Consumption:** Dekron (machine, no food income or upkeep at all) values food highest

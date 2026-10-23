@@ -446,6 +446,18 @@ describe('a year and a half on', () => {
 		['Lolehndra', 'alloys', 102],
 		['Lolehndra', 'sr_living_metal', 36]
 	];
+	// a month later (2213.09.01): the same at the same incomes, food one point lower, 151 living metal
+	const nextMonth: [keyof typeof income, string, number][] = [
+		['KhellZen', 'food', 77],
+		['KhellZen', 'sr_living_metal', 45],
+		['Lolehndra', 'food', 69],
+		['Lolehndra', 'sr_living_metal', 37]
+	];
+	it.each(nextMonth)('2213.09: %s: %s → %d', (who, r, tip) => {
+		const amount = r === 'sr_living_metal' ? 151 : 1000;
+		const v = aiValue(r, ai({ income: income[who] }), game, m)!;
+		expect(Math.abs((amount * v * willingness[who]) / tip - 1)).toBeLessThan(0.03);
+	});
 	it.each(tips)('%s: %s → %d', (who, r, tip) => {
 		const amount = r === 'sr_living_metal' ? 145 : 1000;
 		const v = aiValue(r, ai({ income: income[who] }), game, m)!;
