@@ -6,6 +6,7 @@ import {
 	kindOf,
 	parseContactView,
 	proposalDates,
+	proposedLabel,
 	shown,
 	voteStanding
 } from './contacts.ts';
@@ -160,5 +161,19 @@ describe('voteStanding', () => {
 		expect(voteStanding('against', 3000, 2000)).toBe('behind');
 		expect(voteStanding('for', 2000, 2000)).toBe('behind');
 		expect(voteStanding(null, 3000, 2000)).toBeNull();
+	});
+});
+
+describe('proposedLabel', () => {
+	it('names the month when the saves bracket one, else the range', () => {
+		expect(proposedLabel({ after: '2208.10.01', by: '2208.11.01' })).toBe('2208.10');
+		expect(proposedLabel({ after: '2208.12.01', by: '2209.01.01' })).toBe('2208.12');
+		expect(proposedLabel({ after: '2208.10.01', by: '2208.12.01' })).toBe(
+			'2208.10.01 – 2208.12.01'
+		);
+		expect(proposedLabel({ after: '2208.10.14', by: '2208.11.01' })).toBe(
+			'2208.10.14 – 2208.11.01'
+		);
+		expect(proposedLabel({ after: null, by: '2205.03.01' })).toBe('by 2205.03.01');
 	});
 });

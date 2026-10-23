@@ -14,7 +14,7 @@ All notable changes to this project are documented here. The format follows
 - The contacts tab splits the Galactic Community: resolutions in force by category (or one list)
   with all their effects summed, and proposals with the diplomatic weight for and against — click
   one to see who votes how. Companion mod 0.4.0 stores each member's weight; without it the weight
-  is an estimate, marked ≈. Proposals are listed in the game's queue order, by the weight for them, with when they were proposed (to the month, from the saves — the game keeps no date). The Galactic Community's history — proposals, votes, passed, failed and withdrawn resolutions — is on the events tab and under the proposals.
+  is an estimate, marked ≈. Proposals are listed in the game's queue order, by the weight for them, with when they were proposed (to the month, from the saves — the game keeps no date). The Galactic Community's history — proposals, votes, passed, failed and withdrawn resolutions — is on the events tab and under the proposals. Proposal dates read as the month where the saves allow (2208.10); the effects in force are grouped by what they act on.
 - Empire names carry their map colour everywhere, and every list can be sorted by any column.
 
 - A diplomacy tab: every empire you know and the relations between them — pacts, rivalries,

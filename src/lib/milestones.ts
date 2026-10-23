@@ -54,6 +54,9 @@ export type Milestone = {
 	kind: EventKind;
 	label: string;
 	planetId?: number; // colony events: the planet, so colony pages show only their own
+	// Galactic Community events in parts, for the resolution's popup and the empire's colour:
+	// "<action>: <resolution> (by <by>)"
+	galcom?: { action: string; resolution: string; by?: string };
 };
 
 type Names = Pick<
@@ -274,17 +277,22 @@ const DETECTORS = [
 				const has = (list: ResolutionVote[], r: ResolutionVote) => list.some((x) => x.id === r.id);
 				const found: Found[] = [];
 				const say = (label: string) => found.push({ kind: 'galcom', label });
+				const about = (action: string, r: ResolutionVote, by = false) =>
+					found.push({
+						kind: 'galcom',
+						label: `${action}: ${name(r)}${by ? ` (by ${r.proposer})` : ''}`,
+						galcom: { action, resolution: r.type, ...(by ? { by: r.proposer } : {}) }
+					});
 				if (a.member !== b.member)
 					say(b.member ? 'we joined the Galactic Community' : 'we left the Galactic Community');
 				for (const r of queued(b))
-					if (!has(queued(a), r) && !has(a.passed, r))
-						say(`resolution proposed: ${name(r)} (by ${r.proposer})`);
-				if (b.voting && b.voting.id !== a.voting?.id) say(`put to the vote: ${name(b.voting)}`);
+					if (!has(queued(a), r) && !has(a.passed, r)) about('resolution proposed', r, true);
+				if (b.voting && b.voting.id !== a.voting?.id) about('put to the vote', b.voting);
 				for (const r of queued(a)) {
 					if (has(queued(b), r)) continue;
-					if (has(b.passed, r) || passedEver.has(r.id)) say(`resolution passed: ${name(r)}`);
-					else if (a.voting?.id === r.id) say(`resolution failed: ${name(r)}`);
-					else say(`resolution withdrawn: ${name(r)} (by ${r.proposer})`);
+					if (has(b.passed, r) || passedEver.has(r.id)) about('resolution passed', r);
+					else if (a.voting?.id === r.id) about('resolution failed', r);
+					else about('resolution withdrawn', r, true);
 				}
 				return found;
 			}

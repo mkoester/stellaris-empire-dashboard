@@ -151,6 +151,17 @@ export function proposalDates(
 }
 
 /**
+ * A proposal date as text: the month when the saves bracket it to one (`after` and `by` the 1st of
+ * consecutive months: "2208.10"), else the range, or "by …" when the history starts with it.
+ */
+export function proposedLabel(d: { after: string | null; by: string }): string {
+	if (d.after === null) return `by ${d.by}`;
+	const [y, m, day] = d.after.split('.').map(Number);
+	const next = m === 12 ? `${y + 1}.01.01` : `${y}.${String(m + 1).padStart(2, '0')}.01`;
+	return day === 1 && d.by === next ? d.after.slice(0, 7) : `${d.after} – ${d.by}`;
+}
+
+/**
  * Every combat any save along the branch caught (a fleet's record is cleared some time after the
  * fight), newest first; a combat seen in several saves keeps its latest reading.
  */

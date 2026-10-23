@@ -6,6 +6,7 @@
 		KIND_LABELS,
 		kindOf,
 		kindTypes,
+		proposedLabel,
 		shown,
 		voteStanding,
 		type ContactColumn,
@@ -16,6 +17,7 @@
 	import Effects from '#lib/Effects.svelte';
 	import EffectTotals from '#lib/EffectTotals.svelte';
 	import { nameOf, pretty } from '#lib/format.ts';
+	import { grouped } from '#lib/modifierGroups.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import type { Battle, Claim, Combat, ResolutionVote } from '#lib/types.ts';
@@ -172,7 +174,7 @@
 	);
 	const historyColumns: Column<(typeof galcomHistory)[number]>[] = [
 		{ id: 'date', label: 'Date', value: (m) => m.date },
-		{ id: 'event', label: 'Event', value: (m) => m.label }
+		{ id: 'event', label: 'Event', value: (m) => m.label, cell: historyEvent }
 	];
 	const proposedOf = (r: ResolutionVote) => data.proposalDates[`${r.id}:${r.type}`] ?? null;
 	// rounded down, as the game's tooltips and totals (2214.02.01: 4306.72 shown as 4306)
@@ -359,7 +361,10 @@
 			{/each}
 			{#if activeEffects.length}
 				<h3 class="mt-3 mb-1 font-semibold">All active effects</h3>
-				<EffectTotals effects={activeEffects} />
+				{#each grouped(activeEffects, (t) => t.mod.key) as g (g.group)}
+					<h4 class="mt-2 mb-0.5 text-xs font-semibold text-gray-500 uppercase">{g.label}</h4>
+					<EffectTotals effects={g.items} />
+				{/each}
 			{/if}
 		{/if}
 	</section>
@@ -436,10 +441,15 @@
 		</div>
 	</details>
 {/snippet}
+{#snippet historyEvent(m: (typeof galcomHistory)[number])}{#if m.galcom}{m.galcom.action}:
+		<InfoPopup explanation={data.explain[`resolution:${m.galcom.resolution}`]}
+			>{data.diploNames[m.galcom.resolution] ??
+				pretty(m.galcom.resolution.replace(/^resolution_/, ''))}</InfoPopup
+		>{#if m.galcom.by}
+			<span class="text-gray-500">(by <EmpireName name={m.galcom.by} bold={false} />)</span
+			>{/if}{:else}{m.label}{/if}{/snippet}
 {#snippet proposed(r: Proposal)}{@const d = proposedOf(r)}<span
-		class="whitespace-nowrap tabular-nums"
-		>{#if !d}?{:else if d.after}{d.after} – {d.by}{:else}<span class="text-gray-500">by</span>
-			{d.by}{/if}</span
+		class="whitespace-nowrap tabular-nums">{d ? proposedLabel(d) : '?'}</span
 	>{/snippet}
 {#snippet place(r: Proposal)}{r.status === 'voting'
 		? 'voting now'

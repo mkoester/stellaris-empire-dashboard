@@ -15,9 +15,13 @@ export function load({ url }) {
 	// the latest full save: the wars running and the subject agreements then
 	const save = snaps.findLast((x) => x.kind === 'save');
 	const galcom = save?.galcom ?? null;
-	const resolutions = galcom
-		? [galcom.voting, ...galcom.proposed, ...galcom.passed].flatMap((r) => r ?? [])
-		: [];
+	// the resolutions shown: in the community now, and in its history (named, with popups)
+	const resolutions = [
+		...(galcom
+			? [galcom.voting, ...galcom.proposed, ...galcom.passed].flatMap((r) => r ?? [])
+			: []),
+		...rest.milestones.flatMap((m) => (m.galcom ? [{ type: m.galcom.resolution }] : []))
+	];
 	const subjects = save?.subjects ?? null;
 	return {
 		wars: save?.wars ?? [],

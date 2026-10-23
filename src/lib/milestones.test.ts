@@ -318,6 +318,24 @@ describe("milestones from the companion mod's events", () => {
 		]);
 	});
 
+	it('keeps a Galactic Community event in parts: action, resolution, proposer', () => {
+		const market = resolution(1, 'resolution_galactic_market_form');
+		const m = milestones(
+			[
+				save('2210.01.01', { galcom: galcom() }),
+				save('2210.02.01', { galcom: galcom({ proposed: [market] }) })
+			],
+			names
+		);
+		expect(m.map((x) => x.galcom)).toEqual([
+			{
+				action: 'resolution proposed',
+				resolution: 'resolution_galactic_market_form',
+				by: 'Cydran Concern'
+			}
+		]);
+	});
+
 	it('does not take a save without a list of passed resolutions for everything passing', () => {
 		const market = resolution(1, 'resolution_galactic_market_form');
 		expect(

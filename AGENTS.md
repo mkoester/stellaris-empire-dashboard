@@ -959,7 +959,9 @@ stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included
   its diplomatic weight** (`diplomacy_weight` in the save is per fleet: its military power).
   Contacts tab, two panels: **in force** by category (data DB `resolution.category_key`, or a
   flat list: `contactView.galcomFlat`), each with its effects and all of them summed
-  (`totalEffects`); **proposed** (and the one on the floor) as a table with the empires and the
+  (`totalEffects`), grouped by what they act on (`#lib/modifierGroups.ts`: diplomacy, fleet and
+  starbases, armies, war, research, production, pops, upkeep, planets, empire — key patterns from
+  4.5.2's resolution modifiers, first match wins); **proposed** (and the one on the floor) as a table with the empires and the
   summed diplomatic weight for and against, each row expandable to who votes how. Weights
   (`GalacticCommunity.weights`, by name, READER 15; the scaled estimate READER 16): exact from companion mod 0.4.0's country
   variable `sdash_dw`, else **estimated** (`estimatedWeight()`: the defines' naval × 0.025 +
@@ -976,10 +978,12 @@ stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included
   queue's ↑/↓ arrows are not pass/fail (one with more weight against showed ↑); not in the save.
   **A resolution stores no proposal date** (`resolution.<id> = { type country supporters
 opponents }`; only the one voted on has `voting = { <country>=<date> }`, the votes cast):
-  `proposalDates()` dates it between the last save without it and the first with it, or "by" the
+  `proposalDates()` dates it between the last save without it and the first with it — shown as
+  the month when those are the 1st of consecutive months (`proposedLabel()`: "2208.10") — or "by" the
   first save of the history (2214.01.01: five to the month, seven by 2205.03.01, the campaign's
   first save read). **History** (milestone kind `galcom`, also listed on the contacts tab):
-  proposed, put to the vote, passed, failed, withdrawn — a proposal that leaves the queue neither
+  proposed, put to the vote, passed, failed, withdrawn (`Milestone.galcom` keeps the parts, so the
+  list names resolutions with popups and proposers in colour) — a proposal that leaves the queue neither
   voted on nor passed; the save keeps no record of who withdrew it. A vote counts as failed only
   if no save along the branch lists it as passed (snapshots before READER 13 have no passed list:
   2208.01.01 had shown The Readied Shield "failed"). Names and effects from the data DB (`resolution`, its
