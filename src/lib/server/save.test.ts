@@ -1428,6 +1428,7 @@ describe('milestone fields', () => {
 				'0': { military_power: 1000, economy_power: 400, tech_power: 300 },
 				'7': { variables: { sdash_dw: 812.5 } }
 			},
+			globalFlags: { galactic_market_founded: 1 },
 			galcom: {
 				members: [4, 0, 7],
 				proposed: [2, 3],
@@ -1435,6 +1436,7 @@ describe('milestone fields', () => {
 				passed: [3],
 				days: 541,
 				election: 180,
+				category_timers: { resolution_category_industry: '2213.12.30' },
 				community_formed: '2202.01.01'
 			},
 			resolutions: {
@@ -1471,6 +1473,8 @@ describe('milestone fields', () => {
 			['resolution_voidworm_eradication', 'for']
 		]);
 		expect(g?.passed.map((r) => r.type)).toEqual(['resolution_voidworm_eradication']);
+		expect(g?.categoryTimers).toEqual({ resolution_category_industry: '2213.12.30' });
+		expect(g?.globalFlags).toEqual(['galactic_market_founded']);
 		expect(g?.weights).toEqual({
 			UNE: { value: 2.6 * (1000 * 0.025 + 400 * 0.15 + 300 * 0.1), exact: false },
 			Tzynn: { value: 0, exact: false },

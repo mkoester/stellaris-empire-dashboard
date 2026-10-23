@@ -49,6 +49,8 @@ const galcom = (g: Partial<GalacticCommunity> = {}): GalacticCommunity => ({
 	voteEnds: null,
 	nextVote: null,
 	weights: {},
+	categoryTimers: {},
+	globalFlags: [],
 	...g
 });
 const log = (date: string) => upgrade({ kind: 'log', campaign: 'c', date });

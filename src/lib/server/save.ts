@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '16';
+export const READER = '17';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1620,7 +1620,7 @@ export function allWars(raw: Pick<RawSave, 'wars'>): WarSides[] {
 export function galacticCommunity(
 	raw: Pick<
 		RawSave,
-		'galcom' | 'resolutions' | 'countryId' | 'countries' | 'date' | 'countryBlocks'
+		'galcom' | 'resolutions' | 'countryId' | 'countries' | 'date' | 'countryBlocks' | 'globalFlags'
 	>
 ): GalacticCommunity | null {
 	const g = raw.galcom;
@@ -1649,6 +1649,12 @@ export function galacticCommunity(
 		formed: strOrNull(g.community_formed),
 		members: members.map(name),
 		member: members.includes(raw.countryId),
+		categoryTimers: Object.fromEntries(
+			Object.entries(g.category_timers ?? {}).flatMap(([k, v]) =>
+				typeof v === 'string' ? [[k, v]] : []
+			)
+		),
+		globalFlags: Object.keys(raw.globalFlags ?? {}),
 		weights: Object.fromEntries(
 			members.map((id) => {
 				const c = raw.countryBlocks[String(id)];

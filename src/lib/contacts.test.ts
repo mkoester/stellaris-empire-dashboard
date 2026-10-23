@@ -136,7 +136,9 @@ describe('proposalDates', () => {
 		passed: [],
 		voteEnds: null,
 		nextVote: null,
-		weights: {}
+		weights: {},
+		categoryTimers: {},
+		globalFlags: []
 	});
 
 	it('dates a proposal between the last save without it and the first with it', () => {

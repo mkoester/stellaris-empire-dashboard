@@ -27,6 +27,11 @@ export type Facts = {
 	scripted?: Record<string, Trigger | null>;
 	traits?: string[]; // the species' traits, where a trigger is in a species' scope (rights)
 	leaderTraits?: string[]; // every trait of the empire's leaders
+	// the Galactic Community, for what resolutions test (#lib/proposable.ts)
+	activeResolutions?: string[] | null; // in force (`galactic_community.passed`)
+	globalFlags?: string[] | null;
+	galcomFormed?: boolean | null;
+	galcomMember?: boolean | null;
 };
 
 const ETHICS =
@@ -103,6 +108,25 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			// built into the game; a nomad runs the nomad economy situation — the origin misses
 			// most (2212.06.01: six such empires, one Nomads origin)
 			return yes(f.nomadic);
+		case 'is_active_resolution':
+			return f.activeResolutions ? f.activeResolutions.includes(value) : null;
+		case 'has_global_flag':
+			return f.globalFlags ? f.globalFlags.includes(value) : null;
+		case 'is_galactic_community_formed':
+			return yes(f.galcomFormed ?? null);
+		case 'is_galactic_community_member':
+			return yes(f.galcomMember ?? null);
+		case 'is_galactic_council_established':
+			return yes(council(f));
+		// custodian, emperor and council seats come with the council (4.5.2: the council forms
+		// first, `galactic_council_formed`); before it, none exists — after it, the save's fields
+		// for them are not known yet
+		case 'is_part_of_galactic_council':
+		case 'is_galactic_custodian':
+		case 'has_galactic_custodian':
+		case 'is_galactic_emperor':
+		case 'has_galactic_emperor':
+			return council(f) === false ? value === 'no' : null;
 		case 'any_situation':
 			// a scope we cannot look into — but with no situation running, none matches
 			return f.situations === 0 ? value === 'no' : null;
@@ -116,6 +140,9 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 		}
 	}
 }
+
+const council = (f: Facts) =>
+	f.globalFlags ? f.globalFlags.includes('galactic_council_formed') : null;
 
 // scripted triggers being looked into, so one that (indirectly) calls itself stays unknown
 const inside = new Set<string>();

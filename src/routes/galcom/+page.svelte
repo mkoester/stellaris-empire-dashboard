@@ -11,6 +11,12 @@
 	import { putSettings } from '#lib/settings.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
+	import {
+		CATEGORY_VOTE_COOLDOWN,
+		type ProposableRow,
+		type ProposableStatus
+	} from '#lib/proposable.ts';
+	import { describe } from '#lib/triggers.ts';
 	import type { ResolutionVote } from '#lib/types.ts';
 
 	let { data } = $props();
@@ -133,6 +139,58 @@
 		},
 		{ id: 'we', label: 'We', value: (r) => r.ours }
 	];
+	// what we could propose (#lib/proposable.ts), per viewer: all or only what is open now
+	let onlyNow = $state(false);
+	const STATUS_ORDER = [
+		'proposable',
+		'unknown',
+		'cooldown',
+		'proposed',
+		'needs a target',
+		'locked',
+		'no target',
+		'in force',
+		'not a member'
+	] as const;
+	const STATUS_TONE: Record<ProposableStatus, string> = {
+		proposable: 'font-semibold text-green-600',
+		unknown: 'text-amber-600',
+		cooldown: 'text-amber-600',
+		proposed: '',
+		locked: 'text-gray-500',
+		'needs a target': 'text-amber-600',
+		'no target': 'text-gray-500',
+		'in force': 'text-sky-600',
+		'not a member': 'text-gray-500'
+	};
+	const proposableColumns: Column<ProposableRow>[] = [
+		{
+			id: 'category',
+			label: 'Category',
+			value: (p) =>
+				data.diploNames[p.category] ?? pretty(p.category.replace(/^resolution_category_/, ''))
+		},
+		{
+			id: 'name',
+			label: 'Resolution',
+			value: (p) => data.diploNames[p.key] ?? p.key,
+			cell: proposableName
+		},
+		{ id: 'tier', label: 'Tier', value: (p) => p.level, right: true },
+		{
+			id: 'status',
+			label: 'Status',
+			value: (p) => STATUS_ORDER.indexOf(p.status),
+			cell: proposableStatus
+		},
+		{
+			id: 'cost',
+			label: 'Cost',
+			value: (p) => (p.cost === null ? null : Math.round(p.cost)),
+			right: true,
+			title: 'influence'
+		}
+	];
 </script>
 
 <header class="mb-4 flex items-start gap-4">
@@ -243,7 +301,56 @@
 			</div>
 		{/if}
 	</section>
+
+	<h2 class="mb-2 text-xl font-semibold">Proposable</h2>
+	<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
+		<p class="mb-2 text-xs text-gray-500">
+			Every resolution the game offers us, as of {data.seenAt}: a chain's next tier needs the one
+			below in force; after a vote in a category, the next of it waits {CATEGORY_VOTE_COOLDOWN /
+				360} years; one already in the queue cannot be proposed again; repeals undo one in force. Costs
+			in influence{data.costMult
+				? `, ${Math.round(data.costMult * 100)} % from our traditions and modifiers`
+				: ''}.
+		</p>
+		<label class="mb-2 flex items-center gap-1"
+			><input type="checkbox" bind:checked={onlyNow} /> only what we can propose now ({data.proposals.filter(
+				(p) => p.status === 'proposable'
+			).length})</label
+		>
+		<SortTable
+			rows={onlyNow ? data.proposals.filter((p) => p.status === 'proposable') : data.proposals}
+			columns={proposableColumns}
+			key={(p) => p.key}
+			sort={{ column: '', desc: false }}
+		/>
+	</section>
 {/if}
+
+{#snippet proposableName(p: ProposableRow)}<InfoPopup
+		explanation={data.explain[`resolution:${p.key}`]}
+		>{data.diploNames[p.key] ?? pretty(p.key.replace(/^resolution_/, ''))}</InfoPopup
+	>{#if p.repeal}<span class="ml-1 text-xs text-gray-500">repeal</span>{/if}{#if p.target}<span
+			class="ml-1 text-xs text-gray-500">names a target</span
+		>{/if}{/snippet}
+{#snippet proposableStatus(p: ProposableRow)}<span class={STATUS_TONE[p.status]}
+		>{#if p.status === 'cooldown'}cooldown until {p.until}{:else if p.status === 'proposed'}proposed
+			by <EmpireName
+				name={p.by ?? '?'}
+				bold={false}
+			/>{:else if p.status === 'locked'}{#if p.needs}needs
+				<InfoPopup explanation={data.explain[`resolution:${p.needs}`]}
+					>{data.diploNames[p.needs] ?? pretty(p.needs)}</InfoPopup
+				> in force{:else}<span title={p.why ? describe(p.why) : ''}
+					>not allowed{p.why ? `: ${describe(p.why)}` : ''}</span
+				>{/if}{:else if p.status === 'needs a target' || p.status === 'no target'}<span
+				title={p.why ? describe(p.why) : ''}
+				>{p.status === 'no target' ? 'no empire it could name' : 'needs a target'}{p.why
+					? `: ${describe(p.why)}`
+					: ''}</span
+			>{:else if p.status === 'unknown'}<span title={p.why ? describe(p.why) : ''}
+				>? {p.why ? describe(p.why) : ''}</span
+			>{:else}{p.status}{/if}</span
+	>{/snippet}
 
 {#snippet resolutionCell(r: Proposal)}
 	<details>

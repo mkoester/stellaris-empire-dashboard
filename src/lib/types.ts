@@ -703,6 +703,11 @@ export type GalacticCommunity = {
 	// each member's diplomatic weight by name: exact from companion mod 0.4.0's `sdash_dw`, else
 	// estimated (`estimatedWeight()`); since READER 15
 	weights: Record<string, { value: number; exact: boolean }>;
+	// when a resolution of each category was last voted on (`category_timers`): another may be
+	// proposed CATEGORY_VOTE_COOLDOWN days later; and the global flags (`flags`) resolutions test
+	// (galactic_market_founded, galactic_council_formed, …); since READER 17
+	categoryTimers: Record<string, string>;
+	globalFlags: string[];
 };
 /**
  * One of our fleets' combats, from its last-combat record (`fleet.<id>.fleet_stats.combat_stats`,
@@ -878,6 +883,21 @@ export type GameData = {
 	// resolutions, resolution categories, subject agreement terms, term values and presets by key
 	diploNames: Record<string, string>;
 	resolutionCategories: Record<string, string>; // resolution → its category key
+	// every resolution a category lists, in file order: what proposing it takes (#lib/proposable.ts)
+	resolutions: Record<
+		string,
+		{
+			category: string | null;
+			level: number | null; // its tier in the category's chain
+			target: boolean; // names a target empire
+			cost: number | null; // influence, before multipliers
+			repeal: boolean; // fire_and_forget: repeals one in force
+			potential: Trigger | null;
+			allow: Trigger | null;
+			validTarget: Trigger | null; // target: which empire it may name
+		}
+	>;
+	resolutionCostMult: Record<string, number>; // `tradition:<key>`, `modifier:<key>` → resolutions_cost_mult
 	shroud: {
 		patrons: Record<
 			string,

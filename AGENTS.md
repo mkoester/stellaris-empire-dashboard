@@ -982,7 +982,20 @@ opponents }`; only the one voted on has `voting = { <country>=<date> }`, the vot
   `proposalDates()` dates it between the last save without it and the first with it — shown as
   the month when those are the 1st of consecutive months (`proposedLabel()`: "2208.10") — or "by" the
   first save of the history (2214.01.01: five to the month, seven by 2205.03.01, the campaign's
-  first save read). **History** (milestone kind `galcom`, also listed on the galcom tab):
+  first save read). **Proposable** (`#lib/proposable.ts`, below the proposals): every resolution a
+  category lists whose `potential` holds for us (data DB `resolution.potential_json`,
+  `allow_json`, `valid_target_json`, `repeal`), each as proposable, in force, already proposed
+  ("has already been proposed by …"), locked (`allow` false — a chain's tier needs the one below
+  in force, `is_active_resolution`; the game's tutorial: "You may only propose the first un-enacted
+  Resolution in a chain"), on the category's cooldown (`CATEGORY_VOTE_COOLDOWN` 2520 days after
+  `galactic_community.category_timers`, READER 17 — 2214.02.01: Industry until 2220.12.30), needs
+  a target / no target (a targeted one's `valid_target` reduced to the galaxy-wide leaves: no
+  council → no custodian or emperor to name), or unknown. The trigger evaluator gained
+  `is_active_resolution`, `has_global_flag` (`GalacticCommunity.globalFlags`) and the council
+  leaves — custodian, emperor and council seats false before `galactic_council_formed`, unknown
+  after (their save fields not seen yet). Costs × our `resolutions_cost_mult` (Gravitas −25 %,
+  Pioneer Politics). Not modelled: TYPE_VOTE_COOLDOWN (5040 days, "a referendum of a given type" —
+  not seen in a save), emergency measures, favours. **History** (milestone kind `galcom`, also listed on the galcom tab):
   proposed, put to the vote, passed, failed, withdrawn (`Milestone.galcom` keeps the parts, so the
   list names resolutions with popups and proposers in colour) — a proposal that leaves the queue neither
   voted on nor passed; the save keeps no record of who withdrew it. A vote counts as failed only
