@@ -50,8 +50,8 @@ up, not sent — not in a throwaway game. Open:
 - the drift of basic resources (minerals and food up 6–9 % every half year, energy 10 % then
   flat, the rest steady; ruled out so far: `docs/trade-calibration.md`): its shape — KhellZen's
   seven-resource tooltip (nothing sent) at every monthly autosave for a few months. Smooth points
-  to time, steps to a state change on their side (then compare that month's save). 2213.08 → 09:
-  no change;
+  to time, steps to a state change on their side (then compare that month's save). 2213.08 → 09 →
+  10: no change;
 - once the **galactic market** is founded (`Snapshot.market.galactic`): the same tooltips again —
   1000 energy, minerals, food, trade, consumer goods and alloys at KhellZen and Lolehndra (set
   up, not sent), plus a manual save. Does the market move what a resource is worth to an AI, or

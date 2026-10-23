@@ -446,15 +446,18 @@ describe('a year and a half on', () => {
 		['Lolehndra', 'alloys', 102],
 		['Lolehndra', 'sr_living_metal', 36]
 	];
-	// a month later (2213.09.01): the same at the same incomes, food one point lower, 151 living metal
-	const nextMonth: [keyof typeof income, string, number][] = [
-		['KhellZen', 'food', 77],
-		['KhellZen', 'sr_living_metal', 45],
-		['Lolehndra', 'food', 69],
-		['Lolehndra', 'sr_living_metal', 37]
+	// the months after (2213.09.01, 10.01): the same at the same incomes but a point lost to the
+	// tooltip's rounding, and the living metal we had (151, 158)
+	const nextMonths: [string, keyof typeof income, string, number, number][] = [
+		['2213.09', 'KhellZen', 'food', 1000, 77],
+		['2213.09', 'KhellZen', 'sr_living_metal', 151, 45],
+		['2213.09', 'Lolehndra', 'food', 1000, 69],
+		['2213.09', 'Lolehndra', 'sr_living_metal', 151, 37],
+		['2213.10', 'KhellZen', 'minerals', 1000, 52],
+		['2213.10', 'KhellZen', 'sr_living_metal', 158, 47],
+		['2213.10', 'Lolehndra', 'sr_living_metal', 158, 39]
 	];
-	it.each(nextMonth)('2213.09: %s: %s → %d', (who, r, tip) => {
-		const amount = r === 'sr_living_metal' ? 151 : 1000;
+	it.each(nextMonths)('%s: %s: %s %d → %d', (_, who, r, amount, tip) => {
 		const v = aiValue(r, ai({ income: income[who] }), game, m)!;
 		expect(Math.abs((amount * v * willingness[who]) / tip - 1)).toBeLessThan(0.03);
 	});
