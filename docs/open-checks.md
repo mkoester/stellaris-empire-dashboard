@@ -45,9 +45,8 @@ Trade Deal" and the opinion, its decay over two months, one non-trading attitude
 and whether a nomadic empire can put energy or minerals into a deal at all.
 
 Partly done in the campaign (2026-10-23, `docs/trade-calibration.md` → Results): the
-acceptance's form, energy and minerals, the monthly cap. Open: what food, consumer goods, alloys,
-strategic resources and trade are worth (a second empire), a one-off payment against monthly, and
-the gifts.
+acceptance's form with willingness, monthly against one-off, what an empire gives at most. Open:
+what a unit of each resource is worth (a second empire), and the gifts.
 
 - **Send:** the filled tables (or screenshots of each offer's acceptance and each opinion
   tooltip) and the session's save folder name. Note whether `resource alloys 20000` or

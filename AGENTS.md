@@ -433,12 +433,13 @@ finder (we give X, for Y: per empire the most Y it would give per X, against sel
 Y on the market with the fee) and per empire and resource whether it is short (under a third of
 its storage) or flush (over three quarters). **Estimated**: the AI's valuation is engine code;
 measured 2026-10-23 on one empire (`docs/trade-calibration.md` → Results, the test in
-`aiTrade.test.ts`): the acceptance is the two sides' worth summed, linear in the amount; energy and
-minerals are worth `ai_weight` × 50/(50 + net income), short or not; willingness is no term of its
-own (rates ignore it); an empire pays at most 0.3 of its **gross** income a month
-(`TRADE_MAX_RESOURCE_PERCENT`, `monthlyCap()`; `AiIntel.income`, READER 12). Every other resource
-still uses that form and is wrong (food worth more, alloys and strategic resources far less) — fit
-it from the next empire's numbers, then set `calibrated`. **Trade is a resource** there
+`aiTrade.test.ts`): the acceptance is our side's worth × the AI's willingness minus its side's,
+linear in the amount however large; a unit a month is worth 0.5 × the months of one at once; it
+gives at once its stockpile above max(`ai_wants`, 500) (`spare()`, `TRADE_MIN_RESOURCE_STOCKPILE`)
+and a month at most 0.3 of its **gross** income (`TRADE_MAX_RESOURCE_PERCENT`, `monthlyCap()`;
+`AiIntel.income`, READER 12). A unit's worth is still the guess `ai_weight` × 50/(50 + net income)
+— wrong against the game for every resource but energy (minerals 9 %, the rest far off) — fit it
+from the next empire's numbers, then set `calibrated`. **Trade is a resource** there
 (default trade → energy) though it has no `ai_weight`: `tradeWeight` is a guess (1; the market
 prices energy at 1 trade). **Nomadic empires** (`AiIntel.nomadic`, READER 11) are those running
 `situation_nomad_economy` — the origin misses most (2212.06.01: six such empires, one nomad

@@ -113,23 +113,44 @@ there was one. Its economy from the save: energy 13,063 (net +95.2, gross 181.9)
 | 9 alloys          | 25 energy        | +67 / −62 / 5                        |
 | —                 | 55 energy        | −1000: "wants to trade away less"    |
 
+Then food a month from it, and one-off deals (same date):
+
+| We give                                  | It gives                                      | Tooltip (ours / theirs / acceptance)                  |
+| ---------------------------------------- | --------------------------------------------- | ----------------------------------------------------- |
+| 60 energy a month                        | 35 food a month                               | +142 / −140 / 2                                       |
+| 52 minerals a month                      | 35 food a month                               | +143 / −140 / 3                                       |
+| 50 trade a month                         | 32 food a month                               | +131 / −128 / 3                                       |
+| 28 consumer goods a month                | 35 food a month                               | +145 / −140 / 5                                       |
+| 19 alloys a month                        | 35 food a month                               | +141 / −140 / 1                                       |
+| 5 living metal a month                   | 22 food a month                               | +90 / −88 / 2                                         |
+| 1000 minerals, food, alloys, 50 l. metal | 12,563 energy, 608 trade, 2,622 consumer g.   | +46, +63, +124, +15 / −522, −28, −238 / −541          |
+| 1000 energy                              | 9,363 food                                    | +39 / −627 / −588                                     |
+| —                                        | 12,564 energy (+1 minerals, alloys, d. m., …) | −1000: less energy, minerals, trade, CG, alloys, d.m. |
+| —                                        | 9,364 food                                    | −1000: less food                                      |
+
 What it settles (in `#lib/aiTrade.ts` with these numbers as its test):
 
-- The acceptance is the sum of the two sides' worth, each linear in the amount (energy: 36 → 89,
-  25 → 62); nothing for attitude or opinion beside them.
-- Energy and minerals: `ai_weight` × 50 / (50 + net income) — minerals within 2 %, though at 2 % of
-  its storage: no extra worth for being short. The tooltip's unit is that × ≈ 4.79 (5 × 0.95?
-  a one-off payment would tell).
-- It pays at most `TRADE_MAX_RESOURCE_PERCENT` (0.3) of its gross monthly income, rounded down:
-  54 of 181.9 energy (55 → −1000). We could give no more living metal than our income (5.25).
+- The acceptance is our offer's worth × its willingness (0.95: energy 142/60 against 89/36, food
+  64/17 against 140/35, trade and consumer goods alike) minus its offer's worth; nothing for
+  attitude or opinion beside them. (A first reading of the monthly rows alone took willingness for
+  no term; the received/given pairs show it.)
+- Worth is linear in the amount and does not saturate: 1000 alloys at once (124) count per unit
+  what 9 a month do (67 / 120 / 0.5). A unit a month = 0.5 × the months × a unit at once
+  (TRADE_VALUE_RESOURCE_MONTHLY_MULT), for every resource here.
+- It gives at once at most its stockpile above max(`ai_wants`, `TRADE_MIN_RESOURCE_STOCKPILE` 500):
+  energy 13,063 → 12,563, food → 9,363, trade (no `ai_wants`) 1,108 → 608, consumer goods → 2,622;
+  minerals (346, want 1000), alloys (261) and dark matter (24, want 5) not even 1.
+- It pays at most `TRADE_MAX_RESOURCE_PERCENT` (0.3) of its gross monthly income a month, rounded
+  down: 54 of 181.9 energy (55 → −1000). We could give no more living metal than our income (5.25).
 
-Not settled — worth per unit a month in the tooltip's unit against that form: food 3.8 (form 2.1),
-consumer goods ≈ 5.0 (15), alloys 7.4 (18), living metal 18 (478); trade ≈ 2.6 (`tradeWeight` 1
-gives 2.2). Neither market prices, its own market (no fluctuations), its storage, `ai_wants`, gross
-income nor our economy explains them; the AI's `ai_resource_target_records` (energy 10, minerals
-25, food 10, trade 10, consumer goods 10, alloys 20) neither. Next: the same rows with a second
-empire of a different economy, with tooltips, and one one-off payment against the same amount a
-month.
+A unit's worth at once as it gives it (received ÷ 0.95; the tooltip's unit): energy 0.0413,
+minerals 0.048, food 0.067, trade 0.046, consumer goods 0.091, alloys 0.131, living metal 0.32.
+Not settled: the model's `ai_weight` × 50 / (50 + net income) gives, against energy, minerals 1.07
+(game 1.17), food 0.84 (1.61), consumer goods 6.1 (2.2), alloys 7.2 (3.2), living metal 194 (7.6).
+Neither market prices, its own market (no fluctuations), its storage, `ai_wants`, gross income nor
+our economy explains them; the AI's `ai_resource_target_records` (energy 10, minerals 25, food
+10, trade 10, consumer goods 10, alloys 20) neither. Next: the same with a second empire of a
+different economy.
 
 ## Afterwards
 

@@ -3,23 +3,22 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 // What another empire makes of a trade — pure, and **estimated**: the game decides in the engine;
 // its files give only the inputs (4.5.2, docs/trade-calibration.md). Measured in game (2212.08.01,
 // one empire — the calibration doc's results):
-// - the acceptance is the worth of what we offer minus the worth of what it offers, each linear in
-//   the amount — no term for attitude or opinion beside them;
-// - energy and minerals are worth `ai_weight` (1.5, 1) × INCOME_BASE / (INCOME_BASE + its net income
-//   per month) (TRADE_VALUE_RESOURCE_INCOME_BASE = 50) — even when it is short (minerals at 2 % of
-//   storage counted no more);
-// - its personality's willingness (shown beside the acceptance) is no term of its own: if it scales
-//   the worth, it scales both sides alike, so a rate does not see it; a willingness of 0 trades
-//   nothing, and an attitude that does not trade refuses everything;
-// - it pays at most TRADE_MAX_RESOURCE_PERCENT (0.3) of its gross monthly income a month, rounded
-//   down (energy 181.9 a month → 54).
-// Still guessed: every other resource follows the same form (food was worth more, consumer goods,
-// alloys and living metal far less — the form is wrong for them); trade's worth (`tradeWeight`, no
-// ai_weight); and, from the defines:
-// - it gives away nothing it holds less than it wants (`ai_wants`), nor anything once its want is
-//   at least 0.8 of its storage (OFFER_TRADE_MIN_RESOURCE_THRESHOLD);
-// - monthly payments count half (TRADE_VALUE_RESOURCE_MONTHLY_MULT) — for a monthly-for-monthly
-//   deal the rate is the same;
+// - the acceptance is the worth of what we offer × its personality's trade willingness (0.95 there,
+//   shown beside the acceptance) minus the worth of what it offers — no term for attitude or
+//   opinion beside them; a willingness of 0 trades nothing, an attitude that does not trade refuses
+//   everything;
+// - worth is linear in the amount, however much (1000 alloys at once to an empire holding 261 count
+//   per unit what 9 a month do), and a unit a month is worth 0.5 × the months of a unit at once
+//   (TRADE_VALUE_RESOURCE_MONTHLY_MULT) — for a monthly-for-monthly deal the rate is the same;
+// - it gives at once at most its stockpile above max(`ai_wants`, TRADE_MIN_RESOURCE_STOCKPILE 500),
+//   and a month at most TRADE_MAX_RESOURCE_PERCENT (0.3) of its gross monthly income, rounded down
+//   (energy 181.9 a month → 54).
+// Still guessed: a unit's worth. The model takes `ai_weight` × INCOME_BASE / (INCOME_BASE + its net
+// income per month) (TRADE_VALUE_RESOURCE_INCOME_BASE = 50), short or not; against energy the game
+// had minerals 9 % and food 92 % worth more, consumer goods, alloys and living metal far less, and
+// trade 23 % more than `tradeWeight` 1 (it has no ai_weight). Unmeasured, from the defines:
+// - it gives nothing once its want is at least 0.8 of its storage
+//   (OFFER_TRADE_MIN_RESOURCE_THRESHOLD);
 // - a nomadic empire never gives energy or minerals — they are its operational reserves, which
 //   "can be bought on the market, but not sold" (concept_operational_reserves_desc; for deals our
 //   extrapolation).
@@ -30,6 +29,7 @@ export type TradeModel = {
 	over: number; // above it: flush
 	monthlyShare: number; // pays at most this share of its gross income a month
 	offerThreshold: number; // won't give away what it wants this share of its storage of
+	keep: number; // keeps at least this much of anything (TRADE_MIN_RESOURCE_STOCKPILE)
 	tradeWeight: number; // trade's worth in weight units (guess: it has no ai_weight)
 	calibrated: boolean;
 };
@@ -40,6 +40,7 @@ export const modelFrom = (defines: Record<string, number>): TradeModel => ({
 	over: defines.TRADE_RESOURCE_STOCKPILE_OVER ?? 0.75,
 	monthlyShare: defines.TRADE_MAX_RESOURCE_PERCENT ?? 0.3,
 	offerThreshold: defines.OFFER_TRADE_MIN_RESOURCE_THRESHOLD ?? 0.8,
+	keep: defines.TRADE_MIN_RESOURCE_STOCKPILE ?? 500,
 	tradeWeight: 1,
 	calibrated: false
 });
@@ -73,13 +74,13 @@ export const NOMAD_RESERVE = ['energy', 'minerals'];
 /** Whether an empire can hand `r` over at all. */
 export const canGive = (r: string, nomadic: boolean) => !(nomadic && NOMAD_RESERVE.includes(r));
 
-/** How much of `r` the AI would hand over at most: what it holds beyond its want. */
+/** How much of `r` the AI would hand over at once at most: what it holds beyond its want. */
 export function spare(r: string, ai: AiIntel, info: Info, m: TradeModel): number {
 	if (!canGive(r, ai.nomadic)) return 0;
 	const i = info[r];
 	const want = i?.aiWants ?? 0;
 	if (i?.max && want >= m.offerThreshold * i.max) return 0;
-	return Math.max(0, (ai.stockpile[r] ?? 0) - want);
+	return Math.max(0, (ai.stockpile[r] ?? 0) - Math.max(want, m.keep));
 }
 
 /** How much of `r` the AI would pay a month at most; null: its gross income is not known. */
@@ -106,8 +107,8 @@ export function terms(
 }
 
 /**
- * Units of `get` the AI gives for one unit of `give` from us, at most: our unit's worth to it ÷
- * its unit's worth. Null when it does not trade, either resource is off the table, or it has none
+ * Units of `get` the AI gives for one unit of `give` from us, at most: our unit's worth to it ×
+ * its willingness ÷ its unit's worth. Null when it does not trade, either resource is off the table, or it has none
  * of `get` to spare.
  */
 export function rate(
@@ -121,7 +122,7 @@ export function rate(
 	if (!t.trades || give === get) return null;
 	const [vg, vr] = [aiValue(give, ai, info, m), aiValue(get, ai, info, m)];
 	if (vg === null || vr === null || vr <= 0 || spare(get, ai, info, m) <= 0) return null;
-	return vg / vr;
+	return (vg * (t.willingness ?? 1)) / vr;
 }
 
 /**

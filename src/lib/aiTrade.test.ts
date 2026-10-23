@@ -69,7 +69,7 @@ describe('aiValue and stance', () => {
 		const n = ai({ nomadic: true });
 		expect(spare('energy', n, info, m)).toBe(0);
 		expect(spare('minerals', n, info, m)).toBe(0);
-		expect(spare('trade', n, info, m)).toBe(30000);
+		expect(spare('trade', n, info, m)).toBe(29500); // keeps 500 (TRADE_MIN_RESOURCE_STOCKPILE)
 		expect(canGive('energy', true)).toBe(false);
 		expect(canGive('alloys', true)).toBe(true);
 		expect(canGive('energy', false)).toBe(true);
@@ -84,23 +84,53 @@ describe('the game’s numbers (2212.08.01)', () => {
 		personality: 'federation_builders',
 		attitude: 'friendly',
 		opinion: 240,
-		stockpile: { energy: 13063.4, minerals: 346.2 },
+		stockpile: {
+			energy: 13063.44699,
+			minerals: 346.20258,
+			food: 9863.86938,
+			trade: 1108.15983,
+			consumer_goods: 3122.30028,
+			alloys: 260.66833,
+			sr_dark_matter: 24
+		},
 		net: { energy: 95.18744, minerals: 40.60642 },
 		income: { energy: 181.89494, minerals: 100.20642 }
 	});
-	const game = { ...info, minerals: { ...info.minerals, max: 15000 } };
+	const game = {
+		...info,
+		minerals: { ...info.minerals, max: 15000 },
+		food: { name: 'Food', aiWeight: 1, aiWants: 500, max: 15000, tradable: true },
+		consumer_goods: { name: 'CG', aiWeight: 5, aiWants: 500, max: 15000, tradable: true },
+		sr_dark_matter: { name: 'DM', aiWeight: 100, aiWants: 5, max: 15000, tradable: true }
+	};
 	const t = terms(khellZen, { federation_builders: { name: '', willingness: 0.95 } }, attitudes);
 	it('its energy at the tooltip’s worth: 36 a month 89, 25 a month 62', () => {
 		const e = aiValue('energy', khellZen, game, m)!;
-		// the tooltip's unit is the model's × a constant (≈ 4.79): one fits both
+		// the tooltip's unit is the model's × a constant: one fits both
 		const k = 89 / (36 * e);
 		expect(Math.round(25 * e * k)).toBe(62);
 	});
-	it('takes 46 minerals a month for 50 energy, not 45 — within 2 %', () => {
-		// 50 / 46 = 1.087 … 50 / 45 = 1.111 minerals' worth in energy
-		const r = rate('minerals', 'energy', khellZen, t, game, m)!;
-		expect(r).toBeGreaterThan(1.087 * 0.98);
-		expect(r).toBeLessThan(1.111);
+	it('counts what it gets at its willingness: the same resource 0.95 as much as it gives', () => {
+		// tooltips: energy it gives 89 for 36, we give 142 for 60; food it gives 140 for 35, we 64 for 17
+		const energy = 142 / 60 / (89 / 36);
+		const food = 64 / 17 / (140 / 35);
+		for (const x of [energy, food]) expect(Math.abs(x - 0.95)).toBeLessThan(0.015);
+		const plain = terms(khellZen, { federation_builders: { name: '', willingness: 1 } }, attitudes);
+		expect(
+			rate('minerals', 'energy', khellZen, t, game, m)! /
+				rate('minerals', 'energy', khellZen, plain, game, m)!
+		).toBeCloseTo(0.95);
+	});
+	it('gives at once what it holds above max(its want, 500): 12563 energy, not 12564', () => {
+		const at = (r: string) => Math.floor(spare(r, khellZen, game, m));
+		expect(at('energy')).toBe(12563);
+		expect(at('food')).toBe(9363);
+		expect(at('trade')).toBe(608); // no ai_wants: the 500
+		expect(at('consumer_goods')).toBe(2622);
+		// refused at 1
+		expect(at('minerals')).toBe(0); // 346 < its want of 1000
+		expect(at('alloys')).toBe(0);
+		expect(at('sr_dark_matter')).toBe(0); // 24, want 5: the 500 holds
 	});
 	it('pays at most 54 energy a month: 0.3 of its gross income, rounded down', () => {
 		expect(monthlyCap('energy', khellZen, m)).toBe(54);
@@ -112,7 +142,7 @@ describe('the game’s numbers (2212.08.01)', () => {
 
 describe('rate', () => {
 	const t = terms(ai({}), personalities, attitudes);
-	it('gives our unit’s worth to it in its own resource', () => {
+	it('gives our unit’s worth to it in its own resource, times its willingness', () => {
 		// 1 alloy (5) for energy (0.75 each): 6.67 energy
 		expect(rate('alloys', 'energy', ai({}), t, info, m)).toBeCloseTo(6.67, 2);
 		// it has no alloys to spare

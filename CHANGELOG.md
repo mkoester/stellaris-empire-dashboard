@@ -55,9 +55,9 @@ All notable changes to this project are documented here. The format follows
   strategic resource costs. A new panel prices every resource in trade per empire: what you would
   pay for it, what you would get for it, or both.
 
-- The trade tab's estimates follow the game where measured: energy and minerals are valued as the
-  game does, a personality's willingness no longer lowers what an empire gives, and the deal finder
-  shows how much an empire pays a month at most (30 % of its income of it).
+- The trade tab's estimates follow the game where measured: no bonus for what an empire is short
+  of, it keeps at least 500 of anything, and the deal finder shows how much an empire pays a month
+  at most (30 % of its income of it).
 
 - A download for macOS (13.5 or newer), for Apple silicon and Intel Macs, with its own Python.
 - Every folder the dashboard looks in, per system and store, listed in the zip's `README.txt`.
