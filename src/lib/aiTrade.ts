@@ -18,8 +18,10 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 //   income base (50, on net income). Every tooltip line within 3 %: energy from 16 empires (base 280), minerals
 //   from 16 (240; deals of 2212.08 came out 7 % under the gifts of 2213.01 at the same empires —
 //   unexplained), trade, consumer goods, alloys and living metal from 6 (fitted on 3, they predicted
-//   the next three empires within 2.4 %), food from 6 at ±12 % (no curve fits it; its 2212.08
-//   points sit ~8 % under, its 2213.02 ones ~8 % over — like minerals' 2212.08/2213.01 gap).
+//   the next three empires within 2.4 %), food from 13 at one date (2213.02, 2 % rms; bio ships
+//   make no difference). Basic resources drift over time, the rest do not: at the same income,
+//   KhellZen and Lolehndra valued food 17 % lower and minerals 9 % lower in 2212.08 than in
+//   2213.01–02. Cause unknown; the curves hold the 2213 values.
 //   A resource not measured is not valued (null): no estimate for it;
 // - a gift raises its opinion of us by its worth as the acceptance shows it (`giftOpinion()`):
 //   "Favorable Trade Deal" (accumulates to 100) came out the tooltip or one less, at 13 empires
@@ -41,7 +43,7 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 export const WORTH: Record<string, { p: number; base: number }> = {
 	energy: { p: 0.0676, base: 280 },
 	minerals: { p: 0.0733, base: 240 },
-	food: { p: 0.1444, base: 120 }, // ±12 %: no curve fits its six points
+	food: { p: 0.1485, base: 130 }, // 13 empires at one date (2213.02): 2 % rms
 	trade: { p: 0.0884, base: 185 },
 	consumer_goods: { p: 0.1253, base: 195 },
 	alloys: { p: 0.1468, base: 165 },

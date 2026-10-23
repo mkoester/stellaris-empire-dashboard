@@ -286,6 +286,26 @@ leaves ±12 %, its 2212.08 points (KhellZen, Lolehndra) ~9 % under the curve and
 those months moves the basic resources; not the empires' own market prices (Dekron's alloys at
 +50 % fit within 0.2 %).
 
+### 2026-10-23: food at every empire (2213.02.01)
+
+1000 food at once, nothing sent; "Our Offer Total" with gross food income (willingness):
+
+| Empire             | Gross food | Tooltip | Empire       | Gross food | Tooltip   |
+| ------------------ | ---------- | ------- | ------------ | ---------- | --------- |
+| YlKhahan (0.7)     | 100        | 59      | Themlaran    | 102        | 62 (0.75) |
+| Karkato, bio (.25) | 77         | 23      | Hydarian bio | 142        | 56 (0.8)  |
+| KhellZen (0.95)    | 118        | 74      | test nomads  | 87         | 85 (0.95) |
+| Kobarian (1.0)     | 114        | 79      | Ikaanan      | 86         | 67 (0.75) |
+| Lolehndra (0.8)    | 105        | 66      | Cydran       | 21.5       | 132 (1.0) |
+| Mandate (0.5)      | 0          | 72      | Dekron       | 0          | 129 (0.9) |
+| Oklarran (0.9)     | 20         | 120     |              |            |           |
+
+At one date food is clean: p × 130 / (130 + gross) fits all 13 at 2 % rms (worst 4 %; an
+exponential or a power do no better). Bio ships make no difference (Karkato −1 %, Hydarian −2 %).
+The earlier ±12 % was the **drift**: at the same income KhellZen (117.9 → 118.1) and Lolehndra
+(105.0 → 104.8) valued food 17 % lower in 2212.08 than now; the fallen Syvaal's 2212.08 food sits
+6 % under. Food now uses the 2213 curve (p 0.1485, base 130); the test asserts the 2212.08 offset.
+
 ### What does not explain food (and the minerals drift), 2026-10-23
 
 - **Consumption:** Dekron (machine, no food income or upkeep at all) values food highest
@@ -312,7 +332,7 @@ tooltip's unit, with the empire's gross income of it a month:
 | -------------- | ------------ | ------------ | -------------- | ------ | ---- |
 | energy         | 0.0412 (182) | 0.0483 (118) | 0.0039 (4,571) | 0.0676 | 280  |
 | minerals       | 0.0483 (100) | 0.0505 (84)  | 0.0061 (2,679) | 0.0733 | 240  |
-| food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 0.1444 | 120  |
+| food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 0.1485 | 130  |
 | trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 0.0884 | 185  |
 | consumer goods | 0.0909 (70)  | 0.0924 (64)  | 0.0176 (1,190) | 0.1253 | 195  |
 | alloys         | 0.1304 (21)  | 0.1300 (22)  | 0.0333 (561)   | 0.1468 | 165  |

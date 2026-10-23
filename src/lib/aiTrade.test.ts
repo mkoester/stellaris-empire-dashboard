@@ -275,13 +275,19 @@ describe('a unit’s worth against the game’s tooltips', () => {
 		['Dekron', 'alloys', 1000, false, 'we', 110],
 		['Dekron', 'sr_living_metal', 108, false, 'we', 30]
 	];
-	// the fit: every line within 3 %, but food (12 %: no curve fits it) and minerals at the regular empires in 2212.08: 7 % under what
-	// the same empires gave minerals at in 2213.01 (the gifts below) — unexplained
+	// the fit: every line within 3 %, but the basic resources, which drift over time: 2212.08's
+	// regular empires sit under 2213's curve, food 17 % (asserted), minerals 7 %; the fallen one's
+	// food 6 %
 	it.each(lines)('%s: %s %d (a month: %s) from %s → %d', (who, r, amount, monthly, giver, tip) => {
 		const e = empires[who];
 		const seen = tip / amount / (monthly ? 60 : 1) / (giver === 'we' ? e.willingness : 1);
 		const model = aiValue(r, ai({ income: e.income }), game, m)!;
-		const tolerance = r === 'food' ? 0.12 : r === 'minerals' && who !== 'Syvaal' ? 0.08 : 0.03;
+		if (r === 'food' && (who === 'KhellZen' || who === 'Lolehndra')) {
+			expect(model / seen).toBeGreaterThan(1.13);
+			expect(model / seen).toBeLessThan(1.22);
+			return;
+		}
+		const tolerance = r === 'food' || (r === 'minerals' && who !== 'Syvaal') ? 0.08 : 0.03;
 		expect(Math.abs(model / seen - 1)).toBeLessThan(tolerance);
 	});
 	// 1000 of a resource given to each empire: its gross income of it, willingness, the
@@ -324,6 +330,31 @@ describe('a unit’s worth against the game’s tooltips', () => {
 		expect(Math.abs(got - tip)).toBeLessThanOrEqual(Math.max(1, 0.04 * tip));
 		if (opinion !== null)
 			expect(Math.abs(got - opinion)).toBeLessThanOrEqual(Math.max(1, 0.04 * tip));
+	});
+});
+
+// 1000 food at once, not sent (2213.02.01): gross food income, willingness, "Our Offer Total" —
+// every empire with food at one date; Karkato and Hydarian fly bio ships
+describe('food at one date', () => {
+	const game = { food: { name: 'Food', aiWeight: 1, aiWants: 500, max: 15000, tradable: true } };
+	const food: [string, number, number, number][] = [
+		['YlKhahan', 99.98, 0.7, 59],
+		['Karkato', 77.32, 0.25, 23],
+		['KhellZen', 118.06, 0.95, 74],
+		['Kobarian', 113.52, 1, 79],
+		['Lolehndra', 104.75, 0.8, 66],
+		['Mandate', 0, 0.5, 72],
+		['Oklarran', 20, 0.9, 120],
+		['Themlaran', 102.39, 0.75, 62],
+		['Hydarian', 141.51, 0.8, 56],
+		['test nomads', 87.19, 0.95, 85],
+		['Ikaanan', 85.89, 0.75, 67],
+		['Cydran', 21.5, 1, 132],
+		['Dekron', 0, 0.9, 129]
+	];
+	it.each(food)('%s (gross %d)', (_, income, willingness, tip) => {
+		const v = aiValue('food', ai({ income: { food: income } }), game, m)!;
+		expect(Math.abs((1000 * v * willingness) / tip - 1)).toBeLessThan(0.05);
 	});
 });
 
