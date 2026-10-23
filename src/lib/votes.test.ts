@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Facts } from './triggers.ts';
-import { aiVote, opinionFactor, outlook, type AiWeight } from './votes.ts';
+import { actualOutlook, aiVote, opinionFactor, outlook, type AiWeight } from './votes.ts';
 
 // 4.5.2 Buzzword Standardization, shortened: loved (7), megacorps ×2, gestalts ×0.1
 const BUZZWORD: AiWeight = {
@@ -71,5 +71,25 @@ describe('outlook', () => {
 		expect(o.votes.map((v) => v.vote)).toEqual(['for', 'against', 'abstain']);
 		expect(o.withoutUs).toBeCloseTo(500 / 800);
 		expect(o.withUs).toBeCloseTo(700 / 1000);
+	});
+});
+
+describe('actualOutlook', () => {
+	it('counts the votes cast, our own set aside, the undecided on neither side', () => {
+		const weights = { us: { value: 200 }, A: { value: 500 }, B: { value: 300 }, C: { value: 100 } };
+		// we are against it, A for, B against, C undecided
+		const o = actualOutlook(
+			{ support: ['A'], oppose: ['us', 'B'] },
+			weights,
+			['us', 'A', 'B', 'C'],
+			'us'
+		);
+		expect(o.withoutUs).toBeCloseTo(500 / 800);
+		expect(o.withUs).toBeCloseTo(700 / 1000);
+		expect(o.votes.map((v) => [v.name, v.vote])).toEqual([
+			['A', 'for'],
+			['B', 'against'],
+			['C', null]
+		]);
 	});
 });

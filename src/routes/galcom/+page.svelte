@@ -254,7 +254,7 @@
 			cell: withUs,
 			right: true,
 			title:
-				'the share of the decided weight for it if we propose and support it, from how each AI weighs it (its ai_weight, its opinion of us)'
+				'the share of the decided weight for it with our weight for it — predicted from how each AI weighs it where we could propose it, from the votes cast where it is in the queue'
 		},
 		{
 			id: 'withoutUs',
@@ -285,7 +285,15 @@
 				.map((v) => `${v.name}${v.uncertain ? '?' : ''}`)
 				.join(', ') || 'nobody';
 		const unknown = o.votes.filter((v) => v.vote === null).map((v) => v.name);
+		if (o.actual)
+			return [
+				'the votes cast so far:',
+				`for: ${list('for')}`,
+				`against: ${list('against')}`,
+				`not decided yet: ${unknown.join(', ') || 'nobody'}`
+			].join('\n');
 		return [
+			'predicted from how each AI weighs it:',
 			`for: ${list('for')}`,
 			`abstain: ${list('abstain')}`,
 			`against: ${list('against')}`,

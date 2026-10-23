@@ -5,7 +5,7 @@ import { facts } from '#lib/government.ts';
 import { proposable } from '#lib/proposable.ts';
 import type { Facts } from '#lib/triggers.ts';
 import type { CountryInfo } from '#lib/types.ts';
-import { outlook } from '#lib/votes.ts';
+import { actualOutlook, outlook } from '#lib/votes.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -118,13 +118,22 @@ export function load({ url }) {
 					}
 				];
 	});
+	// predicted for what we could propose; from the votes cast for what is in the queue
+	const queued = galcom ? [...(galcom.voting ? [galcom.voting] : []), ...galcom.proposed] : [];
 	const outlooks = Object.fromEntries(
-		proposals
-			.filter((p) => p.status === 'proposable')
-			.map((p) => [
-				p.key,
-				outlook(data.resolutions[p.key].aiWeight, members, galcom?.weights[ourName]?.value ?? 0)
-			])
+		proposals.flatMap((p) => {
+			if (p.status === 'proposable')
+				return [
+					[
+						p.key,
+						outlook(data.resolutions[p.key].aiWeight, members, galcom?.weights[ourName]?.value ?? 0)
+					]
+				];
+			const q = p.status === 'proposed' ? queued.find((x) => x.type === p.key) : undefined;
+			return q && galcom
+				? [[p.key, actualOutlook(q, galcom.weights, galcom.members, ourName)]]
+				: [];
+		})
 	);
 	// the resolutions shown: in the community now, in its history, and those we could propose
 	const resolutions = [

@@ -63,7 +63,38 @@ export type Outlook = {
 	withUs: number | null;
 	withoutUs: number | null;
 	votes: { name: string; vote: AiVote['vote'] | null; uncertain: boolean; weight: number }[];
+	actual?: boolean; // from the votes cast (a resolution in the queue), not predicted
 };
+
+/**
+ * A resolution in the queue, from the votes cast so far: members not yet decided count on neither
+ * side, our own vote is set aside for the two cases.
+ */
+export function actualOutlook(
+	r: { support: string[]; oppose: string[] },
+	weights: Record<string, { value: number }>,
+	members: string[],
+	us: string
+): Outlook {
+	const weight = (name: string) => weights[name]?.value ?? 0;
+	const side = (names: string[]) =>
+		names.filter((n) => n !== us).reduce((n, x) => n + weight(x), 0);
+	const [yes, no] = [side(r.support), side(r.oppose)];
+	const share = (a: number, b: number) => (a + b > 0 ? a / (a + b) : null);
+	return {
+		withUs: share(yes + weight(us), no),
+		withoutUs: share(yes, no),
+		votes: members
+			.filter((n) => n !== us)
+			.map((name) => ({
+				name,
+				vote: r.support.includes(name) ? 'for' : r.oppose.includes(name) ? 'against' : null,
+				uncertain: false,
+				weight: weight(name)
+			})),
+		actual: true
+	};
+}
 
 /** How a resolution we propose would fare: each AI member's vote, and the share of weight for it. */
 export function outlook(w: AiWeight | null, members: Member[], ourWeight: number): Outlook | null {
