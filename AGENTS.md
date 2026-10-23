@@ -789,7 +789,11 @@ screenshot of the game's panel. Commands, from the wiki's console page (verified
 `debugtooltip` (ids), `contact`, `communications`, `debug_yesmen` (AI accepts all), `play <id>`,
 `war <attacker> <defender> <wg>` (`wg_subjugation`, `wg_tribute`), `peace_on_player <id>`,
 `activate_ascension_perk <ap>`, `activate_tradition <tr>`, `research_technology <tech>`,
-`unity`/`influence`/`cash`/`resource <n> <res>`, `instant_build`, `survey`, `fast_forward <days>`,
+`unity`/`influence`/`cash` (= `energy`)/`minerals`/`food`/`consumer_goods`/`alloys <n>` (no
+prefix), every other resource `resource <res> <n>` — `trade` too, and the rare ones by their save
+key: `sr_living_metal`, `sr_zro`, `sr_dark_matter` (2026-10-23; `volatile_motes`, `exotic_gases`,
+`rare_crystals`, `nanites` as named). Amounts stop at our storage (2200: energy 25,000, minerals,
+food, consumer goods and alloys 15,000, trade 50,000), `instant_build`, `survey`, `fast_forward <days>`,
 `factions.spawnall`, `federation_add_experience`/`_cohesion`, `event <id>` (`galcom.16` founds
 the Galactic Community, `distar.11000` opens the L-Gates, `crisis.199|1000|2000|8005`,
 `fallen_empires_awakening.1` after `play`-ing a fallen empire), `effect <script>`. Situations:
