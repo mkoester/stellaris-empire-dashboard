@@ -36,18 +36,13 @@ N = 1…5 — 14.2 energy a unit whatever N. Not yet seen in game; a deal's modi
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
 
-### 6. Trade calibration — blocks the trade tab's numbers
+### 6. Trade calibration — the rest
 
-The whole session is written out in **`docs/trade-calibration.md`** (~1 hour): ~20 offers'
-acceptance numbers (not sent) with three empires of different personality, four gifts' "Favorable
-Trade Deal" and the opinion, its decay over two months, one non-trading attitude. Rows 21–24
-(added with the trade price panel) pin down trade's own worth — the model's `tradeWeight` guess —
-and whether a nomadic empire can put energy or minerals into a deal at all.
-
-Mostly done in the campaign (2026-10-23, `docs/trade-calibration.md` → Results): the trade model
-is fitted to two empires' tooltips. Open: what volatile motes, exotic gases, rare crystals and the
-other strategic resources are worth (the same monthly deals for them, with tooltips), and the
-gifts (part 2).
+The trade model is fitted to three empires' tooltips, one fallen (2026-10-23,
+`docs/trade-calibration.md` → Results). Open: what volatile motes, exotic gases, rare crystals and
+the other strategic resources are worth (monthly deals for them, with tooltips); whether a nomadic
+empire can put energy or minerals into a deal at all (rows 23–24); and the gifts (part 2: "Favorable
+Trade Deal" and the opinion, its decay over two months), plus one non-trading attitude.
 
 - **Send:** the filled tables (or screenshots of each offer's acceptance and each opinion
   tooltip) and the session's save folder name. Note whether `resource alloys 20000` or

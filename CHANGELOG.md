@@ -55,7 +55,8 @@ All notable changes to this project are documented here. The format follows
   strategic resource costs. A new panel prices every resource in trade per empire: what you would
   pay for it, what you would get for it, or both.
 
-- The trade tab's estimates are fitted to the game's own trade screen at two empires: what a unit
+- The trade tab's estimates are fitted to the game's own trade screen at three empires, one of them
+  fallen: what a unit
   of energy, minerals, food, consumer goods, alloys, living metal and trade is worth to them, how
   much they hand over at once (all but 500 of a resource) and a month (30 % of their income of it),
   and how their personality's willingness discounts what you offer. Other strategic resources show

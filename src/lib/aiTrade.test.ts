@@ -55,11 +55,12 @@ describe('aiValue and stance', () => {
 		expect(stance('energy', a, info, m)).toBe('plenty'); // 20000 > 0.75 × 25000 = 18750
 		expect(stance('alloys', a, info, m)).toBe('needs'); // 300 < 0.33 × 15000
 		expect(stance('minerals', a, info, m)).toBe('needs');
-		// energy: 1 × (1 + 50 / (50 + 50))
-		expect(aiValue('energy', a, info, m)).toBeCloseTo(1.5);
-		expect(aiValue('alloys', a, info, m)).toBeCloseTo(2 * WORTH.alloys);
+		// no gross income: P itself
+		expect(aiValue('energy', a, info, m)).toBe(1);
+		expect(aiValue('energy', { ...a, income: { energy: 200 } }, info, m)).toBe(0.5);
+		expect(aiValue('alloys', a, info, m)).toBe(WORTH.alloys);
 		expect(aiValue('unity', a, info, m)).toBeNull();
-		expect(aiValue('trade', a, info, m)).toBeCloseTo(2 * WORTH.trade);
+		expect(aiValue('trade', a, info, m)).toBe(WORTH.trade);
 		// tradable, but not measured
 		expect(aiValue('motes', a, { ...info, motes: { ...info.alloys } }, m)).toBeNull();
 	});
@@ -145,40 +146,53 @@ describe('the game’s numbers (2212.08.01)', () => {
 
 // Every tooltip line of the calibration (docs/trade-calibration.md → Results): what one unit at once
 // is worth to the empire, in the tooltip's unit — a month's unit over 10 years counts 60 (0.5 × 120),
-// and what it gets counts at its willingness. Lines under 30 are left out (rounding: ±2 % and more).
-describe('a unit’s worth against both empires’ tooltips', () => {
+// and what it gets counts at its willingness. Lines under 15 are left out (rounding: ±3 % and more).
+describe('a unit’s worth against three empires’ tooltips', () => {
 	const game = Object.fromEntries(
 		Object.keys(WORTH).map((r) => [
 			r,
 			{ name: r, aiWeight: 1, aiWants: 500, max: 15000, tradable: true }
 		])
 	);
+	// gross income a month, from the 2212.08.01 autosave; how far the fit may be off there
 	const empires = {
 		KhellZen: {
 			willingness: 0.95,
-			ai: ai({
-				net: {
-					energy: 95.18744,
-					minerals: 40.60642,
-					food: 64.93415,
-					trade: 57.15531,
-					consumer_goods: 28.76678,
-					alloys: 17.54486
-				}
-			})
+			tolerance: 0.08,
+			income: {
+				energy: 181.89,
+				minerals: 100.21,
+				food: 117.87,
+				trade: 172.86,
+				consumer_goods: 69.56,
+				alloys: 21.37
+			}
 		},
 		Lolehndra: {
 			willingness: 0.8,
-			ai: ai({
-				net: {
-					energy: 37.30796,
-					minerals: 24.9725,
-					food: 50.64496,
-					trade: 8.75732,
-					consumer_goods: 11.51416,
-					alloys: 18.55879
-				}
-			})
+			tolerance: 0.08,
+			income: {
+				energy: 118.18,
+				minerals: 84.38,
+				food: 105.04,
+				trade: 36.65,
+				consumer_goods: 64.47,
+				alloys: 22.4
+			}
+		},
+		// fallen: stockpiles in the 100,000s, incomes in the 1,000s
+		Syvaal: {
+			willingness: 0.5,
+			tolerance: 0.15,
+			income: {
+				energy: 4570.68,
+				minerals: 2678.82,
+				food: 3112.96,
+				trade: 1101.14,
+				consumer_goods: 1190.43,
+				alloys: 561.29,
+				sr_living_metal: 22
+			}
 		}
 	};
 	// [empire, resource, amount, a month?, who gives it, tooltip]
@@ -202,6 +216,7 @@ describe('a unit’s worth against both empires’ tooltips', () => {
 		['KhellZen', 'alloys', 1000, false, 'we', 124],
 		['KhellZen', 'energy', 1000, false, 'we', 39],
 		['KhellZen', 'energy', 12563, false, 'it', 522],
+		['KhellZen', 'trade', 608, false, 'it', 28],
 		['KhellZen', 'consumer_goods', 2622, false, 'it', 238],
 		['KhellZen', 'food', 9363, false, 'it', 627],
 		['Lolehndra', 'food', 31, true, 'it', 130],
@@ -211,25 +226,37 @@ describe('a unit’s worth against both empires’ tooltips', () => {
 		['Lolehndra', 'trade', 37, true, 'we', 131],
 		['Lolehndra', 'consumer_goods', 30, true, 'we', 133],
 		['Lolehndra', 'alloys', 21, true, 'we', 131],
-		['Lolehndra', 'sr_living_metal', 5, true, 'we', 76]
+		['Lolehndra', 'sr_living_metal', 5, true, 'we', 76],
+		['Syvaal', 'minerals', 50, true, 'it', 18],
+		['Syvaal', 'minerals', 104, true, 'it', 38],
+		['Syvaal', 'alloys', 10, true, 'it', 20],
+		['Syvaal', 'alloys', 9, true, 'it', 18],
+		['Syvaal', 'alloys', 19, true, 'it', 38],
+		['Syvaal', 'energy', 161, true, 'we', 19],
+		['Syvaal', 'energy', 178, true, 'we', 21],
+		['Syvaal', 'food', 113, true, 'we', 19],
+		['Syvaal', 'food', 125, true, 'we', 21],
+		['Syvaal', 'trade', 50, true, 'we', 19],
+		['Syvaal', 'consumer_goods', 36, true, 'we', 19],
+		['Syvaal', 'consumer_goods', 40, true, 'we', 21],
+		['Syvaal', 'alloys', 19, true, 'we', 19],
+		['Syvaal', 'minerals', 113, true, 'we', 21],
+		['Syvaal', 'sr_living_metal', 5, true, 'we', 39]
 	];
-	// how far the model may be off: the form fits these within 1.5 %, minerals 2 %, consumer goods and
-	// trade not
-	const tolerance: Record<string, number> = { minerals: 0.025, consumer_goods: 0.05, trade: 0.15 };
-	const SCALE = 0.03066; // the tooltip's unit per model unit (energy's P)
+	const SCALE = 0.0827; // the tooltip's unit per model unit (energy's P)
 	it.each(lines)('%s: %s %d (a month: %s) from %s → %d', (who, r, amount, monthly, giver, tip) => {
 		const e = empires[who];
 		const seen = tip / amount / (monthly ? 60 : 1) / (giver === 'we' ? e.willingness : 1);
-		const model = aiValue(r, e.ai, game, m)! * SCALE;
-		expect(Math.abs(model / seen - 1)).toBeLessThan(tolerance[r] ?? 0.015);
+		const model = aiValue(r, ai({ income: e.income }), game, m)! * SCALE;
+		expect(Math.abs(model / seen - 1)).toBeLessThan(e.tolerance);
 	});
 });
 
 describe('rate', () => {
 	const t = terms(ai({}), personalities, attitudes);
 	it('gives our unit’s worth to it in its own resource, times its willingness', () => {
-		// 1 alloy (2 × 2.45) for energy (1.5 each): 3.27 energy
-		expect(rate('alloys', 'energy', ai({}), t, info, m)).toBeCloseTo(4.9 / 1.5);
+		// 1 alloy (1.67) for energy (1 each)
+		expect(rate('alloys', 'energy', ai({}), t, info, m)).toBeCloseTo(WORTH.alloys);
 		// it has no alloys to spare
 		expect(rate('energy', 'alloys', ai({}), t, info, m)).toBeNull();
 	});
@@ -252,10 +279,10 @@ describe('rate', () => {
 describe('prices in trade', () => {
 	const t = terms(ai({}), personalities, attitudes);
 	it('what we pay for a unit and what we get for one', () => {
-		// it gives energy (1.5) for trade (2 × 1.16): 1.55 energy per trade
-		expect(wantPrice('energy', ai({}), t, info, m)).toBeCloseTo(1.5 / 2.32);
-		// alloys (4.9) for its trade (2.32)
-		expect(offerPrice('alloys', ai({}), t, info, m)).toBeCloseTo(4.9 / 2.32);
+		// it gives energy (1) for trade (1.03): 1.03 energy per trade
+		expect(wantPrice('energy', ai({}), t, info, m)).toBeCloseTo(1 / WORTH.trade);
+		// alloys (1.67) for its trade (1.03)
+		expect(offerPrice('alloys', ai({}), t, info, m)).toBeCloseTo(WORTH.alloys / WORTH.trade);
 		// no alloys to spare
 		expect(wantPrice('alloys', ai({}), t, info, m)).toBeNull();
 		// a nomad sells no energy for trade

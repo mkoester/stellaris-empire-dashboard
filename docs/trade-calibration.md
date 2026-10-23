@@ -158,30 +158,56 @@ loyal. Its economy: energy 869 (net +37.3), minerals 901 (+25.0), food 625 (+50.
 | 21 alloys         | 31 food          | +131 / −130 / 1                      |
 | 5 living metal    | 18 food          | +76 / −75 / 1                        |
 
+### 2026-10-23: a fallen empire
+
+Syvaal Forerunners, same save — fallen_empire_xenophile (willingness 0.50). Its economy (stockpile,
+gross income a month): energy 88,898 (4,571), minerals 135,000 (2,679), food 135,000 (3,113), trade
+38,739 (1,101), consumer goods 132,380 (1,190), alloys 29,132 (561), living metal 664 (22). Its
+storage is 100,000 more than ours (`fallen_empire_base`: `country_resource_max_add`), so minerals
+and food are full but energy only at ~60 %.
+
+| We give a month   | It gives a month | Tooltip (ours / theirs / acceptance) |
+| ----------------- | ---------------- | ------------------------------------ |
+| 161 energy        | 50 minerals      | +19 / −18 / 1                        |
+| 113 food          | 50 minerals      | +19 / −18 / 1                        |
+| 50 trade          | 50 minerals      | +19 / −18 / 1                        |
+| 36 consumer goods | 50 minerals      | +19 / −18 / 1                        |
+| 19 alloys         | 50 minerals      | +19 / −18 / 1                        |
+| 5 living metal    | 104 minerals     | +39 / −38 / 1                        |
+| 178 energy        | 10 alloys        | +21 / −20 / 1                        |
+| 113 minerals      | 10 alloys        | +21 / −20 / 1                        |
+| 125 food          | 10 alloys        | +21 / −20 / 1                        |
+| 50 trade          | 9 alloys         | +19 / −18 / 1                        |
+| 40 consumer goods | 10 alloys        | +21 / −20 / 1                        |
+| 5 living metal    | 19 alloys        | +39 / −38 / 1                        |
+
+Willingness holds here too: 19 of our alloys a month +19, 19 of its −38.
+
 ### A unit's worth
 
 At once, as the empire gives it (what it gets ÷ its willingness; a month's unit ÷ 60), in the
-tooltip's unit:
+tooltip's unit, with the empire's gross income of it a month:
 
-| Resource       | KhellZen (net) | Lolehndra (net) | P (energy 1) |
-| -------------- | -------------- | --------------- | ------------ |
-| energy         | 0.0412 (+95)   | 0.0483 (+37)    | 1            |
-| minerals       | 0.0483 (+41)   | 0.0505 (+25)    | 1.00         |
-| food           | 0.0667 (+65)   | 0.0697 (+51)    | 1.52         |
-| consumer goods | 0.0909 (+29)   | 0.0924 (+12)    | 1.74 (±4 %)  |
-| alloys         | 0.1304 (+18)   | 0.1300 (+19)    | 2.45         |
-| living metal   | 0.316 (0)      | 0.317 (0)       | 5.16         |
-| trade          | 0.046 (+57)    | 0.074 (+9)      | 1.16 (±12 %) |
+| Resource       | KhellZen     | Lolehndra    | Syvaal         | P (energy 1) |
+| -------------- | ------------ | ------------ | -------------- | ------------ |
+| energy         | 0.0412 (182) | 0.0483 (118) | 0.0039 (4,571) | 1            |
+| minerals       | 0.0483 (100) | 0.0505 (84)  | 0.0061 (2,679) | 0.93         |
+| food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 1.23         |
+| trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 1.03         |
+| consumer goods | 0.0909 (70)  | 0.0924 (64)  | 0.0176 (1,190) | 1.48         |
+| alloys         | 0.1304 (21)  | 0.1300 (22)  | 0.0333 (561)   | 1.67         |
+| living metal   | 0.316 (0)    | 0.317 (0)    | 0.26 (22)      | 3.71         |
 
-Worth = P × (1 + 50 / (50 + net income)) (`TRADE_VALUE_RESOURCE_INCOME_BASE`), with energy's P =
-0.0307 in the tooltip's unit: energy, food, alloys and living metal within 1.5 % at both empires,
-minerals 2 %. Energy and minerals share P (the defines on `TRADE_VALUE_RESOURCE`: "for minerals and
-energy"). Not `ai_weight` (energy 1.5, minerals 1, living metal 100), not market prices (food would
-equal energy), not the stockpile (KhellZen's 13,063 energy and Lolehndra's 869 differ only by their
-income's effect). Trade moves with income more than the form allows (its two values need a base of
-~70, energy's ~300 under the plain 50 / (50 + net)) — `WORTH` in `#lib/aiTrade.ts` holds P, the
-test every tooltip line above. Not measured: volatile motes, exotic gases, rare crystals, zro, dark
-matter and the rest — a third empire's tooltips for those, and gifts (part 2), are what is left.
+Worth = P × 200 / (200 + gross income), energy's P = 0.0827 in the tooltip's unit: every line within
+8 % at the regular empires, 14 % at the fallen one (the residue splits regular from fallen, so the
+true form differs somewhat). Other forms, fitted the same way (least squares on the log): P ×
+(1 + 50/(50 + net)) — the defines' income base on net income — fits the two regular empires to
+1–2 % but puts the fallen one 8× too high (66 % rms); P × B/(B + net) 26 %; a power on the gross
+form gains little (5 % against 6 %). Not `ai_weight` (energy 1.5, minerals 1, living metal 100),
+not market prices, not the stockpile (KhellZen's 13,063 energy and Lolehndra's 869 differ only by
+income). `WORTH` and `incomeBase` in `#lib/aiTrade.ts` hold it, the test every tooltip line above.
+Not measured: volatile motes, exotic gases, rare crystals, zro, dark matter and the rest — and gifts
+(part 2).
 
 ## Afterwards
 

@@ -2,23 +2,22 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 
 // What another empire makes of a trade — pure, and **estimated**: the game decides in the engine;
 // its files give only the inputs (4.5.2, docs/trade-calibration.md). Measured in game (2212.08.01,
-// one empire — the calibration doc's results):
-// - the acceptance is the worth of what we offer × its personality's trade willingness (0.95 there,
-//   shown beside the acceptance) minus the worth of what it offers — no term for attitude or
-//   opinion beside them; a willingness of 0 trades nothing, an attitude that does not trade refuses
+// three empires, one fallen — the calibration doc's results):
+// - the acceptance is the worth of what we offer × its personality's trade willingness (shown
+//   beside the acceptance) minus the worth of what it offers — no term for attitude or opinion
+//   beside them; a willingness of 0 trades nothing, an attitude that does not trade refuses
 //   everything;
 // - worth is linear in the amount, however much (1000 alloys at once to an empire holding 261 count
 //   per unit what 9 a month do), and a unit a month is worth 0.5 × the months of a unit at once
 //   (TRADE_VALUE_RESOURCE_MONTHLY_MULT) — for a monthly-for-monthly deal the rate is the same;
 // - it gives at once at most its stockpile above max(`ai_wants`, TRADE_MIN_RESOURCE_STOCKPILE 500),
 //   and a month at most TRADE_MAX_RESOURCE_PERCENT (0.3) of its gross monthly income, rounded down
-//   (energy 181.9 a month → 54).
-// - a unit is worth P × (1 + INCOME_BASE / (INCOME_BASE + its net income of it per month))
-//   (TRADE_VALUE_RESOURCE_INCOME_BASE = 50), short of it or not. P is not in the files: `WORTH`,
-//   measured on two empires (energy 1). Energy and minerals share it (the defines' comment on
-//   TRADE_VALUE_RESOURCE: "for minerals and energy"); energy, food, alloys and living metal fit
-//   both empires within 1.5 %, minerals 2 %, consumer goods 4 %, trade 12 % (its income moves it more than the form
-//   says). A resource not measured is not valued (null): no estimate for it.
+//   (energy 181.9 a month → 54);
+// - a unit is worth P × 200 / (200 + its gross income of it per month), short of it or flush. Both
+//   P (`WORTH`, energy 1) and the 200 are fitted, not in the files: not ai_weight, not the defines'
+//   income base (50, on net income: right for the two regular empires, 8× too high for the fallen
+//   one). Every tooltip line within 8 % at the regular empires, 14 % at the fallen one. A resource
+//   not measured is not valued (null): no estimate for it.
 // Unmeasured, from the defines:
 // - it gives nothing once its want is at least 0.8 of its storage
 //   (OFFER_TRADE_MIN_RESOURCE_THRESHOLD);
@@ -28,21 +27,21 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 
 /**
  * A unit's worth to the AI before its income, energy = 1 (docs/trade-calibration.md → Results:
- * tooltips at KhellZen and Lolehndra, 2212.08.01). Not ai_weight: energy (1.5) and minerals (1)
- * come out the same, living metal (100) at 5.
+ * tooltips at KhellZen, Lolehndra and the Syvaal Forerunners, 2212.08.01). Not ai_weight: energy
+ * (1.5) and minerals (1) come out alike, living metal (100) under 4.
  */
 export const WORTH: Record<string, number> = {
 	energy: 1,
-	minerals: 1,
-	food: 1.52,
-	consumer_goods: 1.74,
-	alloys: 2.45,
-	sr_living_metal: 5.16,
-	trade: 1.16
+	minerals: 0.93,
+	food: 1.23,
+	consumer_goods: 1.48,
+	alloys: 1.67,
+	sr_living_metal: 3.71,
+	trade: 1.03
 };
 
 export type TradeModel = {
-	incomeBase: number;
+	incomeBase: number; // worth × incomeBase / (incomeBase + gross income) (fitted)
 	under: number; // stockpile below this share of storage: short (shown, not valued)
 	over: number; // above it: flush
 	monthlyShare: number; // pays at most this share of its gross income a month
@@ -53,7 +52,7 @@ export type TradeModel = {
 };
 
 export const modelFrom = (defines: Record<string, number>): TradeModel => ({
-	incomeBase: defines.TRADE_VALUE_RESOURCE_INCOME_BASE ?? 50,
+	incomeBase: 200,
 	under: defines.TRADE_RESOURCE_STOCKPILE_UNDER ?? 0.33,
 	over: defines.TRADE_RESOURCE_STOCKPILE_OVER ?? 0.75,
 	monthlyShare: defines.TRADE_MAX_RESOURCE_PERCENT ?? 0.3,
@@ -81,8 +80,8 @@ export function stance(r: string, ai: AiIntel, info: Info, m: TradeModel): Stanc
 export function aiValue(r: string, ai: AiIntel, info: Info, m: TradeModel): number | null {
 	const p = m.worth[r];
 	if (!info[r]?.tradable || p === undefined) return null;
-	const income = Math.max(0, ai.net[r] ?? 0);
-	return p * (1 + m.incomeBase / (m.incomeBase + income));
+	const income = Math.max(0, ai.income[r] ?? 0);
+	return p * (m.incomeBase / (m.incomeBase + income));
 }
 
 /** A nomadic empire's reserve: it takes these, never gives them. */
