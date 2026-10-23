@@ -1,18 +1,86 @@
 # Calibrating the AI's view of a trade
 
-The trade tab predicts what an AI empire would accept and what a gift does to its opinion. The
-game computes both in the engine; its files only give the inputs (4.5.2): each resource's
-`ai_weight` and `ai_wants`, the AI's stockpile and income, `TRADE_VALUE_RESOURCE_INCOME_BASE` (50),
-`TRADE_VALUE_RESOURCE_MONTHLY_MULT` (0.5: monthly payments count half), the storage thresholds
-`TRADE_RESOURCE_STOCKPILE_UNDER/OVER` (0.33 / 0.75 of max), the personality's `trade_willingness`
-(0 … 1.1) and the attitude, which refuses everything when it does not trade. Gifts:
-`opinion_trade_gift` (+1 per point, accumulates to 100, decays 2 a month); how much value buys a
-point is not in the files.
+The trade tab predicts what an AI empire would accept, what it gives at most and what a gift does
+to its opinion. The game decides all of it in the engine; its files give only some inputs. Every
+number below was measured in the campaign on 2026-10-23 (Planetforgers, 2212.08–2213.08, 4.5.2,
+no cheats) from the trade screen's acceptance tooltip — set up, not sent — and the saves. The
+model is `#lib/aiTrade.ts`; every tooltip line is a case in `aiTrade.test.ts`.
 
-This session gives the numbers the model is fitted to. About an hour, on Linux, in a throwaway
-game — never the real campaign (cheats end achievements, and its history lives only in the DB).
+## What we know
 
-## Setup
+**Acceptance.** Our side's worth × the AI's personality's `trade_willingness` (shown beside the
+acceptance) minus its side's worth. Nothing else showed in any tooltip: not opinion, trust,
+attitude, embassy or pacts (below). An attitude that does not trade (rival, unfriendly,
+dismissive, hostile, …) adds −1000 to a deal — but not to a gift.
+
+**A unit's worth** at once, in the tooltip's points: p × base / (base + the AI's **gross**
+monthly income of it), p and base fitted per resource (`WORTH`) — not `ai_weight`, not the
+defines' income base of 50, not its stockpile, consumption, species, civics, bio ships or market
+prices. Linear in the amount, however large; the tooltip rounds down. A unit a month counts
+0.5 × the months of one at once (`TRADE_VALUE_RESOURCE_MONTHLY_MULT`), for 10 years as for 30.
+Into full storage a resource is worth nothing (fallen empires, minerals at 135,000). Measured:
+energy, minerals, food, trade, consumer goods, alloys, living metal; strategic resources wait for
+the nomad test game.
+
+**What it gives at most.** At once its stockpile above max(`ai_wants`, 500)
+(`TRADE_MIN_RESOURCE_STOCKPILE`); a month 0.3 × its gross income of it, rounded down
+(`TRADE_MAX_RESOURCE_PERCENT`). Nomadic empires never give energy or minerals (their operational
+reserves) but take them.
+
+**Gifts.** A one-sided deal raises the AI's opinion of us by its worth at its willingness — the
+tooltip's figure or one less ("Favorable Trade Deal", accumulates to 100). Every attitude takes
+gifts, rivals and unfriendly empires too: the way to mend one that refuses trades. The files say
+the modifier decays 2 a month; it did not fade at all in four months (2212.09–2213.01). The AI
+accepts days to weeks after the offer.
+
+**Drift.** At unchanged income, minerals and food were worth 6–9 % more every half year (food
+0.067 → 0.078 → 0.082 a unit at KhellZen, 2212.08 → 2213.02 → 2213.08), energy rose 10 % and
+then held, the advanced resources never moved. Cause unknown (ruled out below); the model holds
+the latest level (2213.08), the test checks older lines at their date's level (`LEVEL`).
+
+**What else counts, from the files** (none of it showed in a trade tooltip; 13 empires from
+opinion −504 to +440, trust 0–81, with and without embassy, commercial, research, migration and
+defensive pacts fitted income and willingness within 2.3 %):
+
+- _Attitude_ is the AI's own pick (from opinion, threat, personality); it gates deals (−1000), so
+  opinion and trust act only through it. _Willingness_ is fixed by personality; nothing in
+  `common/` changes it.
+- _Embassy_: +0.10 trust a month (`MONTHLY_TRUST_EMBASSY`), envoys improve relations 3× as fast,
+  +20 intel.
+- _Trust_ builds from pacts (0.10–1.00 a month; capped at 50–100 by the pact) and enters opinion.
+- _Commercial pact_: each side gets 10 % of the other's trade production
+  (`COMMERCIAL_PACTS_INCOME_PERCENTAGE`) — more gross trade income, so trade is worth a little less
+  to it — and +0.25 trust a month.
+- _Running deals_: if their payments count as income, they cheapen that resource for the next
+  deal (not checked). A deal ends when a side cannot pay at the end of a month (seen in game: "the
+  other empire can't afford the monthly rate of resource X"); breaking one costs opinion
+  (`opinion_was_in_trade`, 0.5 × the deal's value, `BROKEN_TRADE_DEAL_FACTOR`).
+- _Favors_ can go into a deal (`TRADE_VALUE_FAVORS_MULT` = 10 × a favor's acceptance value; the
+  value is not in the defines).
+- _Pacts and embassies themselves_ have acceptance formulas of their own (opinion × 0.2–0.5,
+  attitude, existing pacts, distance, shared rivals and threat, strength) — `docs/open-checks.md`
+  item 10.
+
+**Strategy: pay once, receive monthly.** Since a unit a month counts half, paying at once for a
+monthly payment returns twice a swap's units over the deal, the same total for any length — take
+10 years, it arrives soonest. Mixing is the only lever: monthly for monthly and at once for at
+once trade at the same rate, and the reverse (their lump sum for our monthly payment) costs us
+double. Held to their monthly cap. The risks: the deal breaks when they cannot afford the
+payment (the deal finder's monthly mode shows their net income after paying and how long their
+stockpile lasts), the lump is gone if it breaks, and the return comes spread over 10 years
+(doubling over 10 years paid evenly ≈ 13–14 % a year).
+
+**Open:** the drift's cause (a monthly series at KhellZen, then compare saves); strategic
+resources (nomad game); whether the galactic market changes any of it; when exactly a deal breaks
+(zero stockpile or negative net); the acceptance of embassies, pacts and subjugation. All in
+`docs/open-checks.md`.
+
+## The original session plan (2026-10-22, superseded)
+
+Planned as a throwaway-game session with cheats; done instead in the campaign without cheats,
+from tooltips (results below). Kept for its offer list.
+
+### Setup
 
 1. New game, small galaxy, 8+ AI empires, **no** `debug_yesmen`. Play until 2200.02.01.
 2. Console: `contact`, `communications` (meet everyone), `debugtooltip` (ids in tooltips).
@@ -30,7 +98,7 @@ game — never the real campaign (cheats end achievements, and its history lives
 |        |             |          |               |
 |        |             |          |               |
 
-## 1. Acceptance (≈ 20 offers)
+### 1. Acceptance (≈ 20 offers)
 
 **Save manually before each empire's batch** (the dashboard reads their stockpile from it).
 For each offer build it in the trade screen and note the **acceptance number** it shows — do
@@ -70,7 +138,7 @@ is a **nomadic** empire (marked on the trade tab): 23–24 whether it can put en
 into a deal at all — the model assumes not, as on the market (note "not offered" if the trade
 screen does not list them).
 
-## 2. Gifts and opinion
+### 2. Gifts and opinion
 
 With empire A: save, then **send** gifts one at a time (a one-sided deal) and after each note
 the opinion breakdown's "Favorable Trade Deal" line (hover their opinion), then save.
@@ -85,12 +153,12 @@ the opinion breakdown's "Favorable Trade Deal" line (hover their opinion), then 
 
 Then `fast_forward 30` twice and note the line each time (the decay; expected −2 a month).
 
-## 3. An attitude that does not trade
+### 3. An attitude that does not trade
 
 If any empire shows unfriendly, rival, hostile, domineering or threatened: one offer (row 1's)
 to it, its acceptance.
 
-## Results so far
+## Results, measurement by measurement
 
 ### 2026-10-23: one empire in the campaign (no cheats)
 
@@ -376,9 +444,17 @@ date's level (`LEVEL` in `aiTrade.test.ts`).
   income is under 40 / 50 / 50 and the stockpile under 25,000 — a "need" that grows at constant
   income. It does not fit: KhellZen's food (net 65, scaling off) rose most, Lolehndra's energy (net
   27–37, scaling on) stopped rising. Which plan an empire is on is not in the save.
+- **The galaxy's economy** (summed over every empire's gross and net income and stockpile per
+  resource, with and without us, and the regular AIs alone; indexed to 2212.08): food and
+  minerals moved at most 6 % where their worth rose 16–24 %; alloys rose most (regular AIs'
+  income +11 %) where their worth held. Only the regular AIs' energy stockpile (+9 % by 2213.01,
+  then flat) has energy's shape — in the wrong direction for a price, so taken as chance. We are
+  ~1 % of the galaxy's income; the totals are mostly the fallen empires'.
 - **Online (2026-10-23):** nobody describes the AI's deal valuation or a drift — forum threads
-  and guides cover the market and trade value only. A patch note says the AI recalculates its
-  trade value yearly; that is the economy's trade value, and food rose within one year.
+  and guides cover the market and trade value only. One forum answer: a deal is broken and ends
+  when a side cannot pay its end at the end of a month, and the other side gets an opinion
+  penalty. A patch note says the AI recalculates its trade value yearly; that is the economy's
+  trade value, and food rose within one year.
 
 ### A unit's worth
 
@@ -407,7 +483,11 @@ income — fits the two regular empires to 1–2 % but puts the fallen one 8× t
 holds it, the test every line above. Not measured: volatile motes, exotic gases, rare crystals,
 zro, dark matter and the rest (the nomad test game).
 
-## Afterwards
+## Measuring more
 
-Send the filled tables and the session's saves folder name. The fitted constants go into the
-trade model with these numbers as its test, so a later change has to reproduce them.
+What worked: in the trade screen, set up the deal and hover the acceptance — "Our Offer Total" and
+"Their Offer Total" per resource are the worth — and cancel; nothing is sent, so neither the
+opinion cap nor our stockpile limits it. 1000 at once is the cleanest amount (monthly amounts
+under ~20 lose a few % to rounding). A screenshot per deal and a manual save at the same date;
+read the empire's gross income from that save. Every new number becomes a case in
+`aiTrade.test.ts` with its date, so a later change has to reproduce it.

@@ -38,8 +38,9 @@ Setup as in `AGENTS.md` → "Testing in a throwaway game".
 
 ### 6. Trade calibration — the rest
 
-The trade model is fitted to three empires' tooltips (one fallen) and gifts of energy to 13 more
-(2026-10-23, `docs/trade-calibration.md` → Results). Open:
+The trade model is fitted to tooltips at 16 empires, gifts and deals (2026-10-23; summary in
+`docs/trade-calibration.md` → What we know). Done in the campaign without cheats — tooltips set
+up, not sent — not in a throwaway game. Open:
 
 - the gift's decay: none in four months (the files say −2 a month) — does it start later, or only
   below some value? Watch the autosaves;
@@ -56,7 +57,8 @@ The trade model is fitted to three empires' tooltips (one fallen) and gifts of e
   the drift?;
 - volatile motes, exotic gases, rare crystals and the other strategic resources: monthly deals
   with tooltips, in the nomad test game (nomads have them from the start);
-- one offer to an empire whose attitude does not trade.
+- one deal (not a gift) offered to an empire whose attitude does not trade: the −1000 the defines
+  give (`OFFER_TRADE_ACCEPTANCE_ATTITUDE`) is not seen yet.
 
 ### 7. Stored research — tech tab
 

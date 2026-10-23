@@ -40,7 +40,7 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 
 /**
  * A unit's worth to the AI at once: `p` with no income of it, falling by base / (base + gross
- * income); in the trade screen's acceptance points (docs/trade-calibration.md → Results).
+ * income); in the trade screen's acceptance points (docs/trade-calibration.md → What we know).
  */
 export const WORTH: Record<string, { p: number; base: number }> = {
 	energy: { p: 0.0747, base: 280 },

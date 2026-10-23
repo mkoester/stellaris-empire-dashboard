@@ -433,7 +433,7 @@ finder (we give X, for Y: per empire the most Y it would give per X, against sel
 Y on the market with the fee) and per empire and resource whether it is short (under a third of
 its storage) or flush (over three quarters). **Estimated**: the AI's valuation is engine code;
 measured 2026-10-23 on three empires (one fallen) and gifts to 13 more
-(`docs/trade-calibration.md` → Results; every tooltip line is a case in `aiTrade.test.ts`): the
+(`docs/trade-calibration.md` → What we know; every tooltip line is a case in `aiTrade.test.ts`): the
 acceptance is our side's worth × the AI's willingness minus its side's, linear in the amount
 however large; a unit a month is worth 0.5 × the months of one at once, 10 years or 30; a unit is worth p ×
 base/(base + its **gross** income of it), both per resource and fitted (`WORTH`; not `ai_weight`,
