@@ -961,10 +961,21 @@ stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included
   flat list: `contactView.galcomFlat`), each with its effects and all of them summed
   (`totalEffects`); **proposed** (and the one on the floor) as a table with the empires and the
   summed diplomatic weight for and against, each row expandable to who votes how. Weights
-  (`GalacticCommunity.weights`, by name, READER 15): exact from companion mod 0.4.0's country
+  (`GalacticCommunity.weights`, by name, READER 15; the scaled estimate READER 16): exact from companion mod 0.4.0's country
   variable `sdash_dw`, else **estimated** (`estimatedWeight()`: the defines' naval × 0.025 +
-  economy × 0.15 + technology × 0.1 — the pops' share, `diplomatic_weight` modifiers and the
-  council's × 1.5 left out), marked ≈. Names and effects from the data DB (`resolution`, its
+  economy × 0.15 + technology × 0.1, × `WEIGHT_SCALE` 2.6), marked ≈. **Checked 2214.01.01**
+  (screenshots `2026_10_23_1`–`4`): the game's "Diplomatic Support" of a proposal is the summed
+  weight of the empires **for** it, no council factor (all four shown matched to ±1 — the screen
+  rounds each weight), and **the proposal queue is ranked by it** (the "#" column; ties in save
+  order; all 12 in the game's order); the save's supporter lists matched every icon row. Solving
+  the sums gave all 13 members' weights (138–643): game ÷ defines' terms 1.0–3.3, median 2.6, and a
+  linear fit with pops was off by up to 227 — modifiers dominate, the estimate stays rough. The
+  queue's ↑/↓ arrows are not pass/fail (one with more weight against showed ↑); not in the save.
+  **A resolution stores no proposal date** (`resolution.<id> = { type country supporters
+opponents }`; only the one voted on has `voting = { <country>=<date> }`, the votes cast):
+  `proposalDates()` dates it between the last save without it and the first with it, or "by" the
+  first save of the history (2214.01.01: five to the month, seven by 2205.03.01, the campaign's
+  first save read). Names and effects from the data DB (`resolution`, its
   effects = the static modifier of the same key, `resolution:<key>` popups).
 - Claims (2026-10-19): on the system, `galactic_object.<id>.claims = { { owner date claims } }`
   — `owner` is the claimant, `claims` the strength. The game's claims view lists only ours (with

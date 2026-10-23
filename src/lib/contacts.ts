@@ -1,4 +1,4 @@
-import type { Combat, CountryInfo, FirstContact, Relation } from './types.ts';
+import type { Combat, CountryInfo, FirstContact, GalacticCommunity, Relation } from './types.ts';
 
 // The contacts tab: every empire we know, with what the save tells about it. Pure.
 
@@ -115,6 +115,40 @@ const AGREEMENTS: Record<string, string> = {
 	subject: 'subject'
 };
 export const agreementName = (key: string) => AGREEMENTS[key] ?? key.replaceAll('_', ' ');
+
+/**
+ * How a resolution we voted on stands for us: `ahead` when our side has more weight, `behind`
+ * otherwise (a tie too); null when we have not voted.
+ */
+export function voteStanding(
+	ours: 'for' | 'against' | null,
+	forWeight: number,
+	againstWeight: number
+): 'ahead' | 'behind' | null {
+	if (ours === null) return null;
+	const mine = ours === 'for' ? forWeight : againstWeight;
+	const theirs = ours === 'for' ? againstWeight : forWeight;
+	return mine > theirs ? 'ahead' : 'behind';
+}
+
+/**
+ * When each resolution was proposed, as far as the saves tell — the game stores no date: proposed
+ * after the last save without it (`after`; null when the first save with a Galactic Community
+ * already had it) and by the first save showing it (`by`). Keyed by resolution id and type.
+ */
+export function proposalDates(
+	snaps: { date: string; galcom: GalacticCommunity | null }[]
+): Record<string, { after: string | null; by: string }> {
+	const out: Record<string, { after: string | null; by: string }> = {};
+	let previous: string | null = null; // the last save that had a Galactic Community
+	for (const s of snaps) {
+		if (!s.galcom) continue;
+		for (const r of [s.galcom.voting, ...s.galcom.proposed, ...s.galcom.passed])
+			if (r) out[`${r.id}:${r.type}`] ??= { after: previous, by: s.date };
+		previous = s.date;
+	}
+	return out;
+}
 
 /**
  * Every combat any save along the branch caught (a fleet's record is cleared some time after the

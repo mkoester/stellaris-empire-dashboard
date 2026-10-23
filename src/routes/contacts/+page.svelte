@@ -7,6 +7,7 @@
 		kindOf,
 		kindTypes,
 		shown,
+		voteStanding,
 		type ContactColumn,
 		type ContactRow,
 		type ContactView
@@ -145,12 +146,28 @@
 			}))
 		)
 	);
-	type Proposal = ResolutionVote & { status: 'voting' | 'proposed' };
+	// the game's proposal queue: ranked by the weight of the empires for it ("Diplomatic Support"
+	// — 2214.01.01, all 12 sums matched to ±1), the first up next; ties in the save's order
+	type Proposal = ResolutionVote & { status: 'voting' | 'proposed'; place: number | null };
 	const proposals: Proposal[] = $derived([
-		...(data.galcom?.voting ? [{ ...data.galcom.voting, status: 'voting' as const }] : []),
-		...(data.galcom?.proposed ?? []).map((r) => ({ ...r, status: 'proposed' as const }))
+		...(data.galcom?.voting
+			? [{ ...data.galcom.voting, status: 'voting' as const, place: null }]
+			: []),
+		...[...(data.galcom?.proposed ?? [])]
+			.sort((a, b) => sideWeight(b.support) - sideWeight(a.support))
+			.map((r, i) => ({ ...r, status: 'proposed' as const, place: i + 1 }))
 	]);
 	const weightOf = (name: string) => data.galcom?.weights[name] ?? null;
+	// where we voted: faint green while our side outweighs the other, faint red while it does not
+	const standingClass = (r: ResolutionVote) => {
+		const s = voteStanding(r.ours, sideWeight(r.support), sideWeight(r.oppose));
+		return s === 'ahead'
+			? 'bg-green-50 dark:bg-green-950/40'
+			: s === 'behind'
+				? 'bg-red-50 dark:bg-red-950/40'
+				: '';
+	};
+	const proposedOf = (r: ResolutionVote) => data.proposalDates[`${r.id}:${r.type}`] ?? null;
 	const weightLabel = (w: { value: number; exact: boolean } | null) =>
 		w === null ? '?' : `${w.exact ? '' : '≈'}${Math.round(w.value)}`;
 	const sideWeight = (names: string[]) => names.reduce((n, x) => n + (weightOf(x)?.value ?? 0), 0);
@@ -158,17 +175,28 @@
 	const anyEstimated = $derived(Object.values(data.galcom?.weights ?? {}).some((w) => !w.exact));
 	const proposalColumns: Column<Proposal>[] = [
 		{
+			id: 'place',
+			label: '#',
+			value: (r) => r.place ?? 0,
+			cell: place,
+			right: true,
+			title: "place in the game's proposal queue: by the weight of the empires for it"
+		},
+		{
 			id: 'name',
 			label: 'Resolution',
 			value: (r) => data.diploNames[r.type] ?? r.type,
 			cell: resolutionCell
 		},
-		{
-			id: 'status',
-			label: 'Status',
-			value: (r) => (r.status === 'voting' ? 'voting now' : 'proposed')
-		},
 		{ id: 'by', label: 'By', value: (r) => r.proposer, cell: proposerCell },
+		{
+			id: 'proposed',
+			label: 'Proposed',
+			value: (r) => proposedOf(r)?.by ?? null,
+			cell: proposed,
+			title:
+				'the game stores no date: between the last save without it and the first with it — or by that first save, when the history begins with it'
+		},
 		{ id: 'for', label: 'For', value: (r) => r.support.length, right: true, title: 'empires for' },
 		{
 			id: 'against',
@@ -343,13 +371,21 @@
 			<div class="mb-2 text-gray-500">in recess: the next vote starts {g.nextVote}</div>
 		{/if}
 		<p class="mb-2 text-xs text-gray-500">
-			Weight: each empire's diplomatic weight, summed over its side — {anyEstimated
-				? '≈ estimated from its naval, economic and technological power where companion mod 0.4.0 has not stored the game’s value (modifiers and the council’s × 1.5 are not counted)'
-				: 'the game’s values, stored by companion mod 0.4.0 (the council’s × 1.5 not counted)'}.
-			Click a resolution for who is for and against.
+			Weight: each empire's diplomatic weight, summed over its side; the game ranks its proposal
+			queue by the weight for (#). {anyEstimated
+				? '≈ estimated from naval, economic and technological power where companion mod 0.4.0 has not stored the game’s value yet — between 20 % too low and 2.6 × too high (checked against the game’s screen at 2214.01.01).'
+				: 'The game’s values, stored by companion mod 0.4.0.'}
+			Where we voted, the row is green while our side has more weight, red while it does not. Click a
+			resolution for who is for and against.
 		</p>
 		{#if proposals.length}
-			<SortTable rows={proposals} columns={proposalColumns} key={(r) => r.id} />
+			<SortTable
+				rows={proposals}
+				columns={proposalColumns}
+				key={(r) => r.id}
+				sort={{ column: '', desc: false }}
+				rowClass={standingClass}
+			/>
 		{:else}<p class="text-gray-500">Nothing proposed.</p>{/if}
 	</section>
 {/if}
@@ -377,6 +413,16 @@
 		</div>
 	</details>
 {/snippet}
+{#snippet proposed(r: Proposal)}{@const d = proposedOf(r)}<span
+		class="whitespace-nowrap tabular-nums"
+		>{#if !d}?{:else if d.after}{d.after} – {d.by}{:else}<span class="text-gray-500">by</span>
+			{d.by}{/if}</span
+	>{/snippet}
+{#snippet place(r: Proposal)}{r.status === 'voting'
+		? 'voting now'
+		: r.place === 1
+			? '1 · up next'
+			: r.place}{/snippet}
 {#snippet forWeight(r: Proposal)}<span class="text-green-600"
 		>{estimated(r.support) ? '≈' : ''}{Math.round(sideWeight(r.support))}</span
 	>{/snippet}

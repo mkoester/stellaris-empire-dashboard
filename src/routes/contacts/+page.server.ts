@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { combatLog, contactTable } from '#lib/contacts.ts';
+import { combatLog, contactTable, proposalDates } from '#lib/contacts.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -25,6 +25,8 @@ export function load({ url }) {
 		claims: save?.claims ?? [],
 		subjects,
 		galcom,
+		// when each proposal first showed up in a save: the game stores no date
+		proposalDates: proposalDates(snaps),
 		// the game's words for resolutions and subject terms; resolution effects as popups
 		diploNames: pick(getGameData().diploNames, [
 			...resolutions.flatMap((r) => [r.type, getGameData().resolutionCategories[r.type] ?? '']),

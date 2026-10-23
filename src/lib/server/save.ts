@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '15';
+export const READER = '16';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1676,13 +1676,20 @@ export function galacticCommunity(
 }
 
 /**
- * A country's diplomatic weight as the defines build it (4.5.2 `00_defines.txt`
- * `DIPLOMACY_WEIGHT_*`): naval power × 0.025 + economy power × 0.15 + technology × 0.1. Not
- * counted: the pops' share (0.01 + 2 × happiness each), every `diplomatic_weight` modifier, the
- * council's × 1.5 — an estimate until companion mod 0.4.0 stores the game's value.
+ * A country's diplomatic weight, roughly: the defines' terms (4.5.2 `00_defines.txt`
+ * `DIPLOMACY_WEIGHT_*`: naval power × 0.025 + economy power × 0.15 + technology × 0.1) scaled by
+ * `WEIGHT_SCALE`, which stands in for what the save cannot give — the pops' share and every
+ * `diplomatic_weight` modifier. Checked 2214.01.01 against the game's Galactic Community screen
+ * (screenshots 2026_10_23_1–4, all 13 members): game ÷ defines' terms 1.0–3.3, median 2.6; a
+ * linear fit with pops did no better (off by up to 227 of 138–643). Only companion mod 0.4.0's
+ * exported value is exact.
  */
+const WEIGHT_SCALE = 2.6;
 export function estimatedWeight(c: Raw): number {
-	return num(c?.military_power) * 0.025 + num(c?.economy_power) * 0.15 + num(c?.tech_power) * 0.1;
+	return (
+		WEIGHT_SCALE *
+		(num(c?.military_power) * 0.025 + num(c?.economy_power) * 0.15 + num(c?.tech_power) * 0.1)
+	);
 }
 
 /** Days a resolution stays on the senate floor (RESOLUTION_VOTE_TIMER, 4.5.2). */

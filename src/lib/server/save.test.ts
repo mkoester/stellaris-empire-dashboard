@@ -1472,7 +1472,7 @@ describe('milestone fields', () => {
 		]);
 		expect(g?.passed.map((r) => r.type)).toEqual(['resolution_voidworm_eradication']);
 		expect(g?.weights).toEqual({
-			UNE: { value: 1000 * 0.025 + 400 * 0.15 + 300 * 0.1, exact: false },
+			UNE: { value: 2.6 * (1000 * 0.025 + 400 * 0.15 + 300 * 0.1), exact: false },
 			Tzynn: { value: 0, exact: false },
 			Blorg: { value: 812.5, exact: true }
 		});

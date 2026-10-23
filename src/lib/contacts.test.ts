@@ -5,7 +5,9 @@ import {
 	contactTable,
 	kindOf,
 	parseContactView,
-	shown
+	proposalDates,
+	shown,
+	voteStanding
 } from './contacts.ts';
 import type { Relation } from './types.ts';
 
@@ -112,5 +114,51 @@ describe('combatLog', () => {
 			[4, '2205.11.20', 1],
 			[3, '2205.10.14', 3]
 		]);
+	});
+});
+
+describe('proposalDates', () => {
+	const vote = (id: number, type: string) => ({
+		id,
+		type,
+		proposer: 'A',
+		support: [],
+		oppose: [],
+		ours: null
+	});
+	const galcom = (proposed: ReturnType<typeof vote>[]) => ({
+		formed: '2202.01.01',
+		members: [],
+		member: true,
+		voting: null,
+		proposed,
+		passed: [],
+		voteEnds: null,
+		nextVote: null,
+		weights: {}
+	});
+
+	it('dates a proposal between the last save without it and the first with it', () => {
+		const dates = proposalDates([
+			{ date: '2210.01.01', galcom: null },
+			{ date: '2211.01.01', galcom: galcom([vote(3, 'r_a')]) },
+			{ date: '2211.02.01', galcom: null }, // the mod's monthly line: no Galactic Community read
+			{ date: '2211.03.01', galcom: galcom([vote(3, 'r_a'), vote(4, 'r_b')]) }
+		]);
+		expect(dates).toEqual({
+			'3:r_a': { after: null, by: '2211.01.01' },
+			'4:r_b': { after: '2211.01.01', by: '2211.03.01' }
+		});
+	});
+});
+
+describe('voteStanding', () => {
+	it('is ahead when our side outweighs the other, else behind', () => {
+		expect(voteStanding('for', 3000, 2000)).toBe('ahead');
+		expect(voteStanding('against', 2000, 3000)).toBe('ahead');
+		expect(voteStanding('for', 2000, 3000)).toBe('behind');
+		expect(voteStanding('against', 3000, 2000)).toBe('behind');
+		expect(voteStanding('for', 2000, 2000)).toBe('behind');
+		expect(voteStanding(null, 3000, 2000)).toBeNull();
 	});
 });
