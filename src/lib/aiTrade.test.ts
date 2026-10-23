@@ -457,7 +457,9 @@ describe('a year and a half on', () => {
 		['2213.10', 'KhellZen', 'sr_living_metal', 158, 47],
 		['2213.10', 'Lolehndra', 'sr_living_metal', 158, 39],
 		['2213.11', 'Lolehndra', 'minerals', 1000, 46],
-		['2213.11', 'Lolehndra', 'sr_living_metal', 164, 41]
+		['2213.11', 'Lolehndra', 'sr_living_metal', 164, 41],
+		['2213.12', 'Lolehndra', 'food', 1000, 68],
+		['2213.12', 'Lolehndra', 'sr_living_metal', 170, 42]
 	];
 	// 2213.11.01: KhellZen's alloy, consumer goods and trade income moved, and its values with them
 	const khellZen11 = {
@@ -472,11 +474,17 @@ describe('a year and a half on', () => {
 		['trade', 1000, 44],
 		['consumer_goods', 1000, 85],
 		['alloys', 1000, 120],
-		['sr_living_metal', 164, 48]
+		['sr_living_metal', 164, 48],
+		['sr_living_metal', 170, 50] // 2213.12, incomes as in 2213.11
 	];
 	it.each(moved)('2213.11: KhellZen: %s %d → %d', (r, amount, tip) => {
 		const v = aiValue(r, ai({ income: khellZen11 }), game, m)!;
 		expect(Math.abs((amount * v * willingness.KhellZen) / tip - 1)).toBeLessThan(0.03);
+	});
+	// 2213.12.01: Lolehndra's trade income fell (31.43 → 25.86), its trade value rose
+	it('2213.12: Lolehndra: trade follows its income', () => {
+		const v = aiValue('trade', ai({ income: { ...income.Lolehndra, trade: 25.86 } }), game, m)!;
+		expect(Math.abs((1000 * v * willingness.Lolehndra) / 61 - 1)).toBeLessThan(0.03);
 	});
 	it.each(nextMonths)('%s: %s: %s %d → %d', (_, who, r, amount, tip) => {
 		const v = aiValue(r, ai({ income: income[who] }), game, m)!;
