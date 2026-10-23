@@ -240,6 +240,33 @@ a gift into full storage is worth nothing — though they had counted 113 minera
 a unit (2212.08). At KhellZen and Lolehndra, minerals came out 8 % higher than in their 2212.08
 deals, at nearly the same income and stockpile — unexplained.
 
+### 2026-10-23: deal length, and a fourth empire
+
+Cybernetic Ikaanan Principality, `autosave_2213.02.01` — evangelising_zealots (willingness 0.75),
+gross income: food 85.9, trade 55.5, consumer goods 56.7, alloys 26.8, no living metal. Nothing
+sent; "Our Offer Total":
+
+| We give                   | Tooltip |
+| ------------------------- | ------- |
+| 10 food a month, 10 years | 40      |
+| 10 food a month, 30 years | 122     |
+| 1,200 food at once        | 81      |
+| 3,600 food at once        | 244     |
+| 1,000 food                | 67      |
+| 1,000 trade               | 50      |
+| 1,000 consumer goods      | 73      |
+| 1,000 alloys              | 94      |
+| 108 living metal          | 25      |
+
+**Length:** a unit a month counts 0.5 × the months of a unit at once at 30 years as at 10 (40 ≈ 81
+/ 2, 122 = 244 / 2) — no discount for later months. Tooltips round down (1,000 → 67, 1,200 → 81,
+3,600 → 244: 0.0678 a unit).
+
+**Out of sample:** trade, consumer goods, alloys and living metal fell within 3 % of the curves
+fitted to the first three empires (now refitted on four). Food came out 16 % above: Ikaanan, at 86
+food a month, values it 28 % above Lolehndra at 105 — no p × base / (base + gross) fits the four
+points better than ±12 %, nor net income, stockpile or upkeep. Something else moves food's worth.
+
 ### A unit's worth
 
 At once, as the empire gives it (what it gets ÷ its willingness; a month's unit ÷ 60), in the
@@ -249,14 +276,15 @@ tooltip's unit, with the empire's gross income of it a month:
 | -------------- | ------------ | ------------ | -------------- | ------ | ---- |
 | energy         | 0.0412 (182) | 0.0483 (118) | 0.0039 (4,571) | 0.0676 | 280  |
 | minerals       | 0.0483 (100) | 0.0505 (84)  | 0.0061 (2,679) | 0.0733 | 240  |
-| food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 0.1153 | 160  |
-| trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 0.0898 | 180  |
-| consumer goods | 0.0909 (70)  | 0.0924 (64)  | 0.0176 (1,190) | 0.1224 | 200  |
-| alloys         | 0.1304 (21)  | 0.1300 (22)  | 0.0333 (561)   | 0.1487 | 160  |
-| living metal   | 0.316 (0)    | 0.317 (0)    | 0.26 (22)      | 0.3167 | 100  |
+| food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 0.1325 | 135  |
+| trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 0.0883 | 185  |
+| consumer goods | 0.0909 (70)  | 0.0924 (64)  | 0.0176 (1,190) | 0.1244 | 195  |
+| alloys         | 0.1304 (21)  | 0.1300 (22)  | 0.0333 (561)   | 0.1470 | 165  |
+| living metal   | 0.316 (0)    | 0.317 (0)    | 0.26 (22)      | 0.3163 | 100  |
 
 Worth = p × base / (base + gross income), per resource: every tooltip line and every gift within
-3 %, but the 2212.08 mineral deals 7 % (above). Energy's base rests on 16 empires (the gifts put it
+3 %, but the 2212.08 mineral deals 7 % and food 12 % (above). Ikaanan's tooltips (2213.02) are in
+the fit too. Energy's base rests on 16 empires (the gifts put it
 at 280 with an exponent of 0.98 — so the plain form), minerals' on 16 (240); the others' two
 numbers on three points each, a best fit until gifts test them. Other forms, fitted the same way (least squares on the log): one base for all (200)
 6 % rms, the gifts then 3–17 % high; P × (1 + 50/(50 + net)) — the defines' income base on net

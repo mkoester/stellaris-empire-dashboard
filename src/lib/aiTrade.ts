@@ -17,7 +17,10 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 //   P and B per resource (`WORTH`), in the tooltip's own unit — not ai_weight, not the defines'
 //   income base (50, on net income). Every tooltip line within 3 %: energy from 16 empires (base 280), minerals
 //   from 16 (240; deals of 2212.08 came out 7 % under the gifts of 2213.01 at the same empires —
-//   unexplained), the rest from 3 each (two numbers from three points: the next gifts test them). A resource not measured is not valued (null): no estimate for it;
+//   unexplained), trade, consumer goods, alloys and living metal from 4 (a fourth empire's tooltips
+//   fell within 3 % of the curve fitted to the first three), food from 4 at ±12 % (no curve fits
+//   it: Ikaanan, 86 a month, valued it 28 % above Lolehndra at 105 — something else moves it).
+//   A resource not measured is not valued (null): no estimate for it;
 // - a gift raises its opinion of us by its worth as the acceptance shows it (`giftOpinion()`):
 //   "Favorable Trade Deal" (accumulates to 100) came out the tooltip or one less, at 13 empires
 //   given 1000 energy (2212.08) and 8 given 1000 minerals (2213.01). It did not fade: the files
@@ -38,11 +41,11 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 export const WORTH: Record<string, { p: number; base: number }> = {
 	energy: { p: 0.0676, base: 280 },
 	minerals: { p: 0.0733, base: 240 },
-	food: { p: 0.1153, base: 160 },
-	trade: { p: 0.0898, base: 180 },
-	consumer_goods: { p: 0.1224, base: 200 },
-	alloys: { p: 0.1487, base: 160 },
-	sr_living_metal: { p: 0.3167, base: 100 }
+	food: { p: 0.1325, base: 135 }, // ±12 %: no curve fits its four points
+	trade: { p: 0.0883, base: 185 },
+	consumer_goods: { p: 0.1244, base: 195 },
+	alloys: { p: 0.147, base: 165 },
+	sr_living_metal: { p: 0.3163, base: 100 }
 };
 
 export type TradeModel = {
