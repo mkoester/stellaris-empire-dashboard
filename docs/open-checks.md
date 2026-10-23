@@ -46,6 +46,10 @@ The trade model is fitted to three empires' tooltips (one fallen) and gifts of e
 - the drift of basic resources (energy 10 %, minerals 9 %, food 17 % up between 2212.08 and
   2213; alloys steady): 1000 energy and 1000 food at KhellZen and Lolehndra again some years
   later — does it keep rising, with the year, or with something in their state?;
+- once the **galactic market** is founded (`Snapshot.market.galactic`): the same tooltips again —
+  1000 energy, minerals, food, trade, consumer goods and alloys at KhellZen and Lolehndra (set
+  up, not sent), plus a manual save. Does the market move what a resource is worth to an AI, or
+  the drift?;
 - volatile motes, exotic gases, rare crystals and the other strategic resources: monthly deals
   with tooltips, in the nomad test game (nomads have them from the start);
 - one offer to an empire whose attitude does not trade.
