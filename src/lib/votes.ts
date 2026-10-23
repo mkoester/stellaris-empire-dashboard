@@ -59,9 +59,10 @@ export function aiVote(w: AiWeight | null, f: Facts, opinionOfUs: number): AiVot
 export type Member = { name: string; weight: number; facts: Facts; opinionOfUs: number | null };
 
 export type Outlook = {
-	// the share of the decided weight for it: with our weight for it, and with us abstaining
-	withUs: number | null;
-	withoutUs: number | null;
+	// the share of the decided weight for it, as we vote for it, abstain or vote against it
+	ifFor: number | null;
+	ifAbstain: number | null;
+	ifAgainst: number | null;
 	votes: { name: string; vote: AiVote['vote'] | null; uncertain: boolean; weight: number }[];
 	actual?: boolean; // from the votes cast (a resolution in the queue), not predicted
 };
@@ -82,8 +83,9 @@ export function actualOutlook(
 	const [yes, no] = [side(r.support), side(r.oppose)];
 	const share = (a: number, b: number) => (a + b > 0 ? a / (a + b) : null);
 	return {
-		withUs: share(yes + weight(us), no),
-		withoutUs: share(yes, no),
+		ifFor: share(yes + weight(us), no),
+		ifAbstain: share(yes, no),
+		ifAgainst: share(yes, no + weight(us)),
 		votes: members
 			.filter((n) => n !== us)
 			.map((name) => ({
@@ -112,5 +114,10 @@ export function outlook(w: AiWeight | null, members: Member[], ourWeight: number
 		votes.filter((v) => v.vote === vote).reduce((n, v) => n + v.weight, 0);
 	const [yes, no] = [sum('for'), sum('against')];
 	const share = (a: number, b: number) => (a + b > 0 ? a / (a + b) : null);
-	return { withUs: share(yes + ourWeight, no), withoutUs: share(yes, no), votes };
+	return {
+		ifFor: share(yes + ourWeight, no),
+		ifAbstain: share(yes, no),
+		ifAgainst: share(yes, no + ourWeight),
+		votes
+	};
 }

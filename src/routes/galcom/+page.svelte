@@ -247,23 +247,20 @@
 			value: (p) => STATUS_ORDER.indexOf(p.status),
 			cell: proposableStatus
 		},
-		{
-			id: 'withUs',
-			label: 'Success with us',
-			value: (p) => data.outlooks[p.key]?.withUs ?? null,
-			cell: withUs,
+		...(
+			[
+				['ifFor', 'We vote for', 'with our weight for it'],
+				['ifAbstain', 'We abstain', 'with our weight left out'],
+				['ifAgainst', 'We vote against', 'with our weight against it']
+			] as const
+		).map(([id, label, how]): Column<ProposableRow> => ({
+			id,
+			label,
+			value: (p) => data.outlooks[p.key]?.[id] ?? null,
+			cell: chance,
 			right: true,
-			title:
-				'the share of the decided weight for it with our weight for it — predicted from how each AI weighs it where we could propose it, from the votes cast where it is in the queue'
-		},
-		{
-			id: 'withoutUs',
-			label: 'without us',
-			value: (p) => data.outlooks[p.key]?.withoutUs ?? null,
-			cell: withoutUs,
-			right: true,
-			title: 'the same with our weight left out: we abstain'
-		},
+			title: `chance to pass: the share of the decided weight for it ${how} — predicted from how each AI weighs it where we could propose it, from the votes cast where it is in the queue`
+		})),
 		{
 			id: 'cost',
 			label: 'Cost',
@@ -531,13 +528,10 @@
 	</section>
 {/if}
 
-{#snippet withUs(p: ProposableRow)}<span
-		class={tone(data.outlooks[p.key]?.withUs)}
-		title={voters(p.key)}>{percent(data.outlooks[p.key]?.withUs)}</span
-	>{/snippet}
-{#snippet withoutUs(p: ProposableRow)}<span
-		class={tone(data.outlooks[p.key]?.withoutUs)}
-		title={voters(p.key)}>{percent(data.outlooks[p.key]?.withoutUs)}</span
+{#snippet chance(p: ProposableRow, id: string)}{@const v =
+		data.outlooks[p.key]?.[id as 'ifFor' | 'ifAbstain' | 'ifAgainst']}<span
+		class={tone(v)}
+		title={voters(p.key)}>{percent(v)}</span
 	>{/snippet}
 {#snippet categoryCell(p: ProposableRow)}<span
 		class="whitespace-nowrap"

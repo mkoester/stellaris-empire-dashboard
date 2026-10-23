@@ -58,7 +58,7 @@ describe('aiVote', () => {
 });
 
 describe('outlook', () => {
-	it('gives the share of the decided weight for it, with and without our vote', () => {
+	it('gives the share of the decided weight for it, as we vote for, abstain or against', () => {
 		const o = outlook(
 			BUZZWORD,
 			[
@@ -69,8 +69,9 @@ describe('outlook', () => {
 			200
 		)!;
 		expect(o.votes.map((v) => v.vote)).toEqual(['for', 'against', 'abstain']);
-		expect(o.withoutUs).toBeCloseTo(500 / 800);
-		expect(o.withUs).toBeCloseTo(700 / 1000);
+		expect(o.ifAbstain).toBeCloseTo(500 / 800);
+		expect(o.ifFor).toBeCloseTo(700 / 1000);
+		expect(o.ifAgainst).toBeCloseTo(500 / 1000);
 	});
 });
 
@@ -84,8 +85,9 @@ describe('actualOutlook', () => {
 			['us', 'A', 'B', 'C'],
 			'us'
 		);
-		expect(o.withoutUs).toBeCloseTo(500 / 800);
-		expect(o.withUs).toBeCloseTo(700 / 1000);
+		expect(o.ifAbstain).toBeCloseTo(500 / 800);
+		expect(o.ifFor).toBeCloseTo(700 / 1000);
+		expect(o.ifAgainst).toBeCloseTo(500 / 1000);
 		expect(o.votes.map((v) => [v.name, v.vote])).toEqual([
 			['A', 'for'],
 			['B', 'against'],
