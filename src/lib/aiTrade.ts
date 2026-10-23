@@ -23,7 +23,7 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 //   (OFFER_TRADE_MIN_RESOURCE_THRESHOLD);
 // - a nomadic empire never gives energy or minerals — they are its operational reserves, which
 //   "can be bought on the market, but not sold" (concept_operational_reserves_desc; for deals our
-//   extrapolation).
+//   extrapolation). It does take them in a deal (seen in game, 2026-10-23).
 
 /**
  * A unit's worth to the AI before its income, energy = 1 (docs/trade-calibration.md → Results:

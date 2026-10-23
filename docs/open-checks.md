@@ -39,10 +39,11 @@ Setup as in `AGENTS.md` → "Testing in a throwaway game".
 ### 6. Trade calibration — the rest
 
 The trade model is fitted to three empires' tooltips, one fallen (2026-10-23,
-`docs/trade-calibration.md` → Results). Open: what volatile motes, exotic gases, rare crystals and
-the other strategic resources are worth (monthly deals for them, with tooltips); whether a nomadic
-empire can put energy or minerals into a deal at all (rows 23–24); and the gifts (part 2: "Favorable
-Trade Deal" and the opinion, its decay over two months), plus one non-trading attitude.
+`docs/trade-calibration.md` → Results). Open: whether a nomadic empire can
+give energy or minerals in a deal (it takes them: seen 2026-10-23); the gifts (part 2: "Favorable
+Trade Deal" and the opinion, its decay), plus one non-trading attitude. What volatile motes, exotic
+gases, rare crystals and the other strategic resources are worth waits for the nomad test game
+(nomads have them from the start): monthly deals for each, with tooltips.
 
 - **Send:** the filled tables (or screenshots of each offer's acceptance and each opinion
   tooltip) and the session's save folder name. Note whether `resource alloys 20000` or
