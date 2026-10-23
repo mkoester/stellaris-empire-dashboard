@@ -68,6 +68,11 @@ All notable changes to this project are documented here. The format follows
   table shows what each pays a month, the total, against the market, and whether it can afford the
   payment — a deal it cannot afford breaks.
 
+- The trade tab knows an empire takes in at worth only what fits under 80 % of its storage: the
+  deal finder shows how much of what you give it takes, and gifts and pay-once deals count no more.
+- The contacts tab's Galactic Community shows when the current vote is decided, or when the next
+  one starts.
+
 - A download for macOS (13.5 or newer), for Apple silicon and Intel Macs, with its own Python.
 - Every folder the dashboard looks in, per system and store, listed in the zip's `README.txt`.
 

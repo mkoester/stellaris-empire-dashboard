@@ -444,7 +444,9 @@ upward over time (at the same income: minerals 0.048 → 0.056, food 0.067 → 0
 checks older lines at their date's level (`LEVEL`); a gift buys that worth at the AI's willingness in opinion (`giftOpinion()`, whatever
 its attitude — rivals and unfriendly ones took gifts; the "What a gift buys" table; "Favorable
 Trade Deal", max 100 — it did not fade in four months, whatever the files say; worth nothing into
-full storage); a resource not measured gets no estimate. It gives at once its
+full storage); a resource not measured gets no estimate. It takes in at worth only up to 0.8 of its storage
+(`room()`, `worthOf()`; the deal finder's "They take" column — the base max, storage modifiers
+are not in the save). It gives at once its
 stockpile above max(`ai_wants`, 500) (`spare()`, `TRADE_MIN_RESOURCE_STOCKPILE`) and a month at
 most 0.3 of its **gross** income (`TRADE_MAX_RESOURCE_PERCENT`, `monthlyCap()`; `AiIntel.income`,
 READER 12). Open: motes, gases, crystals and the other strategic resources (the nomad test game).
@@ -1177,14 +1179,16 @@ screen, trade calibration, stored research, releases).
   `damage`, which may not count. Check at the next war which fights the list keeps.
 - **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
   (`is_rival=yes`); no AI rivalled us yet (2205.06).
-- **Galactic Community, not yet understood**: `galactic_community.days` (541 while voting) and
-  `election` (180), and each voted resolution's `voting = { <country>=<date> }`. The game's screen
-  at the same date (screenshot 2026_10_19_3) shows "Senate is in session 899" and 255 by the
-  proposal queue — neither number is in the save. **Votes are weighed by diplomatic weight**
-  (855 for = 469 + 245 + 141), and no country's weight is stored: the tab counts empires. Passed resolutions: `galactic_community.passed = { <resolution
-ids> }` (2212.03: The Readied Shield, the game's "Active"), also `last` and `category_timers`;
-  the contacts tab lists them as in force. Resolution descriptions lose loc commands
-  ("members of the should …" — `[global_event_country.GetGalCommunityOrGalImperium]`), an
+- **Galactic Community: session timing, solved** (2214.01.01): `galactic_community.days` counts
+  the days a resolution has been on the floor, up to `RESOLUTION_VOTE_TIMER` (1440) — the game's
+  "Senate is in session 899" was 1440 − 541; after the vote `voting` and `days` go and `cooldown`
+  counts the recess down from `SENATE_RECESS_TIMER` (720). Resolution 9 (Regulatory
+  Facilitation): days 1411 on 2213.12.01, `pass_date` 2213.12.30, cooldown 719 on 2214.01.01;
+  `category_timers.<category>` = the pass date. `galacticCommunity()` gives `voteEnds` and
+  `nextVote` (READER 13), the contacts tab shows them. Still unknown: `election` (180), and
+  **votes are weighed by diplomatic weight**, which no country stores: the tab counts empires.
+  Passed resolutions: `galactic_community.passed = { <ids> }`; resolution descriptions lose loc
+  commands ("members of the should …" — `[global_event_country.GetGalCommunityOrGalImperium]`), an
   extraction loc-cleanup gap.
 - **The game's own timeline, unused**: `country.timeline_events = { { date definition data types
 } }` (`timeline_first_deficit`, `timeline_galactic_community_resolution`, `timeline_event_year`,

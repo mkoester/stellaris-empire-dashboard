@@ -18,7 +18,9 @@ monthly income of it), p and base fitted per resource (`WORTH`) — not `ai_weig
 defines' income base of 50, not its stockpile, consumption, species, civics, bio ships or market
 prices. Linear in the amount, however large; the tooltip rounds down. A unit a month counts
 0.5 × the months of one at once (`TRADE_VALUE_RESOURCE_MONTHLY_MULT`), for 10 years as for 30.
-Into full storage a resource is worth nothing (fallen empires, minerals at 135,000). Measured:
+An AI takes in at worth only up to **0.8 of its storage** (`room()`, 0.8 × max − its stockpile);
+more counts nothing — so into full storage a resource is worth nothing (fallen empires, minerals
+at 135,000). Our own stockpile does not count. Measured:
 energy, minerals, food, trade, consumer goods, alloys, living metal; strategic resources wait for
 the nomad test game.
 
@@ -33,9 +35,9 @@ gifts, rivals and unfriendly empires too: the way to mend one that refuses trade
 the modifier decays 2 a month; it did not fade at all in four months (2212.09–2213.01). The AI
 accepts days to weeks after the offer.
 
-**Drift.** At unchanged income, minerals and food were worth 6–9 % more every half year (food
-0.067 → 0.078 → 0.082 a unit at KhellZen, 2212.08 → 2213.02 → 2213.08), energy rose 10 % and
-then held, the advanced resources never moved. Cause unknown (ruled out below); the model holds
+**Drift.** At unchanged income, minerals and food were worth 6–9 % more in each of the first two
+half years, then held (2213.08–2214.01: no step, ~1 % down at most) (food 0.067 → 0.078 → 0.082 a unit at KhellZen, 2212.08 → 2213.02 → 2213.08), energy rose 10 %
+and then held, the advanced resources never moved. Cause unknown (ruled out below); the model holds
 the latest level (2213.08), the test checks older lines at their date's level (`LEVEL`).
 
 **What else counts, from the files** (none of it showed in a trade tooltip; 13 empires from
@@ -420,13 +422,14 @@ date's level (`LEVEL` in `aiTrade.test.ts`).
 
 ### 2026-10-23: the monthly series (KhellZen and Lolehndra, all at once, nothing sent)
 
-| Date    | KhellZen: energy, minerals, food, trade, CG, alloys, living metal | Lolehndra: the same               |
-| ------- | ----------------------------------------------------------------- | --------------------------------- |
-| 2213.08 | 42, 53, 78, 43, 86, 122, 43 (145)                                 | 42, 47, 70, 59, 74, 102, 36 (145) |
-| 2213.09 | 42, 53, 77, 43, 86, 122, 45 (151)                                 | 42, 47, 69, 59, 74, 102, 37 (151) |
-| 2213.10 | 42, 52, 77, 43, 86, 122, 47 (158)                                 | 42, 47, 69, 59, 74, 102, 39 (158) |
-| 2213.11 | 42, 52, 77, 44, 85, 120, 48 (164)                                 | 42, 46, 69, 60, 74, 102, 41 (164) |
-| 2213.12 | 42, 52, 77, 44, 85, 120, 50 (170)                                 | 42, 46, 68, 61, 74, 102, 42 (170) |
+| Date    | KhellZen: energy, minerals, food, trade, CG, alloys, living metal | Lolehndra: the same                              |
+| ------- | ----------------------------------------------------------------- | ------------------------------------------------ |
+| 2213.08 | 42, 53, 78, 43, 86, 122, 43 (145)                                 | 42, 47, 70, 59, 74, 102, 36 (145)                |
+| 2213.09 | 42, 53, 77, 43, 86, 122, 45 (151)                                 | 42, 47, 69, 59, 74, 102, 37 (151)                |
+| 2213.10 | 42, 52, 77, 43, 86, 122, 47 (158)                                 | 42, 47, 69, 59, 74, 102, 39 (158)                |
+| 2213.11 | 42, 52, 77, 44, 85, 120, 48 (164)                                 | 42, 46, 69, 60, 74, 102, 41 (164)                |
+| 2213.12 | 42, 52, 77, 44, 85, 120, 50 (170)                                 | 42, 46, 68, 61, 74, 102, 42 (170)                |
+| 2214.01 | 10,000 each: 273, 522, 78, 444, 714, 1202, 2980                   | 10,000 each: 422, 465, 683, 617, 746, 1021, 2509 |
 
 Incomes unchanged within 0.2; every value within 2.6 % of the model. **No drift in these two
 months** — food 78 → 77 and KhellZen's minerals 53 → 52 are the tooltip rounding down (the model
@@ -437,7 +440,16 @@ or the first step down. 2213.12: Lolehndra's food 69 → 68 at the same income, 
 with its trade income (31.4 → 25.9). Since 2213.08 the basic resources have only lost points
 (minerals 53 → 52 and 47 → 46, food 78 → 77 and 70 → 68): 1–3 % in four months, at the
 tooltip's resolution (a point ≈ 2 %). **Offer 10,000 minerals and food** for ten times the
-resolution. With 6–9 % over each earlier half year, the drift comes in
+resolution.
+
+2214.01 (10,000 of each, a month after we filled our own storage by console): **our stockpile
+changed nothing** — Lolehndra's values, all linear, are the 2213.12 ones ×10 within 1 %. KhellZen's
+energy, food and consumer goods came out far under ×10: an AI **takes in at worth only up to 0.8 of
+its storage** — energy 0.8 × 25,000 − 13,621 = 6,379 units (worth 275, tooltip 273), food 1,026
+(80, 78), consumer goods 8,377 (720, 714); every other line linear. At ten times the resolution
+the basic resources sit ~1.2 % under the 2213.08 level (KhellZen minerals 52.2 per 1000, model
+52.9; Lolehndra minerals 46.5 / 47.0, food 68.3 / 69.2): no step since 2213.08, at most a slow
+fall. With 6–9 % over each earlier half year, the drift comes in
 steps rather than smoothly — the months it steps, compared save to save, should show its cause.
 
 ### What does not explain food (and the minerals drift), 2026-10-23
