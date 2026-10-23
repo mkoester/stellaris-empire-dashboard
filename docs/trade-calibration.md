@@ -323,6 +323,33 @@ energy and minerals a valuation of their own (`TRADE_VALUE_RESOURCE = 2`, "for m
 test scales every 2212.08 line by that date's level (`AT_2212_08`). The fallen Syvaal's energy
 drifted the same; its minerals not, its food 6 %.
 
+### 2026-10-23: a year and a half on (`autosave_2213.08.01`)
+
+KhellZen and Lolehndra again, all at once, nothing sent ("Our Offer Total", 1000 each, living
+metal 145):
+
+| Resource       | KhellZen | Lolehndra | Model (2213.02 curves) |
+| -------------- | -------- | --------- | ---------------------- |
+| energy         | 42       | 42        | +2 % / 0 %             |
+| minerals       | 53       | 47        | −8 % / −8 %            |
+| food           | 78       | 70        | −5 % / −6 %            |
+| trade          | 43       | 59        | +1 % / +2 %            |
+| consumer goods | 86       | 74        | +2 % / +2 %            |
+| alloys         | 122      | 102       | +1 % / +1 %            |
+| living metal   | 43       | 36        | +1 % / +1 %            |
+
+Incomes as in 2213.02 within a few units. Unit worth at once over time, same empires:
+
+|                           | 2212.08         | 2213.01–02      | 2213.08         |
+| ------------------------- | --------------- | --------------- | --------------- |
+| KhellZen minerals / food  | 0.0483 / 0.0667 | 0.0526 / 0.0779 | 0.0558 / 0.0821 |
+| Lolehndra minerals / food | 0.0505 / 0.0697 | 0.0550 / 0.0825 | 0.0588 / 0.0875 |
+| energy (tooltip, both)    | 39 / 38         | 43 / 42         | 42 / 42         |
+
+Minerals and food keep rising (~6–8 % a half year); energy has stopped; the rest never moved. The
+model now holds 2213.08 (minerals p 0.0795, food 0.1574); the test checks every older line at its
+date's level (`LEVEL` in `aiTrade.test.ts`).
+
 ### What does not explain food (and the minerals drift), 2026-10-23
 
 - **Consumption:** Dekron (machine, no food income or upkeep at all) values food highest

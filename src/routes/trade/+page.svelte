@@ -490,7 +490,7 @@
 				title="Who would trade what (estimated)"
 				note="For what we give, what each empire would give at most per unit, against selling ours and buying theirs on the {marketName} market ({Math.round(
 					fee * 100
-				)} % fee). Estimated: the game decides in its engine; the model is fitted to the game's own tooltips at three empires (one fallen) and to gifts at 13 more (a unit's worth by resource, less the more the empire earns of it; its personality's willingness) — within 3 % at one date; energy, minerals and food drift over the years (10–17 % within half a year, an engine 'need' the save does not show); other resources are not measured, an empire shows – for them (docs/trade-calibration.md{data
+				)} % fee). Estimated: the game decides in its engine; the model is fitted to the game's own tooltips at three empires (one fallen) and to gifts at 13 more (a unit's worth by resource, less the more the empire earns of it; its personality's willingness) — within 3 % at one date; minerals and food drift upward over the years (6–8 % a half year so far, an engine 'need' the save does not show), energy did for a while; other resources are not measured, an empire shows – for them (docs/trade-calibration.md{data
 					.model.calibrated
 					? ''
 					: ', not done yet'}. Monthly for monthly: the same rate; they pay at most {Math.round(

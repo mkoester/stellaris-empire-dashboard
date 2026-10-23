@@ -15,15 +15,15 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 //   (energy 181.9 a month → 54);
 // - a unit at once is worth P × B / (B + its gross income of it per month), short of it or flush,
 //   P and B per resource (`WORTH`), in the tooltip's own unit — not ai_weight, not the defines'
-//   income base (50, on net income). Every tooltip line within 3 %: energy from 16 empires (base 280), minerals
-//   from 16 (240; deals of 2212.08 came out 7 % under the gifts of 2213.01 at the same empires —
-//   unexplained), trade, consumer goods, alloys and living metal from 6 (fitted on 3, they predicted
-//   the next three empires within 2.4 %), food from 13 at one date (2213.02, 2 % rms; bio ships
-//   make no difference). The basic resources drift over time, the rest do not: at the same income,
-//   KhellZen and Lolehndra valued energy 10 %, minerals 9 % and food 17 % lower in 2212.08 than in
-//   2213.01–02, alloys the same (124 → 122). The defines give energy and minerals a value of their
-//   own, "scaled by income & need" (TRADE_VALUE_RESOURCE) — the need is engine state. The curves
-//   hold the 2213 level; expect basic resources to move by ±10–20 % over the years.
+//   income base (50, on net income). Every tooltip line within 3 %: energy from 16 empires (base
+//   280), minerals from 16 (240), trade, consumer goods, alloys and living metal from 6 (fitted on
+//   3, they predicted the next three empires within 2.4 %), food from 13 at one date (2213.02, 2 %
+//   rms; bio ships make no difference). Minerals and food drift over time, the rest do not: at the
+//   same income KhellZen and Lolehndra valued minerals 0.048 → 0.053 → 0.056 and food 0.067 →
+//   0.078 → 0.082 (2212.08, 2213.01–02, 2213.08); energy rose 10 % by 2213.02, then held; trade,
+//   consumer goods, alloys and living metal held throughout. The defines give energy and minerals
+//   a value of their own, "scaled by income & need" (TRADE_VALUE_RESOURCE) — the need is engine
+//   state. The curves hold the latest level (2213.08); expect minerals and food to keep moving.
 //   A resource not measured is not valued (null): no estimate for it;
 // - a gift raises its opinion of us by its worth as the acceptance shows it (`giftOpinion()`):
 //   "Favorable Trade Deal" (accumulates to 100) came out the tooltip or one less, at 13 empires
@@ -44,8 +44,8 @@ import type { AiIntel, GameData, Resources } from './types.ts';
  */
 export const WORTH: Record<string, { p: number; base: number }> = {
 	energy: { p: 0.0747, base: 280 },
-	minerals: { p: 0.0733, base: 240 },
-	food: { p: 0.1485, base: 130 }, // 13 empires at one date (2213.02): 2 % rms
+	minerals: { p: 0.0795, base: 240 },
+	food: { p: 0.1574, base: 130 }, // 13 empires at one date (2213.02): 2 % rms
 	trade: { p: 0.0884, base: 185 },
 	consumer_goods: { p: 0.1253, base: 195 },
 	alloys: { p: 0.1468, base: 165 },

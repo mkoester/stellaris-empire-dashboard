@@ -146,14 +146,16 @@ describe('the game’s numbers (2212.08.01)', () => {
 	});
 });
 
-// Basic resources drift: at the same income, energy, minerals and food were worth less in 2212.08
-// than in 2213 (KhellZen and Lolehndra: energy 39 → 43 and 38 → 42, food −17 %), alloys, consumer
-// goods and trade not (KhellZen's alloys 124 → 122). The model holds 2213; this is 2212.08's level.
-const AT_2212_08: Record<string, number> = {
-	energy: 1 / 1.105,
-	minerals: 1 / 1.075,
-	food: 1 / 1.17
+// Basic resources drift: at the same income KhellZen and Lolehndra valued minerals and food higher
+// every half year, energy only until 2213.02; trade, consumer goods, alloys and living metal held.
+// The model holds 2213.08; this is each earlier date's level against it.
+type Dated = '2212.08' | '2213.01' | '2213.02';
+const LEVEL: Record<Dated, Record<string, number>> = {
+	'2212.08': { energy: 1 / 1.105, minerals: 1 / (1.075 * 1.085), food: 1 / (1.17 * 1.06) },
+	'2213.01': { minerals: 1 / 1.085 },
+	'2213.02': { minerals: 1 / 1.085, food: 1 / 1.06 }
 };
+const level = (date: Dated, r: string) => LEVEL[date][r] ?? 1;
 
 // Every tooltip line of the calibration (docs/trade-calibration.md → Results): what one unit at once
 // is worth to the empire, in the tooltip's unit — a month's unit over 10 years counts 60 (0.5 × 120),
@@ -285,15 +287,25 @@ describe('a unit’s worth against the game’s tooltips', () => {
 		['Dekron', 'alloys', 1000, false, 'we', 110],
 		['Dekron', 'sr_living_metal', 108, false, 'we', 30]
 	];
-	// the fit: every line within 3 %, the basic resources at their 2212.08 level (KhellZen,
-	// Lolehndra and Syvaal were measured then); minerals 8 % and food 10 %, whose drift is less even
+	// the fit: every line within 3 %, the basic resources at their date's level (KhellZen,
+	// Lolehndra and Syvaal were measured in 2212.08, the rest in 2213.02); minerals 8 % and food 10 %,
+	// whose drift is less even
 	it.each(lines)('%s: %s %d (a month: %s) from %s → %d', (who, r, amount, monthly, giver, tip) => {
 		const e = empires[who];
 		const seen = tip / amount / (monthly ? 60 : 1) / (giver === 'we' ? e.willingness : 1);
-		// the fallen Syvaal's energy drifted like the rest, its minerals not, its food 6 %
-		const fallen = who === 'Syvaal' && r !== 'energy';
-		const then =
-			['KhellZen', 'Lolehndra', 'Syvaal'].includes(who) && !fallen ? (AT_2212_08[r] ?? 1) : 1;
+		// the fallen Syvaal's energy drifted like the rest; its minerals stood at 2213.01's level
+		// already, its food near 2213.02's
+		const date: Dated =
+			who === 'Syvaal'
+				? r === 'energy'
+					? '2212.08'
+					: r === 'minerals'
+						? '2213.01'
+						: '2213.02'
+				: ['KhellZen', 'Lolehndra'].includes(who)
+					? '2212.08'
+					: '2213.02';
+		const then = level(date, r);
 		const model = aiValue(r, ai({ income: e.income }), game, m)! * then;
 		const tolerance = r === 'food' ? 0.1 : r === 'minerals' ? 0.08 : 0.03;
 		expect(Math.abs(model / seen - 1)).toBeLessThan(tolerance);
@@ -333,8 +345,8 @@ describe('a unit’s worth against the game’s tooltips', () => {
 	it.each(gifts)('%s: 1000 %s (gross income %d)', (_, r, income, willingness, tip, opinion) => {
 		const a = ai({ income: { [r]: income } });
 		const t = { willingness, trades: true };
-		// the energy gifts were proposed at 2212.08's level
-		const then = r === 'energy' ? AT_2212_08.energy : 1;
+		// energy gifts proposed in 2212.08, minerals in 2213.01
+		const then = level(r === 'energy' ? '2212.08' : '2213.01', r);
 		const got = Math.floor(1000 * aiValue(r, a, game, m)! * t.willingness * then);
 		// within a point, or 4 %
 		expect(Math.abs(got - tip)).toBeLessThanOrEqual(Math.max(1, 0.04 * tip));
@@ -384,8 +396,60 @@ describe('food at one date', () => {
 		['Dekron', 0, 0.9, 129]
 	];
 	it.each(food)('%s (gross %d)', (_, income, willingness, tip) => {
-		const v = aiValue('food', ai({ income: { food: income } }), game, m)!;
+		const v =
+			aiValue('food', ai({ income: { food: income } }), game, m)! * level('2213.02', 'food');
 		expect(Math.abs((1000 * v * willingness) / tip - 1)).toBeLessThan(0.05);
+	});
+});
+
+// A year and a half on (2213.08.01, nothing sent): KhellZen and Lolehndra again, 1000 of every
+// resource and 145 living metal at once — the model's own level
+describe('a year and a half on', () => {
+	const game = Object.fromEntries(
+		Object.keys(WORTH).map((r) => [
+			r,
+			{ name: r, aiWeight: 1, aiWants: 500, max: 15000, tradable: true }
+		])
+	);
+	const income = {
+		KhellZen: {
+			energy: 182.42,
+			minerals: 102.21,
+			food: 118.06,
+			trade: 174.52,
+			consumer_goods: 69.56,
+			alloys: 21.37
+		},
+		Lolehndra: {
+			energy: 119.19,
+			minerals: 84.25,
+			food: 104.79,
+			trade: 31.63,
+			consumer_goods: 64.3,
+			alloys: 22.34
+		}
+	};
+	const willingness = { KhellZen: 0.95, Lolehndra: 0.8 };
+	const tips: [keyof typeof income, string, number][] = [
+		['KhellZen', 'energy', 42],
+		['KhellZen', 'minerals', 53],
+		['KhellZen', 'food', 78],
+		['KhellZen', 'trade', 43],
+		['KhellZen', 'consumer_goods', 86],
+		['KhellZen', 'alloys', 122],
+		['KhellZen', 'sr_living_metal', 43],
+		['Lolehndra', 'energy', 42],
+		['Lolehndra', 'minerals', 47],
+		['Lolehndra', 'food', 70],
+		['Lolehndra', 'trade', 59],
+		['Lolehndra', 'consumer_goods', 74],
+		['Lolehndra', 'alloys', 102],
+		['Lolehndra', 'sr_living_metal', 36]
+	];
+	it.each(tips)('%s: %s → %d', (who, r, tip) => {
+		const amount = r === 'sr_living_metal' ? 145 : 1000;
+		const v = aiValue(r, ai({ income: income[who] }), game, m)!;
+		expect(Math.abs((amount * v * willingness[who]) / tip - 1)).toBeLessThan(0.03);
 	});
 });
 
