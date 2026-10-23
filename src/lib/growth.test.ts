@@ -36,12 +36,13 @@ describe('growthRows', () => {
 });
 
 describe('planetCapacity', () => {
-	it("matches the game's Colony Capacity (Planetforgers 2212.03.05–06.01)", () => {
+	it("matches the game's Colony Capacity (Planetforgers 2212.03.05–2213.08.01)", () => {
 		// [housing, free slots (max − built − queued), the game's capacity]
 		const readings: [number, number, number][] = [
 			[9800, 24 - 17, 12600], // Embron 03.05
 			[9800, 24 - 18, 12200], // Embron 04.01: a city district queued
 			[9800, 25 - 18, 12600], // Embron 06.01: + Adaptive Ecology
+			[10400, 25 - 18, 13200], // Embron 2213.08.01: the city district built, +600 housing
 			[2900, 13 - 5, 6100], // Caugantu Prime 03.05 (80 %) and 05.01 (90 %)
 			[2900, 14 - 5, 6500] // Caugantu Prime 06.01
 		];

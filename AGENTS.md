@@ -1134,8 +1134,9 @@ screen, trade calibration, stored research, releases).
   `2026_10_22_4`, `22`–`24`; not in the save). **Capacity = housing + 400 × free district slots**
   on normal planets (volcanic, arid), free = the game's max districts − built − **queued**
   districts — a district queued even far back takes its 400 at once, long before its housing
-  arrives (`growthFlags` warns). Five readings matched exactly (Embron 12600 / 12200 queued /
-  12600 with one more slot, Caugantu Prime 6100 / 6500). Species habitability (Caugantu 80 → 90 %)
+  arrives (`growthFlags` warns). Six readings matched exactly (Embron 12600 / 12200 queued /
+  12600 with one more slot / 13200 once that district was built — its slot already counted, +600
+  housing — Caugantu Prime 6100 / 6500). Species habitability (Caugantu 80 → 90 %)
   and housing usage (Adaptability −10 %) do not enter; a queued building does not. The max
   districts come from the game's tooltip: Embron 25 = 20 size + 3 `civic_world_forgers`
   (`pc_volcanic_max_districts_add`) + 1 Expansion finished + 1 Adaptive Ecology — `districtCaps`
