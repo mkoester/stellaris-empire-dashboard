@@ -32,6 +32,38 @@ N = 1…5 — 14.2 energy a unit whatever N. Not yet seen in game; a deal's modi
 - **Send:** a screenshot of the options and their tooltips. If you take a deal, the date — the
   next autosave should show it on the trade tab.
 
+### 11. Predicted votes — galcom tab, Proposable (from 2026-10-23)
+
+Each AI's vote is predicted from the resolution's `ai_weight` × its opinion of us (0.5 at −750,
+1.3 at 750, **linear between — assumed**). Checked only on Buzzword Standardization (base 7: the
+three members with negative opinion missing from the game's list, exactly). The other proposable
+ones carry `?` (conditions the save cannot answer for other empires).
+
+- **Do:** on the Resolutions screen, hover "… Support" of each resolution the tab lists as
+  proposable now (Charter of Worker's Rights, Equal Standing Act, Exploitation Act, the two Storm
+  ones, Form Galactic Council).
+- **Send:** each "Empires likely to support this Resolution" tooltip — compared with the tab's
+  "for" list, it tests the opinion curve away from neutral and the unknown conditions.
+
+### 12. Diplomatic weight with envoys or a council seat — galcom tab
+
+Our weight's breakdown matched the game's tooltip at 2214.02.01 (no envoy in the Community, no
+council). Envoys (`diplo_weight_delegate_mult`, +10 % each, Gravitas +2.5 %) and a council seat
+(`diplo_weight_council_mult` +20 %, and × 1.5 when voting — `COUNCIL_DIPLOMACY_WEIGHT_MODIFIER`)
+are listed, not summed.
+
+- **Do:** once an envoy is assigned to the Galactic Community (or the council forms with us on
+  it), hover our weight next to "Proposal Queue".
+- **Send:** the tooltip; then the tab's "not explained" line shows how far off it is.
+
+### 13. What intel shows of others — diplomacy tab
+
+The tab follows the game's intel levels from the files (pacts and opinions from intel 50) and
+treats subjects and wars between others as public — an assumption.
+
+- **Do:** open the diplomacy view of one empire we have intel < 50 on and one ≥ 50.
+- **Send:** both screenshots — which pacts, rivals, subjects and wars the game shows of them.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
