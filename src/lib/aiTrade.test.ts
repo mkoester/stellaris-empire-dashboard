@@ -145,6 +145,15 @@ describe('the game’s numbers (2212.08.01)', () => {
 	});
 });
 
+// Basic resources drift: at the same income, energy, minerals and food were worth less in 2212.08
+// than in 2213 (KhellZen and Lolehndra: energy 39 → 43 and 38 → 42, food −17 %), alloys, consumer
+// goods and trade not (KhellZen's alloys 124 → 122). The model holds 2213; this is 2212.08's level.
+const AT_2212_08: Record<string, number> = {
+	energy: 1 / 1.105,
+	minerals: 1 / 1.075,
+	food: 1 / 1.17
+};
+
 // Every tooltip line of the calibration (docs/trade-calibration.md → Results): what one unit at once
 // is worth to the empire, in the tooltip's unit — a month's unit over 10 years counts 60 (0.5 × 120),
 // and what it gets counts at its willingness. Lines under 15 are left out (rounding: ±3 % and more).
@@ -275,19 +284,17 @@ describe('a unit’s worth against the game’s tooltips', () => {
 		['Dekron', 'alloys', 1000, false, 'we', 110],
 		['Dekron', 'sr_living_metal', 108, false, 'we', 30]
 	];
-	// the fit: every line within 3 %, but the basic resources, which drift over time: 2212.08's
-	// regular empires sit under 2213's curve, food 17 % (asserted), minerals 7 %; the fallen one's
-	// food 6 %
+	// the fit: every line within 3 %, the basic resources at their 2212.08 level (KhellZen,
+	// Lolehndra and Syvaal were measured then); minerals 8 % and food 10 %, whose drift is less even
 	it.each(lines)('%s: %s %d (a month: %s) from %s → %d', (who, r, amount, monthly, giver, tip) => {
 		const e = empires[who];
 		const seen = tip / amount / (monthly ? 60 : 1) / (giver === 'we' ? e.willingness : 1);
-		const model = aiValue(r, ai({ income: e.income }), game, m)!;
-		if (r === 'food' && (who === 'KhellZen' || who === 'Lolehndra')) {
-			expect(model / seen).toBeGreaterThan(1.13);
-			expect(model / seen).toBeLessThan(1.22);
-			return;
-		}
-		const tolerance = r === 'food' || (r === 'minerals' && who !== 'Syvaal') ? 0.08 : 0.03;
+		// the fallen Syvaal's energy drifted like the rest, its minerals not, its food 6 %
+		const fallen = who === 'Syvaal' && r !== 'energy';
+		const then =
+			['KhellZen', 'Lolehndra', 'Syvaal'].includes(who) && !fallen ? (AT_2212_08[r] ?? 1) : 1;
+		const model = aiValue(r, ai({ income: e.income }), game, m)! * then;
+		const tolerance = r === 'food' ? 0.1 : r === 'minerals' ? 0.08 : 0.03;
 		expect(Math.abs(model / seen - 1)).toBeLessThan(tolerance);
 	});
 	// 1000 of a resource given to each empire: its gross income of it, willingness, the
@@ -325,11 +332,34 @@ describe('a unit’s worth against the game’s tooltips', () => {
 	it.each(gifts)('%s: 1000 %s (gross income %d)', (_, r, income, willingness, tip, opinion) => {
 		const a = ai({ income: { [r]: income } });
 		const t = { willingness, trades: true };
-		const got = giftOpinion(r, 1000, a, t, game, m, { max: null, current: 0 })!;
+		// the energy gifts were proposed at 2212.08's level
+		const then = r === 'energy' ? AT_2212_08.energy : 1;
+		const got = Math.floor(1000 * aiValue(r, a, game, m)! * t.willingness * then);
 		// within a point, or 4 %
 		expect(Math.abs(got - tip)).toBeLessThanOrEqual(Math.max(1, 0.04 * tip));
 		if (opinion !== null)
 			expect(Math.abs(got - opinion)).toBeLessThanOrEqual(Math.max(1, 0.04 * tip));
+	});
+});
+
+// The drift's check (2213.02.01, nothing sent): 1000 energy and 1000 alloys at the empires measured
+// in 2212.08 — energy up 10 %, alloys unchanged; both now on the model's curve
+describe('half a year on', () => {
+	const game = Object.fromEntries(
+		['energy', 'alloys'].map((r) => [
+			r,
+			{ name: r, aiWeight: 1, aiWants: 500, max: 15000, tradable: true }
+		])
+	);
+	const now: [string, string, number, number, number][] = [
+		['KhellZen', 'energy', 182.71, 0.95, 43],
+		['KhellZen', 'alloys', 21.37, 0.95, 122],
+		['Lolehndra', 'energy', 119.52, 0.8, 42],
+		['Lolehndra', 'alloys', 22.34, 0.8, 103]
+	];
+	it.each(now)('%s: 1000 %s (gross %d)', (_, r, income, willingness, tip) => {
+		const v = aiValue(r, ai({ income: { [r]: income } }), game, m)!;
+		expect(Math.abs((1000 * v * willingness) / tip - 1)).toBeLessThan(0.02);
 	});
 });
 
@@ -383,7 +413,9 @@ describe('rate', () => {
 		const worth = 1000 * WORTH.energy.p; // no income: 67.6
 		expect(giftOpinion('energy', 1000, ai({}), t, info, m, cap)).toBe(Math.floor(worth));
 		expect(giftOpinion('energy', 1000, ai({}), t, info, m, { max: 100, current: 80 })).toBe(20);
-		expect(giftOpinion('energy', 1000, ai({}), t, info, m, { max: null, current: 0 })).toBe(67);
+		expect(giftOpinion('energy', 1000, ai({}), t, info, m, { max: null, current: 0 })).toBe(
+			Math.floor(worth)
+		);
 		expect(giftOpinion('unity', 1000, ai({}), t, info, m, cap)).toBeNull();
 		// an attitude that refuses trades still takes gifts
 		const rival = terms(ai({ attitude: 'rival' }), personalities, attitudes);

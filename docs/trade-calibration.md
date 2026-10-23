@@ -306,6 +306,23 @@ The earlier ±12 % was the **drift**: at the same income KhellZen (117.9 → 118
 (105.0 → 104.8) valued food 17 % lower in 2212.08 than now; the fallen Syvaal's 2212.08 food sits
 6 % under. Food now uses the 2213 curve (p 0.1485, base 130); the test asserts the 2212.08 offset.
 
+### 2026-10-23: the drift, checked (`2213.02.01_trade_deal_checks.sav`)
+
+1000 energy and 1000 alloys at the empires measured in 2212.08, nothing sent:
+
+| Empire    | Energy 2212.08 → now (gross) | Alloys 2212.08 → now (gross) |
+| --------- | ---------------------------- | ---------------------------- |
+| KhellZen  | 39 → **43** (181.9 → 182.7)  | 124 → 122 (21.37 → 21.37)    |
+| Lolehndra | 38 → **42** (118.2 → 119.5)  | — → 103 (model: 103.4)       |
+
+Energy rose 10 % at both at the same income; alloys did not move. So the drift hits the **basic
+resources** — energy +10 %, minerals +9 %, food +17 % — and not the advanced ones. The defines give
+energy and minerals a valuation of their own (`TRADE_VALUE_RESOURCE = 2`, "for minerals and energy
+(scaled by income & need)"); the "need" is engine state, not in the save. Energy is refitted to the
+2213 level (p 0.0747 — now level with minerals' 0.0733, as the defines' shared value suggests); the
+test scales every 2212.08 line by that date's level (`AT_2212_08`). The fallen Syvaal's energy
+drifted the same; its minerals not, its food 6 %.
+
 ### What does not explain food (and the minerals drift), 2026-10-23
 
 - **Consumption:** Dekron (machine, no food income or upkeep at all) values food highest
@@ -330,7 +347,7 @@ tooltip's unit, with the empire's gross income of it a month:
 
 | Resource       | KhellZen     | Lolehndra    | Syvaal         | p      | base |
 | -------------- | ------------ | ------------ | -------------- | ------ | ---- |
-| energy         | 0.0412 (182) | 0.0483 (118) | 0.0039 (4,571) | 0.0676 | 280  |
+| energy         | 0.0412 (182) | 0.0483 (118) | 0.0039 (4,571) | 0.0747 | 280  |
 | minerals       | 0.0483 (100) | 0.0505 (84)  | 0.0061 (2,679) | 0.0733 | 240  |
 | food           | 0.0667 (118) | 0.0697 (105) | 0.0056 (3,113) | 0.1485 | 130  |
 | trade          | 0.046 (173)  | 0.074 (37)   | 0.0127 (1,101) | 0.0884 | 185  |

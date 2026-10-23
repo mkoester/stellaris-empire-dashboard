@@ -43,10 +43,9 @@ The trade model is fitted to three empires' tooltips (one fallen) and gifts of e
 
 - the gift's decay: none in four months (the files say −2 a month) — does it start later, or only
   below some value? Watch the autosaves;
-- the drift of basic resources (food 17 %, minerals 9 % between 2212.08 and 2213 at the same
-  income): 1000 energy and 1000 alloys at KhellZen and Lolehndra now (2212.08 had energy 39 / 38,
-  alloys 124 at KhellZen) — does energy drift, do alloys stay? Then 1000 food at a few empires
-  again some years later: does it keep rising?;
+- the drift of basic resources (energy 10 %, minerals 9 %, food 17 % up between 2212.08 and
+  2213; alloys steady): 1000 energy and 1000 food at KhellZen and Lolehndra again some years
+  later — does it keep rising, with the year, or with something in their state?;
 - volatile motes, exotic gases, rare crystals and the other strategic resources: monthly deals
   with tooltips, in the nomad test game (nomads have them from the start);
 - one offer to an empire whose attitude does not trade.
