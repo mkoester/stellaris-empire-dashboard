@@ -66,7 +66,7 @@
 			.map((r, i) => ({ ...r, status: 'proposed' as const, place: i + 1 }))
 	]);
 	const weightOf = (name: string) => data.galcom?.weights[name] ?? null;
-	// where we voted: faint green while our side outweighs the other, faint red while it does not
+	// where we voted: our cell faint green while our side outweighs the other, faint red while not
 	const standingClass = (r: ResolutionVote) => {
 		const s = voteStanding(r.ours, sideWeight(r.support), sideWeight(r.oppose));
 		return s === 'ahead'
@@ -104,22 +104,12 @@
 			value: (r) => data.diploNames[r.type] ?? r.type,
 			cell: resolutionCell
 		},
-		{ id: 'by', label: 'By', value: (r) => r.proposer, cell: proposerCell },
 		{
-			id: 'proposed',
-			label: 'Proposed',
-			value: (r) => proposedOf(r)?.by ?? null,
-			cell: proposed,
-			title:
-				'the game stores no date: between the last save without it and the first with it — or by that first save, when the history begins with it'
-		},
-		{ id: 'for', label: 'For', value: (r) => r.support.length, right: true, title: 'empires for' },
-		{
-			id: 'against',
-			label: 'Against',
-			value: (r) => r.oppose.length,
-			right: true,
-			title: 'empires against'
+			id: 'passes',
+			label: 'Would pass',
+			value: (r) => sideWeight(r.support) - sideWeight(r.oppose),
+			cell: passes,
+			title: 'if it were decided now: the weight for against the weight against'
 		},
 		{
 			id: 'forWeight',
@@ -137,7 +127,30 @@
 			right: true,
 			title: 'the diplomatic weight of the empires against'
 		},
-		{ id: 'we', label: 'We', value: (r) => r.ours }
+		{
+			id: 'we',
+			label: 'We',
+			value: (r) => r.ours,
+			cell: we,
+			title: 'green while our side has more weight, red while it does not'
+		},
+		{ id: 'for', label: 'For', value: (r) => r.support.length, right: true, title: 'empires for' },
+		{
+			id: 'against',
+			label: 'Against',
+			value: (r) => r.oppose.length,
+			right: true,
+			title: 'empires against'
+		},
+		{ id: 'by', label: 'By', value: (r) => r.proposer, cell: proposerCell },
+		{
+			id: 'proposed',
+			label: 'Proposed',
+			value: (r) => proposedOf(r)?.by ?? null,
+			cell: proposed,
+			title:
+				'the game stores no date: between the last save without it and the first with it — or by that first save, when the history begins with it'
+		}
 	];
 	// what we could propose (#lib/proposable.ts), per viewer: all or only what is open now
 	let onlyNow = $state(false);
@@ -273,7 +286,7 @@
 			queue by the weight for (#). {anyEstimated
 				? '≈ estimated from naval, economic and technological power where companion mod 0.4.0 has not stored the game’s value yet — between 20 % too low and 2.6 × too high (checked against the game’s screen at 2214.01.01).'
 				: 'The game’s values, stored by companion mod 0.4.0.'}
-			Where we voted, the row is green while our side has more weight, red while it does not. Click a
+			Where we voted, our cell is green while our side has more weight, red while it does not. Click a
 			resolution for who is for and against.
 		</p>
 		{#if proposals.length}
@@ -282,7 +295,6 @@
 				columns={proposalColumns}
 				key={(r) => r.id}
 				sort={{ column: '', desc: false }}
-				rowClass={standingClass}
 			/>
 		{:else}<p class="text-gray-500">Nothing proposed.</p>{/if}
 		{#if galcomHistory.length}
@@ -390,6 +402,12 @@
 		: r.place === 1
 			? '1 · up next'
 			: r.place}{/snippet}
+{#snippet passes(r: Proposal)}<span
+		title="{Math.floor(sideWeight(r.support))} for, {Math.floor(sideWeight(r.oppose))} against"
+		>{sideWeight(r.support) > sideWeight(r.oppose) ? '👍' : '👎'}</span
+	>{/snippet}
+{#snippet we(r: Proposal)}<span class="-m-1 block p-1 {standingClass(r)}">{r.ours ?? '–'}</span
+	>{/snippet}
 {#snippet forWeight(r: Proposal)}<span class="text-green-600"
 		>{estimated(r.support) ? '≈' : ''}{Math.floor(sideWeight(r.support))}</span
 	>{/snippet}
