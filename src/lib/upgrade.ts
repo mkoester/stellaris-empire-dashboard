@@ -159,7 +159,12 @@ export function upgrade(
 			s.aiIntel.map((a) => ({ ...a, nomadic: a.nomadic ?? false, income: a.income ?? {} })),
 		wars: s.wars && s.wars.map((w) => ({ ...WAR, ...w })),
 		factions: s.factions && s.factions.map((f) => ({ ...f, change: f.change ?? null })),
-		galcom: s.galcom && { ...s.galcom, passed: s.galcom.passed ?? [] },
+		galcom: s.galcom && {
+			...s.galcom,
+			passed: s.galcom.passed ?? [],
+			voteEnds: s.galcom.voteEnds ?? null,
+			nextVote: s.galcom.nextVote ?? null
+		},
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
 		// stored as plain keys for a day (2026-10-17), without the end date
 		countryModifiers:

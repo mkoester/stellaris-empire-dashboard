@@ -229,8 +229,12 @@
 			</div>
 			<div class="mb-2">
 				<b>voting on:</b>
-				{@render resolution(g.voting)}
+				{@render resolution(g.voting)}{#if g.voteEnds}<span class="text-gray-500">
+						· decided {g.voteEnds}</span
+					>{/if}
 			</div>
+		{:else if g.nextVote}
+			<div class="mb-2 text-gray-500">in recess: the next vote starts {g.nextVote}</div>
 		{/if}
 		{#if g.proposed.length}
 			<table class="text-xs tabular-nums">

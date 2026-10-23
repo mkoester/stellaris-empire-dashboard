@@ -258,7 +258,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '12';
+export const READER = '13';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1590,7 +1590,7 @@ export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames' | 
  * 2026-10-19: one being voted on, seven proposed).
  */
 export function galacticCommunity(
-	raw: Pick<RawSave, 'galcom' | 'resolutions' | 'countryId' | 'countries'>
+	raw: Pick<RawSave, 'galcom' | 'resolutions' | 'countryId' | 'countries' | 'date'>
 ): GalacticCommunity | null {
 	const g = raw.galcom;
 	if (!g || typeof g !== 'object' || g.members === undefined) return null;
@@ -1620,9 +1620,20 @@ export function galacticCommunity(
 		member: members.includes(raw.countryId),
 		voting: typeof g.voting === 'number' ? vote(g.voting) : null,
 		proposed: ids(g.proposed).flatMap((id) => vote(id) ?? []),
-		passed: ids(g.passed).flatMap((id) => vote(id) ?? [])
+		passed: ids(g.passed).flatMap((id) => vote(id) ?? []),
+		// `days` counts up while a resolution is on the floor, to RESOLUTION_VOTE_TIMER; `cooldown`
+		// counts the recess down (2213.12–2214.01: days 1411 on 12.01, passed 12.30, cooldown 719)
+		voteEnds:
+			typeof g.voting === 'number' && typeof g.days === 'number'
+				? addGameDays(raw.date, VOTE_DAYS - g.days)
+				: null,
+		nextVote:
+			typeof g.cooldown === 'number' && g.cooldown > 0 ? addGameDays(raw.date, g.cooldown) : null
 	};
 }
+
+/** Days a resolution stays on the senate floor (RESOLUTION_VOTE_TIMER, 4.5.2). */
+const VOTE_DAYS = 1440;
 
 /**
  * Our fleets' last combats: `fleet.<id>.fleet_stats.combat_stats = { fleet = { country_name

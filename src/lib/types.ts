@@ -659,6 +659,8 @@ export type GalacticCommunity = {
 	voting: ResolutionVote | null;
 	proposed: ResolutionVote[];
 	passed: ResolutionVote[]; // in force: `galactic_community.passed = { <ids> }`
+	voteEnds: string | null; // the vote's end: `days` in session of RESOLUTION_VOTE_TIMER (1440)
+	nextVote: string | null; // the recess's end: `cooldown` days (SENATE_RECESS_TIMER 720)
 };
 /**
  * One of our fleets' combats, from its last-combat record (`fleet.<id>.fleet_stats.combat_stats`,

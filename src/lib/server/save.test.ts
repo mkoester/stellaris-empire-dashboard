@@ -1,3 +1,4 @@
+import { addGameDays } from '#lib/series.ts';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -1418,6 +1419,7 @@ describe('milestone fields', () => {
 		// 4.5.2, the throwaway game at 2205.07.01 (shortened)
 		const raw = {
 			countryId: 0,
+			date: '2207.01.01',
 			countries: { '0': { name: 'UNE' }, '4': { name: 'Tzynn' }, '7': { name: 'Blorg' } } as never,
 			galcom: {
 				members: [4, 0, 7],
@@ -1462,6 +1464,17 @@ describe('milestone fields', () => {
 			['resolution_voidworm_eradication', 'for']
 		]);
 		expect(g?.passed.map((r) => r.type)).toEqual(['resolution_voidworm_eradication']);
+		// 541 days in session: 899 to go, as the game showed ("Senate is in session 899")
+		expect(g?.voteEnds).toBe(addGameDays('2207.01.01', 899));
+		expect(g?.nextVote).toBeNull();
+		// after a vote (2214.01.01): no resolution on the floor, the recess counting down
+		const recess = galacticCommunity({
+			...raw,
+			date: '2214.01.01',
+			galcom: { ...raw.galcom, voting: undefined, days: undefined, cooldown: 719 }
+		});
+		expect(recess?.voteEnds).toBeNull();
+		expect(recess?.nextVote).toBe(addGameDays('2214.01.01', 719));
 		expect(galacticCommunity({ ...raw, galcom: undefined })).toBeNull();
 	});
 
