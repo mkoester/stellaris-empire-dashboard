@@ -1,11 +1,19 @@
 import { error } from '@sveltejs/kit';
 import { proposalDates } from '#lib/contacts.ts';
+import { diploWeight } from '#lib/diploWeight.ts';
 import { facts } from '#lib/government.ts';
 import { proposable } from '#lib/proposable.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { contactView } from '#lib/server/settings.ts';
+
+/** Pops-weighted happiness over the colonies that report it. */
+function happinessOf(colonies: { pops: number; happiness: number | null }[]): number | null {
+	const known = colonies.filter((c) => c.happiness !== null);
+	const pops = known.reduce((n, c) => n + c.pops, 0);
+	return pops ? known.reduce((n, c) => n + c.pops * (c.happiness ?? 0), 0) / pops : null;
+}
 
 // The Galactic Community: resolutions in force (by category, their effects summed), the proposal
 // queue with each side's diplomatic weight, what we could propose, and its history (milestones of
@@ -34,6 +42,39 @@ export function load({ url }) {
 					costMult
 				)
 			: [];
+	// our diplomatic weight, part by part as the game's tooltip: every modifier source we hold
+	const explanations = getExplanations();
+	const weight =
+		save && galcom && save.score
+			? diploWeight(
+					{
+						military: save.score.military,
+						economy: save.score.economy,
+						tech: save.score.tech,
+						pops: save.colonies.reduce((n, c) => n + c.pops, 0),
+						happiness: happinessOf(save.colonies)
+					},
+					[
+						...galcom.passed.map((r) => `resolution:${r.type}`),
+						...(save.traditions ?? []).map((t) => `tradition:${t}`),
+						...(save.ascensionPerks ?? []).map((p) => `perk:${p}`),
+						...(save.government ?? []).flatMap((k) => [
+							`civic:${k}`,
+							`ethic:${k}`,
+							`authority:${k}`
+						]),
+						...(save.origin ? [`origin:${save.origin}`] : []),
+						...Object.values(save.policies ?? {}).map((o) => `policy:${o}`),
+						...(save.edicts ?? []).map((e) => `edict:${e}`),
+						...(save.countryModifiers ?? []).map((m) => `modifier:${m.key}`)
+					].flatMap((k) => {
+						const e = explanations[k];
+						return e ? [{ name: e.title, modifiers: e.modifiers }] : [];
+					}),
+					galcom.weights[save.countries?.find((c) => c.id === save.countryId)?.name ?? '']?.value ??
+						null
+				)
+			: null;
 	// the resolutions shown: in the community now, in its history, and those we could propose
 	const resolutions = [
 		...(galcom
@@ -48,11 +89,16 @@ export function load({ url }) {
 		galcom,
 		proposals,
 		costMult,
+		weight,
 		// when each proposal first showed up in a save: the game stores no date
 		proposalDates: proposalDates(snaps),
 		// the game's words for resolutions and their categories; resolution effects as popups
 		diploNames: pick(data.diploNames, [
 			...resolutions.flatMap((r) => [r.type, data.resolutionCategories[r.type] ?? '']),
+			...proposals.map((p) => p.category)
+		]),
+		resolutionGroups: pick(data.resolutionGroups, [
+			...resolutions.map((r) => data.resolutionCategories[r.type] ?? ''),
 			...proposals.map((p) => p.category)
 		]),
 		resolutionCategories: pick(

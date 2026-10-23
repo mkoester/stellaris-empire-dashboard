@@ -78,3 +78,23 @@ export function scaleColor(v: number, worst: number, best: number): string | nul
 	const t = Math.min(1, Math.max(0, (v - worst) / (best - worst)));
 	return `hsl(${Math.round(t * 120)} 70% 45%)`;
 }
+
+/**
+ * The Galactic Community's resolution groups as the game colours their banners (4.5.2
+ * `common/resolution_groups`: `color_index` 1 gold, 2 purple, 3 blue, 4 red, 5 green — the sprite
+ * frames). Hues sampled from screenshot 2026_10_23_10 (gold ~45°, purple ~305°, blue ~198°) and
+ * brightened to read in both themes; red and green not seen in game yet.
+ */
+const GALCOM_FRAMES = ['#c09a35', '#a463b0', '#3f93bd', '#c8564c', '#4ea35f'];
+const GALCOM_FRAME: Record<string, number> = {
+	commerce_industry: 1,
+	politics_culture: 2,
+	environment_technology: 3,
+	defense_war: 4,
+	suzerains_sovereignty: 2,
+	galactic_focus: 5,
+	galactic_empire: 4,
+	custodianship: 1
+};
+export const galcomGroupColor = (group: string | undefined) =>
+	group && GALCOM_FRAME[group] ? GALCOM_FRAMES[GALCOM_FRAME[group] - 1] : undefined;

@@ -883,6 +883,7 @@ export type GameData = {
 	// resolutions, resolution categories, subject agreement terms, term values and presets by key
 	diploNames: Record<string, string>;
 	resolutionCategories: Record<string, string>; // resolution → its category key
+	resolutionGroups: Record<string, string>; // category → its group (commerce_industry, …)
 	// every resolution a category lists, in file order: what proposing it takes (#lib/proposable.ts)
 	resolutions: Record<
 		string,

@@ -49,6 +49,7 @@ const data: GameData = {
 	identityNames: {},
 	diploNames: {},
 	resolutionCategories: {},
+	resolutionGroups: {},
 	resolutions: {},
 	resolutionCostMult: {},
 	shroud: { patrons: {}, callings: {}, deeds: {} },

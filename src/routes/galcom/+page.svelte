@@ -4,6 +4,7 @@
 	import Effects from '#lib/Effects.svelte';
 	import EffectTotals from '#lib/EffectTotals.svelte';
 	import EmpireName from '#lib/EmpireName.svelte';
+	import { galcomGroupColor } from '#lib/colors.ts';
 	import { pretty } from '#lib/format.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
@@ -36,7 +37,8 @@
 	};
 	const inForce = $derived.by(() => {
 		const passed = data.galcom?.passed ?? [];
-		if (view.galcomFlat) return [{ category: null as string | null, items: passed }];
+		if (view.galcomFlat)
+			return [{ category: null as string | null, key: null as string | null, items: passed }];
 		const m = new Map<string, ResolutionVote[]>();
 		for (const r of passed) {
 			const c = categoryOf(r.type) ?? 'other';
@@ -44,7 +46,11 @@
 		}
 		return [...m]
 			.sort(([a], [b]) => a.localeCompare(b))
-			.map(([category, items]) => ({ category: category as string | null, items }));
+			.map(([category, items]) => ({
+				category: category as string | null,
+				key: (data.resolutionCategories[items[0].type] ?? null) as string | null,
+				items
+			}));
 	});
 	const activeEffects = $derived(
 		totalEffects(
@@ -154,6 +160,18 @@
 	];
 	// what we could propose (#lib/proposable.ts), per viewer: all or only what is open now
 	let onlyNow = $state(false);
+	let proposableSort = $state({ column: '', desc: false });
+	const shownProposals = $derived(
+		onlyNow ? data.proposals.filter((p) => p.status === 'proposable') : data.proposals
+	);
+	// in the given order, a line above each category's first row
+	const firstOfCategory = $derived(
+		new Set(
+			shownProposals
+				.filter((p, i) => i === 0 || shownProposals[i - 1].category !== p.category)
+				.map((p) => p.key)
+		)
+	);
 	const STATUS_ORDER = [
 		'proposable',
 		'unknown',
@@ -181,7 +199,8 @@
 			id: 'category',
 			label: 'Category',
 			value: (p) =>
-				data.diploNames[p.category] ?? pretty(p.category.replace(/^resolution_category_/, ''))
+				data.diploNames[p.category] ?? pretty(p.category.replace(/^resolution_category_/, '')),
+			cell: categoryCell
 		},
 		{
 			id: 'name',
@@ -219,53 +238,128 @@
 
 {#if data.galcom}
 	{@const g = data.galcom}
-	<h2 class="mb-2 text-xl font-semibold">In force</h2>
-	<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
-		<div class="mb-2 flex flex-wrap items-center gap-x-4 text-gray-500">
-			<span
-				>since {g.formed ?? '?'} ·
-				<span title={g.members.join('\n')}>{g.members.length} members</span>{g.member
-					? ', we among them'
-					: ', we are not a member'}</span
-			>
-			{#if g.passed.length}
-				<label class="flex items-center gap-1"
-					><input
-						type="checkbox"
-						checked={view.galcomFlat}
-						onchange={(e) => save({ ...view, galcomFlat: e.currentTarget.checked })}
-					/> flat list</label
-				>
-			{/if}
-		</div>
-		{#if !g.passed.length}
-			<p class="text-gray-500">No resolution in force.</p>
-		{:else}
-			{#each inForce as group (group.category)}
-				{#if group.category}<h3 class="mt-2 mb-1 font-semibold">{group.category}</h3>{/if}
-				<ul class="mb-2 space-y-1">
-					{#each group.items as r (r.id)}
-						<li>
-							<InfoPopup explanation={data.explain[`resolution:${r.type}`]}
-								>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
-							>{#if view.galcomFlat && categoryOf(r.type)}<span class="text-xs text-gray-500">
-									· {categoryOf(r.type)}</span
-								>{/if}
-							<span class="text-gray-500">by <EmpireName name={r.proposer} bold={false} /></span>
-							<div class="ml-4"><Effects explanation={data.explain[`resolution:${r.type}`]} /></div>
-						</li>
+	<div class="grid items-start gap-x-6 lg:grid-cols-2">
+		<div>
+			<h2 class="mb-2 text-xl font-semibold">In force</h2>
+			<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
+				<div class="mb-2 flex flex-wrap items-center gap-x-4 text-gray-500">
+					<span
+						>since {g.formed ?? '?'} ·
+						<span title={g.members.join('\n')}>{g.members.length} members</span>{g.member
+							? ', we among them'
+							: ', we are not a member'}</span
+					>
+					{#if g.passed.length}
+						<label class="flex items-center gap-1"
+							><input
+								type="checkbox"
+								checked={view.galcomFlat}
+								onchange={(e) => save({ ...view, galcomFlat: e.currentTarget.checked })}
+							/> flat list</label
+						>
+					{/if}
+				</div>
+				{#if !g.passed.length}
+					<p class="text-gray-500">No resolution in force.</p>
+				{:else}
+					{#each inForce as group (group.category)}
+						{#if group.category}<h3
+								class="mt-2 mb-1 font-semibold"
+								style:color={galcomGroupColor(data.resolutionGroups[group.key ?? ''])}
+							>
+								{group.category}
+							</h3>{/if}
+						<ul class="mb-2 space-y-1">
+							{#each group.items as r (r.id)}
+								<li>
+									<InfoPopup explanation={data.explain[`resolution:${r.type}`]}
+										>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
+									>{#if view.galcomFlat && categoryOf(r.type)}<span class="text-xs text-gray-500">
+											· {categoryOf(r.type)}</span
+										>{/if}
+									<span class="text-gray-500">by <EmpireName name={r.proposer} bold={false} /></span
+									>
+									<div class="ml-4">
+										<Effects explanation={data.explain[`resolution:${r.type}`]} />
+									</div>
+								</li>
+							{/each}
+						</ul>
 					{/each}
-				</ul>
-			{/each}
-			{#if activeEffects.length}
-				<h3 class="mt-3 mb-1 font-semibold">All active effects</h3>
-				{#each grouped(activeEffects, (t) => t.mod.key) as g (g.group)}
-					<h4 class="mt-2 mb-0.5 text-xs font-semibold text-gray-500 uppercase">{g.label}</h4>
-					<EffectTotals effects={g.items} />
-				{/each}
-			{/if}
+					{#if activeEffects.length}
+						<h3 class="mt-3 mb-1 font-semibold">All active effects</h3>
+						{#each grouped(activeEffects, (t) => t.mod.key) as g (g.group)}
+							<h4 class="mt-2 mb-0.5 text-xs font-semibold text-gray-500 uppercase">{g.label}</h4>
+							<EffectTotals effects={g.items} />
+						{/each}
+					{/if}
+				{/if}
+			</section>
+		</div>
+		{#if data.weight}
+			{@const w = data.weight}
+			<div>
+				<h2 class="mb-2 text-xl font-semibold">Our diplomatic weight</h2>
+				<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
+					<div class="mb-2 text-base">
+						<b class="tabular-nums">{Math.floor(w.exact ?? w.total)}</b>
+						<span class="text-xs text-gray-500"
+							>{w.exact === null
+								? '≈ computed — companion mod 0.4.0 stores the game’s value'
+								: `the game's value; computed from the parts ${Math.round(w.total)}`}</span
+						>
+					</div>
+					<table class="tabular-nums">
+						<tbody>
+							{#each w.parts as p (p.id)}
+								<tr class="border-t border-gray-100 align-top dark:border-gray-900">
+									<td class="py-1 pr-3 font-semibold">{p.label}</td>
+									<td class="py-1 pr-3 text-right font-semibold">{Math.round(p.value)}</td>
+									<td class="py-1 text-xs text-gray-500">
+										<div>{Math.round(p.raw)} = {p.basis}</div>
+										{#each p.mods as m, i (i)}<div>
+												{m.name}:
+												<span class={m.value < 0 ? 'text-red-600' : 'text-green-600'}
+													>{m.value > 0 ? '+' : ''}{Math.round(m.value * 100)} %</span
+												>
+											</div>{/each}
+									</td>
+								</tr>
+							{/each}
+							{#each w.overall as m, i (i)}
+								<tr class="border-t border-gray-100 dark:border-gray-900">
+									<td class="py-1 pr-3" colspan="2">{m.name}</td>
+									<td class="py-1 text-xs {m.value < 0 ? 'text-red-600' : 'text-green-600'}"
+										>{m.value > 0 ? '+' : ''}{Math.round(m.value * 100)} % on the whole</td
+									>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+					{#if w.exact !== null && Math.abs(w.exact - w.total) >= 1}
+						<p class="mt-2 text-xs text-amber-600">
+							{Math.round(w.exact - w.total)} not explained by the parts: a modifier the dashboard does
+							not read yet
+						</p>
+					{/if}
+					{#if w.notCounted.length}
+						<p class="mt-2 text-xs text-gray-500">
+							only in some votes or seats, not in this sum: {w.notCounted
+								.map(
+									(m) =>
+										`${m.name} (${m.key.replace(/^diplo_weight_/, '').replace(/_mult$/, '')} ${m.value > 0 ? '+' : ''}${Math.round(m.value * 100)} %)`
+								)
+								.join(', ')}
+						</p>
+					{/if}
+					<p class="mt-2 text-xs text-gray-500">
+						As the game's tooltip: naval power × 0.025, pops × 0.01 × (1 + 2 × happiness), economy ×
+						0.15, technology × 0.1, each with its modifiers.
+					</p>
+				</section>
+			</div>
 		{/if}
-	</section>
+	</div>
 
 	<h2 class="mb-2 text-xl font-semibold">Proposed</h2>
 	<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
@@ -330,14 +424,23 @@
 			).length})</label
 		>
 		<SortTable
-			rows={onlyNow ? data.proposals.filter((p) => p.status === 'proposable') : data.proposals}
+			rows={shownProposals}
 			columns={proposableColumns}
 			key={(p) => p.key}
-			sort={{ column: '', desc: false }}
+			bind:sort={proposableSort}
+			rowClass={(p) =>
+				proposableSort.column === '' && firstOfCategory.has(p.key)
+					? 'border-t-2 border-t-gray-300 dark:border-t-gray-600'
+					: ''}
 		/>
 	</section>
 {/if}
 
+{#snippet categoryCell(p: ProposableRow)}<span
+		class="whitespace-nowrap"
+		style:color={galcomGroupColor(data.resolutionGroups[p.category])}
+		>{data.diploNames[p.category] ?? pretty(p.category.replace(/^resolution_category_/, ''))}</span
+	>{/snippet}
 {#snippet proposableName(p: ProposableRow)}<InfoPopup
 		explanation={data.explain[`resolution:${p.key}`]}
 		>{data.diploNames[p.key] ?? pretty(p.key.replace(/^resolution_/, ''))}</InfoPopup

@@ -982,7 +982,20 @@ opponents }`; only the one voted on has `voting = { <country>=<date> }`, the vot
   `proposalDates()` dates it between the last save without it and the first with it — shown as
   the month when those are the 1st of consecutive months (`proposedLabel()`: "2208.10") — or "by" the
   first save of the history (2214.01.01: five to the month, seven by 2205.03.01, the campaign's
-  first save read). **Proposable** (`#lib/proposable.ts`, below the proposals): every resolution a
+  first save read). **Our diplomatic weight** (`#lib/diploWeight.ts`, right of In force), as the
+  game's tooltip (screenshot `2026_10_23_9`, 2214.02.01: Fleet Power 22 = 18 from fleets + The
+  Readied Shield 20 %, Pops 136, Economy 163 = 136 + Regulatory Facilitation 20 %, Technology 74 =
+  395): naval power × 0.025, **pops × 0.01 × (1 + 2 × their happiness)** (the defines' "BASE +
+  HAPPINESS × happiness" per pop — 5875 pops at 65.7 % → 135.95), economy power × 0.15,
+  technology × 0.1, each × (1 + its `diplo_weight_<part>_mult`), the whole × (1 +
+  `diplo_weight_mult`); the modifiers from every source we hold (resolutions in force, traditions,
+  perks, civics, ethics, authority, origin, policies, edicts, timed modifiers — their
+  explanations). Computed 395.36 against the mod's 395.06; a gap of 1 or more is shown as not
+  explained. Council, envoy (delegate), rival and per-vote modifiers are listed, not summed. The
+  other members' remainders did not fit the same formula (2214.02.01 — nomads' pops live off
+  colonies, modifiers dominate): only ours is broken down. Categories take their group's banner
+  colour (`galcomGroupColor()`, 4.5.2 `resolution_groups` `color_index`). **Proposable**
+  (`#lib/proposable.ts`, below the proposals; a line between categories while in the given order): every resolution a
   category lists whose `potential` holds for us (data DB `resolution.potential_json`,
   `allow_json`, `valid_target_json`, `repeal`), each as proposable, in force, already proposed
   ("has already been proposed by …"), locked (`allow` false — a chain's tier needs the one below

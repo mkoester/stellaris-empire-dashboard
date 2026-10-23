@@ -222,6 +222,11 @@ export function loadGameData(file: string): GameData {
 					   WHERE modifier_key = 'resolutions_cost_mult'`
 				).map((r) => [r.owner, r.value])
 			),
+			resolutionGroups: Object.fromEntries(
+				rows<{ key: string; group_key: string }>(
+					'SELECT key, group_key FROM resolution_category WHERE group_key IS NOT NULL'
+				).map((r) => [r.key, r.group_key])
+			),
 			resolutionCategories: Object.fromEntries(
 				rows<{ key: string; category: string }>(
 					'SELECT key, category_key AS category FROM resolution WHERE category_key IS NOT NULL'
