@@ -15,7 +15,7 @@ export type ProposableStatus =
 	| 'in force'
 	| 'proposed' // already on the floor or in the queue: "has already been proposed by …"
 	| 'locked' // `allow` false: the tier below not in force, one of the chain active, …
-	| 'cooldown' // the category's vote cooldown
+	| 'cooldown' // the category's vote cooldown, or years the Community must exist first
 	| 'not a member'
 	| 'needs a target' // names an empire: which one may be named the save cannot tell
 	| 'no target' // names an empire, and none can be named (no custodian to unseat, …)
@@ -43,6 +43,30 @@ function tierBelow(t: Trigger | null): string | undefined {
 	for (const a of t.args) {
 		const found = tierBelow(a);
 		if (found) return found;
+	}
+	return undefined;
+}
+
+/** Whole game years from one date to another (360-day years). */
+function yearsBetween(from: string, to: string): number {
+	const days = (d: string) => {
+		const [y, m, day] = d.split('.').map(Number);
+		return y * 360 + (m - 1) * 30 + (day - 1);
+	};
+	return Math.floor((days(to) - days(from)) / 360);
+}
+
+// the years the Community must exist that a trigger asks for, if it does
+function yearsNeeded(t: Trigger | null): number | undefined {
+	if (!t) return undefined;
+	if ('leaf' in t)
+		return t.leaf === 'is_years_since_community_formation' && (t.cmp === '>=' || t.cmp === '>')
+			? Number(t.value) + (t.cmp === '>' ? 1 : 0)
+			: undefined;
+	if (t.op === 'not') return undefined;
+	for (const a of t.args) {
+		const n = yearsNeeded(a);
+		if (n !== undefined) return n;
 	}
 	return undefined;
 }
@@ -79,7 +103,8 @@ export function proposable(
 		activeResolutions: inForce,
 		globalFlags: g.globalFlags,
 		galcomFormed: true,
-		galcomMember: g.member
+		galcomMember: g.member,
+		galcomYears: g.formed ? yearsBetween(g.formed, date) : null
 	};
 	return Object.entries(resolutions).flatMap(([key, r]): ProposableRow[] => {
 		if (r.category === null) return [];
@@ -98,8 +123,13 @@ export function proposable(
 		if (proposed) return [{ ...row, status: 'proposed', by: proposed.proposer }];
 		if (!g.member) return [{ ...row, status: 'not a member' }];
 		const allow = evaluate(r.allow, f);
-		if (allow === false)
+		if (allow === false) {
+			// "is_years_since_community_formation >= 10" (Form Galactic Council): a cooldown too
+			const years = yearsNeeded(r.allow);
+			if (years !== undefined && g.formed && (f.galcomYears ?? 0) < years)
+				return [{ ...row, status: 'cooldown', until: addGameDays(g.formed, years * 360) }];
 			return [{ ...row, status: 'locked', needs: tierBelow(r.allow), why: r.allow ?? undefined }];
+		}
 		const timer = g.categoryTimers[r.category];
 		const until = timer ? addGameDays(timer, CATEGORY_VOTE_COOLDOWN) : null;
 		if (until && until > date) return [{ ...row, status: 'cooldown', until }];

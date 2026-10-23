@@ -1007,8 +1007,13 @@ opponents }`; only the one voted on has `voting = { <country>=<date> }`, the vot
   `is_active_resolution`, `has_global_flag` (`GalacticCommunity.globalFlags`) and the council
   leaves — custodian, emperor and council seats false before `galactic_council_formed`, unknown
   after (their save fields not seen yet). Costs × our `resolutions_cost_mult` (Gravitas −25 %,
-  Pioneer Politics). Filters (per viewer): in force, proposed, proposable now (on), blocked
-  (locked, cooldown, no target), other (needs a target, unknown). **Success** of what we can
+  Pioneer Politics). **Years since formation** count as a cooldown too:
+  `is_years_since_community_formation >= 10` (Form Galactic Council's `allow` — every game's first
+  ten years) is answered from `community_formed` (the evaluator's first numeric comparison,
+  `compare()`), and failing only on it reads "on cooldown until" formation + 10 years. Filters
+  (per viewer): in force, proposed, proposable now (on), on cooldown, lower tier, needs target
+  (or none possible), other (not allowed otherwise, unknown, not a member) — 2214.02.01: 2, 12, 7,
+  4, 55, 5, 7. **Success** of what we can
   propose now (`#lib/votes.ts`): each AI member's weight = the resolution's `ai_weight` (data DB
   `ai_weight_json`: base × the factors whose conditions hold for that AI — its identity from the
   save, the rest unknown, marked ?) × its opinion of us (0.5 at −750, 1.0 neutral, 1.3 at 750,

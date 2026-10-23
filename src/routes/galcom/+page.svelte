@@ -161,19 +161,38 @@
 	// what we could propose (#lib/proposable.ts), per viewer: all or only what is open now
 	// which statuses are shown: per viewer, the open and the done ones by default
 	const FILTERS = [
-		{ id: 'in force', label: 'in force' },
-		{ id: 'proposed', label: 'proposed' },
-		{ id: 'proposable', label: 'proposable now' },
-		{ id: 'blocked', label: 'blocked' },
-		{ id: 'other', label: 'other' }
+		{ id: 'in force', label: 'in force', title: '' },
+		{ id: 'proposed', label: 'proposed', title: '' },
+		{ id: 'proposable', label: 'proposable now', title: '' },
+		{
+			id: 'cooldown',
+			label: 'on cooldown',
+			title: 'the category’s cooldown after a vote, or the years the Community must exist first'
+		},
+		{ id: 'tier', label: 'lower tier', title: 'the tier below must be in force first' },
+		{
+			id: 'target',
+			label: 'needs target',
+			title: 'names an empire: which one may be named the save cannot tell, or none can'
+		},
+		{
+			id: 'other',
+			label: 'other',
+			title:
+				'not allowed for another reason, a condition the save cannot answer, or we are no member'
+		}
 	] as const;
 	type Filter = (typeof FILTERS)[number]['id'];
 	const filterOf = (p: ProposableRow): Filter =>
 		p.status === 'in force' || p.status === 'proposed' || p.status === 'proposable'
 			? p.status
-			: p.status === 'locked' || p.status === 'cooldown' || p.status === 'no target'
-				? 'blocked'
-				: 'other';
+			: p.status === 'cooldown'
+				? 'cooldown'
+				: p.status === 'locked' && p.needs
+					? 'tier'
+					: p.status === 'needs a target' || p.status === 'no target'
+						? 'target'
+						: 'other';
 	let filters: Filter[] = $state(['in force', 'proposed', 'proposable']);
 	let proposableSort = $state({ column: '', desc: false });
 	const shownProposals = $derived(data.proposals.filter((p) => filters.includes(filterOf(p))));
@@ -478,11 +497,7 @@
 					)
 						? ''
 						: 'opacity-40'}"
-					title={f.id === 'blocked'
-						? 'held back by a rule: the tier below not in force, the category’s cooldown, no empire it could name'
-						: f.id === 'other'
-							? 'what the save cannot settle: needs a target, a condition unknown, or we are no member'
-							: ''}
+					title={f.title || undefined}
 					><input
 						type="checkbox"
 						class="sr-only"

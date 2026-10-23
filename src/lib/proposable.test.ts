@@ -45,6 +45,10 @@ const RESOLUTIONS: GameData['resolutions'] = {
 	resolution_council_thing: resolution('council', null, {
 		allow: { leaf: 'num_council_positions', value: '3', cmp: '>' }
 	}),
+	// 4.5.2 Form Galactic Council: the Community must exist 10 years
+	resolution_galacticreforms_form_council: resolution('galacticreforms', null, {
+		allow: { leaf: 'is_years_since_community_formation', cmp: '>=', value: '10' }
+	}),
 	// 4.5.2: names the custodian — none before the council forms
 	resolution_galacticreforms_unseat_custodian: resolution('galacticreforms', null, {
 		target: true,
@@ -64,7 +68,7 @@ const vote = (id: number, type: string) => ({
 	ours: null
 });
 const galcom = (g: Partial<GalacticCommunity> = {}): GalacticCommunity => ({
-	formed: '2202.01.01',
+	formed: '2208.01.01',
 	members: [],
 	member: true,
 	voting: null,
@@ -88,6 +92,7 @@ describe('proposable', () => {
 			resolution_industry_regulatory_facilitation: 'proposable',
 			resolution_industry_collective_waste_management: 'locked',
 			resolution_galactic_market_form: 'proposable',
+			resolution_galacticreforms_form_council: 'cooldown',
 			resolution_council_thing: 'unknown',
 			resolution_galacticreforms_unseat_custodian: 'no target',
 			resolution_repeal_crisis: 'needs a target'
@@ -136,5 +141,14 @@ describe('proposable', () => {
 		expect(
 			status(proposable(RESOLUTIONS, galcom(), done, '2214.02.01', 0)).resolution_politics_special
 		).toBe('proposable');
+	});
+
+	it('counts the years the Community must exist as a cooldown, and lifts it after them', () => {
+		const council = (date: string) =>
+			proposable(RESOLUTIONS, galcom(), facts, date, 0).find(
+				(r) => r.key === 'resolution_galacticreforms_form_council'
+			);
+		expect(council('2214.02.01')).toMatchObject({ status: 'cooldown', until: '2218.01.01' });
+		expect(council('2218.01.01')?.status).toBe('proposable');
 	});
 });

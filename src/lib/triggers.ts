@@ -31,6 +31,7 @@ export type Facts = {
 	activeResolutions?: string[] | null; // in force (`galactic_community.passed`)
 	globalFlags?: string[] | null;
 	galcomFormed?: boolean | null;
+	galcomYears?: number | null; // whole years since the Galactic Community formed
 	galcomMember?: boolean | null;
 };
 
@@ -141,6 +142,24 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 	}
 }
 
+/** A numeric condition (`num_x > 2`), where the save gives the number; else unknown. */
+function compare(name: string, cmp: string, value: number, f: Facts): boolean | null {
+	const n = name === 'is_years_since_community_formation' ? (f.galcomYears ?? null) : null;
+	if (n === null || Number.isNaN(value)) return null;
+	switch (cmp) {
+		case '>':
+			return n > value;
+		case '>=':
+			return n >= value;
+		case '<':
+			return n < value;
+		case '<=':
+			return n <= value;
+		default:
+			return n === value;
+	}
+}
+
 const council = (f: Facts) =>
 	f.globalFlags ? f.globalFlags.includes('galactic_council_formed') : null;
 
@@ -163,7 +182,8 @@ function scripted(name: string, value: string, f: Facts): boolean | null {
 /** Whether `t` holds for the empire: true, false, or null if the save cannot tell. */
 export function evaluate(t: Trigger | null, f: Facts): boolean | null {
 	if (t === null) return true;
-	if ('leaf' in t) return t.cmp ? null : leaf(t.leaf, t.value, f);
+	if ('leaf' in t)
+		return t.cmp ? compare(t.leaf, t.cmp, Number(t.value), f) : leaf(t.leaf, t.value, f);
 	const vals = t.args.map((a) => evaluate(a, f));
 	if (t.op === 'not') {
 		// a `not` of several conditions negates their conjunction (NOT = { a b })
