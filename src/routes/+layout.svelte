@@ -139,6 +139,11 @@
 			active: path === '/contacts'
 		},
 		{
+			name: 'galcom',
+			href: node ? resolve(`/galcom?node=${node}`) : resolve('/galcom'),
+			active: path === '/galcom'
+		},
+		{
 			name: 'diplomacy',
 			href: node ? resolve(`/diplomacy?node=${node}`) : resolve('/diplomacy'),
 			active: path === '/diplomacy'

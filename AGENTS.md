@@ -211,7 +211,7 @@ left, net per month right (`resourcePanelSeries()`) — and the latest save's mo
 what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
 `trade-offs` (only with its switch, below) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `shroud` (patrons and attunement), `focus`,
-`traditions`, `tech`, `leaders`, `species`, `contacts`, `diplomacy`, `megastructures` (all below), `mods` and
+`traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `megastructures` (all below), `mods` and
 `dlc` (last; see
 "DLCs and mods" below); tabs keep `?node=`. **Every list is a `SortTable.svelte`** (the user's ask
 2026-10-23: "make all tables sortable"; columns as `Column<T>` from `#lib/sort.ts`; `sort={{
@@ -957,7 +957,8 @@ stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included
   `resolution.<id> = { type country supporters = { <ids> } opponents }` (the voted one also
   `voting = { <country>=<date> }`). Our country holds no GalCom field, and **no country stores
   its diplomatic weight** (`diplomacy_weight` in the save is per fleet: its military power).
-  Contacts tab, two panels: **in force** by category (data DB `resolution.category_key`, or a
+  **GalCom tab** (`/galcom`, split off the contacts tab 2026-10-23; its flat-list switch is still
+  `contactView.galcomFlat`), two panels: **in force** by category (data DB `resolution.category_key`, or a
   flat list: `contactView.galcomFlat`), each with its effects and all of them summed
   (`totalEffects`), grouped by what they act on (`#lib/modifierGroups.ts`: diplomacy, fleet and
   starbases, armies, war, research, production, pops, upkeep, planets, empire — key patterns from
@@ -981,7 +982,7 @@ opponents }`; only the one voted on has `voting = { <country>=<date> }`, the vot
   `proposalDates()` dates it between the last save without it and the first with it — shown as
   the month when those are the 1st of consecutive months (`proposedLabel()`: "2208.10") — or "by" the
   first save of the history (2214.01.01: five to the month, seven by 2205.03.01, the campaign's
-  first save read). **History** (milestone kind `galcom`, also listed on the contacts tab):
+  first save read). **History** (milestone kind `galcom`, also listed on the galcom tab):
   proposed, put to the vote, passed, failed, withdrawn (`Milestone.galcom` keeps the parts, so the
   list names resolutions with popups and proposers in colour) — a proposal that leaves the queue neither
   voted on nor passed; the save keeps no record of who withdrew it. A vote counts as failed only
@@ -1266,7 +1267,7 @@ screen, trade calibration, stored research, releases).
   counts the recess down from `SENATE_RECESS_TIMER` (720). Resolution 9 (Regulatory
   Facilitation): days 1411 on 2213.12.01, `pass_date` 2213.12.30, cooldown 719 on 2214.01.01;
   `category_timers.<category>` = the pass date. `galacticCommunity()` gives `voteEnds` and
-  `nextVote` (READER 13), the contacts tab shows them. Still unknown: `election` (180), and
+  `nextVote` (READER 13), the galcom tab shows them. Still unknown: `election` (180), and
   **votes are weighed by diplomatic weight**, which no country stores: companion mod 0.4.0
   exports it, else the tab estimates it (see "Galactic Community" above).
   Passed resolutions: `galactic_community.passed = { <ids> }`; resolution descriptions lose loc
