@@ -21,9 +21,7 @@ export function facts(s: Snapshot, scripted: Facts['scripted'] = {}): Facts {
 		atWar: s.wars === null ? null : s.wars.length > 0,
 		situations: s.situations === null ? null : s.situations.length,
 		nomadic:
-			s.situations === null
-				? null
-				: s.situations.some((x) => x.type === 'situation_nomad_economy'),
+			s.situations === null ? null : s.situations.some((x) => x.type === 'situation_nomad_economy'),
 		scripted,
 		leaderTraits: s.leaderList?.flatMap((l) => l.traits)
 	};
