@@ -114,7 +114,8 @@ campaign suffice, no cheats.
 Without companion mod 0.5.0 the resources panel's storage is ≈ the base. Compute it instead, with a
 breakdown like the game's tooltip, from the sources in `docs/storage.md`; check it against the
 mod's exact value. Needs: researched techs in the snapshot (`tech_status.technology`: Construction
-Templates, Mega-Engineering), our silos (planet and starbase buildings), passed resolutions, relics,
+Templates, Mega-Engineering), our silos (planet zones' `building_resource_silo`, starbase
+`resource_silo` — `Station.buildings`), influence left out (it ignores the general modifier), passed resolutions, relics,
 civics, bio ships, Dyson gun stage — and an extraction fix: `building_modifier` sums the Resource
 Silo's and Subterranean Cache's two blocks into a flat +10,000, dropping the Construction Templates
 condition; starbase buildings', resolutions' and relics' storage modifiers are not extracted.

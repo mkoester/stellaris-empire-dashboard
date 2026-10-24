@@ -1,13 +1,20 @@
 # Storage: how the game computes it (4.5.2)
 
-Read from the game files on 2026-10-24. Confirmed by companion mod 0.5.0 in a throwaway game
-(2200.05.01): the base, fallen empires (+100,000 and Mega-Engineering's +20,000) and bio ships
-(food +10,000, alloys −2,500); and (2200.08.01) the planet Resource Silo with Construction
-Templates: +10,000 on every resource but influence; (2200.09.01) Mega-Engineering: +20,000, influence
-again unchanged. The other rows wait for one change at a time.
-Never measure with `instant_build` on: it sets every country's storage to 1,000,000. The
-save does not store the result — companion mod 0.5.0 exports it (`sdash_m_<res>`,
-`AGENTS.md` → Companion mod); without the mod the dashboard shows ≈ the base.
+Read from the game files on 2026-10-24. The save does not store the result — companion mod 0.5.0
+exports it (`sdash_m_<res>`, `AGENTS.md` → Companion mod); without the mod the dashboard shows ≈
+the base. **Never measure with `instant_build` on**: it sets every country's storage to 1,000,000.
+
+Confirmed by the mod in a throwaway game, one change per monthly autosave:
+
+- 2200.05.01: the base; fallen empires +120,000 (`fallen_empire_base` + Mega-Engineering); bio
+  ships food +10,000, alloys −2,500.
+- 2200.08.01: the planet Resource Silo with Construction Templates, +10,000.
+- 2200.09.01: Mega-Engineering, +20,000.
+- 2201.03.01: the starbase Resource Silo with Construction Templates, +10,000 (saved as
+  `resource_silo` in the starbase's buildings).
+- Influence stayed at 1,000 through all of them.
+
+The other rows wait for the same treatment.
 
 **max = base + Resource Storage Capacity (`country_resource_max_add`, every resource) + the
 resource's own `country_resource_max_<res>_add` + its `dynamic_capacity`.** Resources with
