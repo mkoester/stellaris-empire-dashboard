@@ -794,6 +794,19 @@ which also matches the Bash command's own shell and ends it (exit 143).
 
 ## Testing in a throwaway game
 
+**Reading a save ad hoc** (a number the tabs do not show yet): a throwaway script in
+`src/lib/server/` (so `#lib` imports resolve) that runs `readSave` + `toSnapshot`, started with
+`node` and deleted after — call `setPrescriptedNames` first, or prescripted names read as their keys
+("planet name zrobots" for Yorphia). Never regex a fixed window of the raw `gamestate` from a
+country's start: it runs into the next country's block and reads their values (2026-10-24: a
+"lost" silo that was there all along) — bound the block by its braces, or use the snapshot.
+
+**The current throwaway game** (2026-10-24): `yorphianextractorate_888024433` (Machine
+Intelligence, Shroud-Forged; companion mod 0.5.0). Holds: console stockpiles, a planet and a
+starbase Resource Silo, Construction Templates, Mega-Engineering, the galactic market founded from
+the console (we host), a 1000-energy gift to Lahtrepian (9) accepted 2201.06.01 — **waiting for
+its decay**: read `opinion_trade_gift` at 2202.06.01 or later (`docs/open-checks.md` § 6).
+
 New save shapes come from **throwaway games with console cheats, never the real campaign** (its
 history lives only in the DB), against a **separate `DASHBOARD_DB`**, the companion mod on (cheats
 end achievements anyway). Per topic a manual save before and after, diffed in `$TMPDIR`, plus a
