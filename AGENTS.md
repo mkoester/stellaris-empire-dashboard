@@ -805,7 +805,10 @@ screenshot of the game's panel. Commands, from the wiki's console page (verified
 prefix), every other resource `resource <res> <n>` — `trade` too, and the rare ones by their save
 key: `sr_living_metal`, `sr_zro`, `sr_dark_matter` (2026-10-23; `volatile_motes`, `exotic_gases`,
 `rare_crystals`, `nanites` as named). Amounts stop at our storage (2200: energy 25,000, minerals,
-food, consumer goods and alloys 15,000, trade 50,000), `instant_build`, `survey`, `fast_forward <days>`,
+food, consumer goods and alloys 15,000, trade 50,000), `instant_build` (**while on, every
+country's storage of every resource is 1,000,000** — influence and research included — and
+stockpiles grow past the real limit; turn it off before a month whose storage you measure;
+2026-10-24, gone again the month after), `survey`, `fast_forward <days>`,
 `factions.spawnall`, `federation_add_experience`/`_cohesion`, `event <id>` (`galcom.16` founds
 the Galactic Community, `distar.11000` opens the L-Gates, `crisis.199|1000|2000|8005`,
 `fallen_empires_awakening.1` after `play`-ing a fallen empire), `effect <script>`. Situations:
