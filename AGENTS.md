@@ -186,14 +186,18 @@ scaled by empire size and the galaxy sliders. Checked against the game at 2200.0
 53/71/108 months, tradition 2200.09.01 exact; the agenda is 164 vs. the game's 163 (rounding).
 
 **Popups** (`InfoPopup.svelte`, `server/explain.ts`): traits, edicts, council agendas, techs,
-jobs and the empire's identity (`civic:`, `origin:`, `authority:`, `ethic:`, `gov:`) explained from
+jobs, colony designations (`designation:`, data DB `colony_type`; `Designation.svelte` reads them
+from the page's `designations`, which `branch()` picks for every page) and the empire's identity (`civic:`, `origin:`, `authority:`, `ethic:`, `gov:`) explained from
 the extraction DB — descriptions, modifiers (edict/agenda ones live in `tradition_modifier`, techs
 in `technology_modifier`), a few facts. Civics and origins follow the planner's pages: the effects
 tooltip as text, job swaps, unlocked buildings, granted traits, the council seat (its modifiers
 per leader level as `after`); ethics their implications (`ethic_tag_label`) and forbidden
 policies. The **Government panel** (`panels/Government.svelte`, `identity()` in `server/empire.ts`)
 sorts the save's flat `government` list by the kind the data DB knows each key as, and sums the
-choices' flat modifiers in `#lib/effects.ts` — **adapted from the planner's `collectEffects`**. The modifier formatting in
+choices' flat modifiers in `#lib/effects.ts` — **adapted from the planner's `collectEffects`**. Each
+part keeps its kind (`EffectKind`), shown as a `SourceBadge` (origin, civic, ethic, gestalt for the
+gestalt consciousness ethic, authority, tradition, perk, GalCom, …); the empire modifiers panel
+badges a timed modifier `agenda` (`agenda_*`), `situation` (`*_stage_<n>`) or else `event`. The modifier formatting in
 `modifiers.ts` is **copied from the planner's `src/lib/civics.ts`** — keep the two in step. The
 popup itself is plain CSS: the planner's needs Skeleton UI.
 
@@ -486,12 +490,29 @@ cap, overcrowded (growth stops at 1.15 × housing, `OVERCROWDING_NO_GROWTH_THRES
 habitability, not growing. Still to come once capacity is fitted: what +1 district, a cleared
 blocker, a medical building or an edict would gain, and the colonies ranked by it.
 
+**Growth projection** (`#lib/growthProjection.ts` pure; the user's ask 2026-10-24): 10/25/50 years,
+per colony and summed, biological and mechanical apart — they follow different rules. Biological:
+the logistic formula with the defines' floor (10 %), minimum pops (10) and cap (5), times a speed
+**calibrated per colony** (measured growth ÷ the formula at today's pops), so every modifier counts
+unlisted; without a capacity, the measured rate. Mechanical: assembly at its measured mean. Both
+stop at `OVERCROWDING_NO_GROWTH|ASSEMBLY_THRESHOLD` × housing, housing need per pop as today.
+Everything else is held at today's values (no new districts, colonies, migration, techs) — not
+checked against a game run yet.
+
 **Jobs tab and the shared values** (`/jobs`, `#lib/unitCosts.ts` pure, `server/unitCosts.ts`; the
 user's asks 2026-10-22: "normalised costs for everything we produce" and "how well does each job
 perform on each colony, which colonies should be specialised"):
 
+- **Which job a budget source is** (`jobSources()`, `#lib/jobs.ts`): the budget books a job's
+  output under its `resources.category` (data DB `job.budget_source`), **not** under its name —
+  drone jobs share the organic jobs' (`technician_drone` → `planet_technician`, `fabricator` →
+  `planet_metallurgists`), `patrol_drone` and others the generic `planet_jobs`. A source goes to
+  the jobs the empire works with it, split by worked pops when several do (marked estimated).
+  Matching by name left a gestalt's jobs panel empty but for Maintenance Drones (Yorphia
+  2203.10.01).
 - **What a unit costs us**, per source from the latest budget: a job's inputs plus its workers'
-  upkeep — the stratum's `pop_category_<stratum>s` expenses per pop **and** what every pop eats,
+  upkeep — the stratum's `pop_category_<stratum>s` expenses per pop (a gestalt's three drone
+  strata share one, `pop_category_drones`) **and** what every pop eats,
   `planet_pops_traits` (food; alloys for the Planetforgers' species) per pop; without the latter
   worker jobs came out near free (technicians 0.02 trade per energy) —, stations' and starbase
   modules' upkeep. Several outputs split the cost by value. Not counted: what building it cost,
@@ -1137,7 +1158,13 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
 - Game length: top-level `galaxy = { mid_game_start=100 end_game_start=200 victory_year=300 }`,
   years after the 2200.01.01 start (small/default galaxy). Stored as `Snapshot.endGameYear` — the
   outer bound for zooming out, once zoom exists.
-- Top bar: `country.<id>.empire_size` (50 at start), `starbase_capacity_used` / `starbase_capacity`,
+- Top bar: `country.<id>.empire_size` — **already raised to `EMPIRE_SIZE_FLOOR` (50)**: Yorphia
+  read 50 in every save to 2203.10.01. While it sits at the floor the empire chart adds the
+  unfloored size, estimated (`#lib/empireSize.ts`): the defines' `EMPIRE_SIZE_FROM_*` weights
+  (colonies 20, systems 1, districts 0.5, pops 0.005; branch offices not counted) × the
+  `empire_size_*_mult` modifiers of civics, ethics, authority, origin, traditions, perks, techs,
+  timed modifiers and species traits (Yorphia 2203.10.01: 48.9; not yet checked against the game's
+  tooltip). Also `starbase_capacity_used` / `starbase_capacity`,
   `used_naval_capacity`; research per field is `physics|society|engineering_research` in the
   budget income. Envoys are `leaders.<id>` with `class="envoy"` and `country=<id>`; one is in use
   while it has `location = { assignment=… }` (seen: `first_contact`). **Not stored: the naval
@@ -1250,7 +1277,9 @@ screen, trade calibration, stored research, releases).
   world's pops come from assembly (`GROWTH_CAT_ASSEMBLY` +4 = the game's "Monthly Pop Summary"),
   no natural growth — the growth tab shows both; jobs match the game's job screen pop for pop,
   in its strata `complex_drone` / `simple_drone` ("Menial Drones") / `maintenance_drone`; no
-  factions (the game's "No Factions"). Not checked yet: habitability of a machine species on the
+  factions (the game's "No Factions"). Jobs' output fixed 2026-10-24 (budget sources, above); the
+  species are named "Yorphid" (data DB `prescripted_name`) and "Trans-Yorphid" (the modified
+  species' inline template `$affix$$base$`, `displayName()`). Not checked yet: habitability of a machine species on the
   expansion tab, galcom proposals barred to gestalts (`is_gestalt = no`), consumer goods on the
   produce tab.
 - **Our factions**: confirmed against the game's factions screen at 2212.03.05 — support,
@@ -1427,7 +1456,10 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
 - **Galactic market prices**: `market()` reads `market.fluctuations` /
   `galactic_market_resources` as lists by resource index — confirmed on a 4.0.1 save at 2312
   (chennin/stellaris-dashboard-test-saves; 24 slots there vs. 26 resources in 4.5.2, so the order
-  follows the game version's `strategic_resources`). Not yet seen in our own game. Prices exist
+  follows the game version's `strategic_resources`), and in our own game (Yorphia, founded from
+  the console 2201.05.01): 26 slots, open for the basic five and the rare ones, every fluctuation 0
+  through 2203.10.01 — we alone had access and never traded on it; the market tab says so. The
+  game's market screen at base prices is still to be screenshotted. Prices exist
   only for saves read since 2026-10-17; older ones' saves are gone.
 - **Chart zoom and pan**: wanted — the default window (`xRange`: last 20 years, 1 ahead) should
   zoom out/in and shift. Not started.

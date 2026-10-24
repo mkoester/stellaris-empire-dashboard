@@ -86,6 +86,9 @@
 		{#if galactic}
 			<b class="text-current">Galactic market</b>{since ? ` since ${since}` : ''}: one market for
 			every member, so everyone's trades move its prices and there is no monthly limit of your own.
+			{#if Object.values(data.market.fluctuations).every((f) => f === 0)}
+				Every price is at its base (the save holds a change of 0 for each): no trade has moved them.
+			{/if}
 		{:else}
 			<b class="text-current">Internal market</b>: the empire's own. Trading moves its prices twice
 			as much as on the galactic market, and they recover three times slower. Access to the galactic

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { colorOf } from '#lib/colors.ts';
+	import Designation from '#lib/Designation.svelte';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -54,7 +55,7 @@
 		{
 			id: 'designation',
 			label: 'Designation',
-			value: (c) => pretty(c.designation.replace(/^col_/, '')),
+			value: (c) => pretty(c.designation),
 			cell: designation
 		},
 		...resources.map((r) => ({
@@ -98,7 +99,7 @@
 		>{c.name}</span
 	>{/snippet}
 {#snippet designation(c: ColonyRow)}<span class="text-gray-500"
-		>{pretty(c.designation.replace(/^col_/, ''))}</span
+		><Designation key={c.designation} /></span
 	>{/snippet}
 {#snippet ratio(c: ColonyRow, r: string)}{#if c.ratio[r] !== undefined}<span
 			class="{tone(c.ratio[r])} {best[r] === c.planetId ? 'font-bold' : ''}"

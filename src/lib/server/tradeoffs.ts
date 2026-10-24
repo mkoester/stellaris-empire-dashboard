@@ -2,7 +2,7 @@ import { pretty } from '#lib/format.ts';
 import { facts } from '#lib/government.ts';
 import { inReach } from '#lib/techTiers.ts';
 import { evaluate } from '#lib/triggers.ts';
-import { jobFlows } from '#lib/jobs.ts';
+import { jobFlows, workedJobs } from '#lib/jobs.ts';
 import { changesOf, jobGroup, type Change, type TradeOption } from '#lib/tradeoffs.ts';
 import type { Resources, Snapshot } from '#lib/types.ts';
 import { getGameData } from './app.ts';
@@ -46,11 +46,9 @@ const add = (a: Resources, b: Resources): Resources => {
  */
 export function jobMeasure(save: Snapshot) {
 	const data = getGameData();
-	const filled: Record<string, number> = {};
-	for (const j of save.colonies.flatMap((c) => c.jobs))
-		filled[j.type] = (filled[j.type] ?? 0) + j.filled;
+	const filled = workedJobs(save.colonies);
 	const perPop = Object.fromEntries(
-		Object.entries(jobFlows(save.planetBudget ?? [], data.jobs))
+		Object.entries(jobFlows(save.planetBudget ?? [], data.jobs, filled))
 			.filter(([job]) => filled[job] > 0)
 			.map(([job, flows]) => [job, scaled(flows, 1 / filled[job])])
 	);

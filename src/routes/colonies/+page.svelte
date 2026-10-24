@@ -101,7 +101,7 @@
 		designations,
 		() => view.filters.designation,
 		(v) => (view.filters.designation = v),
-		pretty
+		(k) => data.designations[`designation:${k}`]?.title ?? pretty(k)
 	)}
 	{@render select(
 		'suits',

@@ -6,7 +6,14 @@ import { colonyBlockerHints } from './planets.ts';
 import { display, expansionView } from './settings.ts';
 import { ROW_LINES } from '#lib/profiles.ts';
 import { branch } from './branch.ts';
-import { totalEffects } from '#lib/effects.ts';
+import { totalEffects, type EffectKind } from '#lib/effects.ts';
+import {
+	empireSizeEstimate,
+	sizeFloor,
+	sizeModifiers,
+	sizeParts,
+	speciesSizeMult
+} from '#lib/empireSize.ts';
 import { pretty } from '#lib/format.ts';
 import type { Snapshot } from '#lib/types.ts';
 import { traitBudget } from '#lib/species.ts';
@@ -19,7 +26,6 @@ import {
 	popSeries,
 	researchSeries,
 	resourceSeries,
-	scalarSeries,
 	stockpileSeries,
 	withoutResearch,
 	xRange
@@ -113,13 +119,50 @@ export function empireData(url: URL) {
 				technology: (s) => s.score?.tech ?? null,
 				military: (s) => s.score?.military ?? null
 			}),
-			empireSize: scalarSeries(snaps, 'empire size', (s) => s.empireSize),
+			empireSize: empireSizeSeries(snaps),
 			research: researchSeries(snaps),
 			stockpile: stockpileSeries(snaps),
 			balance: resourceSeries(snaps, (s) => withoutResearch(s.balance)),
 			income: resourceSeries(snaps, (s) => withoutResearch(s.income))
 		}
 	};
+}
+
+/**
+ * Empire size as the save stores it and, while that sits at the floor (50), the unfloored size
+ * estimated from its parts and the modifiers the explanations know (`#lib/empireSize.ts`).
+ */
+function empireSizeSeries(snaps: Snapshot[]) {
+	const all = getExplanations();
+	const { defines } = getGameData();
+	const floor = sizeFloor(defines);
+	const of = (ids: string[]) => ids.flatMap((id) => all[id]?.modifiers ?? []);
+	const estimate = (s: Snapshot) => {
+		if (s.empireSize === null || s.empireSize > floor) return null;
+		const traits = new Map((s.species ?? []).map((sp) => [sp.id, sp.traits]));
+		const parts = sizeParts(s, (id) =>
+			speciesSizeMult(of((traits.get(id) ?? []).map((t) => `trait:${t}`)))
+		);
+		if (!parts) return null;
+		const mods = sizeModifiers(
+			of([
+				...(s.government ?? []).flatMap((k) => [`civic:${k}`, `ethic:${k}`, `authority:${k}`]),
+				...(s.origin ? [`origin:${s.origin}`] : []),
+				...(s.traditions ?? []).map((k) => `tradition:${k}`),
+				...(s.ascensionPerks ?? []).map((k) => `perk:${k}`),
+				...(s.progress?.researched ?? []).map((k) => `tech:${k}`),
+				...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`)
+			])
+		);
+		return empireSizeEstimate(parts, mods, defines);
+	};
+	const series = fieldSeries(snaps, {
+		'empire size': (s) => s.empireSize,
+		'actual (estimated)': estimate
+	});
+	if (series.lines['actual (estimated)'].every((v) => v === null))
+		delete series.lines['actual (estimated)'];
+	return series;
 }
 
 /**
@@ -152,10 +195,18 @@ export function identity(s: Snapshot | undefined) {
 					rows
 						.find((r) => r.label === label)
 						?.items.filter((i) => all[i.id])
-						.map((i) => ({ name: i.name, modifiers: all[i.id].modifiers })) ?? []
+						.map((i) => ({
+							name: i.name,
+							modifiers: all[i.id].modifiers,
+							kind: sourceKind(i.id)
+						})) ?? []
 			)
 		)
 	};
 }
+
+/** A popup id's kind as a badge: `civic:x` → civic; the gestalt consciousness ethic → gestalt. */
+const sourceKind = (id: string): EffectKind =>
+	id === 'ethic:ethic_gestalt_consciousness' ? 'gestalt' : (id.split(':')[0] as EffectKind);
 
 export type EmpireData = Extract<ReturnType<typeof empireData>, { empty: false }>;

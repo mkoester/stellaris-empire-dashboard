@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { jobFlows, jobRows, openJobs, stratumName, withFlows } from './jobs.ts';
+import { jobFlows, jobRows, jobSources, openJobs, stratumName, withFlows } from './jobs.ts';
 import type { BudgetSource } from './types.ts';
 
 describe('jobRows', () => {
@@ -67,7 +67,7 @@ describe('jobFlows', () => {
 	];
 
 	it('maps planet_<job> sources to job types by key or name, plural or not', () => {
-		expect(jobFlows(budget, info)).toEqual({
+		expect(jobFlows(budget, info, {})).toEqual({
 			farmer: { food: 107.26 },
 			foundry: { alloys: 10.16, minerals: -10.8 },
 			technician: { energy: 74.5 }
@@ -80,6 +80,55 @@ describe('jobFlows', () => {
 		expect(r.flows).toEqual({ food: 25 });
 		expect(r.estimated).toBe(true);
 		expect(withFlows(rows, { farmer: { food: 100 } }, { farmer: 200 })[0].estimated).toBe(false);
+	});
+});
+
+describe('jobSources for a gestalt', () => {
+	// Yorphia 2203.10.01 (Machine Intelligence): drone jobs book under the organic jobs' sources.
+	const info = {
+		technician: { name: 'Technician', category: 'worker', budgetSource: 'planet_technician' },
+		technician_drone: {
+			name: 'Technician Drone',
+			category: 'simple_drone',
+			budgetSource: 'planet_technician'
+		},
+		patrol_drone: { name: 'Patrol Drone', category: 'complex_drone', budgetSource: 'planet_jobs' },
+		evaluator: { name: 'Evaluator', category: 'complex_drone', budgetSource: 'planet_jobs' },
+		replicator: {
+			name: 'Replicator',
+			category: 'complex_drone',
+			budgetSource: 'planet_pop_assemblers'
+		}
+	};
+	const budget: BudgetSource[] = [
+		{ source: 'planet_technician', income: { energy: 60 }, expenses: {} },
+		{ source: 'planet_jobs', income: { unity: 9 }, expenses: { energy: 3 } },
+		{ source: 'planet_pop_assemblers', income: {}, expenses: { minerals: 12 } }
+	];
+
+	it('gives a source to the job the empire works with it', () => {
+		const s = jobSources(budget, info, {
+			technician_drone: 300,
+			patrol_drone: 100,
+			replicator: 50
+		});
+		expect(s.technician_drone).toEqual({ income: { energy: 60 }, expenses: {} });
+		expect(s.technician).toBeUndefined();
+		expect(s.replicator).toEqual({ income: {}, expenses: { minerals: 12 } });
+		expect(s.patrol_drone).toEqual({ income: { unity: 9 }, expenses: { energy: 3 } });
+	});
+
+	it('splits a source several worked jobs share by pops, marked shared', () => {
+		const s = jobSources(budget, info, { patrol_drone: 100, evaluator: 200 });
+		expect(s.patrol_drone).toEqual({ income: { unity: 3 }, expenses: { energy: 1 }, shared: true });
+		expect(s.evaluator).toEqual({ income: { unity: 6 }, expenses: { energy: 2 }, shared: true });
+	});
+
+	it('marks rows of a shared source as estimated', () => {
+		const rows = jobRows([{ type: 'evaluator', pops: 200, filled: 200, positions: 200 }], info);
+		expect(
+			withFlows(rows, { evaluator: { unity: 6 } }, undefined, new Set(['evaluator']))[0]
+		).toMatchObject({ estimated: true });
 	});
 });
 

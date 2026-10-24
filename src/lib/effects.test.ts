@@ -22,6 +22,13 @@ describe('totalEffects', () => {
 		]);
 	});
 
+	it('keeps a part’s kind for its badge', () => {
+		const [t] = totalEffects([
+			{ name: 'Machine Intelligence', modifiers: [mod('envoys_add', 1)], kind: 'authority' }
+		]);
+		expect(t.sources).toEqual([{ name: 'Machine Intelligence', value: 1, kind: 'authority' }]);
+	});
+
 	it('keeps the order modifiers first appear in', () => {
 		expect(totals.map((t) => t.mod.key)).toEqual([
 			'refugee_attraction',

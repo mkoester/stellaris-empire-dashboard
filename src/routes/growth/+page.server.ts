@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { growthRows, queuedDistricts } from '#lib/growth.ts';
+import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { colonyDetails } from '#lib/server/planets.ts';
 
@@ -21,6 +22,10 @@ export function load({ url }) {
 					};
 				})
 			: [],
-		housingKnown: latest?.colonies.some((c) => c.housing !== null) ?? false
+		housingKnown: latest?.colonies.some((c) => c.housing !== null) ?? false,
+		// the projection's constants (#lib/growthProjection.ts)
+		defines: Object.fromEntries(
+			Object.entries(getGameData().defines).filter(([k]) => /^(LOGISTIC_|OVERCROWDING_)/.test(k))
+		)
 	};
 }

@@ -56,7 +56,8 @@
 		totalEffects(
 			(data.galcom?.passed ?? []).map((r) => ({
 				name: data.diploNames[r.type] ?? pretty(r.type),
-				modifiers: data.explain[`resolution:${r.type}`]?.modifiers ?? []
+				modifiers: data.explain[`resolution:${r.type}`]?.modifiers ?? [],
+				kind: 'resolution' as const
 			}))
 		)
 	);

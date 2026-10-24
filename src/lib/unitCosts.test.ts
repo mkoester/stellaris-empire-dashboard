@@ -74,6 +74,21 @@ describe('costSources and unitValues', () => {
 			worker: { food: 0.1 }
 		});
 	});
+	it('splits a gestalt’s shared drone upkeep over all drone strata', () => {
+		const hive = [
+			colony(3, 'Yorphia', {
+				strata: [
+					{ category: 'complex_drone', size: 100, happiness: 1 },
+					{ category: 'simple_drone', size: 300, happiness: 1 }
+				]
+			})
+		];
+		const drones = [{ source: 'pop_category_drones', income: {}, expenses: { energy: 40 } }];
+		expect(stratumUpkeep(drones, hive)).toEqual({
+			complex_drone: { energy: 0.1 },
+			simple_drone: { energy: 0.1 }
+		});
+	});
 	it('values research at what it costs us, across jobs and stations', () => {
 		const sources = costSources(budget, colonies, jobs);
 		expect(sources.map((s) => s.id)).toEqual(['job:researcher', 'job:miner', 'station:research']);

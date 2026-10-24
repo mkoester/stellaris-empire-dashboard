@@ -3,6 +3,7 @@
 	import { colorOf } from './colors.ts';
 	import { countLabel } from './colonyProfile.ts';
 	import { sectorName, type ColonyRow, type ColumnId, type Sort } from './colonyTable.ts';
+	import Designation from './Designation.svelte';
 	import DistrictName from './DistrictName.svelte';
 	import TraitChip from './TraitChip.svelte';
 	import {
@@ -186,7 +187,7 @@
 					{/if}
 					{#if show('designation')}
 						<td class="p-1 whitespace-nowrap">
-							{pretty(r.designation)}{#if r.profile.mismatch}&nbsp;<span
+							<Designation key={r.designation} />{#if r.profile.mismatch}&nbsp;<span
 									class="cursor-help text-amber-600"
 									title={r.profile.mismatch}>⚠</span
 								>{/if}

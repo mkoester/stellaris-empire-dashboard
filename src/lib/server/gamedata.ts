@@ -54,9 +54,15 @@ export function loadGameData(file: string): GameData {
 				])
 			),
 			jobs: Object.fromEntries(
-				rows<{ key: string; name: string | null; category: string | null }>(
-					'SELECT key, name, category FROM job'
-				).map((r) => [r.key, { name: r.name ?? r.key, category: r.category }])
+				rows<{
+					key: string;
+					name: string | null;
+					category: string | null;
+					budget_source: string | null;
+				}>('SELECT key, name, category, budget_source FROM job').map((r) => [
+					r.key,
+					{ name: r.name ?? r.key, category: r.category, budgetSource: r.budget_source }
+				])
 			),
 			edicts: Object.fromEntries(
 				rows<{

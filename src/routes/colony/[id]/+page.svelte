@@ -4,6 +4,7 @@
 	import Chart from '#lib/Chart.svelte';
 	import Flows from '#lib/Flows.svelte';
 	import Jobs from '#lib/Jobs.svelte';
+	import Designation from '#lib/Designation.svelte';
 	import DistrictName from '#lib/DistrictName.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
 	import PlanetInfo from '#lib/panels/PlanetInfo.svelte';
@@ -69,7 +70,7 @@
 			</select>
 		</h1>
 		{#if data.colony}
-			<span>{pretty(data.colony.designation)}</span>
+			<span><Designation key={data.colony.designation} /></span>
 			{#if data.colony.colonizing}
 				<!-- being settled: complete at 100 colonists; due date from Upcoming -->
 				<span class="text-green-700" title={settled?.detail ?? ''}>

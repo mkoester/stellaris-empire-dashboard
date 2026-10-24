@@ -1,4 +1,4 @@
-import { jobSources, type JobInfo } from './jobs.ts';
+import { jobSources, workedJobs, type JobInfo } from './jobs.ts';
 import { basePrice } from './market.ts';
 import type { BudgetSource, Colony, Resources } from './types.ts';
 import { valueOf } from './value.ts';
@@ -6,7 +6,8 @@ import { valueOf } from './value.ts';
 // What a unit of each resource costs us to make, and how well each colony works its jobs — pure.
 // - Sources: every job (the budget's `planet_<job>`), station kind and the starbase modules. A
 //   source's running cost per month is what it uses — a job's inputs plus its workers' upkeep
-//   (their stratum's `pop_category_<stratum>s` expenses per pop, and every pop's food or other
+//   (their stratum's `pop_category_<stratum>s` — a gestalt's `pop_category_drones` — expenses per
+//   pop, and every pop's food or other
 //   needs, `planet_pops_traits`), a station's or module's upkeep —
 //   in trade. Building and district upkeep, and what was paid to build them, are not counted.
 // - Values: what the market sells is worth its base price (trade is the unit, 1); every other
@@ -40,7 +41,9 @@ export const marketValue = (r: string) => (r === 'trade' ? 1 : basePrice(r));
 
 /**
  * Workers' upkeep per pop, by stratum: the stratum's own (`worker` → `pop_category_workers`
- * expenses ÷ its pops) plus what every pop eats (`planet_pops_traits` ÷ all pops).
+ * expenses ÷ its pops) plus what every pop eats (`planet_pops_traits` ÷ all pops). A gestalt's
+ * drone strata (complex, menial, maintenance) share one source, `pop_category_drones`, ÷ all
+ * drones (Yorphia 2203.10.01).
  */
 export function stratumUpkeep(
 	budget: BudgetSource[],
@@ -53,10 +56,18 @@ export function stratumUpkeep(
 	const all = Object.values(pops).reduce((a, b) => a + b, 0);
 	const shared = budget.find((x) => x.source === 'planet_pops_traits')?.expenses ?? {};
 	const each = all > 0 ? add({}, shared, 1 / all) : {};
+	const drones = Object.entries(pops)
+		.filter(([cat]) => cat.endsWith('_drone'))
+		.reduce((a, [, n]) => a + n, 0);
 	return Object.fromEntries(
 		Object.entries(pops).flatMap(([cat, n]) => {
-			const b = budget.find((x) => x.source === `pop_category_${cat}s`);
-			return n > 0 ? [[cat, add(each, b?.expenses ?? {}, 1 / n)]] : [];
+			const own = budget.find((x) => x.source === `pop_category_${cat}s`);
+			const shared = cat.endsWith('_drone')
+				? budget.find((x) => x.source === 'pop_category_drones')
+				: undefined;
+			if (n <= 0) return [];
+			if (own) return [[cat, add(each, own.expenses, 1 / n)]];
+			return [[cat, add(each, shared?.expenses ?? {}, shared ? 1 / drones : 0)]];
 		})
 	);
 }
@@ -72,12 +83,10 @@ export function costSources(
 	colonies: Colony[],
 	jobs: JobInfo
 ): CostSource[] {
-	const filled: Record<string, number> = {};
-	for (const j of colonies.flatMap((c) => c.jobs))
-		filled[j.type] = (filled[j.type] ?? 0) + j.filled;
+	const filled = workedJobs(colonies);
 	const upkeep = stratumUpkeep(budget, colonies);
 	const source = (s: string) => budget.find((b) => b.source === s);
-	const out: CostSource[] = Object.entries(jobSources(budget, jobs)).flatMap(([job, s]) => {
+	const out: CostSource[] = Object.entries(jobSources(budget, jobs, filled)).flatMap(([job, s]) => {
 		const pops = filled[job] ?? 0;
 		if (!Object.values(s.income).some((v) => v > 0) || pops <= 0) return [];
 		const stratum = jobs[job]?.category ?? '';
@@ -174,11 +183,9 @@ export function colonyEfficiency(
 	colonies: Colony[],
 	jobs: JobInfo
 ): ColonyEfficiency[] {
-	const filled: Record<string, number> = {};
-	for (const j of colonies.flatMap((c) => c.jobs))
-		filled[j.type] = (filled[j.type] ?? 0) + j.filled;
+	const filled = workedJobs(colonies);
 	const perPop = Object.fromEntries(
-		Object.entries(jobSources(budget, jobs))
+		Object.entries(jobSources(budget, jobs, filled))
 			.filter(([job]) => (filled[job] ?? 0) > 0)
 			.map(([job, s]) => [job, add({}, s.income, 1 / filled[job])])
 	);

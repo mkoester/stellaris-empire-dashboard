@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { fmt, pretty } from '#lib/format.ts';
+	import Designation from '#lib/Designation.svelte';
+	import { fmt } from '#lib/format.ts';
+	import Chart from '#lib/Chart.svelte';
 	import { GROWTH_CAP, type GrowthRow } from '#lib/growth.ts';
+	import { projectColony, sumProjections } from '#lib/growthProjection.ts';
+	import { gameYear } from '#lib/series.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import SortTable from '#lib/SortTable.svelte';
@@ -19,7 +23,31 @@
 	let sort = $state({ column: 'growth', desc: true });
 
 	const pct = (v: number | null) => (v === null ? '' : `${Math.round(v * 100)} %`);
-	const columns: Column<GrowthRow>[] = [
+
+	// The projection: per colony, month by month, over the horizon picked (years).
+	const HORIZONS = [10, 25, 50];
+	let years = $state(25);
+	let focus = $state<number | null>(null); // a colony's planet id; null: the whole empire
+	const months = $derived(years * 12);
+	const projections = $derived(
+		new Map(data.rows.map((r) => [r.planetId, projectColony(r, months, data.defines)]))
+	);
+	const start = $derived(gameYear(data.latest.date));
+	const chart = $derived.by(() => {
+		const p =
+			focus === null
+				? sumProjections([...projections.values()], months)
+				: (projections.get(focus) ?? sumProjections([], months));
+		return {
+			x: p.pops.map((_, m) => start + m / 12),
+			lines: { pops: p.pops, 'from growth': p.bio, 'from assembly': p.mech }
+		};
+	});
+	const later = (r: GrowthRow) => projections.get(r.planetId)?.pops[months] ?? null;
+	const stops = (r: GrowthRow) => projections.get(r.planetId)?.stopsAt ?? null;
+	const yearsOf = (m: number) => (m < 24 ? `${m} mo` : `${Math.round(m / 12)} y`);
+
+	const columns: Column<GrowthRow>[] = $derived([
 		{ id: 'name', label: 'Colony', value: (r) => r.name, cell: name },
 		{
 			id: 'designation',
@@ -87,14 +115,30 @@
 			cell: hab,
 			title: 'habitability: below 100 % slows growth (it does not change the capacity)'
 		},
+		{
+			id: 'later',
+			label: `Pops in ${years} y`,
+			value: later,
+			right: true,
+			cell: laterCell,
+			title: 'projected: logistic growth at the measured speed plus assembly, today’s housing'
+		},
+		{
+			id: 'stops',
+			label: 'Stops in',
+			value: stops,
+			right: true,
+			cell: stopsCell,
+			title: 'when growth and assembly stop: overcrowded at 1.15 × today’s housing'
+		},
 		{ id: 'flags', label: 'Notes', value: (r) => r.flags.join(', '), cell: flags }
-	];
+	]);
 </script>
 
 {#snippet name(r: GrowthRow)}<a class="hover:underline" href={href(r.planetId)}>{r.name}</a
 	>{/snippet}
 {#snippet designation(r: GrowthRow)}<span class="text-gray-500"
-		>{pretty(r.designation.replace(/^col_/, ''))}</span
+		><Designation key={r.designation} /></span
 	>{/snippet}
 {#snippet pops(r: GrowthRow)}{fmt(r.pops)}{/snippet}
 {#snippet growth(r: GrowthRow)}{#if r.growth !== null}<span
@@ -114,6 +158,8 @@
 			(+{r.blocked})</span
 		>{/if}{/snippet}
 {#snippet hab(r: GrowthRow)}{pct(r.habitability)}{/snippet}
+{#snippet laterCell(r: GrowthRow)}{@const p = later(r)}{p === null ? '' : fmt(p)}{/snippet}
+{#snippet stopsCell(r: GrowthRow)}{@const m = stops(r)}{m === null ? '' : yearsOf(m)}{/snippet}
 {#snippet flags(r: GrowthRow)}<span class="text-xs">{r.flags.join(' · ')}</span>{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -122,6 +168,28 @@
 </header>
 
 <div class="flex flex-col gap-6">
+	<Panel
+		title="Projection"
+		note="Biological growth follows the game's logistic rule at each colony's measured speed (so habitability, traits and every other modifier count): fastest at half the planet capacity, never under 10 % of it, at most {GROWTH_CAP} a month. Assembly (machines, robots) goes on at its measured rate. Both stop once the colony is overcrowded (1.15 × housing). Held at today's values: housing, capacity, districts and modifiers. Not modelled: new colonies, migration, new districts and buildings, techs — so this is what the colonies do if nothing changes."
+	>
+		<div class="mb-2 flex flex-wrap items-center gap-3 text-sm">
+			<span class="flex gap-1">
+				{#each HORIZONS as h (h)}<button
+						class="rounded px-2 py-0.5 {years === h
+							? 'bg-gray-200 font-semibold dark:bg-gray-700'
+							: 'hover:bg-gray-100 dark:hover:bg-gray-800'}"
+						onclick={() => (years = h)}>{h} years</button
+					>{/each}
+			</span>
+			<label
+				>for <select class="rounded bg-transparent" bind:value={focus}>
+					<option value={null}>the whole empire</option>
+					{#each data.rows as r (r.planetId)}<option value={r.planetId}>{r.name}</option>{/each}
+				</select></label
+			>
+		</div>
+		<Chart title="Pops projected" series={chart} range={[start, start + years]} yMin={0} />
+	</Panel>
 	<Panel
 		title="Growth per colony"
 		note="Measured: natural growth per month, the mean of the colony's last saves (pop units; fractions are a chance in game). The game's rule (wiki, 4.5): 1/400 × (pops − pops² / planet capacity − 1), all species together at most {GROWTH_CAP}, times the species' growth speed — slow in a small colony, fastest at half the capacity, slow again near it. Planet capacity (not in the save) is housing + 400 per free district slot on normal planets; a queued district takes its slot at once, long before its housing arrives — queue districts just in time. More housing or free districts raise it; a colony at the cap gains nothing from more.{data.housingKnown

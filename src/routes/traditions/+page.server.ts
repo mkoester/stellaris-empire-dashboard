@@ -23,10 +23,10 @@ export function load({ url }) {
 		...Object.keys(data.perks).map((k) => `perk:${k}`)
 	]);
 	// the flat modifiers summed; what has only a text (conditions, unlocks) is listed apart
-	const effects = (ids: string[]) => {
+	const effects = (ids: string[], kind: 'tradition' | 'perk') => {
 		const parts = ids.flatMap((id) => (explain[id] ? [explain[id]] : []));
 		return {
-			totals: totalEffects(parts.map((e) => ({ name: e.title, modifiers: e.modifiers }))),
+			totals: totalEffects(parts.map((e) => ({ name: e.title, modifiers: e.modifiers, kind }))),
 			texts: parts
 				.filter((e) => e.modifiers.length === 0 && e.text)
 				.map((e) => ({ name: e.title, text: e.text! }))
@@ -44,8 +44,14 @@ export function load({ url }) {
 			taken: perks.includes(key)
 		})),
 		next: rest.upcoming.find((u) => u.kind === 'tradition') ?? null,
-		traditionEffects: effects(owned.map((k) => `tradition:${k}`)),
-		perkEffects: effects(perks.map((k) => `perk:${k}`)),
+		traditionEffects: effects(
+			owned.map((k) => `tradition:${k}`),
+			'tradition'
+		),
+		perkEffects: effects(
+			perks.map((k) => `perk:${k}`),
+			'perk'
+		),
 		explain
 	};
 }

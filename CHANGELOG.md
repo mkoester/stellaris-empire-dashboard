@@ -8,6 +8,16 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- The growth tab projects pops 10, 25 or 50 years ahead, per colony and for the whole empire:
+  natural growth at each colony's measured speed (slowing as the planet fills) and assembly
+  apart, both stopping once the colony is overcrowded — with when each colony stops growing.
+- The empire-size chart also shows the real size while it is under 50 (the game, and the save,
+  never count it lower), estimated from colonies, systems, districts and pops.
+- Designations explain themselves on hover — what the colony specialises in and the bonus it
+  grants — wherever they are shown, by their name in game.
+- Summed effects (government, traditions, Galactic Community) and empire modifiers carry badges
+  for where each part comes from: origin, civic, ethic, gestalt, authority, tradition, perk,
+  GalCom, event, situation, …
 - Gestalt empires: the growth tab shows assembled pops (Replicators, robot assembly) beside
   natural growth, so a machine world no longer looks stagnant; the colony page lists complex,
   menial and maintenance drones in the game's order; the government tab says a gestalt has no
@@ -112,6 +122,14 @@ All notable changes to this project are documented here. The format follows
 - The history is upgraded in place when a new version changes its tables, after a copy beside it
   (`dashboard.v15.sqlite`). An older version started by mistake refuses a newer history instead
   of discarding it.
+
+### Fixed
+
+- Gestalt empires: drone jobs show what they make and use (the jobs panel and tab were empty but
+  for Maintenance Drones), and drone upkeep counts in what a unit costs.
+- Modified species are named as in game ("Trans-Yorphid", not "$affix$$base$ Yorphid Trans-"),
+  and prescripted species by their name ("Yorphid", not "Zrobots").
+- The species tab no longer runs trait effects into the next column.
 
 ## [0.1.0] - 2026-10-20
 

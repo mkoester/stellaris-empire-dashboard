@@ -12,6 +12,7 @@
 	import { openJobs } from './jobs.ts';
 	import Resources from './Resources.svelte';
 	import Upcoming from './Upcoming.svelte';
+	import Designation from './Designation.svelte';
 	import DistrictName from './DistrictName.svelte';
 	import DistrictSummary from './DistrictSummary.svelte';
 	import AutomationSummary from './panels/AutomationSummary.svelte';
@@ -45,7 +46,12 @@
 	const pct = (v: number | null) => (v === null ? '–' : `${Math.round(v * 100)}%`);
 	const colonyColumns: Column<Colony>[] = [
 		{ id: 'name', label: 'Colony', value: (c) => c.name, cell: colonyName },
-		{ id: 'designation', label: 'Designation', value: (c) => pretty(c.designation) },
+		{
+			id: 'designation',
+			label: 'Designation',
+			value: (c) => pretty(c.designation),
+			cell: designationCell
+		},
 		{ id: 'pops', label: 'Pops', value: (c) => c.pops, cell: numCell, right: true },
 		{
 			id: 'growth',
@@ -134,7 +140,12 @@
 			: resolve('/colony/[id]', { id: String(planetId) });
 
 	const charts = $derived({
-		'chart-empire-size': { title: 'Empire size', series: data.charts.empireSize, yMin: 50 },
+		// below the floor the estimated size goes under 50: the axis starts at 0 then
+		'chart-empire-size': {
+			title: 'Empire size',
+			series: data.charts.empireSize,
+			yMin: 'actual (estimated)' in data.charts.empireSize.lines ? 0 : 50
+		},
 		'chart-pops': { title: 'Pops', series: data.charts.pops },
 		'chart-score': { title: 'Score and power', series: data.charts.score },
 		'chart-agenda': { title: 'Council agenda', series: data.charts.agenda, right: ['per month'] },
@@ -338,6 +349,7 @@
 {#snippet numCell(c: Colony, id: string)}{fmt(
 		Number(colonyColumns.find((x) => x.id === id)!.value(c) ?? 0)
 	)}{/snippet}
+{#snippet designationCell(c: Colony)}<Designation key={c.designation} />{/snippet}
 {#snippet happinessCell(c: Colony)}{pct(c.happiness)}{/snippet}
 {#snippet colonyName(c: Colony)}
 	{#if c.planetId >= 0}

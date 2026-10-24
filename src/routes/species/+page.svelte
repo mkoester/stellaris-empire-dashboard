@@ -8,7 +8,9 @@
 	let { data } = $props();
 	followGame(() => data.isHead);
 
-	const isClimate = (trait: string) => /^trait_pc_.*_preference$/.test(trait);
+	// every habitability preference: `trait_pc_arid_preference`, `trait_cold_planet_preference`,
+	// a machine's `trait_machine_pc_*` and a robot's `trait_auto_*` (4.5.2)
+	const isClimate = (trait: string) => /_preference(_terraforming)?$/.test(trait);
 </script>
 
 <header class="mb-4 flex items-start gap-4">
@@ -28,7 +30,7 @@
 			     side by side, as many as the width allows, more picks wrapping into more rows -->
 			<div class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-x-4 gap-y-1.5 text-sm">
 				{#each [...s.traits].sort((a, b) => Number(isClimate(b)) - Number(isClimate(a))) as t (t)}
-					<div class={isClimate(t) ? 'col-span-full' : ''}>
+					<div class={['min-w-0', isClimate(t) && 'col-span-full']}>
 						<b
 							><InfoPopup explanation={data.explain[`trait:${t}`]}
 								>{data.explain[`trait:${t}`]?.title ?? pretty(t.replace(/^trait_/, ''))}</InfoPopup

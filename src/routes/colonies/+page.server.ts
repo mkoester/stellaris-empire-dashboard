@@ -11,6 +11,7 @@ export function load({ url }) {
 	return {
 		...colonyRows(b),
 		date: b.latest.date,
+		designations: b.designations,
 		tip: b.tip,
 		isHead: b.isHead,
 		view: colonyView(),

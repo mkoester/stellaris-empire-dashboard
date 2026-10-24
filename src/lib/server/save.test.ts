@@ -15,6 +15,8 @@ import {
 	colonyGrowth,
 	colonyJobs,
 	displayName,
+	setPrescriptedNames,
+	speciesName,
 	envoys,
 	knownSystems,
 	migration,
@@ -1230,6 +1232,35 @@ describe('helpers', () => {
 				variables: [{ key: 'NAME', value: { key: 'NAME_Alpha_Centauri' } }]
 			})
 		).toBe('Alpha Centauri Prime');
+	});
+
+	it('fills a modified species’ inline template, prescripted names first', () => {
+		// Yorphia 2203.10.01: the machine species and its Shroud-Forged robot offshoot
+		setPrescriptedNames({ PRESCRIPTED_species_name_zrobots: 'Yorphid' });
+		try {
+			expect(speciesName({ key: 'PRESCRIPTED_species_name_zrobots' })).toBe('Yorphid');
+			expect(
+				speciesName({
+					key: '$affix$$base$',
+					variables: [
+						{ key: 'base', value: { key: 'PRESCRIPTED_species_name_zrobots' } },
+						{ key: 'affix', value: { key: 'Trans-' } }
+					]
+				})
+			).toBe('Trans-Yorphid');
+			expect(
+				displayName({
+					key: '$base$ $affix$',
+					variables: [
+						{ key: 'affix', value: { key: 'Variatus' } },
+						{ key: 'base', value: { key: 'NAME_Zanthi' } }
+					]
+				})
+			).toBe('Zanthi Variatus');
+		} finally {
+			setPrescriptedNames({});
+		}
+		expect(speciesName({ key: 'PRESCRIPTED_species_name_humans1' })).toBe('Humans');
 	});
 });
 

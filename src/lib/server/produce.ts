@@ -1,7 +1,7 @@
 import { blocked } from '#lib/blockers.ts';
 import { pretty } from '#lib/format.ts';
 import { edictRows, facts } from '#lib/government.ts';
-import { jobFlows } from '#lib/jobs.ts';
+import { jobFlows, workedJobs } from '#lib/jobs.ts';
 import { marketFee, price } from '#lib/market.ts';
 import { changeGain, type GroupFlows, type ProduceOption } from '#lib/produce.ts';
 import { stripOrder } from '#lib/resourceGroups.ts';
@@ -36,7 +36,8 @@ export function groupFlows(save: Snapshot): GroupFlows {
 	const budget = save.budget ?? [];
 	const byJob = jobFlows(
 		(save.planetBudget ?? []).map((b) => ({ ...b, expenses: {} })),
-		data.jobs
+		data.jobs,
+		workedJobs(save.colonies)
 	);
 	const out: GroupFlows = { jobs: sum(Object.values(byJob)) };
 	for (const [job, flows] of Object.entries(byJob)) {

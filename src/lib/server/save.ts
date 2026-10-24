@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '18';
+export const READER = '19'; // 19: species name templates ("Trans-Yorphid")
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -615,8 +615,8 @@ export function marketOrders(trades: Raw, countryId: number): MarketOrder[] {
  * `has_market_access` (set and removed together with `enable_galactic_market`, events
  * `on_action_events_2.txt` / `galactic_community_events.txt`). Its prices are
  * `market.fluctuations`, one per resource in the order of `common/strategic_resources`, traded
- * where `galactic_market_resources` is not 0 (both UNVERIFIED — no save with a galactic market
- * seen; the shape is stellaris-dashboard's parser's). The internal market's are
+ * where `galactic_market_resources` is not 0 (confirmed on Yorphia, founded 2201.05.01: 26
+ * entries, 4.5.2's order; all 0 through 2203.10.01 with no galactic trade made). The internal market's are
  * `market.internal_market_fluctuations = { country=<id> resources={ energy=-15.9 … } … }`, listing
  * only resources whose price has moved — the basic five always trade, at 0 when not listed.
  */
@@ -1112,11 +1112,15 @@ export function speciesInfo(
 	});
 }
 
-/** `PRESCRIPTED_species_name_humans1` → `Humans`; other keys as displayName reads them. */
-function speciesName(name: Raw): string {
+/**
+ * A species' name as displayName reads it — the data DB's prescripted names first
+ * (`PRESCRIPTED_species_name_zrobots` → "Yorphid") —, else a prescripted key's suffix
+ * (`PRESCRIPTED_species_name_humans1` → `Humans`).
+ */
+export function speciesName(name: Raw): string {
 	const key = String(name?.key ?? name ?? '');
 	const m = /^PRESCRIPTED_species_name_([a-z_]+?)\d*$/i.exec(key);
-	return m ? m[1].charAt(0).toUpperCase() + m[1].slice(1) : displayName(name);
+	return m && !prescripted[key] ? m[1].charAt(0).toUpperCase() + m[1].slice(1) : displayName(name);
 }
 
 /** The empire's sectors (`country.sectors.owned` → `sectors.<id>`), colonies counted per system. */
@@ -2163,6 +2167,13 @@ export function displayName(name: Raw): string {
 	if (/^war_vs_/.test(key) && Array.isArray(name?.variables)) {
 		const part = (k: string) => displayName(name.variables.find((x: Raw) => x?.key === k)?.value);
 		return `${part('1')} - ${part('2')} ${part('3')}`;
+	}
+	// Inline templates: `$affix$$base$` (a modified species: base "Yorphid", affix "Trans-" →
+	// "Trans-Yorphid"), `$base$ $affix$` — each `$k$` filled by the variable keyed k.
+	if (/\$\w+\$/.test(key) && Array.isArray(name?.variables)) {
+		return key.replace(/\$(\w+)\$/g, (_, k: string) =>
+			displayName(name.variables.find((x: Raw) => x?.key === k)?.value)
+		);
 	}
 	// Name parts with a part inside — faction names, `{<names_1> {<names_2>}}` (4.5.2
 	// common/random_names/00_pop_faction_names.txt): the outer part's own words come first.
