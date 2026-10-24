@@ -2,7 +2,7 @@
 	import ResourceChips from './ResourceChips.svelte';
 	import { fmt } from './format.ts';
 	import InfoPopup from './InfoPopup.svelte';
-	import type { JobRow } from './jobs.ts';
+	import { stratumName, type JobRow } from './jobs.ts';
 	import SortTable from './SortTable.svelte';
 	import type { Column } from './sort.ts';
 	import type { Explanation } from './types.ts';
@@ -32,7 +32,7 @@
 
 {#snippet job(r: JobRow)}<InfoPopup explanation={explain[`job:${r.type}`]}>{r.name}</InfoPopup
 	>{/snippet}
-{#snippet stratum(r: JobRow)}<span class="text-gray-500">{r.category}</span>{/snippet}
+{#snippet stratum(r: JobRow)}<span class="text-gray-500">{stratumName(r.category)}</span>{/snippet}
 {#snippet pops(r: JobRow)}{fmt(r.pops)}{/snippet}
 {#snippet positions(r: JobRow)}{r.positions === null ? '∞' : fmt(r.positions)}{/snippet}
 {#snippet openCell(r: JobRow)}{open(r) === null ? '' : fmt(open(r)!)}{/snippet}

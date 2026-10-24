@@ -1231,6 +1231,14 @@ screen, trade calibration, stored research, releases).
   galaxy-map units (assumed); whether the in-system distance to
   the outermost body is what new ships of a mega shipyard travel (hyperlane arrival points are not
   stored); and whether the catapult's `max_jumps = 25` (another catapult) is a rule or AI weight.
+- **Gestalt empires, first checked 2026-10-24** (throwaway Machine Intelligence, 2201.10.01;
+  screenshots `~/Pictures/Screenshots/screenshot_2026-10-24_12-54-52` … `12-57-54`): a machine
+  world's pops come from assembly (`GROWTH_CAT_ASSEMBLY` +4 = the game's "Monthly Pop Summary"),
+  no natural growth — the growth tab shows both; jobs match the game's job screen pop for pop,
+  in its strata `complex_drone` / `simple_drone` ("Menial Drones") / `maintenance_drone`; no
+  factions (the game's "No Factions"). Not checked yet: habitability of a machine species on the
+  expansion tab, galcom proposals barred to gestalts (`is_gestalt = no`), consumer goods on the
+  produce tab.
 - **Our factions**: confirmed against the game's factions screen at 2212.03.05 — support,
   approval, pops and their monthly change (`pops_change`, "(+51)") and both names match; the
   game **rounds percentages down** (support 0.05723 → 5 %, approval 0.99999 → 99 %), so the

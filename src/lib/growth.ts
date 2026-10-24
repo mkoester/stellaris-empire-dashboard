@@ -6,8 +6,10 @@ import type { Colony, Snapshot } from './types.ts';
 // is small and again near its capacity. Capacity, which the save does not hold: housing + 400 per
 // free district slot, queued districts counting as taken (matched to the game's "Colony Capacity"
 // over five readings, Planetforgers 2212.03–06; species habitability and housing usage do not
-// enter). Growth here is the save's `GROWTH_CAT_GROWTH` (natural growth, pop units), not
-// migration or assembly.
+// enter). Growth here is the save's `GROWTH_CAT_GROWTH` (natural growth, pop units); assembly
+// (`GROWTH_CAT_ASSEMBLY`: a machine empire's Replicators, robot assembly) is its own column — a
+// machine world has no natural growth at all (Yorphia 2201.10: assembly +4, as the game's "Monthly
+// Pop Summary"); migration is not here.
 
 export const GROWTH_CAP = 5; // LOGISTIC_CEILING_DEFAULT; the save's galaxy `logistic_ceiling_v2`
 const SAVES = 6;
@@ -24,6 +26,7 @@ export type GrowthRow = {
 	designation: string;
 	pops: number;
 	growth: number | null; // mean natural growth per month over the last saves
+	assembly: number | null; // mean pops assembled per month over the last saves; null: none seen
 	last: number | null; // the latest save's
 	samples: number;
 	housing: number | null;
@@ -47,18 +50,29 @@ export const queuedDistricts = (c: Colony) =>
 export const planetCapacity = (housing: number | null, free: number | null) =>
 	housing === null || free === null ? null : housing + CAPACITY_PER_FREE_DISTRICT * free;
 
-/** Natural growth of one colony in the saves along `history` (newest last), where known. */
-export function growthSamples(history: Snapshot[], planetId: number): number[] {
+/** One growth cause of a colony in the saves along `history` (newest last), where the save has it. */
+export function growthSamples(
+	history: Snapshot[],
+	planetId: number,
+	cause: 'growth' | 'assembly' = 'growth'
+): number[] {
 	return history
 		.filter((s) => s.kind === 'save')
 		.flatMap((s) => {
-			const g = s.colonies.find((c) => c.planetId === planetId)?.growth?.by.growth;
+			const g = s.colonies.find((c) => c.planetId === planetId)?.growth?.by[cause];
 			return g === undefined ? [] : [g];
 		});
 }
 
+const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+
 /** What stands out about a colony's growth. */
-export function growthFlags(c: Colony, growth: number | null, cap = GROWTH_CAP): string[] {
+export function growthFlags(
+	c: Colony,
+	growth: number | null,
+	cap = GROWTH_CAP,
+	assembly: number | null = null
+): string[] {
 	const flags: string[] = [];
 	if (growth !== null && growth >= cap - 0.25) flags.push(`at the cap (${cap})`);
 	if (c.housing !== null && c.housingUsed !== null && c.housingUsed > c.housing)
@@ -69,7 +83,8 @@ export function growthFlags(c: Colony, growth: number | null, cap = GROWTH_CAP):
 		);
 	if (c.habitability !== null && c.habitability < 1)
 		flags.push(`habitability ${Math.round(c.habitability * 100)} %: slower growth`);
-	if (growth !== null && growth <= 0) flags.push('not growing');
+	if ((growth !== null || assembly !== null) && (growth ?? 0) + (assembly ?? 0) <= 0)
+		flags.push('not growing');
 	const queued = queuedDistricts(c);
 	if (queued)
 		flags.push(
@@ -87,7 +102,9 @@ export function growthRows(
 		.filter((c) => !c.colonizing && c.planetId >= 0)
 		.map((c) => {
 			const samples = growthSamples(history, c.planetId).slice(-SAVES);
-			const growth = samples.length ? samples.reduce((a, b) => a + b, 0) / samples.length : null;
+			const growth = mean(samples);
+			const assembly = mean(growthSamples(history, c.planetId, 'assembly').slice(-SAVES));
+			const total = (growth ?? 0) + (assembly ?? 0);
 			const r = room(c);
 			return {
 				planetId: c.planetId,
@@ -95,6 +112,7 @@ export function growthRows(
 				designation: c.designation,
 				pops: c.pops,
 				growth,
+				assembly,
 				last: c.growth?.by.growth ?? null,
 				samples: samples.length,
 				housing: c.housing,
@@ -103,8 +121,8 @@ export function growthRows(
 				queued: queuedDistricts(c),
 				capacity: planetCapacity(c.housing, r.free),
 				habitability: c.habitability,
-				monthsPer100: growth !== null && growth > 0 ? 100 / growth : null,
-				flags: growthFlags(c, growth)
+				monthsPer100: total > 0 ? 100 / total : null, // growth and assembly together
+				flags: growthFlags(c, growth, GROWTH_CAP, assembly)
 			};
 		});
 }

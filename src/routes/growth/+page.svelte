@@ -37,6 +37,15 @@
 			title: `natural growth, the mean of the last saves (fractions are a chance in game); at most ${GROWTH_CAP}`
 		},
 		{
+			id: 'assembly',
+			label: 'Assembly/mo',
+			value: (r) => r.assembly,
+			right: true,
+			cell: assembly,
+			title:
+				'pops assembled per month (a machine empire’s Replicators, robot assembly), the mean of the last saves — a machine world has no natural growth'
+		},
+		{
 			id: 'per100',
 			label: 'Months per 100',
 			value: (r) => r.monthsPer100,
@@ -91,6 +100,7 @@
 {#snippet growth(r: GrowthRow)}{#if r.growth !== null}<span
 			title="{r.samples} saves; latest {r.last ?? '–'}">{fmt(r.growth)}</span
 		>{/if}{/snippet}
+{#snippet assembly(r: GrowthRow)}{r.assembly === null ? '' : fmt(r.assembly)}{/snippet}
 {#snippet per100(r: GrowthRow)}{r.monthsPer100 === null ? '' : fmt(r.monthsPer100)}{/snippet}
 {#snippet housing(r: GrowthRow)}{#if r.housing !== null && r.housingUsed !== null}<span
 			title="{fmt(r.housingUsed)} of {fmt(r.housing)}">{pct(r.housingUsed / r.housing)}</span

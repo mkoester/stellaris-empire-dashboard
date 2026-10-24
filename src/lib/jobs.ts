@@ -1,7 +1,8 @@
 import type { BudgetSource, Colony, ColonyJob, Resources } from './types.ts';
 
 // Jobs summed over colonies, ordered like the game groups them: rulers, specialists, workers,
-// then civilians and anything else; within a stratum by pops worked.
+// civilians — a gestalt's complex, menial and maintenance drones (Yorphia 2201.10) — then anything
+// else; within a stratum by pops worked.
 
 export type JobInfo = Record<string, { name: string; category: string | null }>;
 export type JobRow = ColonyJob & {
@@ -11,7 +12,19 @@ export type JobRow = ColonyJob & {
 	estimated?: boolean; // flows are a pops share of the empire total
 };
 
-const STRATA = ['ruler', 'specialist', 'worker', 'civilian'];
+const STRATA = [
+	'ruler',
+	'specialist',
+	'worker',
+	'civilian',
+	'complex_drone',
+	'simple_drone',
+	'maintenance_drone'
+];
+
+/** A stratum as the game's jobs screen names it: `simple_drone` → "menial drone". */
+export const stratumName = (category: string) =>
+	category === 'simple_drone' ? 'menial drone' : category.replaceAll('_', ' ');
 
 export function jobRows(jobs: ColonyJob[], info: JobInfo): JobRow[] {
 	const byType = new Map<string, ColonyJob>();

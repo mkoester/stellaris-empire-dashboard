@@ -8,6 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Gestalt empires: the growth tab shows assembled pops (Replicators, robot assembly) beside
+  natural growth, so a machine world no longer looks stagnant; the colony page lists complex,
+  menial and maintenance drones in the game's order; the government tab says a gestalt has no
+  factions instead of "none formed yet".
 - The resources panel shows, under each resource, its storage and the months until it is full
   (or empty, when shrinking) — grey when far off, turning amber and then red the nearer it gets.
   Companion mod 0.5.0 stores the game's storage — ours and every empire we talk to, so the trade

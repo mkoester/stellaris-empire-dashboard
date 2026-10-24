@@ -35,6 +35,37 @@ describe('growthRows', () => {
 	});
 });
 
+describe('assembly', () => {
+	// Yorphia, a machine capital (2201.07–10): no natural growth, +4 assembled a month as the game
+	// shows in its "Monthly Pop Summary"
+	const machine = (date: string) =>
+		({
+			kind: 'save',
+			date,
+			colonies: [
+				colony({
+					growth: { net: 4, by: { assembly: 4, other: 0, promotion: 0 }, byStratum: {} },
+					habitability: 1
+				})
+			]
+		}) as unknown as Snapshot;
+	it('is its own column, counts towards months per 100, and is growing', () => {
+		const latest = machine('2201.10.01');
+		const [row] = growthRows([machine('2201.09.01'), latest], latest, () => ({
+			free: 0,
+			blocked: 0
+		}));
+		expect(row.growth).toBeNull();
+		expect(row.assembly).toBe(4);
+		expect(row.monthsPer100).toBe(25);
+		expect(row.flags).not.toContain('not growing');
+	});
+	it('a colony without assembly has none', () => {
+		const latest = save('2212.03.05', 2);
+		expect(growthRows([latest], latest, () => ({ free: 1, blocked: 0 }))[0].assembly).toBeNull();
+	});
+});
+
 describe('planetCapacity', () => {
 	it("matches the game's Colony Capacity (Planetforgers 2212.03.05–2213.08.01)", () => {
 		// [housing, free slots (max − built − queued), the game's capacity]

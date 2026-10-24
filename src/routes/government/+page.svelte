@@ -397,7 +397,9 @@
 		title="Factions"
 		note={(data.anyFormed
 			? 'Our factions with their support and approval, and what each demands'
-			: 'No faction has formed yet.') +
+			: data.gestalt
+				? 'A gestalt consciousness has no factions: its drones never join one.'
+				: 'No faction has formed yet.') +
 			(data.factionTypes
 				? ' — the faction types the switches in ⚙ add too: ✓ met, ✗ not, ? cannot be told from the save, and how to meet it.'
 				: data.anyFormed

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { jobFlows, jobRows, openJobs, withFlows } from './jobs.ts';
+import { jobFlows, jobRows, openJobs, stratumName, withFlows } from './jobs.ts';
 import type { BudgetSource } from './types.ts';
 
 describe('jobRows', () => {
@@ -25,6 +25,27 @@ describe('jobRows', () => {
 			['Farmer', 900, 1000],
 			['Civilian', 1907, null],
 			['unknown_job', 5, 5]
+		]);
+	});
+
+	it("a gestalt's drones in the game's order: complex, menial, maintenance (Yorphia 2201.10)", () => {
+		const drones = {
+			maintenance_drone: { name: 'Maintenance Drone', category: 'maintenance_drone' },
+			mining_drone: { name: 'Mining Drone', category: 'simple_drone' },
+			replicator: { name: 'Replicator', category: 'complex_drone' }
+		};
+		const rows = jobRows(
+			[
+				{ type: 'maintenance_drone', pops: 1386, filled: 1385, positions: null },
+				{ type: 'mining_drone', pops: 800, filled: 800, positions: 800 },
+				{ type: 'replicator', pops: 300, filled: 300, positions: 300 }
+			],
+			drones
+		);
+		expect(rows.map((r) => stratumName(r.category))).toEqual([
+			'complex drone',
+			'menial drone',
+			'maintenance drone'
 		]);
 	});
 });
