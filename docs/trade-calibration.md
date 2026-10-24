@@ -111,7 +111,8 @@ other modders in `stellaris-modding-insights` (docs 16 and 17).
 - **Ideas not yet tried for the drift:** the AI's war/peace or threat state; tech count (tech
   power rose 372 → 385 at KhellZen); a per-year AI recalculation
   on the anniversary of something (game start 2200.01.01? KhellZen's first contact?). Ruled out:
-  the galactic market's founding (2026-10-24: the same shift a month before it).
+  the galactic market's founding as the drift's cause (2026-10-24: the same shift a month before
+  it) — but only we had access then, so its effect on AIs on the market is still open.
 
 ## The original session plan (2026-10-22, superseded)
 
@@ -579,9 +580,17 @@ Energy × 0.89–0.90 at both, trade × 1.04–1.05; everything else exact.
 
 **The control — the month before, no market** (`autosave_2201.04.01` loaded; screenshots
 `screenshot_2026-10-24_12-40-24`, `12-40-55`; predicted at that save's incomes): energy 46 / 51.3
-and 42 / 47.8 (× 0.90, × 0.88), trade 45 / 43.0 and 47 / 44.9 (× 1.05) — the same shift. **The
-galactic market changes nothing an AI values**; energy and trade drifted between 2200.03 and
-2201.04 by themselves — energy down, where the campaign's rose 10 %.
+and 42 / 47.8 (× 0.90, × 0.88), trade 45 / 43.0 and 47 / 44.9 (× 1.05) — the same shift; energy
+and trade drifted between 2200.03 and 2201.04 by themselves — energy down, where the campaign's
+rose 10 %.
+
+**Flawed as a market test (found 2026-10-24):** founded from the console without a Galactic
+Community, the market gave access to **us alone** — the saves list `galactic_market_access={ 1 }`
+(one entry, country 0), and no AI has `has_market_access` (the flag goes to Galactic Community
+members only). Every galactic price stayed at 0 through 2203.10.01. So this shows only that our
+access changes nothing the two AIs value — not whether an AI **on** the market values resources
+differently. To test that: found the Community first (`galcom.16`), let the AIs join, then the
+market, and check `has_market_access` on the measured AIs before comparing.
 
 ### What does not explain food (and the minerals drift), 2026-10-23
 

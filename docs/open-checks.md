@@ -85,8 +85,10 @@ cheats — tooltips set up, not sent — not in a throwaway game. Open:
   to time, steps to a state change on their side (then compare that month's save). 2213.08 → 2214.01:
   no step, ~1 % down at 10,000's resolution. Mind an AI's room (0.8 of storage): offer 10,000
   only where it fits;
-- the galactic market: answered (2026-10-24, throwaway game, `docs/trade-calibration.md`) — founding
-  it moves nothing an AI values; the drift does.
+- the galactic market: **still open** — the 2026-10-24 throwaway test (`docs/trade-calibration.md`)
+  founded it with us as its only member (no Galactic Community, so no AI had access); it showed our
+  access changes nothing an AI values, not what an AI on the market does. Redo with the Community
+  founded and the AIs in it;
 - strategic resources: at once measured (2200.03.01 throwaway game, `docs/trade-calibration.md`);
   left: one monthly deal to confirm the 0.5 × months rule holds for them too (nanites are not
   tradable);
