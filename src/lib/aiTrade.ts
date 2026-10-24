@@ -32,9 +32,9 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 // - it takes in at worth only what fits under 0.8 of its storage (`room()`): 10,000 energy, food
 //   and consumer goods to KhellZen (2214.01) counted 6,379, 1,026 and 8,377 units — exactly
 //   0.8 × max − stockpile; the fallen empires, over it with minerals, valued 1000 at 0. Monthly
-//   payments did count there (2212.08). The max is the resource's base, a fallen empire's
-//   +100,000 (`fallen_empire_base`; 15,000 alloys counted in full, 2200.03); techs are not in the
-//   save.
+//   payments did count there (2212.08). The max is exact with companion mod 0.5.0, else the
+//   resource's base, a fallen empire's +120,000 (measured by the mod at 2200.05: 135,000 of
+//   15,000; 15,000 alloys counted in full at 2200.03).
 // - a nomadic empire never gives energy or minerals but takes them (seen in game): they are its
 //   operational reserves, which "can be bought on the market, but not sold"
 //   (concept_operational_reserves_desc).
@@ -112,9 +112,8 @@ export function aiValue(r: string, ai: AiIntel, info: Info, m: TradeModel): numb
  * How much of `r` the AI takes in at worth: up to `fullShare` (0.8) of its storage; the rest counts
  * nothing (measured 2214.01: 10,000 energy to KhellZen at 13,621 of 25,000 counted 6,379). Null:
  * storage unknown, no limit. Storage is exact with companion mod 0.5.0 (`ai.max`); without it, the
- * resource's base max, a fallen empire's plus `fallen_empire_base`'s 100,000 (2200.03: 15,000 alloys
- * counted in full) — other modifiers are not in the save (the campaign's fallen empires held
- * 135,000 minerals). `roomExact()` tells which.
+ * resource's base max, a fallen empire's plus `FALLEN_STORAGE` — silos and other modifiers are not
+ * in the save. `roomExact()` tells which.
  */
 export function room(
 	r: string,
@@ -131,8 +130,13 @@ export function room(
 /** Whether `room()` knows the AI's storage of `r` (companion mod 0.5.0) or estimates it. */
 export const roomExact = (r: string, ai: AiIntel) => ai.max?.[r] !== undefined;
 
-/** `fallen_empire_base`'s `country_resource_max_add` (4.5.2 `00_static_modifiers.txt`). */
-export const FALLEN_STORAGE = 100_000;
+/**
+ * A fallen empire's storage over the base: `fallen_empire_base` +100,000 (4.5.2
+ * `00_static_modifiers.txt`) and Mega-Engineering +20,000, which they start with — companion mod
+ * 0.5.0 measured both of a throwaway game's at base + 120,000 (2200.05.01), the campaign's held
+ * 135,000 minerals.
+ */
+export const FALLEN_STORAGE = 120_000;
 
 /** What `amount` of `r` at once is worth to the AI, up to its room; null: not valued. */
 export function worthOf(

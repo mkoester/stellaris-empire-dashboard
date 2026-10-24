@@ -94,9 +94,8 @@ cheats — tooltips set up, not sent — not in a throwaway game. Open:
   tradable);
 - the basic resources' curves at game start differ from the campaign's (consumer goods, alloys,
   food, trade; same file): when do they change — a step at some event, or gradually?;
-- a fallen empire's real storage: `room()` uses base + 100,000 (2200.03.01: 15,000 alloys counted
-  in full), but the campaign's held 135,000 minerals — techs add more, not in the save. Where it
-  ends, at a resource it values enough to show (alloys: offer up to its room).
+- where a fallen empire's room really ends in a deal: its storage is known now (companion mod
+  0.5.0: base + 120,000), so offer it alloys up to and past 0.8 of that to see the cut-off.
 
 ### 7. Stored research — tech tab
 

@@ -667,7 +667,7 @@ describe('room in storage', () => {
 		expect(roomExact('energy', a)).toBe(true);
 		expect(roomExact('energy', khellZen)).toBe(false);
 	});
-	it('a fallen empire takes 15,000 alloys in full: +100,000 storage', () => {
+	it('a fallen empire takes 15,000 alloys in full: +120,000 storage', () => {
 		const barcalan = ai({ stockpile: { alloys: 308 }, income: { alloys: 385.3 } });
 		const worth = (fallen: boolean, amount: number) =>
 			worthOf('alloys', amount, { ...barcalan, fallen }, game, m)! * 0.5;

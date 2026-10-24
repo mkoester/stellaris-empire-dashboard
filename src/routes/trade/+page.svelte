@@ -428,7 +428,7 @@
 			data.model.fullShare * 100
 		)} % of their storage — more counts nothing ({o.takesExact
 			? 'their storage, stored by companion mod 0.5.0'
-			: '≈ their base storage, fallen empires +100,000; silos and techs unknown without companion mod 0.5.0'})"
+			: '≈ their base storage, fallen empires +120,000; silos and techs unknown without companion mod 0.5.0'})"
 		>{o.takes === null ? '–' : `${o.takesExact ? '' : '≈'}${fmt(o.takes)}`}</span
 	>{/snippet}
 {#snippet offerSpare(o: Offer)}{o.spare === null ? '–' : fmt(o.spare)}{/snippet}

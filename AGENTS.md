@@ -740,7 +740,7 @@ change both together and bump the number.
   and `sdash_export_tradable_maximums` the tradable ones of every empire we have communications
   with. Read as `Snapshot.storageMax` and `AiIntel.max` (`storageMax()`); the resources panel's storage line
   and the trade tab's "They take" use them, else ≈ the base (`docs/storage.md` lists every
-  source). Not yet run in game.
+  source). Confirmed in game 2026-10-24 (Open).
 - **The daily tick**: 4.5.2 has no sub-monthly on_action, so `sdash.2` re-fires itself with
   `days = 1`. The stockpile moves within a month (spending, the market, rewards, deals); income
   does not, so the tick logs stockpiles only. Pending events are saved with the game, so the chain
@@ -1360,11 +1360,15 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   calling (tier, reward), its deeds and — negative — the opposite patron's (the save's five
   each), accords and covenant. Uncontacted patrons stay hidden, as in the game. Still to see: a
   completed calling, an accord unlocked, a favor.
-- **Companion mod 0.5.0's storage, not yet run in game** (written 2026-10-24): whether
-  `export_resource_maximum_to_variable` fills `sdash_m_<res>` in the next monthly autosave — ours
-  for every resource (what it gives for one without storage, e.g. unity: ignored if ≤ 0), and the
-  tradable ones of every empire we talk to. Check: the resources panel's storage loses its ≈ and matches
-  the game's top-bar tooltip; a fallen empire's shows how far its storage really goes (135,000+).
+- **Companion mod 0.5.0's storage: confirmed** (throwaway game, 2200.05.01, the first autosave
+  after loading 0.5.0; screenshots `~/Pictures/Screenshots/screenshot_2026-10-24_11-57-04`, `-22`):
+  `sdash_m_<res>` for every resource with storage on us (unity, research and nanites give
+  nothing), the tradable ones on all 16 empires we talk to; the resources panel drops its ≈ and
+  shows the game's top bar (25K energy, 15K, 50K trade). It confirmed three rows of
+  `docs/storage.md` without a tooltip: the base (us and most AIs); fallen empires at base +
+  120,000 (`fallen_empire_base` 100,000 + Mega-Engineering 20,000, which both have — the
+  campaign's 135,000 minerals); bio ships (two empires with Biogenesis shipsets: food 25,000,
+  alloys 12,500). No AI difficulty bonus at this setting.
 - **Companion mod 0.4.0's diplomatic weight: confirmed** (2214.02.01, the first autosave with
   it): `variables.sdash_dw` on all 13 members, equal to the game's screen (642.41 → 642, …) and to
   the weights solved from the 2214.01.01 tallies. Open: the council's × 1.5 (no council yet).
