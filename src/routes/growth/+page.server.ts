@@ -1,31 +1,11 @@
 import { error } from '@sveltejs/kit';
-import { growthRows, queuedDistricts } from '#lib/growth.ts';
-import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import { colonyDetails } from '#lib/server/planets.ts';
+import { growthData } from '#lib/server/growth.ts';
 
-// Pop growth per colony as measured, with what feeds the game's planet capacity.
+// Pop growth per colony as measured, with what feeds the game's planet capacity, and projected.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
-	const latest = snaps.findLast((s) => s.kind === 'save') ?? null;
-	return {
-		...rest,
-		rows: latest
-			? growthRows(snaps, latest, (c) => {
-					const caps = colonyDetails(c, latest)?.caps;
-					if (!caps || caps.limit === null) return { free: null, blocked: null };
-					return {
-						free: Math.max(0, caps.limit - caps.built - queuedDistricts(c)),
-						blocked: caps.limitCleared === null ? null : caps.limitCleared - caps.limit
-					};
-				})
-			: [],
-		housingKnown: latest?.colonies.some((c) => c.housing !== null) ?? false,
-		// the projection's constants (#lib/growthProjection.ts)
-		defines: Object.fromEntries(
-			Object.entries(getGameData().defines).filter(([k]) => /^(LOGISTIC_|OVERCROWDING_)/.test(k))
-		)
-	};
+	return { ...rest, ...growthData(snaps) };
 }

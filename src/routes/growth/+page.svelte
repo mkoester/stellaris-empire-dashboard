@@ -3,10 +3,9 @@
 	import { page } from '$app/state';
 	import Designation from '#lib/Designation.svelte';
 	import { fmt } from '#lib/format.ts';
-	import Chart from '#lib/Chart.svelte';
 	import { GROWTH_CAP, type GrowthRow } from '#lib/growth.ts';
-	import { projectColony, sumProjections } from '#lib/growthProjection.ts';
-	import { gameYear } from '#lib/series.ts';
+	import { projectColony } from '#lib/growthProjection.ts';
+	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import SortTable from '#lib/SortTable.svelte';
@@ -24,25 +23,12 @@
 
 	const pct = (v: number | null) => (v === null ? '' : `${Math.round(v * 100)} %`);
 
-	// The projection: per colony, month by month, over the horizon picked (years).
-	const HORIZONS = [10, 25, 50];
+	// The projection per colony over the horizon the chart's buttons pick (years).
 	let years = $state(25);
-	let focus = $state<number | null>(null); // a colony's planet id; null: the whole empire
 	const months = $derived(years * 12);
 	const projections = $derived(
 		new Map(data.rows.map((r) => [r.planetId, projectColony(r, months, data.defines)]))
 	);
-	const start = $derived(gameYear(data.latest.date));
-	const chart = $derived.by(() => {
-		const p =
-			focus === null
-				? sumProjections([...projections.values()], months)
-				: (projections.get(focus) ?? sumProjections([], months));
-		return {
-			x: p.pops.map((_, m) => start + m / 12),
-			lines: { pops: p.pops, 'from growth': p.bio, 'from assembly': p.mech }
-		};
-	});
 	const later = (r: GrowthRow) => projections.get(r.planetId)?.pops[months] ?? null;
 	const stops = (r: GrowthRow) => projections.get(r.planetId)?.stopsAt ?? null;
 	const yearsOf = (m: number) => (m < 24 ? `${m} mo` : `${Math.round(m / 12)} y`);
@@ -172,23 +158,12 @@
 		title="Projection"
 		note="Biological growth follows the game's logistic rule at each colony's measured speed (so habitability, traits and every other modifier count): fastest at half the planet capacity, never under 10 % of it, at most {GROWTH_CAP} a month. Assembly (machines, robots) goes on at its measured rate. Both stop once the colony is overcrowded (1.15 × housing). Held at today's values: housing, capacity, districts and modifiers. Not modelled: new colonies, migration, new districts and buildings, techs — so this is what the colonies do if nothing changes."
 	>
-		<div class="mb-2 flex flex-wrap items-center gap-3 text-sm">
-			<span class="flex gap-1">
-				{#each HORIZONS as h (h)}<button
-						class="rounded px-2 py-0.5 {years === h
-							? 'bg-gray-200 font-semibold dark:bg-gray-700'
-							: 'hover:bg-gray-100 dark:hover:bg-gray-800'}"
-						onclick={() => (years = h)}>{h} years</button
-					>{/each}
-			</span>
-			<label
-				>for <select class="rounded bg-transparent" bind:value={focus}>
-					<option value={null}>the whole empire</option>
-					{#each data.rows as r (r.planetId)}<option value={r.planetId}>{r.name}</option>{/each}
-				</select></label
-			>
-		</div>
-		<Chart title="Pops projected" series={chart} range={[start, start + years]} yMin={0} />
+		<GrowthProjection
+			rows={data.rows}
+			defines={data.defines}
+			date={data.growthDate ?? data.latest.date}
+			bind:years
+		/>
 	</Panel>
 	<Panel
 		title="Growth per colony"

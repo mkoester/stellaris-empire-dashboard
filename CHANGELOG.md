@@ -8,7 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- The growth tab projects pops 10, 25 or 50 years ahead, per colony and for the whole empire:
+- The growth tab and each colony page project pops 10 to 200 years ahead, per colony and for the
+  whole empire:
   natural growth at each colony's measured speed (slowing as the planet fills) and assembly
   apart, both stopping once the colony is overcrowded — with when each colony stops growing.
 - The empire-size chart also shows the real size while it is under 50 (the game, and the save,
@@ -130,6 +131,8 @@ All notable changes to this project are documented here. The format follows
 - Modified species are named as in game ("Trans-Yorphid", not "$affix$$base$ Yorphid Trans-"),
   and prescripted species by their name ("Yorphid", not "Zrobots").
 - The species tab no longer runs trait effects into the next column.
+- Charts redraw when their data changes in place (picking another projection horizon redrew
+  nothing).
 
 ## [0.1.0] - 2026-10-20
 

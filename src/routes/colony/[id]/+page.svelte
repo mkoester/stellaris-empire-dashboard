@@ -6,6 +6,7 @@
 	import Jobs from '#lib/Jobs.svelte';
 	import Designation from '#lib/Designation.svelte';
 	import DistrictName from '#lib/DistrictName.svelte';
+	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
 	import PlanetInfo from '#lib/panels/PlanetInfo.svelte';
 	import { automationRows } from '#lib/automation.ts';
@@ -113,6 +114,16 @@
 
 <div class="grid gap-4 lg:grid-cols-2">
 	{#key data.tip}
+		{#if data.growth.rows.length && data.growth.date}
+			<!-- growth and assembly at the measured speed, as on the growth tab -->
+			<div>
+				<GrowthProjection
+					rows={data.growth.rows}
+					defines={data.growth.defines}
+					date={data.growth.date}
+				/>
+			</div>
+		{/if}
 		<Chart
 			title="Pops"
 			series={data.charts.pops}

@@ -490,8 +490,9 @@ cap, overcrowded (growth stops at 1.15 × housing, `OVERCROWDING_NO_GROWTH_THRES
 habitability, not growing. Still to come once capacity is fitted: what +1 district, a cleared
 blocker, a medical building or an edict would gain, and the colonies ranked by it.
 
-**Growth projection** (`#lib/growthProjection.ts` pure; the user's ask 2026-10-24): 10/25/50 years,
-per colony and summed, biological and mechanical apart — they follow different rules. Biological:
+**Growth projection** (`#lib/growthProjection.ts` pure, `GrowthProjection.svelte` on the growth tab
+and each colony page, rows from `server/growth.ts`; the user's ask 2026-10-24): 10 to 200 years
+(the pick remembered per viewer), per colony and summed, biological and mechanical apart — they follow different rules. Biological:
 the logistic formula with the defines' floor (10 %), minimum pops (10) and cap (5), times a speed
 **calibrated per colony** (measured growth ÷ the formula at today's pops), so every modifier counts
 unlisted; without a capacity, the measured rate. Mechanical: assembly at its measured mean. Both
@@ -825,7 +826,7 @@ country's start: it runs into the next country's block and reads their values (2
 **The current throwaway game** (2026-10-24): `yorphianextractorate_888024433` (Machine
 Intelligence, Shroud-Forged; companion mod 0.5.0). Holds: console stockpiles, a planet and a
 starbase Resource Silo, Construction Templates, Mega-Engineering, the galactic market founded from
-the console (we host), two 1000-energy gifts to Lahtrepian (9), the first accepted 2201.06.01 (+41; 39 from
+the console (we host; with no Galactic Community we alone have access), two 1000-energy gifts to Lahtrepian (9), the first accepted 2201.06.01 (+41; 39 from
 2202.06.01; the second gift: 78; 76 from 2203.06.01 — the first gift's date holds). Since 2026-10-24
 it runs on the native build: its saves are in the native user dir (workspace `AGENTS.md`).
 

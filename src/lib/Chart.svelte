@@ -213,8 +213,14 @@
 
 	// New data with the same lines: update in place. Different lines: rebuild via the key block
 	// in the parent, which remounts this component.
+	// Read series and range before touching plot: on the first run plot does not exist yet (uPlot
+	// loads async), and `plot?.setData(data(series))` would skip reading them — the effect would
+	// then never rerun (the growth tab's horizon buttons changed nothing).
 	$effect(() => {
-		plot?.setData(data(series));
+		const d = data(series);
+		const [min, max] = range;
+		plot?.setData(d);
+		plot?.setScale('x', { min, max });
 	});
 </script>
 
