@@ -11,6 +11,7 @@
 		offerPrice,
 		rate,
 		room,
+		roomExact,
 		spare,
 		stance,
 		terms,
@@ -93,6 +94,7 @@
 		spare: number | null;
 		perMonth: number | null;
 		takes: number | null;
+		takesExact: boolean; // their storage from companion mod 0.5.0, not estimated
 	};
 	const offers: Offer[] = $derived([
 		...data.empires.flatMap((e) => {
@@ -106,7 +108,8 @@
 							r,
 							spare: spare(get, e, data.resourceInfo, data.model),
 							perMonth: monthlyCap(get, e, data.model),
-							takes: room(give, e, data.resourceInfo, data.model)
+							takes: room(give, e, data.resourceInfo, data.model),
+							takesExact: roomExact(give, e)
 						}
 					];
 		}),
@@ -120,7 +123,8 @@
 				r: 1 / enclaveUnitCost(),
 				spare: null,
 				perMonth: ENCLAVE_DEAL.maxPerMonth,
-				takes: null
+				takes: null,
+				takesExact: false
 			}))
 	]);
 	const market = $derived(marketRate(give, get, prices, fee));
@@ -422,8 +426,10 @@
 {#snippet offerTakes(o: Offer)}<span
 		title="at worth: up to {Math.round(
 			data.model.fullShare * 100
-		)} % of their storage — more counts nothing (their base storage; modifiers unknown)"
-		>{o.takes === null ? '–' : fmt(o.takes)}</span
+		)} % of their storage — more counts nothing ({o.takesExact
+			? 'their storage, stored by companion mod 0.5.0'
+			: '≈ their base storage, fallen empires +100,000; silos and techs unknown without companion mod 0.5.0'})"
+		>{o.takes === null ? '–' : `${o.takesExact ? '' : '≈'}${fmt(o.takes)}`}</span
 	>{/snippet}
 {#snippet offerSpare(o: Offer)}{o.spare === null ? '–' : fmt(o.spare)}{/snippet}
 {#snippet monthlyPerMonth(o: MonthlyRow)}<span

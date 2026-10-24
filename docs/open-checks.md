@@ -110,6 +110,16 @@ campaign suffice, no cheats.
 
 ## C. Not in the game
 
+### 14. Storage, computed — header (open task, 2026-10-24)
+
+Without companion mod 0.5.0 the header's storage is ≈ the base. Compute it instead, with a
+breakdown like the game's tooltip, from the sources in `docs/storage.md`; check it against the
+mod's exact value. Needs: researched techs in the snapshot (`tech_status.technology`: Construction
+Templates, Mega-Engineering), our silos (planet and starbase buildings), passed resolutions, relics,
+civics, bio ships, Dyson gun stage — and an extraction fix: `building_modifier` sums the Resource
+Silo's and Subterranean Cache's two blocks into a flat +10,000, dropping the Construction Templates
+condition; starbase buildings', resolutions' and relics' storage modifiers are not extracted.
+
 ### 8. Releases
 
 The extraction gained tables (starbase parts and levels, market lots, AI data, defines) that the

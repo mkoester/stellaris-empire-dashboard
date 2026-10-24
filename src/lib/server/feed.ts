@@ -203,6 +203,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		construction: null,
 		orbitalStations: null,
 		aiIntel: null,
+		storageMax: null,
 		traderEnclaves: null,
 		techQueued: null,
 		techPermanent: null,

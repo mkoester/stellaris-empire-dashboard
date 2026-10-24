@@ -8,6 +8,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- The header shows each resource's stockpile against its storage (amber from 80 %, red from 95 %).
+  Companion mod 0.5.0 stores the game's storage — ours and every empire we talk to, so the trade
+  tab knows how much more each one takes in; without it the base storage is shown, marked ≈.
 - The diplomacy tab's circle is the default graph and groups empires by blocs (federations,
   overlords and subjects), mutual opinion (you pick how high) or cooperation (pacts); relations
   switch all on or off at once; names no longer run off the edge.

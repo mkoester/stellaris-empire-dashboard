@@ -13,6 +13,7 @@ import {
 	offerPrice,
 	rate,
 	room,
+	roomExact,
 	spare,
 	stance,
 	terms,
@@ -660,6 +661,12 @@ describe('room in storage', () => {
 		expect(room('food', ai({ stockpile: { food: 14000 } }), game, m)).toBe(0);
 	});
 	// 2200.03.01, a throwaway game: Barcalan Conservers (fallen, willingness 0.5) at 308 alloys
+	it("companion mod 0.5.0's storage replaces the estimate", () => {
+		const a = ai({ stockpile: { energy: 13621 }, max: { energy: 45000 } });
+		expect(room('energy', a, game, m)).toBeCloseTo(0.8 * 45000 - 13621);
+		expect(roomExact('energy', a)).toBe(true);
+		expect(roomExact('energy', khellZen)).toBe(false);
+	});
 	it('a fallen empire takes 15,000 alloys in full: +100,000 storage', () => {
 		const barcalan = ai({ stockpile: { alloys: 308 }, income: { alloys: 385.3 } });
 		const worth = (fallen: boolean, amount: number) =>

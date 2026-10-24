@@ -222,6 +222,7 @@ export type AiIntel = {
 	stockpile: Resources;
 	net: Resources; // per month
 	income: Resources; // per month, gross (the cap on what it pays a month); {} before READER 12
+	max?: Resources; // storage, exact: companion mod 0.5.0's sdash_m_<res>; absent without it
 };
 
 /** A trader enclave we talk to; `kind` 1 XuraCorp, 2 Riggans, 3 Muutagan (#lib/aiTrade.ts). */
@@ -288,6 +289,8 @@ export type Snapshot = {
 	empireName: string;
 	pops: number | null;
 	stockpile: Resources;
+	// storage per resource, exact: companion mod 0.5.0's sdash_m_<res>; null without it (or the feed)
+	storageMax: Resources | null;
 	income: Resources | null; // budget.current_month, summed over sources
 	expenses: Resources | null;
 	balance: Resources;

@@ -200,6 +200,24 @@
 				{@render progress(e)}
 			{/each}
 		</div>
+		{#if data.storage.length}
+			<div class="flex flex-wrap items-baseline gap-x-4 text-sm">
+				<span class="text-neutral-500">storage</span>
+				{#each data.storage as s (s.resource)}
+					<span
+						class={s.have >= 0.95 * s.max
+							? 'text-red-600'
+							: s.have >= 0.8 * s.max
+								? 'text-amber-600'
+								: ''}
+						title={s.exact
+							? `${s.name}: ${fmt(s.have)} of ${fmt(s.max)} stored — beyond it income is lost`
+							: `${s.name}: ≈ the base storage ${fmt(s.max)}; silos, Mega-Engineering, the Galactic Market and others add to it — companion mod 0.5.0 stores the game's value`}
+						>{s.name} <b>{fmt(s.have)}</b> / {s.exact ? '' : '≈'}{fmt(s.max)}</span
+					>
+				{/each}
+			</div>
+		{/if}
 	</header>
 {:else if id === 'resources'}
 	<Resources

@@ -111,9 +111,10 @@ export function aiValue(r: string, ai: AiIntel, info: Info, m: TradeModel): numb
 /**
  * How much of `r` the AI takes in at worth: up to `fullShare` (0.8) of its storage; the rest counts
  * nothing (measured 2214.01: 10,000 energy to KhellZen at 13,621 of 25,000 counted 6,379). Null:
- * storage unknown, no limit. Storage is the resource's base max, a fallen empire's plus
- * `fallen_empire_base`'s 100,000 (2200.03: 15,000 alloys counted in full) — other modifiers are not
- * in the save (the campaign's fallen empires held 135,000 minerals).
+ * storage unknown, no limit. Storage is exact with companion mod 0.5.0 (`ai.max`); without it, the
+ * resource's base max, a fallen empire's plus `fallen_empire_base`'s 100,000 (2200.03: 15,000 alloys
+ * counted in full) — other modifiers are not in the save (the campaign's fallen empires held
+ * 135,000 minerals). `roomExact()` tells which.
  */
 export function room(
 	r: string,
@@ -123,9 +124,12 @@ export function room(
 ): number | null {
 	const base = info[r]?.max ?? null;
 	if (base === null || base <= 0) return null;
-	const max = base + (ai.fallen ? FALLEN_STORAGE : 0);
+	const max = ai.max?.[r] ?? base + (ai.fallen ? FALLEN_STORAGE : 0);
 	return Math.max(0, m.fullShare * max - (ai.stockpile[r] ?? 0));
 }
+
+/** Whether `room()` knows the AI's storage of `r` (companion mod 0.5.0) or estimates it. */
+export const roomExact = (r: string, ai: AiIntel) => ai.max?.[r] !== undefined;
 
 /** `fallen_empire_base`'s `country_resource_max_add` (4.5.2 `00_static_modifiers.txt`). */
 export const FALLEN_STORAGE = 100_000;

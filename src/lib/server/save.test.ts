@@ -2,6 +2,7 @@ import { addGameDays } from '#lib/series.ts';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
+	storageMax,
 	budgetSources,
 	buildQueue,
 	construction,
@@ -757,6 +758,22 @@ describe('nomadCountries', () => {
 			12: { country: 7, type: 'situation_nomad_economy' }
 		};
 		expect(nomadCountries(situations)).toEqual(new Set([1, 7]));
+	});
+});
+
+describe('storageMax', () => {
+	it("companion mod 0.5.0's sdash_m_<res>, by resource; nothing else", () => {
+		const vars = {
+			sdash_m_energy: 45000,
+			sdash_m_alloys: 35000,
+			sdash_s_energy: 1200,
+			sdash_tl: 123456
+		};
+		expect(storageMax(vars)).toEqual({ energy: 45000, alloys: 35000 });
+	});
+	it('null without the mod, or when it exported nothing usable', () => {
+		expect(storageMax(undefined)).toBeNull();
+		expect(storageMax({ sdash_m_unity: 0 })).toBeNull();
 	});
 });
 

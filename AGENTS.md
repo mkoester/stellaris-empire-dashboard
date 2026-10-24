@@ -710,6 +710,12 @@ the save lacks it — is kept (`withLogFields()`), also when a save is read agai
 
 ## Companion mod (`mod/dashboard_feed`)
 
+**Everything the mod adds must also work without it** (the user's rule, 2026-10-24): the mod is
+optional, so each feature falls back to an estimate from the saves and says so. Mark every value
+that rests on an estimate with **≈** (the dashboard's mark, as on the galcom tab), say in its
+tooltip what is estimated and which mod version stores the game's value, and drop the ≈ once the
+value is exact. A new mod feature without its fallback is not done.
+
 Hidden events write `game.log` lines for human players, all `SDASH|2|<date>|…` (format 2 since mod
 0.2.0; `feed.ts` still reads format 1's monthly lines). The format is shared with `feed.ts` —
 change both together and bump the number.
@@ -729,6 +735,12 @@ change both together and bump the number.
 - **Diplomatic weight** (0.4.0): no log line — each month the player's event exports every
   Galactic Community member's `diplomacy_weight` trigger into its country variable `sdash_dw`, so
   every save carries it (`galacticCommunity()` reads it).
+- **Storage** (0.5.0): no log line — each month `sdash_export_resource` also exports our maximum of
+  every resource (`export_resource_maximum_to_variable`, 4.5.2 effects.log) into `sdash_m_<res>`,
+  and `sdash_export_tradable_maximums` the tradable ones of every empire we have communications
+  with. Read as `Snapshot.storageMax` and `AiIntel.max` (`storageMax()`); the header's storage row
+  and the trade tab's "They take" use them, else ≈ the base (`docs/storage.md` lists every
+  source). Not yet run in game.
 - **The daily tick**: 4.5.2 has no sub-monthly on_action, so `sdash.2` re-fires itself with
   `days = 1`. The stockpile moves within a month (spending, the market, rewards, deals); income
   does not, so the tick logs stockpiles only. Pending events are saved with the game, so the chain
@@ -1348,6 +1360,11 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   calling (tier, reward), its deeds and — negative — the opposite patron's (the save's five
   each), accords and covenant. Uncontacted patrons stay hidden, as in the game. Still to see: a
   completed calling, an accord unlocked, a favor.
+- **Companion mod 0.5.0's storage, not yet run in game** (written 2026-10-24): whether
+  `export_resource_maximum_to_variable` fills `sdash_m_<res>` in the next monthly autosave — ours
+  for every resource (what it gives for one without storage, e.g. unity: ignored if ≤ 0), and the
+  tradable ones of every empire we talk to. Check: the header's numbers lose their ≈ and match
+  the game's top-bar tooltip; a fallen empire's shows how far its storage really goes (135,000+).
 - **Companion mod 0.4.0's diplomatic weight: confirmed** (2214.02.01, the first autosave with
   it): `variables.sdash_dw` on all 13 members, equal to the game's screen (642.41 → 642, …) and to
   the weights solved from the 2214.01.01 tallies. Open: the council's × 1.5 (no council yet).

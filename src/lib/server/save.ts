@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '17';
+export const READER = '18';
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -278,6 +278,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		empireName: raw.empireName,
 		pops: num(raw.country?.num_sapient_pops),
 		stockpile: resources(raw.country?.modules?.standard_economy_module?.resources),
+		storageMax: storageMax(raw.country?.variables),
 		// The market's automatic monthly trades are booked apart (trade_*); the game's top bar
 		// includes them.
 		income: addResources(sumSources(budget.income), sumSources(budget.trade_income)),
@@ -863,8 +864,19 @@ export function intelOf(id: number, c: Raw, toUs: Raw, us: number, nomadic = fal
 			.map((m) => ({ key: String(m.modifier), value: num(m.value) })),
 		stockpile: resources(c.modules?.standard_economy_module?.resources),
 		net: addResources(sumSources(budget.balance), sumSources(budget.trade_balance)),
-		income: addResources(sumSources(budget.income), sumSources(budget.trade_income))
+		income: addResources(sumSources(budget.income), sumSources(budget.trade_income)),
+		...(storageMax(c.variables) && { max: storageMax(c.variables)! })
 	};
+}
+
+/** Companion mod 0.5.0's storage maximums (`sdash_m_<res>`) by resource; null: none exported. */
+export function storageMax(variables: Raw): Resources | null {
+	const max = Object.fromEntries(
+		Object.entries(variables ?? {})
+			.filter(([k, v]) => k.startsWith('sdash_m_') && typeof v === 'number' && v > 0)
+			.map(([k, v]) => [k.slice('sdash_m_'.length), v as number])
+	);
+	return Object.keys(max).length ? max : null;
 }
 
 /**
