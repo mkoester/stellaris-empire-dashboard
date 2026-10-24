@@ -36,7 +36,7 @@
 	const termsOf = (e: Empire) => terms(e, data.personalities, data.attitudes);
 	const GIFT = 'opinion_trade_gift';
 	const gift = (e: Empire) => e.opinionModifiers.find((m) => m.key === GIFT)?.value ?? null;
-	const decay = $derived(data.opinionModifiers[GIFT]?.decay ?? null); // in the files; not seen
+	const decay = $derived(data.opinionModifiers[GIFT]?.decay ?? null); // a year, on its anniversary
 	const modifierName = (k: string) => data.opinionModifiers[k]?.name ?? pretty(k);
 	const resName = (r: string) => data.resourceInfo[r]?.name ?? pretty(r);
 	const fee = $derived(data.market.fee);
@@ -494,8 +494,8 @@
 		<Panel
 			title="Empires we talk to"
 			note="As the diplomacy screen shows them: personality (and how good a deal must be for it — at 1.0 it accepts a deal equally good for both sides, at 0 none), attitude towards us (some attitudes refuse every trade), their opinion of us and what makes it up. Willing, opinion and trust run from red (the lowest here) to green (the highest). A gift's 'Favorable Trade Deal' adds up to {data
-				.opinionModifiers[GIFT]?.max ?? 100} — the files say it fades by {decay ??
-				2} a month, but none was seen over four months. Nomadic empires take energy and minerals but never give them{data.weNomadic
+				.opinionModifiers[GIFT]?.max ?? 100} — it fades by {decay ??
+				2} a year, on the gift's anniversary. Nomadic empires take energy and minerals but never give them{data.weNomadic
 				? ' — nor can we, being nomadic'
 				: ''}."
 		>
@@ -644,7 +644,7 @@
 					GIFT_AMOUNT
 				)} of each resource given: its worth to them at their willingness, as the trade screen's acceptance shows it (measured: that figure or one less) — 'Favorable Trade Deal', at most {data
 					.opinionModifiers[GIFT]?.max ??
-					100} (so less where earlier gifts are left; it did not fade over four months, whatever the files say). An empire whose storage of the resource is full takes it for nothing (seen at the fallen empires). Every attitude takes gifts, rivals and unfriendly ones too: a way to mend one that refuses trades."
+					100} (so less where earlier gifts are left; it fades by 2 a year, on the gift's anniversary). An empire whose storage of the resource is full takes it for nothing (seen at the fallen empires). Every attitude takes gifts, rivals and unfriendly ones too: a way to mend one that refuses trades."
 			>
 				<div class="overflow-x-auto">
 					<SortTable

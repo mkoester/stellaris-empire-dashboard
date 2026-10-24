@@ -34,10 +34,12 @@ reserves) but take them.
 **Gifts.** A one-sided deal raises the AI's opinion of us by its worth at its willingness — the
 tooltip's figure or one less ("Favorable Trade Deal", accumulates to 100). Every attitude takes
 gifts, rivals and unfriendly empires too: the way to mend one that refuses trades. The files say
-the modifier decays 2 (`decay = { base = 2 }`, and the save marks it `decay=yes` with its
-`start_date`); it did not fade at all in four months, in the campaign (2212.09–2213.01) and again
-in a throwaway game (Lahtrepian +41 from 2201.06.01 to 2201.10.01). A yearly decay would fit both —
-check a year after a gift. The AI accepts days to weeks after the offer.
+the modifier decays 2 (`decay = { base = 2 }`; the save marks it `decay=yes` with its
+`start_date`) — **a year, on the gift's anniversary**: Lahtrepian's +41 (a throwaway game, gift
+accepted 2201.06.01) held through 2202.05.01 and was 39 from the 2202.06.01 autosave on
+(screenshot `~/Pictures/Screenshots/screenshot_2026-10-24_13-11-02`: relations −2 that month).
+That is why four months showed nothing, in the campaign too. Open: whether a further gift resets
+`start_date`. The AI accepts days to weeks after the offer.
 
 **Drift.** At unchanged income, minerals and food were worth 6–9 % more in each of the first two
 half years, then held (2213.08–2214.01: no step, ~1 % down at most) (food 0.067 → 0.078 → 0.082 a unit at KhellZen, 2212.08 → 2213.02 → 2213.08), energy rose 10 %

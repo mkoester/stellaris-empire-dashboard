@@ -27,8 +27,9 @@ import type { AiIntel, GameData, Resources } from './types.ts';
 //   A resource not measured is not valued (null): no estimate for it;
 // - a gift raises its opinion of us by its worth as the acceptance shows it (`giftOpinion()`):
 //   "Favorable Trade Deal" (accumulates to 100) came out the tooltip or one less, at 13 empires
-//   given 1000 energy (2212.08) and 8 given 1000 minerals (2213.01). It did not fade: the files
-//   say −2 a month, the saves showed every energy gift unchanged four months on (2212.09–2213.01);
+//   given 1000 energy (2212.08) and 8 given 1000 minerals (2213.01). It fades by 2 a year, on
+//   the gift's anniversary (`decay = 2`; a throwaway game: +41 from 2201.06.01 until 2202.05.01, 39
+//   from 2202.06.01) — not a month, as it looked: unchanged four months on, twice;
 // - it takes in at worth only what fits under 0.8 of its storage (`room()`): 10,000 energy, food
 //   and consumer goods to KhellZen (2214.01) counted 6,379, 1,026 and 8,377 units — exactly
 //   0.8 × max − stockpile; the fallen empires, over it with minerals, valued 1000 at 0. Monthly

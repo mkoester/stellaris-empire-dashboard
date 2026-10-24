@@ -74,9 +74,8 @@ The trade model is fitted to tooltips at 16 empires, gifts and deals (2026-10-23
 `docs/trade-calibration.md` → What we know, how to resume → Paused). Done in the campaign without
 cheats — tooltips set up, not sent — not in a throwaway game. Open:
 
-- the gift's decay: none in four months, twice (the campaign; a throwaway game, Lahtrepian +41 from
-  2201.06.01 to 10.01, `start_date` and `decay=yes` in the save) — yearly? Read the throwaway
-  game's autosave at 2202.06.01 or later (`opinion_trade_gift` in Lahtrepian's relation to us);
+- the gift's decay: solved (2026-10-24) — −2 a year on the gift's anniversary (`docs/trade-calibration.md`
+  → Gifts); left: does a further gift reset the anniversary?
 - when a monthly deal breaks: in game it ended with "the other empire can't afford the monthly
   rate of resource X" — at a zero stockpile, or a negative net income? The deal finder's monthly
   mode assumes the stockpile runs out (net income after paying, months it lasts);
