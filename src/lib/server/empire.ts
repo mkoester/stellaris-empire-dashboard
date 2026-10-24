@@ -71,7 +71,7 @@ export function empireData(url: URL) {
 		),
 		// Researched techs per field and tier, at the latest full save.
 		tiers: techTiers(b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [], data.techs),
-		// stockpile against storage: exact from the latest save with companion mod 0.5.0, else ≈ base
+		// storage under the resources panel: exact from the latest save with companion mod 0.5.0, else ≈ base
 		storage: storageRows(
 			latest.stockpile,
 			b.snaps.findLast((s) => s.kind === 'save')?.storageMax ?? null,

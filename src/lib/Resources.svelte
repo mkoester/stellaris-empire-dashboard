@@ -4,19 +4,23 @@
 	import { monthlyLimit } from './market.ts';
 	import { followTicks } from './live.ts';
 	import { stripOrder } from './resourceGroups.ts';
+	import { monthsLeft, urgencyColor, type StorageRow } from './storage.ts';
 	import type { MarketOrder, Resources, Tick } from './types.ts';
 
 	// The game's top bar: stockpile and net change per month, in the game's order. Basic resources
 	// always show; strategic ones once the empire has or makes any.
 	// On the galactic market there are no per-empire monthly limits (see market.ts).
 	// With `live` (the page shows the head), the stockpile follows the companion mod's daily tick.
+	// Under each resource with storage, in grey: its limit (≈ without companion mod 0.5.0) and the
+	// months until full or empty at this month's net, redder the sooner.
 	let {
 		stockpile: saved,
 		balance,
 		orders,
 		galactic = false,
 		date,
-		live = false
+		live = false,
+		storage = []
 	}: {
 		stockpile: Resources;
 		balance: Resources;
@@ -24,7 +28,11 @@
 		galactic?: boolean;
 		date: string;
 		live?: boolean;
+		storage?: StorageRow[];
 	} = $props();
+
+	const limits = $derived(new Map(storage.map((s) => [s.resource, s])));
+	const months = (m: number) => (m >= 100 ? '100+ mo' : m < 1 ? '<1 mo' : `${Math.round(m)} mo`);
 
 	let tick = $state<Tick | null>(null);
 	followTicks((t) => (tick = t));
@@ -51,12 +59,27 @@
 	{/if}
 	{#each shown as key (key)}
 		{@const net = balance[key] ?? 0}
-		<span class="whitespace-nowrap">
-			<span style:color={colorOf(key)}>{pretty(key)}</span>
-			<b>{fmt(stockpile[key] ?? 0)}</b>
-			<span class={net < 0 ? 'text-red-600' : net > 0 ? 'text-green-600' : 'text-gray-500'}
-				>{signed(net)}</span
-			>
+		{@const limit = limits.get(key)}
+		{@const have = stockpile[key] ?? 0}
+		{@const left = limit ? monthsLeft(have, limit.max, net) : null}
+		<span class="inline-flex flex-col whitespace-nowrap">
+			<span>
+				<span style:color={colorOf(key)}>{pretty(key)}</span>
+				<b>{fmt(have)}</b>
+				<span class={net < 0 ? 'text-red-600' : net > 0 ? 'text-green-600' : 'text-gray-500'}
+					>{signed(net)}</span
+				>
+			</span>
+			{#if limit}
+				<span
+					class="text-right text-xs text-gray-500"
+					title={`storage ${limit.exact ? '' : '≈ '}${fmt(limit.max)}${limit.exact ? '' : " (the base; silos, Mega-Engineering and others add to it — companion mod 0.5.0 stores the game's value)"}${left === null ? '' : `; ${net > 0 ? 'full' : 'empty'} in ${months(left)} at ${signed(net)} a month`}`}
+					>({limit.exact ? '' : '≈'}{fmt(limit.max)}){#if left !== null}
+						<span style:color={urgencyColor(left)}
+							>&ensp;{left === 0 ? (net > 0 ? 'full' : 'empty') : months(left)}</span
+						>{/if}</span
+				>
+			{/if}
 		</span>
 	{/each}
 </div>

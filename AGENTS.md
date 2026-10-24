@@ -738,7 +738,7 @@ change both together and bump the number.
 - **Storage** (0.5.0): no log line — each month `sdash_export_resource` also exports our maximum of
   every resource (`export_resource_maximum_to_variable`, 4.5.2 effects.log) into `sdash_m_<res>`,
   and `sdash_export_tradable_maximums` the tradable ones of every empire we have communications
-  with. Read as `Snapshot.storageMax` and `AiIntel.max` (`storageMax()`); the header's storage row
+  with. Read as `Snapshot.storageMax` and `AiIntel.max` (`storageMax()`); the resources panel's storage line
   and the trade tab's "They take" use them, else ≈ the base (`docs/storage.md` lists every
   source). Not yet run in game.
 - **The daily tick**: 4.5.2 has no sub-monthly on_action, so `sdash.2` re-fires itself with
@@ -1363,7 +1363,7 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
 - **Companion mod 0.5.0's storage, not yet run in game** (written 2026-10-24): whether
   `export_resource_maximum_to_variable` fills `sdash_m_<res>` in the next monthly autosave — ours
   for every resource (what it gives for one without storage, e.g. unity: ignored if ≤ 0), and the
-  tradable ones of every empire we talk to. Check: the header's numbers lose their ≈ and match
+  tradable ones of every empire we talk to. Check: the resources panel's storage loses its ≈ and matches
   the game's top-bar tooltip; a fallen empire's shows how far its storage really goes (135,000+).
 - **Companion mod 0.4.0's diplomatic weight: confirmed** (2214.02.01, the first autosave with
   it): `variables.sdash_dw` on all 13 members, equal to the game's screen (642.41 → 642, …) and to

@@ -29,3 +29,30 @@ export function storageRows(
 			exact: exact?.[r] !== undefined
 		}));
 }
+
+/**
+ * Months until the stockpile is full (net > 0) or empty (net < 0) at this month's net change; 0
+ * when already there; null when it does not move.
+ */
+export function monthsLeft(have: number, max: number, net: number): number | null {
+	if (net > 0) return Math.max(0, (max - have) / net);
+	if (net < 0) return Math.max(0, have / -net);
+	return null;
+}
+
+// grey from two years on, amber at half a year, red at a month or less (log scale between)
+const CALM = 24;
+const ALARM = 1;
+const GREY = [107, 114, 128]; // tailwind gray-500
+const AMBER = [217, 119, 6]; // amber-600
+const RED = [220, 38, 38]; // red-600
+
+/** The colour of a month count: grey when far off, through amber to red the nearer it is. */
+export function urgencyColor(months: number): string {
+	const t = Math.min(
+		1,
+		Math.max(0, Math.log(CALM / Math.max(months, ALARM)) / Math.log(CALM / ALARM))
+	);
+	const [from, to, u] = t < 0.5 ? [GREY, AMBER, t * 2] : [AMBER, RED, t * 2 - 1];
+	return `rgb(${from.map((c, i) => Math.round(c + (to[i] - c) * u)).join(', ')})`;
+}

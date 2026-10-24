@@ -8,7 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- The header shows each resource's stockpile against its storage (amber from 80 %, red from 95 %).
+- The resources panel shows, under each resource, its storage and the months until it is full
+  (or empty, when shrinking) — grey when far off, turning amber and then red the nearer it gets.
   Companion mod 0.5.0 stores the game's storage — ours and every empire we talk to, so the trade
   tab knows how much more each one takes in; without it the base storage is shown, marked ≈.
 - The diplomacy tab's circle is the default graph and groups empires by blocs (federations,
