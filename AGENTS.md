@@ -434,7 +434,7 @@ civilisations, monsters, enclaves and the game's event countries also have commu
 with what the diplomacy screen shows: personality and its `trade_willingness`, attitude towards
 us (one that does not trade refuses everything: data DB `attitude.trade`), their opinion of us
 with its modifiers, trust, our deals, a gift's "Favorable Trade Deal" (data DB `opinion_modifier`:
-+1 a point, max 100, decay 2 — a year, on the gift's anniversary, seen 2202.06.01). With the **`tradeIntel`**
++1 a point, max 100, decay 2 — a year, on the first gift's anniversary, seen 2202.06.01). With the **`tradeIntel`**
 spoiler (cheating — their stockpiles and income; the route strips them otherwise): the deal
 finder (we give X, for Y: per empire the most Y it would give per X, against selling X and buying
 Y on the market with the fee) and per empire and resource whether it is short (under a third of
@@ -450,7 +450,7 @@ upward over time (at the same income: minerals 0.048 → 0.056, food 0.067 → 0
 (`TRADE_VALUE_RESOURCE`) is engine state; the curves hold the latest level (2213.08) and the test
 checks older lines at their date's level (`LEVEL`); a gift buys that worth at the AI's willingness in opinion (`giftOpinion()`, whatever
 its attitude — rivals and unfriendly ones took gifts; the "What a gift buys" table; "Favorable
-Trade Deal", max 100 — −2 a year on the gift's anniversary; worth nothing into
+Trade Deal", max 100 — −2 a year on the first gift's anniversary; worth nothing into
 full storage); a resource not measured gets no estimate. It takes in at worth only up to 0.8 of its storage
 (`room()`, `worthOf()`; the deal finder's "They take" column — the base max, storage modifiers
 are not in the save). It gives at once its
@@ -804,8 +804,9 @@ country's start: it runs into the next country's block and reads their values (2
 **The current throwaway game** (2026-10-24): `yorphianextractorate_888024433` (Machine
 Intelligence, Shroud-Forged; companion mod 0.5.0). Holds: console stockpiles, a planet and a
 starbase Resource Silo, Construction Templates, Mega-Engineering, the galactic market founded from
-the console (we host), a 1000-energy gift to Lahtrepian (9) accepted 2201.06.01 (+41, 39 from
-2202.06.01: the yearly decay; the next step due 2203.06.01).
+the console (we host), two 1000-energy gifts to Lahtrepian (9), the first accepted 2201.06.01 (+41; 39 from
+2202.06.01; the second gift: 78; 76 from 2203.06.01 — the first gift's date holds). Since 2026-10-24
+it runs on the native build: its saves are in the native user dir (workspace `AGENTS.md`).
 
 New save shapes come from **throwaway games with console cheats, never the real campaign** (its
 history lives only in the DB), against a **separate `DASHBOARD_DB`**, the companion mod on (cheats

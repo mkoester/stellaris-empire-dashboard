@@ -38,8 +38,10 @@ the modifier decays 2 (`decay = { base = 2 }`; the save marks it `decay=yes` wit
 `start_date`) — **a year, on the gift's anniversary**: Lahtrepian's +41 (a throwaway game, gift
 accepted 2201.06.01) held through 2202.05.01 and was 39 from the 2202.06.01 autosave on
 (screenshot `~/Pictures/Screenshots/screenshot_2026-10-24_13-11-02`: relations −2 that month).
-That is why four months showed nothing, in the campaign too. Open: whether a further gift resets
-`start_date`. The AI accepts days to weeks after the offer.
+That is why four months showed nothing, in the campaign too. **A further gift adds to the same
+modifier and keeps the first gift's date**: a second gift in 2202 took it from 39 to 78 with
+`start_date` still 2201.06.01, and it fell to 76 on 2203.06.01 — the whole stack loses 2 a year, on
+the first gift's anniversary (screenshot `screenshot_2026-10-24_18-38-15`). The AI accepts days to weeks after the offer.
 
 **Drift.** At unchanged income, minerals and food were worth 6–9 % more in each of the first two
 half years, then held (2213.08–2214.01: no step, ~1 % down at most) (food 0.067 → 0.078 → 0.082 a unit at KhellZen, 2212.08 → 2213.02 → 2213.08), energy rose 10 %
