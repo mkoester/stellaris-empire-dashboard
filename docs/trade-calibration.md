@@ -103,8 +103,9 @@ other modders in `stellaris-modding-insights` (docs 16 and 17).
   willingness against the tooltip; add it as a dated case to `aiTrade.test.ts` (older dates at
   their `LEVEL`). Refit `WORTH` only with several empires at one date.
 - **Ideas not yet tried for the drift:** the AI's war/peace or threat state; tech count (tech
-  power rose 372 → 385 at KhellZen); the galactic market's founding; a per-year AI recalculation
-  on the anniversary of something (game start 2200.01.01? KhellZen's first contact?).
+  power rose 372 → 385 at KhellZen); a per-year AI recalculation
+  on the anniversary of something (game start 2200.01.01? KhellZen's first contact?). Ruled out:
+  the galactic market's founding (2026-10-24: the same shift a month before it).
 
 ## The original session plan (2026-10-22, superseded)
 
@@ -568,10 +569,13 @@ incomes:
 | Andarian (1.0)   | **46** / 51 | 0 / 0    | 91 / 91 | **45** / 43 | 142 / 142      | 166 / 166 | 333, zro 308 — same |
 | Lahtrepian (0.8) | **42** / 47 | 53 / 53  | 82 / 82 | **46** / 44 | 119 / 119      | 140 / 140 | 266, zro 246 — same |
 
-Energy × 0.89–0.90 at both, trade × 1.04–1.05; everything else exact. **Market or time is not
-separated yet** — 14 months passed since the fit, and the campaign's energy drifted by itself. The
-control: the same energy and trade tooltips in the `autosave_2201.04.01` (no market, a month
-earlier).
+Energy × 0.89–0.90 at both, trade × 1.04–1.05; everything else exact.
+
+**The control — the month before, no market** (`autosave_2201.04.01` loaded; screenshots
+`screenshot_2026-10-24_12-40-24`, `12-40-55`; predicted at that save's incomes): energy 46 / 51.3
+and 42 / 47.8 (× 0.90, × 0.88), trade 45 / 43.0 and 47 / 44.9 (× 1.05) — the same shift. **The
+galactic market changes nothing an AI values**; energy and trade drifted between 2200.03 and
+2201.04 by themselves — energy down, where the campaign's rose 10 %.
 
 ### What does not explain food (and the minerals drift), 2026-10-23
 
