@@ -63,8 +63,8 @@ folder (registry `User Shell Folders\Personal`, so OneDrive redirection counts),
 Proton's `compatdata/281990` in every library, Wine prefixes. A folder counts only when it holds the
 game's files (`isGameDir`, `isUserDir`); user folders rank by newest save. **Not yet confirmed on a
 real machine:** the Microsoft Store layout, GOG's registry key, Heroic/Lutris — players type the
-path when they are wrong. This machine has a native and a Proton user folder side by side (the
-Proton one holds the saves).
+path when they are wrong. A machine moved from Proton to the native build keeps both user folders
+(`scripts/stellaris-native.sh`); ranking by newest save picks the one in play.
 
 **Game data** (`server/extract.ts`): without `STELLARIS_DATA_DB` the extractor runs at start
 against `gameDir` — `data/stellaris-<rawVersion>-<hash of the DLC folders and the extractor's
@@ -687,7 +687,7 @@ first save read since 2026-10-18. The DLC catalogue is the data DB's `dlc` table
 `dlc_info.txt`, category from the installed DLCs' descriptors, Steam release dates). Installed
 mods are the launcher's descriptors, `<user dir>/mod/*.mod`, the user dir being
 `STELLARIS_SAVE_DIR`'s parent (`server/mods.ts`, read at start); `supports()` compares their
-`supported_version` (`v4.5.*`) with the save's version. A dev copy registered next to its workshop version (`link-mod-proton.sh`) has the same name and id: rows are keyed by descriptor file, marked "local", and left out of the version notes (`trackedMods()`) — keyed by name and id they once broke the tab (a duplicate key, client-side only). 2207.03.10: 28 DLCs, 17 mods. **Merged
+`supported_version` (`v4.5.*`) with the save's version. A dev copy registered next to its workshop version (`link-mod.sh`) has the same name and id: rows are keyed by descriptor file, marked "local", and left out of the version notes (`trackedMods()`) — keyed by name and id they once broke the tab (a duplicate key, client-side only). 2207.03.10: 28 DLCs, 17 mods. **Merged
 DLCs**: Utopia, Synthetic Dawn and Humanoids are gameplay DLCs no script checks for (data DB
 `dlc.host_checks` 0) and saves leave them out of `required_dlcs` though installed — shown as
 "base game". **Mod updates**: the launcher's `launcher-v2.sqlite` (`mods.timeUpdated`, seconds;
@@ -770,7 +770,7 @@ change both together and bump the number.
   on game updates.
 
 It changes the checksum: no achievements while enabled. Register it on Linux with
-`scripts/link-mod-proton.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace
+`scripts/link-mod.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace
 root, launcher closed).
 
 ### Sandbox notes (Claude Code on the Mac)
