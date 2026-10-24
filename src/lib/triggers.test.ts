@@ -14,7 +14,8 @@ const facts: Facts = {
 	perks: [],
 	techs: ['tech_lasers_1'],
 	atWar: false,
-	situations: 0
+	situations: 0,
+	nomadic: false
 };
 
 // diplo_stance_belligerent's potential (4.5.2 common/policies/00_policies.txt)
@@ -35,6 +36,9 @@ const belligerent: Trigger = {
 group('evaluate', () => {
 	it('answers the leaves the save knows', () => {
 		expect(evaluate(belligerent, facts)).toBe(true);
+		// nomadic by its situation, whatever the origin; unknown without situations
+		expect(evaluate(belligerent, { ...facts, nomadic: true })).toBe(false);
+		expect(evaluate(belligerent, { ...facts, nomadic: null })).toBe(null);
 		expect(evaluate({ leaf: 'is_country_type', value: 'fallen_empire' }, facts)).toBe(false);
 		expect(evaluate({ leaf: 'has_policy_flag', value: 'unrestricted_wars' }, facts)).toBe(true);
 		expect(evaluate({ leaf: 'is_gestalt', value: 'yes' }, facts)).toBe(false);

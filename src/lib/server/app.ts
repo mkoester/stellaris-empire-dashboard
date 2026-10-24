@@ -6,6 +6,7 @@ import { appDataDir, readConfig, resolvePaths, writeConfig, type Config } from '
 import {
 	headCampaign,
 	headId,
+	loadedNode,
 	nodes,
 	noteModVersions,
 	openDb,
@@ -14,7 +15,7 @@ import {
 	type Recorded
 } from './db.ts';
 import { trackedMods } from '#lib/addons.ts';
-import type { GameData, ModInfo } from '#lib/types.ts';
+import type { GameData, ModInfo, Tick } from '#lib/types.ts';
 import { tailLog, toLogSnapshot } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
 import { READER, setPrescriptedNames } from './save.ts';
@@ -44,6 +45,8 @@ type State = {
 	explanations?: Explanations;
 	mods?: ModInfo[];
 	watcher?: Watcher;
+	/** The node of the save the player just loaded (the mod's `load` line), for the next observation. */
+	loadedFrom?: number | null;
 };
 const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
 const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter(), status: 'setup' });
@@ -71,23 +74,38 @@ export function getDb(): Db {
 	return state.db;
 }
 
+/** The loaded save's node, once: the observation after a load is its child. */
+function takeLoaded(): number | null {
+	const id = state.loadedFrom ?? null;
+	state.loadedFrom = null;
+	return id;
+}
+
 function recorded(r: Recorded, source: string) {
 	console.log(`${r.isNew ? 'new ' : 'seen'} node ${r.nodeId} ← ${source}`);
 	for (const m of r.mismatches) console.warn(`mod and save disagree on net income: ${m}`);
 	updates.emit('update', r.nodeId);
 }
 
+function caughtUp(campaign: string, n: number) {
+	if (!n) return;
+	console.log(`read ${n} saves of ${campaign} in the background`);
+	updates.emit('update', 'refreshed');
+}
+
 /**
- * Re-reads the campaign's saves left to an older reader, in the background, once; open pages
- * reload when it is done.
+ * Reads the campaign's saves still in the backlog (new since the last run, or left to an older
+ * reader) in the background, once; open pages reload when it is done.
  */
 export function refreshCampaign(campaign: string) {
-	state.watcher?.refreshCampaign(campaign).then((n) => {
-		if (!n) return;
-		console.log(`re-read ${n} saves of ${campaign}`);
-		updates.emit('update', 'refreshed');
-	});
+	state.watcher?.refreshCampaign(campaign).then((n) => caughtUp(campaign, n));
 }
+
+/** The campaigns with saves on disk; empty before the start. */
+export const campaignsOnDisk = (): Set<string> => state.watcher?.onDisk() ?? new Set();
+
+/** How long after the start the other campaigns' backlog is read: the first pages come first. */
+const CATCH_UP_DELAY_MS = 3000;
 
 const appDir = () => appDataDir(process.platform, process.env, homedir());
 
@@ -150,7 +168,8 @@ async function run() {
 	const data = statSync(dataDb);
 	state.watcher = await watchSaves(store, saveDir, {
 		onIngest: (r) => recorded(r, r.file),
-		onRefresh: (r) => console.log(`re-read node ${r.nodeId} ← ${r.file}`),
+		loadedFrom: takeLoaded,
+		onRefresh: (r) => console.log(`${r.isNew ? 'late' : 're-read'} node ${r.nodeId} ← ${r.file}`),
 		onError: (file, e) => console.error(`cannot ingest ${file}:`, e),
 		reader: `${READER}:${data.mtimeMs}:${data.size}`
 	});
@@ -163,6 +182,12 @@ async function run() {
 		nodes(store).find((n) => n.id === head)?.date ?? null
 	);
 	state.status = 'running';
+	setTimeout(() => {
+		state.watcher
+			?.catchUp(caughtUp)
+			.then(() => console.log('every campaign is up to date'))
+			.catch((e) => console.error('catching up:', e));
+	}, CATCH_UP_DELAY_MS);
 
 	if (gameLog) {
 		await tailLog(gameLog, {
@@ -170,7 +195,19 @@ async function run() {
 				// game.log names no campaign; months belong to whatever is being played.
 				const campaign = headCampaign(store);
 				if (campaign === null) return console.warn(`mod month ${m.date} before any save; skipped`);
-				recorded(record(store, toLogSnapshot(m, campaign), 'game.log'), `game.log ${m.date}`);
+				recorded(
+					record(store, toLogSnapshot(m, campaign), 'game.log', takeLoaded()),
+					`game.log ${m.date}`
+				);
+			},
+			onTick: (t) => updates.emit('tick', t satisfies Tick),
+			onLoad: (date, id) => {
+				const campaign = headCampaign(store);
+				state.loadedFrom =
+					campaign === null || id === null ? null : loadedNode(store, campaign, date, id);
+				console.log(
+					`save loaded at ${date}: ${state.loadedFrom === null ? 'unknown node' : `node ${state.loadedFrom}`}`
+				);
 			},
 			onError: (e) => console.error('game.log:', e)
 		});

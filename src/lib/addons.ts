@@ -85,7 +85,7 @@ export function supports(supported: string | null, gameVersion: string | null): 
 
 /**
  * A `mod/*.mod` descriptor: `key="value"` lines and a `tags={ "…" }` block. A dev copy registered
- * next to its published version (`link-mod-proton.sh`) has the same name and workshop id, so the
+ * next to its published version (`link-mod.sh`) has the same name and workshop id, so the
  * file name is what tells the two apart.
  */
 export function parseModDescriptor(text: string, file: string): ModInfo | null {

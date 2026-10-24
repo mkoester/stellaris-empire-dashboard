@@ -3,10 +3,13 @@ import type { CapEffect, Explanation, PlanetState } from './types.ts';
 // How many districts a planet allows, from what the save shows on it. The game computes this
 // from modifiers (4.5.2): per type, the sum of `district_<type>_max_add` (× 1 + `…_max_mult`);
 // overall, planet size (`NUM_DISTRICTS_FROM_PLANET_SIZE` = 1) plus `planet_max_districts_add`
-// (× 1 + `…_mult`). The sources: deposits — a blocker's hidden feature included, as the game
-// counts it (Earth 2207.03.10: farming 5 + Pacific Algae Tracts 3 = the game's 8) —, the
-// planet's static modifiers and its buildings. Not counted: modifiers from the empire (techs,
-// traditions, civics) and triggered ones, e.g. capital buildings' +1 with Virtuality.
+// (× 1 + `…_mult`), also as `planet_non_artificial_…` and `pc_<class>_…`. The sources: deposits —
+// a blocker's hidden feature included, as the game counts it (Earth 2207.03.10: farming 5 +
+// Pacific Algae Tracts 3 = the game's 8) —, the planet's static modifiers and its buildings, and
+// the empire's civics, origin, traditions and perks (`empire`; Embron 2212.06.01, the game's
+// tooltip: 20 size + 3 Planet Forgers (`pc_volcanic_…`) + 1 Expansion finished + 1 Adaptive
+// Ecology = 25). Not counted: techs and triggered ones, e.g. capital buildings' +1 with
+// Virtuality.
 
 export type CapSource = { from: string; key: string; value: number; blocked: boolean };
 export type DistrictCap = {
@@ -37,10 +40,16 @@ export type PlanetDetailsData = {
 const TYPE_CAP = /^district_(\w+)_max_(add|mult)$/;
 
 export function districtCaps(
-	planet: PlanetState & { size: number; habitat: boolean; buildings: string[] },
+	planet: PlanetState & {
+		size: number;
+		habitat: boolean;
+		planetClass?: string;
+		buildings: string[];
+	},
 	built: Record<string, number>,
 	effects: Record<string, CapEffect[]>,
-	blockers: string[] = [] // deposit keys that are blockers
+	blockers: string[] = [], // deposit keys that are blockers
+	empire: string[] = [] // the empire's owners: `civic:…`, `origin:…`, `tradition:…` (perks too)
 ): PlanetCaps {
 	const owners: [string, boolean][] = [
 		...planet.deposits.flatMap((d): [string, boolean][] => [
@@ -48,7 +57,8 @@ export function districtCaps(
 			...(d.swap ? [[`deposit:${d.swap}`, true] as [string, boolean]] : [])
 		]),
 		...planet.modifiers.map((m): [string, boolean] => [`modifier:${m.key}`, false]),
-		...planet.buildings.map((b): [string, boolean] => [`building:${b}`, false])
+		...planet.buildings.map((b): [string, boolean] => [`building:${b}`, false]),
+		...empire.map((o): [string, boolean] => [o, false])
 	];
 	const sources = owners.flatMap(([from, blocked]) =>
 		(effects[from] ?? []).map((e) => ({ from, key: e.key, value: e.value, blocked }))
@@ -76,7 +86,12 @@ export function districtCaps(
 			};
 		});
 
-	const limitSources = sources.filter((s) => s.key.startsWith('planet_max_districts_'));
+	const limitKeys = [
+		'planet_max_districts_',
+		'planet_non_artificial_max_districts_',
+		...(planet.planetClass ? [`${planet.planetClass}_max_districts_`] : [])
+	];
+	const limitSources = sources.filter((s) => limitKeys.some((k) => s.key.startsWith(k)));
 	const limitOf = (s: CapSource[]) =>
 		planet.habitat
 			? null

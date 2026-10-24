@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Chart from '#lib/Chart.svelte';
 	import { colorOf } from '#lib/colors.ts';
+	import EmpireName from '#lib/EmpireName.svelte';
 	import { dealEnd, sideParts } from '#lib/deals.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import type { DealSide } from '#lib/types.ts';
@@ -58,7 +59,7 @@
 	{@const end = dealEnd(d)}
 	<section class="rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
 		<div class="mb-1 flex flex-wrap items-baseline gap-x-4">
-			<b class="text-base">{d.partner}</b>
+			<span class="text-base"><EmpireName name={d.partner} /></span>
 			<span class="text-gray-500 tabular-nums"
 				>{d.start ?? `seen ${firstSeen}`}{end ? ` – ${end}` : ''}{lastSeen
 					? ` (last seen ${lastSeen})`

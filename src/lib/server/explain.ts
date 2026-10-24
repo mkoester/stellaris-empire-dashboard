@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { pretty } from '#lib/format.ts';
 import type { Explanation, Modifier } from '#lib/types.ts';
 
-// Popup texts for traits, edicts, council agendas, policy options, techs, jobs and the empire's civics, origin,
+// Popup texts for traits, edicts, council agendas, policy options, techs, jobs, colony designations and the empire's civics, origin,
 // authority, ethics and government type, from the extraction's SQLite:
 // descriptions, modifiers (labelled via modifier_label) and a few facts. Loaded once at start,
 // keyed `<kind>:<key>` (e.g. `edict:fortify_the_border`).
@@ -483,6 +483,20 @@ export function loadExplanations(file: string): Explanations {
 				description: null,
 				modifiers: [],
 				text: 'The game names the government after its authority, ethics and civics.',
+				facts: []
+			};
+		// Colony designations: what each specialises in, and the job bonus it grants.
+		const designationMods = grouped(
+			'SELECT colony_type_key AS owner, modifier AS key, value FROM colony_type_modifier ORDER BY sort_order'
+		);
+		for (const c of rows<{ key: string; name: string | null; description: string | null }>(
+			'SELECT key, name, description FROM colony_type'
+		))
+			out[`designation:${c.key}`] = {
+				title: c.name ?? pretty(c.key.replace(/^col_/, '')),
+				description: c.description,
+				modifiers: designationMods.get(c.key) ?? [],
+				text: null,
 				facts: []
 			};
 		return out;

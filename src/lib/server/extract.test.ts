@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { dataKey, ensureDataDb, extractorFromEnv } from './extract.ts';
+import { dataKey, ensureDataDb, extractorFromEnv, extractorVersion } from './extract.ts';
 
 describe('dataKey', () => {
 	it('changes with the version and the DLC set, not their order', () => {
@@ -11,6 +11,22 @@ describe('dataKey', () => {
 		expect(dataKey('v4.5.2', ['dlc002', 'dlc001'])).toBe(a);
 		expect(dataKey('v4.5.2', ['dlc001'])).not.toBe(a);
 		expect(dataKey('v4.5.3', ['dlc001', 'dlc002'])).not.toBe(a);
+	});
+
+	it("changes with the extractor's version, so an update extracts again", () => {
+		const a = dataKey('v4.5.2', ['dlc001'], '0.1.1');
+		expect(dataKey('v4.5.2', ['dlc001'], '0.2.0')).not.toBe(a);
+		expect(dataKey('v4.5.2', ['dlc001'], '0.1.1')).toBe(a);
+	});
+});
+
+describe('extractorVersion', () => {
+	it('reads __version__ beside the script; null when there is none', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'extractor-'));
+		mkdirSync(join(dir, 'extractor'));
+		writeFileSync(join(dir, 'extractor', '__init__.py'), '"""doc"""\n\n__version__ = \'0.2.0\'\n');
+		expect(extractorVersion(join(dir, 'stellaris-extract.py'))).toBe('0.2.0');
+		expect(extractorVersion(join(tmpdir(), 'nowhere', 'x.py'))).toBeNull();
 	});
 });
 

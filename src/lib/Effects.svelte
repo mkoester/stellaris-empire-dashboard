@@ -7,8 +7,10 @@
 </script>
 
 {#if e?.modifiers.length}
-	<span class="text-xs">
-		{#each e.modifiers as m, i (i)}<span class="mr-2 whitespace-nowrap"
+	<!-- wrap between modifiers, never inside one: a long list (a climate preference, Machine Unit)
+	     stays within its column -->
+	<span class="inline-flex flex-wrap gap-x-2 text-xs">
+		{#each e.modifiers as m, i (i)}<span class="whitespace-nowrap"
 				><span class="font-mono font-semibold {modifierColor(m)}">{formatModifierValue(m)}</span>
 				<span class="opacity-75">{modifierLabel(m)}</span></span
 			>{/each}

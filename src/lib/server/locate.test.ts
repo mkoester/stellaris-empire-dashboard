@@ -147,3 +147,30 @@ describe('discover (Linux)', () => {
 		]);
 	});
 });
+
+describe('discover (macOS)', () => {
+	const home = mkdtempSync(join(tmpdir(), 'home-'));
+	const steam = join(home, 'Library', 'Application Support', 'Steam');
+	const lib2 = join(home, 'lib2');
+	mkdirSync(join(steam, 'steamapps'), { recursive: true });
+	writeFileSync(
+		join(steam, 'steamapps', 'libraryfolders.vdf'),
+		`"libraryfolders" { "0" { "path" "${steam}" } "1" { "path" "${lib2}" } }`
+	);
+	const game = join(lib2, 'steamapps', 'common', 'Stellaris');
+	mkdirSync(join(game, 'common'), { recursive: true });
+	writeFileSync(join(game, 'launcher-settings.json'), '{ "rawVersion": "v4.5.2" }');
+	const user = join(home, 'Documents', 'Paradox Interactive', 'Stellaris');
+	mkdirSync(join(user, 'save games', 'c'), { recursive: true });
+	writeFileSync(join(user, 'save games', 'c', 'a.sav'), '');
+	// Linux's places are not looked at on a Mac
+	mkdirSync(join(home, '.local', 'share', 'Paradox Interactive', 'Stellaris', 'save games'), {
+		recursive: true
+	});
+
+	it("finds Steam's libraries and the user folder in Documents", () => {
+		const { games, users } = discover({ platform: 'darwin', home, env: {}, reg: () => null });
+		expect(games).toEqual([{ dir: game, source: 'Steam', version: 'v4.5.2' }]);
+		expect(users.map((u) => [u.dir, u.source, u.saves])).toEqual([[user, 'macOS', 1]]);
+	});
+});

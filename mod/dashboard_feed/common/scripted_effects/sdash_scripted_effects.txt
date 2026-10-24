@@ -1,7 +1,67 @@
 # Stockpile and monthly income of one resource into country variables sdash_s_<res> / sdash_i_<res>,
-# logged by events/sdash_events.txt as SDASH|1|<date>|<resource>|<stockpile>|<monthly income>.
-# Parsed by src/lib/server/feed.ts — change both together, and bump the format number.
+# logged by events/sdash_events.txt as SDASH|2|<date>|<resource>|<stockpile>|<monthly income>.
+# Parsed by src/lib/server/feed.ts — change both together, and bump the format number. Its storage
+# maximum (0.5.0) goes into sdash_m_<res>, read from the save only (src/lib/server/save.ts).
 sdash_export_resource = {
 	export_resource_stockpile_to_variable = { resource = $RES$ variable = sdash_s_$RES$ }
 	export_resource_income_to_variable = { resource = $RES$ variable = sdash_i_$RES$ }
+	export_resource_maximum_to_variable = { resource = $RES$ variable = sdash_m_$RES$ }
+}
+
+# Another empire's storage of what can be traded (strategic_resources: tradable = yes), into
+# sdash_m_<res> as above: the room the trade tab counts an offer against.
+sdash_export_tradable_maximums = {
+	export_resource_maximum_to_variable = { resource = energy variable = sdash_m_energy }
+	export_resource_maximum_to_variable = { resource = minerals variable = sdash_m_minerals }
+	export_resource_maximum_to_variable = { resource = food variable = sdash_m_food }
+	export_resource_maximum_to_variable = { resource = trade variable = sdash_m_trade }
+	export_resource_maximum_to_variable = { resource = consumer_goods variable = sdash_m_consumer_goods }
+	export_resource_maximum_to_variable = { resource = alloys variable = sdash_m_alloys }
+	export_resource_maximum_to_variable = { resource = volatile_motes variable = sdash_m_volatile_motes }
+	export_resource_maximum_to_variable = { resource = exotic_gases variable = sdash_m_exotic_gases }
+	export_resource_maximum_to_variable = { resource = rare_crystals variable = sdash_m_rare_crystals }
+	export_resource_maximum_to_variable = { resource = sr_living_metal variable = sdash_m_sr_living_metal }
+	export_resource_maximum_to_variable = { resource = sr_zro variable = sdash_m_sr_zro }
+	export_resource_maximum_to_variable = { resource = sr_dark_matter variable = sdash_m_sr_dark_matter }
+}
+
+# Stockpile only, for the daily tick: SDASH|2|<date>|tick|<resource>|<stockpile>.
+sdash_export_stockpile = {
+	export_resource_stockpile_to_variable = { resource = $RES$ variable = sdash_s_$RES$ }
+}
+
+# A new random six-digit timeline id in sdash_tl, the old one kept in sdash_tl_prev. Saves carry
+# both, so the id logged on load names the month of the save that was loaded. No random-value
+# effect exists in 4.5.2, hence one random_list per digit.
+sdash_roll_timeline = {
+	if = {
+		limit = { is_variable_set = sdash_tl }
+		set_variable = { which = sdash_tl_prev value = sdash_tl }
+	}
+	else = {
+		set_variable = { which = sdash_tl_prev value = 0 }
+	}
+	set_variable = { which = sdash_tl value = 0 }
+	sdash_timeline_digit = yes
+	sdash_timeline_digit = yes
+	sdash_timeline_digit = yes
+	sdash_timeline_digit = yes
+	sdash_timeline_digit = yes
+	sdash_timeline_digit = yes
+}
+
+sdash_timeline_digit = {
+	multiply_variable = { which = sdash_tl value = 10 }
+	random_list = {
+		10 = { }
+		10 = { change_variable = { which = sdash_tl value = 1 } }
+		10 = { change_variable = { which = sdash_tl value = 2 } }
+		10 = { change_variable = { which = sdash_tl value = 3 } }
+		10 = { change_variable = { which = sdash_tl value = 4 } }
+		10 = { change_variable = { which = sdash_tl value = 5 } }
+		10 = { change_variable = { which = sdash_tl value = 6 } }
+		10 = { change_variable = { which = sdash_tl value = 7 } }
+		10 = { change_variable = { which = sdash_tl value = 8 } }
+		10 = { change_variable = { which = sdash_tl value = 9 } }
+	}
 }

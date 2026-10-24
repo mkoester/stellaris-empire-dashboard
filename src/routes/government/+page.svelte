@@ -112,8 +112,28 @@
 			cell: edictEffects
 		}
 	];
+	type Demand = (typeof data.factions)[number]['demands'][number] & { i: number };
+	const demandColumns: Column<Demand>[] = [
+		{
+			id: 'met',
+			label: 'Met',
+			value: (d) => (d.met === null ? null : d.met ? 1 : 0),
+			cell: met
+		},
+		{ id: 'demand', label: 'Demand', value: (d) => d.title, cell: demand }
+	];
 </script>
 
+{#snippet met(d: Demand)}{mark(d.met)}{/snippet}
+{#snippet demand(d: Demand)}
+	<b>{d.met === false && d.unfulfilledTitle ? d.unfulfilledTitle : d.title}</b>
+	{#if effect(d.fulfilled)}<span class="text-green-700 dark:text-green-500">
+			{effect(d.fulfilled)} if met</span
+		>{/if}
+	{#if effect(d.unfulfilled)}<span class="text-red-600"> {effect(d.unfulfilled)} if not</span>{/if}
+	{#if d.description}<div class="text-gray-500">{d.description}</div>{/if}
+	<div class="text-xs text-gray-500">how: {describe(d.trigger)}</div>
+{/snippet}
 {#snippet classes(list: string[])}
 	{#each list as k (k)}<span
 			class="mr-1 rounded px-1 text-xs text-white"
@@ -377,7 +397,9 @@
 		title="Factions"
 		note={(data.anyFormed
 			? 'Our factions with their support and approval, and what each demands'
-			: 'No faction has formed yet.') +
+			: data.gestalt
+				? 'A gestalt consciousness has no factions: its drones never join one.'
+				: 'No faction has formed yet.') +
 			(data.factionTypes
 				? ' — the faction types the switches in ⚙ add too: ✓ met, ✗ not, ? cannot be told from the save, and how to meet it.'
 				: data.anyFormed
@@ -411,25 +433,11 @@
 			</p>
 		{:else if data.anyFormed}<p class="mb-1 text-gray-500">not formed</p>{/if}
 		{#if f.description}<p class="mb-1 text-gray-500">{f.description}</p>{/if}
-		<table class="text-left">
-			<tbody>
-				{#each f.demands as d, i (i)}
-					<tr class="border-b border-gray-100 align-top dark:border-gray-900">
-						<td class="w-5 p-1">{mark(d.met)}</td>
-						<td class="p-1">
-							<b>{d.met === false && d.unfulfilledTitle ? d.unfulfilledTitle : d.title}</b>
-							{#if effect(d.fulfilled)}<span class="text-green-700 dark:text-green-500">
-									{effect(d.fulfilled)} if met</span
-								>{/if}
-							{#if effect(d.unfulfilled)}<span class="text-red-600">
-									{effect(d.unfulfilled)} if not</span
-								>{/if}
-							{#if d.description}<div class="text-gray-500">{d.description}</div>{/if}
-							<div class="text-xs text-gray-500">how: {describe(d.trigger)}</div>
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
+		<SortTable
+			rows={f.demands.map((d, i) => ({ ...d, i }))}
+			columns={demandColumns}
+			key={(d) => d.i}
+			sort={{ column: '', desc: false }}
+		/>
 	</section>
 {/snippet}

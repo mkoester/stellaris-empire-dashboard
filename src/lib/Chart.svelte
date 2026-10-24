@@ -22,6 +22,8 @@
 		yMax,
 		markers = [],
 		right = [],
+		rightFloor = 50,
+		colors = {},
 		events,
 		scope = 'empire'
 	}: {
@@ -32,6 +34,8 @@
 		yMax?: number; // a fixed top, e.g. 100 for percentages
 		markers?: Marker[];
 		right?: string[]; // lines drawn against a second y-axis on the right
+		rightFloor?: number; // the right axis spans at least 0 to this
+		colors?: Record<string, string>; // a line's colour by label, before the resource colours
 		events?: Milestone[]; // milestones the viewer can switch on, per kind, for this chart
 		scope?: 'empire' | 'colony'; // the choice is stored per `<scope>:<title>`, so all colonies share it
 	} = $props();
@@ -153,8 +157,11 @@
 				height: 220,
 				scales: {
 					x: { time: false, range: () => range },
-					// The right axis (e.g. open jobs) spans at least 0–50, so small changes stay small.
-					right: { range: (_u, _min, max) => [0, Math.max(50, max)] },
+					// The right axis (e.g. open jobs) spans at least 0–rightFloor, so small changes stay
+					// small; below 0 only for a line that goes there (a resource's net per month).
+					right: {
+						range: (_u, min, max) => [Math.min(0, min), Math.max(rightFloor, max)]
+					},
 					...(yMin === undefined && yMax === undefined
 						? {}
 						: {
@@ -176,7 +183,7 @@
 					{ label: 'date', value: (_u, v) => (v == null ? '' : gameMonth(v)) },
 					...Object.keys(series.lines).map((label, i) => ({
 						label: label.replaceAll('_', ' '),
-						stroke: colorOf(label) ?? palette[i % palette.length],
+						stroke: colors[label] ?? colorOf(label) ?? palette[i % palette.length],
 						...(right.includes(label) ? { scale: 'right' } : {}),
 						dash: dashes[i % dashes.length],
 						width: 1.5,
@@ -206,8 +213,14 @@
 
 	// New data with the same lines: update in place. Different lines: rebuild via the key block
 	// in the parent, which remounts this component.
+	// Read series and range before touching plot: on the first run plot does not exist yet (uPlot
+	// loads async), and `plot?.setData(data(series))` would skip reading them — the effect would
+	// then never rerun (the growth tab's horizon buttons changed nothing).
 	$effect(() => {
-		plot?.setData(data(series));
+		const d = data(series);
+		const [min, max] = range;
+		plot?.setData(d);
+		plot?.setScale('x', { min, max });
 	});
 </script>
 

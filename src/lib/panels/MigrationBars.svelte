@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fmt } from '../format.ts';
+	import EmpireName from '../EmpireName.svelte';
 	import { CATEGORICAL, OTHER, type ColonySeries } from '../migration.ts';
 	import { gameMonth } from '../series.ts';
 	import Panel from './Panel.svelte';
@@ -95,7 +96,8 @@
 						class="inline-block h-2.5 w-2.5 rounded-sm align-middle"
 						style:background={colorOf(i)}
 					></span>
-					{c.name}{c.own ? '' : ` (${c.owner})`}</span
+					{c.name}{#if !c.own}
+						({#if c.owner}<EmpireName name={c.owner} bold={false} />{/if}){/if}</span
 				>
 			{/each}
 		</div>

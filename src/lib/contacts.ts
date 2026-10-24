@@ -1,4 +1,4 @@
-import type { Combat, CountryInfo, FirstContact, Relation } from './types.ts';
+import type { Combat, CountryInfo, FirstContact, GalacticCommunity, Relation } from './types.ts';
 
 // The contacts tab: every empire we know, with what the save tells about it. Pure.
 
@@ -16,31 +16,86 @@ export const CONTACT_COLUMNS = [
 ] as const;
 export type ContactColumn = (typeof CONTACT_COLUMNS)[number];
 
+// Kinds of contact, as the filters offer them; every country type not listed is `other` (factions,
+// the Shroud, the game's event countries). From 4.5.2 `common/country_types/*` — re-check on game
+// updates. An entry ending in `*` is a prefix.
+const KIND_TYPES = {
+	empires: ['default'],
+	fallen: ['fallen_empire', 'awakened_fallen_empire'],
+	enclaves: ['enclave', 'mindwarden_enclave', 'enclave_mercenary'],
+	traders: ['caravaneer_home', 'caravaneer_fleet'],
+	preFtl: ['primitive'],
+	fauna: [
+		'tiyanki*',
+		'amoeba*',
+		'crystal*',
+		'drone*',
+		'cloud',
+		'voidworms*',
+		'frenzied_voidworms',
+		'cutholoids',
+		'guardian*',
+		'ldragon_country',
+		'behemoth_hatchling',
+		'abandoned_hatchery',
+		'clutch_of_whelps',
+		'lured_fauna_faction'
+	],
+	marauders: ['dormant_marauders', 'ruined_marauders', 'awakened_marauders', 'marauder_raiders'],
+	other: []
+} as const satisfies Record<string, readonly string[]>;
+export type ContactKind = keyof typeof KIND_TYPES;
+export const CONTACT_KINDS = Object.keys(KIND_TYPES) as ContactKind[];
+export const KIND_LABELS: Record<ContactKind, string> = {
+	empires: 'other empires',
+	fallen: 'fallen empires',
+	enclaves: 'enclaves',
+	traders: 'traders',
+	preFtl: 'pre-FTL civilisations',
+	fauna: 'space fauna',
+	marauders: 'marauders',
+	other: 'other'
+};
+/** The country types a kind covers, for its tooltip (prefixes end in `*`). */
+export const kindTypes = (k: ContactKind): readonly string[] => KIND_TYPES[k];
+
+const matches = (type: string, t: string) =>
+	t.endsWith('*') ? type.startsWith(t.slice(0, -1)) : type === t;
+export function kindOf(type: string): ContactKind {
+	for (const k of CONTACT_KINDS) if (KIND_TYPES[k].some((t) => matches(type, t))) return k;
+	return 'other';
+}
+
 /** The contacts tab's filters and columns, in the profile. */
 export type ContactView = {
 	communicationsOnly: boolean;
 	hostile: 'any' | 'hostile' | 'peaceful';
-	hiddenTypes: string[]; // country types not shown, e.g. caravaneer_fleet
+	kinds: ContactKind[]; // kinds shown
 	columns: ContactColumn[];
+	galcomFlat: boolean; // resolutions in force as one list, not by category
 };
 export const DEFAULT_CONTACT_VIEW: ContactView = {
 	communicationsOnly: true,
 	hostile: 'any',
-	hiddenTypes: [],
-	columns: [...CONTACT_COLUMNS]
+	kinds: ['empires'],
+	columns: [...CONTACT_COLUMNS],
+	galcomFlat: false
 };
+
+/** A stored list of kinds, repaired; the default where none is stored. */
+export const parseKinds = (v: unknown): ContactKind[] =>
+	Array.isArray(v) ? CONTACT_KINDS.filter((k) => v.includes(k)) : ['empires'];
 
 export function parseContactView(v: unknown): ContactView {
 	const o = (v && typeof v === 'object' ? v : {}) as Partial<ContactView>;
 	return {
 		communicationsOnly: o.communicationsOnly !== false,
 		hostile: o.hostile === 'hostile' || o.hostile === 'peaceful' ? o.hostile : 'any',
-		hiddenTypes: Array.isArray(o.hiddenTypes)
-			? o.hiddenTypes.filter((t) => typeof t === 'string')
-			: [],
+		kinds: parseKinds(o.kinds),
 		columns: Array.isArray(o.columns)
 			? CONTACT_COLUMNS.filter((c) => (o.columns as unknown[]).includes(c))
-			: [...CONTACT_COLUMNS]
+			: [...CONTACT_COLUMNS],
+		galcomFlat: o.galcomFlat === true
 	};
 }
 
@@ -60,6 +115,51 @@ const AGREEMENTS: Record<string, string> = {
 	subject: 'subject'
 };
 export const agreementName = (key: string) => AGREEMENTS[key] ?? key.replaceAll('_', ' ');
+
+/**
+ * How a resolution we voted on stands for us: `ahead` when our side has more weight, `behind`
+ * otherwise (a tie too); null when we have not voted.
+ */
+export function voteStanding(
+	ours: 'for' | 'against' | null,
+	forWeight: number,
+	againstWeight: number
+): 'ahead' | 'behind' | null {
+	if (ours === null) return null;
+	const mine = ours === 'for' ? forWeight : againstWeight;
+	const theirs = ours === 'for' ? againstWeight : forWeight;
+	return mine > theirs ? 'ahead' : 'behind';
+}
+
+/**
+ * When each resolution was proposed, as far as the saves tell — the game stores no date: proposed
+ * after the last save without it (`after`; null when the first save with a Galactic Community
+ * already had it) and by the first save showing it (`by`). Keyed by resolution id and type.
+ */
+export function proposalDates(
+	snaps: { date: string; galcom: GalacticCommunity | null }[]
+): Record<string, { after: string | null; by: string }> {
+	const out: Record<string, { after: string | null; by: string }> = {};
+	let previous: string | null = null; // the last save that had a Galactic Community
+	for (const s of snaps) {
+		if (!s.galcom) continue;
+		for (const r of [s.galcom.voting, ...s.galcom.proposed, ...s.galcom.passed])
+			if (r) out[`${r.id}:${r.type}`] ??= { after: previous, by: s.date };
+		previous = s.date;
+	}
+	return out;
+}
+
+/**
+ * A proposal date as text: the month when the saves bracket it to one (`after` and `by` the 1st of
+ * consecutive months: "2208.10"), else the range, or "by …" when the history starts with it.
+ */
+export function proposedLabel(d: { after: string | null; by: string }): string {
+	if (d.after === null) return `by ${d.by}`;
+	const [y, m, day] = d.after.split('.').map(Number);
+	const next = m === 12 ? `${y + 1}.01.01` : `${y}.${String(m + 1).padStart(2, '0')}.01`;
+	return day === 1 && d.by === next ? d.after.slice(0, 7) : `${d.after} – ${d.by}`;
+}
 
 /**
  * Every combat any save along the branch caught (a fleet's record is cleared some time after the
@@ -89,10 +189,35 @@ export function contactTable(
 	}));
 }
 
+/**
+ * Each empire's galaxy-map colour by name — the name we know it by (before communications its
+ * pre-communications one) and its own — for `EmpireName` on every page.
+ */
+export function empireColors(
+	s: { countries: CountryInfo[] | null; relations: Relation[] | null } | undefined,
+	flagColors: Record<string, string>
+): Record<string, string> {
+	const color = new Map(
+		(s?.countries ?? []).flatMap((c) => {
+			const hex = flagColors[c.flagColor ?? ''];
+			return hex ? [[c.id, hex]] : [];
+		})
+	);
+	return Object.fromEntries(
+		[
+			...(s?.countries ?? []),
+			...(s?.relations ?? []).map((r) => ({ id: r.countryId, name: r.name }))
+		].flatMap((c) => {
+			const hex = color.get(c.id);
+			return hex ? [[c.name, hex]] : [];
+		})
+	);
+}
+
 export const shown = (rows: ContactRow[], v: ContactView) =>
 	rows.filter(
 		(r) =>
 			(!v.communicationsOnly || r.communications) &&
 			(v.hostile === 'any' || r.hostile === (v.hostile === 'hostile')) &&
-			!v.hiddenTypes.includes(r.country?.type ?? '')
+			v.kinds.includes(kindOf(r.country?.type ?? ''))
 	);

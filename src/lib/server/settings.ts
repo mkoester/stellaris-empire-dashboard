@@ -1,8 +1,11 @@
 import type { ColonyView } from '#lib/colonyTable.ts';
 import type { ContactView } from '#lib/contacts.ts';
+import type { DiplomacyView } from '#lib/diplomacy.ts';
 import type { ExpansionView } from '#lib/expansion.ts';
 import type { MapFilter } from '#lib/mapLayers.ts';
 import type { MegaView } from '#lib/megastructures.ts';
+import type { SystemView } from '#lib/systems.ts';
+import type { ProduceView } from '#lib/produce.ts';
 import {
 	activeId,
 	parseProfiles,
@@ -143,7 +146,10 @@ export const tabs = (): CustomTab[] => settings().tabs;
 export const colonyView = (): ColonyView => settings().colonyView;
 export const expansionView = (): ExpansionView => settings().expansionView;
 export const contactView = (): ContactView => settings().contactView;
+export const diplomacyView = (): DiplomacyView => settings().diplomacyView;
 export const megastructureView = (): MegaView => settings().megastructureView;
+export const systemView = (): SystemView => settings().systemView;
+export const produceView = (): ProduceView => settings().produceView;
 export const mapFilter = (): MapFilter => settings().mapFilter;
 export const display = (): Display => settings().display;
 // Colony charts were stored as `planet:<title>` before the rename.

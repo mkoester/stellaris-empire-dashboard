@@ -1,8 +1,11 @@
 import { DEFAULT_VIEW, parseView, type ColonyView } from './colonyTable.ts';
 import { DEFAULT_CONTACT_VIEW, parseContactView, type ContactView } from './contacts.ts';
+import { DEFAULT_DIPLOMACY_VIEW, parseDiplomacyView, type DiplomacyView } from './diplomacy.ts';
 import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from './expansion.ts';
 import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
+import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
+import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
 // Profiles: named sets of viewer settings — one per playstyle or play-through. Everything but the
@@ -28,6 +31,9 @@ export type Display = {
 	showLocked: boolean; // government: agendas, edicts and policies the game does not list
 	factionTypes: boolean; // government: faction types of our ethics, before any has formed (cheating)
 	allFactionTypes: boolean; // … and those of ethics we do not hold (cheating)
+	tradeoffs: boolean; // the trade-offs tab: where to spend scarce resources (exploratory)
+	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
+	diplomacyAll: boolean; // diplomacy tab: every empire and relation, whatever our intel (cheating)
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
@@ -44,7 +50,10 @@ export const DEFAULT_DISPLAY: Display = {
 	surveyAll: false,
 	showLocked: false,
 	factionTypes: false,
-	allFactionTypes: false
+	allFactionTypes: false,
+	tradeoffs: false,
+	tradeIntel: false,
+	diplomacyAll: false
 };
 
 export type ProfileSettings = {
@@ -53,7 +62,10 @@ export type ProfileSettings = {
 	colonyView: ColonyView;
 	expansionView: ExpansionView;
 	contactView: ContactView;
+	diplomacyView: DiplomacyView;
 	megastructureView: MegaView;
+	systemView: SystemView;
+	produceView: ProduceView;
 	mapFilter: MapFilter;
 	display: Display;
 };
@@ -65,7 +77,10 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	colonyView: DEFAULT_VIEW,
 	expansionView: DEFAULT_EXPANSION_VIEW,
 	contactView: DEFAULT_CONTACT_VIEW,
+	diplomacyView: DEFAULT_DIPLOMACY_VIEW,
 	megastructureView: DEFAULT_MEGA_VIEW,
+	systemView: DEFAULT_SYSTEM_VIEW,
+	produceView: DEFAULT_PRODUCE_VIEW,
 	mapFilter: DEFAULT_MAP_FILTER,
 	display: DEFAULT_DISPLAY
 };
@@ -91,7 +106,10 @@ export function parseDisplay(v: unknown): Display {
 		surveyAll: o.surveyAll === true,
 		showLocked: o.showLocked === true,
 		factionTypes: o.factionTypes === true,
-		allFactionTypes: o.allFactionTypes === true
+		allFactionTypes: o.allFactionTypes === true,
+		tradeoffs: o.tradeoffs === true,
+		tradeIntel: o.tradeIntel === true,
+		diplomacyAll: o.diplomacyAll === true
 	};
 }
 
@@ -104,7 +122,10 @@ export function parseSettings(v: unknown): ProfileSettings {
 		colonyView: parseView(o.colonyView),
 		expansionView: parseExpansionView(o.expansionView),
 		contactView: parseContactView(o.contactView),
+		diplomacyView: parseDiplomacyView(o.diplomacyView),
 		megastructureView: parseMegaView(o.megastructureView),
+		systemView: parseSystemView(o.systemView),
+		produceView: parseProduceView(o.produceView),
 		mapFilter: parseMapFilter(o.mapFilter),
 		display: parseDisplay(o.display)
 	};

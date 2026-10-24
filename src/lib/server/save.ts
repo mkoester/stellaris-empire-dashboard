@@ -2,8 +2,13 @@ import { bypassLinks, distances, graph, type Graph } from '#lib/galaxyGraph.ts';
 import { Jomini } from 'jomini';
 import type {
 	BudgetSource,
+	Construction,
 	KnownSystem,
 	MigrationColony,
+	OrbitalStation,
+	AiIntel,
+	TraderEnclave,
+	QueuedTech,
 	Route,
 	CivilianShip,
 	CouncilSeat,
@@ -31,6 +36,7 @@ import type {
 	DealSide,
 	TradeDeal,
 	War,
+	WarSides,
 	Subject,
 	Faction,
 	Combat,
@@ -47,10 +53,12 @@ import {
 	bypassList,
 	claims,
 	digSites,
+	diplomacy,
 	stationsSeen,
 	firstContacts,
 	galaxy as galaxySystems,
 	knownCountries,
+	ourIntel,
 	relations,
 	situations,
 	specialProjects
@@ -87,6 +95,8 @@ export type RawSave = {
 	meta: { version: string | null; dlcs: string[]; mods: string[] }; // the save's `meta` file
 	councilPositions: Record<string, Raw>; // council_positions.council_positions: every empire's seats
 	countries: Record<string, Omit<CountryInfo, 'id'>>; // every country, in brief
+	countryBlocks: Record<string, Raw>; // top-level country: every country's block
+	federations: Record<string, Raw>; // top-level federation
 	fleetOwner: Record<string, number>; // fleet → country, from each `fleets_manager.owned_fleets`
 	firstContacts: Record<string, Raw>; // first_contacts.contacts
 	situations: Record<string, Raw>; // situations.situations
@@ -115,6 +125,8 @@ export type RawSave = {
 	resolutions: Record<string, Raw>; // top-level resolution: proposed and voted on
 	popFactions: Record<string, Raw>; // top-level pop_factions: every empire's factions
 	patronRelations: Record<string, Raw>; // top-level patron_relations: every empire's patrons
+	aiIntel: AiIntel[]; // empires we have communications with: their view of us and their economy
+	traderEnclaves: TraderEnclave[]; // trader enclaves we have communications with
 };
 
 let parser: Promise<Jomini> | undefined;
@@ -130,10 +142,24 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 		const loyalty: Record<string, number> = {};
 		const rivalsOfUs: number[] = [];
 		const countries: RawSave['countries'] = {};
+		const aiIntel: AiIntel[] = [];
+		const traderEnclaves: TraderEnclave[] = [];
+		const nomads = nomadCountries(q.at('/situations/situations') ?? {});
 		for (const [id, c] of Object.entries(allCountries)) {
 			if (!c || typeof c !== 'object') continue;
 			if (typeof c.loyalty === 'number') loyalty[id] = c.loyalty;
 			const toUs = items(c.relations_manager?.relation).find((r) => r?.country === countryId);
+			// empires that trade: regular and fallen ones, not pre-FTL civilisations, monsters or the
+			// game's event countries (all of which can have communications with us)
+			if (
+				Number(id) !== countryId &&
+				TRADING_TYPES.includes(String(c.type)) &&
+				(toUs?.communications === true || toUs?.communications === 'yes')
+			)
+				aiIntel.push(intelOf(Number(id), c, toUs, countryId, nomads.has(Number(id))));
+			const enclave = traderEnclaveKind(c);
+			if (enclave !== null && (toUs?.communications === true || toUs?.communications === 'yes'))
+				traderEnclaves.push({ countryId: Number(id), name: displayName(c.name), kind: enclave });
 			if (toUs?.is_rival === true || toUs?.is_rival === 'yes') rivalsOfUs.push(Number(id));
 			for (const o of items(c.fleets_manager?.owned_fleets))
 				if (typeof o?.fleet === 'number') fleetOwner[String(o.fleet)] = Number(id);
@@ -176,6 +202,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			randomCount: Number(q.at('/random_count') ?? 0),
 			countryId,
 			country: allCountries[String(countryId)],
+			countryBlocks: allCountries,
+			federations: q.at('/federation') ?? {},
 			colonies,
 			planets,
 			countryNames,
@@ -213,6 +241,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			resolutions: q.at('/resolution') ?? {},
 			popFactions: q.at('/pop_factions') ?? {},
 			patronRelations: q.at('/patron_relations') ?? {},
+			aiIntel,
+			traderEnclaves,
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
 			districtsDb: q.at('/districts') ?? {},
 			zones: q.at('/zones') ?? {},
@@ -235,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '1';
+export const READER = '19'; // 19: species name templates ("Trans-Yorphid")
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -248,6 +278,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		empireName: raw.empireName,
 		pops: num(raw.country?.num_sapient_pops),
 		stockpile: resources(raw.country?.modules?.standard_economy_module?.resources),
+		storageMax: storageMax(raw.country?.variables),
 		// The market's automatic monthly trades are booked apart (trade_*); the game's top bar
 		// includes them.
 		income: addResources(sumSources(budget.income), sumSources(budget.trade_income)),
@@ -269,6 +300,11 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		// 2200.05 after the player unticked all (in-game screenshot).
 		automationBlocked: items(raw.automationResources).map(String),
 		planetBudget: planetBudget(budget),
+		budget: budgetSources(budget),
+		construction: construction(raw),
+		orbitalStations: orbitalStations(raw, ownSystems(raw)),
+		aiIntel: raw.aiIntel ?? [],
+		traderEnclaves: raw.traderEnclaves ?? [],
 		score: {
 			rank: num(raw.country?.victory_rank),
 			score: num(raw.country?.victory_score),
@@ -365,8 +401,19 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 				items(techs).map(String)
 			])
 		),
+		techQueued: techQueued(raw.country),
+		// per field (physics, society, engineering), in that order
+		techStored: Object.fromEntries(
+			items(raw.country?.tech_status?.stored_techpoints).map((v, i) => [RESEARCH_AREAS[i], num(v)])
+		),
+		// options that stay until researched (focus rewards' `add_research_option`), repeated keys
+		techPermanent: items(raw.country?.tech_status?.always_available_tech).map(String),
 		leaderList: leaderList(raw),
-		speciesRights: speciesRights(raw.country)
+		speciesRights: speciesRights(raw.country),
+		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
+		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
+		logEvents: null,
+		ticks: null
 	};
 }
 
@@ -465,6 +512,9 @@ function world(raw: RawSave) {
 	return {
 		galaxy: gal,
 		relations: rel,
+		intel: ourIntel(raw),
+		diplomacy: diplomacy(raw),
+		allWars: allWars(raw),
 		claims: claims(raw, own),
 		firstContacts: contacts,
 		countries: knownCountries(raw, [
@@ -565,8 +615,8 @@ export function marketOrders(trades: Raw, countryId: number): MarketOrder[] {
  * `has_market_access` (set and removed together with `enable_galactic_market`, events
  * `on_action_events_2.txt` / `galactic_community_events.txt`). Its prices are
  * `market.fluctuations`, one per resource in the order of `common/strategic_resources`, traded
- * where `galactic_market_resources` is not 0 (both UNVERIFIED — no save with a galactic market
- * seen; the shape is stellaris-dashboard's parser's). The internal market's are
+ * where `galactic_market_resources` is not 0 (confirmed on Yorphia, founded 2201.05.01: 26
+ * entries, 4.5.2's order; all 0 through 2203.10.01 with no galactic trade made). The internal market's are
  * `market.internal_market_fluctuations = { country=<id> resources={ energy=-15.9 … } … }`, listing
  * only resources whose price has moved — the basic five always trade, at 0 when not listed.
  */
@@ -767,6 +817,93 @@ export function ownSystems(
 	return out;
 }
 
+const TRADING_TYPES = ['default', 'fallen_empire', 'awakened_fallen_empire'];
+
+/**
+ * Nomadic empires: those running the `situation_nomad_economy` (their operational reserves).
+ * `is_nomadic` is the engine's, and the origin does not tell: 2212.06.01 had five of these
+ * situations but one nomad origin.
+ */
+export function nomadCountries(situations: Record<string, Raw>): Set<number> {
+	return new Set(
+		Object.values(situations)
+			.filter((s) => s?.type === 'situation_nomad_economy' && typeof s.country === 'number')
+			.map((s) => Number(s.country))
+	);
+}
+
+/**
+ * A trader enclave's kind — 1 XuraCorp, 2 Riggans, 3 Muutagan — from the flag its system
+ * initializer sets (`trader_enclave_country_<n>`, 4.5.2 leviathans_system_initializers.txt); null
+ * for any other country.
+ */
+export function traderEnclaveKind(c: Raw): 1 | 2 | 3 | null {
+	if (c?.type !== 'enclave') return null;
+	const flags = c.flags ?? {};
+	for (const k of [1, 2, 3] as const) if (`trader_enclave_country_${k}` in flags) return k;
+	return null;
+}
+
+/**
+ * Another empire's view of us — what the diplomacy screen shows: personality, attitude towards us
+ * (`ai.attitude`, the entry for our country), their opinion of us and its modifiers (their
+ * relation to us: `relation_current`, `modifier = { modifier value }`) — and what it hides: their
+ * stockpile and monthly net (the budget's balance, the market's included).
+ */
+export function intelOf(id: number, c: Raw, toUs: Raw, us: number, nomadic = false): AiIntel {
+	const budget = c.budget?.current_month ?? {};
+	return {
+		countryId: id,
+		nomadic,
+		personality: strOrNull(c.personality),
+		attitude: strOrNull(items(c.ai?.attitude).find((a) => a?.country === us)?.attitude),
+		opinion: numOrNull(toUs?.relation_current),
+		trust: num(toUs?.trust),
+		opinionModifiers: items(toUs?.modifier)
+			.filter((m) => typeof m?.modifier === 'string')
+			.map((m) => ({ key: String(m.modifier), value: num(m.value) })),
+		stockpile: resources(c.modules?.standard_economy_module?.resources),
+		net: addResources(sumSources(budget.balance), sumSources(budget.trade_balance)),
+		income: addResources(sumSources(budget.income), sumSources(budget.trade_income)),
+		...(storageMax(c.variables) && { max: storageMax(c.variables)! })
+	};
+}
+
+/** Companion mod 0.5.0's storage maximums (`sdash_m_<res>`) by resource; null: none exported. */
+export function storageMax(variables: Raw): Resources | null {
+	const max = Object.fromEntries(
+		Object.entries(variables ?? {})
+			.filter(([k, v]) => k.startsWith('sdash_m_') && typeof v === 'number' && v > 0)
+			.map(([k, v]) => [k.slice('sdash_m_'.length), v as number])
+	);
+	return Object.keys(max).length ? max : null;
+}
+
+/**
+ * Mining, research and observation stations in our systems: the planets a station orbits
+ * (`shipclass_orbital_station`, the station ship's id) with their deposits.
+ */
+export function orbitalStations(
+	raw: Pick<RawSave, 'systems' | 'planets' | 'deposits'>,
+	own: Set<number>
+): OrbitalStation[] {
+	return [...own].flatMap((systemId) =>
+		list(raw.systems[String(systemId)]?.planet).flatMap((planetId) => {
+			const p = raw.planets[String(planetId)];
+			if (p?.shipclass_orbital_station === undefined) return [];
+			return [
+				{
+					systemId,
+					planetId: Number(planetId),
+					deposits: list(p.deposits)
+						.map((d) => raw.deposits[String(d)]?.type)
+						.filter((t): t is string => typeof t === 'string' && t !== 'none')
+				}
+			];
+		})
+	);
+}
+
 export const countBy = (keys: string[]): Record<string, number> =>
 	keys.reduce<Record<string, number>>((acc, k) => ({ ...acc, [k]: (acc[k] ?? 0) + 1 }), {});
 
@@ -817,9 +954,10 @@ export function stations(
 		'countryId' | 'construction' | 'deposits' | 'shipDesigns' | 'starbases' | 'systems'
 	>
 ): Station[] {
-	const systemOf = new Map<number, string>();
-	for (const sys of Object.values(raw.systems))
-		for (const sb of list(sys?.starbases)) systemOf.set(sb, displayName(sys.name));
+	const systemOf = new Map<number, { id: number; name: string }>();
+	for (const [id, sys] of Object.entries(raw.systems))
+		for (const sb of list(sys?.starbases))
+			systemOf.set(sb, { id: Number(id), name: displayName(sys.name) });
 	// A starbase is the country's when its own build queue is: the queue's `location.id` is the
 	// starbase's station ship, not the starbase (both 0 for Sol, which hid it; outposts differ).
 	const queues = raw.construction?.queue_mgr?.queues ?? {};
@@ -834,7 +972,8 @@ export function stations(
 		return [
 			{
 				id,
-				system: systemOf.get(id) ?? '',
+				system: systemOf.get(id)?.name ?? '',
+				systemId: systemOf.get(id)?.id ?? null,
 				level: String(sb.level ?? '').replace(/^starbase_level_/, ''),
 				modules,
 				buildings: Object.values(sb.buildings ?? {}).map(String),
@@ -973,11 +1112,15 @@ export function speciesInfo(
 	});
 }
 
-/** `PRESCRIPTED_species_name_humans1` → `Humans`; other keys as displayName reads them. */
-function speciesName(name: Raw): string {
+/**
+ * A species' name as displayName reads it — the data DB's prescripted names first
+ * (`PRESCRIPTED_species_name_zrobots` → "Yorphid") —, else a prescripted key's suffix
+ * (`PRESCRIPTED_species_name_humans1` → `Humans`).
+ */
+export function speciesName(name: Raw): string {
 	const key = String(name?.key ?? name ?? '');
 	const m = /^PRESCRIPTED_species_name_([a-z_]+?)\d*$/i.exec(key);
-	return m ? m[1].charAt(0).toUpperCase() + m[1].slice(1) : displayName(name);
+	return m && !prescripted[key] ? m[1].charAt(0).toUpperCase() + m[1].slice(1) : displayName(name);
 }
 
 /** The empire's sectors (`country.sectors.owned` → `sectors.<id>`), colonies counted per system. */
@@ -1202,17 +1345,24 @@ export function hops(systems: Record<string, Raw>, start: Raw): Map<number, numb
 }
 
 /** The budget's per-source flows for pops and planets: jobs (`planet_<job>`), strata (`pop_category_*`), … */
-export function planetBudget(month: Raw): BudgetSource[] {
-	const sources = new Set(
-		[...Object.keys(month?.income ?? {}), ...Object.keys(month?.expenses ?? {})].filter((k) =>
-			/^(planet_|pop_)/.test(k)
-		)
-	);
-	return [...sources].map((source) => ({
-		source,
-		income: resources(month.income?.[source]),
-		expenses: resources(month.expenses?.[source])
-	}));
+export const planetBudget = (month: Raw): BudgetSource[] =>
+	budgetSources(month).filter((s) => /^(planet_|pop_)/.test(s.source));
+
+/**
+ * Every source of the month's budget with its income and expenses; the market's, booked apart
+ * (`trade_income|trade_expenses`), as `market:<source>`.
+ */
+export function budgetSources(month: Raw): BudgetSource[] {
+	const of = (income: Raw, expenses: Raw, prefix: string) =>
+		[...new Set([...Object.keys(income ?? {}), ...Object.keys(expenses ?? {})])].map((source) => ({
+			source: prefix + source,
+			income: resources(income?.[source]),
+			expenses: resources(expenses?.[source])
+		}));
+	return [
+		...of(month?.income, month?.expenses, ''),
+		...of(month?.trade_income, month?.trade_expenses, 'market:')
+	];
 }
 
 /** The country's envoys; one is in use while it has a `location = { assignment=… }`. */
@@ -1225,6 +1375,28 @@ export function envoys(leaders: Raw[]) {
 }
 
 const RESEARCH_AREAS = ['physics', 'society', 'engineering'];
+
+/**
+ * Every tech in the research queues with its progress (research points) and the date it was
+ * started: the first per field is being researched, the others wait with what they have. A tech
+ * left out of the queue keeps no progress in the save.
+ */
+export function techQueued(country: Raw): QueuedTech[] {
+	return RESEARCH_AREAS.flatMap((area) =>
+		items(country?.tech_status?.[`${area}_queue`]).flatMap((q) =>
+			q?.technology
+				? [
+						{
+							area,
+							tech: String(q.technology),
+							progress: num(q.progress),
+							since: typeof q.date === 'string' ? q.date : null
+						}
+					]
+				: []
+		)
+	);
+}
 
 /**
  * country.tech_status.<area>_queue holds the tech being researched first; the council agenda
@@ -1278,6 +1450,8 @@ function playerColonies(raw: RawSave): Colony[] {
 			civilians: num(c.civilian),
 			stability: num(c.stability),
 			freeHousing: num(c.free_housing),
+			housing: numOrNull(c.total_housing),
+			housingUsed: numOrNull(c.housing_usage),
 			freeAmenities: num(c.free_amenities),
 			...colonyDistricts(raw, list(c.districts)),
 			planetClass: String(planet?.planet_class ?? ''),
@@ -1434,6 +1608,24 @@ export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames' | 
 	});
 }
 
+/** Every war being fought, by its sides (the diplomacy tab). */
+export function allWars(raw: Pick<RawSave, 'wars'>): WarSides[] {
+	const side = (v: Raw) => items(v).map((p) => Number(p?.country));
+	return Object.entries(raw.wars).flatMap(([id, w]) =>
+		w && typeof w === 'object'
+			? [
+					{
+						id,
+						name: displayName(w.name) || `war ${id}`,
+						start: strOrNull(w.start_date),
+						attackers: side(w.attackers),
+						defenders: side(w.defenders)
+					}
+				]
+			: []
+	);
+}
+
 /**
  * The Galactic Community, or null before it forms: `galactic_community = { members = { <ids> }
  * proposed = { <resolution ids> } voting = <resolution id> passed = { <ids in force> } last
@@ -1442,7 +1634,10 @@ export function wars(raw: Pick<RawSave, 'wars' | 'countryId' | 'countryNames' | 
  * 2026-10-19: one being voted on, seven proposed).
  */
 export function galacticCommunity(
-	raw: Pick<RawSave, 'galcom' | 'resolutions' | 'countryId' | 'countries'>
+	raw: Pick<
+		RawSave,
+		'galcom' | 'resolutions' | 'countryId' | 'countries' | 'date' | 'countryBlocks' | 'globalFlags'
+	>
 ): GalacticCommunity | null {
 	const g = raw.galcom;
 	if (!g || typeof g !== 'object' || g.members === undefined) return null;
@@ -1470,11 +1665,57 @@ export function galacticCommunity(
 		formed: strOrNull(g.community_formed),
 		members: members.map(name),
 		member: members.includes(raw.countryId),
+		categoryTimers: Object.fromEntries(
+			Object.entries(g.category_timers ?? {}).flatMap(([k, v]) =>
+				typeof v === 'string' ? [[k, v]] : []
+			)
+		),
+		globalFlags: Object.keys(raw.globalFlags ?? {}),
+		weights: Object.fromEntries(
+			members.map((id) => {
+				const c = raw.countryBlocks[String(id)];
+				const exact = numOrNull(c?.variables?.sdash_dw);
+				return [
+					name(id),
+					exact === null
+						? { value: estimatedWeight(c), exact: false }
+						: { value: exact, exact: true }
+				];
+			})
+		),
 		voting: typeof g.voting === 'number' ? vote(g.voting) : null,
 		proposed: ids(g.proposed).flatMap((id) => vote(id) ?? []),
-		passed: ids(g.passed).flatMap((id) => vote(id) ?? [])
+		passed: ids(g.passed).flatMap((id) => vote(id) ?? []),
+		// `days` counts up while a resolution is on the floor, to RESOLUTION_VOTE_TIMER; `cooldown`
+		// counts the recess down (2213.12–2214.01: days 1411 on 12.01, passed 12.30, cooldown 719)
+		voteEnds:
+			typeof g.voting === 'number' && typeof g.days === 'number'
+				? addGameDays(raw.date, VOTE_DAYS - g.days)
+				: null,
+		nextVote:
+			typeof g.cooldown === 'number' && g.cooldown > 0 ? addGameDays(raw.date, g.cooldown) : null
 	};
 }
+
+/**
+ * A country's diplomatic weight, roughly: the defines' terms (4.5.2 `00_defines.txt`
+ * `DIPLOMACY_WEIGHT_*`: naval power × 0.025 + economy power × 0.15 + technology × 0.1) scaled by
+ * `WEIGHT_SCALE`, which stands in for what the save cannot give — the pops' share and every
+ * `diplomatic_weight` modifier. Checked 2214.01.01 against the game's Galactic Community screen
+ * (screenshots 2026_10_23_1–4, all 13 members): game ÷ defines' terms 1.0–3.3, median 2.6; a
+ * linear fit with pops did no better (off by up to 227 of 138–643). Only companion mod 0.4.0's
+ * exported value is exact.
+ */
+const WEIGHT_SCALE = 2.6;
+export function estimatedWeight(c: Raw): number {
+	return (
+		WEIGHT_SCALE *
+		(num(c?.military_power) * 0.025 + num(c?.economy_power) * 0.15 + num(c?.tech_power) * 0.1)
+	);
+}
+
+/** Days a resolution stays on the senate floor (RESOLUTION_VOTE_TIMER, 4.5.2). */
+const VOTE_DAYS = 1440;
 
 /**
  * Our fleets' last combats: `fleet.<id>.fleet_stats.combat_stats = { fleet = { country_name
@@ -1794,25 +2035,87 @@ export function buildQueue(
 	const items = raw.construction?.item_mgr?.items ?? {};
 	return list(queue?.items).flatMap((id) => {
 		const item = items[String(id)];
-		const key = item && Object.keys(item).find((k) => k.startsWith('buildable_'));
-		if (!key) return [];
-		const kind = key.slice('buildable_'.length);
-		const what = item[key] ?? {};
-		// Ships (and colony ships) name no type, only a design: shown by its size and name.
-		const design = raw.shipDesigns?.[String(what.ship_design_implementation?.design)];
-		const name =
-			kind === 'clear_deposit_blocker'
-				? String(raw.deposits[String(what.deposit)]?.type ?? 'blocker')
-				: design
-					? String(first(design.growth_stages)?.ship_size ?? kind)
-					: String(Object.values(what).find((v) => typeof v === 'string') ?? kind);
+		const it = item && itemOf(raw, item);
+		return it
+			? [
+					{
+						kind: it.kind,
+						name: it.name,
+						...(it.design ? { design: it.design } : {}),
+						progress: num(item.progress),
+						needed: num(item.progress_needed)
+					}
+				]
+			: [];
+	});
+}
+
+/** What a construction item builds: its `buildable_<kind> = { … }` block, named. */
+function itemOf(
+	raw: Pick<RawSave, 'deposits'> & Partial<Pick<RawSave, 'shipDesigns'>>,
+	item: Raw
+): { kind: string; name: string; design?: string; what: Raw } | null {
+	const key = Object.keys(item).find((k) => k.startsWith('buildable_'));
+	if (!key) return null;
+	const kind = key.slice('buildable_'.length);
+	const what = item[key] ?? {};
+	// Ships (and colony ships) name no type, only a design: shown by its size and name.
+	const design = raw.shipDesigns?.[String(what.ship_design_implementation?.design)];
+	const name =
+		kind === 'clear_deposit_blocker'
+			? String(raw.deposits[String(what.deposit)]?.type ?? 'blocker')
+			: design
+				? String(first(design.growth_stages)?.ship_size ?? kind)
+				: String(Object.values(what).find((v) => typeof v === 'string') ?? kind);
+	return { kind, name, ...(design ? { design: displayName(design.name) } : {}), what };
+}
+
+/**
+ * Every construction item the country pays for (`paying_country`; the queues' owners differ —
+ * a sector's queue, a starbase's), with its cost — paid when queued, refunded when cancelled —
+ * and where: the planet, else the starbase's system. A `buildable_*.planet` is a **colony** id
+ * (2207.04.02: `planet=0` is Earth's colony 0, Earth being planet 3); `orbitable` names planets
+ * and starbases.
+ */
+export function construction(
+	raw: Pick<RawSave, 'countryId' | 'construction' | 'deposits' | 'planets' | 'systems'> &
+		Partial<Pick<RawSave, 'shipDesigns'>>
+): Construction[] {
+	const systemOf = (starbase: Raw) =>
+		Object.entries(raw.systems).find(([, s]) => list(s?.starbases).includes(Number(starbase)));
+	const ofColony = (colony: Raw) =>
+		Object.values(raw.planets).find((p) => p?.colony !== undefined && p.colony === Number(colony));
+	return Object.entries<Raw>(raw.construction?.item_mgr?.items ?? {}).flatMap(([id, item]) => {
+		if (item?.paying_country !== raw.countryId) return [];
+		const it = itemOf(raw, item);
+		if (!it) return [];
+		const planet =
+			it.what.planet !== undefined
+				? ofColony(it.what.planet)
+				: raw.planets[String(it.what.orbitable?.planet)];
+		const starbase = it.what.starbase ?? it.what.orbitable?.starbase;
+		const where =
+			planet !== undefined
+				? displayName(planet.name) || null
+				: starbase !== undefined
+					? displayName(systemOf(starbase)?.[1]?.name) || null
+					: null;
+		const starbaseSystem = starbase !== undefined ? systemOf(starbase)?.[0] : undefined;
+		const systemId =
+			planet !== undefined
+				? numOrNull(planet.coordinate?.origin)
+				: starbaseSystem !== undefined
+					? Number(starbaseSystem)
+					: null;
 		return [
 			{
-				kind,
-				name,
-				...(design ? { design: displayName(design.name) } : {}),
-				progress: num(item.progress),
-				needed: num(item.progress_needed)
+				id: Number(id),
+				kind: it.kind,
+				name: it.name,
+				...(it.design ? { design: it.design } : {}),
+				where,
+				systemId,
+				cost: resources(item.resources)
 			}
 		];
 	});
@@ -1864,6 +2167,13 @@ export function displayName(name: Raw): string {
 	if (/^war_vs_/.test(key) && Array.isArray(name?.variables)) {
 		const part = (k: string) => displayName(name.variables.find((x: Raw) => x?.key === k)?.value);
 		return `${part('1')} - ${part('2')} ${part('3')}`;
+	}
+	// Inline templates: `$affix$$base$` (a modified species: base "Yorphid", affix "Trans-" →
+	// "Trans-Yorphid"), `$base$ $affix$` — each `$k$` filled by the variable keyed k.
+	if (/\$\w+\$/.test(key) && Array.isArray(name?.variables)) {
+		return key.replace(/\$(\w+)\$/g, (_, k: string) =>
+			displayName(name.variables.find((x: Raw) => x?.key === k)?.value)
+		);
 	}
 	// Name parts with a part inside — faction names, `{<names_1> {<names_2>}}` (4.5.2
 	// common/random_names/00_pop_faction_names.txt): the outer part's own words come first.

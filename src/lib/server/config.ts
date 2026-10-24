@@ -10,7 +10,7 @@ export type Config = {
 	gameDir?: string;
 	/** the game's user folder (holds `save games/`, `logs/`, `mod/`) */
 	userDir?: string;
-	/** opt-in: the companion mod's `game.log` */
+	/** the companion mod's `game.log`; default `<userDir>/logs/game.log` */
 	gameLog?: string;
 };
 
@@ -27,9 +27,13 @@ type Env = Record<string, string | undefined>;
 
 export const APP = 'stellaris-empire-dashboard';
 
-/** `%APPDATA%\<app>` on Windows, `$XDG_DATA_HOME/<app>` (default `~/.local/share`) elsewhere. */
+/**
+ * `%APPDATA%\<app>` on Windows, `~/Library/Application Support/<app>` on macOS,
+ * `$XDG_DATA_HOME/<app>` (default `~/.local/share`) elsewhere.
+ */
 export function appDataDir(platform: string, env: Env, home: string): string {
 	if (platform === 'win32') return join(env.APPDATA || join(home, 'AppData', 'Roaming'), APP);
+	if (platform === 'darwin') return join(home, 'Library', 'Application Support', APP);
 	return join(env.XDG_DATA_HOME || join(home, '.local', 'share'), APP);
 }
 
@@ -46,7 +50,16 @@ export function resolvePaths(env: Env, config: Config, appDir: string): Paths | 
 		saveDir,
 		dataDb,
 		gameDir,
-		gameLog: env.STELLARIS_GAME_LOG || config.gameLog
+		// The companion mod writes to the user folder's game.log: read it whenever the saves come
+		// from the user folder /setup picked (only the mod's `SDASH` lines count, so without the mod
+		// nothing happens). A dev run's saves come from STELLARIS_SAVE_DIR and its game.log stays
+		// opt-in, so it never follows the real game by itself.
+		gameLog:
+			env.STELLARIS_GAME_LOG ||
+			config.gameLog ||
+			(!env.STELLARIS_SAVE_DIR && config.userDir
+				? join(config.userDir, 'logs', 'game.log')
+				: undefined)
 	};
 }
 

@@ -86,6 +86,10 @@ export function load({ url }) {
 		showLocked,
 		complete: s.council !== null, // read since the government tab exists
 		government,
+		// a gestalt consciousness never has factions (its pops "will not join Factions")
+		gestalt: (s.government ?? []).some(
+			(k) => k === 'auth_machine_intelligence' || k === 'auth_hive_mind'
+		),
 		seats,
 		councilBonus: bonus.map((b) => ({
 			...b,

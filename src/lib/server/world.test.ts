@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claims, relations, stationsSeen, wormholeLinks } from './world.ts';
+import { body, claims, relations, stationsSeen, wormholeLinks } from './world.ts';
 
 describe('stationsSeen', () => {
 	// shaped like 2207.03.01: fleets in `fleet.<id>.movement_manager.coordinate.origin`, a system's
@@ -131,5 +131,39 @@ describe('claims', () => {
 				since: '2205.07.01'
 			}
 		]);
+	});
+});
+
+describe('body', () => {
+	it('marks a station on a deposit (shaped like 2207.04.02: Mars mined, planet 109 not)', () => {
+		const raw = {
+			countryId: 0,
+			deposits: { '17': { type: 'd_minerals_3' }, '172': { type: 'd_energy_2' } },
+			planets: {
+				'4': {
+					name: { key: 'NAME_Mars' },
+					planet_class: 'pc_barren',
+					deposits: [17],
+					surveyed_by: [0],
+					shipclass_orbital_station: 251
+				},
+				'109': {
+					name: { key: 'NAME_X' },
+					planet_class: 'pc_barren',
+					deposits: [172],
+					surveyed_by: 0
+				}
+			}
+		};
+		expect(body(raw, 4)).toMatchObject({
+			deposits: ['d_minerals_3'],
+			surveyed: true,
+			station: true
+		});
+		expect(body(raw, 109)).toMatchObject({
+			deposits: ['d_energy_2'],
+			surveyed: true,
+			station: false
+		});
 	});
 });

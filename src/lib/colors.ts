@@ -29,12 +29,14 @@ const COLORS: Record<string, string> = {
 	'colony-gained': '#7cb342',
 	'colony-lost': '#c62828',
 	war: '#d0403a',
+	combat: '#a8322d', // war, darker
 	'tradition-tree': '#127a70',
 	tradition: '#22a99c', // unity
 	perk: '#8f6ad8',
 	research: '#2f8fe0',
 	species: '#c8743a',
 	'trade-deal': '#d9a521', // energy
+	galcom: '#4f8fd6', // ours: a diplomatic blue
 	leader: '#6b7280',
 	ruler: '#8c6d1f',
 	government: '#d64a9b',
@@ -66,3 +68,33 @@ const COLORS: Record<string, string> = {
 };
 
 export const colorOf = (key: string): string | undefined => COLORS[key];
+
+/**
+ * A value's place between the worst and the best of its column: red (worst) through amber to green
+ * (best), readable on both backgrounds. Null when every value is the same.
+ */
+export function scaleColor(v: number, worst: number, best: number): string | null {
+	if (worst === best) return null;
+	const t = Math.min(1, Math.max(0, (v - worst) / (best - worst)));
+	return `hsl(${Math.round(t * 120)} 70% 45%)`;
+}
+
+/**
+ * The Galactic Community's resolution groups as the game colours their banners (4.5.2
+ * `common/resolution_groups`: `color_index` 1 gold, 2 purple, 3 blue, 4 red, 5 green — the sprite
+ * frames). Hues sampled from screenshot 2026_10_23_10 (gold ~45°, purple ~305°, blue ~198°) and
+ * brightened to read in both themes; red and green not seen in game yet.
+ */
+const GALCOM_FRAMES = ['#c09a35', '#a463b0', '#3f93bd', '#c8564c', '#4ea35f'];
+const GALCOM_FRAME: Record<string, number> = {
+	commerce_industry: 1,
+	politics_culture: 2,
+	environment_technology: 3,
+	defense_war: 4,
+	suzerains_sovereignty: 2,
+	galactic_focus: 5,
+	galactic_empire: 4,
+	custodianship: 1
+};
+export const galcomGroupColor = (group: string | undefined) =>
+	group && GALCOM_FRAME[group] ? GALCOM_FRAMES[GALCOM_FRAME[group] - 1] : undefined;

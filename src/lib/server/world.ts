@@ -1,3 +1,4 @@
+import { kindOf, type ContactKind } from '#lib/contacts.ts';
 import type { Bypass } from '#lib/galaxyGraph.ts';
 import type {
 	AnomalyInfo,
@@ -5,6 +6,7 @@ import type {
 	Claim,
 	CountryInfo,
 	DigSite,
+	DiploCountry,
 	FirstContact,
 	GalaxySystem,
 	ProjectInfo,
@@ -17,6 +19,7 @@ import {
 	items,
 	leaderName,
 	list,
+	nomadCountries,
 	num,
 	numOrNull,
 	sectorBySystem,
@@ -54,7 +57,10 @@ export function stationOwner(
 	return null;
 }
 
-function body(raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>, id: number): Body | null {
+export function body(
+	raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>,
+	id: number
+): Body | null {
 	const p = raw.planets[String(id)];
 	if (!p || typeof p !== 'object') return null;
 	const cls = String(p.planet_class ?? '');
@@ -72,7 +78,9 @@ function body(raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>, id: numb
 			.filter((t): t is string => typeof t === 'string' && t !== 'none'),
 		anomaly: typeof p.anomaly === 'string' ? p.anomaly : null,
 		dist: Math.hypot(num(p.coordinate?.x), num(p.coordinate?.y)),
-		surveyed: list(p.surveyed_by).includes(raw.countryId)
+		surveyed: list(p.surveyed_by).includes(raw.countryId),
+		// a mining or research station orbits it (`shipclass_orbital_station` = the ship's id)
+		station: p.shipclass_orbital_station !== undefined
 	};
 }
 
@@ -264,6 +272,79 @@ export function relations(raw: Pick<RawSave, 'country' | 'countries' | 'rivalsOf
 				...(raw.rivalsOfUs.includes(r.country) ? ['rivals_us'] : [])
 			]
 		}));
+}
+
+/** Our intel on each country: `intel_manager.intel = { { <id> { intel stale_intel } } }`. */
+export function ourIntel(raw: Pick<RawSave, 'country'>): { countryId: number; intel: number }[] {
+	return items(raw.country?.intel_manager?.intel).flatMap((e) =>
+		Array.isArray(e) && typeof e[0] === 'number'
+			? [{ countryId: e[0], intel: num(e[1]?.intel) }]
+			: []
+	);
+}
+
+// The relation flags the diplomacy tab shows (4.5.2, `relations_manager.relation`); the rest of
+// the `=yes` keys are state (contact, communications, borders, …).
+const DIPLO_FLAGS = [
+	'embassy',
+	'research_agreement',
+	'commercial_pact',
+	'defensive_pact',
+	'non_aggression_pledge',
+	'guarantee',
+	'closed_borders',
+	'migration_access',
+	'waystation_pact',
+	'is_rival'
+];
+// kinds with relations worth keeping; fauna and pre-FTL civilisations are listed without them
+const DIPLOMATIC: ContactKind[] = ['empires', 'fallen', 'enclaves', 'traders', 'marauders'];
+const yes = (v: Raw) => v === true || v === 'yes';
+
+/**
+ * Every country but the `other` kind, with its relations to the others among them: the truth,
+ * whatever we know — `#lib/diplomacy.ts` decides what our intel shows. Federations: top-level
+ * `federation.<id> = { name … }`, the country's `federation=<id>` — not yet seen in a save.
+ */
+export function diplomacy(
+	raw: Pick<RawSave, 'countryBlocks' | 'federations' | 'planets' | 'situations'>
+): DiploCountry[] {
+	const nomads = nomadCountries(raw.situations);
+	// `capital` is a colony id, as a construction item's planet (2214.01.01: ours 0 = planet 3)
+	const planetOf = new Map(
+		Object.entries(raw.planets).flatMap(([id, p]) =>
+			typeof p?.colony === 'number' ? [[p.colony, Number(id)]] : []
+		)
+	);
+	const kept = Object.entries(raw.countryBlocks).filter(
+		([, c]) => c && typeof c === 'object' && kindOf(String(c.type ?? '')) !== 'other'
+	);
+	const diplomatic = new Set(
+		kept.filter(([, c]) => DIPLOMATIC.includes(kindOf(String(c.type)))).map(([id]) => Number(id))
+	);
+	return kept.map(([id, c]) => {
+		const fed = idOrNull(c.federation);
+		return {
+			id: Number(id),
+			capitalSystem: systemOf(raw, planetOf.get(idOrNull(c.capital) ?? -1) ?? null),
+			overlord: idOrNull(c.overlord),
+			federation:
+				fed === null
+					? null
+					: displayName(raw.federations[String(fed)]?.name) || `federation ${fed}`,
+			nomadic: nomads.has(Number(id)),
+			relations: diplomatic.has(Number(id))
+				? items(c.relations_manager?.relation)
+						.filter((r) => diplomatic.has(r?.country) && yes(r.communications))
+						.map((r) => ({
+							countryId: r.country,
+							opinion: numOrNull(r.relation_current),
+							hostile: yes(r.hostile),
+							agreements: DIPLO_FLAGS.filter((f) => yes(r[f]))
+						}))
+				: []
+		};
+	});
 }
 
 /** Our first contacts: `first_contacts.contacts.<id>` with `owner` = us. */

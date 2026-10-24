@@ -22,10 +22,17 @@ export type Facts = {
 	techs: string[];
 	atWar: boolean | null;
 	situations: number | null; // running situations
+	nomadic: boolean | null; // runs situation_nomad_economy (#lib/aiTrade.ts)
 	// parameter-free scripted triggers (data DB), looked into when a leaf is one of them
 	scripted?: Record<string, Trigger | null>;
 	traits?: string[]; // the species' traits, where a trigger is in a species' scope (rights)
 	leaderTraits?: string[]; // every trait of the empire's leaders
+	// the Galactic Community, for what resolutions test (#lib/proposable.ts)
+	activeResolutions?: string[] | null; // in force (`galactic_community.passed`)
+	globalFlags?: string[] | null;
+	galcomFormed?: boolean | null;
+	galcomYears?: number | null; // whole years since the Galactic Community formed
+	galcomMember?: boolean | null;
 };
 
 const ETHICS =
@@ -99,8 +106,28 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 		case 'is_wilderness_empire':
 			return yes(f.origin === null ? null : f.origin === 'origin_wilderness');
 		case 'is_nomadic':
-			// built into the game; Nomads origins are the only way to be one (approximation)
-			return yes(f.origin === null ? null : f.origin.includes('nomad'));
+			// built into the game; a nomad runs the nomad economy situation — the origin misses
+			// most (2212.06.01: six such empires, one Nomads origin)
+			return yes(f.nomadic);
+		case 'is_active_resolution':
+			return f.activeResolutions ? f.activeResolutions.includes(value) : null;
+		case 'has_global_flag':
+			return f.globalFlags ? f.globalFlags.includes(value) : null;
+		case 'is_galactic_community_formed':
+			return yes(f.galcomFormed ?? null);
+		case 'is_galactic_community_member':
+			return yes(f.galcomMember ?? null);
+		case 'is_galactic_council_established':
+			return yes(council(f));
+		// custodian, emperor and council seats come with the council (4.5.2: the council forms
+		// first, `galactic_council_formed`); before it, none exists — after it, the save's fields
+		// for them are not known yet
+		case 'is_part_of_galactic_council':
+		case 'is_galactic_custodian':
+		case 'has_galactic_custodian':
+		case 'is_galactic_emperor':
+		case 'has_galactic_emperor':
+			return council(f) === false ? value === 'no' : null;
 		case 'any_situation':
 			// a scope we cannot look into — but with no situation running, none matches
 			return f.situations === 0 ? value === 'no' : null;
@@ -114,6 +141,27 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 		}
 	}
 }
+
+/** A numeric condition (`num_x > 2`), where the save gives the number; else unknown. */
+function compare(name: string, cmp: string, value: number, f: Facts): boolean | null {
+	const n = name === 'is_years_since_community_formation' ? (f.galcomYears ?? null) : null;
+	if (n === null || Number.isNaN(value)) return null;
+	switch (cmp) {
+		case '>':
+			return n > value;
+		case '>=':
+			return n >= value;
+		case '<':
+			return n < value;
+		case '<=':
+			return n <= value;
+		default:
+			return n === value;
+	}
+}
+
+const council = (f: Facts) =>
+	f.globalFlags ? f.globalFlags.includes('galactic_council_formed') : null;
 
 // scripted triggers being looked into, so one that (indirectly) calls itself stays unknown
 const inside = new Set<string>();
@@ -134,7 +182,8 @@ function scripted(name: string, value: string, f: Facts): boolean | null {
 /** Whether `t` holds for the empire: true, false, or null if the save cannot tell. */
 export function evaluate(t: Trigger | null, f: Facts): boolean | null {
 	if (t === null) return true;
-	if ('leaf' in t) return t.cmp ? null : leaf(t.leaf, t.value, f);
+	if ('leaf' in t)
+		return t.cmp ? compare(t.leaf, t.cmp, Number(t.value), f) : leaf(t.leaf, t.value, f);
 	const vals = t.args.map((a) => evaluate(a, f));
 	if (t.op === 'not') {
 		// a `not` of several conditions negates their conjunction (NOT = { a b })

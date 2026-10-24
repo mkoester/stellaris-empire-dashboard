@@ -11,6 +11,8 @@ export const net = (a: Resources, b: Resources): Resources => {
 };
 
 export function sourceLabel(source: string): string {
+	if (source === 'market:monthly_trades') return 'market orders';
+	if (source.startsWith('market:')) return `market: ${source.slice(7).replaceAll('_', ' ')}`;
 	if (source === 'planet_pops_traits') return 'pops (food)';
 	if (source.startsWith('pop_category_')) return `${source.slice(13)} (pops)`;
 	if (source.startsWith('planet_districts_')) return `${source.slice(17)} districts`;
@@ -38,4 +40,31 @@ export function budgetRows(sources: BudgetSource[]) {
 		...rows,
 		...splitByGroup(total).map((g) => ({ label: `total ${g.name}`, flows: g.flows, strong: true }))
 	];
+}
+
+export type ResourceBudgetRow = { label: string; income: number; expenses: number; net: number };
+
+/**
+ * One resource's month by budget source: what each source earns and spends of it, biggest
+ * earner first, biggest spender last; sources that do not touch it left out. The total is the
+ * resource's net per month.
+ */
+export function resourceBudget(sources: BudgetSource[], key: string) {
+	const rows: ResourceBudgetRow[] = sources
+		.map((s) => {
+			const income = s.income[key] ?? 0;
+			const expenses = s.expenses[key] ?? 0;
+			return { label: sourceLabel(s.source), income, expenses, net: income - expenses };
+		})
+		.filter((r) => r.income !== 0 || r.expenses !== 0)
+		.sort((a, b) => b.net - a.net || a.label.localeCompare(b.label));
+	const sum = (f: (r: ResourceBudgetRow) => number) => rows.reduce((t, r) => t + f(r), 0);
+	return {
+		rows,
+		total: {
+			income: sum((r) => r.income),
+			expenses: sum((r) => r.expenses),
+			net: sum((r) => r.net)
+		}
+	};
 }

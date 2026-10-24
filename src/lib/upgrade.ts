@@ -3,7 +3,7 @@ import type { Colony, Snapshot, TradeDeal, War } from './types.ts';
 // Snapshots stored by an older dashboard lack the fields added since. The game deletes old
 // autosaves, so those snapshots cannot be rebuilt from the files: they are kept and brought up to
 // the current shape on read, with what is not known as null or empty.
-// A new Snapshot or Colony field needs its default here — no SCHEMA bump (that would drop history).
+// A new Snapshot or Colony field needs its default here — no table change (`MIGRATIONS` in db.ts).
 
 const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'empireName'> = {
 	countryId: null,
@@ -25,6 +25,12 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	defaultAutomation: null,
 	automationBlocked: null,
 	planetBudget: null,
+	budget: null,
+	construction: null,
+	orbitalStations: null,
+	aiIntel: null,
+	storageMax: null,
+	traderEnclaves: null,
 	score: null,
 	fleets: null,
 	idleLeaders: null,
@@ -72,6 +78,9 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	galaxy: null,
 	countries: null,
 	relations: null,
+	intel: null,
+	diplomacy: null,
+	allWars: null,
 	firstContacts: null,
 	situations: null,
 	anomalies: null,
@@ -81,8 +90,15 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	surveyedAll: null,
 	focus: null,
 	techOptions: null,
+	techQueued: null,
+	techPermanent: null,
+	techStored: null,
 	leaderList: null,
-	speciesRights: null
+	speciesRights: null,
+	timelineId: null,
+	previousTimelineId: null,
+	logEvents: null,
+	ticks: null
 };
 
 const COLONY: Omit<Colony, 'planetId' | 'name'> = {
@@ -94,6 +110,8 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	civilians: 0,
 	stability: 0,
 	freeHousing: 0,
+	housing: null,
+	housingUsed: null,
 	freeAmenities: 0,
 	districts: 0,
 	districtList: [],
@@ -140,9 +158,20 @@ export function upgrade(
 		knownSystems:
 			s.knownSystems && s.knownSystems.map((k) => ({ ...k, capital: k.capital ?? false })),
 		tradeDeals: s.tradeDeals && s.tradeDeals.map(upgradeDeal),
+		aiIntel:
+			s.aiIntel &&
+			s.aiIntel.map((a) => ({ ...a, nomadic: a.nomadic ?? false, income: a.income ?? {} })),
 		wars: s.wars && s.wars.map((w) => ({ ...WAR, ...w })),
 		factions: s.factions && s.factions.map((f) => ({ ...f, change: f.change ?? null })),
-		galcom: s.galcom && { ...s.galcom, passed: s.galcom.passed ?? [] },
+		galcom: s.galcom && {
+			...s.galcom,
+			passed: s.galcom.passed ?? [],
+			voteEnds: s.galcom.voteEnds ?? null,
+			nextVote: s.galcom.nextVote ?? null,
+			weights: s.galcom.weights ?? {},
+			categoryTimers: s.galcom.categoryTimers ?? {},
+			globalFlags: s.galcom.globalFlags ?? []
+		},
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
 		// stored as plain keys for a day (2026-10-17), without the end date
 		countryModifiers:

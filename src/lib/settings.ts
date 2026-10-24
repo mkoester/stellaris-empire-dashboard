@@ -1,8 +1,11 @@
 import type { ColonyView } from './colonyTable.ts';
 import type { ContactView } from './contacts.ts';
+import type { DiplomacyView } from './diplomacy.ts';
 import type { ExpansionView } from './expansion.ts';
 import type { MapFilter } from './mapLayers.ts';
 import type { MegaView } from './megastructures.ts';
+import type { SystemView } from './systems.ts';
+import type { ProduceView } from './produce.ts';
 import type { Display } from './profiles.ts';
 import { KIND_IDS, type EventKind } from './milestones.ts';
 
@@ -148,7 +151,10 @@ export async function putSettings(patch: {
 	colonyView?: ColonyView;
 	expansionView?: ExpansionView;
 	contactView?: ContactView;
+	diplomacyView?: DiplomacyView;
 	megastructureView?: MegaView;
+	systemView?: SystemView;
+	produceView?: ProduceView;
 	mapFilter?: MapFilter;
 	display?: Display;
 }) {
@@ -175,4 +181,14 @@ export async function profileAction(
 	});
 	if (!r.ok) throw new Error(`${body.action} failed: ${r.status} ${await r.text()}`);
 	return ((await r.json()) as { id: string }).id;
+}
+
+/** Keeps a campaign whose saves are gone (not asked again), or deletes its history. */
+export async function campaignAction(action: 'keep' | 'delete', campaign: string) {
+	const r = await fetch('/api/campaigns', {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ action, campaign })
+	});
+	if (!r.ok) throw new Error(`${action} failed: ${r.status} ${await r.text()}`);
 }

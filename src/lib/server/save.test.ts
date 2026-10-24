@@ -1,11 +1,22 @@
+import { addGameDays } from '#lib/series.ts';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
+	storageMax,
+	budgetSources,
 	buildQueue,
+	construction,
+	orbitalStations,
+	techQueued,
+	intelOf,
+	nomadCountries,
+	traderEnclaveKind,
 	countryIds,
 	colonyGrowth,
 	colonyJobs,
 	displayName,
+	setPrescriptedNames,
+	speciesName,
 	envoys,
 	knownSystems,
 	migration,
@@ -47,6 +58,8 @@ const raw: RawSave = {
 	meta: { version: 'Cygnus v4.5.2', dlcs: ['Utopia'], mods: [] },
 	councilPositions: {},
 	countries: {},
+	countryBlocks: {},
+	federations: {},
 	fleetOwner: {},
 	firstContacts: {},
 	situations: {},
@@ -75,6 +88,8 @@ const raw: RawSave = {
 	resolutions: {},
 	popFactions: {},
 	patronRelations: {},
+	aiIntel: [],
+	traderEnclaves: [],
 	starbases: {},
 	megastructures: {},
 	bypasses: {},
@@ -192,6 +207,8 @@ describe('toSnapshot', () => {
 				civilians: 1500,
 				stability: 75.2,
 				freeHousing: 0,
+				housing: null,
+				housingUsed: null,
 				freeAmenities: 0,
 				planetClass: '',
 				planetSize: 0,
@@ -611,6 +628,205 @@ describe('planetBudget', () => {
 	});
 });
 
+describe('budgetSources', () => {
+	it("keeps every source, the market's apart", () => {
+		expect(
+			budgetSources({
+				income: { country_base: { energy: 20 }, trade_policy: { trade: 3 } },
+				expenses: { ships: { energy: 4 } },
+				trade_income: { monthly_trades: { minerals: 42 } },
+				trade_expenses: { monthly_trades: { energy: 80 } }
+			})
+		).toEqual([
+			{ source: 'country_base', income: { energy: 20 }, expenses: {} },
+			{ source: 'trade_policy', income: { trade: 3 }, expenses: {} },
+			{ source: 'ships', income: {}, expenses: { energy: 4 } },
+			{ source: 'market:monthly_trades', income: { minerals: 42 }, expenses: { energy: 80 } }
+		]);
+	});
+});
+
+describe('construction', () => {
+	it('lists the items we pay for, wherever queued, with cost and place', () => {
+		// shapes as in the 2207.04.02 save
+		const raw = {
+			countryId: 0,
+			deposits: {},
+			planets: {
+				'0': { name: { key: 'NAME_Sol' } },
+				'3': { name: { key: 'NAME_Earth' }, colony: 0, coordinate: { origin: 5 } }
+			},
+			systems: { '5': { name: { key: 'NAME_Sol System' }, starbases: [0] } },
+			shipDesigns: {
+				'2197': { name: { key: 'Corvette' }, growth_stages: [{ ship_size: 'corvette' }] }
+			},
+			construction: {
+				item_mgr: {
+					items: {
+						'67108877': {
+							queue: 0,
+							paying_country: 0,
+							resources: { minerals: 500 },
+							buildable_district: { district: 'district_city', planet: 0 }
+						},
+						'23': {
+							queue: 3,
+							paying_country: 0,
+							resources: { alloys: 60 },
+							buildable_ship: {
+								ship_design_implementation: { design: 2197 },
+								orbitable: { starbase: 0 }
+							}
+						},
+						'28': {
+							queue: 4210,
+							paying_country: 16777221,
+							resources: { food: 437.5 },
+							buildable_starbase_upgrade: {
+								starbase_upgrade: 'starbase_level_starport',
+								starbase: 53
+							}
+						}
+					}
+				}
+			}
+		};
+		expect(construction(raw)).toEqual([
+			{
+				id: 23,
+				kind: 'ship',
+				name: 'corvette',
+				design: 'Corvette',
+				where: 'Sol System',
+				systemId: 5,
+				cost: { alloys: 60 }
+			},
+			{
+				id: 67108877,
+				kind: 'district',
+				name: 'district_city',
+				where: 'Earth',
+				systemId: 5,
+				cost: { minerals: 500 }
+			}
+		]);
+	});
+});
+
+describe('intelOf', () => {
+	it('reads another empire’s view of us and its economy (2212.03.05 shapes)', () => {
+		const c = {
+			personality: 'hegemonic_imperialists',
+			ai: {
+				attitude: [
+					{ country: 15, attitude: 'cordial' },
+					{ country: 0, attitude: 'loyal' }
+				]
+			},
+			modules: { standard_economy_module: { resources: { energy: 1181.8, alloys: 396.8 } } },
+			budget: {
+				current_month: {
+					income: { country_base: { energy: 20 } },
+					balance: { country_base: { energy: 20 }, ships: { energy: -11.8 } }
+				}
+			}
+		};
+		const toUs = {
+			country: 0,
+			relation_current: 293,
+			trust: 49.2,
+			modifier: { modifier: 'opinion_fellow_galcom_member', value: 50 }
+		};
+		expect(intelOf(16777219, c, toUs, 0)).toEqual({
+			countryId: 16777219,
+			nomadic: false,
+			personality: 'hegemonic_imperialists',
+			attitude: 'loyal',
+			opinion: 293,
+			trust: 49.2,
+			opinionModifiers: [{ key: 'opinion_fellow_galcom_member', value: 50 }],
+			stockpile: { energy: 1181.8, alloys: 396.8 },
+			net: { energy: 8.2 },
+			income: { energy: 20 }
+		});
+	});
+});
+
+describe('nomadCountries', () => {
+	it('names the empires running the nomad economy (2212.06.01 shapes)', () => {
+		const situations = {
+			10: { country: 1, type: 'situation_nomad_economy', progress: 18708.7 },
+			11: { country: 0, type: 'situation_cosmic_storms' },
+			12: { country: 7, type: 'situation_nomad_economy' }
+		};
+		expect(nomadCountries(situations)).toEqual(new Set([1, 7]));
+	});
+});
+
+describe('storageMax', () => {
+	it("companion mod 0.5.0's sdash_m_<res>, by resource; nothing else", () => {
+		const vars = {
+			sdash_m_energy: 45000,
+			sdash_m_alloys: 35000,
+			sdash_s_energy: 1200,
+			sdash_tl: 123456
+		};
+		expect(storageMax(vars)).toEqual({ energy: 45000, alloys: 35000 });
+	});
+	it('null without the mod, or when it exported nothing usable', () => {
+		expect(storageMax(undefined)).toBeNull();
+		expect(storageMax({ sdash_m_unity: 0 })).toBeNull();
+	});
+});
+
+describe('traderEnclaveKind', () => {
+	it('tells the trader enclaves apart by their flag', () => {
+		const flags = { trader_enclave_country: 62808000, trader_enclave_country_1: 62808000 };
+		expect(traderEnclaveKind({ type: 'enclave', flags })).toBe(1);
+		expect(traderEnclaveKind({ type: 'enclave', flags: { trader_enclave_country_3: 1 } })).toBe(3);
+		expect(traderEnclaveKind({ type: 'enclave', flags: { curator_enclave_country: 1 } })).toBe(
+			null
+		);
+		expect(traderEnclaveKind({ type: 'default', flags })).toBe(null);
+	});
+});
+
+describe('techQueued', () => {
+	it('lists every queued tech per field with its progress and start (2212.03.05 shapes)', () => {
+		const country = {
+			tech_status: {
+				physics_queue: [
+					{ progress: 753.4, technology: 'tech_basic_science_lab_2', date: '2211.09.02' },
+					{ progress: 120, technology: 'tech_sensors_2', date: '2211.01.01' }
+				],
+				society_queue: { progress: 1315.7, technology: 'tech_volcanic_forge', date: '2210.05.02' }
+			}
+		};
+		expect(techQueued(country)).toEqual([
+			{ area: 'physics', tech: 'tech_basic_science_lab_2', progress: 753.4, since: '2211.09.02' },
+			{ area: 'physics', tech: 'tech_sensors_2', progress: 120, since: '2211.01.01' },
+			{ area: 'society', tech: 'tech_volcanic_forge', progress: 1315.7, since: '2210.05.02' }
+		]);
+	});
+});
+
+describe('orbitalStations', () => {
+	it('lists the planets a station orbits in our systems, with their deposits', () => {
+		const raw = {
+			systems: { '5': { planet: [10, 11] }, '6': { planet: [12] } },
+			planets: {
+				'10': { shipclass_orbital_station: 900, deposits: [1] },
+				'11': { deposits: [2] }, // no station
+				'12': { shipclass_orbital_station: 901, deposits: [3] } // not our system
+			},
+			deposits: { '1': { type: 'd_minerals_2' }, '2': { type: 'd_energy_1' }, '3': { type: 'd_x' } }
+		};
+		expect(orbitalStations(raw, new Set([5]))).toEqual([
+			{ systemId: 5, planetId: 10, deposits: ['d_minerals_2'] }
+		]);
+	});
+});
+
 describe('empire overview', () => {
 	// Shapes as in the 2200.05.01 save: Sol (380) with Earth (3, owned) and Mars (5).
 	const systems = {
@@ -918,6 +1134,7 @@ describe('stations', () => {
 			{
 				id: 0,
 				system: 'Sol',
+				systemId: 380,
 				level: 'starport',
 				modules: ['shipyard', 'solar_panel_network'],
 				buildings: ['crew_quarters'],
@@ -941,6 +1158,7 @@ describe('stations', () => {
 			{
 				id: 42,
 				system: 'Alpha Centauri',
+				systemId: 52,
 				level: 'outpost',
 				modules: [],
 				buildings: [],
@@ -1014,6 +1232,35 @@ describe('helpers', () => {
 				variables: [{ key: 'NAME', value: { key: 'NAME_Alpha_Centauri' } }]
 			})
 		).toBe('Alpha Centauri Prime');
+	});
+
+	it('fills a modified species’ inline template, prescripted names first', () => {
+		// Yorphia 2203.10.01: the machine species and its Shroud-Forged robot offshoot
+		setPrescriptedNames({ PRESCRIPTED_species_name_zrobots: 'Yorphid' });
+		try {
+			expect(speciesName({ key: 'PRESCRIPTED_species_name_zrobots' })).toBe('Yorphid');
+			expect(
+				speciesName({
+					key: '$affix$$base$',
+					variables: [
+						{ key: 'base', value: { key: 'PRESCRIPTED_species_name_zrobots' } },
+						{ key: 'affix', value: { key: 'Trans-' } }
+					]
+				})
+			).toBe('Trans-Yorphid');
+			expect(
+				displayName({
+					key: '$base$ $affix$',
+					variables: [
+						{ key: 'affix', value: { key: 'Variatus' } },
+						{ key: 'base', value: { key: 'NAME_Zanthi' } }
+					]
+				})
+			).toBe('Zanthi Variatus');
+		} finally {
+			setPrescriptedNames({});
+		}
+		expect(speciesName({ key: 'PRESCRIPTED_species_name_humans1' })).toBe('Humans');
 	});
 });
 
@@ -1222,7 +1469,14 @@ describe('milestone fields', () => {
 		// 4.5.2, the throwaway game at 2205.07.01 (shortened)
 		const raw = {
 			countryId: 0,
+			date: '2207.01.01',
 			countries: { '0': { name: 'UNE' }, '4': { name: 'Tzynn' }, '7': { name: 'Blorg' } } as never,
+			// Blorg with companion mod 0.4.0's exported weight, the others estimated from their power
+			countryBlocks: {
+				'0': { military_power: 1000, economy_power: 400, tech_power: 300 },
+				'7': { variables: { sdash_dw: 812.5 } }
+			},
+			globalFlags: { galactic_market_founded: 1 },
 			galcom: {
 				members: [4, 0, 7],
 				proposed: [2, 3],
@@ -1230,6 +1484,7 @@ describe('milestone fields', () => {
 				passed: [3],
 				days: 541,
 				election: 180,
+				category_timers: { resolution_category_industry: '2213.12.30' },
 				community_formed: '2202.01.01'
 			},
 			resolutions: {
@@ -1266,6 +1521,24 @@ describe('milestone fields', () => {
 			['resolution_voidworm_eradication', 'for']
 		]);
 		expect(g?.passed.map((r) => r.type)).toEqual(['resolution_voidworm_eradication']);
+		expect(g?.categoryTimers).toEqual({ resolution_category_industry: '2213.12.30' });
+		expect(g?.globalFlags).toEqual(['galactic_market_founded']);
+		expect(g?.weights).toEqual({
+			UNE: { value: 2.6 * (1000 * 0.025 + 400 * 0.15 + 300 * 0.1), exact: false },
+			Tzynn: { value: 0, exact: false },
+			Blorg: { value: 812.5, exact: true }
+		});
+		// 541 days in session: 899 to go, as the game showed ("Senate is in session 899")
+		expect(g?.voteEnds).toBe(addGameDays('2207.01.01', 899));
+		expect(g?.nextVote).toBeNull();
+		// after a vote (2214.01.01): no resolution on the floor, the recess counting down
+		const recess = galacticCommunity({
+			...raw,
+			date: '2214.01.01',
+			galcom: { ...raw.galcom, voting: undefined, days: undefined, cooldown: 719 }
+		});
+		expect(recess?.voteEnds).toBeNull();
+		expect(recess?.nextVote).toBe(addGameDays('2214.01.01', 719));
 		expect(galacticCommunity({ ...raw, galcom: undefined })).toBeNull();
 	});
 

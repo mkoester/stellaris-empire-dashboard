@@ -1,9 +1,9 @@
 {
 	"name": "stellaris-empire-dashboard",
 	"private": true,
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"license": "AGPL-3.0-only",
-	"extractorVersion": "v0.1.0",
+	"extractorVersion": "v0.1.1",
 	"type": "module",
 	"engines": {
 		"node": ">=24"

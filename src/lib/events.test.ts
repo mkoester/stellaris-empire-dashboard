@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+	researchRate,
+	researchTicks,
+	techCostFactor,
 	deficits,
 	fromDays,
 	monthTicks,
@@ -45,6 +48,10 @@ const data: GameData = {
 	districtColors: {},
 	identityNames: {},
 	diploNames: {},
+	resolutionCategories: {},
+	resolutionGroups: {},
+	resolutions: {},
+	resolutionCostMult: {},
 	shroud: { patrons: {}, callings: {}, deeds: {} },
 	habitatEffects: {},
 	habitability: { traits: {}, planet: {} },
@@ -56,6 +63,20 @@ const data: GameData = {
 	perks: {},
 	flagColors: {},
 	anomalyLevels: { GEN_PLAYGROUND_CAT: 3 },
+	costs: { district: {}, ship: {}, building: {}, deposit: {}, module: {}, starbaseBuilding: {} },
+	districtJobs: {},
+	buildingJobs: {},
+	buildDays: {},
+	depositCategory: {},
+	buildingCategory: {},
+	growthModifiers: {},
+	starbaseSlots: {},
+	resourceInfo: {},
+	personalities: {},
+	attitudes: {},
+	opinionModifiers: {},
+	edictModifiers: {},
+	techRequirements: {},
 	defines: {
 		EMPIRE_SIZE_BASE: 100,
 		EMPIRE_SIZE_TECH_COST_PENALTY: 0.002,
@@ -137,6 +158,33 @@ describe('upcoming', () => {
 
 	it('includes the election and sorts by date', () => {
 		expect(events.map((e) => e.kind)).toEqual(['tradition', 'research', 'election', 'agenda']);
+	});
+
+	it('measures research per month start, not over a short window holding one', () => {
+		// Planetforgers, society (Volcanic Forge): the 03.01 autosave precedes March's chunk, so
+		// 03.01 → 03.05 holds a whole month (+34.8); 4 days scaled to a month made it +260.8.
+		// The game: 42 months for 2750 − 1315.66 at ~34/month.
+		const soc = (date: string, p: number) =>
+			snap(date, {
+				...progress(0, 0),
+				research: [{ area: 'society', tech: 'tech_volcanic_forge', progress: p }]
+			});
+		const saves = [soc('2212.01.01', 1151.36336), soc('2212.02.01', 1226.94667)];
+		const tick = soc('2212.03.01', 1280.88469);
+		const now = soc('2212.03.05', 1315.66288);
+		expect(researchRate('tech_volcanic_forge', now, [...saves, tick])).toBeCloseTo(34.78, 2);
+		expect(researchRate('tech_volcanic_forge', tick, saves)).toBeCloseTo(53.94, 2);
+		expect(researchRate('tech_volcanic_forge', now, [])).toBeNull();
+		expect(researchRate('tech_volcanic_forge', soc('2212.03.20', 1315.66288), [now])).toBeNull();
+		expect(researchTicks('2212.03.01', '2212.03.05')).toBe(1);
+		expect(researchTicks('2212.02.01', '2212.03.01')).toBe(1);
+		expect(researchTicks('2212.02.15', '2212.03.05')).toBe(1);
+		expect(researchTicks('2212.03.05', '2212.03.30')).toBe(0);
+	});
+
+	it('scales tech costs by tier (game, 2212.03.05: 1575, 1312, 2200, 2750)', () => {
+		const at = (base: number, tier: number) => Math.floor(base * techCostFactor(tier) + 1e-9);
+		expect([at(1500, 1), at(1250, 1), at(2000, 2), at(2500, 2)]).toEqual([1575, 1312, 2200, 2750]);
 	});
 
 	it('falls back to income when there is no earlier save', () => {

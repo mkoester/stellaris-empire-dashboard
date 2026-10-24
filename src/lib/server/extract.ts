@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { gameVersion } from './locate.ts';
 
 // The game data (names, costs, modifiers) comes from stellaris-data-extraction, run on this
@@ -16,13 +16,26 @@ export function extractorFromEnv(env: Record<string, string | undefined>): Extra
 	return script ? { python: env.STELLARIS_PYTHON || 'python3', script } : null;
 }
 
-/** `v4.5.2` plus a short hash of the installed DLC folders: a new DLC is new data too. */
-export function dataKey(version: string, dlcs: string[]): string {
+/**
+ * `v4.5.2` plus a short hash of the installed DLC folders and the extractor's version: a new DLC
+ * is new data too, and a dashboard update may need tables an older extractor did not write.
+ */
+export function dataKey(version: string, dlcs: string[], extractor: string | null = null): string {
 	const hash = createHash('sha256')
-		.update([...dlcs].sort().join('\n'))
+		.update([...dlcs].sort().join('\n') + (extractor ? `\nextractor ${extractor}` : ''))
 		.digest('hex')
 		.slice(0, 8);
 	return `${version.replace(/[^\w.-]/g, '_')}-${hash}`;
+}
+
+/** The extractor's `__version__` (`extractor/__init__.py` beside its script), null if unreadable. */
+export function extractorVersion(script: string): string | null {
+	try {
+		const init = readFileSync(join(dirname(script), 'extractor', '__init__.py'), 'utf8');
+		return /^__version__\s*=\s*['"]([^'"]+)['"]/m.exec(init)?.[1] ?? null;
+	} catch {
+		return null;
+	}
 }
 
 export const dataDbFile = (appDir: string, key: string) =>
@@ -43,7 +56,10 @@ export async function ensureDataDb(
 	} catch {
 		// no DLC folder: base game only
 	}
-	const file = dataDbFile(appDir, dataKey(version, dlcs));
+	const file = dataDbFile(
+		appDir,
+		dataKey(version, dlcs, extractor && extractorVersion(extractor.script))
+	);
 	if (existsSync(file)) return file;
 	if (!extractor)
 		throw new Error(

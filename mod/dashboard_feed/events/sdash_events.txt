@@ -1,10 +1,13 @@
 namespace = sdash
 
-# Monthly, for human players only: write stockpile and income of every resource to game.log,
-# then an end marker so the reader knows the month is complete.
+# All lines go to game.log as SDASH|2|<date>|…, parsed by src/lib/server/feed.ts — change both
+# together, and bump the format number. Human players only.
 # Resource keys from 4.5.2 common/strategic_resources/00_strategic_resources.txt.
 # The lines are spelled out per resource: a $RES$ parameter inside the quoted log string came out
 # one character off in 4.5.2 (`|$RES$|` → `energy$`; `$X|y$` is the parameter-default syntax).
+
+# Monthly: a new timeline id, then stockpile and income of every resource, then an end marker so
+# the reader knows the month is complete.
 country_event = {
 	id = sdash.1
 	hide_window = yes
@@ -15,58 +18,426 @@ country_event = {
 	}
 
 	immediate = {
+		sdash_roll_timeline = yes
+		# 0.4.0: every Galactic Community member's diplomatic weight, which the game does not save —
+		# into the country variable sdash_dw, so every save carries it (the dashboard's vote sums);
+		# no log line. Trigger and effect from 4.5.2 script_documentation (triggers.log, effects.log).
+		every_country = {
+			limit = { is_galactic_community_member = yes }
+			export_trigger_value_to_variable = { trigger = diplomacy_weight variable = sdash_dw }
+		}
+		# 0.5.0: storage — each resource's maximum, which the game does not save: ours with every
+		# resource (sdash_m_<res>, in sdash_export_resource), the tradable ones of every empire we
+		# talk to (their room in a trade). No log line. Effect from 4.5.2 effects.log.
+		every_country = {
+			limit = { has_communications = root }
+			sdash_export_tradable_maximums = yes
+		}
+		log = "SDASH|2|[GetDate]|timeline|[This.sdash_tl]|[This.sdash_tl_prev]"
 		sdash_export_resource = { RES = energy }
-		log = "SDASH|1|[GetDate]|energy|[This.sdash_s_energy]|[This.sdash_i_energy]"
+		log = "SDASH|2|[GetDate]|energy|[This.sdash_s_energy]|[This.sdash_i_energy]"
 		sdash_export_resource = { RES = minerals }
-		log = "SDASH|1|[GetDate]|minerals|[This.sdash_s_minerals]|[This.sdash_i_minerals]"
+		log = "SDASH|2|[GetDate]|minerals|[This.sdash_s_minerals]|[This.sdash_i_minerals]"
 		sdash_export_resource = { RES = food }
-		log = "SDASH|1|[GetDate]|food|[This.sdash_s_food]|[This.sdash_i_food]"
+		log = "SDASH|2|[GetDate]|food|[This.sdash_s_food]|[This.sdash_i_food]"
 		sdash_export_resource = { RES = physics_research }
-		log = "SDASH|1|[GetDate]|physics_research|[This.sdash_s_physics_research]|[This.sdash_i_physics_research]"
+		log = "SDASH|2|[GetDate]|physics_research|[This.sdash_s_physics_research]|[This.sdash_i_physics_research]"
 		sdash_export_resource = { RES = society_research }
-		log = "SDASH|1|[GetDate]|society_research|[This.sdash_s_society_research]|[This.sdash_i_society_research]"
+		log = "SDASH|2|[GetDate]|society_research|[This.sdash_s_society_research]|[This.sdash_i_society_research]"
 		sdash_export_resource = { RES = engineering_research }
-		log = "SDASH|1|[GetDate]|engineering_research|[This.sdash_s_engineering_research]|[This.sdash_i_engineering_research]"
+		log = "SDASH|2|[GetDate]|engineering_research|[This.sdash_s_engineering_research]|[This.sdash_i_engineering_research]"
 		sdash_export_resource = { RES = influence }
-		log = "SDASH|1|[GetDate]|influence|[This.sdash_s_influence]|[This.sdash_i_influence]"
+		log = "SDASH|2|[GetDate]|influence|[This.sdash_s_influence]|[This.sdash_i_influence]"
 		sdash_export_resource = { RES = unity }
-		log = "SDASH|1|[GetDate]|unity|[This.sdash_s_unity]|[This.sdash_i_unity]"
+		log = "SDASH|2|[GetDate]|unity|[This.sdash_s_unity]|[This.sdash_i_unity]"
 		sdash_export_resource = { RES = trade }
-		log = "SDASH|1|[GetDate]|trade|[This.sdash_s_trade]|[This.sdash_i_trade]"
+		log = "SDASH|2|[GetDate]|trade|[This.sdash_s_trade]|[This.sdash_i_trade]"
 		sdash_export_resource = { RES = consumer_goods }
-		log = "SDASH|1|[GetDate]|consumer_goods|[This.sdash_s_consumer_goods]|[This.sdash_i_consumer_goods]"
+		log = "SDASH|2|[GetDate]|consumer_goods|[This.sdash_s_consumer_goods]|[This.sdash_i_consumer_goods]"
 		sdash_export_resource = { RES = alloys }
-		log = "SDASH|1|[GetDate]|alloys|[This.sdash_s_alloys]|[This.sdash_i_alloys]"
+		log = "SDASH|2|[GetDate]|alloys|[This.sdash_s_alloys]|[This.sdash_i_alloys]"
 		sdash_export_resource = { RES = volatile_motes }
-		log = "SDASH|1|[GetDate]|volatile_motes|[This.sdash_s_volatile_motes]|[This.sdash_i_volatile_motes]"
+		log = "SDASH|2|[GetDate]|volatile_motes|[This.sdash_s_volatile_motes]|[This.sdash_i_volatile_motes]"
 		sdash_export_resource = { RES = exotic_gases }
-		log = "SDASH|1|[GetDate]|exotic_gases|[This.sdash_s_exotic_gases]|[This.sdash_i_exotic_gases]"
+		log = "SDASH|2|[GetDate]|exotic_gases|[This.sdash_s_exotic_gases]|[This.sdash_i_exotic_gases]"
 		sdash_export_resource = { RES = rare_crystals }
-		log = "SDASH|1|[GetDate]|rare_crystals|[This.sdash_s_rare_crystals]|[This.sdash_i_rare_crystals]"
+		log = "SDASH|2|[GetDate]|rare_crystals|[This.sdash_s_rare_crystals]|[This.sdash_i_rare_crystals]"
 		sdash_export_resource = { RES = sr_living_metal }
-		log = "SDASH|1|[GetDate]|sr_living_metal|[This.sdash_s_sr_living_metal]|[This.sdash_i_sr_living_metal]"
+		log = "SDASH|2|[GetDate]|sr_living_metal|[This.sdash_s_sr_living_metal]|[This.sdash_i_sr_living_metal]"
 		sdash_export_resource = { RES = sr_zro }
-		log = "SDASH|1|[GetDate]|sr_zro|[This.sdash_s_sr_zro]|[This.sdash_i_sr_zro]"
+		log = "SDASH|2|[GetDate]|sr_zro|[This.sdash_s_sr_zro]|[This.sdash_i_sr_zro]"
 		sdash_export_resource = { RES = sr_dark_matter }
-		log = "SDASH|1|[GetDate]|sr_dark_matter|[This.sdash_s_sr_dark_matter]|[This.sdash_i_sr_dark_matter]"
+		log = "SDASH|2|[GetDate]|sr_dark_matter|[This.sdash_s_sr_dark_matter]|[This.sdash_i_sr_dark_matter]"
 		sdash_export_resource = { RES = nanites }
-		log = "SDASH|1|[GetDate]|nanites|[This.sdash_s_nanites]|[This.sdash_i_nanites]"
+		log = "SDASH|2|[GetDate]|nanites|[This.sdash_s_nanites]|[This.sdash_i_nanites]"
 		sdash_export_resource = { RES = minor_artifacts }
-		log = "SDASH|1|[GetDate]|minor_artifacts|[This.sdash_s_minor_artifacts]|[This.sdash_i_minor_artifacts]"
+		log = "SDASH|2|[GetDate]|minor_artifacts|[This.sdash_s_minor_artifacts]|[This.sdash_i_minor_artifacts]"
 		sdash_export_resource = { RES = astral_threads }
-		log = "SDASH|1|[GetDate]|astral_threads|[This.sdash_s_astral_threads]|[This.sdash_i_astral_threads]"
+		log = "SDASH|2|[GetDate]|astral_threads|[This.sdash_s_astral_threads]|[This.sdash_i_astral_threads]"
 		sdash_export_resource = { RES = biomass }
-		log = "SDASH|1|[GetDate]|biomass|[This.sdash_s_biomass]|[This.sdash_i_biomass]"
+		log = "SDASH|2|[GetDate]|biomass|[This.sdash_s_biomass]|[This.sdash_i_biomass]"
 		sdash_export_resource = { RES = menace }
-		log = "SDASH|1|[GetDate]|menace|[This.sdash_s_menace]|[This.sdash_i_menace]"
+		log = "SDASH|2|[GetDate]|menace|[This.sdash_s_menace]|[This.sdash_i_menace]"
 		sdash_export_resource = { RES = integrity }
-		log = "SDASH|1|[GetDate]|integrity|[This.sdash_s_integrity]|[This.sdash_i_integrity]"
+		log = "SDASH|2|[GetDate]|integrity|[This.sdash_s_integrity]|[This.sdash_i_integrity]"
 		sdash_export_resource = { RES = advanced_logic }
-		log = "SDASH|1|[GetDate]|advanced_logic|[This.sdash_s_advanced_logic]|[This.sdash_i_advanced_logic]"
+		log = "SDASH|2|[GetDate]|advanced_logic|[This.sdash_s_advanced_logic]|[This.sdash_i_advanced_logic]"
 		sdash_export_resource = { RES = feral_insight }
-		log = "SDASH|1|[GetDate]|feral_insight|[This.sdash_s_feral_insight]|[This.sdash_i_feral_insight]"
+		log = "SDASH|2|[GetDate]|feral_insight|[This.sdash_s_feral_insight]|[This.sdash_i_feral_insight]"
 		sdash_export_resource = { RES = entropy_crystals }
-		log = "SDASH|1|[GetDate]|entropy_crystals|[This.sdash_s_entropy_crystals]|[This.sdash_i_entropy_crystals]"
-		log = "SDASH|1|[GetDate]|end"
+		log = "SDASH|2|[GetDate]|entropy_crystals|[This.sdash_s_entropy_crystals]|[This.sdash_i_entropy_crystals]"
+		log = "SDASH|2|[GetDate]|end"
+	}
+}
+
+# Daily tick: the stockpile moves within a month (spending, market, rewards, deals), income does
+# not. There is no daily on_action, so the event re-fires itself. The timed flag marks a live chain:
+# pending events are saved with the game, so a loaded save brings its chain along.
+country_event = {
+	id = sdash.2
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		set_timed_country_flag = { flag = sdash_tick_alive days = 3 }
+		sdash_export_stockpile = { RES = energy }
+		log = "SDASH|2|[GetDate]|tick|energy|[This.sdash_s_energy]"
+		sdash_export_stockpile = { RES = minerals }
+		log = "SDASH|2|[GetDate]|tick|minerals|[This.sdash_s_minerals]"
+		sdash_export_stockpile = { RES = food }
+		log = "SDASH|2|[GetDate]|tick|food|[This.sdash_s_food]"
+		sdash_export_stockpile = { RES = physics_research }
+		log = "SDASH|2|[GetDate]|tick|physics_research|[This.sdash_s_physics_research]"
+		sdash_export_stockpile = { RES = society_research }
+		log = "SDASH|2|[GetDate]|tick|society_research|[This.sdash_s_society_research]"
+		sdash_export_stockpile = { RES = engineering_research }
+		log = "SDASH|2|[GetDate]|tick|engineering_research|[This.sdash_s_engineering_research]"
+		sdash_export_stockpile = { RES = influence }
+		log = "SDASH|2|[GetDate]|tick|influence|[This.sdash_s_influence]"
+		sdash_export_stockpile = { RES = unity }
+		log = "SDASH|2|[GetDate]|tick|unity|[This.sdash_s_unity]"
+		sdash_export_stockpile = { RES = trade }
+		log = "SDASH|2|[GetDate]|tick|trade|[This.sdash_s_trade]"
+		sdash_export_stockpile = { RES = consumer_goods }
+		log = "SDASH|2|[GetDate]|tick|consumer_goods|[This.sdash_s_consumer_goods]"
+		sdash_export_stockpile = { RES = alloys }
+		log = "SDASH|2|[GetDate]|tick|alloys|[This.sdash_s_alloys]"
+		sdash_export_stockpile = { RES = volatile_motes }
+		log = "SDASH|2|[GetDate]|tick|volatile_motes|[This.sdash_s_volatile_motes]"
+		sdash_export_stockpile = { RES = exotic_gases }
+		log = "SDASH|2|[GetDate]|tick|exotic_gases|[This.sdash_s_exotic_gases]"
+		sdash_export_stockpile = { RES = rare_crystals }
+		log = "SDASH|2|[GetDate]|tick|rare_crystals|[This.sdash_s_rare_crystals]"
+		sdash_export_stockpile = { RES = sr_living_metal }
+		log = "SDASH|2|[GetDate]|tick|sr_living_metal|[This.sdash_s_sr_living_metal]"
+		sdash_export_stockpile = { RES = sr_zro }
+		log = "SDASH|2|[GetDate]|tick|sr_zro|[This.sdash_s_sr_zro]"
+		sdash_export_stockpile = { RES = sr_dark_matter }
+		log = "SDASH|2|[GetDate]|tick|sr_dark_matter|[This.sdash_s_sr_dark_matter]"
+		sdash_export_stockpile = { RES = nanites }
+		log = "SDASH|2|[GetDate]|tick|nanites|[This.sdash_s_nanites]"
+		sdash_export_stockpile = { RES = minor_artifacts }
+		log = "SDASH|2|[GetDate]|tick|minor_artifacts|[This.sdash_s_minor_artifacts]"
+		sdash_export_stockpile = { RES = astral_threads }
+		log = "SDASH|2|[GetDate]|tick|astral_threads|[This.sdash_s_astral_threads]"
+		sdash_export_stockpile = { RES = biomass }
+		log = "SDASH|2|[GetDate]|tick|biomass|[This.sdash_s_biomass]"
+		sdash_export_stockpile = { RES = menace }
+		log = "SDASH|2|[GetDate]|tick|menace|[This.sdash_s_menace]"
+		sdash_export_stockpile = { RES = integrity }
+		log = "SDASH|2|[GetDate]|tick|integrity|[This.sdash_s_integrity]"
+		sdash_export_stockpile = { RES = advanced_logic }
+		log = "SDASH|2|[GetDate]|tick|advanced_logic|[This.sdash_s_advanced_logic]"
+		sdash_export_stockpile = { RES = feral_insight }
+		log = "SDASH|2|[GetDate]|tick|feral_insight|[This.sdash_s_feral_insight]"
+		sdash_export_stockpile = { RES = entropy_crystals }
+		log = "SDASH|2|[GetDate]|tick|entropy_crystals|[This.sdash_s_entropy_crystals]"
+		log = "SDASH|2|[GetDate]|tick-end"
+		country_event = { id = sdash.2 days = 1 }
+	}
+}
+
+# Starts the tick unless a chain is already running.
+country_event = {
+	id = sdash.3
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+		NOT = { has_country_flag = sdash_tick_alive }
+	}
+
+	immediate = {
+		set_timed_country_flag = { flag = sdash_tick_alive days = 3 }
+		country_event = { id = sdash.2 days = 1 }
+	}
+}
+
+# A save was loaded: its timeline id names the month it was saved in, i.e. the branch point.
+event = {
+	id = sdash.4
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		every_playable_country = {
+			limit = { is_ai = no }
+			if = {
+				limit = { is_variable_set = sdash_tl }
+				log = "SDASH|2|[GetDate]|load|[This.sdash_tl]"
+			}
+			else = {
+				log = "SDASH|2|[GetDate]|load|0"
+			}
+			country_event = { id = sdash.3 }
+		}
+	}
+}
+
+# Instant events, one line each: SDASH|2|<date>|event|<kind>|<fields…>.
+
+# Scope = planet
+planet_event = {
+	id = sdash.10
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|colony|[This.GetName]"
+	}
+}
+
+# Root = country, From = war
+country_event = {
+	id = sdash.11
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|war-started|[From.GetName]"
+	}
+}
+
+# Root = loser, From = main winner; fired once, so the player may be either side
+country_event = {
+	id = sdash.12
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		OR = {
+			is_ai = no
+			from = { is_ai = no }
+		}
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|war-ended|[Root.GetName]|[From.GetName]"
+	}
+}
+
+# This = country, From = leader
+country_event = {
+	id = sdash.13
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|leader-died|[From.GetName]"
+	}
+}
+
+# This = country
+country_event = {
+	id = sdash.14
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|ruler|[This.GetRulerName]"
+	}
+}
+
+# This = winner's owner, From = loser's owner, FromFrom = winner fleet, FromFromFrom = loser fleet
+country_event = {
+	id = sdash.15
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		OR = {
+			is_ai = no
+			from = { is_ai = no }
+		}
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|combat|[This.GetName]|[FromFrom.GetName]|[From.GetName]|[FromFromFrom.GetName]|[FromFrom.GetStarName]"
+	}
+}
+
+# Spending outside the budget: what and where, never the item or its cost (the scopes do not
+# name them); feed.ts matches them with the save's construction items and the daily stockpile.
+
+# This = Colony
+carrier_event = {
+	id = sdash.20
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|district-queued|[This.GetName]"
+	}
+}
+
+# This = Colony
+carrier_event = {
+	id = sdash.21
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|district-unqueued|[This.GetName]"
+	}
+}
+
+# This = Colony
+carrier_event = {
+	id = sdash.22
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|building-queued|[This.GetName]"
+	}
+}
+
+# This = Colony
+carrier_event = {
+	id = sdash.23
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|building-unqueued|[This.GetName]"
+	}
+}
+
+# Root = Country (the edict is not in scope)
+country_event = {
+	id = sdash.24
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|edict"
+	}
+}
+
+# Root = Carrier, From = Carrier Owner (the decision is not in scope)
+carrier_event = {
+	id = sdash.25
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		from = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|decision|[Root.GetName]"
+	}
+}
+
+# This = Leader
+leader_event = {
+	id = sdash.26
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|leader-hired|[This.GetName]"
+	}
+}
+
+# Scope = Planet
+planet_event = {
+	id = sdash.27
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		exists = owner
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|colonization-started|[This.GetName]"
+	}
+}
+
+# Root = Country, From = System, FromFrom = Fleet
+country_event = {
+	id = sdash.28
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|megastructure-started|[From.GetName]"
 	}
 }

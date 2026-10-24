@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { milestones } from './milestones.ts';
 import { upgrade } from './upgrade.ts';
-import type { Colony, Snapshot } from './types.ts';
+import type { GalacticCommunity, Colony, LogEvent, Snapshot } from './types.ts';
 
 const names = {
 	techs: { tech_lasers_1: { name: 'Red Lasers', cost: 1, area: 'physics', tier: 1 } },
@@ -15,6 +15,7 @@ const names = {
 		gov_representative_democracy: 'Representative Democracy',
 		gov_citizen_republic: 'Citizen Republic'
 	},
+	diploNames: { resolution_galactic_market_form: 'Form the Galactic Market' },
 	traditionTrees: {
 		tr_expansion: {
 			name: 'Expansion',
@@ -30,6 +31,28 @@ const colony = (planetId: number, name: string, colonizing = false) =>
 	({ planetId, name, colonizing }) as Colony;
 const save = (date: string, s: Partial<Snapshot> = {}) =>
 	upgrade({ kind: 'save', campaign: 'c', date, ...s });
+const resolution = (id: number, type: string) => ({
+	id,
+	type,
+	proposer: 'Cydran Concern',
+	support: [],
+	oppose: [],
+	ours: null
+});
+const galcom = (g: Partial<GalacticCommunity> = {}): GalacticCommunity => ({
+	formed: '2202.01.01',
+	members: [],
+	member: true,
+	voting: null,
+	proposed: [],
+	passed: [],
+	voteEnds: null,
+	nextVote: null,
+	weights: {},
+	categoryTimers: {},
+	globalFlags: [],
+	...g
+});
 const log = (date: string) => upgrade({ kind: 'log', campaign: 'c', date });
 const labels = (snaps: Snapshot[]) => milestones(snaps, names).map((m) => `${m.date} ${m.label}`);
 
@@ -233,5 +256,106 @@ describe('milestones', () => {
 			'2203.03.01 dlc disabled: Megacorp',
 			'2203.03.01 mod disabled: A'
 		]);
+	});
+});
+
+describe("milestones from the companion mod's events", () => {
+	const ev = (date: string, kind: LogEvent['kind'], ...fields: string[]): LogEvent => ({
+		date,
+		kind,
+		fields
+	});
+
+	it('re-dates the matching save-diffed milestone to the exact day, once', () => {
+		const snaps = [
+			save('2200.01.01', { colonies: [colony(1, 'Earth'), colony(2, 'Mars', true)] }),
+			save('2200.02.01', {
+				colonies: [colony(1, 'Earth'), colony(2, 'Mars')],
+				logEvents: [ev('2200.01.17', 'colony', 'Mars')]
+			})
+		];
+		expect(labels(snaps)).toEqual(['2200.01.17 colony established: Mars']);
+	});
+
+	it('keeps an event no save shows, and battles, which only the mod reports', () => {
+		const snaps = [
+			save('2200.01.01'),
+			log('2200.02.01'),
+			{
+				...log('2200.03.01'),
+				logEvents: [
+					ev('2200.02.11', 'combat', 'Us', '1st Fleet', 'Pirates', 'Raiders', 'Sol'),
+					ev('2200.02.12', 'leader-died', 'Ada')
+				]
+			}
+		];
+		expect(labels(snaps)).toEqual([
+			'2200.02.11 battle at Sol: Us (1st Fleet) beat Pirates (Raiders)',
+			'2200.02.12 leader died: Ada'
+		]);
+	});
+
+	it('follows the Galactic Community: proposed, put to the vote, passed, failed, withdrawn', () => {
+		const market = resolution(1, 'resolution_galactic_market_form');
+		const growth = resolution(2, 'resolution_intergalacticdirective_regulated_growth');
+		const recycling = resolution(3, 'resolution_ecology_recycling_initiatives');
+		expect(
+			labels([
+				save('2210.01.01', { galcom: galcom({ proposed: [market, recycling] }) }),
+				save('2210.02.01', {
+					galcom: galcom({ proposed: [market, growth], voting: recycling })
+				}),
+				// the vote failed; the market was withdrawn; growth goes to the floor
+				save('2210.03.01', { galcom: galcom({ proposed: [], voting: growth }) }),
+				save('2210.04.01', { galcom: galcom({ passed: [growth], member: false }) })
+			])
+		).toEqual([
+			'2210.02.01 resolution proposed: intergalacticdirective regulated growth (by Cydran Concern)',
+			'2210.02.01 put to the vote: ecology recycling initiatives',
+			'2210.03.01 put to the vote: intergalacticdirective regulated growth',
+			'2210.03.01 resolution failed: ecology recycling initiatives',
+			'2210.03.01 resolution withdrawn: Form the Galactic Market (by Cydran Concern)',
+			'2210.04.01 we left the Galactic Community',
+			'2210.04.01 resolution passed: intergalacticdirective regulated growth'
+		]);
+	});
+
+	it('keeps a Galactic Community event in parts: action, resolution, proposer', () => {
+		const market = resolution(1, 'resolution_galactic_market_form');
+		const m = milestones(
+			[
+				save('2210.01.01', { galcom: galcom() }),
+				save('2210.02.01', { galcom: galcom({ proposed: [market] }) })
+			],
+			names
+		);
+		expect(m.map((x) => x.galcom)).toEqual([
+			{
+				action: 'resolution proposed',
+				resolution: 'resolution_galactic_market_form',
+				by: 'Cydran Concern'
+			}
+		]);
+	});
+
+	it('does not take a save without a list of passed resolutions for everything passing', () => {
+		const market = resolution(1, 'resolution_galactic_market_form');
+		expect(
+			labels([
+				save('2210.01.01', { galcom: galcom({ passed: [] }) }),
+				save('2210.02.01', { galcom: galcom({ passed: [market] }) })
+			])
+		).toEqual([]);
+	});
+
+	it('does not take a vote that passed for failed where the save had no list of passed ones', () => {
+		const shield = resolution(1, 'resolution_mutualdefense_the_readied_shield');
+		expect(
+			labels([
+				save('2207.12.01', { galcom: galcom({ voting: shield }) }),
+				save('2208.01.01', { galcom: galcom({ passed: [] }) }), // read before READER 13
+				save('2214.01.01', { galcom: galcom({ passed: [shield] }) })
+			])
+		).toEqual(['2208.01.01 resolution passed: mutualdefense the readied shield']);
 	});
 });

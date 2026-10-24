@@ -1,21 +1,28 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync } from 'node:fs';
+import { existsSync, mkdtempSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Snapshot } from '#lib/types.ts';
+import { askGone, goneToAsk, keepCampaign } from './campaigns.ts';
 import {
 	campaignName,
+	deleteCampaign,
 	galaxyOf,
 	getSetting,
+	headCampaign,
 	headId,
 	history,
+	lastNode,
+	loadedNode,
 	nodes,
 	openDb,
+	readFiles,
 	record,
 	refresh,
 	setParent,
-	setSetting
+	setSetting,
+	VERSION
 } from './db.ts';
 
 const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
@@ -44,6 +51,15 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	defaultAutomation: null,
 	automationBlocked: null,
 	planetBudget: null,
+	budget: null,
+	construction: null,
+	orbitalStations: null,
+	aiIntel: null,
+	storageMax: null,
+	traderEnclaves: null,
+	techQueued: null,
+	techPermanent: null,
+	techStored: null,
 	score: null,
 	fleets: null,
 	idleLeaders: null,
@@ -90,6 +106,9 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	galaxy: null,
 	countries: null,
 	relations: null,
+	intel: null,
+	diplomacy: null,
+	allWars: null,
 	firstContacts: null,
 	situations: null,
 	anomalies: null,
@@ -100,7 +119,11 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	focus: null,
 	techOptions: null,
 	leaderList: null,
-	speciesRights: null
+	speciesRights: null,
+	timelineId: null,
+	previousTimelineId: null,
+	logEvents: null,
+	ticks: null
 });
 
 describe('db', () => {
@@ -232,34 +255,141 @@ describe('merging the mod feed with saves', () => {
 		expect(merged.mismatches).toEqual(['energy: mod 7 vs save 5']);
 		expect(history(db, saved)[0].pops).toBe(42);
 	});
-});
 
-describe('schema', () => {
-	it('rebuilds a cache written by an older schema instead of failing on it', () => {
-		const file = join(mkdtempSync(join(tmpdir(), 'db-')), 'd.sqlite');
-		const old = new DatabaseSync(file);
-		old.exec(`CREATE TABLE node (id INTEGER PRIMARY KEY, campaign TEXT);
-			CREATE TABLE state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
-			INSERT INTO node (campaign) VALUES ('stale');`);
-		old.close();
-
-		const db = openDb(file);
-		expect(nodes(db)).toEqual([]);
-		record(db, snap('2200.01.01', 'a'), 't');
-		db.close();
-		expect(nodes(openDb(file))).toHaveLength(1); // and a current one survives reopening
+	it("keeps the log's events, daily stockpiles and timeline id through the merge and a re-read", () => {
+		const db = openDb(':memory:');
+		const events = [{ date: '2200.01.20', kind: 'colony' as const, fields: ['Mars'] }];
+		const ticks = [{ date: '2200.01.30', stockpile: { energy: 3 } }];
+		const log = { ...logSnap('2200.02.01', 2, 5), timelineId: 123456, logEvents: events, ticks };
+		const id = record(db, log, 'game.log').nodeId;
+		record(db, saveSnap('2200.02.01', 2, 5), 'b.sav');
+		refresh(db, saveSnap('2200.02.01', 2, 5));
+		expect(history(db, id)[0]).toMatchObject({
+			pops: 42,
+			timelineId: 123456,
+			logEvents: events,
+			ticks
+		});
 	});
 });
 
-describe('settings', () => {
-	it('survives a schema change that drops the history', () => {
-		const file = join(mkdtempSync(join(tmpdir(), 'db-')), 'd.sqlite');
+describe('loading a save', () => {
+	const at = (date: string, fingerprint: string, timelineId: number | null) => ({
+		...snap(date, fingerprint),
+		timelineId
+	});
+
+	it('finds the loaded save by its timeline id, and places what follows below it, not guessed', () => {
+		const db = openDb(':memory:');
+		const jan = record(db, at('2200.01.01', 'a', 111111), 't').nodeId;
+		const mid = record(db, at('2200.01.15', 'b', 111111), 't').nodeId; // a manual save that month
+		record(db, at('2200.02.01', 'c', 222222), 't');
+		record(db, at('2200.03.01', 'd', 333333), 't');
+
+		expect(loadedNode(db, 'c', '2200.01.15', 111111)).toBe(mid);
+		expect(loadedNode(db, 'c', '2200.01.10', 111111)).toBe(jan); // a save the dashboard never read
+		expect(loadedNode(db, 'c', '2200.01.15', 999999)).toBeNull();
+		expect(loadedNode(db, 'other', '2200.01.15', 111111)).toBeNull();
+
+		const next = record(db, at('2200.02.01', 'e', 444444), 't', jan).nodeId;
+		expect(nodes(db).find((n) => n.id === next)).toMatchObject({ parentId: jan, ambiguous: false });
+	});
+});
+
+describe('migrations', () => {
+	const tmpDb = () => join(mkdtempSync(join(tmpdir(), 'db-')), 'dashboard.sqlite');
+	const version = (db: DatabaseSync) =>
+		(db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
+	const addColumn = (db: DatabaseSync) => db.exec('ALTER TABLE node ADD COLUMN note TEXT');
+
+	it('builds a new DB at the current version', () => {
+		const db = openDb(':memory:');
+		expect(version(db)).toBe(VERSION);
+		record(db, snap('2200.01.01', 'a'), 't');
+		expect(nodes(db)).toHaveLength(1);
+	});
+
+	it("takes over 0.1.0's DB, history and settings kept, without a copy", () => {
+		const file = tmpDb();
+		// 0.1.0's tables are the base; it marked them in `state`, not in `user_version`
+		const base = openDb(file);
+		record(base, snap('2200.01.01', 'a'), 't');
+		setSetting(base, 'theme', 'dark');
+		base.exec("INSERT INTO state VALUES ('schema', '15'); PRAGMA user_version = 0;");
+		base.close();
+
 		const db = openDb(file);
-		expect(getSetting(db, 'theme')).toBeUndefined();
-		setSetting(db, 'theme', 'dark');
-		db.prepare("UPDATE state SET value = 'old' WHERE key = 'schema'").run();
+		expect(version(db)).toBe(15);
+		expect(nodes(db)).toHaveLength(1);
+		expect(getSetting(db, 'theme')).toBe('dark');
+		expect(db.prepare("SELECT 1 FROM state WHERE key = 'schema'").get()).toBeUndefined();
+		expect(existsSync(file.replace('.sqlite', '.v15.sqlite'))).toBe(false);
+	});
+
+	it('gives a version-15 DB of a build before 0.1.0 the tables it lacks', () => {
+		const file = tmpDb();
+		const base = openDb(file);
+		record(base, snap('2200.01.01', 'a'), 't');
+		base.exec(
+			"DROP TABLE save_file; INSERT INTO state VALUES ('schema', '15'); PRAGMA user_version = 0;"
+		);
+		base.close();
+
+		const db = openDb(file);
+		expect(nodes(db)).toHaveLength(1);
+		expect(readFiles(db)).toEqual(new Map());
+	});
+
+	it('runs the steps a DB lacks, after a copy of it', () => {
+		const file = tmpDb();
+		const db = openDb(file);
+		record(db, snap('2200.01.01', 'a'), 't');
 		db.close();
-		expect(getSetting(openDb(file), 'theme')).toBe('dark');
+
+		const migrated = openDb(file, [addColumn]);
+		expect(version(migrated)).toBe(16);
+		migrated.prepare("UPDATE node SET note = 'x'").run();
+		expect(nodes(migrated)).toHaveLength(1);
+		migrated.close();
+		expect(nodes(openDb(file.replace('.sqlite', '.v15.sqlite')))).toHaveLength(1);
+		expect(version(openDb(file, [addColumn]))).toBe(16); // and not again
+	});
+
+	it('builds a new DB through every step', () => {
+		const db = openDb(':memory:', [addColumn]);
+		expect(version(db)).toBe(16);
+		db.prepare("UPDATE node SET note = 'x'").run();
+	});
+
+	it('rolls a failing step back and keeps the version', () => {
+		const file = tmpDb();
+		openDb(file).close();
+		const broken = (db: DatabaseSync) => {
+			addColumn(db);
+			throw new Error('broken step');
+		};
+		expect(() => openDb(file, [broken])).toThrow('broken step');
+		const db = new DatabaseSync(file);
+		expect(version(db)).toBe(15);
+		expect(() => db.prepare('SELECT note FROM node').all()).toThrow();
+	});
+
+	it('refuses a DB of a newer dashboard and leaves it as it is', () => {
+		const file = tmpDb();
+		const newer = openDb(file, [addColumn]);
+		record(newer, snap('2200.01.01', 'a'), 't');
+		newer.close();
+		expect(() => openDb(file)).toThrow(/newer dashboard/);
+		expect(nodes(openDb(file, [addColumn]))).toHaveLength(1);
+	});
+
+	it('refuses a development DB from before 0.1.0 instead of dropping it', () => {
+		const file = tmpDb();
+		const old = new DatabaseSync(file);
+		old.exec(`CREATE TABLE state (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+			INSERT INTO state VALUES ('schema', '14');`);
+		old.close();
+		expect(() => openDb(file)).toThrow(/before 0.1.0/);
 	});
 });
 
@@ -294,15 +424,74 @@ describe('refresh', () => {
 		const db = openDb(':memory:');
 		const first = record(db, snap('2200.01.01', 'a', 1), 's').nodeId;
 		const head = record(db, snap('2201.01.01', 'b', 2), 's').nodeId;
-		expect(refresh(db, snap('2200.01.01', 'a', 5), 's').nodeId).toBe(first);
+		expect(refresh(db, snap('2200.01.01', 'a', 5))?.nodeId).toBe(first);
 		expect(headId(db)).toBe(head);
 		expect(history(db, head).map((s) => s.stockpile.energy)).toEqual([5, 2]);
 	});
 
-	it('records a save not in the graph', () => {
+	it('leaves out a save not in the graph (its campaign deleted), and the head with it', () => {
 		const db = openDb(':memory:');
-		const r = refresh(db, snap('2200.01.01', 'a'), 's');
-		expect(r.isNew).toBe(true);
-		expect(headId(db)).toBe(r.nodeId);
+		const head = record(db, snap('2200.01.01', 'a'), 's').nodeId;
+		expect(refresh(db, snap('2200.02.01', 'b'))).toBeNull();
+		expect(nodes(db)).toHaveLength(1);
+		expect(headId(db)).toBe(head);
+	});
+});
+
+describe('catching up on another campaign', () => {
+	const other = (date: string, fingerprint: string) => ({
+		...snap(date, fingerprint),
+		campaign: 'o'
+	});
+
+	it('places its saves after its own last node and leaves the head where the player is', () => {
+		const db = openDb(':memory:');
+		const head = record(db, snap('2200.01.01', 'a'), 's').nodeId;
+		const o1 = record(db, other('2300.01.01', 'x'), 's', null, lastNode(db, 'o')).nodeId;
+		const o2 = record(db, other('2300.02.01', 'y'), 's', null, o1).nodeId;
+		expect(headId(db)).toBe(head);
+		expect(nodes(db).find((n) => n.id === o1)?.parentId).toBeNull();
+		expect(nodes(db).find((n) => n.id === o2)?.parentId).toBe(o1);
+		expect(lastNode(db, 'o')).toBe(o2);
+	});
+});
+
+describe('deleteCampaign', () => {
+	it("forgets the campaign's nodes, snapshots and galaxy, and nothing else", () => {
+		const db = openDb(':memory:');
+		record(db, snap('2200.01.01', 'a'), 's');
+		record(db, { ...snap('2300.01.01', 'x'), campaign: 'o', galaxy: [] }, 's');
+		expect(headCampaign(db)).toBe('o');
+		deleteCampaign(db, 'o');
+		expect(nodes(db).map((n) => n.campaign)).toEqual(['c']);
+		expect(galaxyOf(db, 'o')).toBeNull();
+		expect(db.prepare('SELECT count(*) AS n FROM snapshot').get()).toEqual({ n: 1 });
+		expect(headId(db)).toBeNull(); // the head was there
+	});
+});
+
+describe('campaigns to ask about', () => {
+	const row = (campaign: string, onDisk: boolean) => ({
+		campaign,
+		name: '',
+		date: '2200.01.01',
+		nodes: 1,
+		onDisk
+	});
+
+	it('are those without saves on disk the player has not kept', () => {
+		const rows = [row('here', true), row('gone', false), row('kept', false)];
+		expect(goneToAsk(rows, ['kept']).map((r) => r.campaign)).toEqual(['gone']);
+	});
+
+	it('come from the history, named after the empire, and stop once kept', () => {
+		const db = openDb(':memory:');
+		record(db, snap('2200.01.01', 'a'), 's');
+		record(db, { ...snap('2300.01.01', 'x'), campaign: 'o', empireName: 'Other' }, 's');
+		expect(askGone(db, new Set(['c']))).toEqual([
+			{ campaign: 'o', name: 'Other', date: '2300.01.01', nodes: 1, onDisk: false }
+		]);
+		keepCampaign(db, 'o');
+		expect(askGone(db, new Set(['c']))).toEqual([]);
 	});
 });

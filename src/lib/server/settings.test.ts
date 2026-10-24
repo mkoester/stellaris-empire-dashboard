@@ -36,7 +36,10 @@ describe('profiles', () => {
 				surveyAll: false,
 				showLocked: false,
 				factionTypes: false,
-				allFactionTypes: false
+				allFactionTypes: false,
+				tradeoffs: false,
+				tradeIntel: false,
+				diplomacyAll: false
 			}
 		});
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('thick');
@@ -75,7 +78,10 @@ describe('profiles', () => {
 				surveyAll: false,
 				showLocked: false,
 				factionTypes: false,
-				allFactionTypes: false
+				allFactionTypes: false,
+				tradeoffs: false,
+				tradeIntel: false,
+				diplomacyAll: false
 			}
 		});
 		const copy = profileAction(db, { action: 'create', name: 'default', copyOf: 'default' })!;

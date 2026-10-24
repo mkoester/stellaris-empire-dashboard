@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { parseTrigger } from '#lib/triggers.ts';
-import type { CapEffect, GameData } from '#lib/types.ts';
+import type { CapEffect, Costs, GameData } from '#lib/types.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -54,9 +54,15 @@ export function loadGameData(file: string): GameData {
 				])
 			),
 			jobs: Object.fromEntries(
-				rows<{ key: string; name: string | null; category: string | null }>(
-					'SELECT key, name, category FROM job'
-				).map((r) => [r.key, { name: r.name ?? r.key, category: r.category }])
+				rows<{
+					key: string;
+					name: string | null;
+					category: string | null;
+					budget_source: string | null;
+				}>('SELECT key, name, category, budget_source FROM job').map((r) => [
+					r.key,
+					{ name: r.name ?? r.key, category: r.category, budgetSource: r.budget_source }
+				])
 			),
 			edicts: Object.fromEntries(
 				rows<{
@@ -140,7 +146,8 @@ export function loadGameData(file: string): GameData {
 					`SELECT key, name FROM building WHERE name IS NOT NULL
 					 UNION ALL SELECT key, name FROM deposit WHERE name IS NOT NULL
 					 UNION ALL SELECT key, name FROM district WHERE name IS NOT NULL
-					 UNION ALL SELECT key, name FROM zone WHERE name IS NOT NULL`
+					 UNION ALL SELECT key, name FROM zone WHERE name IS NOT NULL
+					 UNION ALL SELECT key, name FROM starbase_part WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name.replace(/^Blocker /, '')])
 			),
 			// the border colour of each district's grid-box icon; districts without one are left out
@@ -182,6 +189,56 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT key, name FROM agreement_term_value WHERE name IS NOT NULL
 					 UNION ALL SELECT key, name FROM agreement_preset WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name])
+			),
+			resolutions: Object.fromEntries(
+				rows<{
+					key: string;
+					category_key: string | null;
+					level: number | null;
+					target: number;
+					influence_cost: number | null;
+					repeal: number;
+					potential_json: string | null;
+					allow_json: string | null;
+					valid_target_json: string | null;
+					ai_weight_json: string | null;
+				}>(
+					`SELECT key, category_key, level, target, influence_cost, repeal, potential_json,
+					        allow_json, valid_target_json, ai_weight_json FROM resolution
+					 WHERE category_key IS NOT NULL ORDER BY sort_order`
+				).map((r) => [
+					r.key,
+					{
+						category: r.category_key,
+						level: r.level,
+						target: r.target === 1,
+						cost: r.influence_cost,
+						repeal: r.repeal === 1,
+						potential: parseTrigger(r.potential_json),
+						allow: parseTrigger(r.allow_json),
+						validTarget: parseTrigger(r.valid_target_json),
+						aiWeight: r.ai_weight_json ? JSON.parse(r.ai_weight_json) : null
+					}
+				])
+			),
+			// what makes proposing cheaper: traditions (Gravitas) and modifiers (Pioneer Politics)
+			resolutionCostMult: Object.fromEntries(
+				rows<{ owner: string; value: number }>(
+					`SELECT 'tradition:' || owner_key AS owner, modifier_value AS value FROM tradition_modifier
+					   WHERE modifier_key = 'resolutions_cost_mult' AND potential_json IS NULL
+					 UNION ALL SELECT 'modifier:' || static_key, modifier_value FROM static_modifier_modifier
+					   WHERE modifier_key = 'resolutions_cost_mult'`
+				).map((r) => [r.owner, r.value])
+			),
+			resolutionGroups: Object.fromEntries(
+				rows<{ key: string; group_key: string }>(
+					'SELECT key, group_key FROM resolution_category WHERE group_key IS NOT NULL'
+				).map((r) => [r.key, r.group_key])
+			),
+			resolutionCategories: Object.fromEntries(
+				rows<{ key: string; category: string }>(
+					'SELECT key, category_key AS category FROM resolution WHERE category_key IS NOT NULL'
+				).map((r) => [r.key, r.category])
 			),
 			shroud: {
 				patrons: Object.fromEntries(
@@ -369,7 +426,11 @@ export function loadGameData(file: string): GameData {
 					`SELECT 'deposit:' || deposit_key AS owner, modifier_key AS key, modifier_value AS value FROM deposit_modifier
 					 UNION ALL SELECT 'modifier:' || static_key, modifier_key, modifier_value FROM static_modifier_modifier
 					 UNION ALL SELECT 'building:' || building_key, modifier_key, value FROM building_modifier
-					   WHERE scope = 'planet' AND condition IS NULL`
+					   WHERE scope = 'planet' AND condition IS NULL
+					 UNION ALL SELECT 'civic:' || civic_key, modifier_key, modifier_value FROM civic_modifier
+					 UNION ALL SELECT 'origin:' || origin_key, modifier_key, modifier_value FROM origin_modifier
+					 UNION ALL SELECT 'tradition:' || owner_key, modifier_key, modifier_value FROM tradition_modifier
+					   WHERE potential_json IS NULL`
 				)
 			),
 			blockerInfo: blockerInfo(
@@ -410,6 +471,128 @@ export function loadGameData(file: string): GameData {
 					(r) => [r.key, r.level]
 				)
 			),
+			// before modifiers: districts', ship sizes' (stations, outposts) and buildings' build cost
+			// and upkeep; what deposits produce
+			costs: {
+				district: byKind(rows('SELECT key, kind, resource, amount FROM district_resource')),
+				ship: byKind(rows('SELECT key, kind, resource, amount FROM ship_size_resource')),
+				building: byKind(
+					rows('SELECT building_key AS key, kind, resource, amount FROM building_resource')
+				),
+				deposit: byKind(
+					rows('SELECT deposit_key AS key, kind, resource, amount FROM deposit_resource')
+				),
+				module: byKind(rows('SELECT key, kind, resource, amount FROM starbase_module_resource')),
+				starbaseBuilding: byKind(
+					rows('SELECT key, kind, resource, amount FROM starbase_building_resource')
+				)
+			},
+			// jobs (positions, in pops) per district and building, build days, deposit categories
+			districtJobs: byKey(rows('SELECT key, job AS name, amount FROM district_job')),
+			buildingJobs: byKey(
+				rows('SELECT building_key AS key, job AS name, amount FROM building_job')
+			),
+			buildDays: Object.fromEntries(
+				rows<{ key: string; days: number }>('SELECT key, days FROM build_time').map((r) => [
+					r.key,
+					r.days
+				])
+			),
+			depositCategory: Object.fromEntries(
+				rows<{ key: string; category: string | null }>('SELECT key, category FROM deposit').map(
+					(r) => [r.key, r.category]
+				)
+			),
+			techRequirements: Object.fromEntries(
+				rows<{
+					tech_key: string;
+					prerequisites_json: string;
+					potential_json: string | null;
+					is_rare: number;
+					is_dangerous: number;
+				}>(
+					'SELECT tech_key, prerequisites_json, potential_json, is_rare, is_dangerous FROM technology_requirement'
+				).map((r) => [
+					r.tech_key,
+					{
+						prerequisites: jsonList(r.prerequisites_json),
+						potential: parseTrigger(r.potential_json),
+						rare: r.is_rare === 1,
+						dangerous: r.is_dangerous === 1
+					}
+				])
+			),
+			buildingCategory: Object.fromEntries(
+				rows<{ key: string; category: string | null }>('SELECT key, category FROM building').map(
+					(r) => [r.key, r.category]
+				)
+			),
+			// what the AI makes of a trade: each resource's weight, stockpile target and base storage;
+			// personalities' willingness, which attitudes trade, opinion modifiers (the trade tab)
+			resourceInfo: Object.fromEntries(
+				rows<{
+					key: string;
+					name: string | null;
+					ai_weight: number | null;
+					ai_wants: number | null;
+					max: number | null;
+					tradable: number;
+				}>('SELECT key, name, ai_weight, ai_wants, max, tradable FROM strategic_resource').map(
+					(r) => [
+						r.key,
+						{
+							name: r.name ?? r.key,
+							aiWeight: r.ai_weight,
+							aiWants: r.ai_wants,
+							max: r.max,
+							tradable: r.tradable === 1
+						}
+					]
+				)
+			),
+			personalities: Object.fromEntries(
+				rows<{ key: string; name: string | null; trade_willingness: number | null }>(
+					'SELECT key, name, trade_willingness FROM personality'
+				).map((r) => [r.key, { name: r.name ?? r.key, willingness: r.trade_willingness }])
+			),
+			attitudes: Object.fromEntries(
+				rows<{ key: string; name: string | null; trade: number }>(
+					'SELECT key, name, trade FROM attitude'
+				).map((r) => [r.key, { name: r.name ?? r.key, trade: r.trade === 1 }])
+			),
+			opinionModifiers: Object.fromEntries(
+				rows<{ key: string; name: string | null; max: number | null; decay: number | null }>(
+					'SELECT key, name, max, decay FROM opinion_modifier'
+				).map((r) => [r.key, { name: r.name ?? r.key, max: r.max, decay: r.decay }])
+			),
+			// modules and buildings a starbase of each level holds (`starbase_level_starport` → starport)
+			starbaseSlots: Object.fromEntries(
+				rows<{ key: string; module_slots: number; building_slots: number }>(
+					'SELECT key, module_slots, building_slots FROM starbase_level'
+				).map((r) => [
+					r.key.replace(/^starbase_level_/, ''),
+					{ modules: r.module_slots, buildings: r.building_slots }
+				])
+			),
+			// what an edict changes while active (its unconditional modifiers; the produce tab)
+			edictModifiers: byKey(
+				rows(
+					`SELECT owner_key AS key, modifier_key AS name, modifier_value AS amount
+					   FROM tradition_modifier
+					  WHERE potential_json IS NULL AND owner_key IN (SELECT key FROM edict)`
+				)
+			),
+			// what techs and traditions change in costs, upkeep and output (the trade-offs tab)
+			growthModifiers: byKey(
+				rows(
+					`SELECT 'tech:' || tech_key AS key, modifier_key AS name, modifier_value AS amount
+					   FROM technology_modifier
+					 UNION ALL SELECT 'tradition:' || owner_key, modifier_key, modifier_value
+					   FROM tradition_modifier WHERE potential_json IS NULL`
+				).filter((r) =>
+					/_cost_mult$|_produces_mult$|^stations_upkeep_mult$/.test((r as { name: string }).name)
+				)
+			),
 			defines: Object.fromEntries(
 				rows<{ key: string; value: number }>('SELECT key, value FROM game_define').map((r) => [
 					r.key,
@@ -420,6 +603,29 @@ export function loadGameData(file: string): GameData {
 	} finally {
 		db.close();
 	}
+}
+
+/** `(key, kind, resource, amount)` rows → key → kind (cost, upkeep, produces) → resources. */
+export function byKind(rows: unknown[]): Record<string, Costs> {
+	const out: Record<string, Costs> = {};
+	for (const r of rows as { key: string; kind: string; resource: string; amount: number }[]) {
+		// own keys only: the ship size `constructor` would find Object's constructor through `??=`
+		if (!Object.hasOwn(out, r.key)) out[r.key] = { cost: {}, upkeep: {}, produces: {} };
+		const c = out[r.key];
+		if (r.kind === 'cost' || r.kind === 'upkeep' || r.kind === 'produces')
+			c[r.kind][r.resource] = r.amount;
+	}
+	return out;
+}
+
+/** `(key, name, amount)` rows → key → name → amount. */
+export function byKey(rows: unknown[]): Record<string, Record<string, number>> {
+	const out: Record<string, Record<string, number>> = {};
+	for (const r of rows as { key: string; name: string; amount: number }[]) {
+		if (!Object.hasOwn(out, r.key)) out[r.key] = {};
+		out[r.key][r.name] = r.amount;
+	}
+	return out;
 }
 
 function traditionTrees(
@@ -439,15 +645,18 @@ function traditionTrees(
 	);
 }
 
-const CAP = /^(district_\w+_max_(add|mult)|planet_max_districts_(add|mult))$/;
+const CAP =
+	/^(district_\w+_max_(add|mult)|(planet|planet_non_artificial|pc_\w+)_max_districts_(add|mult))$/;
 
 /** The district cap modifiers among `rows`, grouped by owner. */
 export function capEffects(
 	rows: { owner: string; key: string; value: number }[]
 ): Record<string, CapEffect[]> {
 	const out: Record<string, CapEffect[]> = {};
+	// a tradition's alternative modifier sets are keyed `<tradition>#<n>`
 	for (const r of rows)
-		if (CAP.test(r.key)) (out[r.owner] ??= []).push({ key: r.key, value: r.value });
+		if (CAP.test(r.key))
+			(out[r.owner.replace(/#\w+$/, '')] ??= []).push({ key: r.key, value: r.value });
 	return out;
 }
 

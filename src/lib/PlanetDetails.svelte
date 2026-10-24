@@ -4,6 +4,8 @@
 	import BlockerHint from './BlockerHint.svelte';
 	import type { BlockerHint as Hint } from './blockers.ts';
 	import DistrictName from './DistrictName.svelte';
+	import SortTable from './SortTable.svelte';
+	import type { Column } from './sort.ts';
 	import Effects from './Effects.svelte';
 	import { nameOf, pretty } from './format.ts';
 	import InfoPopup from './InfoPopup.svelte';
@@ -39,6 +41,20 @@
 	// What can still be built: the type's room, but never more than the planet's
 	const room = $derived(caps.limit === null ? Infinity : Math.max(0, caps.limit - caps.built));
 	const free = (cap: number, built: number) => Math.min(Math.max(0, cap - built), room);
+	type Cap = (typeof caps.types)[number];
+	const freeOf = (t: Cap) =>
+		t.cap === null ? (room === Infinity ? null : room) : free(t.cap, t.built);
+	const districtColumns: Column<Cap>[] = [
+		{
+			id: 'district',
+			label: 'District',
+			value: (t) => nameOf(names, t.district),
+			cell: districtCell
+		},
+		{ id: 'built', label: 'Built', value: (t) => t.built, right: true },
+		{ id: 'cap', label: 'Cap', value: (t) => t.cap, cell: capCell, right: true },
+		{ id: 'free', label: 'Free', value: freeOf, cell: freeCell, right: true }
+	];
 	const sourceText = (s: CapSource[]) =>
 		s
 			.map(
@@ -47,6 +63,20 @@
 			)
 			.join('\n');
 </script>
+
+{#snippet districtCell(t: Cap)}<span title={sourceText(t.sources)}
+		><DistrictName name={nameOf(names, t.district)} color={colors[t.district]} /></span
+	>{/snippet}
+{#snippet capCell(t: Cap)}{t.cap ?? '–'}{#if t.sources.some((s) => s.blocked)}<span
+			class="text-amber-600"
+			title="includes features behind blockers">*</span
+		>{/if}{/snippet}
+{#snippet freeCell(t: Cap)}<span
+		class="font-semibold"
+		title={t.cap !== null && free(t.cap, t.built) < t.cap - t.built
+			? `${t.cap - t.built} by its cap, but the planet's limit is reached`
+			: ''}>{freeOf(t) ?? ''}</span
+	>{/snippet}
 
 <div class="flex flex-col gap-3 text-sm">
 	<div>
@@ -59,38 +89,12 @@
 					: `— size + ${caps.limitSources.length ? sourceText(caps.limitSources).replaceAll('\n', ', ') : 'nothing else'}`}</span
 			>
 		</div>
-		<table class="text-left">
-			<thead class="text-gray-500">
-				<tr>
-					<th class="pr-4 font-normal">district</th>
-					<th class="pr-4 text-right font-normal">built</th>
-					<th class="pr-4 text-right font-normal">cap</th>
-					<th class="text-right font-normal">free</th>
-				</tr>
-			</thead>
-			<tbody class="tabular-nums">
-				{#each caps.types as t (t.district)}
-					<tr title={sourceText(t.sources)}>
-						<td class="pr-4"
-							><DistrictName name={nameOf(names, t.district)} color={colors[t.district]} /></td
-						>
-						<td class="pr-4 text-right">{t.built}</td>
-						<td class="pr-4 text-right"
-							>{t.cap ?? '–'}{#if t.sources.some((s) => s.blocked)}<span
-									class="text-amber-600"
-									title="includes features behind blockers">*</span
-								>{/if}</td
-						>
-						<td
-							class="text-right font-semibold"
-							title={t.cap !== null && free(t.cap, t.built) < t.cap - t.built
-								? `${t.cap - t.built} by its cap, but the planet's limit is reached`
-								: ''}>{t.cap === null ? (room === Infinity ? '' : room) : free(t.cap, t.built)}</td
-						>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
+		<SortTable
+			rows={caps.types}
+			columns={districtColumns}
+			key={(t) => t.district}
+			sort={{ column: '', desc: false }}
+		/>
 	</div>
 
 	{#if features.length}

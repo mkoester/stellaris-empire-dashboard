@@ -1,9 +1,9 @@
 <script lang="ts">
 	import './layout.css';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { putSettings, THEMES, type Theme } from '#lib/settings.ts';
+	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
 
@@ -40,6 +40,31 @@
 			active: path === '/expansion'
 		},
 		{
+			name: 'growth',
+			href: node ? resolve(`/growth?node=${node}`) : resolve('/growth'),
+			active: path === '/growth'
+		},
+		{
+			name: 'jobs',
+			href: node ? resolve(`/jobs?node=${node}`) : resolve('/jobs'),
+			active: path === '/jobs'
+		},
+		{
+			name: 'produce',
+			href: node ? resolve(`/produce?node=${node}`) : resolve('/produce'),
+			active: path === '/produce'
+		},
+		{
+			name: 'systems',
+			href: node ? resolve(`/systems?node=${node}`) : resolve('/systems'),
+			active: path === '/systems'
+		},
+		{
+			name: 'trade',
+			href: node ? resolve(`/trade?node=${node}`) : resolve('/trade'),
+			active: path === '/trade'
+		},
+		{
 			name: 'trade deals',
 			href: node ? resolve(`/deals?node=${node}`) : resolve('/deals'),
 			active: path === '/deals'
@@ -49,6 +74,20 @@
 			href: node ? resolve(`/market?node=${node}`) : resolve('/market'),
 			active: path === '/market'
 		},
+		{
+			name: 'resources',
+			href: node ? resolve(`/resources?node=${node}`) : resolve('/resources'),
+			active: path === '/resources'
+		},
+		...(data.tradeoffs
+			? [
+					{
+						name: 'trade-offs',
+						href: node ? resolve(`/tradeoffs?node=${node}`) : resolve('/tradeoffs'),
+						active: path === '/tradeoffs'
+					}
+				]
+			: []),
 		{
 			name: 'events',
 			href: node ? resolve(`/events?node=${node}`) : resolve('/events'),
@@ -100,6 +139,16 @@
 			active: path === '/contacts'
 		},
 		{
+			name: 'galcom',
+			href: node ? resolve(`/galcom?node=${node}`) : resolve('/galcom'),
+			active: path === '/galcom'
+		},
+		{
+			name: 'diplomacy',
+			href: node ? resolve(`/diplomacy?node=${node}`) : resolve('/diplomacy'),
+			active: path === '/diplomacy'
+		},
+		{
 			name: 'megastructures',
 			href: node ? resolve(`/megastructures?node=${node}`) : resolve('/megastructures'),
 			active: path === '/megastructures'
@@ -133,6 +182,19 @@
 		if (!c) return;
 		const same = tabsAt(String(c.tip)).find((t) => t.active && t.name !== 'colony');
 		await goto(same?.href ?? resolve(`/?node=${c.tip}`));
+	}
+
+	// A campaign whose saves are gone: its history here is the only copy left.
+	async function answerGone(action: 'keep' | 'delete', c: { campaign: string; name: string }) {
+		const what = c.name || c.campaign;
+		if (
+			action === 'delete' &&
+			!confirm(`Delete the history of ${what}? Its saves are gone, so it cannot be read back.`)
+		)
+			return;
+		await campaignAction(action, c.campaign);
+		if (action === 'delete' && data.campaign === c.campaign) await goto(resolve('/'));
+		await invalidateAll();
 	}
 
 	async function setTheme(theme: Theme) {
@@ -193,6 +255,20 @@
 				>v{__APP_VERSION__}</span
 			>
 		</nav>
+		{#each data.gone as c (c.campaign)}
+			<p
+				class="mb-2 flex flex-wrap items-center gap-2 rounded border border-amber-400 px-3 py-1 text-sm"
+			>
+				<span
+					>The saves of <b>{c.name || c.campaign}</b> (last {c.date}) are no longer on disk; its
+					history is kept here only.</span
+				>
+				<button class="rounded border px-2" onclick={() => answerGone('keep', c)}>keep it</button>
+				<button class="rounded border px-2 text-red-600" onclick={() => answerGone('delete', c)}
+					>delete it</button
+				>
+			</p>
+		{/each}
 		{@render children()}
 	{/if}
 </main>

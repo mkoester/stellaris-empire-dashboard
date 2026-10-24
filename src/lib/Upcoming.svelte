@@ -5,6 +5,8 @@
 	import { nameOf } from './format.ts';
 	import InfoPopup from './InfoPopup.svelte';
 	import type { Upcoming } from './events.ts';
+	import SortTable from './SortTable.svelte';
+	import type { Column } from './sort.ts';
 	import type { Explanation } from './types.ts';
 
 	// node: the save shown when not following the game, so colony links stay on that branch.
@@ -46,9 +48,37 @@
 	};
 	const shown = $derived(onlyUnnotified ? events.filter((e) => e.act) : events);
 
+	type Row = Upcoming & { i: number };
+	const columns: Column<Row>[] = [
+		{ id: 'due', label: 'Due', value: (e) => e.date, cell: due },
+		{ id: 'in', label: 'In', value: (e) => e.months, cell: inCell, right: true },
+		{ id: 'what', label: 'What', value: (e) => e.what, cell: what },
+		{ id: 'kind', label: 'Kind', value: (e) => e.sub ?? e.kind, cell: kind },
+		{ id: 'details', label: 'Details', value: (e) => e.detail ?? null, cell: details }
+	];
 	const inMonths = (m: number) =>
 		m <= 0 ? 'now' : m < 1 ? `${Math.round(m * 30)} days` : `${Math.round(m)} mo`;
 </script>
+
+{#snippet due(e: Row)}<span class="whitespace-nowrap" title={e.exact ? 'exact' : 'estimated'}
+		>{e.exact ? '' : '≈ '}{e.date}</span
+	>{/snippet}
+{#snippet inCell(e: Row)}<span class="whitespace-nowrap">{inMonths(e.months)}</span>{/snippet}
+{#snippet what(e: Row)}<InfoPopup explanation={e.ref ? explain[e.ref] : undefined}
+		>{e.kind === 'construction' ? nameOf(names, e.what) : e.what}</InfoPopup
+	>{#if e.queuedAfter !== undefined}&nbsp;<span
+			title="{e.queuedAfter} other item{e.queuedAfter === 1 ? '' : 's'} in the queue after it"
+			>(+{e.queuedAfter})</span
+		>{/if}{/snippet}
+{#snippet kind(e: Row)}<span class="whitespace-nowrap opacity-75"
+		>{#if e.act}<span title="the build slot runs idle then — the game sends no notification">⚠</span
+			>{/if}
+		{e.sub ?? e.kind}</span
+	>{/snippet}
+{#snippet details(e: Row)}<span style="color: CanvasText"
+		>{#if e.planetId !== undefined}<a class="underline" href={colonyHref(e.planetId)}>{e.detail}</a
+			>{:else}{e.detail}{/if}</span
+	>{/snippet}
 
 <label class="mb-1 block text-sm"
 	><input type="checkbox" bind:checked={onlyUnnotified} onchange={remember} /> only what the game
@@ -58,57 +88,15 @@
 	<p>Nothing scheduled.</p>
 {:else}
 	<div class="overflow-x-auto">
-		<table class="w-full text-left text-sm">
-			<thead>
-				<tr class="border-b border-gray-300 dark:border-gray-700">
-					<th class="p-1">Due</th>
-					<th class="p-1 text-right">In</th>
-					<th class="p-1">What</th>
-					<th class="p-1">Kind</th>
-					<th class="p-1">Details</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each shown as e, i (i)}
-					<!-- the event in its game colour; the numbers in Details stay plain. ⚠ before the kind: a
-					     build slot runs idle (the game does not notify). Construction with other items still
-					     waiting when it is done is dimmed and counts them: "Medical Center (+2)". -->
-					<tr
-						class="border-b border-gray-200 dark:border-gray-800 {e.queuedAfter
-							? 'opacity-50'
-							: ''}"
-						style:color={colorOf(e.tint)}
-					>
-						<td class="p-1 whitespace-nowrap" title={e.exact ? 'exact' : 'estimated'}
-							>{e.exact ? '' : '≈ '}{e.date}</td
-						>
-						<td class="p-1 text-right whitespace-nowrap">{inMonths(e.months)}</td>
-						<td class="p-1">
-							<InfoPopup explanation={e.ref ? explain[e.ref] : undefined}
-								>{e.kind === 'construction' ? nameOf(names, e.what) : e.what}</InfoPopup
-							>{#if e.queuedAfter !== undefined}&nbsp;<span
-									title="{e.queuedAfter} other item{e.queuedAfter === 1
-										? ''
-										: 's'} in the queue after it">(+{e.queuedAfter})</span
-								>
-							{/if}
-						</td>
-						<td class="p-1 whitespace-nowrap opacity-75">
-							{#if e.act}<span
-									title="the build slot runs idle then — the game sends no notification">⚠</span
-								>{/if}
-							{e.sub ?? e.kind}
-						</td>
-						<td class="p-1" style="color: CanvasText">
-							{#if e.planetId !== undefined}
-								<a class="underline" href={colonyHref(e.planetId)}>{e.detail}</a>
-							{:else}
-								{e.detail}
-							{/if}
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
+		<!-- the event in its game colour; the numbers in Details stay plain. ⚠ before the kind: a
+		     build slot runs idle (the game does not notify). Construction with other items still
+		     waiting when it is done is dimmed and counts them: "Medical Center (+2)". -->
+		<SortTable
+			rows={shown.map((e, i) => ({ ...e, i }))}
+			{columns}
+			key={(e) => e.i}
+			rowClass={(e) => (e.queuedAfter ? 'opacity-50' : '')}
+			rowStyle={(e) => `color: ${colorOf(e.tint)}`}
+		/>
 	</div>
 {/if}

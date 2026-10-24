@@ -1,6 +1,14 @@
-import { getDb, refreshCampaign, status } from '#lib/server/app.ts';
+import { campaignsOnDisk, getDb, refreshCampaign, status } from '#lib/server/app.ts';
+import { askGone } from '#lib/server/campaigns.ts';
 import { campaignName, headCampaign, headId, nodes } from '#lib/server/db.ts';
-import { activeProfile, chartEvents, tabs, theme, viewedCampaign } from '#lib/server/settings.ts';
+import {
+	activeProfile,
+	chartEvents,
+	display,
+	tabs,
+	theme,
+	viewedCampaign
+} from '#lib/server/settings.ts';
 import { campaignTips } from '#lib/timeline.ts';
 import type { ChartEvents, CustomTab } from '#lib/settings.ts';
 
@@ -14,7 +22,9 @@ export function load() {
 			chartEvents: {} as ChartEvents,
 			profile: { id: '', name: '' },
 			campaigns: [],
-			campaign: null
+			campaign: null,
+			gone: [],
+			tradeoffs: false
 		};
 	const db = getDb();
 	const { id, name } = activeProfile(db);
@@ -33,6 +43,10 @@ export function load() {
 		chartEvents: chartEvents(),
 		profile: { id, name },
 		campaigns,
-		campaign
+		campaign,
+		// campaigns whose saves are all gone: delete their history? asked once
+		gone: askGone(db, campaignsOnDisk()),
+		// the exploratory trade-offs tab, a display switch
+		tradeoffs: display().tradeoffs
 	};
 }

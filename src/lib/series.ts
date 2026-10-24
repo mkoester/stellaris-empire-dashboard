@@ -1,3 +1,5 @@
+import { stripOrder } from './resourceGroups.ts';
+import type { Spend } from './spending.ts';
 import type { Colony, Resources, Snapshot } from './types.ts';
 
 // Snapshot history → chart columns. Pure, shared by server and page.
@@ -42,11 +44,100 @@ export function resourceSeries(
 	history: Snapshot[],
 	pick: (s: Snapshot) => Resources | null
 ): Series {
-	const keys = [...new Set(history.flatMap((s) => Object.keys(pick(s) ?? {})))].sort();
+	return pointSeries(history.map((s) => ({ date: s.date, values: pick(s) })));
+}
+
+/**
+ * The stockpile per snapshot and, between snapshots, per day of the companion mod's tick (the
+ * stockpile moves within a month: spending, the market, rewards).
+ */
+export function stockpileSeries(history: Snapshot[]): Series {
+	return pointSeries(
+		stockpilePoints(history).map((p) => ({ date: p.date, values: withoutResearch(p.stockpile) }))
+	);
+}
+
+/** The points of `stockpileSeries`; `snap` is the snapshot a point is, null on a tick's day. */
+function stockpilePoints(history: Snapshot[]) {
+	return history.flatMap((s, i) => {
+		const after = i > 0 ? history[i - 1].date : '';
+		const days = (s.ticks ?? []).filter((t) => t.date > after && t.date < s.date);
+		return [
+			...days.map((t) => ({ date: t.date, stockpile: t.stockpile, snap: null })),
+			{ date: s.date, stockpile: s.stockpile, snap: s as Snapshot | null }
+		];
+	});
+}
+
+/**
+ * One resource's chart: its stockpile (daily where the mod's tick has it) and its net per month,
+ * known at snapshots only — a gap on tick days, which the chart bridges.
+ */
+export function resourcePanelSeries(history: Snapshot[], key: string): Series {
+	const points = stockpilePoints(history);
 	return {
-		x: history.map((s) => gameYear(s.date)),
+		x: points.map((p) => gameYear(p.date)),
+		lines: {
+			stockpile: points.map((p) => p.stockpile[key] ?? 0),
+			'per month': points.map((p) => (p.snap ? (p.snap.balance[key] ?? 0) : null))
+		}
+	};
+}
+
+/** What the budget does not explain: the stockpile's change less the month's payout, by day. */
+export type Unbooked = {
+	since: string;
+	actual: number; // the stockpile's change since `since`
+	booked: number; // the month's payout, the budget's net
+	days: { date: string; amount: number }[]; // the rest, per day of the mod's tick, else in one
+	named: { date: string; label: string; amount: number; approx: boolean }[]; // of the rest
+	unexplained: number; // the rest less what is named
+	causes: { date: string; label: string }[]; // named, but at a cost the game does not say
+};
+
+/**
+ * The latest month's resource changes outside the budget (construction, events, one-off market
+ * trades, decisions, income lost at the cap, …), from the last snapshot before the latest's month
+ * start on. The game pays the budget on the 1st, and a snapshot in that month holds that payout
+ * as its balance (2207.03.10 → 04.02: energy −26.54 = +3.455 paid, −30 else; minerals −600 for a
+ * district). Null when saves are missing for a month start in between.
+ */
+export function unbooked(history: Snapshot[], key: string, spends: Spend[] = []): Unbooked | null {
+	const latest = history.at(-1);
+	if (!latest) return null;
+	const i = history.findLastIndex((s) => s.date < `${latest.date.slice(0, 8)}01`);
+	if (i < 0 || monthStarts(history[i].date, latest.date) !== 1) return null;
+	const base = history[i];
+	const booked = latest.balance[key] ?? 0;
+	const points = stockpilePoints(history.slice(i)).filter((p) => p.date >= base.date);
+	const days = points.slice(1).flatMap((p, j) => {
+		const before = points[j];
+		const paid = monthStarts(before.date, p.date) > 0 ? booked : 0;
+		const amount = (p.stockpile[key] ?? 0) - (before.stockpile[key] ?? 0) - paid;
+		return Math.abs(amount) < 0.01 ? [] : [{ date: p.date, amount }];
+	});
+	const actual = (latest.stockpile[key] ?? 0) - (base.stockpile[key] ?? 0);
+	const window = spends.filter((s) => s.date > base.date && s.date <= latest.date);
+	const named = window.flatMap((s) =>
+		s.cost?.[key] ? [{ date: s.date, label: s.label, amount: -s.cost[key], approx: s.approx }] : []
+	);
+	const unexplained = named.reduce((rest, n) => rest - n.amount, actual - booked);
+	const causes = window.filter((s) => s.cost === null).map(({ date, label }) => ({ date, label }));
+	return { since: base.date, actual, booked, days, named, unexplained, causes };
+}
+
+/** The resources to chart one by one: the strip's always-shown ones and any ever held or moved. */
+export function resourceKeys(history: Snapshot[]): string[] {
+	const moved = (r: Resources) => Object.keys(r).filter((k) => r[k] !== 0);
+	return stripOrder(history.flatMap((s) => [...moved(s.stockpile), ...moved(s.balance)]));
+}
+
+function pointSeries(points: { date: string; values: Resources | null }[]): Series {
+	const keys = [...new Set(points.flatMap((p) => Object.keys(p.values ?? {})))].sort();
+	return {
+		x: points.map((p) => gameYear(p.date)),
 		lines: Object.fromEntries(
-			keys.map((k) => [k, history.map((s) => (pick(s) === null ? null : (pick(s)![k] ?? 0)))])
+			keys.map((k) => [k, points.map((p) => (p.values === null ? null : (p.values[k] ?? 0)))])
 		)
 	};
 }

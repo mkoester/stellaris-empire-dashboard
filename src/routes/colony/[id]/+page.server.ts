@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
+import { growthData } from '#lib/server/growth.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
 import { colonySeries, xRange } from '#lib/series.ts';
@@ -20,19 +21,27 @@ export function load({ url, params }) {
 	// empire pane and shows whatever history there is.
 	const colonyAt = (s: (typeof snaps)[number]) => s.colonies.find((c) => c.planetId === planetId);
 	const named = snaps.findLast(colonyAt);
+	const growth = growthData(snaps);
 	return {
 		...rest,
 		planetId,
+		// this colony's growth as measured, for its projection
+		growth: {
+			rows: growth.rows.filter((r) => r.planetId === planetId),
+			date: growth.growthDate,
+			defines: growth.defines
+		},
 		name: named ? colonyAt(named)!.name : `planet ${planetId}`,
 		// the dropdown: the colonies at the tip
 		colonies: b.latest.colonies
 			.filter((c) => c.planetId >= 0)
 			.map((c) => ({ planetId: c.planetId, name: c.name })),
 		colony: colonyAt(b.latest) ?? null,
-		details: colonyDetails(colonyAt(b.latest)),
+		details: colonyDetails(colonyAt(b.latest), b.snaps.findLast((s) => s.kind === 'save') ?? null),
 		blockerHints: colonyBlockerHints(
 			b.latest.colonies.filter((c) => c.planetId === planetId),
-			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? []
+			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [],
+			b.snaps.findLast((s) => s.kind === 'save') ?? null
 		),
 		jobRows: b.jobs[planetId] ?? [],
 		classNames: Object.fromEntries(

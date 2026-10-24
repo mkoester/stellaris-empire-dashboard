@@ -1,14 +1,22 @@
 import { sideSummary } from './deals.ts';
 import { nameOf, pretty } from './format.ts';
-import { gameYear } from './series.ts';
-import type { Colony, GameData, Snapshot } from './types.ts';
+import { addGameDays, gameYear } from './series.ts';
+import type {
+	Colony,
+	GalacticCommunity,
+	GameData,
+	LogEvent,
+	ResolutionVote,
+	Snapshot
+} from './types.ts';
 
 // Milestones: the bigger events of a campaign (a colony founded, a tradition taken, a war lost …),
 // derived on read by comparing consecutive saves along the branch shown — so they follow the save
 // graph and cover the whole history for every field the snapshots hold. A field is compared only
 // between saves that both have it: a snapshot from before the field existed is "unknown", not
 // "everything is new". An event is dated to the first save that shows it, so up to a month late
-// with monthly autosaves. A new kind: add it to KINDS and a detector to DETECTORS.
+// with monthly autosaves — unless the companion mod logged it (`Snapshot.logEvents`): then it takes
+// the mod's exact date (`fromLog`). A new kind: add it to KINDS and a detector to DETECTORS.
 
 export const KINDS = [
 	{ kind: 'system', label: 'systems' },
@@ -19,6 +27,7 @@ export const KINDS = [
 	{ kind: 'district', label: 'districts built' },
 	{ kind: 'building', label: 'buildings done' },
 	{ kind: 'war', label: 'wars' },
+	{ kind: 'combat', label: 'space battles (companion mod)' },
 	{ kind: 'tradition-tree', label: 'tradition trees' },
 	{ kind: 'tradition', label: 'traditions' },
 	{ kind: 'perk', label: 'ascension perks' },
@@ -26,6 +35,7 @@ export const KINDS = [
 	{ kind: 'species', label: 'species' },
 	{ kind: 'trade-deal', label: 'trade deals' },
 	{ kind: 'agenda', label: 'agendas passed' },
+	{ kind: 'galcom', label: 'Galactic Community: proposals, votes, withdrawals' },
 	{ kind: 'leader', label: 'leaders' },
 	{ kind: 'ruler', label: 'ruler' },
 	{ kind: 'government', label: 'government: civics, ethics, authority, type, origin' },
@@ -44,11 +54,21 @@ export type Milestone = {
 	kind: EventKind;
 	label: string;
 	planetId?: number; // colony events: the planet, so colony pages show only their own
+	// Galactic Community events in parts, for the resolution's popup and the empire's colour:
+	// "<action>: <resolution> (by <by>)"
+	galcom?: { action: string; resolution: string; by?: string };
 };
 
 type Names = Pick<
 	GameData,
-	'techs' | 'agendas' | 'edicts' | 'traditionTrees' | 'perks' | 'names' | 'identityNames'
+	| 'techs'
+	| 'agendas'
+	| 'edicts'
+	| 'traditionTrees'
+	| 'perks'
+	| 'names'
+	| 'identityNames'
+	| 'diploNames'
 >;
 type Found = Omit<Milestone, 'date' | 'x'>;
 
@@ -241,6 +261,43 @@ const DETECTORS = [
 				.map((d) => ({ kind: 'trade-deal' as const, label: `trade deal ended: ${d.partner}` }))
 		]
 	),
+	// The Galactic Community, by its resolution ids. The save keeps no history: a proposal that
+	// leaves the queue neither voted on nor passed was withdrawn (by its proposer, or the game);
+	// passed and withdrawn only for resolutions the earlier save listed — older snapshots have no
+	// `passed` list (before READER 13), which must not read as everything passing, nor a vote that
+	// passed as failed: a resolution any save along the branch lists as passed has passed.
+	(snaps: Snapshot[], names: Names) => {
+		const passedEver = new Set(snaps.flatMap((s) => s.galcom?.passed.map((r) => r.id) ?? []));
+		return field(
+			(s) => s.galcom,
+			(a, b, names) => {
+				const name = (r: ResolutionVote) =>
+					names.diploNames[r.type] ?? pretty(r.type.replace(/^resolution_/, ''));
+				const queued = (g: GalacticCommunity) => [...(g.voting ? [g.voting] : []), ...g.proposed];
+				const has = (list: ResolutionVote[], r: ResolutionVote) => list.some((x) => x.id === r.id);
+				const found: Found[] = [];
+				const say = (label: string) => found.push({ kind: 'galcom', label });
+				const about = (action: string, r: ResolutionVote, by = false) =>
+					found.push({
+						kind: 'galcom',
+						label: `${action}: ${name(r)}${by ? ` (by ${r.proposer})` : ''}`,
+						galcom: { action, resolution: r.type, ...(by ? { by: r.proposer } : {}) }
+					});
+				if (a.member !== b.member)
+					say(b.member ? 'we joined the Galactic Community' : 'we left the Galactic Community');
+				for (const r of queued(b))
+					if (!has(queued(a), r) && !has(a.passed, r)) about('resolution proposed', r, true);
+				if (b.voting && b.voting.id !== a.voting?.id) about('put to the vote', b.voting);
+				for (const r of queued(a)) {
+					if (has(queued(b), r)) continue;
+					if (has(b.passed, r) || passedEver.has(r.id)) about('resolution passed', r);
+					else if (a.voting?.id === r.id) about('resolution failed', r);
+					else about('resolution withdrawn', r, true);
+				}
+				return found;
+			}
+		)(snaps, names);
+	},
 	field(
 		(s) => s.agendasDone,
 		(a, b, names) =>
@@ -326,12 +383,71 @@ const DETECTORS = [
 	)
 ] satisfies ((snaps: Snapshot[], names: Names) => { s: Snapshot; found: Found[] }[])[];
 
+/**
+ * A mod event as the milestone it re-dates: its kind, the text a diffed label of that kind must
+ * contain to be the same event, and the label to show when no save shows it.
+ */
+function fromLog(e: LogEvent): { kind: EventKind; match: string | null; label: string } | null {
+	const [a, b, c, d, system] = e.fields;
+	switch (e.kind) {
+		case 'colony':
+			return {
+				kind: 'colony',
+				match: `colony established: ${a}`,
+				label: `colony established: ${a}`
+			};
+		case 'war-started':
+			return { kind: 'war', match: `war started: ${a}`, label: `war started: ${a}` };
+		case 'war-ended': // the war's name is not in the on_action's scopes
+			return { kind: 'war', match: 'war ended: ', label: `war ended: ${b} won, ${a} lost` };
+		case 'leader-died':
+			return { kind: 'leader', match: ` gone: ${a}`, label: `leader died: ${a}` };
+		case 'ruler':
+			return { kind: 'ruler', match: `new ruler: ${a}`, label: `new ruler: ${a}` };
+		case 'combat':
+			return {
+				kind: 'combat',
+				match: null, // no save diff to match
+				label: `battle at ${system}: ${a} (${b}) beat ${c} (${d})`
+			};
+		default: // spending, shown on the resources tab
+			return null;
+	}
+}
+
+/** How far after a mod event the first save showing it may be: a month, and some slack. */
+const LOG_WINDOW_DAYS = 45;
+
 /** The branch's milestones, oldest first; `snaps` is the branch from its root to its tip. */
 export function milestones(snaps: Snapshot[], names: Names): Milestone[] {
 	const saves = snaps.filter((s) => s.kind === 'save');
-	return DETECTORS.flatMap((detect) =>
+	const diffed: Milestone[] = DETECTORS.flatMap((detect) =>
 		detect(saves, names).flatMap(({ s, found }) =>
 			found.map((f) => ({ ...f, date: s.date, x: gameYear(s.date) }))
 		)
-	).sort((a, b) => a.x - b.x);
+	);
+	// Each mod event takes over the earliest matching diffed milestone in its window, or stands alone.
+	const taken = new Set<Milestone>();
+	const logged = snaps
+		.flatMap((s) => s.logEvents ?? [])
+		.flatMap((e): Milestone[] => {
+			const found = fromLog(e);
+			if (!found) return [];
+			const { kind, match, label } = found;
+			const until = addGameDays(e.date, LOG_WINDOW_DAYS);
+			const same = diffed
+				.filter(
+					(m) =>
+						!taken.has(m) &&
+						m.kind === kind &&
+						m.date >= e.date &&
+						m.date <= until &&
+						match !== null &&
+						m.label.includes(match)
+				)
+				.sort((p, q) => p.x - q.x)[0];
+			if (same) taken.add(same);
+			return [{ ...(same ?? { kind, label }), date: e.date, x: gameYear(e.date) }];
+		});
+	return [...diffed.filter((m) => !taken.has(m)), ...logged].sort((a, b) => a.x - b.x);
 }

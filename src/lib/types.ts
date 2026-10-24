@@ -1,6 +1,7 @@
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
+import type { AiWeight } from './votes.ts';
 
 export type Resources = Record<string, number>;
 
@@ -18,6 +19,8 @@ export type Colony = {
 	civilians: number; // pops without a job (the 4.x "civilian" stratum)
 	stability: number;
 	freeHousing: number;
+	housing: number | null; // total_housing; null before 2026-10-22
+	housingUsed: number | null; // housing_usage: pops × their housing need
 	freeAmenities: number;
 	districts: number;
 	districtList: ColonyDistrict[]; // per district type: built, zones and their buildings
@@ -130,7 +133,7 @@ export type ExpansionPlanet = {
 	planet: PlanetState | null; // null in older snapshots
 };
 
-/** One budget source of pops (a job, a stratum's upkeep, buildings, …) for the month. */
+/** One budget source (a job, a stratum's upkeep, ships, the market, …) for the month. */
 export type BudgetSource = { source: string; income: Resources; expenses: Resources };
 
 /** A district type on a colony: how many are built, its zones (specialisations) and their buildings. */
@@ -173,6 +176,7 @@ export type MigrationColony = {
 export type Station = {
 	id: number;
 	system: string;
+	systemId?: number | null; // since 2026-10-22; older snapshots name the system only
 	level: string; // outpost, starport, starhold, star fortress, citadel
 	modules: string[];
 	buildings: string[];
@@ -192,6 +196,44 @@ export type MegaShipyard = {
 };
 
 /** One entry of a planet's build queue, in queue order. */
+/** A construction item the country pays for, wherever it is queued. */
+export type Construction = {
+	id: number; // construction.item_mgr.items.<id>
+	kind: string; // as QueueItem
+	name: string;
+	design?: string;
+	where: string | null; // the planet, else the starbase's system
+	systemId?: number | null; // the system it is built in; since 2026-10-22
+	cost: Resources;
+};
+
+/**
+ * An empire we have communications with: its view of us (shown in game) and its economy (hidden —
+ * the trade tab's `tradeIntel` spoiler).
+ */
+export type AiIntel = {
+	countryId: number;
+	nomadic: boolean; // runs the nomad economy: its energy and minerals are a reserve, never sold
+	personality: string | null; // e.g. "peaceful_traders"
+	attitude: string | null; // towards us, e.g. "cordial"
+	opinion: number | null; // theirs of us
+	trust: number;
+	opinionModifiers: { key: string; value: number }[]; // e.g. opinion_trade_gift
+	stockpile: Resources;
+	net: Resources; // per month
+	income: Resources; // per month, gross (the cap on what it pays a month); {} before READER 12
+	max?: Resources; // storage, exact: companion mod 0.5.0's sdash_m_<res>; absent without it
+};
+
+/** A trader enclave we talk to; `kind` 1 XuraCorp, 2 Riggans, 3 Muutagan (#lib/aiTrade.ts). */
+export type TraderEnclave = { countryId: number; name: string; kind: 1 | 2 | 3 };
+
+/** A tech in a research queue: the first per field is being researched. */
+export type QueuedTech = { area: string; tech: string; progress: number; since: string | null };
+
+/** A mining, research or observation station in one of our systems, at the planet it orbits. */
+export type OrbitalStation = { systemId: number; planetId: number; deposits: string[] };
+
 export type QueueItem = {
 	kind: string; // from buildable_<kind>: district, building, army, clear_deposit_blocker, …
 	name: string; // what is built: district/building key, army type, blocker deposit type, ship size
@@ -247,6 +289,8 @@ export type Snapshot = {
 	empireName: string;
 	pops: number | null;
 	stockpile: Resources;
+	// storage per resource, exact: companion mod 0.5.0's sdash_m_<res>; null without it (or the feed)
+	storageMax: Resources | null;
 	income: Resources | null; // budget.current_month, summed over sources
 	expenses: Resources | null;
 	balance: Resources;
@@ -267,6 +311,11 @@ export type Snapshot = {
 	defaultAutomation: string[] | null; // automation settings new colonies start with
 	automationBlocked: string[] | null; // resources planet automation may not spend
 	planetBudget: BudgetSource[] | null; // the budget's planet_* and pop_* sources
+	budget: BudgetSource[] | null; // every budget source, the market's as `market:<source>`
+	construction: Construction[] | null; // construction items we pay for, with their cost
+	orbitalStations: OrbitalStation[] | null; // stations in our systems; since 2026-10-22
+	aiIntel: AiIntel[] | null; // empires we talk to: their view of us, their economy; since 2026-10-22
+	traderEnclaves: TraderEnclave[] | null; // since READER 11
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
@@ -325,6 +374,11 @@ export type Snapshot = {
 	surveyedAll: { expansion: ExpansionPlanet[]; habitatSites: HabitatSite[] } | null;
 	countries: CountryInfo[] | null; // empires in contact, or owning a station in a visited system
 	relations: Relation[] | null;
+	// our intel on each country (`intel_manager`, 0–100) and the galaxy's relations, for the
+	// diplomacy tab; since READER 14
+	intel: { countryId: number; intel: number }[] | null;
+	diplomacy: DiploCountry[] | null;
+	allWars: WarSides[] | null;
 	firstContacts: FirstContact[] | null;
 	situations: SituationInfo[] | null;
 	anomalies: AnomalyInfo[] | null; // found, not yet researched
@@ -334,10 +388,47 @@ export type Snapshot = {
 	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
 	focus: EmpireFocus | null;
 	techOptions: Record<string, string[]> | null; // research field → the cards on offer
+	techQueued: QueuedTech[] | null; // every queued tech with its progress; since 2026-10-22
+	techPermanent: string[] | null; // options kept until researched (`always_available_tech`); since 2026-10-22
+	// stored research per field (`stored_techpoints`): from events or while nothing is researched;
+	// each month up to the monthly gain of it is used on top, so research runs at up to double speed
+	techStored: Record<string, number> | null; // since 2026-10-22
 	leaderList: LeaderInfo[] | null; // every hired leader
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
+	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
+	// before; names the branch point when a save is loaded. null without the mod (0.2.0+).
+	timelineId: number | null;
+	previousTimelineId: number | null;
+	// From the mod's log only, kept through a merge with the save: what happened since the month
+	// before, exactly dated, and the daily stockpiles.
+	logEvents: LogEvent[] | null;
+	ticks: Tick[] | null;
 };
+
+export type MilestoneLogKind =
+	'colony' | 'war-started' | 'war-ended' | 'leader-died' | 'ruler' | 'combat';
+/** Spending the budget does not book (mod 0.3.0): what and where, not the item or its cost. */
+export type SpendLogKind =
+	| 'district-queued'
+	| 'district-unqueued'
+	| 'building-queued'
+	| 'building-unqueued'
+	| 'edict'
+	| 'decision'
+	| 'leader-hired'
+	| 'colonization-started'
+	| 'megastructure-started';
+
+/** One `SDASH|2|<date>|event|…` line of the companion mod; fields as `feed.ts` documents them. */
+export type LogEvent = {
+	date: string;
+	kind: MilestoneLogKind | SpendLogKind;
+	fields: string[];
+};
+
+/** The stockpile on one day, from the mod's daily tick. */
+export type Tick = { date: string; stockpile: Resources };
 
 /** `country.focus` with its cards (top-level `focus_cards`). */
 export type EmpireFocus = {
@@ -398,6 +489,7 @@ export type Body = {
 	anomaly: string | null; // category; shown only where surveyed unless `surveyAll` (surveyView)
 	dist: number; // from the system's centre (in-system coordinates)
 	surveyed?: boolean; // by us (`surveyed_by`); since 2026-10-18
+	station?: boolean; // a station mines or researches its deposit; since 2026-10-22
 };
 
 export type CountryInfo = {
@@ -434,6 +526,40 @@ export type Relation = {
 	// its other `<key>=yes` flags: embassy, research_agreement, commercial_pact, defensive_pact,
 	// non_aggression_pledge, guarantee, closed_borders (4.5.2), and whatever else the game adds
 	agreements: string[];
+};
+
+/**
+ * One country's relation to another, as the save has it (`relations_manager.relation` of `from`):
+ * true whatever we know — the diplomacy tab decides what our intel shows (#lib/diplomacy.ts).
+ */
+export type DiploRelation = {
+	countryId: number; // the other side
+	opinion: number | null; // relation_current: `from`'s opinion of it
+	hostile: boolean;
+	// pacts and rivalry, as flags: embassy, research_agreement, commercial_pact, defensive_pact,
+	// non_aggression_pledge, guarantee, closed_borders, migration_access, waystation_pact, is_rival
+	agreements: string[];
+};
+
+/** A country in the galaxy's diplomacy (every kind but `other`, #lib/contacts.ts), us included. */
+export type DiploCountry = {
+	id: number;
+	capitalSystem: number | null;
+	overlord: number | null;
+	federation: string | null; // its federation's name
+	nomadic: boolean;
+	// to other countries kept here, with communications; only between the diplomatic kinds
+	// (empires, fallen, enclaves, traders, marauders) — fauna and pre-FTL civilisations have none
+	relations: DiploRelation[];
+};
+
+/** A war anyone fights: `war.<id>`'s sides. */
+export type WarSides = {
+	id: string;
+	name: string;
+	start: string | null;
+	attackers: number[];
+	defenders: number[];
 };
 
 /** `first_contacts.contacts.<id>`, ours. */
@@ -576,6 +702,16 @@ export type GalacticCommunity = {
 	voting: ResolutionVote | null;
 	proposed: ResolutionVote[];
 	passed: ResolutionVote[]; // in force: `galactic_community.passed = { <ids> }`
+	voteEnds: string | null; // the vote's end: `days` in session of RESOLUTION_VOTE_TIMER (1440)
+	nextVote: string | null; // the recess's end: `cooldown` days (SENATE_RECESS_TIMER 720)
+	// each member's diplomatic weight by name: exact from companion mod 0.4.0's `sdash_dw`, else
+	// estimated (`estimatedWeight()`); since READER 15
+	weights: Record<string, { value: number; exact: boolean }>;
+	// when a resolution of each category was last voted on (`category_timers`): another may be
+	// proposed CATEGORY_VOTE_COOLDOWN days later; and the global flags (`flags`) resolutions test
+	// (galactic_market_founded, galactic_council_formed, …); since READER 17
+	categoryTimers: Record<string, string>;
+	globalFlags: string[];
 };
 /**
  * One of our fleets' combats, from its last-combat record (`fleet.<id>.fleet_stats.combat_stats`,
@@ -648,7 +784,41 @@ export type TimelineNode = {
 };
 
 /** Names, costs and rules from the extraction's SQLite (STELLARIS_DATA_DB), loaded once. */
+/** Base cost, upkeep and output of a thing the game builds (data DB, before modifiers). */
+export type Costs = { cost: Resources; upkeep: Resources; produces: Resources };
+
 export type GameData = {
+	// module, starbaseBuilding: a starbase's modules and buildings
+	costs: Record<
+		'district' | 'ship' | 'building' | 'deposit' | 'module' | 'starbaseBuilding',
+		Record<string, Costs>
+	>;
+	districtJobs: Record<string, Record<string, number>>; // district → job → positions (pops)
+	buildingJobs: Record<string, Record<string, number>>;
+	buildDays: Record<string, number>; // districts, ship sizes, buildings: base days
+	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
+	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
+	growthModifiers: Record<string, Record<string, number>>;
+	starbaseSlots: Record<string, { modules: number; buildings: number }>;
+	resourceInfo: Record<
+		string,
+		{
+			name: string;
+			aiWeight: number | null;
+			aiWants: number | null;
+			max: number | null;
+			tradable: boolean;
+		}
+	>;
+	personalities: Record<string, { name: string; willingness: number | null }>;
+	attitudes: Record<string, { name: string; trade: boolean }>;
+	opinionModifiers: Record<string, { name: string; max: number | null; decay: number | null }>; // per level: outpost, starport …
+	edictModifiers: Record<string, Record<string, number>>; // edict → modifier → value
+	// what researching a tech needs: prerequisites, who can get it (`potential`), rarity
+	techRequirements: Record<
+		string,
+		{ prerequisites: string[]; potential: Trigger | null; rare: boolean; dangerous: boolean }
+	>; // `tech:`/`tradition:` key → cost and output modifiers
 	techs: Record<string, { name: string; cost: number | null; area: string; tier: number | null }>;
 	agendas: Record<
 		string,
@@ -710,12 +880,30 @@ export type GameData = {
 			climate: string | null;
 		}
 	>;
-	names: Record<string, string>; // display names of buildings, deposits, districts and zones
+	names: Record<string, string>; // display names of buildings, deposits, districts, zones, starbase modules and buildings
 	districtColors: Record<string, string>; // district → its colour in game, '#rrggbb'
 	// civics, origins, authorities, ethics and government types by key
 	identityNames: Record<string, string>;
 	// resolutions, resolution categories, subject agreement terms, term values and presets by key
 	diploNames: Record<string, string>;
+	resolutionCategories: Record<string, string>; // resolution → its category key
+	resolutionGroups: Record<string, string>; // category → its group (commerce_industry, …)
+	// every resolution a category lists, in file order: what proposing it takes (#lib/proposable.ts)
+	resolutions: Record<
+		string,
+		{
+			category: string | null;
+			level: number | null; // its tier in the category's chain
+			target: boolean; // names a target empire
+			cost: number | null; // influence, before multipliers
+			repeal: boolean; // fire_and_forget: repeals one in force
+			potential: Trigger | null;
+			allow: Trigger | null;
+			validTarget: Trigger | null; // target: which empire it may name
+			aiWeight: AiWeight | null; // how an AI weighs it (#lib/votes.ts)
+		}
+	>;
+	resolutionCostMult: Record<string, number>; // `tradition:<key>`, `modifier:<key>` → resolutions_cost_mult
 	shroud: {
 		patrons: Record<
 			string,

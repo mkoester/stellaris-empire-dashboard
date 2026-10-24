@@ -1,8 +1,9 @@
 import { upcoming } from '#lib/events.ts';
-import { jobFlows, jobRows, withFlows } from '#lib/jobs.ts';
-import { getDb, getGameData } from './app.ts';
+import { jobRows, jobSources, netFlows, withFlows, workedJobs } from '#lib/jobs.ts';
+import { getDb, getExplanations, getGameData } from './app.ts';
 import { headId, history, nodes } from './db.ts';
 import { pick } from './explain.ts';
+import { empireColors } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
 
@@ -27,13 +28,17 @@ export function branch(url: URL) {
 	// job produces and uses (the budget's per-job sources; a planet gets its pops share).
 	const info = getGameData().jobs;
 	const colonies = last?.colonies ?? [];
-	const flows = jobFlows(last?.planetBudget ?? [], info);
+	const sources = jobSources(last?.planetBudget ?? [], info, workedJobs(colonies));
+	const flows = netFlows(sources);
+	const shared = new Set(Object.keys(sources).filter((j) => sources[j].shared));
 	const empireJobs = withFlows(
 		jobRows(
 			colonies.flatMap((c) => c.jobs),
 			info
 		),
-		flows
+		flows,
+		undefined,
+		shared
 	);
 	const empirePops = Object.fromEntries(empireJobs.map((r) => [r.type, r.pops]));
 	const held = colonies.flatMap((c) => [
@@ -50,10 +55,20 @@ export function branch(url: URL) {
 		// and the districts' colours in game
 		colors: pick(getGameData().districtColors, held),
 		jobs: Object.fromEntries(
-			colonies.map((c) => [c.planetId, withFlows(jobRows(c.jobs, info), flows, empirePops)])
+			colonies.map((c) => [c.planetId, withFlows(jobRows(c.jobs, info), flows, empirePops, shared)])
 		),
 		empireJobs,
+		// what each colony's designation does, for the Designation popup on every page
+		designations: pick(
+			getExplanations(),
+			colonies.map((c) => `designation:${c.designation}`)
+		),
 		blockers: getGameData().blockers.filter((k) => colonies.some((c) => c.deposits.includes(k))),
+		// every known empire's map colour by name, for EmpireName
+		empireColors: empireColors(
+			snaps.findLast((s) => s.countries !== null),
+			getGameData().flagColors
+		),
 		tip,
 		isHead: tip === headId(db),
 		snaps,
