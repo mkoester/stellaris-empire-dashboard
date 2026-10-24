@@ -812,7 +812,8 @@ stockpiles grow past the real limit; turn it off before a month whose storage yo
 `factions.spawnall`, `federation_add_experience`/`_cohesion`, `event <id>` (`action.96` opens the Galactic Market
 nomination, an event chain, not a situation — skipping the resolution, so none of its modifiers;
 `action.98` ends it, at once if fired: it founds the market only with a nominated planet (the
-planet decision "Market Nomination", 1000 energy, 150 influence), else it fails (2026-10-24);
+planet decision "Market Nomination", 1000 energy, 150 influence), else it fails — so
+`action.96`, nominate, `action.98` founds it at once with us as host (2026-10-24, worked);
 `galcom.16` founds
 the Galactic Community, `distar.11000` opens the L-Gates, `crisis.199|1000|2000|8005`,
 `fallen_empires_awakening.1` after `play`-ing a fallen empire), `effect <script>`. Situations:
