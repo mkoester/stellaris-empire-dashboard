@@ -556,6 +556,23 @@ Two-sided deals and fallen-empire storage (screenshots `screenshot_2026-10-24_00
   empires (test from these numbers).
 - Nanites are not tradable (the trade screen does not list them; extraction `tradable = 0`).
 
+### 2026-10-24: the same game with the galactic market founded (2201.05.01)
+
+The market founded from the console (`AGENTS.md` → Testing in a throwaway game), no resolution.
+Manual save `2201.05.01`; screenshots `~/Pictures/Screenshots/screenshot_2026-10-24_12-35-43` …
+`12-37-12`. 1000 at once, nothing sent; predicted from the 2200.03 game-start fit at the save's
+incomes:
+
+| Empire (w)       | energy      | minerals | food    | trade       | consumer goods | alloys    | strategic           |
+| ---------------- | ----------- | -------- | ------- | ----------- | -------------- | --------- | ------------------- |
+| Andarian (1.0)   | **46** / 51 | 0 / 0    | 91 / 91 | **45** / 43 | 142 / 142      | 166 / 166 | 333, zro 308 — same |
+| Lahtrepian (0.8) | **42** / 47 | 53 / 53  | 82 / 82 | **46** / 44 | 119 / 119      | 140 / 140 | 266, zro 246 — same |
+
+Energy × 0.89–0.90 at both, trade × 1.04–1.05; everything else exact. **Market or time is not
+separated yet** — 14 months passed since the fit, and the campaign's energy drifted by itself. The
+control: the same energy and trade tooltips in the `autosave_2201.04.01` (no market, a month
+earlier).
+
 ### What does not explain food (and the minerals drift), 2026-10-23
 
 - **Consumption:** Dekron (machine, no food income or upkeep at all) values food highest
