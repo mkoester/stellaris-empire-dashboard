@@ -1,9 +1,28 @@
 # Stockpile and monthly income of one resource into country variables sdash_s_<res> / sdash_i_<res>,
 # logged by events/sdash_events.txt as SDASH|2|<date>|<resource>|<stockpile>|<monthly income>.
-# Parsed by src/lib/server/feed.ts — change both together, and bump the format number.
+# Parsed by src/lib/server/feed.ts — change both together, and bump the format number. Its storage
+# maximum (0.5.0) goes into sdash_m_<res>, read from the save only (src/lib/server/save.ts).
 sdash_export_resource = {
 	export_resource_stockpile_to_variable = { resource = $RES$ variable = sdash_s_$RES$ }
 	export_resource_income_to_variable = { resource = $RES$ variable = sdash_i_$RES$ }
+	export_resource_maximum_to_variable = { resource = $RES$ variable = sdash_m_$RES$ }
+}
+
+# Another empire's storage of what can be traded (strategic_resources: tradable = yes), into
+# sdash_m_<res> as above: the room the trade tab counts an offer against.
+sdash_export_tradable_maximums = {
+	export_resource_maximum_to_variable = { resource = energy variable = sdash_m_energy }
+	export_resource_maximum_to_variable = { resource = minerals variable = sdash_m_minerals }
+	export_resource_maximum_to_variable = { resource = food variable = sdash_m_food }
+	export_resource_maximum_to_variable = { resource = trade variable = sdash_m_trade }
+	export_resource_maximum_to_variable = { resource = consumer_goods variable = sdash_m_consumer_goods }
+	export_resource_maximum_to_variable = { resource = alloys variable = sdash_m_alloys }
+	export_resource_maximum_to_variable = { resource = volatile_motes variable = sdash_m_volatile_motes }
+	export_resource_maximum_to_variable = { resource = exotic_gases variable = sdash_m_exotic_gases }
+	export_resource_maximum_to_variable = { resource = rare_crystals variable = sdash_m_rare_crystals }
+	export_resource_maximum_to_variable = { resource = sr_living_metal variable = sdash_m_sr_living_metal }
+	export_resource_maximum_to_variable = { resource = sr_zro variable = sdash_m_sr_zro }
+	export_resource_maximum_to_variable = { resource = sr_dark_matter variable = sdash_m_sr_dark_matter }
 }
 
 # Stockpile only, for the daily tick: SDASH|2|<date>|tick|<resource>|<stockpile>.

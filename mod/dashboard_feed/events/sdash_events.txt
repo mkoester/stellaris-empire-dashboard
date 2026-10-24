@@ -26,6 +26,13 @@ country_event = {
 			limit = { is_galactic_community_member = yes }
 			export_trigger_value_to_variable = { trigger = diplomacy_weight variable = sdash_dw }
 		}
+		# 0.5.0: storage — each resource's maximum, which the game does not save: ours with every
+		# resource (sdash_m_<res>, in sdash_export_resource), the tradable ones of every empire we
+		# talk to (their room in a trade). No log line. Effect from 4.5.2 effects.log.
+		every_country = {
+			limit = { has_communications = root }
+			sdash_export_tradable_maximums = yes
+		}
 		log = "SDASH|2|[GetDate]|timeline|[This.sdash_tl]|[This.sdash_tl_prev]"
 		sdash_export_resource = { RES = energy }
 		log = "SDASH|2|[GetDate]|energy|[This.sdash_s_energy]|[This.sdash_i_energy]"
