@@ -45,11 +45,13 @@ pnpm dev --host 127.0.0.1
 
 `STELLARIS_DATA_DB` is the extraction's SQLite, read once at start for tech/agenda names and base
 costs and the cost defines — regenerate it after a game update (`../stellaris-data-extraction/AGENTS.md`).
-`STELLARIS_GAME_LOG` is opt-in: set it when the companion mod is enabled.
+`STELLARIS_GAME_LOG` is opt-in for a dev run: set it when the companion mod is enabled. A player's
+dashboard reads `<userDir>/logs/game.log` by itself (the user folder from `/setup`; without the mod
+it holds no `SDASH` line, so nothing happens) — never when `STELLARIS_SAVE_DIR` is set.
 
 **Configuration** (`server/config.ts`): environment variables win, then `config.json` in the app
 data folder (`%APPDATA%\stellaris-empire-dashboard`, `$XDG_DATA_HOME/stellaris-empire-dashboard`),
-which `/setup` writes: `{ gameDir, userDir, gameLog? }`. The save folder is `<userDir>/save games`,
+which `/setup` writes: `{ gameDir, userDir, gameLog? }` (`gameLog` defaults to `<userDir>/logs/game.log`). The save folder is `<userDir>/save games`,
 the dashboard DB `dashboard.sqlite` there unless `DASHBOARD_DB`. While a folder is missing,
 `run()` leaves the app in `setup` and `hooks.server.ts` sends every page to `/setup`; a failed
 start (no Python, a broken install) lands there too, with the reason — never a crashed server. The
@@ -791,7 +793,9 @@ change both together and bump the number.
   resource list equals `common/strategic_resources/00_strategic_resources.txt` (26 keys) — re-diff
   on game updates.
 
-It changes the checksum: no achievements while enabled. Register it on Linux with
+It changes the checksum: no achievements while enabled. **Publishing** (Steam Workshop and Paradox
+Mods, through the launcher): `mod/PUBLISHING.md` — store copy, thumbnail source, published IDs.
+Register it on Linux with
 `scripts/link-mod.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace
 root, launcher closed).
 

@@ -19,6 +19,11 @@ starts a new branch instead of overwriting your history.
    [Where things are](release/README.txt) (also in the zip).
 4. Play. Every autosave shows up within seconds — monthly autosaves give the smoothest history.
 
+Optional: the companion mod **Empire Dashboard Feed**
+([Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3826360023), [Paradox Mods](https://mods.paradoxplaza.com/mods/164724/Any)) adds daily stockpiles, exact reload branches, events
+as they happen and values the saves do not hold. The dashboard picks it up by itself; like every
+script mod it disables achievements and Ironman while enabled.
+
 It only reads the game's files and your saves, stores its history in your user profile
 (`%APPDATA%\stellaris-empire-dashboard`, `~/Library/Application Support/stellaris-empire-dashboard`,
 `~/.local/share/stellaris-empire-dashboard`) and sends nothing anywhere. It is not code-signed:

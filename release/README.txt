@@ -37,6 +37,22 @@ tablet as the second screen (open http://<this computer's address>:<port>/ there
 shows the port, usually 5174).
 
 
+Companion mod (optional)
+------------------------
+
+"Empire Dashboard Feed", on the Steam Workshop and Paradox Mods, makes the game write a few
+numbers the saves do not hold: the stockpile every day (not just at autosaves), which save you
+just loaded (so a reload's branch is exact, not a guess), events as they happen, and values
+the dashboard otherwise estimates (marked ≈): your storage, other empires' storage, Galactic
+Community voting weight. Subscribe and enable it in the launcher; the dashboard picks it up by
+itself. Everything works without it.
+
+  Steam Workshop   https://steamcommunity.com/sharedfiles/filedetails/?id=3826360023
+  Paradox Mods     https://mods.paradoxplaza.com/mods/164724/Any
+
+Like every script mod it disables achievements and Ironman while it is enabled.
+
+
 What it does with your files
 ----------------------------
 

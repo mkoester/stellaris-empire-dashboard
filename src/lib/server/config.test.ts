@@ -38,8 +38,13 @@ describe('resolvePaths', () => {
 			saveDir: '/u/save games',
 			dataDb: undefined,
 			gameDir: '/g',
-			gameLog: undefined
+			gameLog: '/u/logs/game.log'
 		});
+	});
+	it('reads game.log beside the saves only when the user folder is the config’s', () => {
+		expect(
+			resolvePaths({ STELLARIS_SAVE_DIR: '/s' }, { userDir: '/u', gameDir: '/g' }, app)?.gameLog
+		).toBeUndefined();
 	});
 	it('lets environment variables win, and a data DB stands in for the game folder', () => {
 		const env = {

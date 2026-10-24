@@ -126,6 +126,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The companion mod's `game.log` is read without any setup: the dashboard follows the game
+  folder's `logs/game.log` (before, only a hand-edited `config.json` turned it on).
 - Gestalt empires: drone jobs show what they make and use (the jobs panel and tab were empty but
   for Maintenance Drones), and drone upkeep counts in what a unit costs.
 - Modified species are named as in game ("Trans-Yorphid", not "$affix$$base$ Yorphid Trans-"),
