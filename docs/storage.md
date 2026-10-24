@@ -3,7 +3,8 @@
 Read from the game files on 2026-10-24. Confirmed by companion mod 0.5.0 in a throwaway game
 (2200.05.01): the base, fallen empires (+100,000 and Mega-Engineering's +20,000) and bio ships
 (food +10,000, alloys −2,500); and (2200.08.01) the planet Resource Silo with Construction
-Templates: +10,000 on every resource but influence. The other rows wait for one change at a time.
+Templates: +10,000 on every resource but influence; (2200.09.01) Mega-Engineering: +20,000, influence
+again unchanged. The other rows wait for one change at a time.
 Never measure with `instant_build` on: it sets every country's storage to 1,000,000. The
 save does not store the result — companion mod 0.5.0 exports it (`sdash_m_<res>`,
 `AGENTS.md` → Companion mod); without the mod the dashboard shows ≈ the base.
