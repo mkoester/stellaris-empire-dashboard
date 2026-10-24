@@ -40,19 +40,23 @@ export function monthsLeft(have: number, max: number, net: number): number | nul
 	return null;
 }
 
-// grey from two years on, amber at half a year, red at a month or less (log scale between)
+// grey from two years on, amber at 8 months, red at 3 or less (log scale between)
 const CALM = 24;
-const ALARM = 1;
+const WARN = 8;
+const ALARM = 3;
 const GREY = [107, 114, 128]; // tailwind gray-500
 const AMBER = [217, 119, 6]; // amber-600
 const RED = [220, 38, 38]; // red-600
 
+/** How far `months` has come from `from` towards `to` months, on a log scale, 0…1. */
+const towards = (months: number, from: number, to: number) =>
+	Math.min(1, Math.max(0, Math.log(from / Math.max(months, to)) / Math.log(from / to)));
+
 /** The colour of a month count: grey when far off, through amber to red the nearer it is. */
 export function urgencyColor(months: number): string {
-	const t = Math.min(
-		1,
-		Math.max(0, Math.log(CALM / Math.max(months, ALARM)) / Math.log(CALM / ALARM))
-	);
-	const [from, to, u] = t < 0.5 ? [GREY, AMBER, t * 2] : [AMBER, RED, t * 2 - 1];
+	const [from, to, u] =
+		months > WARN
+			? [GREY, AMBER, towards(months, CALM, WARN)]
+			: [AMBER, RED, towards(months, WARN, ALARM)];
 	return `rgb(${from.map((c, i) => Math.round(c + (to[i] - c) * u)).join(', ')})`;
 }

@@ -41,11 +41,16 @@ describe('monthsLeft', () => {
 });
 
 describe('urgencyColor', () => {
-	it('grey far off, amber in between, red at a month or less', () => {
+	it('grey from two years, amber at 8 months, red at 3 or less', () => {
 		expect(urgencyColor(100)).toBe('rgb(107, 114, 128)');
 		expect(urgencyColor(24)).toBe('rgb(107, 114, 128)');
-		expect(urgencyColor(Math.sqrt(24))).toBe('rgb(217, 119, 6)'); // halfway on the log scale
+		expect(urgencyColor(8)).toBe('rgb(217, 119, 6)');
+		expect(urgencyColor(3)).toBe('rgb(220, 38, 38)');
 		expect(urgencyColor(1)).toBe('rgb(220, 38, 38)');
 		expect(urgencyColor(0)).toBe('rgb(220, 38, 38)');
+	});
+	it('blends between the stops', () => {
+		expect(urgencyColor(12)).not.toBe(urgencyColor(16)); // grey → amber
+		expect(urgencyColor(5)).not.toBe(urgencyColor(4)); // amber → red
 	});
 });
