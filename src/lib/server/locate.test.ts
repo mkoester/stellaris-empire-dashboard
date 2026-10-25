@@ -5,10 +5,12 @@ import { describe, expect, it } from 'vitest';
 import {
 	discover,
 	expandEnv,
+	folderKey,
 	gameDirGuesses,
 	parseRegQuery,
 	parseVdf,
 	steamLibraries,
+	uniqueBy,
 	userDirGuesses,
 	type Machine
 } from './locate.ts';
@@ -80,6 +82,32 @@ const win = (values: Record<string, string>, folders: Record<string, string[]> =
 	};
 	return { m, list: (dir: string) => folders[dir] ?? [] };
 };
+
+describe('one entry per folder', () => {
+	const same = (d: string) => d;
+	// Windows 2026-10-25: /setup listed Steam's folder twice, once from the registry in lowercase
+	const steam: [string, string][] = [
+		['c:\\program files (x86)\\steam', 'Steam'],
+		['C:\\Program Files (x86)\\Steam', 'Steam']
+	];
+	it('folds case and separators on Windows', () => {
+		expect(folderKey('win32', 'c:/program files (x86)/steam', same)).toBe(
+			folderKey('win32', 'C:\\Program Files (x86)\\Steam', same)
+		);
+		expect(uniqueBy('win32', steam, same)).toHaveLength(1);
+	});
+	it('keeps both on Linux, where case counts', () =>
+		expect(
+			uniqueBy(
+				'linux',
+				[
+					['/a/Steam', 'x'],
+					['/a/steam', 'x']
+				],
+				same
+			)
+		).toHaveLength(2));
+});
 
 describe('Windows guesses', () => {
 	it('takes GOG install paths from the registry', () => {
