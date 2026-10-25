@@ -192,6 +192,12 @@ describe('toSnapshot', () => {
 
 	it('reads the top-bar counters', () => {
 		expect(s).toMatchObject({ empireSize: 50, starbases: { used: 1, capacity: 5 }, navalUsed: 15 });
+		expect(s.navalMax).toBeNull(); // without companion mod 0.6.0
+	});
+
+	it('reads the naval capacity companion mod 0.6.0 exports (sdash_nc)', () => {
+		const withMod = { ...raw, country: { ...raw.country, variables: { sdash_nc: 40 } } };
+		expect(toSnapshot(withMod, 'camp').navalMax).toBe(40);
 	});
 
 	it('lists controlled colonies, joined to their planet when there is one', () => {
@@ -575,9 +581,9 @@ describe('strata', () => {
 		expect(r.strata).toEqual([
 			{ category: 'civilian', size: 1911, happiness: 0.95 },
 			{ category: 'worker', size: 2000, happiness: 0.55 },
-			{ category: 'specialist', size: 1299, happiness: null }
+			{ category: 'specialist', size: 1299, happiness: 1 } // left out at 100 %
 		]);
-		expect(r.happiness).toBeCloseTo((1911 * 0.95 + 2000 * 0.55) / 3911);
+		expect(r.happiness).toBeCloseTo((1911 * 0.95 + 2000 * 0.55 + 1299) / 5210);
 		expect(r.habitability).toBeCloseTo((1911 + 1800 * 0.5) / 3711);
 		expect(r.speciesHabitability).toEqual({ '7': 1, '9': 0.5 });
 		expect(strata({}, []).happiness).toBeNull();

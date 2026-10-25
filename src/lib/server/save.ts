@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '19'; // 19: species name templates ("Trans-Yorphid")
+export const READER = '20'; // 20: happiness left out = 100 %, naval capacity from the mod
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -292,6 +292,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 				? { used: num(raw.country.starbase_capacity_used), capacity: raw.country.starbase_capacity }
 				: null,
 		navalUsed: numOrNull(raw.country?.used_naval_capacity),
+		navalMax: numOrNull(raw.country?.variables?.sdash_nc), // companion mod 0.6.0
 		envoys: envoys(ownLeaders(raw)),
 		leaders: countBy(ownLeaders(raw).map((l) => String(l.class))),
 		ships: shipCounts(raw),
@@ -1949,8 +1950,9 @@ export function colonyDistricts(
 }
 
 /**
- * `pop_groups.<id> = { key = { species category } size happiness }`, summed per stratum. Groups
- * without `happiness` (the save omits it for some) count towards size but not the average.
+ * `pop_groups.<id> = { key = { species category } size happiness }`, summed per stratum. The save
+ * leaves `happiness` out at 100 %: every group of ours at 2201.01.01, where the game showed Earth
+ * at 100 % happiness and approval; the AIs' stored values never reach 1.
  */
 export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const by = new Map<string, { size: number; known: number; weighted: number }>();
@@ -1972,11 +1974,11 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 		}
 		const cat = String(g.key?.category ?? 'unknown');
 		const s = by.get(cat) ?? { size: 0, known: 0, weighted: 0 };
-		const known = typeof g.happiness === 'number';
+		const happiness = typeof g.happiness === 'number' ? g.happiness : 1;
 		by.set(cat, {
 			size: s.size + num(g.size),
-			known: s.known + (known ? num(g.size) : 0),
-			weighted: s.weighted + (known ? num(g.size) * g.happiness : 0)
+			known: s.known + num(g.size),
+			weighted: s.weighted + num(g.size) * happiness
 		});
 	}
 	const list: Stratum[] = [...by].map(([category, s]) => ({

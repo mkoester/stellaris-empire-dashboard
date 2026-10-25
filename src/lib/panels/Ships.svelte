@@ -8,8 +8,14 @@
 	let {
 		ships,
 		fleets,
-		navalUsed
-	}: { ships: ShipCount[]; fleets: Fleet[]; navalUsed: number | null } = $props();
+		navalUsed,
+		navalMax = null
+	}: {
+		ships: ShipCount[];
+		fleets: Fleet[];
+		navalUsed: number | null;
+		navalMax?: number | null;
+	} = $props();
 
 	const groups = ['military', 'civilian', 'station'] as const;
 </script>
@@ -26,7 +32,9 @@
 	{/each}
 	{#if fleets.length}
 		<div class="mt-3 text-gray-500">
-			fleets{navalUsed !== null ? ` · naval capacity used ${fmt(navalUsed)}` : ''}
+			fleets{navalUsed !== null
+				? ` · naval capacity used ${fmt(navalUsed)}${navalMax !== null ? ` / ${fmt(navalMax)}` : ''}`
+				: ''}
 		</div>
 		{#each fleets as f, i (i)}
 			<div>{f.name}: {f.ships} ships, power <b>{fmt(f.power)}</b></div>

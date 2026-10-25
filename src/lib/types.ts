@@ -297,11 +297,12 @@ export type Snapshot = {
 	colonies: Colony[];
 	/** Year the end game starts (galaxy setting); null from the mod feed, which does not know it. */
 	endGameYear: number | null;
-	// Top-bar counters; null from the mod feed. Their caps' counterparts that the save does not
-	// store (naval capacity, envoy slots) are computed by the game and not available here.
+	// Top-bar counters; null from the mod feed. The save does not store the naval capacity:
+	// companion mod 0.6.0 exports it (`sdash_nc`), else null. Envoy slots are not available.
 	empireSize: number | null;
 	starbases: { used: number; capacity: number } | null;
 	navalUsed: number | null;
+	navalMax: number | null;
 	envoys: { used: number; total: number } | null;
 	marketOrders: MarketOrder[]; // standing monthly buy/sell orders
 	market: Market | null; // null from the mod feed and in older snapshots
@@ -958,7 +959,15 @@ export type GameData = {
 	// species rights per kind, in the game's order, each with its options
 	speciesRights: {
 		kind: string;
-		options: { key: string; name: string; potential: Trigger | null; allow: Trigger | null }[];
+		options: {
+			key: string;
+			name: string;
+			// a citizenship whose species takes a slavery / purge type (the types do nothing otherwise)
+			isSlavery: boolean;
+			isPurge: boolean;
+			potential: Trigger | null;
+			allow: Trigger | null;
+		}[];
 	}[];
 	// `councilor_skill_add` by source: `tradition:` (traditions, edicts, policy options, agendas'
 	// `#finish`), `civic:`, `modifier:` (static modifiers)

@@ -26,9 +26,9 @@ export function load({ url }) {
 					? rightRows(data.speciesRights, last.speciesRights[s.id], { ...f, traits: s.traits })
 					: []
 		})),
-		explain: pick(
-			getExplanations(),
-			species.flatMap((s) => s.traits.map((t) => `trait:${t}`))
-		)
+		explain: pick(getExplanations(), [
+			...species.flatMap((s) => s.traits.map((t) => `trait:${t}`)),
+			...data.speciesRights.flatMap((k) => k.options.map((o) => `right:${o.key}`))
+		])
 	};
 }

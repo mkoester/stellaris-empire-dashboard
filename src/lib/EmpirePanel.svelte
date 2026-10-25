@@ -186,7 +186,13 @@
 					>
 				{/if}
 				{#if data.latest.navalUsed !== null}
-					<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
+					<span
+						>naval capacity used <b
+							>{fmt(data.latest.navalUsed)}{data.latest.navalMax !== null
+								? ` / ${fmt(data.latest.navalMax)}`
+								: ''}</b
+						></span
+					>
 				{/if}
 				<a class="underline" href={resolve('/timeline')}>save graph</a>
 				{#if !data.isHead}
@@ -274,6 +280,7 @@
 		ships={data.latest.ships ?? []}
 		fleets={data.latest.fleets ?? []}
 		navalUsed={data.latest.navalUsed}
+		navalMax={data.latest.navalMax}
 	/>
 {:else if id === 'edicts'}
 	<Edicts edicts={data.edicts} explain={data.explain} />

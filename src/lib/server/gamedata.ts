@@ -373,7 +373,7 @@ export function loadGameData(file: string): GameData {
 			},
 			speciesRights: speciesRights(
 				rows(
-					'SELECT key, kind, name, potential_json, allow_json FROM species_right ORDER BY kind_order, sort_order'
+					'SELECT key, kind, name, is_slavery, is_purge, potential_json, allow_json FROM species_right ORDER BY kind_order, sort_order'
 				)
 			),
 			scriptedTriggers: Object.fromEntries(
@@ -776,6 +776,8 @@ export function speciesRights(
 		key: string;
 		kind: string;
 		name: string | null;
+		is_slavery: number;
+		is_purge: number;
 		potential_json: string | null;
 		allow_json: string | null;
 	}[]
@@ -788,6 +790,8 @@ export function speciesRights(
 			.map((r) => ({
 				key: r.key,
 				name: r.name ?? r.key,
+				isSlavery: r.is_slavery === 1,
+				isPurge: r.is_purge === 1,
 				potential: parseTrigger(r.potential_json),
 				allow: parseTrigger(r.allow_json)
 			}))

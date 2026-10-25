@@ -17,6 +17,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	empireSize: null,
 	starbases: null,
 	navalUsed: null,
+	navalMax: null,
 	envoys: null,
 	marketOrders: [],
 	market: null,
