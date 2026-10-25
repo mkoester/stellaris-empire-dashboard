@@ -1056,6 +1056,7 @@ describe('empire overview', () => {
 		});
 		expect(fleets).toEqual([
 			{
+				fleetId: 3,
 				name: '1st Fleet',
 				ships: 3,
 				power: 176.625,

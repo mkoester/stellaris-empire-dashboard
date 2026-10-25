@@ -25,6 +25,7 @@ const COLORS: Record<string, string> = {
 	colonization: '#36a862', // a new world: the society green
 	cooldown: '#e0b02e', // something available again: the game's yellow (§Y)
 	expires: '#8a8f98', // an effect ending: muted
+	roll: '#6478c8', // first contact's map blue
 	// milestones (#lib/milestones.ts) not covered above
 	system: '#4f94b5', // borders: sensor blue
 	colony: '#2e7d32',

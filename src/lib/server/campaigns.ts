@@ -46,3 +46,15 @@ export const askGone = (db: Db, onDisk: Set<string>) =>
 export function keepCampaign(db: Db, campaign: string) {
 	if (!kept(db).includes(campaign)) setSetting(db, 'keptCampaigns', [...kept(db), campaign]);
 }
+
+// Cooldowns that ran out and were dismissed on the upcoming list, per campaign
+// (`timedOut()` ids, `<scope>:<kind>:<key>:<until>`); the newest 500 kept.
+const dismissedKey = (campaign: string) => `dismissed:${campaign}`;
+
+export const dismissed = (db: Db, campaign: string): Set<string> =>
+	new Set((getSetting(db, dismissedKey(campaign)) ?? []) as string[]);
+
+export function dismiss(db: Db, campaign: string, id: string) {
+	const ids = [...dismissed(db, campaign)].filter((d) => d !== id);
+	setSetting(db, dismissedKey(campaign), [...ids, id].slice(-500));
+}

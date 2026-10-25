@@ -216,6 +216,24 @@ that only set it ("ends", "from <action>"). **Timed flags**: `flag = { flag_date
 (the mod's own) never. Not read: a leader's `cooldown` (days, meaning unknown), the designation
 change date (only the AI has a cooldown, `AI_DESIGNATION_COOLDOWN`). The reform date
 (`government_date`) is marked ≈ until checked: two campaigns both read 2220.07.21.
+`action_timer` covers decisions, artifact and astral actions, relics (every relic waits on
+`relic_activation_cooldown`: one row "A relic triumph available again" — `ACTION_GROUPS` names
+a timer that blocks more than three actions of one kind), diplomatic actions (Satisfying Insults:
+gated in the effect's own `limit`), federation laws (their timers sit on the federation, not
+read yet) and enclave deals.
+
+**Run-out cooldowns stay** (`timedOut()`, the user's ask 2026-10-25): along the branch's saves each
+cooldown instance (a timer an action waits on, per scope — the empire or a colony, so one decision
+on two colonies is two rows —, launched agendas, reform and focus) keeps its latest end seen; once
+passed it is a row "<action> available" (`months` 0, at the top) until renewing it in game sets a
+later end, or the player dismisses it (✕ → `POST /api/upcoming { dismiss }`, setting row
+`dismissed:<campaign>`, ids `<scope>:<kind>:<key>:<until>` — a new round is a new id).
+**Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
+`days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
+a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
+military fleets (`Fleet.fleetId`, READER 22) on a move ≈ jumps left × days per jump — the fleet's
+own since the save before (`daysPerJump()`), else our ships' median (`measuredDaysPerJump()`), else
+`DEFAULT_DAYS_PER_JUMP` (10, a placeholder: monthly saves give one measurement, 30, a bound).
 
 **Popups** (`InfoPopup.svelte`, `server/explain.ts`): traits, edicts, council agendas, techs,
 jobs, colony designations (`designation:`, data DB `colony_type`; `Designation.svelte` reads them

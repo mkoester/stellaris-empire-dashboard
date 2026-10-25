@@ -192,3 +192,13 @@ export async function campaignAction(action: 'keep' | 'delete', campaign: string
 	});
 	if (!r.ok) throw new Error(`${action} failed: ${r.status} ${await r.text()}`);
 }
+
+/** Dismisses a cooldown that ran out from the viewed campaign's upcoming list. */
+export async function dismissUpcoming(id: string) {
+	const r = await fetch(api('/api/upcoming'), {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ dismiss: id })
+	});
+	if (!r.ok) throw new Error(`dismiss failed: ${r.status} ${await r.text()}`);
+}

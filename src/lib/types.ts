@@ -57,7 +57,13 @@ export type Score = {
 	military: number;
 };
 
-export type Fleet = { name: string; ships: number; power: number; route: Route };
+export type Fleet = {
+	fleetId?: number; // absent before READER 22
+	name: string;
+	ships: number;
+	power: number;
+	route: Route;
+};
 
 /**
  * Where a fleet is and which systems its orders take it to (current order first, then the queue),
@@ -581,7 +587,8 @@ export type FirstContact = {
 	leaderId: number | null; // the envoy on it
 	leaderName: string | null;
 	date: string; // discovered
-	daysLeft: number | null;
+	daysLeft: number | null; // to the envoy's next roll
+	lastRoll?: number | null; // `last_roll`; absent before READER 22
 	difficulty: number;
 	clues: number;
 	stage: string;
@@ -611,7 +618,8 @@ export type DigSite = {
 	systemId: number | null;
 	clues: number;
 	difficulty: number;
-	daysLeft: number | null;
+	daysLeft: number | null; // to the excavation's next roll
+	lastRoll?: number | null; // `last_roll`; absent before READER 22
 	excavating: boolean;
 };
 
@@ -798,7 +806,14 @@ export type TimelineNode = {
 export type Costs = { cost: Resources; upkeep: Resources; produces: Resources };
 
 /** What a player does that runs on a timer (data DB `action_timer.action_kind`). */
-export type ActionKind = 'decision' | 'artifact_action' | 'astral_action' | 'enclave';
+export type ActionKind =
+	| 'decision'
+	| 'artifact_action'
+	| 'astral_action'
+	| 'relic'
+	| 'diplomatic_action'
+	| 'federation_law'
+	| 'enclave';
 
 export type GameData = {
 	// per timed modifier or flag (`modifier:<key>`, `flag:<key>`): the actions that wait for it to

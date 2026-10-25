@@ -6,6 +6,8 @@ import {
 	deficits,
 	expiries,
 	fromDays,
+	rolls,
+	timedOut,
 	monthTicks,
 	scheduleQueue,
 	toDays,
@@ -517,5 +519,130 @@ describe('expiries', () => {
 			['Galactic Community recess ends', '2210.03.01']
 		]);
 		expect(rows[0].exact).toBe(false); // the reform date is not checked in game yet
+	});
+});
+
+describe('timedOut', () => {
+	const data = {
+		agendas: { agenda_x: { name: 'Expand the Council', cost: null, unlockedBy: [] } },
+		actionTimers: {
+			'modifier:decision_cooldown': [
+				{ kind: 'decision' as const, key: 'decision_x', name: 'Distribute Goods', cooldown: true }
+			],
+			'modifier:some_buff': [
+				{ kind: 'decision' as const, key: 'decision_y', name: 'Buff', cooldown: false }
+			]
+		}
+	};
+	const colony = (planetId: number, name: string, until: string) => ({
+		planetId,
+		name,
+		planet: { deposits: [], modifiers: [{ key: 'decision_cooldown', until }] },
+		timedFlags: []
+	});
+	const save = (date: string, colonies: unknown[], extra = {}) =>
+		({
+			date,
+			colonies,
+			countryModifiers: [{ key: 'some_buff', until: '2210.06.01' }],
+			countryTimedFlags: null,
+			agendaCooldowns: null,
+			cooldowns: null,
+			...extra
+		}) as unknown as Snapshot;
+
+	it('keeps a run-out cooldown per colony until renewed, and an effect not at all', () => {
+		const saves = [
+			save('2210.01.01', [colony(1, 'Earth', '2210.03.01'), colony(2, 'Mars', '2210.04.01')]),
+			save('2210.05.01', [
+				{ ...colony(1, 'Earth', '2210.03.01'), planet: { deposits: [], modifiers: [] } },
+				colony(2, 'Mars', '2211.01.01') // used again on Mars: renewed
+			]),
+			save('2210.07.01', [
+				{ ...colony(1, 'Earth', '2210.03.01'), planet: { deposits: [], modifiers: [] } },
+				colony(2, 'Mars', '2211.01.01')
+			])
+		];
+		const rows = timedOut(saves, data);
+		expect(rows.map((r) => [r.what, r.planetId, r.dismiss, r.months])).toEqual([
+			['Distribute Goods available', 1, 'planet:1:modifier:decision_cooldown:2210.03.01', 0]
+		]);
+		expect(rows[0].detail).toBe('Earth · decision cooldown · since 2210.03.01');
+		// dismissed: gone, until a later round runs out
+		expect(timedOut(saves, data, undefined, new Set([rows[0].dismiss!]))).toEqual([]);
+	});
+
+	it('leaves out colonies no longer ours, and keeps agendas and the focus', () => {
+		const saves = [
+			save('2210.01.01', [colony(3, 'Lost', '2210.02.01')], {
+				agendaCooldowns: [{ key: 'agenda_x', until: '2210.03.01' }],
+				cooldowns: { reform: null, focusDismiss: '2210.04.01', focusChange: null }
+			}),
+			save('2210.06.01', [], { agendaCooldowns: [{ key: 'agenda_x', until: '2210.03.01' }] })
+		];
+		expect(timedOut(saves, data).map((r) => r.what)).toEqual([
+			'Expand the Council can be picked again',
+			'Dismiss a focus card'
+		]);
+	});
+});
+
+describe('rolls', () => {
+	it('dates the next roll of envoys and excavations', () => {
+		const rows = rolls({
+			date: '2214.02.01',
+			firstContacts: [
+				{
+					name: 'Omega Menace',
+					leaderId: 61,
+					leaderName: 'Vel',
+					daysLeft: 92.66,
+					clues: 2,
+					difficulty: 3,
+					status: 'in_progress'
+				},
+				{
+					name: 'No envoy',
+					leaderId: null,
+					leaderName: null,
+					daysLeft: 30,
+					clues: 0,
+					difficulty: 1,
+					status: 'in_progress'
+				}
+			],
+			digSites: [
+				{ type: 'site_lost_moments', excavating: true, daysLeft: 20, clues: 1, difficulty: 2 },
+				{ type: 'site_tiyanki_graveyard', excavating: false, daysLeft: 90, clues: 0, difficulty: 3 }
+			]
+		} as never);
+		expect(rows.map((r) => [r.what, r.date])).toEqual([
+			['Next roll: Omega Menace', '2214.05.04'],
+			['Next excavation roll: lost moments', '2214.02.21']
+		]);
+	});
+});
+
+describe('upcoming military fleets', () => {
+	const fleet = (jumps: number) => ({
+		fleetId: 5,
+		name: '1st Fleet',
+		ships: 3,
+		power: 100,
+		route: { at: 'Sol', moving: true, stops: [{ system: 'Sirius', jumps, unexplored: false }] }
+	});
+	it('dates the arrival from the measured days per jump, else assumed', () => {
+		const before = snap('2210.01.01', progress(0, 0), { fleets: [fleet(6)] } as Partial<Snapshot>);
+		const now = snap('2210.02.01', progress(0, 0), { fleets: [fleet(3)] } as Partial<Snapshot>);
+		const [r] = upcoming(now, before, data).filter((e) => e.kind === 'fleet');
+		expect(r).toMatchObject({
+			what: '1st Fleet arrives at Sirius',
+			date: '2210.03.01',
+			exact: false,
+			act: true
+		});
+		expect(r.detail).toContain('(measured)');
+		const [alone] = upcoming(now, null, data).filter((e) => e.kind === 'fleet');
+		expect(alone.detail).toContain('(assumed)');
 	});
 });

@@ -1,4 +1,13 @@
-import { idleState, monthsLeft, orderLabel, orderRate } from './ships.ts';
+import {
+	DEFAULT_DAYS_PER_JUMP,
+	daysPerJump,
+	estimateMonthsLeft,
+	idleState,
+	measuredDaysPerJump,
+	monthsLeft,
+	orderLabel,
+	orderRate
+} from './ships.ts';
 import type { QueueItem, Snapshot } from './types.ts';
 
 // Upcoming events of the empire: when current research, the next tradition, the council agenda,
@@ -26,7 +35,9 @@ export type Upcoming = {
 		| 'election'
 		| 'deficit'
 		| 'cooldown' // something may be done again
-		| 'expires'; // a timed effect ends
+		| 'expires' // a timed effect ends
+		| 'roll' // an envoy's or excavation's next roll
+		| 'fleet'; // a military fleet arrives
 	what: string;
 	detail: string;
 	exact: boolean; // false: estimated from costs the save does not hold
@@ -41,6 +52,7 @@ export type Upcoming = {
 	queuedAfter?: number; // construction: items still waiting when this one is done
 	fleetId?: number; // civilian ship rows
 	sub?: string; // what to show as the kind, where finer than `kind` (ships: the ship type)
+	dismiss?: string; // a cooldown that has run out: the id to dismiss it by (`timedOut()`)
 };
 
 /**
@@ -318,8 +330,16 @@ export function upcoming(
 
 	// Civilian ships, by the same rules: ⚠ when nothing is queued after the current order; an idle
 	// ship is due now.
+	// On its last order a ship always shows: where the save gives no rate, ≈ the order's days at
+	// the base rate, else its travel at the measured days per jump.
+	const perJump = measuredDaysPerJump(latest, previous, elapsed * 30);
 	for (const s of latest.civilianShips ?? []) {
-		const left = monthsLeft(s, orderRate(s, previous, elapsed), data.anomalyLevels);
+		let left = monthsLeft(s, orderRate(s, previous, elapsed), data.anomalyLevels);
+		let estimated = false;
+		if (left === null && s.order && s.queue.length === 0) {
+			left = estimateMonthsLeft(s, data.anomalyLevels, perJump ?? DEFAULT_DAYS_PER_JUMP);
+			estimated = true;
+		}
 		if (left === null) continue;
 		const days = Math.round(left * 30);
 		out.push({
@@ -330,7 +350,7 @@ export function upcoming(
 			what: s.order ? orderLabel(s.order) : idleState(s).text,
 			tint: 'ship',
 			detail: `${s.name} · ${s.kind.replaceAll('_', ' ')}`,
-			exact: s.order === null,
+			exact: s.order === null && !estimated,
 			// an idle ship has no queue to count; whether it needs the player depends on where it waits
 			act: s.automation ? false : s.order ? s.queue.length === 0 : idleState(s).act,
 			queuedAfter: s.order ? s.queue.length : undefined,
@@ -358,6 +378,30 @@ export function upcoming(
 					detail: `${m.system} Mega Shipyard`
 				}))
 			);
+
+	// Military fleets on their last move: ≈ the jumps left at the fleet's own days per jump (since
+	// the save before), else the empire's measured median, else DEFAULT_DAYS_PER_JUMP.
+	for (const f of latest.fleets ?? []) {
+		const stop = f.route.stops.at(-1);
+		if (!f.route.moving || !stop || stop.jumps === null) continue;
+		const before = previous?.fleets?.find(
+			(p) => p.fleetId !== undefined && p.fleetId === f.fleetId
+		);
+		const own = daysPerJump(f.route, before?.route, elapsed * 30);
+		const rate = own ?? perJump ?? DEFAULT_DAYS_PER_JUMP;
+		const days = Math.round(stop.jumps * rate);
+		out.push({
+			date: fromDays(toDays(latest.date) + days),
+			months: days / 30,
+			kind: 'fleet',
+			what: `${f.name} arrives at ${stop.system}`,
+			tint: 'ship',
+			detail: `${stop.jumps} jump${stop.jumps === 1 ? '' : 's'} · ≈ ${rate.toFixed(0)} days a jump (${own ? 'measured' : perJump ? 'our fleets’ median' : 'assumed'})`,
+			exact: false,
+			act: true, // nothing queued after: the fleet waits there
+			fleetId: f.fleetId
+		});
+	}
 
 	if (p.nextElection && toDays(p.nextElection) >= toDays(latest.date))
 		out.push({
@@ -412,8 +456,75 @@ const ACTION_KINDS: Record<ActionKind, string> = {
 	decision: 'decision',
 	artifact_action: 'artifact action',
 	astral_action: 'astral action',
+	relic: 'relic',
+	diplomatic_action: 'diplomacy',
+	federation_law: 'federation law',
 	enclave: 'enclave'
 };
+// what one timer blocks when it blocks many actions of a kind (every relic waits on
+// `relic_activation_cooldown`)
+const ACTION_GROUPS: Record<ActionKind, string> = {
+	decision: 'Decisions',
+	artifact_action: 'Artifact actions',
+	astral_action: 'Astral actions',
+	relic: 'A relic triumph',
+	diplomatic_action: 'Diplomatic actions',
+	federation_law: 'A federation law change',
+	enclave: 'Enclave deals'
+};
+
+/** A timed modifier or flag on the empire or one of its colonies. */
+export type Timer = TimedModifier & {
+	kind: 'modifier' | 'flag';
+	colony?: Pick<Colony, 'name' | 'planetId'>;
+};
+
+/** Every timer a snapshot holds; `sdash_*` (the companion mod's daily tick) left out. */
+export function timersOf(
+	s: Pick<Snapshot, 'colonies' | 'countryModifiers' | 'countryTimedFlags'>
+): Timer[] {
+	return [
+		...(s.countryModifiers ?? []).map((m) => ({ ...m, kind: 'modifier' as const })),
+		...(s.countryTimedFlags ?? []).map((m) => ({ ...m, kind: 'flag' as const })),
+		...s.colonies.flatMap((colony) => [
+			...(colony.planet?.modifiers ?? []).map((m) => ({ ...m, kind: 'modifier' as const, colony })),
+			...(colony.timedFlags ?? []).map((m) => ({ ...m, kind: 'flag' as const, colony }))
+		])
+	].filter((t) => !t.key.startsWith('sdash_'));
+}
+
+/** How a timer reads: the actions waiting on it (`label`, the rest in `more`), those it came from. */
+function describeTimer(
+	t: Timer,
+	data: Pick<GameData, 'actionTimers'>,
+	title: (ref: string) => string | undefined
+) {
+	const actions = data.actionTimers[`${t.kind}:${t.key}`] ?? [];
+	const waiting = [...new Set(actions.filter((a) => a.cooldown).map((a) => a.name))];
+	const from = [...new Set(actions.filter((a) => !a.cooldown).map((a) => a.name))];
+	const kinds = new Set(actions.filter((a) => a.cooldown).map((a) => a.kind));
+	const name =
+		t.kind === 'modifier'
+			? (title(`modifier:${t.key}`) ?? pretty(t.key))
+			: (waiting[0] ?? from[0] ?? pretty(t.key));
+	const grouped = waiting.length > 3 && kinds.size === 1;
+	const label = grouped
+		? ACTION_GROUPS[[...kinds][0]]
+		: t.kind === 'modifier'
+			? listed(waiting)
+			: name;
+	return {
+		waiting,
+		from,
+		name,
+		label,
+		// a modifier's own name tells what ran out; a flag's row names the first action
+		more: t.kind === 'modifier' ? name : listed(waiting.slice(1)) || 'cooldown',
+		sub: actions[0] ? ACTION_KINDS[actions[0].kind] : t.kind === 'flag' ? 'timer' : undefined,
+		unnamed: actions.length === 0,
+		where: t.colony ? `${t.colony.name} · ` : ''
+	};
+}
 
 /** "A, B, C +2 more" */
 const listed = (names: string[], max = 3) =>
@@ -454,53 +565,28 @@ export function expiries(
 	});
 	const out: Upcoming[] = [];
 
-	type Timer = TimedModifier & { kind: 'modifier' | 'flag'; colony?: Colony };
-	const timers: Timer[] = [
-		...(latest.countryModifiers ?? []).map((m) => ({ ...m, kind: 'modifier' as const })),
-		...(latest.countryTimedFlags ?? []).map((m) => ({ ...m, kind: 'flag' as const })),
-		...latest.colonies.flatMap((colony) => [
-			...(colony.planet?.modifiers ?? []).map((m) => ({ ...m, kind: 'modifier' as const, colony })),
-			...colony.timedFlags.map((m) => ({ ...m, kind: 'flag' as const, colony }))
-		])
-	];
-	for (const t of timers) {
-		// sdash_*: the companion mod's own (its daily tick)
-		if (!t.until || t.until <= now || t.key.startsWith('sdash_')) continue;
-		const actions = data.actionTimers[`${t.kind}:${t.key}`] ?? [];
-		const waiting = [...new Set(actions.filter((a) => a.cooldown).map((a) => a.name))];
-		const from = [...new Set(actions.filter((a) => !a.cooldown).map((a) => a.name))];
-		if (t.kind === 'flag' && actions.length === 0 && !hiddenTimers) continue;
-		const where = t.colony ? `${t.colony.name} · ` : '';
-		const name =
-			t.kind === 'modifier'
-				? (title(`modifier:${t.key}`) ?? pretty(t.key))
-				: (waiting[0] ?? from[0] ?? pretty(t.key));
-		const sub = actions[0]
-			? ACTION_KINDS[actions[0].kind]
-			: t.kind === 'flag'
-				? 'timer'
-				: undefined;
+	for (const t of timersOf(latest)) {
+		if (!t.until || t.until <= now) continue;
+		const d = describeTimer(t, data, title);
+		if (t.kind === 'flag' && d.unnamed && !hiddenTimers) continue;
+		const waits = d.waiting.length > 0;
 		out.push(
 			row(t.until, {
-				kind: waiting.length ? 'cooldown' : 'expires',
-				sub,
-				what: waiting.length
-					? `${t.kind === 'modifier' ? listed(waiting) : name} available again`
-					: `${name} ends`,
+				kind: waits ? 'cooldown' : 'expires',
+				sub: d.sub,
+				what: waits ? `${d.label} available again` : `${d.name} ends`,
 				detail:
-					where +
-					(waiting.length
-						? t.kind === 'modifier'
-							? name
-							: listed(waiting.slice(1)) || 'cooldown'
-						: from.length
-							? `from ${listed(from)}`
+					d.where +
+					(waits
+						? d.more
+						: d.from.length
+							? `from ${listed(d.from)}`
 							: t.kind === 'flag'
 								? 'event timer (spoiler)'
 								: ''),
-				tint: waiting.length ? 'cooldown' : 'expires',
+				tint: waits ? 'cooldown' : 'expires',
 				ref: t.kind === 'modifier' ? `modifier:${t.key}` : undefined,
-				act: waiting.length > 0,
+				act: waits,
 				planetId: t.colony?.planetId
 			})
 		);
@@ -571,4 +657,130 @@ export function expiries(
 		);
 
 	return out;
+}
+
+/**
+ * Cooldowns that have run out and stay until used again or dismissed (the user's ask
+ * 2026-10-25). Along the branch's saves (latest last), each cooldown instance — a timer an action
+ * waits on, per scope (the empire or a colony, so one decision on two colonies is two rows), a
+ * launched agenda, the reform and focus dates — keeps its latest end seen. Once that has passed,
+ * it is available: renewing it in game sets a later end and the row goes; `dismissed` holds the
+ * ids (`<scope>:<kind>:<key>:<until>`) the player dismissed, so the next round shows again.
+ */
+export function timedOut(
+	saves: Pick<
+		Snapshot,
+		'date' | 'colonies' | 'countryModifiers' | 'countryTimedFlags' | 'agendaCooldowns' | 'cooldowns'
+	>[],
+	data: Pick<GameData, 'actionTimers' | 'agendas'>,
+	title: (ref: string) => string | undefined = () => undefined,
+	dismissed: ReadonlySet<string> = new Set()
+): Upcoming[] {
+	const latest = saves.at(-1);
+	if (!latest) return [];
+	type Seen = Pick<Upcoming, 'what' | 'sub' | 'detail' | 'ref' | 'planetId' | 'exact'> & {
+		until: string;
+	};
+	const last = new Map<string, Seen>();
+	const see = (id: string, seen: Seen) => {
+		const cur = last.get(id);
+		if (!cur || seen.until > cur.until) last.set(id, seen);
+	};
+	for (const s of saves) {
+		for (const t of timersOf(s)) {
+			if (!t.until) continue;
+			const d = describeTimer(t, data, title);
+			if (!d.waiting.length) continue;
+			see(`${t.colony ? `planet:${t.colony.planetId}` : 'country'}:${t.kind}:${t.key}`, {
+				until: t.until,
+				what: `${d.label} available`,
+				sub: d.sub,
+				detail: d.where + d.more,
+				ref: t.kind === 'modifier' ? `modifier:${t.key}` : undefined,
+				planetId: t.colony?.planetId,
+				exact: true
+			});
+		}
+		for (const a of s.agendaCooldowns ?? [])
+			see(`country:agenda:${a.key}`, {
+				until: a.until,
+				what: `${data.agendas[a.key]?.name ?? a.key} can be picked again`,
+				sub: 'agenda',
+				detail: 'council agenda',
+				ref: `agenda:${a.key}`,
+				exact: true
+			});
+		const c = s.cooldowns;
+		const again: [string, string | null | undefined, string, string, boolean][] = [
+			[
+				'reform',
+				c?.reform,
+				'Government reform possible',
+				'government · not yet checked in game',
+				false
+			],
+			['focus-dismiss', c?.focusDismiss, 'Dismiss a focus card', 'focus', true],
+			['focus-change', c?.focusChange, 'Change the focus priority', 'focus', true]
+		];
+		for (const [id, until, what, detail, exact] of again)
+			if (until) see(`country:${id}`, { until, what, sub: 'available', detail, exact });
+	}
+	const colonies = new Set(latest.colonies.map((c) => c.planetId));
+	return [...last]
+		.filter(
+			([id, v]) =>
+				v.until <= latest.date &&
+				!dismissed.has(`${id}:${v.until}`) &&
+				(v.planetId === undefined || colonies.has(v.planetId))
+		)
+		.map(([id, v]) => ({
+			date: v.until,
+			months: 0,
+			kind: 'cooldown' as const,
+			sub: v.sub ?? 'available',
+			what: v.what,
+			detail: `${v.detail ? `${v.detail} · ` : ''}since ${v.until}`,
+			tint: 'cooldown',
+			ref: v.ref,
+			planetId: v.planetId,
+			exact: v.exact,
+			act: true,
+			dismiss: `${id}:${v.until}`
+		}));
+}
+
+/**
+ * The next roll of each envoy on a first contact and each excavation: the save's `days_left`
+ * counts down to it (first contacts and dig sites both carry `last_roll`). The game reports what
+ * a roll gives, so `act` is false.
+ */
+export function rolls(latest: Pick<Snapshot, 'date' | 'firstContacts' | 'digSites'>): Upcoming[] {
+	const at = (days: number) => fromDays(toDays(latest.date) + days);
+	const contacts = (latest.firstContacts ?? [])
+		.filter((c) => c.status === 'in_progress' && c.leaderId !== null && c.daysLeft !== null)
+		.map((c) => ({
+			date: at(c.daysLeft!),
+			months: c.daysLeft! / 30,
+			kind: 'roll' as const,
+			sub: 'first contact',
+			what: `Next roll: ${c.name}`,
+			detail: `${c.leaderName ?? 'envoy'} · ${c.clues} clues · difficulty ${c.difficulty}`,
+			tint: 'roll',
+			exact: true,
+			act: false
+		}));
+	const sites = (latest.digSites ?? [])
+		.filter((s) => s.excavating && s.daysLeft !== null)
+		.map((s) => ({
+			date: at(s.daysLeft!),
+			months: s.daysLeft! / 30,
+			kind: 'roll' as const,
+			sub: 'excavation',
+			what: `Next excavation roll: ${pretty(s.type.replace(/^site_/, ''))}`,
+			detail: `${s.clues} clues · difficulty ${s.difficulty}`,
+			tint: 'roll',
+			exact: true,
+			act: false
+		}));
+	return [...contacts, ...sites];
 }

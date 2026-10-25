@@ -1,8 +1,9 @@
-import { expiries, upcoming, toDays } from '#lib/events.ts';
+import { expiries, rolls, timedOut, upcoming, toDays } from '#lib/events.ts';
 import { jobRows, jobSources, netFlows, withFlows, workedJobs } from '#lib/jobs.ts';
 import { getDb, getExplanations, getGameData } from './app.ts';
 import { headId, history, nodes } from './db.ts';
 import { pick } from './explain.ts';
+import { dismissed } from './campaigns.ts';
 import { display } from './settings.ts';
 import { empireColors } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
@@ -19,6 +20,8 @@ export function branch(url: URL) {
 	const tip = all.some((n) => n.id === requested) ? requested : headId(db);
 	if (tip === null) return null;
 	const snaps = history(db, tip);
+	const campaign = all.find((n) => n.id === tip)?.campaign ?? '';
+	const title = (ref: string) => getExplanations()[ref]?.title;
 	// Events come from the latest full save; the one before it gives the rates.
 	const saves = snaps.filter((s) => s.progress !== null);
 	const last = saves.at(-1);
@@ -53,12 +56,9 @@ export function branch(url: URL) {
 		upcoming: last
 			? [
 					...upcoming(last, previous, getGameData(), saves.slice(0, -1)),
-					...expiries(
-						last,
-						getGameData(),
-						(ref) => getExplanations()[ref]?.title,
-						display().hiddenTimers
-					)
+					...expiries(last, getGameData(), title, display().hiddenTimers),
+					...timedOut(saves, getGameData(), title, dismissed(db, campaign)),
+					...rolls(last)
 				].sort((a, b) => toDays(a.date) - toDays(b.date) || a.what.localeCompare(b.what))
 			: [],
 		// Display names of what the colonies hold: queue items, districts, zones, buildings.

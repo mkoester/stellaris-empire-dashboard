@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '21'; // 21: timed flags, reform and focus cooldowns
+export const READER = '22'; // 22: fleet ids, roll cycles (21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1110,9 +1110,10 @@ export function militaryFleets(
 	raw: Pick<RawSave, 'country' | 'fleets' | 'planets' | 'systems'>
 ): Fleet[] {
 	return items(raw.country?.fleets_manager?.owned_fleets)
-		.map((o) => raw.fleets[String(o?.fleet)])
-		.filter((f) => f && typeof f === 'object' && f.ship_class === 'shipclass_military')
-		.map((f) => ({
+		.map((o) => ({ id: Number(o?.fleet), f: raw.fleets[String(o?.fleet)] }))
+		.filter(({ f }) => f && typeof f === 'object' && f.ship_class === 'shipclass_military')
+		.map(({ id, f }) => ({
+			fleetId: id,
 			name: displayName(f.name),
 			ships: list(f.ships).length,
 			power: num(f.military_power),

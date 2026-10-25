@@ -15,6 +15,11 @@ All notable changes to this project are documented here. The format follows
   enclave deal is available again (the game does not announce it), timed empire and colony
   modifiers, edicts and trade deals ending, the Galactic Community's recess, a focus change and a
   government reform. Event timers no action names are a spoiler switch in ⚙.
+- A cooldown that has run out stays on Upcoming until it is used again or dismissed (✕), per
+  colony where it is a colony's; relics, diplomatic actions (Satisfying Insults) and federation
+  laws count too.
+- Upcoming shows when an envoy's and an excavation's next roll is, and every ship on its last
+  task — military fleets included — with an estimate (≈) where the save gives no date.
 
 ### Fixed
 
