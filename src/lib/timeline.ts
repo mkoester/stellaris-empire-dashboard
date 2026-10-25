@@ -23,14 +23,17 @@ export function place(
 	const same = nodes.find((n) => n.fingerprint === obs.fingerprint && n.campaign === obs.campaign);
 	if (same) return { kind: 'duplicate', nodeId: same.id };
 
+	// A save just loaded comes first: the head is then the left branch's tip, and its date may well
+	// be the loaded branch's next month (head 08.01, 07.01 loaded, next month 08.01 again) — merging
+	// put that month on the left branch (2026-10-25).
+	if (loadedFrom !== null) return { kind: 'child', parentId: loadedFrom, ambiguous: false };
+
 	const head = nodes.find((n) => n.id === headId && n.campaign === obs.campaign);
 	// The mod's monthly line and the autosave describe the same moment from two sources — one node,
 	// or the second would look like a reload.
 	if (head && head.date === obs.date && head.kind !== obs.kind) {
 		return { kind: 'merge', nodeId: head.id };
 	}
-
-	if (loadedFrom !== null) return { kind: 'child', parentId: loadedFrom, ambiguous: false };
 	if (!head) {
 		// First observation of this campaign, or a switch from another one: attach to its newest
 		// earlier node, if any — the player continued that campaign from somewhere.

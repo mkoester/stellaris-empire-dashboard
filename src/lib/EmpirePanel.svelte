@@ -194,7 +194,11 @@
 						></span
 					>
 				{/if}
-				<a class="underline" href={resolve('/timeline')}>save graph</a>
+				<a
+					class="underline"
+					href={data.isHead ? resolve('/timeline') : resolve(`/timeline?node=${data.tip}`)}
+					>save graph</a
+				>
 				{#if !data.isHead}
 					<a class="underline" href={resolve('/')}>back to the current game</a>
 				{/if}

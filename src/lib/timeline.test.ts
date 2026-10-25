@@ -94,6 +94,15 @@ describe('place', () => {
 		});
 	});
 
+	it('does not merge into the left branch when the loaded one reaches its date again', () => {
+		// head 3 (2202.01.01), node 2 loaded, the mod's month 2202.01.01 on the new branch
+		expect(place(tree, 3, obs('2202.01.01', 'log-fp', 'c', 'log'), 2)).toEqual({
+			kind: 'child',
+			parentId: 2,
+			ambiguous: false
+		});
+	});
+
 	it('merges the mod line and the autosave of the same moment into one node', () => {
 		const t = [node(1, '2200.01.01', null), node(2, '2200.02.01', 1, 'c', 'log')];
 		expect(place(t, 2, obs('2200.02.01', 'save-fp'))).toEqual({ kind: 'merge', nodeId: 2 });

@@ -6,6 +6,7 @@
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
+	import { followLoads } from '#lib/live.ts';
 
 	let { data, children } = $props();
 
@@ -197,6 +198,30 @@
 		await invalidateAll();
 	}
 
+	// A save loaded in game: the dashboard follows it with the next save or month; until then the
+	// player may look at it at once, on the same tab — or wave the question away.
+	// A page pinned (`?node=`) to the save being played — the head, or the save just loaded — goes
+	// on following the game when the next save or month arrives; pinned elsewhere, it stays.
+	followLoads(
+		() => invalidateAll(),
+		async () => {
+			if (node === null || ![data.head, data.loaded?.node].includes(Number(node))) return;
+			// the same page, unpinned (?node is its only query)
+			const here = [page.route.id ?? '/', page.params] as Parameters<typeof resolve>;
+			await goto(resolve(...here), { invalidateAll: true });
+		}
+	);
+	let waved = $state<number | null>(null);
+	const loaded = $derived(
+		data.loaded && data.loaded.node !== waved && String(data.loaded.node) !== node
+			? data.loaded
+			: null
+	);
+	async function showLoaded(n: number) {
+		const same = tabsAt(String(n)).find((t) => t.active && t.name !== 'colony');
+		await goto(same?.href ?? resolve(`/?node=${n}`));
+	}
+
 	async function setTheme(theme: Theme) {
 		applyTheme(theme);
 		await putSettings({ theme });
@@ -255,6 +280,20 @@
 				>v{__APP_VERSION__}</span
 			>
 		</nav>
+		{#if loaded}
+			<p
+				class="mb-2 flex flex-wrap items-center gap-2 rounded border border-sky-400 px-3 py-1 text-sm"
+			>
+				<span
+					>The save of <b>{loaded.date}</b> was loaded in game — the dashboard switches to it with the
+					next save or month.</span
+				>
+				<button class="rounded border px-2" onclick={() => showLoaded(loaded.node)}
+					>show it now</button
+				>
+				<button class="rounded border px-2" onclick={() => (waved = loaded.node)}>not now</button>
+			</p>
+		{/if}
 		{#each data.gone as c (c.campaign)}
 			<p
 				class="mb-2 flex flex-wrap items-center gap-2 rounded border border-amber-400 px-3 py-1 text-sm"

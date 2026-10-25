@@ -75,6 +75,9 @@ export function getDb(): Db {
 }
 
 /** The loaded save's node, once: the observation after a load is its child. */
+/** The save just loaded in game, until the next observation switches to its branch. */
+export const pendingLoad = (): number | null => state.loadedFrom ?? null;
+
 function takeLoaded(): number | null {
 	const id = state.loadedFrom ?? null;
 	state.loadedFrom = null;
@@ -208,6 +211,8 @@ async function run() {
 				console.log(
 					`save loaded at ${date}: ${state.loadedFrom === null ? 'unknown node' : `node ${state.loadedFrom}`}`
 				);
+				// open pages ask whether to show it now (the layout's `loaded`)
+				if (state.loadedFrom !== null) updates.emit('loaded');
 			},
 			onError: (e) => console.error('game.log:', e)
 		});

@@ -1,4 +1,4 @@
-import { campaignsOnDisk, getDb, refreshCampaign, status } from '#lib/server/app.ts';
+import { campaignsOnDisk, getDb, pendingLoad, refreshCampaign, status } from '#lib/server/app.ts';
 import { askGone } from '#lib/server/campaigns.ts';
 import { campaignName, headCampaign, headId, nodes } from '#lib/server/db.ts';
 import {
@@ -24,7 +24,9 @@ export function load() {
 			campaigns: [],
 			campaign: null,
 			gone: [],
-			tradeoffs: false
+			tradeoffs: false,
+			loaded: null,
+			head: null
 		};
 	const db = getDb();
 	const { id, name } = activeProfile(db);
@@ -36,6 +38,9 @@ export function load() {
 	const campaign = viewedCampaign(db);
 	// another campaign's saves are read again by a newer reader once it is viewed
 	if (campaign !== null && campaign !== headCampaign(db)) refreshCampaign(campaign);
+	// a save just loaded in game: shown at once if the player wants, else with the next save or month
+	const load = pendingLoad();
+	const loadedNode = load === null ? undefined : nodes(db).find((n) => n.id === load);
 	return {
 		setup: false,
 		theme: theme(),
@@ -47,6 +52,9 @@ export function load() {
 		// campaigns whose saves are all gone: delete their history? asked once
 		gone: askGone(db, campaignsOnDisk()),
 		// the exploratory trade-offs tab, a display switch
-		tradeoffs: display().tradeoffs
+		tradeoffs: display().tradeoffs,
+		loaded: loadedNode ? { node: loadedNode.id, date: loadedNode.date } : null,
+		// the save being played, so a page pinned to it keeps following the game
+		head: headId(db)
 	};
 }
