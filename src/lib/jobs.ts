@@ -92,7 +92,8 @@ export function netFlows(sources: Record<string, JobSource>): Record<string, Res
  * (`planet_jobs`: patrol drones and more). A source goes to the jobs the empire works with it
  * (`worked`: pops per job), split by pops when several do (`shared`, an estimate). A source no
  * worked job claims goes to the job its name suggests: the plural of its key or name
- * (`planet_farmers` → farmer, `planet_metallurgists` → foundry "Metallurgist").
+ * (`planet_farmers` → farmer, `planet_metallurgists` → foundry "Metallurgist"). A stratum's
+ * income (`pop_category_<stratum>s`) is added to its worked jobs by pops.
  */
 export function jobSources(
 	budget: BudgetSource[],
@@ -127,6 +128,25 @@ export function jobSources(
 		}
 		const job = jobs?.[0] ?? byName.get(norm(s.source.slice('planet_'.length)));
 		if (job) out[job] = { income: s.income, expenses: s.expenses };
+	}
+	// What a stratum's pops make as such — civilians' unity under Social Welfare, every stratum's
+	// trade (2201.01.01: `pop_category_civilians` unity 11.24, trade 6.74) — goes to the jobs of that
+	// stratum, by pops. Its expenses are the pops' upkeep (`stratumUpkeep()` in unitCosts.ts).
+	for (const s of budget) {
+		if (!s.source.startsWith('pop_category_')) continue;
+		const of = (cat: string) =>
+			s.source === 'pop_category_drones'
+				? cat.endsWith('_drone')
+				: s.source === `pop_category_${cat}s` || s.source === `pop_category_${cat}`;
+		const jobs = Object.keys(worked).filter((j) => worked[j] > 0 && of(info[j]?.category ?? ''));
+		const total = jobs.reduce((n, j) => n + worked[j], 0);
+		for (const j of jobs) {
+			const was = out[j] ?? { income: {}, expenses: {} };
+			const income = { ...was.income };
+			for (const [res, v] of Object.entries(scale(s.income, worked[j] / total)))
+				income[res] = (income[res] ?? 0) + v;
+			out[j] = { ...was, income, ...(jobs.length > 1 ? { shared: true } : {}) };
+		}
 	}
 	return out;
 }

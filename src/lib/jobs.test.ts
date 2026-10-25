@@ -132,6 +132,43 @@ describe('jobSources for a gestalt', () => {
 	});
 });
 
+describe('jobSources with stratum income', () => {
+	// United Nations of Earth 2201.01.01 (Social Welfare): civilians' unity and every stratum's
+	// trade are booked under the stratum, not the job.
+	const info = {
+		civilian: { name: 'Civilian', category: 'civilian', budgetSource: 'planet_civilians' },
+		farmer: { name: 'Farmer', category: 'worker', budgetSource: 'planet_farmers' },
+		miner: { name: 'Miner', category: 'worker', budgetSource: 'planet_miners' }
+	};
+	const budget: BudgetSource[] = [
+		{ source: 'planet_civilians', income: { minerals: 2 }, expenses: {} },
+		{ source: 'planet_farmers', income: { food: 30 }, expenses: {} },
+		{
+			source: 'pop_category_civilians',
+			income: { unity: 11.2365, trade: 6.7419 },
+			expenses: { consumer_goods: 11.2365 }
+		},
+		{ source: 'pop_category_workers', income: { trade: 6 }, expenses: { consumer_goods: 9.9 } }
+	];
+	const s = jobSources(budget, info, { civilian: 2046, farmer: 100, miner: 200 });
+
+	it("adds the civilians' stratum income to the civilian job, its upkeep left out", () => {
+		expect(s.civilian).toEqual({
+			income: { minerals: 2, unity: 11.2365, trade: 6.7419 },
+			expenses: {}
+		});
+	});
+
+	it("splits a stratum's income over its worked jobs by pops, marked shared", () => {
+		expect(s.farmer).toEqual({ income: { food: 30, trade: 2 }, expenses: {}, shared: true });
+		expect(s.miner).toEqual({ income: { trade: 4 }, expenses: {}, shared: true });
+	});
+
+	it('leaves the budget as it was', () => {
+		expect(budget[0].income).toEqual({ minerals: 2 });
+	});
+});
+
 describe('openJobs', () => {
 	// Earth 2200.05: 1 open job, an enforcer post, with crime automation on.
 	const jobs = [

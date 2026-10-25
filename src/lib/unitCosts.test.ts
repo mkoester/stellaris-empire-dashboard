@@ -92,14 +92,15 @@ describe('costSources and unitValues', () => {
 	it('values research at what it costs us, across jobs and stations', () => {
 		const sources = costSources(budget, colonies, jobs);
 		expect(sources.map((s) => s.id)).toEqual(['job:researcher', 'job:miner', 'station:research']);
-		// researchers: 10 + 100 × 0.2 = 30 consumer goods = 60 trade for 40 physics → 1.5
-		// stations: 2 energy for 10 physics → 0.2; weighted (40 × 1.5 + 10 × 0.2) / 50 = 1.24
+		// researchers: 10 + 100 × 0.2 = 30 consumer goods = 60 trade for 40 physics and the
+		// specialists' 5 trade, split by value: c = 60p / (40p + 5); stations: 2 energy for 10
+		// physics → 0.2; p = (40c + 10 × 0.2) / 50 → 1.1195, c = 1.349
 		const values = unitValues(sources);
-		expect(values.physics_research).toBeCloseTo(1.24);
+		expect(values.physics_research).toBeCloseTo(1.1195);
 		expect(values.minerals).toBe(1); // the market's
 		const physics = unitCosts(sources, values).filter((c) => c.resource === 'physics_research');
 		expect(physics.map((c) => c.source.id)).toEqual(['job:researcher', 'station:research']);
-		expect(physics[0].perUnit).toBeCloseTo(1.5);
+		expect(physics[0].perUnit).toBeCloseTo(1.349);
 		expect(physics[1].perUnit).toBeCloseTo(0.2);
 	});
 });
