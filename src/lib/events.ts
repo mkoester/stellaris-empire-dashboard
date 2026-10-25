@@ -501,28 +501,36 @@ function describeTimer(
 ) {
 	const actions = data.actionTimers[`${t.kind}:${t.key}`] ?? [];
 	const waiting = [...new Set(actions.filter((a) => a.cooldown).map((a) => a.name))];
-	const from = [...new Set(actions.filter((a) => !a.cooldown).map((a) => a.name))];
+	const bonus = [...new Set(actions.filter((a) => a.bonus).map((a) => a.name))];
+	const from = [...new Set(actions.filter((a) => !a.cooldown && !a.bonus).map((a) => a.name))];
 	const kinds = new Set(actions.filter((a) => a.cooldown).map((a) => a.kind));
 	const name =
 		t.kind === 'modifier'
 			? (title(`modifier:${t.key}`) ?? pretty(t.key))
 			: (waiting[0] ?? from[0] ?? pretty(t.key));
 	const grouped = waiting.length > 3 && kinds.size === 1;
+	// a bonus timer leaves the action possible: what comes back is the timer's own effect
+	// (Satisfying Insult, with the next Insult)
 	const label = grouped
 		? ACTION_GROUPS[[...kinds][0]]
-		: t.kind === 'modifier'
-			? listed(waiting)
-			: name;
+		: !waiting.length || t.kind !== 'modifier'
+			? name
+			: listed(waiting);
 	return {
-		waiting,
+		// the actions that give a row: waiting on it, else regaining it as a bonus
+		waiting: waiting.length ? waiting : bonus,
 		from,
 		name,
 		label,
 		// a modifier's own name tells what ran out; a flag's row names the first action
-		more: t.kind === 'modifier' ? name : listed(waiting.slice(1)) || 'cooldown',
+		more: !waiting.length
+			? `with the next ${listed(bonus)}`
+			: t.kind === 'modifier'
+				? name
+				: listed(waiting.slice(1)) || 'cooldown',
 		sub: actions[0] ? ACTION_KINDS[actions[0].kind] : t.kind === 'flag' ? 'timer' : undefined,
 		unnamed: actions.length === 0,
-		where: t.colony ? `${t.colony.name} · ` : ''
+		where: t.colony?.name
 	};
 }
 
@@ -575,15 +583,18 @@ export function expiries(
 				kind: waits ? 'cooldown' : 'expires',
 				sub: d.sub,
 				what: waits ? `${d.label} available again` : `${d.name} ends`,
-				detail:
-					d.where +
-					(waits
+				detail: [
+					d.where,
+					waits
 						? d.more
 						: d.from.length
 							? `from ${listed(d.from)}`
 							: t.kind === 'flag'
 								? 'event timer (spoiler)'
-								: ''),
+								: ''
+				]
+					.filter(Boolean)
+					.join(' · '),
 				tint: waits ? 'cooldown' : 'expires',
 				ref: t.kind === 'modifier' ? `modifier:${t.key}` : undefined,
 				act: waits,
@@ -592,26 +603,17 @@ export function expiries(
 		);
 	}
 
-	const c = latest.cooldowns;
-	// The reform date is the save's `government_date` read as "possible from" — not yet checked in
-	// game (2026-10-25: two campaigns both read 2220.07.21), so it is marked estimated.
-	const again: [string | null | undefined, string, string, boolean][] = [
-		[c?.reform, 'Government reform', 'government · not yet checked in game', false],
-		[c?.focusDismiss, 'Dismiss a focus card', 'focus', true],
-		[c?.focusChange, 'Change the focus priority', 'focus', true]
-	];
-	for (const [date, what, detail, exact] of again)
-		if (date && date > now)
-			out.push({
-				...row(date, {
+	for (const a of engineCooldowns(latest.cooldowns))
+		if (a.until > now)
+			out.push(
+				row(a.until, {
 					kind: 'cooldown',
-					what: `${what} possible`,
-					detail,
+					what: `${a.what} possible`,
+					detail: a.detail,
 					tint: 'cooldown',
 					act: true
-				}),
-				exact
-			});
+				})
+			);
 
 	for (const e of latest.edictTimes ?? [])
 		if (e.end && e.end > now)
@@ -660,6 +662,31 @@ export function expiries(
 }
 
 /**
+ * The engine's own cooldowns, from the save's dates (`cooldowns` in `server/save.ts`): an id per
+ * instance (one per species right, one per empire insulted), the action, where.
+ */
+function engineCooldowns(c: Snapshot['cooldowns']) {
+	const out: { id: string; until: string; what: string; detail: string }[] = [];
+	const add = (id: string, until: string | null | undefined, what: string, detail: string) => {
+		if (until) out.push({ id, until, what, detail });
+	};
+	add('reform', c?.reform, 'Government reform', 'government');
+	add('focus-dismiss', c?.focusDismiss, 'Dismiss a focus card', 'focus');
+	add('focus-change', c?.focusChange, 'Change the focus priority', 'focus');
+	add('capital', c?.capital, 'Moving the capital', 'capital');
+	for (const r of c?.rights ?? [])
+		add(
+			`right:${r.species}:${r.right}`,
+			r.until,
+			`Changing ${r.species} ${r.right}`,
+			'species rights'
+		);
+	for (const i of c?.insults ?? [])
+		add(`insult:${i.country}`, i.until, `Insulting ${i.country}`, 'diplomacy');
+	return out;
+}
+
+/**
  * Cooldowns that have run out and stay until used again or dismissed (the user's ask
  * 2026-10-25). Along the branch's saves (latest last), each cooldown instance — a timer an action
  * waits on, per scope (the empire or a colony, so one decision on two colonies is two rows), a
@@ -695,7 +722,7 @@ export function timedOut(
 				until: t.until,
 				what: `${d.label} available`,
 				sub: d.sub,
-				detail: d.where + d.more,
+				detail: [d.where, d.more].filter(Boolean).join(' · '),
 				ref: t.kind === 'modifier' ? `modifier:${t.key}` : undefined,
 				planetId: t.colony?.planetId,
 				exact: true
@@ -710,20 +737,14 @@ export function timedOut(
 				ref: `agenda:${a.key}`,
 				exact: true
 			});
-		const c = s.cooldowns;
-		const again: [string, string | null | undefined, string, string, boolean][] = [
-			[
-				'reform',
-				c?.reform,
-				'Government reform possible',
-				'government · not yet checked in game',
-				false
-			],
-			['focus-dismiss', c?.focusDismiss, 'Dismiss a focus card', 'focus', true],
-			['focus-change', c?.focusChange, 'Change the focus priority', 'focus', true]
-		];
-		for (const [id, until, what, detail, exact] of again)
-			if (until) see(`country:${id}`, { until, what, sub: 'available', detail, exact });
+		for (const a of engineCooldowns(s.cooldowns))
+			see(`country:${a.id}`, {
+				until: a.until,
+				what: `${a.what} possible`,
+				sub: 'available',
+				detail: a.detail,
+				exact: true
+			});
 	}
 	const colonies = new Set(latest.colonies.map((c) => c.planetId));
 	return [...last]

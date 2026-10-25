@@ -491,13 +491,63 @@ describe('expiries', () => {
 		const [r] = expiries({ ...base, colonies: [colony] } as unknown as typeof base, timers, title);
 		expect(r).toMatchObject({ planetId: 7, kind: 'cooldown' });
 		expect(r.detail.startsWith('Earth · ')).toBe(true);
+		// an effect from nothing named: the colony alone, no trailing separator
+		const [e] = expiries(
+			{
+				...base,
+				colonies: [
+					{
+						...colony,
+						planet: { ...colony.planet, modifiers: [{ key: 'prosp_uni_mod', until: '2220.01.01' }] }
+					}
+				]
+			} as unknown as typeof base,
+			timers,
+			title
+		);
+		expect(e.detail).toBe('Earth');
 	});
 
-	it('reform, focus, edicts, trade deals and the GalCom recess', () => {
+	it('a bonus timer: the action stays possible, the timer’s effect comes back', () => {
+		// Insult with Satisfying Insults: only an `if` in its effect waits on the modifier (the
+		// game's tooltip: "We can not gain the benefit of Satisfying Insults until the current
+		// modifier expires", while Insult itself is possible)
+		const bonus: Pick<GameData, 'actionTimers'> = {
+			actionTimers: {
+				'modifier:satisfying_insult_recently': [
+					{
+						kind: 'diplomatic_action',
+						key: 'action_insult',
+						name: 'Insult',
+						cooldown: false,
+						bonus: true
+					}
+				]
+			}
+		};
+		const rows = expiries(
+			{ ...base, countryModifiers: [{ key: 'satisfying_insult_recently', until: '2215.01.01' }] },
+			bonus,
+			(ref) => (ref === 'modifier:satisfying_insult_recently' ? 'Satisfying Insult' : undefined)
+		);
+		expect(rows.map((r) => [r.kind, r.what, r.detail, r.act])).toEqual([
+			['cooldown', 'Satisfying Insult available again', 'with the next Insult', true]
+		]);
+	});
+
+	it('reform, focus, capital, rights, insults, edicts, trade deals and the GalCom recess', () => {
 		const rows = expiries(
 			{
 				...base,
-				cooldowns: { reform: '2220.01.01', focusDismiss: null, focusChange: '2210.06.01' },
+				// as the throwaway game's 2202.08.01 save read them (2026-10-25)
+				cooldowns: {
+					reform: '2220.01.01',
+					focusDismiss: null,
+					focusChange: '2210.06.01',
+					capital: '2212.07.01',
+					rights: [{ species: 'Humans', right: 'living standard', until: '2212.05.01' }],
+					insults: [{ country: 'Cevellian Punishers', until: '2210.02.01' }]
+				},
 				edictTimes: [
 					{ key: 'map_the_stars', start: '2209.01.01', end: '2211.01.01' },
 					{ key: 'perpetual', start: null, end: null }
@@ -514,11 +564,14 @@ describe('expiries', () => {
 		expect(rows.map((r) => [r.what, r.date])).toEqual([
 			['Government reform possible', '2220.01.01'],
 			['Change the focus priority possible', '2210.06.01'],
+			['Moving the capital possible', '2212.07.01'],
+			['Changing Humans living standard possible', '2212.05.01'],
+			['Insulting Cevellian Punishers possible', '2210.02.01'],
 			['map the stars ends', '2211.01.01'],
 			['Trade deal with Lahtrepian ends', '2215.03.08'],
 			['Galactic Community recess ends', '2210.03.01']
 		]);
-		expect(rows[0].exact).toBe(false); // the reform date is not checked in game yet
+		expect(rows.every((r) => r.exact)).toBe(true); // the reform date too, checked in game
 	});
 });
 
@@ -576,14 +629,22 @@ describe('timedOut', () => {
 		const saves = [
 			save('2210.01.01', [colony(3, 'Lost', '2210.02.01')], {
 				agendaCooldowns: [{ key: 'agenda_x', until: '2210.03.01' }],
-				cooldowns: { reform: null, focusDismiss: '2210.04.01', focusChange: null }
+				cooldowns: {
+					reform: null,
+					focusDismiss: '2210.04.01',
+					focusChange: null,
+					insults: [{ country: 'Cindarian Unity', until: '2210.02.01' }]
+				}
 			}),
 			save('2210.06.01', [], { agendaCooldowns: [{ key: 'agenda_x', until: '2210.03.01' }] })
 		];
-		expect(timedOut(saves, data).map((r) => r.what)).toEqual([
+		const rows = timedOut(saves, data);
+		expect(rows.map((r) => r.what)).toEqual([
 			'Expand the Council can be picked again',
-			'Dismiss a focus card'
+			'Dismiss a focus card possible',
+			'Insulting Cindarian Unity possible'
 		]);
+		expect(rows[2].dismiss).toBe('country:insult:Cindarian Unity:2210.02.01');
 	});
 });
 

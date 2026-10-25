@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '22'; // 22: fleet ids, roll cycles (21: timed flags, reform and focus cooldowns)
+export const READER = '23'; // 23: capital, rights and insult cooldowns (22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -599,22 +599,67 @@ export function timedFlags(block: Raw, date: string): TimedModifier[] {
 		.map(([key, v]) => ({ key, until: addGameDays(date, v.flag_days) }));
 }
 
+const INSULT_COOLDOWN_DAYS = 30; // defines; the game's tooltip: insulted 2202.05.01 → 2202.06.01
+
 /**
- * Dates the save holds for when something may be done again, if still ahead: a government reform
- * (`country.government_date`, 20 years — GOVERNMENT_COOLDOWN_YEARS — after the last; 2200.01.01
- * starts read 2220.01.01), dismissing a focus card (`focus.next_dismiss_date`, 360 days) and
- * changing the focus priority (`focus.priority.next_change_date`, 360 days).
+ * Dates the save holds for when something may be done again, if still ahead — all checked against
+ * the game's tooltips 2026-10-25: a government reform (`country.government_date`, "we must wait
+ * at least 18 years (2220.07.21)" in a game started 2200.01.01), dismissing a focus card
+ * (`focus.next_dismiss_date`, 360 days), changing the focus priority
+ * (`focus.priority.next_change_date`, 360 days), moving the capital (`country.capital_date`, "not
+ * possible to move capital until 2212.07.01"), a species right (`last_changed_<right>` in the
+ * species' rights block: despite its name the date it may change again, "2212.05.01" after a
+ * change on 2202.05.01) and insulting an empire again (`country.ai.last_diplo_actions = { { country
+ * action="action_insult" creation_date } }` + 30 days, per empire: another empire could be
+ * insulted the same day).
  */
-export function cooldowns(raw: Pick<RawSave, 'country' | 'date'>) {
+export function cooldowns(
+	raw: Pick<RawSave, 'country' | 'date'> & Partial<Pick<RawSave, 'speciesDb' | 'countryBlocks'>>
+) {
 	const ahead = (v: Raw) => {
 		const d = strOrNull(v);
 		return d && d > raw.date && !d.startsWith('0.') ? d : null;
 	};
 	const focus = raw.country?.focus;
+	const m = raw.country?.modules?.standard_species_rights_module;
+	const rights = items(m?.primary).flatMap((p) =>
+		Object.entries((p ?? {}) as Record<string, Raw>).flatMap(([k, v]) => {
+			const until = k.startsWith('last_changed_') && k !== 'last_changed_value' ? ahead(v) : null;
+			return until
+				? [
+						{
+							species: speciesName(raw.speciesDb?.[String(p.species_index)]?.name),
+							right: k
+								.slice('last_changed_'.length)
+								.replace(/_type$/, '')
+								.replaceAll('_', ' '),
+							until
+						}
+					]
+				: [];
+		})
+	);
+	const insults = items(raw.country?.ai?.last_diplo_actions).flatMap((a) => {
+		const at = strOrNull(a?.creation_date);
+		const until =
+			a?.action === 'action_insult' && at ? ahead(addGameDays(at, INSULT_COOLDOWN_DAYS)) : null;
+		return until
+			? [
+					{
+						country:
+							displayName(raw.countryBlocks?.[String(a.country)]?.name) || `empire ${a.country}`,
+						until
+					}
+				]
+			: [];
+	});
 	return {
 		reform: ahead(raw.country?.government_date),
 		focusDismiss: ahead(focus?.next_dismiss_date),
-		focusChange: ahead(focus?.priority?.next_change_date)
+		focusChange: ahead(focus?.priority?.next_change_date),
+		capital: ahead(raw.country?.capital_date),
+		rights,
+		insults
 	};
 }
 

@@ -820,7 +820,8 @@ export function actionTimers(
 			kind: r.action_kind as ActionKind,
 			key: r.action_key,
 			name: r.action_name ?? r.action_key,
-			cooldown: r.role === 'cooldown'
+			cooldown: r.role === 'cooldown',
+			...(r.role === 'bonus' && { bonus: true })
 		});
 	return out;
 }

@@ -337,11 +337,15 @@ export type Snapshot = {
 	countryModifiers: TimedModifier[] | null; // country.timed_modifier: empire-wide effects
 	countryTimedFlags: TimedModifier[] | null; // country.flags with an end (cooldowns, event timers); READER 21
 	// when a government reform, dismissing a focus card and changing the focus are possible again
-	// (null: now); READER 21
+	// (null: now); READER 21. Moving the capital, each species right changed and each empire
+	// insulted: READER 23
 	cooldowns: {
 		reform: string | null;
 		focusDismiss: string | null;
 		focusChange: string | null;
+		capital?: string | null;
+		rights?: { species: string; right: string; until: string }[];
+		insults?: { country: string; until: string }[];
 	} | null;
 	species: SpeciesInfo[] | null; // species with pops in the empire
 	sectors: Sector[] | null;
@@ -817,10 +821,10 @@ export type ActionKind =
 
 export type GameData = {
 	// per timed modifier or flag (`modifier:<key>`, `flag:<key>`): the actions that wait for it to
-	// end (`cooldown`) or only set it
+	// end (`cooldown`), whose effect only sets it again once it has ended (`bonus`), or only set it
 	actionTimers: Record<
 		string,
-		{ kind: ActionKind; key: string; name: string; cooldown: boolean }[]
+		{ kind: ActionKind; key: string; name: string; cooldown: boolean; bonus?: boolean }[]
 	>;
 	// module, starbaseBuilding: a starbase's modules and buildings
 	costs: Record<

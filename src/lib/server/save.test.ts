@@ -363,11 +363,51 @@ describe('cooldowns', () => {
 		expect(cooldowns({ country, date: '2203.10.01' })).toEqual({
 			reform: '2220.07.21',
 			focusDismiss: null,
-			focusChange: '2203.12.01'
+			focusChange: '2203.12.01',
+			capital: null,
+			rights: [],
+			insults: []
 		});
 		expect(
 			cooldowns({ country: { government_date: '2200.01.01' }, date: '2203.10.01' }).reform
 		).toBe(null);
+	});
+
+	it('capital, species rights and insults, as the throwaway game’s 2202.08.01 save holds them', () => {
+		// the game's tooltips the same day: "not possible to move capital until 2212.07.01", "we
+		// will be able to change it again on 2212.05.01", insult again "on 2202.06.01"
+		const country = {
+			capital_date: '2212.07.01',
+			modules: {
+				standard_species_rights_module: {
+					primary: [
+						{
+							species_index: 1,
+							last_changed_value: 'living_standard',
+							last_changed_citizenship_type: '0.01.01',
+							last_changed_living_standard: '2212.05.01'
+						}
+					]
+				}
+			},
+			ai: {
+				last_diplo_actions: [
+					{ country: 11, action: 'action_insult', creation_date: '2202.05.01' },
+					{ country: 12, action: 'action_insult', creation_date: '2202.04.01' }
+				]
+			}
+		};
+		const c = cooldowns({
+			country,
+			date: '2202.05.15',
+			speciesDb: { '1': { name: { key: 'SPEC_Human' } } },
+			countryBlocks: { '11': { name: { key: 'Cevellian Punishers' } } }
+		});
+		expect(c.capital).toBe('2212.07.01');
+		expect(c.rights).toEqual([
+			{ species: expect.any(String), right: 'living standard', until: '2212.05.01' }
+		]);
+		expect(c.insults).toEqual([{ country: 'Cevellian Punishers', until: '2202.06.01' }]);
 	});
 });
 
