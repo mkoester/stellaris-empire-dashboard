@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- The species tab explains every right on hover: the game's tooltip and what it does to the
+  species' pops.
+- Companion mod 0.6.0 stores the naval capacity, so the dashboard shows it as used / maximum.
+
+### Fixed
+
+- A chart whose lines change while the page stays on the same save (an autosave arriving after
+  the companion mod's month) is drawn anew instead of updated in place — suspected behind an
+  error page on the `all` tab that went away on reload.
+- Civilians' unity under Social Welfare, and the trade every stratum makes, show in the Jobs panel
+  and the jobs tab.
+- The colony happiness chart had no values for our own pops: the save leaves 100 % out.
+- Slavery and purge types are listed only for species that are enslaved or purged.
+
 ## [0.1.1] - 2026-10-24
 
 ### Added

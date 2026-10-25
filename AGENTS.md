@@ -512,7 +512,10 @@ perform on each colony, which colonies should be specialised"):
   `planet_metallurgists`), `patrol_drone` and others the generic `planet_jobs`. A source goes to
   the jobs the empire works with it, split by worked pops when several do (marked estimated).
   Matching by name left a gestalt's jobs panel empty but for Maintenance Drones (Yorphia
-  2203.10.01).
+  2203.10.01). **What a stratum makes as such is booked under the stratum**
+  (`pop_category_<stratum>s`, a gestalt's `pop_category_drones`): civilians' unity under Social
+  Welfare, every stratum's trade (2201.01.01: civilians unity 11.24, trade 6.74). Its income goes
+  to the stratum's worked jobs by pops; its expenses are the pops' upkeep (below).
 - **What a unit costs us**, per source from the latest budget: a job's inputs plus its workers'
   upkeep — the stratum's `pop_category_<stratum>s` expenses per pop (a gestalt's three drone
   strata share one, `pop_category_drones`) **and** what every pop eats,
@@ -584,7 +587,11 @@ Philosophy under both its categories), edicts those whose potential holds and th
 .primary = { species_index citizenship living_standard … }` per species, every option of each kind
 whose potential is not false (`from` = the country, folded in; `has_trait` = the species'),
 2207.03.10: Human as the game's panel, a few options more than the game shows (their conditions
-read scopes the save cannot answer). `is_nomadic` is
+read scopes the save cannot answer). **Slavery and purge types only for a species whose
+citizenship enslaves or purges** (data DB `species_right.is_slavery` / `is_purge`; 4.5.2
+`slavery_normal`'s allow: "triggers covered in citizenship_slavery") — the save keeps a default
+type of each for every species. Each option explains itself on hover (`right:<key>`: the game's
+`<key>_tooltip` and the unconditional `pop_group_modifier`s). `is_nomadic` is
 built into the game; read as running `situation_nomad_economy` (the origin misses most nomads,
 see the trade tab).
 
@@ -918,8 +925,10 @@ pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − wo
 - Planet modifiers: `planets.planet.<id>.timed_modifier`, as the country's; features like
   `tidal_locked` and `mineral_poor` are permanent ones (`days=-1`).
 - Pop groups: `colony.pop_groups` → top-level `pop_groups.<id> = { key = { species category } size
-happiness }`. **`happiness` is omitted for some groups** (rulers, specialists at 2200.05) —
-  treated as unknown, not 0.
+happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.01.01, where the
+  game showed Earth at 100 % happiness and 100 % approval (the user, 2026-10-25); the AIs' stored
+  values (base 0.5) never reach 1. Read as 1 since READER 20 — before, as unknown, which left the
+  colony's happiness chart empty.
 - Automation: `colony.automation = { enabled settings = { "planet_automation_…" } }` lists the
   settings **on** (Earth 2200.05: crime + four the panel hides for this empire);
   `country.default_planet_automation_settings` for new colonies; top-level
@@ -1173,8 +1182,9 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   `used_naval_capacity`; research per field is `physics|society|engineering_research` in the
   budget income. Envoys are `leaders.<id>` with `class="envoy"` and `country=<id>`; one is in use
   while it has `location = { assignment=… }` (seen: `first_contact`). **Not stored: the naval
-  capacity maximum** — only script can read it (`max_naval_capacity` trigger, exportable with
-  `export_trigger_value_to_variable`), i.e. the companion mod.
+  capacity maximum** — companion mod 0.6.0 exports the `max_naval_capacity` trigger into our
+  country variable `sdash_nc` (`Snapshot.navalMax`, READER 20), shown as used / max; not yet
+  checked in game.
 - **Which techs can be researched** (`techTiers()`, `inReach()` in `#lib/techTiers.ts`): every
   prerequisite researched (data DB `technology_requirement.prerequisites_json`) **and** its tier
   open — a tier opens once 6 techs of the tier below are researched **in the same research area**

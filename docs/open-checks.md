@@ -64,6 +64,18 @@ treats subjects and wars between others as public — an assumption.
 - **Do:** open the diplomacy view of one empire we have intel < 50 on and one ≥ 50.
 - **Send:** both screenshots — which pacts, rivals, subjects and wars the game shows of them.
 
+### 15. Naval capacity, and the `all` tab's error page (from 2026-10-25)
+
+Companion mod 0.6.0 exports the naval capacity (`sdash_nc`); never run in game. Separately, the
+Mac run of 0.1.1 showed a 500 on the `all` tab after a month, gone on reload — not reproduced
+(every replayed state renders server-side), so a browser-side error; charts now rebuild when their
+lines change, the suspected cause.
+
+- **Do:** with mod 0.6.0, let an autosave pass with the `all` tab open; keep the browser's
+  developer console open (it names a browser-side error).
+- **Send:** a screenshot of the fleet manager's naval capacity and the date; any console error
+  and the start window's output if the 500 shows again.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
