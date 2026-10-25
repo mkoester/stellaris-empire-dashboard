@@ -20,9 +20,24 @@ All notable changes to this project are documented here. The format follows
   laws count too.
 - Upcoming shows when an envoy's and an excavation's next roll is, and every ship on its last
   task — military fleets included — with an estimate (≈) where the save gives no date.
+- Upcoming also shows when the capital can move again, each changed species right, and each
+  empire you insulted; Satisfying Insults reads as the bonus coming back with the next insult.
+- Loading a save in game (companion mod) asks whether to show it now; otherwise the dashboard
+  switches to it with the next save or month, as before.
+
+### Changed
+
+- The save graph shows the campaign being looked at only, named in its title.
+- Companion mod 0.7.0 (log format 3): every month, day and load line carries a run id drawn at
+  each load. The game drops a log line it has already written, so after going back in time most
+  of a replayed month went missing, and loading the same save twice was not noticed.
 
 ### Fixed
 
+- A page showing the save being played by its link (`?node=`, e.g. after switching games) went on
+  following the game only until the next save; it now keeps following.
+- Going back in time to the month before the newest one put the new branch's first month on the
+  old branch (both carried the same date).
 - A chart whose lines change while the page stays on the same save (an autosave arriving after
   the companion mod's month) is drawn anew instead of updated in place — suspected behind an
   error page on the `all` tab that went away on reload.

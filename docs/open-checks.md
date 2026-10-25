@@ -23,32 +23,25 @@ fluctuation may lag the screen.
 
 ### 4b. Cooldowns, rolls and travel in Upcoming (2026-10-25) — throwaway game
 
-Upcoming dates cooldowns from the save's timed modifiers and flags (`AGENTS.md` → "Cooldowns and
-expiries"); none was running in the saves on disk, so no such row has been seen yet. Per item:
-a manual save before and after (diff in `$TMPDIR`), a screenshot of the greyed-out tooltip
-("available in …"), the dashboard's row for comparison.
+Per item: a manual save before and after (diff in `$TMPDIR`), a screenshot of the greyed-out
+tooltip ("available in …"), the dashboard's row for comparison. **Done 2026-10-25** (throwaway
+`unitednationsofearth_-15512622`, results in `AGENTS.md` → "Cooldowns and expiries" and "Run-out
+cooldowns stay"): minor artifact actions, the relic triumph, Satisfying Insults, colony decisions
+on two colonies, species rights, moving the capital, the reform date, insults per empire, and a
+run-out cooldown dismissed on a reloaded branch. Still open:
 
-1. **Minor artifact actions**: `resource minor_artifacts 2000`; Arcane Deciphering, Sell
-   Artifacts — `*_cooldown` country modifiers.
-2. **Relic triumph**: `effect add_relic = r_khans_throne`, activate — `relic_activation_cooldown`.
-3. **Astral actions**: `resource astral_threads 5000`, use one — which field records the use and
+1. **Astral actions**: `resource astral_threads 5000`, use one — which field records the use and
    its engine `cooldown` (data DB `astral_action_cooldown`); `usages` in the country block.
-4. **Dimensional Lock** on a wormhole: the lock's save fields while built (180 days) and while it
+2. **Dimensional Lock** on a wormhole: the lock's save fields while built (180 days) and while it
    holds (3600), and their end against the game's tooltip.
-5. **Shroud / psionic**: a delve (`last_delve_date`, `shroud_cooldown*`), a Shroud power or covenant
+3. **Shroud / psionic**: a delve (`last_delve_date`, `shroud_cooldown*`), a Shroud power or covenant
    used, a calling refreshed (`CALLINGS_REFRESH_COOLDOWN_DAYS` 360).
-6. **Satisfying insult**: `research_technology tech_satisfying_insults`, insult an AI —
-   `satisfying_insult_recently` (5 years); and whether the engine's 30-day insult cooldown
-   (`INSULT_COOLDOWN_DAYS`) leaves a field on the relation.
-7. **Colony decisions** (distribute consumer goods and the like) on **two** colonies: two rows,
-   each staying "available" after it runs out until used again.
-8. **Engine cooldowns**: a federation law change, a species rights change (does `last_changed_*`
-   gate one?), moving the capital (10 years), the jump drive (`jump_drive_cooldown`), the
-   government reform button's tooltip (the save's `government_date`, marked ≈).
-9. **Rolls**: an envoy on a first contact and a science ship on a dig site — the next roll's date
+4. **Engine cooldowns left**: a federation law change (its timers sit on the federation, not read
+   yet), the jump drive (`jump_drive_cooldown`).
+5. **Rolls**: an envoy on a first contact and a science ship on a dig site — the next roll's date
    against `days_left`, and the cycle after a roll (`last_roll`).
-10. **Days per jump**: a military fleet and a science ship over a known number of jumps, with a
-    manual save each few days — calibrates `DEFAULT_DAYS_PER_JUMP` (10, a placeholder).
+6. **Days per jump**: a military fleet and a science ship over a known number of jumps, with a
+   manual save each few days — calibrates `DEFAULT_DAYS_PER_JUMP` (10, a placeholder).
 
 ### 5. Trader enclave deal — trade tab
 

@@ -205,7 +205,7 @@ cooldown or that expires"; built in `branch()` next to `upcoming()`, as it names
 their popup titles): every timed modifier and timed flag on the empire and its colonies
 (`countryModifiers`, `Colony.planet.modifiers`, `countryTimedFlags`, `Colony.timedFlags`), edicts
 with an end, trade deals (start + years), the GalCom recess (`galcom.nextVote`) and
-`Snapshot.cooldowns` (reform, focus dismiss and change). Decisions, artifact and astral actions and
+`Snapshot.cooldowns` (reform, focus dismiss and change, capital, species rights, insults). Decisions, artifact and astral actions and
 enclave deals keep their cooldown as a timed modifier (`arcane_deciphering_cooldown`, 720 days) or
 a timed flag (`curator_guidance_cooldown`); the data DB's `action_timer` names the actions waiting
 on each (`cooldown` rows: "<action> available again", ⚠ — the game does not announce it) and those
@@ -214,12 +214,21 @@ that only set it ("ends", "from <action>"). **Timed flags**: `flag = { flag_date
 (`timedFlags()`, READER 21). A flag no action names is an event chain's timer
 (`curator_clue_purchased`, 10–13 years at random): only with the `hiddenTimers` spoiler; `sdash_*`
 (the mod's own) never. Not read: a leader's `cooldown` (days, meaning unknown), the designation
-change date (only the AI has a cooldown, `AI_DESIGNATION_COOLDOWN`). The reform date
-(`government_date`) is marked ≈ until checked: two campaigns both read 2220.07.21.
+change date (only the AI has a cooldown, `AI_DESIGNATION_COOLDOWN`). **The engine's own cooldowns,
+checked against the game's tooltips 2026-10-25** (throwaway `unitednationsofearth_-15512622`,
+`~/Pictures/Screenshots/screenshot_2026-10-25_19-52-10` … `20-02-32`), all "possible again" dates
+the save holds: `government_date` (reform; "we must wait at least 18 years (2220.07.21)" in a game
+started 2200.01.01), `capital_date` ("not possible to move capital until 2212.07.01"),
+`last_changed_<right>` in the species' rights block — despite the name the date it may change
+again (2212.05.01 after a change on 2202.05.01) — and `country.ai.last_diplo_actions = { { country
+action creation_date } }`, insult + 30 days (INSULT_COOLDOWN_DAYS), per empire: another empire
+could be insulted the same day (READER 23). A 30-day insult cooldown rarely spans two monthly
+saves, so its run-out row is often missed.
 `action_timer` covers decisions, artifact and astral actions, relics (every relic waits on
 `relic_activation_cooldown`: one row "A relic triumph available again" — `ACTION_GROUPS` names
 a timer that blocks more than three actions of one kind), diplomatic actions (Satisfying Insults:
-gated in the effect's own `limit`), federation laws (their timers sit on the federation, not
+gated in the effect's own `limit` — role `bonus`: Insult stays possible, the row reads "Satisfying
+Insult available again · with the next Insult", as the game's tooltip has it), federation laws (their timers sit on the federation, not
 read yet) and enclave deals.
 
 **Run-out cooldowns stay** (`timedOut()`, the user's ask 2026-10-25): along the branch's saves each
@@ -227,7 +236,10 @@ cooldown instance (a timer an action waits on, per scope — the empire or a col
 on two colonies is two rows —, launched agendas, reform and focus) keeps its latest end seen; once
 passed it is a row "<action> available" (`months` 0, at the top) until renewing it in game sets a
 later end, or the player dismisses it (✕ → `POST /api/upcoming { dismiss }`, setting row
-`dismissed:<campaign>`, ids `<scope>:<kind>:<key>:<until>` — a new round is a new id).
+`dismissed:<campaign>`, ids `<scope>:<kind>:<key>:<until>` — a new round is a new id). Checked in
+game 2026-10-25: Find Applications run out on a reloaded 2202.07.01, ✕, a month on unused — gone
+(`~/Pictures/Screenshots/screenshot_2026-10-25_21-05-23`); used again on the left branch, its row
+went by itself. Distribute Luxury Goods on Earth and Unity: two rows.
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
@@ -795,9 +807,17 @@ that rests on an estimate with **≈** (the dashboard's mark, as on the galcom t
 tooltip what is estimated and which mod version stores the game's value, and drop the ≈ once the
 value is exact. A new mod feature without its fallback is not done.
 
-Hidden events write `game.log` lines for human players, all `SDASH|2|<date>|…` (format 2 since mod
-0.2.0; `feed.ts` still reads format 1's monthly lines). The format is shared with `feed.ts` —
-change both together and bump the number.
+Hidden events write `game.log` lines for human players, `SDASH|2|<date>|…` (format 2 since mod
+0.2.0; `feed.ts` still reads format 1's monthly lines). **Format 3 (mod 0.7.0)** puts a run id after
+the date of every month, tick and load line (`SDASH|3|<date>|<run>|end`), drawn at each load
+(`sdash_roll_run`): the game drops a line it has already written this session (checked 2026-10-25:
+a branch replaying July logged 4 of 26 resources a day, no `tick-end` and no month `end`; a second
+load of one save no `load` line), and its random draws differ after a load (one save loaded twice:
+the next month's timeline ids 492755 and 934959, all else identical). Checked with 0.7.0 the same
+day: 07.01 loaded twice logged both loads (runs 524422, 777538), the replayed 08.01 month came
+complete and became node 286 under 281, beside the left 08.01 (282). Event lines stay format 2.
+The format is shared with `feed.ts` — change both together and bump the number. The table below
+shows format 2.
 
 | Line                                                                 | When                 | From                                                      |
 | -------------------------------------------------------------------- | -------------------- | --------------------------------------------------------- |
@@ -834,6 +854,13 @@ change both together and bump the number.
   load the mod logs the loaded save's id; `loadedNode()` finds the latest node of that id not after
   the load's date, and the next observation (log month or save) becomes its child, unflagged
   (`takeLoaded()` in `app.ts`). A load also drops the events and days buffered since the last month.
+  Until then the layout offers it (`loaded`, from `pendingLoad()`; the `loaded` server event makes
+  open pages ask): "show it now" opens the loaded node on the same tab — the user's ask
+  2026-10-25, a refresh alone kept showing the abandoned future.
+  **The game drops a log line identical to the one before it** (checked 2026-10-25: loading the
+  same save twice without unpausing logged one `load` line; another save in between, both): a
+  repeated load of one save is invisible to the dashboard, and a dashboard restart forgets a
+  pending load.
 - **Events re-date milestones**: a month's events travel with its snapshot (`logEvents`, so they
   follow the save graph). `milestones()` gives each to the earliest diffed milestone of the same
   kind whose label contains its name, within 45 days after it (`fromLog()`), else shows it alone;
