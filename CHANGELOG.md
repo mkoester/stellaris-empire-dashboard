@@ -27,6 +27,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Closing the dashboard's window or pressing Ctrl+C stops it cleanly: the save being read is
+  stored first and the history file is closed (no `-wal`/`-shm` files left beside it). A second
+  Ctrl+C stops at once.
 - The save graph shows the campaign being looked at only, named in its title.
 - Companion mod 0.7.0 (log format 3): every month, day and load line carries a run id drawn at
   each load. The game drops a log line it has already written, so after going back in time most

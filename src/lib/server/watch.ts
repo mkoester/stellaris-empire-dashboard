@@ -64,7 +64,8 @@ export type WatchOptions = {
 };
 
 export type Watcher = {
-	stop: () => void;
+	/** Stops watching; resolves once the save being read (if any) is stored. */
+	stop: () => Promise<void>;
 	/** Reads the campaign's backlog now; resolves with how many saves were read. */
 	refreshCampaign: (campaign: string) => Promise<number>;
 	/** Works off every campaign's backlog, the most recently played first. */
@@ -221,6 +222,7 @@ export async function watchSaves(db: Db, root: string, opts: WatchOptions): Prom
 		stop: () => {
 			stopped = true;
 			clearInterval(timer);
+			return lock;
 		},
 		refreshCampaign,
 		catchUp,

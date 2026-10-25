@@ -45,6 +45,9 @@ type State = {
 	explanations?: Explanations;
 	mods?: ModInfo[];
 	watcher?: Watcher;
+	/** stops following game.log */
+	stopTail?: () => void;
+	catchUpTimer?: ReturnType<typeof setTimeout>;
 	/** The node of the save the player just loaded (the mod's `load` line), for the next observation. */
 	loadedFrom?: number | null;
 };
@@ -142,11 +145,28 @@ export async function configure(config: Config): Promise<{ restart: boolean }> {
  * start leaves the dashboard in `setup` with the reason, never a crashed server.
  */
 export function start(): Promise<void> {
+	// once per process: /setup starts again, and Vite re-imports this module
+	if (!process.listenerCount('sveltekit:shutdown')) process.once('sveltekit:shutdown', stop);
 	return (state.starting ??= run().catch((e: Error) => {
 		state.status = 'setup';
 		state.error = e.message;
 		console.error('cannot start:', e.message);
 	}));
+}
+
+/**
+ * The packaged launcher's shutdown (adapter-node's `sveltekit:shutdown`, emitted once the HTTP
+ * server is closed): lets a start-up and the save being read finish, then closes the DB, which
+ * folds the WAL back into it. Nothing is left running, so the process ends by itself.
+ */
+async function stop() {
+	await state.starting;
+	clearTimeout(state.catchUpTimer);
+	state.stopTail?.();
+	await state.watcher?.stop();
+	state.db?.close();
+	state.db = undefined;
+	console.log('stopped');
 }
 
 async function run() {
@@ -185,7 +205,7 @@ async function run() {
 		nodes(store).find((n) => n.id === head)?.date ?? null
 	);
 	state.status = 'running';
-	setTimeout(() => {
+	state.catchUpTimer = setTimeout(() => {
 		state.watcher
 			?.catchUp(caughtUp)
 			.then(() => console.log('every campaign is up to date'))
@@ -193,7 +213,7 @@ async function run() {
 	}, CATCH_UP_DELAY_MS);
 
 	if (gameLog) {
-		await tailLog(gameLog, {
+		state.stopTail = await tailLog(gameLog, {
 			onMonth: (m) => {
 				// game.log names no campaign; months belong to whatever is being played.
 				const campaign = headCampaign(store);

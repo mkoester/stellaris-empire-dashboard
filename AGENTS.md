@@ -109,6 +109,15 @@ without `ORIGIN` adapter-node 6 takes every request for `https`, and SvelteKit r
 app, `pnpm dev` never shows it. It marks each request `http` in a header named by `PROTOCOL_HEADER`,
 so 127.0.0.1, localhost and a LAN address (`--lan`) all work, and a foreign origin is still refused.
 
+**Stopping** (Ctrl+C, a closed window — SIGHUP on Windows, macOS and Linux — or a kill): the
+launcher closes its server and every connection (the event stream never goes idle), then emits
+adapter-node's `sveltekit:shutdown`; `stop()` in `app.ts` waits for a start-up and the save being
+read, stops the game.log tail and closes the DB, which folds the WAL back. Nothing keeps the
+process alive after that; it gives up after 5 s (Windows kills a closed console ~10 s later), a
+second Ctrl+C exits at once. A stop during start-up never serves. Checked 2026-10-25 on Linux with
+a built app and a DB copy (SIGINT/HUP/TERM: exit 0 in ~15 ms, no `-wal` left; the old launcher:
+exit 130, `-wal` left). **Not yet seen on Windows or a Mac.** `pnpm dev` is Vite's, unaffected.
+
 The version in the header and the zip names is `scripts/version.mjs` (decorated with git state;
 a commit tagged `v<version>` counts as a release, since CI builds from the detached tag).
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
