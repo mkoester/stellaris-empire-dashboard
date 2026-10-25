@@ -31,7 +31,7 @@ describe('parseLine', () => {
 
 	it('refuses an unknown date format and an unknown version', () => {
 		expect(() => parseLine('SDASH|1|1 March 2201|end')).toThrow(/date format/);
-		expect(() => parseLine('SDASH|3|2201.03.01|end')).toThrow(/format 3/);
+		expect(() => parseLine('SDASH|4|2201.03.01|end')).toThrow(/format 4/);
 	});
 
 	it('reads the format 2 lines', () => {
@@ -66,6 +66,28 @@ describe('parseLine', () => {
 				fields: ['Us', '1st Fleet', 'Them', 'Raiders', 'Sol']
 			}
 		});
+	});
+
+	it('reads format 3: format 2 behind a run id', () => {
+		// as mod 0.7.0 logs them; the run id only keeps a replayed date's lines from being dropped
+		expect(parseLine('SDASH|3|2202.08.01|314159|end')).toEqual({ kind: 'end', date: '2202.08.01' });
+		expect(parseLine('SDASH|3|2202.08.01|314159|energy|4208.46|182.38')).toEqual({
+			kind: 'resource',
+			date: '2202.08.01',
+			resource: 'energy',
+			stockpile: 4208.46,
+			income: 182.38
+		});
+		expect(parseLine('SDASH|3|2202.07.01|314159|load|579488')).toEqual({
+			kind: 'load',
+			date: '2202.07.01',
+			id: 579488
+		});
+		expect(parseLine('SDASH|3|2202.07.02|314159|tick-end')).toEqual({
+			kind: 'tick-end',
+			date: '2202.07.02'
+		});
+		expect(() => parseLine('SDASH|3|2202.08.01|314159')).toThrow(/malformed/);
 	});
 
 	it('reads the spending events, the edict without a field', () => {

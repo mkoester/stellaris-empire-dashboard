@@ -1,5 +1,5 @@
 # on_actions merge additively; vanilla's events keep firing. Every event here is hidden and logs
-# SDASH|2|… lines to game.log for src/lib/server/feed.ts. Scopes from 4.5.2 00_on_actions.txt.
+# SDASH|… lines to game.log for src/lib/server/feed.ts. Scopes from 4.5.2 00_on_actions.txt.
 
 # this = country
 on_monthly_pulse_country = {

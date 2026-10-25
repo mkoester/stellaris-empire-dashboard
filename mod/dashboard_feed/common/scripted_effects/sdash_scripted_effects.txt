@@ -1,5 +1,5 @@
 # Stockpile and monthly income of one resource into country variables sdash_s_<res> / sdash_i_<res>,
-# logged by events/sdash_events.txt as SDASH|2|<date>|<resource>|<stockpile>|<monthly income>.
+# logged by events/sdash_events.txt as SDASH|3|<date>|<run>|<resource>|<stockpile>|<monthly income>.
 # Parsed by src/lib/server/feed.ts — change both together, and bump the format number. Its storage
 # maximum (0.5.0) goes into sdash_m_<res>, read from the save only (src/lib/server/save.ts).
 sdash_export_resource = {
@@ -25,7 +25,7 @@ sdash_export_tradable_maximums = {
 	export_resource_maximum_to_variable = { resource = sr_dark_matter variable = sdash_m_sr_dark_matter }
 }
 
-# Stockpile only, for the daily tick: SDASH|2|<date>|tick|<resource>|<stockpile>.
+# Stockpile only, for the daily tick: SDASH|3|<date>|<run>|tick|<resource>|<stockpile>.
 sdash_export_stockpile = {
 	export_resource_stockpile_to_variable = { resource = $RES$ variable = sdash_s_$RES$ }
 }
@@ -41,27 +41,40 @@ sdash_roll_timeline = {
 	else = {
 		set_variable = { which = sdash_tl_prev value = 0 }
 	}
-	set_variable = { which = sdash_tl value = 0 }
-	sdash_timeline_digit = yes
-	sdash_timeline_digit = yes
-	sdash_timeline_digit = yes
-	sdash_timeline_digit = yes
-	sdash_timeline_digit = yes
-	sdash_timeline_digit = yes
+	sdash_random_id = { VAR = sdash_tl }
 }
 
-sdash_timeline_digit = {
-	multiply_variable = { which = sdash_tl value = 10 }
+# 0.7.0: a new random six-digit run id in sdash_run, drawn at each load (and at the start of a
+# game), which every month, tick and load line carries (log format 3). The game drops a log line
+# it has already written this session, so a branch replaying dates lost most of its lines (the
+# month's end, the ticks) and a second load of one save its load line; the random draws after a
+# load differ (checked 2026-10-25: one save loaded twice, the next month's timeline ids differed).
+sdash_roll_run = {
+	sdash_random_id = { VAR = sdash_run }
+}
+
+sdash_random_id = {
+	set_variable = { which = $VAR$ value = 0 }
+	sdash_random_digit = { VAR = $VAR$ }
+	sdash_random_digit = { VAR = $VAR$ }
+	sdash_random_digit = { VAR = $VAR$ }
+	sdash_random_digit = { VAR = $VAR$ }
+	sdash_random_digit = { VAR = $VAR$ }
+	sdash_random_digit = { VAR = $VAR$ }
+}
+
+sdash_random_digit = {
+	multiply_variable = { which = $VAR$ value = 10 }
 	random_list = {
 		10 = { }
-		10 = { change_variable = { which = sdash_tl value = 1 } }
-		10 = { change_variable = { which = sdash_tl value = 2 } }
-		10 = { change_variable = { which = sdash_tl value = 3 } }
-		10 = { change_variable = { which = sdash_tl value = 4 } }
-		10 = { change_variable = { which = sdash_tl value = 5 } }
-		10 = { change_variable = { which = sdash_tl value = 6 } }
-		10 = { change_variable = { which = sdash_tl value = 7 } }
-		10 = { change_variable = { which = sdash_tl value = 8 } }
-		10 = { change_variable = { which = sdash_tl value = 9 } }
+		10 = { change_variable = { which = $VAR$ value = 1 } }
+		10 = { change_variable = { which = $VAR$ value = 2 } }
+		10 = { change_variable = { which = $VAR$ value = 3 } }
+		10 = { change_variable = { which = $VAR$ value = 4 } }
+		10 = { change_variable = { which = $VAR$ value = 5 } }
+		10 = { change_variable = { which = $VAR$ value = 6 } }
+		10 = { change_variable = { which = $VAR$ value = 7 } }
+		10 = { change_variable = { which = $VAR$ value = 8 } }
+		10 = { change_variable = { which = $VAR$ value = 9 } }
 	}
 }

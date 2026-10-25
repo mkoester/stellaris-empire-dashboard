@@ -9,7 +9,10 @@ import type { LogEvent, Resources, Snapshot, Tick } from '#lib/types.ts';
 //   SDASH|2|<date>|tick|<resource>|<stockpile>  …  tick-end   daily stockpiles
 //   SDASH|2|<date>|load|<id>                                  a save was loaded (0: unknown id)
 //   SDASH|2|<date>|event|<kind>|<field>…                      at once (colony, war-started, …)
-// Format 1 (mod 0.1.0) had the monthly resource and end lines only.
+// Format 1 (mod 0.1.0) had the monthly resource and end lines only. Format 3 (mod 0.7.0) is format
+// 2 with a run id after the date on every line but events' — SDASH|3|<date>|<run>|end — drawn at
+// each load: the game drops a line it has already written this session, so without it a branch
+// replaying dates lost its month ends and ticks, and a second load of one save its load line.
 // game.log prefixes each line with "[time][file:line]: "; everything before "SDASH|" is ignored.
 
 export type Month = {
@@ -60,9 +63,12 @@ const EVENT_FIELDS: Record<LogEvent['kind'], number> = {
 export function parseLine(raw: string): Line | null {
 	const at = raw.indexOf('SDASH|');
 	if (at < 0) return null;
-	const [, version, rawDate, ...rest] = raw.slice(at).trim().split('|');
-	if (version !== '1' && version !== '2')
-		throw new Error(`unknown SDASH format ${version}: ${raw}`);
+	const [, format, rawDate, ...fields] = raw.slice(at).trim().split('|');
+	if (format !== '1' && format !== '2' && format !== '3')
+		throw new Error(`unknown SDASH format ${format}: ${raw}`);
+	// format 3: format 2 behind the run id, which only makes the line unique
+	const version = format === '3' ? '2' : format;
+	const rest = format === '3' ? fields.slice(1) : fields;
 	const date = gameDate(rawDate);
 	const bad = () => new Error(`malformed SDASH line: ${raw}`);
 	const num = (v: string | undefined) => {
