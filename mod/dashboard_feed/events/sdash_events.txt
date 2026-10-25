@@ -26,6 +26,9 @@ country_event = {
 			limit = { is_galactic_community_member = yes }
 			export_trigger_value_to_variable = { trigger = diplomacy_weight variable = sdash_dw }
 		}
+		# 0.6.0: our naval capacity, which the game does not save (only the used part) — into
+		# sdash_nc, read from the save only. Trigger from 4.5.2 triggers.log (country scope).
+		export_trigger_value_to_variable = { trigger = max_naval_capacity variable = sdash_nc }
 		# 0.5.0: storage — each resource's maximum, which the game does not save: ours with every
 		# resource (sdash_m_<res>, in sdash_export_resource), the tradable ones of every empire we
 		# talk to (their room in a trade). No log line. Effect from 4.5.2 effects.log.
