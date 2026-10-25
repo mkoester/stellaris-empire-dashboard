@@ -156,7 +156,7 @@ calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — d
 
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
 dev server ingests saves and moves the head). On the Linux game machine it lives in
-`~/.local/share/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
+`~/.local/share/stellaris-empire-dashboard/`, on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
@@ -167,6 +167,15 @@ page's `?node=`). A save-wide question (every colony across the history) is quic
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
 server modules that call `getGameData()`/`getExplanations()` — delete it after.
+
+**Replaying a live month** (what a player sees as the mod's line and then the autosave arrive):
+on the copy delete the nodes after the one to start from (`snapshot`, `node`, the later saves'
+`save_file` rows; `state.head`), give `STELLARIS_SAVE_DIR` a folder holding only the saves up to
+it and `STELLARIS_GAME_LOG` an empty file; once the server is up, append the month's `SDASH|2|…`
+lines (the real log's, or written from a snapshot's stockpile and balance — `parseLine()` needs
+only the `SDASH|` part), fetch `__data.json`, then copy the next autosave in and fetch again. The
+save merges into the log month's node (same id, same tip). 2026-10-25: every state rendered 200
+server-side; a browser-side error needs a browser, which the sandbox cannot start.
 
 **How it works:** `watch.ts` polls the save folder (first what changed since the last run, in mtime order — the head campaign's at once, the others' in the background — then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
