@@ -21,6 +21,18 @@ fluctuation may lag the screen.
 - **Do:** at the next autosave on the 1st, open the market with minerals and consumer goods.
 - **Send:** the screenshot and the date.
 
+### 4b. Cooldowns in Upcoming (2026-10-25)
+
+Upcoming dates when decisions, artifact actions and enclave deals are available again from the
+save's timed modifiers and flags (`AGENTS.md` → "Cooldowns and expiries"); none was running in
+the saves on disk, so no row of that kind has been seen yet. The government reform date is the
+save's `government_date` (both campaigns: 2220.07.21), marked ≈.
+
+- **Do:** in a throwaway game use an artifact action (Arcane Deciphering), enact a planet decision
+  with a cooldown, buy an enclave deal; save. Open the government screen's reform button.
+- **Send:** the save's date and tooltips of the greyed-out actions ("available in …"), and the
+  reform button's tooltip.
+
 ### 5. Trader enclave deal — trade tab
 
 The trade tab prices XuraCorp's exotic gases (and the Riggans' motes, Muutagan's crystals) from

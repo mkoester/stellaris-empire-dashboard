@@ -34,6 +34,8 @@ import {
 	shipCounts,
 	strata,
 	countryModifiers,
+	cooldowns,
+	timedFlags,
 	market,
 	marketOrders,
 	progress,
@@ -220,6 +222,7 @@ describe('toSnapshot', () => {
 				planetSize: 0,
 				deposits: [],
 				planet: { deposits: [], modifiers: [] },
+				timedFlags: [],
 				districts: 5,
 				districtList: [
 					{
@@ -333,6 +336,38 @@ describe('countryModifiers', () => {
 				date: '2200.01.01'
 			})
 		).toEqual([{ key: 'x', until: null }]);
+	});
+});
+
+describe('timedFlags', () => {
+	it('ends a timed flag after its days left; plain flags never end (2203.10.01)', () => {
+		const flags = {
+			first_contact_flag: 62808000,
+			superior_colonies_can_be_boosted: { flag_date: 62808000, flag_days: 2250 },
+			sdash_tick_alive: { flag_date: 62840400, flag_days: 3 }
+		};
+		expect(timedFlags(flags, '2203.10.01')).toEqual([
+			{ key: 'superior_colonies_can_be_boosted', until: '2210.01.01' },
+			{ key: 'sdash_tick_alive', until: '2203.10.04' }
+		]);
+		expect(timedFlags(undefined, '2203.10.01')).toEqual([]);
+	});
+});
+
+describe('cooldowns', () => {
+	it('keeps dates still ahead; "0.01.01" means never set', () => {
+		const country = {
+			government_date: '2220.07.21',
+			focus: { next_dismiss_date: '0.01.01', priority: { next_change_date: '2203.12.01' } }
+		};
+		expect(cooldowns({ country, date: '2203.10.01' })).toEqual({
+			reform: '2220.07.21',
+			focusDismiss: null,
+			focusChange: '2203.12.01'
+		});
+		expect(
+			cooldowns({ country: { government_date: '2200.01.01' }, date: '2203.10.01' }).reform
+		).toBe(null);
 	});
 });
 

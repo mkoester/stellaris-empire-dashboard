@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { parseTrigger } from '#lib/triggers.ts';
-import type { CapEffect, Costs, GameData } from '#lib/types.ts';
+import type { ActionKind, CapEffect, Costs, GameData } from '#lib/types.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -325,6 +325,11 @@ export function loadGameData(file: string): GameData {
 						outcomes: jsonList(r.outcomes_json)
 					}
 				])
+			),
+			actionTimers: actionTimers(
+				rows(
+					'SELECT timer_kind, timer_key, action_kind, action_key, action_name, role FROM action_timer ORDER BY action_kind, action_key'
+				)
 			),
 			anomalyCategories: Object.fromEntries(
 				rows<{
@@ -796,4 +801,26 @@ export function speciesRights(
 				allow: parseTrigger(r.allow_json)
 			}))
 	}));
+}
+
+/** Per timer (`modifier:<key>`, `flag:<key>`) the actions it belongs to, from `action_timer`. */
+export function actionTimers(
+	rows: {
+		timer_kind: string;
+		timer_key: string;
+		action_kind: string;
+		action_key: string;
+		action_name: string | null;
+		role: string;
+	}[]
+): GameData['actionTimers'] {
+	const out: GameData['actionTimers'] = {};
+	for (const r of rows)
+		(out[`${r.timer_kind}:${r.timer_key}`] ??= []).push({
+			kind: r.action_kind as ActionKind,
+			key: r.action_key,
+			name: r.action_name ?? r.action_key,
+			cooldown: r.role === 'cooldown'
+		});
+	return out;
 }

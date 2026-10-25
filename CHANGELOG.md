@@ -11,6 +11,10 @@ All notable changes to this project are documented here. The format follows
 - The species tab explains every right on hover: the game's tooltip and what it does to the
   species' pops.
 - Companion mod 0.6.0 stores the naval capacity, so the dashboard shows it as used / maximum.
+- Upcoming lists everything that runs out: when a decision, artifact action, astral action or
+  enclave deal is available again (the game does not announce it), timed empire and colony
+  modifiers, edicts and trade deals ending, the Galactic Community's recess, a focus change and a
+  government reform. Event timers no action names are a spoiler switch in ⚙.
 
 ### Fixed
 
@@ -21,6 +25,8 @@ All notable changes to this project are documented here. The format follows
   and the jobs tab.
 - The colony happiness chart had no values for our own pops: the save leaves 100 % out.
 - Slavery and purge types are listed only for species that are enslaved or purged.
+- Setup on Windows listed Steam's folder twice, once in lowercase (Steam's registry entry); folders
+  now count as one whatever their case. The Windows zip is confirmed on a real Windows machine.
 
 ## [0.1.1] - 2026-10-24
 

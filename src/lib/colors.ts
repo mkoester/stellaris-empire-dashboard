@@ -23,6 +23,8 @@ const COLORS: Record<string, string> = {
 	construction: '#d0403a', // built with minerals
 	ship: '#4f94b5', // civilian ships: the game's sensor blue
 	colonization: '#36a862', // a new world: the society green
+	cooldown: '#e0b02e', // something available again: the game's yellow (§Y)
+	expires: '#8a8f98', // an effect ending: muted
 	// milestones (#lib/milestones.ts) not covered above
 	system: '#4f94b5', // borders: sensor blue
 	colony: '#2e7d32',

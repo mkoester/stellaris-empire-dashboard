@@ -28,6 +28,7 @@ export type Colony = {
 	planetSize: number;
 	deposits: string[]; // deposit types on the planet, blockers included
 	planet: PlanetState | null; // null in older snapshots
+	timedFlags: TimedModifier[]; // the planet's timed flags (cooldowns of decisions …); since READER 21
 	buildQueue: QueueItem[];
 	buildSlots: number; // items the planet builds at once (queue `simultaneous`; >1 for wilderness, arkships, mods)
 	jobs: ColonyJob[];
@@ -328,6 +329,14 @@ export type Snapshot = {
 	civilianShips: CivilianShip[] | null; // science, construction, colony ships with their orders
 	edicts: string[] | null; // active edicts (keys)
 	countryModifiers: TimedModifier[] | null; // country.timed_modifier: empire-wide effects
+	countryTimedFlags: TimedModifier[] | null; // country.flags with an end (cooldowns, event timers); READER 21
+	// when a government reform, dismissing a focus card and changing the focus are possible again
+	// (null: now); READER 21
+	cooldowns: {
+		reform: string | null;
+		focusDismiss: string | null;
+		focusChange: string | null;
+	} | null;
 	species: SpeciesInfo[] | null; // species with pops in the empire
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
@@ -788,7 +797,16 @@ export type TimelineNode = {
 /** Base cost, upkeep and output of a thing the game builds (data DB, before modifiers). */
 export type Costs = { cost: Resources; upkeep: Resources; produces: Resources };
 
+/** What a player does that runs on a timer (data DB `action_timer.action_kind`). */
+export type ActionKind = 'decision' | 'artifact_action' | 'astral_action' | 'enclave';
+
 export type GameData = {
+	// per timed modifier or flag (`modifier:<key>`, `flag:<key>`): the actions that wait for it to
+	// end (`cooldown`) or only set it
+	actionTimers: Record<
+		string,
+		{ kind: ActionKind; key: string; name: string; cooldown: boolean }[]
+	>;
 	// module, starbaseBuilding: a starbase's modules and buildings
 	costs: Record<
 		'district' | 'ship' | 'building' | 'deposit' | 'module' | 'starbaseBuilding',

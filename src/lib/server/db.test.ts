@@ -46,6 +46,8 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	envoys: null,
 	marketOrders: [],
 	countryModifiers: null,
+	countryTimedFlags: null,
+	cooldowns: null,
 	market: null,
 	leaders: null,
 	ships: null,

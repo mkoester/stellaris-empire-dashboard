@@ -63,7 +63,10 @@ Flatpak, Snap), GOG (registry `GOG.com\Games\*\path`, `C:\GOG Games`, `~/GOG Gam
 Microsoft Store (`<drive>:\XboxGames\Stellaris\Content`); user folders from the real Documents
 folder (registry `User Shell Folders\Personal`, so OneDrive redirection counts), Linux native,
 Proton's `compatdata/281990` in every library, Wine prefixes. A folder counts only when it holds the
-game's files (`isGameDir`, `isUserDir`); user folders rank by newest save. **Not yet confirmed on a
+game's files (`isGameDir`, `isUserDir`); user folders rank by newest save. One entry per folder
+(`folderKey`): symlinks resolved, and on Windows and macOS case and separators folded — Steam keeps
+its registry `SteamPath` lowercase (`c:/program files (x86)/steam`), so Windows' first `/setup`
+(2026-10-25) listed Steam's folder twice; Windows shows the on-disk spelling (`realpathSync.native`). **Not yet confirmed on a
 real machine:** the Microsoft Store layout, GOG's registry key, Heroic/Lutris — players type the
 path when they are wrong. A machine moved from Proton to the native build keeps both user folders
 (`scripts/stellaris-native.sh`); ranking by newest save picks the one in play.
@@ -110,8 +113,9 @@ The version in the header and the zip names is `scripts/version.mjs` (decorated 
 a commit tagged `v<version>` counts as a release, since CI builds from the detached tag).
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
 which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
-creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. The Windows zip has not run on Windows yet — Wine cannot start in the
-sandbox (`wineserver` needs a writable `/tmp`).
+creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. The Windows zip
+ran on a real Windows machine (2026-10-25, the user); Wine cannot start in the sandbox
+(`wineserver` needs a writable `/tmp`).
 
 **One watcher per process.** `app.ts` keeps its state on `globalThis`: Vite re-imports server
 modules on edits, and a second watcher once re-read the saves, moved the head back and filed the
@@ -195,6 +199,23 @@ has every effect commented out — an energy shortage costs nothing directly. Ra
 branch's two latest saves, so every speed bonus counts — and costs are base costs from the data DB
 scaled by empire size and the galaxy sliders. Checked against the game at 2200.04.01: research
 53/71/108 months, tradition 2200.09.01 exact; the agenda is 164 vs. the game's 163 (rounding).
+
+**Cooldowns and expiries** (`expiries()`, the user's ask 2026-10-25: "track everything with a
+cooldown or that expires"; built in `branch()` next to `upcoming()`, as it names modifiers by
+their popup titles): every timed modifier and timed flag on the empire and its colonies
+(`countryModifiers`, `Colony.planet.modifiers`, `countryTimedFlags`, `Colony.timedFlags`), edicts
+with an end, trade deals (start + years), the GalCom recess (`galcom.nextVote`) and
+`Snapshot.cooldowns` (reform, focus dismiss and change). Decisions, artifact and astral actions and
+enclave deals keep their cooldown as a timed modifier (`arcane_deciphering_cooldown`, 720 days) or
+a timed flag (`curator_guidance_cooldown`); the data DB's `action_timer` names the actions waiting
+on each (`cooldown` rows: "<action> available again", ⚠ — the game does not announce it) and those
+that only set it ("ends", "from <action>"). **Timed flags**: `flag = { flag_date flag_days }`,
+`flag_days` = days left, `flag_date` the set date in hours (2200.01.01 = 62808000)
+(`timedFlags()`, READER 21). A flag no action names is an event chain's timer
+(`curator_clue_purchased`, 10–13 years at random): only with the `hiddenTimers` spoiler; `sdash_*`
+(the mod's own) never. Not read: a leader's `cooldown` (days, meaning unknown), the designation
+change date (only the AI has a cooldown, `AI_DESIGNATION_COOLDOWN`). The reform date
+(`government_date`) is marked ≈ until checked: two campaigns both read 2220.07.21.
 
 **Popups** (`InfoPopup.svelte`, `server/explain.ts`): traits, edicts, council agendas, techs,
 jobs, colony designations (`designation:`, data DB `colony_type`; `Designation.svelte` reads them

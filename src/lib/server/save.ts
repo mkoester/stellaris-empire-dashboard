@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '20'; // 20: happiness left out = 100 %, naval capacity from the mod
+export const READER = '21'; // 21: timed flags, reform and focus cooldowns
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -327,6 +327,8 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			.map((e) => e?.edict)
 			.filter((e) => typeof e === 'string'),
 		countryModifiers: countryModifiers(raw),
+		countryTimedFlags: timedFlags(raw.country?.flags, raw.date),
+		cooldowns: cooldowns(raw),
 		species: speciesInfo(raw),
 		sectors: sectors(raw),
 		expansion: expansion(raw, shipyardSystems(raw)),
@@ -583,6 +585,37 @@ function timedModifiers(block: Raw, date: string): TimedModifier[] {
 			key: m.modifier,
 			until: typeof m.days === 'number' && m.days > 0 ? addGameDays(date, m.days) : null
 		}));
+}
+
+/**
+ * Timed flags in a `flags` block (country or planet): `flag = { flag_date flag_days }` —
+ * `flag_date` is when it was set (hours: 2200.01.01 = 62808000, +24 a day), `flag_days` the days
+ * left (2203.10.01: `superior_colonies_can_be_boosted`, set 2200.01.01 for 3600 days, 2250 left).
+ * Plain flags (a number) never end.
+ */
+export function timedFlags(block: Raw, date: string): TimedModifier[] {
+	return Object.entries((block ?? {}) as Record<string, Raw>)
+		.filter(([, v]) => typeof v?.flag_days === 'number' && v.flag_days > 0)
+		.map(([key, v]) => ({ key, until: addGameDays(date, v.flag_days) }));
+}
+
+/**
+ * Dates the save holds for when something may be done again, if still ahead: a government reform
+ * (`country.government_date`, 20 years — GOVERNMENT_COOLDOWN_YEARS — after the last; 2200.01.01
+ * starts read 2220.01.01), dismissing a focus card (`focus.next_dismiss_date`, 360 days) and
+ * changing the focus priority (`focus.priority.next_change_date`, 360 days).
+ */
+export function cooldowns(raw: Pick<RawSave, 'country' | 'date'>) {
+	const ahead = (v: Raw) => {
+		const d = strOrNull(v);
+		return d && d > raw.date && !d.startsWith('0.') ? d : null;
+	};
+	const focus = raw.country?.focus;
+	return {
+		reform: ahead(raw.country?.government_date),
+		focusDismiss: ahead(focus?.next_dismiss_date),
+		focusChange: ahead(focus?.priority?.next_change_date)
+	};
 }
 
 /**
@@ -1461,6 +1494,7 @@ function playerColonies(raw: RawSave): Colony[] {
 				.map((d) => raw.deposits[String(d)]?.type)
 				.filter((d) => typeof d === 'string'),
 			planet: planet ? planetState(raw, planet) : null,
+			timedFlags: timedFlags(planet?.flags, raw.date),
 			buildQueue:
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
 			buildSlots:

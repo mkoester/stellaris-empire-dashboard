@@ -71,7 +71,10 @@
 			>(+{e.queuedAfter})</span
 		>{/if}{/snippet}
 {#snippet kind(e: Row)}<span class="whitespace-nowrap opacity-75"
-		>{#if e.act}<span title="the build slot runs idle then — the game sends no notification">⚠</span
+		>{#if e.act}<span
+				title={e.kind === 'cooldown'
+					? 'available again then — the game does not announce it'
+					: 'the build slot runs idle then — the game sends no notification'}>⚠</span
 			>{/if}
 		{e.sub ?? e.kind}</span
 	>{/snippet}

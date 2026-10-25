@@ -8,7 +8,8 @@ import type { QueueItem, Snapshot } from './types.ts';
 // included (research and agendas per month start, as both arrive monthly). Costs are base costs from the game data scaled by what the save knows
 // (empire size, galaxy cost sliders) — other cost modifiers are unknown, hence "estimated".
 
-import type { GameData } from './types.ts';
+import { pretty } from './format.ts';
+import type { ActionKind, Colony, GameData, TimedModifier } from './types.ts';
 export type { GameData };
 
 export type Upcoming = {
@@ -23,7 +24,9 @@ export type Upcoming = {
 		| 'ship'
 		| 'colonization'
 		| 'election'
-		| 'deficit';
+		| 'deficit'
+		| 'cooldown' // something may be done again
+		| 'expires'; // a timed effect ends
 	what: string;
 	detail: string;
 	exact: boolean; // false: estimated from costs the save does not hold
@@ -403,4 +406,169 @@ export function deficits(latest: Pick<Snapshot, 'date' | 'stockpile' | 'balance'
 			}
 		];
 	});
+}
+
+const ACTION_KINDS: Record<ActionKind, string> = {
+	decision: 'decision',
+	artifact_action: 'artifact action',
+	astral_action: 'astral action',
+	enclave: 'enclave'
+};
+
+/** "A, B, C +2 more" */
+const listed = (names: string[], max = 3) =>
+	names.slice(0, max).join(', ') + (names.length > max ? ` +${names.length - max} more` : '');
+
+/**
+ * Everything that ends on a date the save holds: timed modifiers and timed flags on the empire
+ * and its colonies, edicts with an end, trade deals, the Galactic Community's recess, and when a
+ * government reform or a focus change is possible again. A timer an action waits on (data DB
+ * `action_timer`: decisions, artifact and astral actions, enclave deals) is a `cooldown` row
+ * naming what becomes available — the game does not announce that (`act`); the rest are
+ * `expires` rows. A timed flag no action names is an event's internal timer (`curator_clue_purchased`:
+ * 10–13 years at random) — a spoiler, only with `hiddenTimers`. All exact: the save's own dates.
+ * `title`: a popup's title (`modifier:<key>`, `edict:<key>`).
+ */
+export function expiries(
+	latest: Pick<
+		Snapshot,
+		| 'date'
+		| 'colonies'
+		| 'countryModifiers'
+		| 'countryTimedFlags'
+		| 'cooldowns'
+		| 'edictTimes'
+		| 'tradeDeals'
+		| 'galcom'
+	>,
+	data: Pick<GameData, 'actionTimers'>,
+	title: (ref: string) => string | undefined = () => undefined,
+	hiddenTimers = false
+): Upcoming[] {
+	const now = latest.date;
+	const row = (date: string, r: Omit<Upcoming, 'date' | 'months' | 'exact'>): Upcoming => ({
+		date,
+		months: Math.max(0, monthsBetween(now, date)),
+		exact: true,
+		...r
+	});
+	const out: Upcoming[] = [];
+
+	type Timer = TimedModifier & { kind: 'modifier' | 'flag'; colony?: Colony };
+	const timers: Timer[] = [
+		...(latest.countryModifiers ?? []).map((m) => ({ ...m, kind: 'modifier' as const })),
+		...(latest.countryTimedFlags ?? []).map((m) => ({ ...m, kind: 'flag' as const })),
+		...latest.colonies.flatMap((colony) => [
+			...(colony.planet?.modifiers ?? []).map((m) => ({ ...m, kind: 'modifier' as const, colony })),
+			...colony.timedFlags.map((m) => ({ ...m, kind: 'flag' as const, colony }))
+		])
+	];
+	for (const t of timers) {
+		// sdash_*: the companion mod's own (its daily tick)
+		if (!t.until || t.until <= now || t.key.startsWith('sdash_')) continue;
+		const actions = data.actionTimers[`${t.kind}:${t.key}`] ?? [];
+		const waiting = [...new Set(actions.filter((a) => a.cooldown).map((a) => a.name))];
+		const from = [...new Set(actions.filter((a) => !a.cooldown).map((a) => a.name))];
+		if (t.kind === 'flag' && actions.length === 0 && !hiddenTimers) continue;
+		const where = t.colony ? `${t.colony.name} · ` : '';
+		const name =
+			t.kind === 'modifier'
+				? (title(`modifier:${t.key}`) ?? pretty(t.key))
+				: (waiting[0] ?? from[0] ?? pretty(t.key));
+		const sub = actions[0]
+			? ACTION_KINDS[actions[0].kind]
+			: t.kind === 'flag'
+				? 'timer'
+				: undefined;
+		out.push(
+			row(t.until, {
+				kind: waiting.length ? 'cooldown' : 'expires',
+				sub,
+				what: waiting.length
+					? `${t.kind === 'modifier' ? listed(waiting) : name} available again`
+					: `${name} ends`,
+				detail:
+					where +
+					(waiting.length
+						? t.kind === 'modifier'
+							? name
+							: listed(waiting.slice(1)) || 'cooldown'
+						: from.length
+							? `from ${listed(from)}`
+							: t.kind === 'flag'
+								? 'event timer (spoiler)'
+								: ''),
+				tint: waiting.length ? 'cooldown' : 'expires',
+				ref: t.kind === 'modifier' ? `modifier:${t.key}` : undefined,
+				act: waiting.length > 0,
+				planetId: t.colony?.planetId
+			})
+		);
+	}
+
+	const c = latest.cooldowns;
+	// The reform date is the save's `government_date` read as "possible from" — not yet checked in
+	// game (2026-10-25: two campaigns both read 2220.07.21), so it is marked estimated.
+	const again: [string | null | undefined, string, string, boolean][] = [
+		[c?.reform, 'Government reform', 'government · not yet checked in game', false],
+		[c?.focusDismiss, 'Dismiss a focus card', 'focus', true],
+		[c?.focusChange, 'Change the focus priority', 'focus', true]
+	];
+	for (const [date, what, detail, exact] of again)
+		if (date && date > now)
+			out.push({
+				...row(date, {
+					kind: 'cooldown',
+					what: `${what} possible`,
+					detail,
+					tint: 'cooldown',
+					act: true
+				}),
+				exact
+			});
+
+	for (const e of latest.edictTimes ?? [])
+		if (e.end && e.end > now)
+			out.push(
+				row(e.end, {
+					kind: 'expires',
+					sub: 'edict',
+					what: `${title(`edict:${e.key}`) ?? pretty(e.key)} ends`,
+					detail: 'edict',
+					tint: 'expires',
+					ref: `edict:${e.key}`,
+					act: false
+				})
+			);
+
+	for (const d of latest.tradeDeals ?? []) {
+		if (!d.start || d.years === null) continue;
+		const end = fromDays(toDays(d.start) + d.years * 360);
+		if (end > now)
+			out.push(
+				row(end, {
+					kind: 'expires',
+					sub: 'trade deal',
+					what: `Trade deal with ${d.partner} ends`,
+					detail: `${d.years} years from ${d.start}`,
+					tint: 'trade-deal',
+					act: false
+				})
+			);
+	}
+
+	const recess = latest.galcom?.nextVote;
+	if (recess && recess > now)
+		out.push(
+			row(recess, {
+				kind: 'expires',
+				sub: 'galcom',
+				what: 'Galactic Community recess ends',
+				detail: 'the next resolution goes to the vote',
+				tint: 'galcom',
+				act: false
+			})
+		);
+
+	return out;
 }

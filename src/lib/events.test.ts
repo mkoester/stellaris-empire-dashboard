@@ -4,6 +4,7 @@ import {
 	researchTicks,
 	techCostFactor,
 	deficits,
+	expiries,
 	fromDays,
 	monthTicks,
 	scheduleQueue,
@@ -31,6 +32,7 @@ const data: GameData = {
 	situationTypes: {},
 	projects: {},
 	anomalyCategories: {},
+	actionTimers: {},
 	councilPositions: {},
 	depositCategories: {},
 	prescriptedNames: {},
@@ -374,5 +376,146 @@ describe('deficits', () => {
 			['energy runs out', '2208.08.01', 4, true],
 			['minerals in deficit', '2208.04.01', 0, true]
 		]);
+	});
+});
+
+describe('expiries', () => {
+	// timers as the 4.5.2 game files set them: Arcane Deciphering waits on its cooldown modifier,
+	// the curator's guidance on a timed flag, a Xuran deal blocks the other Xuran deals
+	const timers: Pick<GameData, 'actionTimers'> = {
+		actionTimers: {
+			'modifier:arcane_deciphering_cooldown': [
+				{
+					kind: 'artifact_action',
+					key: 'artifact_arcane_deciphering',
+					name: 'Reverse-Engineer Arcane Technology',
+					cooldown: true
+				}
+			],
+			'flag:curator_guidance_cooldown': [
+				{
+					kind: 'enclave',
+					key: 'leviathans.500.l',
+					name: 'Point us towards interesting systems',
+					cooldown: true
+				}
+			],
+			'modifier:enclave_trade_1_xur': [
+				{ kind: 'enclave', key: 'leviathans.130.a', name: '1 Exotic Gases', cooldown: false },
+				{ kind: 'enclave', key: 'leviathans.130.d', name: '4 Exotic Gases', cooldown: true }
+			]
+		}
+	};
+	const base = {
+		date: '2210.01.01',
+		colonies: [],
+		countryModifiers: null,
+		countryTimedFlags: null,
+		cooldowns: null,
+		edictTimes: null,
+		tradeDeals: null,
+		galcom: null
+	};
+	const titles: Record<string, string> = { 'modifier:enclave_trade_1_xur': 'Xuran Deal' };
+	const title = (ref: string) => titles[ref];
+
+	it('names what becomes available again, and what an effect came from', () => {
+		const rows = expiries(
+			{
+				...base,
+				countryModifiers: [
+					{ key: 'arcane_deciphering_cooldown', until: '2211.01.01' },
+					{ key: 'enclave_trade_1_xur', until: '2220.01.01' },
+					{ key: 'celebrate_diversity', until: '2215.06.01' },
+					{ key: 'galactic_market_founder', until: null },
+					{ key: 'gone', until: '2209.01.01' }
+				],
+				countryTimedFlags: [{ key: 'curator_guidance_cooldown', until: '2210.07.01' }]
+			},
+			timers,
+			title
+		);
+		expect(rows.map((r) => [r.kind, r.sub, r.what, r.detail, r.act])).toEqual([
+			[
+				'cooldown',
+				'artifact action',
+				'Reverse-Engineer Arcane Technology available again',
+				'arcane deciphering cooldown',
+				true
+			],
+			['cooldown', 'enclave', '4 Exotic Gases available again', 'Xuran Deal', true],
+			['expires', undefined, 'celebrate diversity ends', '', false],
+			[
+				'cooldown',
+				'enclave',
+				'Point us towards interesting systems available again',
+				'cooldown',
+				true
+			]
+		]);
+		expect(rows[1].ref).toBe('modifier:enclave_trade_1_xur');
+		expect(rows[3]).toMatchObject({ date: '2210.07.01', months: 6, exact: true });
+	});
+
+	it('shows an unnamed timed flag only with the spoiler switch', () => {
+		const s = {
+			...base,
+			countryTimedFlags: [{ key: 'curator_clue_purchased', until: '2220.01.01' }]
+		};
+		expect(expiries(s, timers, title)).toEqual([]);
+		// the companion mod's own tick flag never shows
+		const tick = { ...base, countryTimedFlags: [{ key: 'sdash_tick_alive', until: '2210.01.04' }] };
+		expect(expiries(tick, timers, title, true)).toEqual([]);
+		expect(expiries(s, timers, title, true)).toMatchObject([
+			{
+				kind: 'expires',
+				sub: 'timer',
+				what: 'curator clue purchased ends',
+				detail: 'event timer (spoiler)'
+			}
+		]);
+	});
+
+	it('links a colony’s timer to it', () => {
+		const colony = {
+			planetId: 7,
+			name: 'Earth',
+			planet: {
+				deposits: [],
+				modifiers: [{ key: 'arcane_deciphering_cooldown', until: '2211.01.01' }]
+			},
+			timedFlags: []
+		};
+		const [r] = expiries({ ...base, colonies: [colony] } as unknown as typeof base, timers, title);
+		expect(r).toMatchObject({ planetId: 7, kind: 'cooldown' });
+		expect(r.detail.startsWith('Earth · ')).toBe(true);
+	});
+
+	it('reform, focus, edicts, trade deals and the GalCom recess', () => {
+		const rows = expiries(
+			{
+				...base,
+				cooldowns: { reform: '2220.01.01', focusDismiss: null, focusChange: '2210.06.01' },
+				edictTimes: [
+					{ key: 'map_the_stars', start: '2209.01.01', end: '2211.01.01' },
+					{ key: 'perpetual', start: null, end: null }
+				],
+				tradeDeals: [
+					{ id: '1', partner: 'Lahtrepian', start: '2205.03.08', years: 10 } as never,
+					{ id: '2', partner: 'Old', start: '2195.01.01', years: 10 } as never
+				],
+				galcom: { nextVote: '2210.03.01' } as never
+			},
+			timers,
+			title
+		);
+		expect(rows.map((r) => [r.what, r.date])).toEqual([
+			['Government reform possible', '2220.01.01'],
+			['Change the focus priority possible', '2210.06.01'],
+			['map the stars ends', '2211.01.01'],
+			['Trade deal with Lahtrepian ends', '2215.03.08'],
+			['Galactic Community recess ends', '2210.03.01']
+		]);
+		expect(rows[0].exact).toBe(false); // the reform date is not checked in game yet
 	});
 });
