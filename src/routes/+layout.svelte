@@ -294,6 +294,18 @@
 				<button class="rounded border px-2" onclick={() => (waved = loaded.node)}>not now</button>
 			</p>
 		{/if}
+		{#if data.feed}
+			<p class="mb-2 rounded border border-amber-400 px-3 py-1 text-sm">
+				The companion mod (Empire Dashboard Feed) writes log format {data.feed.format}; this
+				dashboard reads formats {data.feed.min}–{data.feed.max}. Its lines are skipped and the
+				dashboard works from the saves alone, as without the mod —
+				{#if data.feed.newer}
+					update the dashboard to read them.
+				{:else}
+					update the mod (Steam Workshop or Paradox Mods) to read them.
+				{/if}
+			</p>
+		{/if}
 		{#each data.gone as c (c.campaign)}
 			<p
 				class="mb-2 flex flex-wrap items-center gap-2 rounded border border-amber-400 px-3 py-1 text-sm"

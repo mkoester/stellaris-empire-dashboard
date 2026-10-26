@@ -37,6 +37,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- A companion mod newer (or older) than the dashboard no longer causes errors: its lines are
+  skipped, the dashboard works from the saves as without the mod, and a banner says which of the
+  two to update.
 - A page showing the save being played by its link (`?node=`, e.g. after switching games) went on
   following the game only until the next save; it now keeps following.
 - Going back in time to the month before the newest one put the new branch's first month on the

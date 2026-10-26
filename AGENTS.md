@@ -816,6 +816,14 @@ that rests on an estimate with **≈** (the dashboard's mark, as on the galcom t
 tooltip what is estimated and which mod version stores the game's value, and drop the ≈ once the
 value is exact. A new mod feature without its fallback is not done.
 
+**The dashboard must work without the mod, and no mod version may break it** (the user's rule,
+2026-10-26). Players update the two separately — a Workshop subscription updates itself, a zip
+does not. So `feed.ts` reads the formats in `FEED_FORMATS` and **skips any other** (an outdated
+mod's, or one newer than the build) instead of failing; the layout then names the format and which
+side to update (`unsupportedFeed()`, until a month is read). Released 0.1.1 still threw per line
+on format 3: **upload a mod with a new format only after the dashboard reading it is released.**
+Drop an old format by raising `FEED_FORMATS.min`, never by erroring.
+
 Hidden events write `game.log` lines for human players, `SDASH|2|<date>|…` (format 2 since mod
 0.2.0; `feed.ts` still reads format 1's monthly lines). **Format 3 (mod 0.7.0)** puts a run id after
 the date of every month, tick and load line (`SDASH|3|<date>|<run>|end`), drawn at each load

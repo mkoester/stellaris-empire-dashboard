@@ -29,9 +29,22 @@ describe('parseLine', () => {
 		expect(() => parseLine('SDASH|1|2201.03.01|energy|1.2K|3')).toThrow(/malformed/);
 	});
 
-	it('refuses an unknown date format and an unknown version', () => {
+	it('refuses an unknown date format and a format that is no number', () => {
 		expect(() => parseLine('SDASH|1|1 March 2201|end')).toThrow(/date format/);
-		expect(() => parseLine('SDASH|4|2201.03.01|end')).toThrow(/format 4/);
+		expect(() => parseLine('SDASH|x|2201.03.01|end')).toThrow(/malformed/);
+	});
+
+	it('skips a format it does not read, whatever the line holds, and says which side is ahead', () => {
+		expect(parseLine('SDASH|4|2201.03.01|anything|new')).toEqual({
+			kind: 'unsupported',
+			format: 4,
+			newer: true
+		});
+		expect(parseLine('SDASH|0|not a date')).toEqual({
+			kind: 'unsupported',
+			format: 0,
+			newer: false
+		});
 	});
 
 	it('reads the format 2 lines', () => {
@@ -236,6 +249,41 @@ describe('tailLog', () => {
 			);
 			await until(() => months.length === 2);
 			expect(months[1].stockpile).toEqual({ energy: 7 });
+			expect(errors).toEqual([]);
+		} finally {
+			stop();
+		}
+	});
+
+	it('reads on past a newer mod’s lines, reporting them instead of failing', async () => {
+		const file = join(mkdtempSync(join(tmpdir(), 'log-')), 'game.log');
+		writeFileSync(file, '');
+		const months: Month[] = [];
+		const unsupported: unknown[] = [];
+		const errors: unknown[] = [];
+		const stop = await tailLog(file, {
+			onMonth: (m) => months.push(m),
+			onUnsupported: (f) => unsupported.push(f),
+			onError: (e) => errors.push(e),
+			intervalMs: 20
+		});
+		try {
+			appendFileSync(
+				file,
+				[
+					'SDASH|9|2200.02.01|run|energy|5|1|whatever',
+					'SDASH|9|2200.02.01|run|end',
+					'SDASH|3|2200.02.01|77|energy|5|1',
+					'SDASH|3|2200.02.01|77|end',
+					''
+				].join('\n')
+			);
+			await until(() => months.length === 1);
+			expect(months[0].stockpile).toEqual({ energy: 5 });
+			expect(unsupported).toEqual([
+				{ kind: 'unsupported', format: 9, newer: true },
+				{ kind: 'unsupported', format: 9, newer: true }
+			]);
 			expect(errors).toEqual([]);
 		} finally {
 			stop();

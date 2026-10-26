@@ -16,7 +16,7 @@ import {
 } from './db.ts';
 import { trackedMods } from '#lib/addons.ts';
 import type { GameData, ModInfo, Tick } from '#lib/types.ts';
-import { tailLog, toLogSnapshot } from './feed.ts';
+import { tailLog, toLogSnapshot, type FeedFormat } from './feed.ts';
 import { loadGameData } from './gamedata.ts';
 import { READER, setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
@@ -50,6 +50,8 @@ type State = {
 	catchUpTimer?: ReturnType<typeof setTimeout>;
 	/** The node of the save the player just loaded (the mod's `load` line), for the next observation. */
 	loadedFrom?: number | null;
+	/** The companion mod writes a log format this build does not read (until a month is read). */
+	feedFormat?: FeedFormat;
 };
 const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
 const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter(), status: 'setup' });
@@ -80,6 +82,16 @@ export function getDb(): Db {
 /** The loaded save's node, once: the observation after a load is its child. */
 /** The save just loaded in game, until the next observation switches to its branch. */
 export const pendingLoad = (): number | null => state.loadedFrom ?? null;
+
+/** A log format of the companion mod this build skips, for the layout's banner. */
+export const unsupportedFeed = (): FeedFormat | null => state.feedFormat ?? null;
+
+function setFeedFormat(f: FeedFormat | undefined) {
+	if (f?.format === state.feedFormat?.format) return;
+	state.feedFormat = f;
+	if (f) console.warn(`game.log: companion mod log format ${f.format} is not read by this build`);
+	updates.emit('update', 'refreshed'); // open pages show or drop the banner
+}
 
 function takeLoaded(): number | null {
 	const id = state.loadedFrom ?? null;
@@ -215,6 +227,7 @@ async function run() {
 	if (gameLog) {
 		state.stopTail = await tailLog(gameLog, {
 			onMonth: (m) => {
+				setFeedFormat(undefined);
 				// game.log names no campaign; months belong to whatever is being played.
 				const campaign = headCampaign(store);
 				if (campaign === null) return console.warn(`mod month ${m.date} before any save; skipped`);
@@ -234,6 +247,7 @@ async function run() {
 				// open pages ask whether to show it now (the layout's `loaded`)
 				if (state.loadedFrom !== null) updates.emit('loaded');
 			},
+			onUnsupported: (f) => setFeedFormat({ format: f.format, newer: f.newer }),
 			onError: (e) => console.error('game.log:', e)
 		});
 	}

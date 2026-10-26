@@ -14,6 +14,8 @@ import type { LogEvent, Resources, Snapshot, Tick } from '#lib/types.ts';
 // each load: the game drops a line it has already written this session, so without it a branch
 // replaying dates lost its month ends and ticks, and a second load of one save its load line.
 // game.log prefixes each line with "[time][file:line]: "; everything before "SDASH|" is ignored.
+// A format outside FEED_FORMATS (an outdated mod, or one newer than this build) is skipped and
+// reported, never an error: the dashboard works without the mod, and no mod may break it.
 
 export type Month = {
 	date: string;
@@ -25,6 +27,12 @@ export type Month = {
 	ticks: Tick[];
 };
 
+/** The log formats this build reads. */
+export const FEED_FORMATS = { min: 1, max: 3 };
+
+/** A format this build does not read, from the oldest seen: `newer` = the mod is ahead. */
+export type FeedFormat = { format: number; newer: boolean };
+
 export type Line =
 	| { kind: 'resource'; date: string; resource: string; stockpile: number; income: number }
 	| { kind: 'end'; date: string }
@@ -32,13 +40,15 @@ export type Line =
 	| { kind: 'tick'; date: string; resource: string; stockpile: number }
 	| { kind: 'tick-end'; date: string }
 	| { kind: 'load'; date: string; id: number | null }
-	| { kind: 'event'; event: LogEvent };
+	| { kind: 'event'; event: LogEvent }
+	| ({ kind: 'unsupported' } & FeedFormat);
 
 /** What the log tells, line by line: a complete month, a day's stockpiles, a save loaded. */
 export type Output =
 	| { kind: 'month'; month: Month }
 	| { kind: 'tick'; tick: Tick }
-	| { kind: 'load'; date: string; id: number | null };
+	| { kind: 'load'; date: string; id: number | null }
+	| ({ kind: 'unsupported' } & FeedFormat);
 
 const EVENT_FIELDS: Record<LogEvent['kind'], number> = {
 	colony: 1, // planet
@@ -59,13 +69,18 @@ const EVENT_FIELDS: Record<LogEvent['kind'], number> = {
 	'megastructure-started': 1 // system
 };
 
-/** Parses one log line; null for unrelated lines, throws on a malformed SDASH line. */
+/**
+ * Parses one log line; null for unrelated lines, `unsupported` for a format this build does not
+ * read, throws on a malformed SDASH line.
+ */
 export function parseLine(raw: string): Line | null {
 	const at = raw.indexOf('SDASH|');
 	if (at < 0) return null;
 	const [, format, rawDate, ...fields] = raw.slice(at).trim().split('|');
-	if (format !== '1' && format !== '2' && format !== '3')
-		throw new Error(`unknown SDASH format ${format}: ${raw}`);
+	if (!/^\d+$/.test(format)) throw new Error(`malformed SDASH line: ${raw}`);
+	const n = Number(format);
+	if (n < FEED_FORMATS.min || n > FEED_FORMATS.max)
+		return { kind: 'unsupported', format: n, newer: n > FEED_FORMATS.max };
 	// format 3: format 2 behind the run id, which only makes the line unique
 	const version = format === '3' ? '2' : format;
 	const rest = format === '3' ? fields.slice(1) : fields;
@@ -170,6 +185,8 @@ export function assembler() {
 				events = [];
 				ticks = [];
 				return { kind: 'load', date: line.date, id: line.id };
+			case 'unsupported':
+				return line;
 		}
 	};
 }
@@ -290,6 +307,8 @@ export type TailOptions = {
 	onMonth: (m: Month) => void;
 	onTick?: (t: Tick) => void;
 	onLoad?: (date: string, id: number | null) => void;
+	/** a line in a format this build does not read (skipped) */
+	onUnsupported?: (f: FeedFormat) => void;
 	onError: (e: unknown) => void;
 	intervalMs?: number;
 };
@@ -329,6 +348,7 @@ export async function tailLog(file: string, opts: TailOptions): Promise<() => vo
 						if (out?.kind === 'month') opts.onMonth(out.month);
 						else if (out?.kind === 'tick') opts.onTick?.(out.tick);
 						else if (out?.kind === 'load') opts.onLoad?.(out.date, out.id);
+						else if (out?.kind === 'unsupported') opts.onUnsupported?.(out);
 					} catch (e) {
 						opts.onError(e);
 					}

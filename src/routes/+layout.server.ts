@@ -1,4 +1,12 @@
-import { campaignsOnDisk, getDb, pendingLoad, refreshCampaign, status } from '#lib/server/app.ts';
+import {
+	campaignsOnDisk,
+	getDb,
+	pendingLoad,
+	refreshCampaign,
+	status,
+	unsupportedFeed
+} from '#lib/server/app.ts';
+import { FEED_FORMATS } from '#lib/server/feed.ts';
 import { askGone } from '#lib/server/campaigns.ts';
 import { campaignName, headCampaign, headId, nodes } from '#lib/server/db.ts';
 import {
@@ -26,6 +34,7 @@ export function load() {
 			gone: [],
 			tradeoffs: false,
 			loaded: null,
+			feed: null,
 			head: null
 		};
 	const db = getDb();
@@ -54,6 +63,11 @@ export function load() {
 		// the exploratory trade-offs tab, a display switch
 		tradeoffs: display().tradeoffs,
 		loaded: loadedNode ? { node: loadedNode.id, date: loadedNode.date } : null,
+		// the companion mod writes a log format this build skips: which side to update
+		feed: (() => {
+			const f = unsupportedFeed();
+			return f && { ...f, ...FEED_FORMATS };
+		})(),
 		// the save being played, so a page pinned to it keeps following the game
 		head: headId(db)
 	};
