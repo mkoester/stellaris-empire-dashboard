@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { getDb } from '#lib/server/app.ts';
-import { headId, nodes, setParent } from '#lib/server/db.ts';
+import { campaignName, headId, nodes, setParent } from '#lib/server/db.ts';
+import { viewedCampaign } from '#lib/server/settings.ts';
 import type { TimelineNode } from '#lib/types.ts';
 
 export type Row = TimelineNode & { depth: number };
@@ -22,9 +23,15 @@ function rows(all: TimelineNode[]): Row[] {
 	return out;
 }
 
+// The viewed campaign's saves only: the one being played, or the one picked in the tab bar.
 export function load() {
 	const db = getDb();
-	return { rows: rows(nodes(db)), head: headId(db) };
+	const campaign = viewedCampaign(db);
+	return {
+		rows: rows(nodes(db).filter((n) => n.campaign === campaign)),
+		head: headId(db),
+		name: campaign === null ? null : campaignName(db, campaign) || campaign
+	};
 }
 
 export const actions = {

@@ -28,6 +28,7 @@ export type Colony = {
 	planetSize: number;
 	deposits: string[]; // deposit types on the planet, blockers included
 	planet: PlanetState | null; // null in older snapshots
+	timedFlags: TimedModifier[]; // the planet's timed flags (cooldowns of decisions …); since READER 21
 	buildQueue: QueueItem[];
 	buildSlots: number; // items the planet builds at once (queue `simultaneous`; >1 for wilderness, arkships, mods)
 	jobs: ColonyJob[];
@@ -56,7 +57,13 @@ export type Score = {
 	military: number;
 };
 
-export type Fleet = { name: string; ships: number; power: number; route: Route };
+export type Fleet = {
+	fleetId?: number; // absent before READER 22
+	name: string;
+	ships: number;
+	power: number;
+	route: Route;
+};
 
 /**
  * Where a fleet is and which systems its orders take it to (current order first, then the queue),
@@ -297,11 +304,12 @@ export type Snapshot = {
 	colonies: Colony[];
 	/** Year the end game starts (galaxy setting); null from the mod feed, which does not know it. */
 	endGameYear: number | null;
-	// Top-bar counters; null from the mod feed. Their caps' counterparts that the save does not
-	// store (naval capacity, envoy slots) are computed by the game and not available here.
+	// Top-bar counters; null from the mod feed. The save does not store the naval capacity:
+	// companion mod 0.6.0 exports it (`sdash_nc`), else null. Envoy slots are not available.
 	empireSize: number | null;
 	starbases: { used: number; capacity: number } | null;
 	navalUsed: number | null;
+	navalMax: number | null;
 	envoys: { used: number; total: number } | null;
 	marketOrders: MarketOrder[]; // standing monthly buy/sell orders
 	market: Market | null; // null from the mod feed and in older snapshots
@@ -327,6 +335,18 @@ export type Snapshot = {
 	civilianShips: CivilianShip[] | null; // science, construction, colony ships with their orders
 	edicts: string[] | null; // active edicts (keys)
 	countryModifiers: TimedModifier[] | null; // country.timed_modifier: empire-wide effects
+	countryTimedFlags: TimedModifier[] | null; // country.flags with an end (cooldowns, event timers); READER 21
+	// when a government reform, dismissing a focus card and changing the focus are possible again
+	// (null: now); READER 21. Moving the capital, each species right changed and each empire
+	// insulted: READER 23
+	cooldowns: {
+		reform: string | null;
+		focusDismiss: string | null;
+		focusChange: string | null;
+		capital?: string | null;
+		rights?: { species: string; right: string; until: string }[];
+		insults?: { country: string; until: string }[];
+	} | null;
 	species: SpeciesInfo[] | null; // species with pops in the empire
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
@@ -571,7 +591,8 @@ export type FirstContact = {
 	leaderId: number | null; // the envoy on it
 	leaderName: string | null;
 	date: string; // discovered
-	daysLeft: number | null;
+	daysLeft: number | null; // to the envoy's next roll
+	lastRoll?: number | null; // `last_roll`; absent before READER 22
 	difficulty: number;
 	clues: number;
 	stage: string;
@@ -601,7 +622,8 @@ export type DigSite = {
 	systemId: number | null;
 	clues: number;
 	difficulty: number;
-	daysLeft: number | null;
+	daysLeft: number | null; // to the excavation's next roll
+	lastRoll?: number | null; // `last_roll`; absent before READER 22
 	excavating: boolean;
 };
 
@@ -787,7 +809,23 @@ export type TimelineNode = {
 /** Base cost, upkeep and output of a thing the game builds (data DB, before modifiers). */
 export type Costs = { cost: Resources; upkeep: Resources; produces: Resources };
 
+/** What a player does that runs on a timer (data DB `action_timer.action_kind`). */
+export type ActionKind =
+	| 'decision'
+	| 'artifact_action'
+	| 'astral_action'
+	| 'relic'
+	| 'diplomatic_action'
+	| 'federation_law'
+	| 'enclave';
+
 export type GameData = {
+	// per timed modifier or flag (`modifier:<key>`, `flag:<key>`): the actions that wait for it to
+	// end (`cooldown`), whose effect only sets it again once it has ended (`bonus`), or only set it
+	actionTimers: Record<
+		string,
+		{ kind: ActionKind; key: string; name: string; cooldown: boolean; bonus?: boolean }[]
+	>;
 	// module, starbaseBuilding: a starbase's modules and buildings
 	costs: Record<
 		'district' | 'ship' | 'building' | 'deposit' | 'module' | 'starbaseBuilding',
@@ -958,7 +996,15 @@ export type GameData = {
 	// species rights per kind, in the game's order, each with its options
 	speciesRights: {
 		kind: string;
-		options: { key: string; name: string; potential: Trigger | null; allow: Trigger | null }[];
+		options: {
+			key: string;
+			name: string;
+			// a citizenship whose species takes a slavery / purge type (the types do nothing otherwise)
+			isSlavery: boolean;
+			isPurge: boolean;
+			potential: Trigger | null;
+			allow: Trigger | null;
+		}[];
 	}[];
 	// `councilor_skill_add` by source: `tradition:` (traditions, edicts, policy options, agendas'
 	// `#finish`), `civic:`, `modifier:` (static modifiers)

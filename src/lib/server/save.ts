@@ -265,7 +265,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '19'; // 19: species name templates ("Trans-Yorphid")
+export const READER = '23'; // 23: capital, rights and insult cooldowns (22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -292,6 +292,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 				? { used: num(raw.country.starbase_capacity_used), capacity: raw.country.starbase_capacity }
 				: null,
 		navalUsed: numOrNull(raw.country?.used_naval_capacity),
+		navalMax: numOrNull(raw.country?.variables?.sdash_nc), // companion mod 0.6.0
 		envoys: envoys(ownLeaders(raw)),
 		leaders: countBy(ownLeaders(raw).map((l) => String(l.class))),
 		ships: shipCounts(raw),
@@ -326,6 +327,8 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			.map((e) => e?.edict)
 			.filter((e) => typeof e === 'string'),
 		countryModifiers: countryModifiers(raw),
+		countryTimedFlags: timedFlags(raw.country?.flags, raw.date),
+		cooldowns: cooldowns(raw),
 		species: speciesInfo(raw),
 		sectors: sectors(raw),
 		expansion: expansion(raw, shipyardSystems(raw)),
@@ -582,6 +585,82 @@ function timedModifiers(block: Raw, date: string): TimedModifier[] {
 			key: m.modifier,
 			until: typeof m.days === 'number' && m.days > 0 ? addGameDays(date, m.days) : null
 		}));
+}
+
+/**
+ * Timed flags in a `flags` block (country or planet): `flag = { flag_date flag_days }` —
+ * `flag_date` is when it was set (hours: 2200.01.01 = 62808000, +24 a day), `flag_days` the days
+ * left (2203.10.01: `superior_colonies_can_be_boosted`, set 2200.01.01 for 3600 days, 2250 left).
+ * Plain flags (a number) never end.
+ */
+export function timedFlags(block: Raw, date: string): TimedModifier[] {
+	return Object.entries((block ?? {}) as Record<string, Raw>)
+		.filter(([, v]) => typeof v?.flag_days === 'number' && v.flag_days > 0)
+		.map(([key, v]) => ({ key, until: addGameDays(date, v.flag_days) }));
+}
+
+const INSULT_COOLDOWN_DAYS = 30; // defines; the game's tooltip: insulted 2202.05.01 → 2202.06.01
+
+/**
+ * Dates the save holds for when something may be done again, if still ahead — all checked against
+ * the game's tooltips 2026-10-25: a government reform (`country.government_date`, "we must wait
+ * at least 18 years (2220.07.21)" in a game started 2200.01.01), dismissing a focus card
+ * (`focus.next_dismiss_date`, 360 days), changing the focus priority
+ * (`focus.priority.next_change_date`, 360 days), moving the capital (`country.capital_date`, "not
+ * possible to move capital until 2212.07.01"), a species right (`last_changed_<right>` in the
+ * species' rights block: despite its name the date it may change again, "2212.05.01" after a
+ * change on 2202.05.01) and insulting an empire again (`country.ai.last_diplo_actions = { { country
+ * action="action_insult" creation_date } }` + 30 days, per empire: another empire could be
+ * insulted the same day).
+ */
+export function cooldowns(
+	raw: Pick<RawSave, 'country' | 'date'> & Partial<Pick<RawSave, 'speciesDb' | 'countryBlocks'>>
+) {
+	const ahead = (v: Raw) => {
+		const d = strOrNull(v);
+		return d && d > raw.date && !d.startsWith('0.') ? d : null;
+	};
+	const focus = raw.country?.focus;
+	const m = raw.country?.modules?.standard_species_rights_module;
+	const rights = items(m?.primary).flatMap((p) =>
+		Object.entries((p ?? {}) as Record<string, Raw>).flatMap(([k, v]) => {
+			const until = k.startsWith('last_changed_') && k !== 'last_changed_value' ? ahead(v) : null;
+			return until
+				? [
+						{
+							species: speciesName(raw.speciesDb?.[String(p.species_index)]?.name),
+							right: k
+								.slice('last_changed_'.length)
+								.replace(/_type$/, '')
+								.replaceAll('_', ' '),
+							until
+						}
+					]
+				: [];
+		})
+	);
+	const insults = items(raw.country?.ai?.last_diplo_actions).flatMap((a) => {
+		const at = strOrNull(a?.creation_date);
+		const until =
+			a?.action === 'action_insult' && at ? ahead(addGameDays(at, INSULT_COOLDOWN_DAYS)) : null;
+		return until
+			? [
+					{
+						country:
+							displayName(raw.countryBlocks?.[String(a.country)]?.name) || `empire ${a.country}`,
+						until
+					}
+				]
+			: [];
+	});
+	return {
+		reform: ahead(raw.country?.government_date),
+		focusDismiss: ahead(focus?.next_dismiss_date),
+		focusChange: ahead(focus?.priority?.next_change_date),
+		capital: ahead(raw.country?.capital_date),
+		rights,
+		insults
+	};
 }
 
 /**
@@ -1076,9 +1155,10 @@ export function militaryFleets(
 	raw: Pick<RawSave, 'country' | 'fleets' | 'planets' | 'systems'>
 ): Fleet[] {
 	return items(raw.country?.fleets_manager?.owned_fleets)
-		.map((o) => raw.fleets[String(o?.fleet)])
-		.filter((f) => f && typeof f === 'object' && f.ship_class === 'shipclass_military')
-		.map((f) => ({
+		.map((o) => ({ id: Number(o?.fleet), f: raw.fleets[String(o?.fleet)] }))
+		.filter(({ f }) => f && typeof f === 'object' && f.ship_class === 'shipclass_military')
+		.map(({ id, f }) => ({
+			fleetId: id,
 			name: displayName(f.name),
 			ships: list(f.ships).length,
 			power: num(f.military_power),
@@ -1460,6 +1540,7 @@ function playerColonies(raw: RawSave): Colony[] {
 				.map((d) => raw.deposits[String(d)]?.type)
 				.filter((d) => typeof d === 'string'),
 			planet: planet ? planetState(raw, planet) : null,
+			timedFlags: timedFlags(planet?.flags, raw.date),
 			buildQueue:
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
 			buildSlots:
@@ -1949,8 +2030,9 @@ export function colonyDistricts(
 }
 
 /**
- * `pop_groups.<id> = { key = { species category } size happiness }`, summed per stratum. Groups
- * without `happiness` (the save omits it for some) count towards size but not the average.
+ * `pop_groups.<id> = { key = { species category } size happiness }`, summed per stratum. The save
+ * leaves `happiness` out at 100 %: every group of ours at 2201.01.01, where the game showed Earth
+ * at 100 % happiness and approval; the AIs' stored values never reach 1.
  */
 export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const by = new Map<string, { size: number; known: number; weighted: number }>();
@@ -1972,11 +2054,11 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 		}
 		const cat = String(g.key?.category ?? 'unknown');
 		const s = by.get(cat) ?? { size: 0, known: 0, weighted: 0 };
-		const known = typeof g.happiness === 'number';
+		const happiness = typeof g.happiness === 'number' ? g.happiness : 1;
 		by.set(cat, {
 			size: s.size + num(g.size),
-			known: s.known + (known ? num(g.size) : 0),
-			weighted: s.weighted + (known ? num(g.size) * g.happiness : 0)
+			known: s.known + num(g.size),
+			weighted: s.weighted + num(g.size) * happiness
 		});
 	}
 	const list: Stratum[] = [...by].map(([category, s]) => ({

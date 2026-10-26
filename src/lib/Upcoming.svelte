@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { colorOf } from './colors.ts';
 	import { nameOf } from './format.ts';
@@ -8,6 +9,7 @@
 	import SortTable from './SortTable.svelte';
 	import type { Column } from './sort.ts';
 	import type { Explanation } from './types.ts';
+	import { dismissUpcoming } from './settings.ts';
 
 	// node: the save shown when not following the game, so colony links stay on that branch.
 	let {
@@ -48,6 +50,12 @@
 	};
 	const shown = $derived(onlyUnnotified ? events.filter((e) => e.act) : events);
 
+	// A cooldown that ran out stays until used again; ✕ hides this round of it.
+	const dismiss = async (id: string) => {
+		await dismissUpcoming(id);
+		await invalidateAll();
+	};
+
 	type Row = Upcoming & { i: number };
 	const columns: Column<Row>[] = [
 		{ id: 'due', label: 'Due', value: (e) => e.date, cell: due },
@@ -69,9 +77,17 @@
 	>{#if e.queuedAfter !== undefined}&nbsp;<span
 			title="{e.queuedAfter} other item{e.queuedAfter === 1 ? '' : 's'} in the queue after it"
 			>(+{e.queuedAfter})</span
+		>{/if}{#if e.dismiss}&nbsp;<button
+			type="button"
+			class="opacity-60 hover:opacity-100"
+			title="dismiss — it shows again once it has been used and runs out again"
+			onclick={() => dismiss(e.dismiss!)}>✕</button
 		>{/if}{/snippet}
 {#snippet kind(e: Row)}<span class="whitespace-nowrap opacity-75"
-		>{#if e.act}<span title="the build slot runs idle then — the game sends no notification">⚠</span
+		>{#if e.act}<span
+				title={e.kind === 'cooldown'
+					? 'available again then — the game does not announce it'
+					: 'the build slot runs idle then — the game sends no notification'}>⚠</span
 			>{/if}
 		{e.sub ?? e.kind}</span
 	>{/snippet}

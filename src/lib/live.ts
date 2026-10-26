@@ -3,14 +3,16 @@ import { invalidateAll } from '$app/navigation';
 import type { Tick } from './types.ts';
 
 /**
- * Reload the page whenever the server ingests a save — but only while `follow()` holds — and
- * whenever it has read stored saves again (`refreshed`), which may be the ones shown.
+ * Reload the page whenever the server ingests a save — but only while `follow()` holds and the
+ * page is not pinned to a save (`?node=`: the layout decides then, `followLoads`) — and whenever
+ * it has read stored saves again (`refreshed`), which may be the ones shown.
  */
 export function followGame(follow: () => boolean) {
 	onMount(() => {
 		const events = new EventSource('/api/events');
 		events.onmessage = (e) => {
-			if (e.data === 'refreshed' || follow()) invalidateAll();
+			const pinned = new URL(location.href).searchParams.has('node');
+			if (e.data === 'refreshed' || (follow() && !pinned)) invalidateAll();
 		};
 		return () => events.close();
 	});
@@ -21,6 +23,21 @@ export function followTicks(onTick: (t: Tick) => void) {
 	onMount(() => {
 		const events = new EventSource('/api/events');
 		events.addEventListener('tick', (e) => onTick(JSON.parse(e.data)));
+		return () => events.close();
+	});
+}
+
+/**
+ * Calls `onLoaded` when the player loads a save the dashboard knows (the `loaded` server event),
+ * and `onSave` with each save or month the server ingests.
+ */
+export function followLoads(onLoaded: () => void, onSave: () => void) {
+	onMount(() => {
+		const events = new EventSource('/api/events');
+		events.addEventListener('loaded', onLoaded);
+		events.onmessage = (e) => {
+			if (e.data !== 'refreshed') onSave();
+		};
 		return () => events.close();
 	});
 }

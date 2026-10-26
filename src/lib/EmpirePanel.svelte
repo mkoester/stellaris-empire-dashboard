@@ -186,9 +186,19 @@
 					>
 				{/if}
 				{#if data.latest.navalUsed !== null}
-					<span>naval capacity used <b>{fmt(data.latest.navalUsed)}</b></span>
+					<span
+						>naval capacity used <b
+							>{fmt(data.latest.navalUsed)}{data.latest.navalMax !== null
+								? ` / ${fmt(data.latest.navalMax)}`
+								: ''}</b
+						></span
+					>
 				{/if}
-				<a class="underline" href={resolve('/timeline')}>save graph</a>
+				<a
+					class="underline"
+					href={data.isHead ? resolve('/timeline') : resolve(`/timeline?node=${data.tip}`)}
+					>save graph</a
+				>
 				{#if !data.isHead}
 					<a class="underline" href={resolve('/')}>back to the current game</a>
 				{/if}
@@ -274,6 +284,7 @@
 		ships={data.latest.ships ?? []}
 		fleets={data.latest.fleets ?? []}
 		navalUsed={data.latest.navalUsed}
+		navalMax={data.latest.navalMax}
 	/>
 {:else if id === 'edicts'}
 	<Edicts edicts={data.edicts} explain={data.explain} />

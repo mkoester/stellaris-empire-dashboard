@@ -4,6 +4,56 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.2] - 2026-10-26
+
+### Added
+
+- The species tab explains every right on hover: the game's tooltip and what it does to the
+  species' pops.
+- Companion mod 0.6.0 stores the naval capacity, so the dashboard shows it as used / maximum.
+- Upcoming lists everything that runs out: when a decision, artifact action, astral action or
+  enclave deal is available again (the game does not announce it), timed empire and colony
+  modifiers, edicts and trade deals ending, the Galactic Community's recess, a focus change and a
+  government reform. Event timers no action names are a spoiler switch in ⚙.
+- A cooldown that has run out stays on Upcoming until it is used again or dismissed (✕), per
+  colony where it is a colony's; relics, diplomatic actions (Satisfying Insults) and federation
+  laws count too.
+- Upcoming shows when an envoy's and an excavation's next roll is, and every ship on its last
+  task — military fleets included — with an estimate (≈) where the save gives no date.
+- Upcoming also shows when the capital can move again, each changed species right, and each
+  empire you insulted; Satisfying Insults reads as the bonus coming back with the next insult.
+- Loading a save in game (companion mod) asks whether to show it now; otherwise the dashboard
+  switches to it with the next save or month, as before.
+
+### Changed
+
+- Closing the dashboard's window or pressing Ctrl+C stops it cleanly: the save being read is
+  stored first and the history file is closed (no `-wal`/`-shm` files left beside it). A second
+  Ctrl+C stops at once.
+- The save graph shows the campaign being looked at only, named in its title.
+- Companion mod 0.7.0 (log format 3): every month, day and load line carries a run id drawn at
+  each load. The game drops a log line it has already written, so after going back in time most
+  of a replayed month went missing, and loading the same save twice was not noticed.
+
+### Fixed
+
+- A companion mod newer (or older) than the dashboard no longer causes errors: its lines are
+  skipped, the dashboard works from the saves as without the mod, and a banner says which of the
+  two to update.
+- A page showing the save being played by its link (`?node=`, e.g. after switching games) went on
+  following the game only until the next save; it now keeps following.
+- Going back in time to the month before the newest one put the new branch's first month on the
+  old branch (both carried the same date).
+- A chart whose lines change while the page stays on the same save (an autosave arriving after
+  the companion mod's month) is drawn anew instead of updated in place — suspected behind an
+  error page on the `all` tab that went away on reload.
+- Civilians' unity under Social Welfare, and the trade every stratum makes, show in the Jobs panel
+  and the jobs tab.
+- The colony happiness chart had no values for our own pops: the save leaves 100 % out.
+- Slavery and purge types are listed only for species that are enslaved or purged.
+- Setup on Windows listed Steam's folder twice, once in lowercase (Steam's registry entry); folders
+  now count as one whatever their case. The Windows zip is confirmed on a real Windows machine.
+
 ## [0.1.1] - 2026-10-24
 
 ### Added

@@ -21,6 +21,28 @@ fluctuation may lag the screen.
 - **Do:** at the next autosave on the 1st, open the market with minerals and consumer goods.
 - **Send:** the screenshot and the date.
 
+### 4b. Cooldowns, rolls and travel in Upcoming (2026-10-25) — throwaway game
+
+Per item: a manual save before and after (diff in `$TMPDIR`), a screenshot of the greyed-out
+tooltip ("available in …"), the dashboard's row for comparison. **Done 2026-10-25** (throwaway
+`unitednationsofearth_-15512622`, results in `AGENTS.md` → "Cooldowns and expiries" and "Run-out
+cooldowns stay"): minor artifact actions, the relic triumph, Satisfying Insults, colony decisions
+on two colonies, species rights, moving the capital, the reform date, insults per empire, and a
+run-out cooldown dismissed on a reloaded branch. Still open:
+
+1. **Astral actions**: `resource astral_threads 5000`, use one — which field records the use and
+   its engine `cooldown` (data DB `astral_action_cooldown`); `usages` in the country block.
+2. **Dimensional Lock** on a wormhole: the lock's save fields while built (180 days) and while it
+   holds (3600), and their end against the game's tooltip.
+3. **Shroud / psionic**: a delve (`last_delve_date`, `shroud_cooldown*`), a Shroud power or covenant
+   used, a calling refreshed (`CALLINGS_REFRESH_COOLDOWN_DAYS` 360).
+4. **Engine cooldowns left**: a federation law change (its timers sit on the federation, not read
+   yet), the jump drive (`jump_drive_cooldown`).
+5. **Rolls**: an envoy on a first contact and a science ship on a dig site — the next roll's date
+   against `days_left`, and the cycle after a roll (`last_roll`).
+6. **Days per jump**: a military fleet and a science ship over a known number of jumps, with a
+   manual save each few days — calibrates `DEFAULT_DAYS_PER_JUMP` (10, a placeholder).
+
 ### 5. Trader enclave deal — trade tab
 
 The trade tab prices XuraCorp's exotic gases (and the Riggans' motes, Muutagan's crystals) from
@@ -63,6 +85,18 @@ treats subjects and wars between others as public — an assumption.
 
 - **Do:** open the diplomacy view of one empire we have intel < 50 on and one ≥ 50.
 - **Send:** both screenshots — which pacts, rivals, subjects and wars the game shows of them.
+
+### 15. Naval capacity, and the `all` tab's error page (from 2026-10-25)
+
+Companion mod 0.6.0 exports the naval capacity (`sdash_nc`); never run in game. Separately, the
+Mac run of 0.1.1 showed a 500 on the `all` tab after a month, gone on reload — not reproduced
+(every replayed state renders server-side), so a browser-side error; charts now rebuild when their
+lines change, the suspected cause.
+
+- **Do:** with mod 0.6.0, let an autosave pass with the `all` tab open; keep the browser's
+  developer console open (it names a browser-side error).
+- **Send:** a screenshot of the fleet manager's naval capacity and the date; any console error
+  and the start window's output if the 500 shows again.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 

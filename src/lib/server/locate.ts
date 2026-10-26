@@ -241,11 +241,18 @@ export function discover(m: Machine = thisMachine()): {
 	games: GameCandidate[];
 	users: UserCandidate[];
 } {
-	const libraries = unique(steamLibraryDirs(m));
-	const games = uniqueBy(gameDirGuesses(m, libraries).filter(([d]) => isGameDir(d))).map(
-		([dir, source]) => ({ dir, source, version: gameVersion(dir) })
-	);
-	const users = uniqueBy(userDirGuesses(m, libraries).filter(([d]) => isUserDir(d)))
+	const libraries = uniqueBy(
+		m.platform,
+		steamLibraryDirs(m).map((d) => [d, ''] as [string, string])
+	).map(([d]) => d);
+	const games = uniqueBy(
+		m.platform,
+		gameDirGuesses(m, libraries).filter(([d]) => isGameDir(d))
+	).map(([dir, source]) => ({ dir, source, version: gameVersion(dir) }));
+	const users = uniqueBy(
+		m.platform,
+		userDirGuesses(m, libraries).filter(([d]) => isUserDir(d))
+	)
 		.map(([dir, source]) => ({ dir, source, ...saveStats(dir) }))
 		.sort((a, b) => (b.newestSave ?? -1) - (a.newestSave ?? -1));
 	return { games, users };
@@ -310,15 +317,39 @@ const real = (dir: string) => {
 	}
 };
 
-const unique = (dirs: string[]) => [...new Map(dirs.map((d) => [real(d), d])).values()];
+/**
+ * Which folder a path names: symlinks such as `~/.steam/steam` resolved, and on Windows and macOS
+ * (case-insensitive file systems by default) case and separators folded — Steam keeps its registry
+ * `SteamPath` lowercase (`c:/program files (x86)/steam`), its `libraryfolders.vdf` the real case.
+ */
+export function folderKey(platform: string, dir: string, resolve = real): string {
+	if (platform === 'win32') return win32.normalize(resolve(dir)).toLowerCase();
+	return platform === 'darwin' ? resolve(dir).toLowerCase() : resolve(dir);
+}
 
-/** First of each folder (symlinks such as `~/.steam/steam` resolved), keeping the order. */
-function uniqueBy(list: [string, string][]): [string, string][] {
+/** The folder as it is spelled on disk (Windows: `realpathSync.native` returns the real case). */
+function spelled(platform: string, dir: string): string {
+	if (platform !== 'win32') return dir;
+	try {
+		return realpathSync.native(dir);
+	} catch {
+		return dir;
+	}
+}
+
+/** First of each folder (`folderKey`), keeping the order, as spelled on disk. */
+export function uniqueBy(
+	platform: string,
+	list: [string, string][],
+	resolve = real
+): [string, string][] {
 	const seen = new Set<string>();
-	return list.filter(([d]) => {
-		const r = real(d);
-		if (seen.has(r)) return false;
-		seen.add(r);
-		return true;
-	});
+	return list
+		.filter(([d]) => {
+			const k = folderKey(platform, d, resolve);
+			if (seen.has(k)) return false;
+			seen.add(k);
+			return true;
+		})
+		.map(([d, source]) => [spelled(platform, d), source]);
 }

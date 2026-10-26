@@ -148,57 +148,69 @@
 	const rule = () => (isDark() ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)');
 	const axis = { stroke: ink, grid: { stroke: rule }, ticks: { stroke: rule } };
 
+	let UPlot: typeof uPlot | undefined;
+	let built = ''; // the lines the plot was built with
+
+	const lineKey = (s: Series, r: string[]) => JSON.stringify([Object.keys(s.lines), r]);
+
+	function build(UPlot: typeof uPlot) {
+		plot?.destroy();
+		built = lineKey(series, right);
+		const opts: uPlot.Options = {
+			width: el.clientWidth,
+			height: 220,
+			scales: {
+				x: { time: false, range: () => range },
+				// The right axis (e.g. open jobs) spans at least 0–rightFloor, so small changes stay
+				// small; below 0 only for a line that goes there (a resource's net per month).
+				right: {
+					range: (_u, min, max) => [Math.min(0, min), Math.max(rightFloor, max)]
+				},
+				...(yMin === undefined && yMax === undefined
+					? {}
+					: {
+							y: {
+								range: (_u, min, max) => [yMin ?? min, yMax ?? Math.max(max, yMin ?? max) * 1.1]
+							}
+						})
+			},
+			axes: [
+				{
+					...axis,
+					incrs: [1 / 12, 2 / 12, 3 / 12, 6 / 12, 1, 2, 5, 10, 20, 50],
+					values: (_u, ticks) => ticks.map(gameMonth)
+				},
+				axis,
+				...(right.length ? [{ ...axis, scale: 'right', side: 1, grid: { show: false } }] : [])
+			],
+			series: [
+				{ label: 'date', value: (_u, v) => (v == null ? '' : gameMonth(v)) },
+				...Object.keys(series.lines).map((label, i) => ({
+					label: label.replaceAll('_', ' '),
+					stroke: colors[label] ?? colorOf(label) ?? palette[i % palette.length],
+					...(right.includes(label) ? { scale: 'right' } : {}),
+					dash: dashes[i % dashes.length],
+					width: 1.5,
+					spanGaps: true
+				}))
+			],
+			// uPlot shows "--" unless the cursor is over the chart; show the latest values instead.
+			hooks: {
+				ready: [showLatest],
+				setData: [showLatest],
+				setCursor: [(u) => u.cursor.idx == null && showLatest(u), hover],
+				draw: [(u) => drawMarkers(u, UPlot.pxRatio), (u) => drawEvents(u, UPlot.pxRatio)]
+			}
+		};
+		plot = new UPlot(opts, data(series), el);
+	}
+
 	onMount(() => {
 		let disposed = false;
-		import('uplot').then(({ default: UPlot }) => {
+		import('uplot').then(({ default: loaded }) => {
 			if (disposed) return;
-			const opts: uPlot.Options = {
-				width: el.clientWidth,
-				height: 220,
-				scales: {
-					x: { time: false, range: () => range },
-					// The right axis (e.g. open jobs) spans at least 0–rightFloor, so small changes stay
-					// small; below 0 only for a line that goes there (a resource's net per month).
-					right: {
-						range: (_u, min, max) => [Math.min(0, min), Math.max(rightFloor, max)]
-					},
-					...(yMin === undefined && yMax === undefined
-						? {}
-						: {
-								y: {
-									range: (_u, min, max) => [yMin ?? min, yMax ?? Math.max(max, yMin ?? max) * 1.1]
-								}
-							})
-				},
-				axes: [
-					{
-						...axis,
-						incrs: [1 / 12, 2 / 12, 3 / 12, 6 / 12, 1, 2, 5, 10, 20, 50],
-						values: (_u, ticks) => ticks.map(gameMonth)
-					},
-					axis,
-					...(right.length ? [{ ...axis, scale: 'right', side: 1, grid: { show: false } }] : [])
-				],
-				series: [
-					{ label: 'date', value: (_u, v) => (v == null ? '' : gameMonth(v)) },
-					...Object.keys(series.lines).map((label, i) => ({
-						label: label.replaceAll('_', ' '),
-						stroke: colors[label] ?? colorOf(label) ?? palette[i % palette.length],
-						...(right.includes(label) ? { scale: 'right' } : {}),
-						dash: dashes[i % dashes.length],
-						width: 1.5,
-						spanGaps: true
-					}))
-				],
-				// uPlot shows "--" unless the cursor is over the chart; show the latest values instead.
-				hooks: {
-					ready: [showLatest],
-					setData: [showLatest],
-					setCursor: [(u) => u.cursor.idx == null && showLatest(u), hover],
-					draw: [(u) => drawMarkers(u, UPlot.pxRatio), (u) => drawEvents(u, UPlot.pxRatio)]
-				}
-			};
-			plot = new UPlot(opts, data(series), el);
+			UPlot = loaded;
+			build(loaded);
 		});
 		const resize = new ResizeObserver(() => plot?.setSize({ width: el.clientWidth, height: 220 }));
 		resize.observe(el);
@@ -211,16 +223,20 @@
 		};
 	});
 
-	// New data with the same lines: update in place. Different lines: rebuild via the key block
-	// in the parent, which remounts this component.
+	// New data with the same lines: update in place. Different lines: build the plot anew — the
+	// parent's key block (a new tip) does not catch them all: a save merging into the log month
+	// before it keeps the tip and may add lines (the log month has no income or expenses).
 	// Read series and range before touching plot: on the first run plot does not exist yet (uPlot
 	// loads async), and `plot?.setData(data(series))` would skip reading them — the effect would
 	// then never rerun (the growth tab's horizon buttons changed nothing).
 	$effect(() => {
 		const d = data(series);
 		const [min, max] = range;
-		plot?.setData(d);
-		plot?.setScale('x', { min, max });
+		const key = lineKey(series, right);
+		if (!plot || !UPlot) return;
+		if (key !== built) build(UPlot);
+		else plot.setData(d);
+		plot.setScale('x', { min, max });
 	});
 </script>
 

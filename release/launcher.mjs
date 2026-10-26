@@ -50,16 +50,43 @@ function openBrowser(url) {
 		.unref();
 }
 
+// Ctrl+C, closing the window (SIGHUP on all three systems) or a kill: stop serving, then let the
+// app store the save it is reading and close its DB (`sveltekit:shutdown`, adapter-node's
+// event). The process then ends by itself; Windows kills a closed console's process ~10 s later
+// anyway, so this gives up after 5. A second Ctrl+C stops at once.
+let server;
+let stopping = false;
+function shutdown() {
+	if (stopping) process.exit(1);
+	stopping = true;
+	console.log('Stopping …');
+	setTimeout(() => process.exit(0), 5000).unref();
+	if (!server) return; // still starting: stopped once started, below
+	server.close(() => process.emit('sveltekit:shutdown'));
+	server.closeAllConnections(); // open pages hold an event stream that never goes idle
+}
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP', ...(win ? ['SIGBREAK'] : [])])
+	process.on(signal, shutdown);
+
+async function serve(handler) {
+	server = createServer((req, res) => {
+		req.headers[PROTO] = 'http';
+		handler(req, res);
+	});
+	const port = await listen(
+		server,
+		Number(process.env.PORT) || 5174,
+		lan ? '0.0.0.0' : '127.0.0.1'
+	);
+	const url = `http://127.0.0.1:${port}/`;
+	console.log(`Stellaris Empire Dashboard — ${url}`);
+	if (lan) console.log(`Also on this computer's network address, port ${port}.`);
+	console.log(win || mac ? 'Close this window to stop it.' : 'Press Ctrl+C to stop it.');
+	openBrowser(url);
+}
+
 // the app starts (game data, saves) while the handler module loads
 console.log('Starting the Stellaris Empire Dashboard …');
 const { handler } = await import(pathToFileURL(join(here, 'app', 'handler.js')).href);
-const server = createServer((req, res) => {
-	req.headers[PROTO] = 'http';
-	handler(req, res);
-});
-const port = await listen(server, Number(process.env.PORT) || 5174, lan ? '0.0.0.0' : '127.0.0.1');
-const url = `http://127.0.0.1:${port}/`;
-console.log(`Stellaris Empire Dashboard — ${url}`);
-if (lan) console.log(`Also on this computer's network address, port ${port}.`);
-console.log(win || mac ? 'Close this window to stop it.' : 'Press Ctrl+C to stop it.');
-openBrowser(url);
+if (stopping) process.emit('sveltekit:shutdown');
+else await serve(handler);

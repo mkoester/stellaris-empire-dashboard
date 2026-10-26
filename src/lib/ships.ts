@@ -1,5 +1,5 @@
 import { pretty } from './format.ts';
-import type { CivilianShip, ShipOrder, Snapshot } from './types.ts';
+import type { CivilianShip, Route, ShipOrder, Snapshot } from './types.ts';
 
 // What civilian ships are doing and when they are done. The save stores an order's progress, not
 // its total; the totals, checked against completed orders over five game years (UNE 3, 2202–2207):
@@ -90,4 +90,66 @@ export function idleState(ship: CivilianShip): { text: string; act: boolean } {
 			? { text: `colonize ${p.planet} — ${p.system} is yours now`, act: true }
 			: { text: `waiting at ${p.planet} — ${p.system} not yours yet`, act: false };
 	return { text: `${kind} idle at ${p.system}`, act: true };
+}
+
+/**
+ * Days a jump until the throwaway-game calibration (docs/open-checks.md) — a placeholder: the
+ * save stores no arrival dates and the sublight leg within a system varies.
+ */
+export const DEFAULT_DAYS_PER_JUMP = 10;
+
+/**
+ * Days per jump from two readings of one route to the same last stop: the jumps it made since.
+ * Null where it did not move closer (or turned elsewhere).
+ */
+export function daysPerJump(now: Route, before: Route | undefined, days: number): number | null {
+	const a = before?.stops.at(-1);
+	const b = now.stops.at(-1);
+	if (!a || !b || a.system !== b.system || a.jumps === null || b.jumps === null || !(days > 0))
+		return null;
+	const made = a.jumps - b.jumps;
+	return made > 0 ? days / made : null;
+}
+
+/** The median days per jump of every ship and fleet measurable between two saves. */
+export function measuredDaysPerJump(
+	latest: Pick<Snapshot, 'civilianShips' | 'fleets'>,
+	previous: Pick<Snapshot, 'civilianShips' | 'fleets'> | null,
+	days: number
+): number | null {
+	if (!previous) return null;
+	const pairs = [
+		...(latest.civilianShips ?? []).map((s) => [
+			s.route,
+			previous.civilianShips?.find((p) => p.fleetId === s.fleetId)?.route
+		]),
+		...(latest.fleets ?? []).map((f) => [
+			f.route,
+			f.fleetId === undefined
+				? undefined
+				: previous.fleets?.find((p) => p.fleetId === f.fleetId)?.route
+		])
+	] as [Route, Route | undefined][];
+	const rates = pairs
+		.map(([now, before]) => daysPerJump(now, before, days))
+		.filter((r): r is number => r !== null)
+		.sort((a, b) => a - b);
+	return rates.length ? rates[Math.floor(rates.length / 2)] : null;
+}
+
+/**
+ * ≈ Months until a ship's order is done where the save gives no rate: what the order still needs
+ * at the base rate (one a day — surveys and builds count days), else the travel to its last stop.
+ */
+export function estimateMonthsLeft(
+	ship: CivilianShip,
+	levels: Record<string, number | null>,
+	perJump: number
+): number | null {
+	const o = ship.order;
+	if (!o) return 0;
+	const total = orderTotal(o, ship, levels);
+	if (total !== null && o.progress !== null) return Math.max(total - o.progress, 0) / 30;
+	const jumps = ship.route.stops.at(-1)?.jumps;
+	return jumps === null || jumps === undefined ? null : (jumps * perJump) / 30;
 }

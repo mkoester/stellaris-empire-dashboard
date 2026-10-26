@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { idleState, monthsLeft, orderLabel, orderRate, orderTotal } from './ships.ts';
+import {
+	daysPerJump,
+	estimateMonthsLeft,
+	idleState,
+	monthsLeft,
+	orderLabel,
+	orderRate,
+	orderTotal
+} from './ships.ts';
 import type { CivilianShip, Snapshot } from './types.ts';
 
 // UNE 3: Grissom's anomaly at Xigar V a, 2207.01.01 and 2207.02.01 (done before 2207.03.01)
@@ -137,5 +145,30 @@ describe('automated ships', () => {
 			automation: ['mining stations', 'research stations']
 		};
 		expect(idleState(jordan)).toEqual({ text: 'constructor automated, between tasks', act: false });
+	});
+});
+
+describe('estimates without a rate', () => {
+	const route = (jumps: number | null, system = 'Sirius') => ({
+		at: 'Sol',
+		moving: true,
+		stops: [{ system, jumps, unexplored: false }]
+	});
+	it('days per jump from two readings of one route', () => {
+		expect(daysPerJump(route(3), route(6), 30)).toBe(10);
+		expect(daysPerJump(route(3), route(6, 'Elsewhere'), 30)).toBeNull();
+		expect(daysPerJump(route(6), route(6), 30)).toBeNull();
+		expect(daysPerJump(route(3), undefined, 30)).toBeNull();
+	});
+	it('a survey at the base rate, a move by its jumps', () => {
+		const ship = (kind: string, progress: number | null) =>
+			({
+				leaderLevel: 1,
+				order: { kind, target: 'x', progress, orderId: 1 },
+				queue: [],
+				route: route(4)
+			}) as unknown as CivilianShip;
+		expect(estimateMonthsLeft(ship('survey_planet', 12), {}, 10)).toBeCloseTo(0.6); // 18 days
+		expect(estimateMonthsLeft(ship('move', null), {}, 10)).toBeCloseTo(4 / 3); // 40 days
 	});
 });

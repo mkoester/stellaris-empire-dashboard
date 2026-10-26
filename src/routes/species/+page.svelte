@@ -52,7 +52,9 @@
 												? 'font-semibold'
 												: o.allowed === false
 													? 'text-gray-500 line-through'
-													: 'text-gray-500'}>{o.name}</span
+													: 'text-gray-500'}
+											><InfoPopup explanation={data.explain[`right:${o.key}`]}>{o.name}</InfoPopup
+											></span
 										>{/each}
 								</td>
 							</tr>

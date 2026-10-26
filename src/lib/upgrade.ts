@@ -17,6 +17,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	empireSize: null,
 	starbases: null,
 	navalUsed: null,
+	navalMax: null,
 	envoys: null,
 	marketOrders: [],
 	market: null,
@@ -42,6 +43,8 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	civilianShips: null,
 	edicts: null,
 	countryModifiers: null,
+	countryTimedFlags: null,
+	cooldowns: null,
 	species: null,
 	sectors: null,
 	expansion: null,
@@ -130,7 +133,8 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	automation: { enabled: false, settings: [] },
 	produces: {},
 	upkeep: {},
-	planet: null
+	planet: null,
+	timedFlags: []
 };
 
 // what a war stored before 2026-10-19 lacks

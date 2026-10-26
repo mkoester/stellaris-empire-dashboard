@@ -34,6 +34,8 @@ import {
 	shipCounts,
 	strata,
 	countryModifiers,
+	cooldowns,
+	timedFlags,
 	market,
 	marketOrders,
 	progress,
@@ -192,6 +194,12 @@ describe('toSnapshot', () => {
 
 	it('reads the top-bar counters', () => {
 		expect(s).toMatchObject({ empireSize: 50, starbases: { used: 1, capacity: 5 }, navalUsed: 15 });
+		expect(s.navalMax).toBeNull(); // without companion mod 0.6.0
+	});
+
+	it('reads the naval capacity companion mod 0.6.0 exports (sdash_nc)', () => {
+		const withMod = { ...raw, country: { ...raw.country, variables: { sdash_nc: 40 } } };
+		expect(toSnapshot(withMod, 'camp').navalMax).toBe(40);
 	});
 
 	it('lists controlled colonies, joined to their planet when there is one', () => {
@@ -214,6 +222,7 @@ describe('toSnapshot', () => {
 				planetSize: 0,
 				deposits: [],
 				planet: { deposits: [], modifiers: [] },
+				timedFlags: [],
 				districts: 5,
 				districtList: [
 					{
@@ -327,6 +336,78 @@ describe('countryModifiers', () => {
 				date: '2200.01.01'
 			})
 		).toEqual([{ key: 'x', until: null }]);
+	});
+});
+
+describe('timedFlags', () => {
+	it('ends a timed flag after its days left; plain flags never end (2203.10.01)', () => {
+		const flags = {
+			first_contact_flag: 62808000,
+			superior_colonies_can_be_boosted: { flag_date: 62808000, flag_days: 2250 },
+			sdash_tick_alive: { flag_date: 62840400, flag_days: 3 }
+		};
+		expect(timedFlags(flags, '2203.10.01')).toEqual([
+			{ key: 'superior_colonies_can_be_boosted', until: '2210.01.01' },
+			{ key: 'sdash_tick_alive', until: '2203.10.04' }
+		]);
+		expect(timedFlags(undefined, '2203.10.01')).toEqual([]);
+	});
+});
+
+describe('cooldowns', () => {
+	it('keeps dates still ahead; "0.01.01" means never set', () => {
+		const country = {
+			government_date: '2220.07.21',
+			focus: { next_dismiss_date: '0.01.01', priority: { next_change_date: '2203.12.01' } }
+		};
+		expect(cooldowns({ country, date: '2203.10.01' })).toEqual({
+			reform: '2220.07.21',
+			focusDismiss: null,
+			focusChange: '2203.12.01',
+			capital: null,
+			rights: [],
+			insults: []
+		});
+		expect(
+			cooldowns({ country: { government_date: '2200.01.01' }, date: '2203.10.01' }).reform
+		).toBe(null);
+	});
+
+	it('capital, species rights and insults, as the throwaway game’s 2202.08.01 save holds them', () => {
+		// the game's tooltips the same day: "not possible to move capital until 2212.07.01", "we
+		// will be able to change it again on 2212.05.01", insult again "on 2202.06.01"
+		const country = {
+			capital_date: '2212.07.01',
+			modules: {
+				standard_species_rights_module: {
+					primary: [
+						{
+							species_index: 1,
+							last_changed_value: 'living_standard',
+							last_changed_citizenship_type: '0.01.01',
+							last_changed_living_standard: '2212.05.01'
+						}
+					]
+				}
+			},
+			ai: {
+				last_diplo_actions: [
+					{ country: 11, action: 'action_insult', creation_date: '2202.05.01' },
+					{ country: 12, action: 'action_insult', creation_date: '2202.04.01' }
+				]
+			}
+		};
+		const c = cooldowns({
+			country,
+			date: '2202.05.15',
+			speciesDb: { '1': { name: { key: 'SPEC_Human' } } },
+			countryBlocks: { '11': { name: { key: 'Cevellian Punishers' } } }
+		});
+		expect(c.capital).toBe('2212.07.01');
+		expect(c.rights).toEqual([
+			{ species: expect.any(String), right: 'living standard', until: '2212.05.01' }
+		]);
+		expect(c.insults).toEqual([{ country: 'Cevellian Punishers', until: '2202.06.01' }]);
 	});
 });
 
@@ -575,9 +656,9 @@ describe('strata', () => {
 		expect(r.strata).toEqual([
 			{ category: 'civilian', size: 1911, happiness: 0.95 },
 			{ category: 'worker', size: 2000, happiness: 0.55 },
-			{ category: 'specialist', size: 1299, happiness: null }
+			{ category: 'specialist', size: 1299, happiness: 1 } // left out at 100 %
 		]);
-		expect(r.happiness).toBeCloseTo((1911 * 0.95 + 2000 * 0.55) / 3911);
+		expect(r.happiness).toBeCloseTo((1911 * 0.95 + 2000 * 0.55 + 1299) / 5210);
 		expect(r.habitability).toBeCloseTo((1911 + 1800 * 0.5) / 3711);
 		expect(r.speciesHabitability).toEqual({ '7': 1, '9': 0.5 });
 		expect(strata({}, []).happiness).toBeNull();
@@ -1015,6 +1096,7 @@ describe('empire overview', () => {
 		});
 		expect(fleets).toEqual([
 			{
+				fleetId: 3,
 				name: '1st Fleet',
 				ships: 3,
 				power: 176.625,

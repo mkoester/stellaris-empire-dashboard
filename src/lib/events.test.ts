@@ -4,7 +4,10 @@ import {
 	researchTicks,
 	techCostFactor,
 	deficits,
+	expiries,
 	fromDays,
+	rolls,
+	timedOut,
 	monthTicks,
 	scheduleQueue,
 	toDays,
@@ -31,6 +34,7 @@ const data: GameData = {
 	situationTypes: {},
 	projects: {},
 	anomalyCategories: {},
+	actionTimers: {},
 	councilPositions: {},
 	depositCategories: {},
 	prescriptedNames: {},
@@ -374,5 +378,332 @@ describe('deficits', () => {
 			['energy runs out', '2208.08.01', 4, true],
 			['minerals in deficit', '2208.04.01', 0, true]
 		]);
+	});
+});
+
+describe('expiries', () => {
+	// timers as the 4.5.2 game files set them: Arcane Deciphering waits on its cooldown modifier,
+	// the curator's guidance on a timed flag, a Xuran deal blocks the other Xuran deals
+	const timers: Pick<GameData, 'actionTimers'> = {
+		actionTimers: {
+			'modifier:arcane_deciphering_cooldown': [
+				{
+					kind: 'artifact_action',
+					key: 'artifact_arcane_deciphering',
+					name: 'Reverse-Engineer Arcane Technology',
+					cooldown: true
+				}
+			],
+			'flag:curator_guidance_cooldown': [
+				{
+					kind: 'enclave',
+					key: 'leviathans.500.l',
+					name: 'Point us towards interesting systems',
+					cooldown: true
+				}
+			],
+			'modifier:enclave_trade_1_xur': [
+				{ kind: 'enclave', key: 'leviathans.130.a', name: '1 Exotic Gases', cooldown: false },
+				{ kind: 'enclave', key: 'leviathans.130.d', name: '4 Exotic Gases', cooldown: true }
+			]
+		}
+	};
+	const base = {
+		date: '2210.01.01',
+		colonies: [],
+		countryModifiers: null,
+		countryTimedFlags: null,
+		cooldowns: null,
+		edictTimes: null,
+		tradeDeals: null,
+		galcom: null
+	};
+	const titles: Record<string, string> = { 'modifier:enclave_trade_1_xur': 'Xuran Deal' };
+	const title = (ref: string) => titles[ref];
+
+	it('names what becomes available again, and what an effect came from', () => {
+		const rows = expiries(
+			{
+				...base,
+				countryModifiers: [
+					{ key: 'arcane_deciphering_cooldown', until: '2211.01.01' },
+					{ key: 'enclave_trade_1_xur', until: '2220.01.01' },
+					{ key: 'celebrate_diversity', until: '2215.06.01' },
+					{ key: 'galactic_market_founder', until: null },
+					{ key: 'gone', until: '2209.01.01' }
+				],
+				countryTimedFlags: [{ key: 'curator_guidance_cooldown', until: '2210.07.01' }]
+			},
+			timers,
+			title
+		);
+		expect(rows.map((r) => [r.kind, r.sub, r.what, r.detail, r.act])).toEqual([
+			[
+				'cooldown',
+				'artifact action',
+				'Reverse-Engineer Arcane Technology available again',
+				'arcane deciphering cooldown',
+				true
+			],
+			['cooldown', 'enclave', '4 Exotic Gases available again', 'Xuran Deal', true],
+			['expires', undefined, 'celebrate diversity ends', '', false],
+			[
+				'cooldown',
+				'enclave',
+				'Point us towards interesting systems available again',
+				'cooldown',
+				true
+			]
+		]);
+		expect(rows[1].ref).toBe('modifier:enclave_trade_1_xur');
+		expect(rows[3]).toMatchObject({ date: '2210.07.01', months: 6, exact: true });
+	});
+
+	it('shows an unnamed timed flag only with the spoiler switch', () => {
+		const s = {
+			...base,
+			countryTimedFlags: [{ key: 'curator_clue_purchased', until: '2220.01.01' }]
+		};
+		expect(expiries(s, timers, title)).toEqual([]);
+		// the companion mod's own tick flag never shows
+		const tick = { ...base, countryTimedFlags: [{ key: 'sdash_tick_alive', until: '2210.01.04' }] };
+		expect(expiries(tick, timers, title, true)).toEqual([]);
+		expect(expiries(s, timers, title, true)).toMatchObject([
+			{
+				kind: 'expires',
+				sub: 'timer',
+				what: 'curator clue purchased ends',
+				detail: 'event timer (spoiler)'
+			}
+		]);
+	});
+
+	it('links a colony’s timer to it', () => {
+		const colony = {
+			planetId: 7,
+			name: 'Earth',
+			planet: {
+				deposits: [],
+				modifiers: [{ key: 'arcane_deciphering_cooldown', until: '2211.01.01' }]
+			},
+			timedFlags: []
+		};
+		const [r] = expiries({ ...base, colonies: [colony] } as unknown as typeof base, timers, title);
+		expect(r).toMatchObject({ planetId: 7, kind: 'cooldown' });
+		expect(r.detail.startsWith('Earth · ')).toBe(true);
+		// an effect from nothing named: the colony alone, no trailing separator
+		const [e] = expiries(
+			{
+				...base,
+				colonies: [
+					{
+						...colony,
+						planet: { ...colony.planet, modifiers: [{ key: 'prosp_uni_mod', until: '2220.01.01' }] }
+					}
+				]
+			} as unknown as typeof base,
+			timers,
+			title
+		);
+		expect(e.detail).toBe('Earth');
+	});
+
+	it('a bonus timer: the action stays possible, the timer’s effect comes back', () => {
+		// Insult with Satisfying Insults: only an `if` in its effect waits on the modifier (the
+		// game's tooltip: "We can not gain the benefit of Satisfying Insults until the current
+		// modifier expires", while Insult itself is possible)
+		const bonus: Pick<GameData, 'actionTimers'> = {
+			actionTimers: {
+				'modifier:satisfying_insult_recently': [
+					{
+						kind: 'diplomatic_action',
+						key: 'action_insult',
+						name: 'Insult',
+						cooldown: false,
+						bonus: true
+					}
+				]
+			}
+		};
+		const rows = expiries(
+			{ ...base, countryModifiers: [{ key: 'satisfying_insult_recently', until: '2215.01.01' }] },
+			bonus,
+			(ref) => (ref === 'modifier:satisfying_insult_recently' ? 'Satisfying Insult' : undefined)
+		);
+		expect(rows.map((r) => [r.kind, r.what, r.detail, r.act])).toEqual([
+			['cooldown', 'Satisfying Insult available again', 'with the next Insult', true]
+		]);
+	});
+
+	it('reform, focus, capital, rights, insults, edicts, trade deals and the GalCom recess', () => {
+		const rows = expiries(
+			{
+				...base,
+				// as the throwaway game's 2202.08.01 save read them (2026-10-25)
+				cooldowns: {
+					reform: '2220.01.01',
+					focusDismiss: null,
+					focusChange: '2210.06.01',
+					capital: '2212.07.01',
+					rights: [{ species: 'Humans', right: 'living standard', until: '2212.05.01' }],
+					insults: [{ country: 'Cevellian Punishers', until: '2210.02.01' }]
+				},
+				edictTimes: [
+					{ key: 'map_the_stars', start: '2209.01.01', end: '2211.01.01' },
+					{ key: 'perpetual', start: null, end: null }
+				],
+				tradeDeals: [
+					{ id: '1', partner: 'Lahtrepian', start: '2205.03.08', years: 10 } as never,
+					{ id: '2', partner: 'Old', start: '2195.01.01', years: 10 } as never
+				],
+				galcom: { nextVote: '2210.03.01' } as never
+			},
+			timers,
+			title
+		);
+		expect(rows.map((r) => [r.what, r.date])).toEqual([
+			['Government reform possible', '2220.01.01'],
+			['Change the focus priority possible', '2210.06.01'],
+			['Moving the capital possible', '2212.07.01'],
+			['Changing Humans living standard possible', '2212.05.01'],
+			['Insulting Cevellian Punishers possible', '2210.02.01'],
+			['map the stars ends', '2211.01.01'],
+			['Trade deal with Lahtrepian ends', '2215.03.08'],
+			['Galactic Community recess ends', '2210.03.01']
+		]);
+		expect(rows.every((r) => r.exact)).toBe(true); // the reform date too, checked in game
+	});
+});
+
+describe('timedOut', () => {
+	const data = {
+		agendas: { agenda_x: { name: 'Expand the Council', cost: null, unlockedBy: [] } },
+		actionTimers: {
+			'modifier:decision_cooldown': [
+				{ kind: 'decision' as const, key: 'decision_x', name: 'Distribute Goods', cooldown: true }
+			],
+			'modifier:some_buff': [
+				{ kind: 'decision' as const, key: 'decision_y', name: 'Buff', cooldown: false }
+			]
+		}
+	};
+	const colony = (planetId: number, name: string, until: string) => ({
+		planetId,
+		name,
+		planet: { deposits: [], modifiers: [{ key: 'decision_cooldown', until }] },
+		timedFlags: []
+	});
+	const save = (date: string, colonies: unknown[], extra = {}) =>
+		({
+			date,
+			colonies,
+			countryModifiers: [{ key: 'some_buff', until: '2210.06.01' }],
+			countryTimedFlags: null,
+			agendaCooldowns: null,
+			cooldowns: null,
+			...extra
+		}) as unknown as Snapshot;
+
+	it('keeps a run-out cooldown per colony until renewed, and an effect not at all', () => {
+		const saves = [
+			save('2210.01.01', [colony(1, 'Earth', '2210.03.01'), colony(2, 'Mars', '2210.04.01')]),
+			save('2210.05.01', [
+				{ ...colony(1, 'Earth', '2210.03.01'), planet: { deposits: [], modifiers: [] } },
+				colony(2, 'Mars', '2211.01.01') // used again on Mars: renewed
+			]),
+			save('2210.07.01', [
+				{ ...colony(1, 'Earth', '2210.03.01'), planet: { deposits: [], modifiers: [] } },
+				colony(2, 'Mars', '2211.01.01')
+			])
+		];
+		const rows = timedOut(saves, data);
+		expect(rows.map((r) => [r.what, r.planetId, r.dismiss, r.months])).toEqual([
+			['Distribute Goods available', 1, 'planet:1:modifier:decision_cooldown:2210.03.01', 0]
+		]);
+		expect(rows[0].detail).toBe('Earth · decision cooldown · since 2210.03.01');
+		// dismissed: gone, until a later round runs out
+		expect(timedOut(saves, data, undefined, new Set([rows[0].dismiss!]))).toEqual([]);
+	});
+
+	it('leaves out colonies no longer ours, and keeps agendas and the focus', () => {
+		const saves = [
+			save('2210.01.01', [colony(3, 'Lost', '2210.02.01')], {
+				agendaCooldowns: [{ key: 'agenda_x', until: '2210.03.01' }],
+				cooldowns: {
+					reform: null,
+					focusDismiss: '2210.04.01',
+					focusChange: null,
+					insults: [{ country: 'Cindarian Unity', until: '2210.02.01' }]
+				}
+			}),
+			save('2210.06.01', [], { agendaCooldowns: [{ key: 'agenda_x', until: '2210.03.01' }] })
+		];
+		const rows = timedOut(saves, data);
+		expect(rows.map((r) => r.what)).toEqual([
+			'Expand the Council can be picked again',
+			'Dismiss a focus card possible',
+			'Insulting Cindarian Unity possible'
+		]);
+		expect(rows[2].dismiss).toBe('country:insult:Cindarian Unity:2210.02.01');
+	});
+});
+
+describe('rolls', () => {
+	it('dates the next roll of envoys and excavations', () => {
+		const rows = rolls({
+			date: '2214.02.01',
+			firstContacts: [
+				{
+					name: 'Omega Menace',
+					leaderId: 61,
+					leaderName: 'Vel',
+					daysLeft: 92.66,
+					clues: 2,
+					difficulty: 3,
+					status: 'in_progress'
+				},
+				{
+					name: 'No envoy',
+					leaderId: null,
+					leaderName: null,
+					daysLeft: 30,
+					clues: 0,
+					difficulty: 1,
+					status: 'in_progress'
+				}
+			],
+			digSites: [
+				{ type: 'site_lost_moments', excavating: true, daysLeft: 20, clues: 1, difficulty: 2 },
+				{ type: 'site_tiyanki_graveyard', excavating: false, daysLeft: 90, clues: 0, difficulty: 3 }
+			]
+		} as never);
+		expect(rows.map((r) => [r.what, r.date])).toEqual([
+			['Next roll: Omega Menace', '2214.05.04'],
+			['Next excavation roll: lost moments', '2214.02.21']
+		]);
+	});
+});
+
+describe('upcoming military fleets', () => {
+	const fleet = (jumps: number) => ({
+		fleetId: 5,
+		name: '1st Fleet',
+		ships: 3,
+		power: 100,
+		route: { at: 'Sol', moving: true, stops: [{ system: 'Sirius', jumps, unexplored: false }] }
+	});
+	it('dates the arrival from the measured days per jump, else assumed', () => {
+		const before = snap('2210.01.01', progress(0, 0), { fleets: [fleet(6)] } as Partial<Snapshot>);
+		const now = snap('2210.02.01', progress(0, 0), { fleets: [fleet(3)] } as Partial<Snapshot>);
+		const [r] = upcoming(now, before, data).filter((e) => e.kind === 'fleet');
+		expect(r).toMatchObject({
+			what: '1st Fleet arrives at Sirius',
+			date: '2210.03.01',
+			exact: false,
+			act: true
+		});
+		expect(r.detail).toContain('(measured)');
+		const [alone] = upcoming(now, null, data).filter((e) => e.kind === 'fleet');
+		expect(alone.detail).toContain('(assumed)');
 	});
 });

@@ -499,6 +499,20 @@ export function loadExplanations(file: string): Explanations {
 				text: null,
 				facts: []
 			};
+		// Species rights: the game's tooltip, and the modifiers each grants its pops unconditionally.
+		const rightMods = grouped(
+			'SELECT right_key AS owner, modifier AS key, value FROM species_right_modifier ORDER BY sort_order'
+		);
+		for (const r of rows<{ key: string; name: string | null; description: string | null }>(
+			'SELECT key, name, description FROM species_right'
+		))
+			out[`right:${r.key}`] = {
+				title: r.name ?? pretty(r.key),
+				description: r.description,
+				modifiers: rightMods.get(r.key) ?? [],
+				text: null,
+				facts: []
+			};
 		return out;
 	} finally {
 		db.close();

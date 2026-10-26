@@ -365,6 +365,7 @@ export function firstContacts(
 				leaderName: l && typeof l === 'object' ? leaderName(l.name) : null,
 				date: String(c.date ?? ''),
 				daysLeft: numOrNull(c.days_left),
+				lastRoll: numOrNull(c.last_roll),
 				difficulty: num(c.difficulty),
 				clues: num(c.clues),
 				stage: String(c.stage ?? ''),
@@ -460,6 +461,7 @@ export function digSites(
 				clues: num(s.clues),
 				difficulty: num(s.difficulty),
 				daysLeft: numOrNull(s.days_left),
+				lastRoll: numOrNull(s.last_roll),
 				excavating: idOrNull(s.excavator_fleet) !== null
 			}
 		];

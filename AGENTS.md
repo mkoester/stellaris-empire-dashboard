@@ -63,7 +63,10 @@ Flatpak, Snap), GOG (registry `GOG.com\Games\*\path`, `C:\GOG Games`, `~/GOG Gam
 Microsoft Store (`<drive>:\XboxGames\Stellaris\Content`); user folders from the real Documents
 folder (registry `User Shell Folders\Personal`, so OneDrive redirection counts), Linux native,
 Proton's `compatdata/281990` in every library, Wine prefixes. A folder counts only when it holds the
-game's files (`isGameDir`, `isUserDir`); user folders rank by newest save. **Not yet confirmed on a
+game's files (`isGameDir`, `isUserDir`); user folders rank by newest save. One entry per folder
+(`folderKey`): symlinks resolved, and on Windows and macOS case and separators folded — Steam keeps
+its registry `SteamPath` lowercase (`c:/program files (x86)/steam`), so Windows' first `/setup`
+(2026-10-25) listed Steam's folder twice; Windows shows the on-disk spelling (`realpathSync.native`). **Not yet confirmed on a
 real machine:** the Microsoft Store layout, GOG's registry key, Heroic/Lutris — players type the
 path when they are wrong. A machine moved from Proton to the native build keeps both user folders
 (`scripts/stellaris-native.sh`); ranking by newest save picks the one in play.
@@ -106,12 +109,22 @@ without `ORIGIN` adapter-node 6 takes every request for `https`, and SvelteKit r
 app, `pnpm dev` never shows it. It marks each request `http` in a header named by `PROTOCOL_HEADER`,
 so 127.0.0.1, localhost and a LAN address (`--lan`) all work, and a foreign origin is still refused.
 
+**Stopping** (Ctrl+C, a closed window — SIGHUP on Windows, macOS and Linux — or a kill): the
+launcher closes its server and every connection (the event stream never goes idle), then emits
+adapter-node's `sveltekit:shutdown`; `stop()` in `app.ts` waits for a start-up and the save being
+read, stops the game.log tail and closes the DB, which folds the WAL back. Nothing keeps the
+process alive after that; it gives up after 5 s (Windows kills a closed console ~10 s later), a
+second Ctrl+C exits at once. A stop during start-up never serves. Checked 2026-10-25 on Linux with
+a built app and a DB copy (SIGINT/HUP/TERM: exit 0 in ~15 ms, no `-wal` left; the old launcher:
+exit 130, `-wal` left). **Not yet seen on Windows or a Mac.** `pnpm dev` is Vite's, unaffected.
+
 The version in the header and the zip names is `scripts/version.mjs` (decorated with git state;
 a commit tagged `v<version>` counts as a release, since CI builds from the detached tag).
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
 which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
-creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. The Windows zip has not run on Windows yet — Wine cannot start in the
-sandbox (`wineserver` needs a writable `/tmp`).
+creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. The Windows zip
+ran on a real Windows machine (2026-10-25, the user); Wine cannot start in the sandbox
+(`wineserver` needs a writable `/tmp`).
 
 **One watcher per process.** `app.ts` keeps its state on `globalThis`: Vite re-imports server
 modules on edits, and a second watcher once re-read the saves, moved the head back and filed the
@@ -156,7 +169,7 @@ calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — d
 
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
 dev server ingests saves and moves the head). On the Linux game machine it lives in
-`~/.local/share/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
+`~/.local/share/stellaris-empire-dashboard/`, on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
@@ -167,6 +180,15 @@ page's `?node=`). A save-wide question (every colony across the history) is quic
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
 server modules that call `getGameData()`/`getExplanations()` — delete it after.
+
+**Replaying a live month** (what a player sees as the mod's line and then the autosave arrive):
+on the copy delete the nodes after the one to start from (`snapshot`, `node`, the later saves'
+`save_file` rows; `state.head`), give `STELLARIS_SAVE_DIR` a folder holding only the saves up to
+it and `STELLARIS_GAME_LOG` an empty file; once the server is up, append the month's `SDASH|2|…`
+lines (the real log's, or written from a snapshot's stockpile and balance — `parseLine()` needs
+only the `SDASH|` part), fetch `__data.json`, then copy the next autosave in and fetch again. The
+save merges into the log month's node (same id, same tip). 2026-10-25: every state rendered 200
+server-side; a browser-side error needs a browser, which the sandbox cannot start.
 
 **How it works:** `watch.ts` polls the save folder (first what changed since the last run, in mtime order — the head campaign's at once, the others' in the background — then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
@@ -186,6 +208,53 @@ has every effect commented out — an energy shortage costs nothing directly. Ra
 branch's two latest saves, so every speed bonus counts — and costs are base costs from the data DB
 scaled by empire size and the galaxy sliders. Checked against the game at 2200.04.01: research
 53/71/108 months, tradition 2200.09.01 exact; the agenda is 164 vs. the game's 163 (rounding).
+
+**Cooldowns and expiries** (`expiries()`, the user's ask 2026-10-25: "track everything with a
+cooldown or that expires"; built in `branch()` next to `upcoming()`, as it names modifiers by
+their popup titles): every timed modifier and timed flag on the empire and its colonies
+(`countryModifiers`, `Colony.planet.modifiers`, `countryTimedFlags`, `Colony.timedFlags`), edicts
+with an end, trade deals (start + years), the GalCom recess (`galcom.nextVote`) and
+`Snapshot.cooldowns` (reform, focus dismiss and change, capital, species rights, insults). Decisions, artifact and astral actions and
+enclave deals keep their cooldown as a timed modifier (`arcane_deciphering_cooldown`, 720 days) or
+a timed flag (`curator_guidance_cooldown`); the data DB's `action_timer` names the actions waiting
+on each (`cooldown` rows: "<action> available again", ⚠ — the game does not announce it) and those
+that only set it ("ends", "from <action>"). **Timed flags**: `flag = { flag_date flag_days }`,
+`flag_days` = days left, `flag_date` the set date in hours (2200.01.01 = 62808000)
+(`timedFlags()`, READER 21). A flag no action names is an event chain's timer
+(`curator_clue_purchased`, 10–13 years at random): only with the `hiddenTimers` spoiler; `sdash_*`
+(the mod's own) never. Not read: a leader's `cooldown` (days, meaning unknown), the designation
+change date (only the AI has a cooldown, `AI_DESIGNATION_COOLDOWN`). **The engine's own cooldowns,
+checked against the game's tooltips 2026-10-25** (throwaway `unitednationsofearth_-15512622`,
+`~/Pictures/Screenshots/screenshot_2026-10-25_19-52-10` … `20-02-32`), all "possible again" dates
+the save holds: `government_date` (reform; "we must wait at least 18 years (2220.07.21)" in a game
+started 2200.01.01), `capital_date` ("not possible to move capital until 2212.07.01"),
+`last_changed_<right>` in the species' rights block — despite the name the date it may change
+again (2212.05.01 after a change on 2202.05.01) — and `country.ai.last_diplo_actions = { { country
+action creation_date } }`, insult + 30 days (INSULT_COOLDOWN_DAYS), per empire: another empire
+could be insulted the same day (READER 23). A 30-day insult cooldown rarely spans two monthly
+saves, so its run-out row is often missed.
+`action_timer` covers decisions, artifact and astral actions, relics (every relic waits on
+`relic_activation_cooldown`: one row "A relic triumph available again" — `ACTION_GROUPS` names
+a timer that blocks more than three actions of one kind), diplomatic actions (Satisfying Insults:
+gated in the effect's own `limit` — role `bonus`: Insult stays possible, the row reads "Satisfying
+Insult available again · with the next Insult", as the game's tooltip has it), federation laws (their timers sit on the federation, not
+read yet) and enclave deals.
+
+**Run-out cooldowns stay** (`timedOut()`, the user's ask 2026-10-25): along the branch's saves each
+cooldown instance (a timer an action waits on, per scope — the empire or a colony, so one decision
+on two colonies is two rows —, launched agendas, reform and focus) keeps its latest end seen; once
+passed it is a row "<action> available" (`months` 0, at the top) until renewing it in game sets a
+later end, or the player dismisses it (✕ → `POST /api/upcoming { dismiss }`, setting row
+`dismissed:<campaign>`, ids `<scope>:<kind>:<key>:<until>` — a new round is a new id). Checked in
+game 2026-10-25: Find Applications run out on a reloaded 2202.07.01, ✕, a month on unused — gone
+(`~/Pictures/Screenshots/screenshot_2026-10-25_21-05-23`); used again on the left branch, its row
+went by itself. Distribute Luxury Goods on Earth and Unity: two rows.
+**Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
+`days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
+a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
+military fleets (`Fleet.fleetId`, READER 22) on a move ≈ jumps left × days per jump — the fleet's
+own since the save before (`daysPerJump()`), else our ships' median (`measuredDaysPerJump()`), else
+`DEFAULT_DAYS_PER_JUMP` (10, a placeholder: monthly saves give one measurement, 30, a bound).
 
 **Popups** (`InfoPopup.svelte`, `server/explain.ts`): traits, edicts, council agendas, techs,
 jobs, colony designations (`designation:`, data DB `colony_type`; `Designation.svelte` reads them
@@ -512,7 +581,10 @@ perform on each colony, which colonies should be specialised"):
   `planet_metallurgists`), `patrol_drone` and others the generic `planet_jobs`. A source goes to
   the jobs the empire works with it, split by worked pops when several do (marked estimated).
   Matching by name left a gestalt's jobs panel empty but for Maintenance Drones (Yorphia
-  2203.10.01).
+  2203.10.01). **What a stratum makes as such is booked under the stratum**
+  (`pop_category_<stratum>s`, a gestalt's `pop_category_drones`): civilians' unity under Social
+  Welfare, every stratum's trade (2201.01.01: civilians unity 11.24, trade 6.74). Its income goes
+  to the stratum's worked jobs by pops; its expenses are the pops' upkeep (below).
 - **What a unit costs us**, per source from the latest budget: a job's inputs plus its workers'
   upkeep — the stratum's `pop_category_<stratum>s` expenses per pop (a gestalt's three drone
   strata share one, `pop_category_drones`) **and** what every pop eats,
@@ -584,7 +656,11 @@ Philosophy under both its categories), edicts those whose potential holds and th
 .primary = { species_index citizenship living_standard … }` per species, every option of each kind
 whose potential is not false (`from` = the country, folded in; `has_trait` = the species'),
 2207.03.10: Human as the game's panel, a few options more than the game shows (their conditions
-read scopes the save cannot answer). `is_nomadic` is
+read scopes the save cannot answer). **Slavery and purge types only for a species whose
+citizenship enslaves or purges** (data DB `species_right.is_slavery` / `is_purge`; 4.5.2
+`slavery_normal`'s allow: "triggers covered in citizenship_slavery") — the save keeps a default
+type of each for every species. Each option explains itself on hover (`right:<key>`: the game's
+`<key>_tooltip` and the unconditional `pop_group_modifier`s). `is_nomadic` is
 built into the game; read as running `situation_nomad_economy` (the origin misses most nomads,
 see the trade tab).
 
@@ -740,9 +816,25 @@ that rests on an estimate with **≈** (the dashboard's mark, as on the galcom t
 tooltip what is estimated and which mod version stores the game's value, and drop the ≈ once the
 value is exact. A new mod feature without its fallback is not done.
 
-Hidden events write `game.log` lines for human players, all `SDASH|2|<date>|…` (format 2 since mod
-0.2.0; `feed.ts` still reads format 1's monthly lines). The format is shared with `feed.ts` —
-change both together and bump the number.
+**The dashboard must work without the mod, and no mod version may break it** (the user's rule,
+2026-10-26). Players update the two separately — a Workshop subscription updates itself, a zip
+does not. So `feed.ts` reads the formats in `FEED_FORMATS` and **skips any other** (an outdated
+mod's, or one newer than the build) instead of failing; the layout then names the format and which
+side to update (`unsupportedFeed()`, until a month is read). Released 0.1.1 still threw per line
+on format 3: **upload a mod with a new format only after the dashboard reading it is released.**
+Drop an old format by raising `FEED_FORMATS.min`, never by erroring.
+
+Hidden events write `game.log` lines for human players, `SDASH|2|<date>|…` (format 2 since mod
+0.2.0; `feed.ts` still reads format 1's monthly lines). **Format 3 (mod 0.7.0)** puts a run id after
+the date of every month, tick and load line (`SDASH|3|<date>|<run>|end`), drawn at each load
+(`sdash_roll_run`): the game drops a line it has already written this session (checked 2026-10-25:
+a branch replaying July logged 4 of 26 resources a day, no `tick-end` and no month `end`; a second
+load of one save no `load` line), and its random draws differ after a load (one save loaded twice:
+the next month's timeline ids 492755 and 934959, all else identical). Checked with 0.7.0 the same
+day: 07.01 loaded twice logged both loads (runs 524422, 777538), the replayed 08.01 month came
+complete and became node 286 under 281, beside the left 08.01 (282). Event lines stay format 2.
+The format is shared with `feed.ts` — change both together and bump the number. The table below
+shows format 2.
 
 | Line                                                                 | When                 | From                                                      |
 | -------------------------------------------------------------------- | -------------------- | --------------------------------------------------------- |
@@ -779,6 +871,13 @@ change both together and bump the number.
   load the mod logs the loaded save's id; `loadedNode()` finds the latest node of that id not after
   the load's date, and the next observation (log month or save) becomes its child, unflagged
   (`takeLoaded()` in `app.ts`). A load also drops the events and days buffered since the last month.
+  Until then the layout offers it (`loaded`, from `pendingLoad()`; the `loaded` server event makes
+  open pages ask): "show it now" opens the loaded node on the same tab — the user's ask
+  2026-10-25, a refresh alone kept showing the abandoned future.
+  **The game drops a log line identical to the one before it** (checked 2026-10-25: loading the
+  same save twice without unpausing logged one `load` line; another save in between, both): a
+  repeated load of one save is invisible to the dashboard, and a dashboard restart forgets a
+  pending load.
 - **Events re-date milestones**: a month's events travel with its snapshot (`logEvents`, so they
   follow the save graph). `milestones()` gives each to the earliest diffed milestone of the same
   kind whose label contains its name, within 45 days after it (`fromLog()`), else shows it alone;
@@ -918,8 +1017,10 @@ pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − wo
 - Planet modifiers: `planets.planet.<id>.timed_modifier`, as the country's; features like
   `tidal_locked` and `mineral_poor` are permanent ones (`days=-1`).
 - Pop groups: `colony.pop_groups` → top-level `pop_groups.<id> = { key = { species category } size
-happiness }`. **`happiness` is omitted for some groups** (rulers, specialists at 2200.05) —
-  treated as unknown, not 0.
+happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.01.01, where the
+  game showed Earth at 100 % happiness and 100 % approval (the user, 2026-10-25); the AIs' stored
+  values (base 0.5) never reach 1. Read as 1 since READER 20 — before, as unknown, which left the
+  colony's happiness chart empty.
 - Automation: `colony.automation = { enabled settings = { "planet_automation_…" } }` lists the
   settings **on** (Earth 2200.05: crime + four the panel hides for this empire);
   `country.default_planet_automation_settings` for new colonies; top-level
@@ -1173,8 +1274,9 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   `used_naval_capacity`; research per field is `physics|society|engineering_research` in the
   budget income. Envoys are `leaders.<id>` with `class="envoy"` and `country=<id>`; one is in use
   while it has `location = { assignment=… }` (seen: `first_contact`). **Not stored: the naval
-  capacity maximum** — only script can read it (`max_naval_capacity` trigger, exportable with
-  `export_trigger_value_to_variable`), i.e. the companion mod.
+  capacity maximum** — companion mod 0.6.0 exports the `max_naval_capacity` trigger into our
+  country variable `sdash_nc` (`Snapshot.navalMax`, READER 20), shown as used / max; not yet
+  checked in game.
 - **Which techs can be researched** (`techTiers()`, `inReach()` in `#lib/techTiers.ts`): every
   prerequisite researched (data DB `technology_requirement.prerequisites_json`) **and** its tier
   open — a tier opens once 6 techs of the tier below are researched **in the same research area**

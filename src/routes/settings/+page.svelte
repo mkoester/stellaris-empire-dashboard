@@ -46,6 +46,11 @@
 		['anomalySpoilers', 'Situations: show what an anomaly can lead to', 'spoilers'],
 		['projectSpoilers', 'Situations: show what a special project leads to', 'spoilers'],
 		[
+			'hiddenTimers',
+			'Upcoming: show the timers of events in progress (when an event chain continues)',
+			'spoilers'
+		],
+		[
 			'unknownStars',
 			'Maps: show the undiscovered systems too, without their hyperlanes',
 			'the game shows every star from the start'
