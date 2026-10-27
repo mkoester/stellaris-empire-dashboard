@@ -1,5 +1,9 @@
 <script lang="ts">
+	import { colorOf } from './colors.ts';
+	import { ethicMark, sortEthics } from './ethics.ts';
+	import type { EthicAxis } from './types.ts';
 	import {
+		edgeKey,
 		edgeLabel,
 		type Cluster,
 		edgeStyle,
@@ -11,24 +15,37 @@
 
 	// The diplomacy graph without geography: the empires on a circle by group (`groups`, from
 	// `clusters()`), a gap and an arc between groups, their relations as chords bent towards the
-	// centre. A click on an empire focuses it (again: unfocus).
+	// centre. Each name carries its known ethics' short names, coloured by pole (faint when
+	// unverified), and with `details` lines below it (government, civics); `tooltip` is what we know
+	// of it. `highlight` (the legend's pick) fades everything else. A click on an empire focuses it
+	// (again: unfocus).
 	let {
 		nodes,
 		edges,
 		groups,
+		axes = {},
+		details,
+		tooltip,
+		highlight = null,
 		focus = $bindable(null)
 	}: {
 		nodes: DiploNode[];
 		edges: DiploEdge[];
 		groups: Cluster[];
+		axes?: Record<string, EthicAxis>;
+		details?: (n: DiploNode) => { text: string; stale: boolean }[];
+		tooltip?: (n: DiploNode) => string;
+		highlight?: { nodes: Set<number>; edges: Set<string> } | null;
 		focus?: number | null;
 	} = $props();
+	const marks = (n: DiploNode) =>
+		sortEthics(n.government?.value.ethics ?? [], axes).flatMap((e) => ethicMark(e, axes) ?? []);
 
-	// wide enough for the names beside the circle
-	const W = 1040;
+	// wide enough for the names (and their details) beside the circle
+	const W = $derived(details ? 1320 : 1040);
 	const H = 720;
 	const R = 270;
-	const C = { x: W / 2, y: H / 2 };
+	const C = $derived({ x: W / 2, y: H / 2 });
 	const byId = $derived(new Map(nodes.map((n) => [n.id, n])));
 	// slots around the circle: every empire one, a gap of one between groups
 	const slots = $derived.by(() => {
@@ -88,11 +105,19 @@
 		return `M${p.x},${p.y} Q${m.x + (C.x - m.x) * k},${m.y + (C.y - m.y) * k} ${q.x},${q.y}`;
 	};
 	const pick = (id: number) => (focus = focus === id ? null : id);
+	const nodeLit = (id: number) =>
+		(lit === null || lit.has(id)) && (highlight === null || highlight.nodes.has(id));
+	const edgeOpacity = (e: DiploEdge) => {
+		if (highlight) return highlight.edges.has(edgeKey(e)) ? 1 : 0.06;
+		if (focus === null) return e.stale ? 0.55 : 0.85;
+		return e.from === focus || e.to === focus ? 1 : 0.08;
+	};
 </script>
 
 <svg
 	viewBox="0 0 {W} {H}"
-	class="mx-auto block w-full max-w-[1040px]"
+	class="mx-auto block w-full"
+	style:max-width="{W}px"
 	role="img"
 	aria-label="Relations between empires"
 >
@@ -124,13 +149,7 @@
 				stroke-width={st.width}
 				stroke-dasharray={e.stale ? '4 3' : undefined}
 				marker-end={e.kind === 'subject' ? 'url(#dip-arrow)' : undefined}
-				opacity={focus === null
-					? e.stale
-						? 0.55
-						: 0.85
-					: e.from === focus || e.to === focus
-						? 1
-						: 0.08}
+				opacity={edgeOpacity(e)}
 				><title>{edgeLabel(e.kind)}{e.stale ? ` — unverified since ${e.asOf}` : ''}</title></path
 			>
 		{/if}
@@ -140,12 +159,13 @@
 		{@const right = Math.cos(p.t) >= 0}
 		<g
 			class="cursor-pointer"
-			opacity={lit === null || lit.has(n.id) ? 1 : 0.2}
+			opacity={nodeLit(n.id) ? 1 : 0.2}
 			role="button"
 			tabindex="0"
 			onclick={() => pick(n.id)}
 			onkeydown={(e) => e.key === 'Enter' && pick(n.id)}
 		>
+			{#if tooltip}<title>{tooltip(n)}</title>{/if}
 			<circle
 				cx={p.x}
 				cy={p.y}
@@ -158,7 +178,18 @@
 				x={p.x + (right ? 12 : -12)}
 				y={p.y + 4}
 				text-anchor={right ? 'start' : 'end'}
-				class="fill-current text-[12px] {n.us ? 'font-bold' : ''}">{n.name}</text
+				class="fill-current text-[12px] {n.us ? 'font-bold' : ''}"
+				>{n.name}{#each marks(n) as m, i (i)}<tspan
+						dx={i ? 3 : 6}
+						class="text-[10px] {m.fanatic ? 'font-bold' : 'font-normal'}"
+						fill={colorOf(m.color)}
+						opacity={n.government?.stale ? 0.5 : 1}>{m.short}</tspan
+					>{/each}{#each details?.(n) ?? [] as l, i (i)}<tspan
+						x={p.x + (right ? 12 : -12)}
+						dy={i ? 11 : 13}
+						class="text-[10px] font-normal {l.stale ? 'fill-amber-600' : 'fill-gray-500'}"
+						>{l.text}</tspan
+					>{/each}</text
 			>
 		</g>
 	{/each}

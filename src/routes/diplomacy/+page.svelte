@@ -1,21 +1,29 @@
 <script lang="ts">
-	import { scaleColor } from '#lib/colors.ts';
+	import { colorOf, scaleColor } from '#lib/colors.ts';
 	import { CONTACT_KINDS, KIND_LABELS, kindTypes } from '#lib/contacts.ts';
 	import DiplomacyCircle from '#lib/DiplomacyCircle.svelte';
 	import {
 		CLUSTER_MODES,
 		clusters,
 		EDGE_KINDS,
+		edgeKey,
 		edgeLabel,
 		edgeStyle,
+		empireFacts,
+		factsText,
+		legendMatch,
 		neighbours,
 		pairOffsets,
 		type DiploEdge,
 		type DiploNode,
 		type DiplomacyView,
-		type Known
+		type EthicsChange,
+		type Known,
+		type LegendKey
 	} from '#lib/diplomacy.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
+	import EthicChip from '#lib/EthicChip.svelte';
+	import { ethicDistance, ethicMark, opposingAxes, profile, sortEthics } from '#lib/ethics.ts';
 	import { nameOf } from '#lib/format.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import { followGame } from '#lib/live.ts';
@@ -23,6 +31,7 @@
 	import { putSettings } from '#lib/settings.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
+	import type { Snippet } from 'svelte';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -51,20 +60,61 @@
 	);
 	const kindsPresent = $derived(new Set((d?.edges ?? []).map((e) => e.kind)));
 
-	const groups = $derived(d ? clusters(d, nodes, edges, view.cluster, view.threshold) : []);
-	const CLUSTER_LABELS = { blocs: 'blocs', opinion: 'mutual opinion', pacts: 'cooperation' };
+	const ethicName = (e: string) => nameOf(data.names, e);
+	// an ethics group is named by the ethics all its members hold
+	const groups = $derived(
+		(d ? clusters(d, nodes, edges, view.cluster, view, data.ethics) : []).map((g) => ({
+			...g,
+			label: g.label ?? (g.shared?.length ? g.shared.map(ethicName).join(' · ') : null)
+		}))
+	);
+	const CLUSTER_LABELS = {
+		blocs: 'blocs',
+		opinion: 'mutual opinion',
+		pacts: 'cooperation',
+		ethics: 'ethics',
+		federation: 'federation fit'
+	};
 	const CLUSTER_TITLES = {
 		blocs: 'federations together, overlords with their subjects',
 		opinion:
 			'empires whose known opinions of each other average at least the number given (unknown opinions do not count)',
 		pacts:
-			'empires tied by pacts — defensive pacts weigh most; rivalries, closed borders and wars push apart (the relations shown count)'
+			'empires tied by pacts — defensive pacts weigh most; rivalries, closed borders and wars push apart (the relations shown count)',
+		ethics:
+			'empires whose known ethics are on average at most the number given steps apart: per axis, fanatic – regular – none – regular – fanatic, so authoritarian to egalitarian is 2 (ours). Gestalts only with gestalts; unknown ethics stay alone',
+		federation:
+			"≈ groups whose ethics would cost a federation at most the cohesion given, by the game's defines: −0.15 per unique ethic beyond 3, −0.5 per axis held at both poles (how the game counts a fanatic ethic is a guess: as its regular one). Unknown ethics stay alone"
 	};
 
 	// focus: one empire and its relations, the rest faded; a click on it again or Esc clears it
 	let focus: number | null = $state(null);
 	const lit = $derived(focus === null ? null : neighbours(edges, focus));
-	const faded = (id: number) => lit !== null && !lit.has(id);
+
+	// the legend: hovering an item lights what it stands for, a click keeps it lit (per viewer)
+	let legendHover: LegendKey | null = $state(null);
+	let legendPinned: LegendKey[] = $state([]);
+	const pinLegend = (k: LegendKey) =>
+		(legendPinned = legendPinned.includes(k)
+			? legendPinned.filter((x) => x !== k)
+			: [...legendPinned, k]);
+	const highlight = $derived(
+		legendMatch(
+			legendHover && !legendPinned.includes(legendHover)
+				? [...legendPinned, legendHover]
+				: legendPinned,
+			nodes,
+			edges,
+			data.ethics.axes
+		)
+	);
+	const faded = (id: number) =>
+		(lit !== null && !lit.has(id)) || (highlight !== null && !highlight.nodes.has(id));
+	const edgeOpacity = (e: DiploEdge) => {
+		if (highlight) return highlight.edges.has(edgeKey(e)) ? 1 : 0.06;
+		if (focus === null) return e.stale ? 0.55 : 0.85;
+		return e.from === focus || e.to === focus ? 1 : 0.06;
+	};
 
 	const stale = <T,>(k: Known<T> | null) => (k?.stale ? ` — unverified since ${k.asOf}` : '');
 	// the oldest date one of an empire's facts was last verified, if any is stale
@@ -82,6 +132,56 @@
 
 	// --- map
 	const pos = $derived(new Map(data.systems.map((s) => [s.id, s])));
+
+	// --- what we know of each empire: its tooltip, and on the graph its government and civics
+	const facts = (n: DiploNode) =>
+		d
+			? empireFacts(n, d, {
+					key: (k) => nameOf(data.names, k),
+					empire: name,
+					system: (id) => pos.get(id)?.name
+				})
+			: [];
+	const tooltip = (n: DiploNode) => factsText(n.name, facts(n));
+	const details = (n: DiploNode) => {
+		const g = n.government;
+		if (!g) return n.us ? [] : [{ text: 'government unknown', stale: false }];
+		const type = g.value.governmentType ?? g.value.authority;
+		return [
+			type ? nameOf(data.names, type) : '',
+			g.value.civics.map((k) => nameOf(data.names, k)).join(', ')
+		].flatMap((text) => (text ? [{ text, stale: g.stale }] : []));
+	};
+	// the legend lists what our intel knows of (every empire with the cheat): an ethic once for
+	// both its variants, every authority; civics and origins only those of empires on the graph
+	const known = $derived((d?.nodes ?? []).filter((n) => !n.us));
+	const onGraph = $derived(nodes.filter((n) => !n.us));
+	const regularOf = (e: string) => {
+		const a = data.ethics.axes[e];
+		if (!a || a.pos === 0) return e;
+		return (
+			Object.keys(data.ethics.axes).find(
+				(k) => data.ethics.axes[k].axis === a.axis && data.ethics.axes[k].pos === Math.sign(a.pos) // the regular one: ±1
+			) ?? e
+		);
+	};
+	const byName = (ks: Iterable<string>) =>
+		[...new Set(ks)].sort((a, b) => nameOf(data.names, a).localeCompare(nameOf(data.names, b)));
+	const legendEthics = $derived(
+		sortEthics(
+			[...new Set(known.flatMap((n) => (n.government?.value.ethics ?? []).map(regularOf)))],
+			data.ethics.axes
+		)
+	);
+	const legendCivics = $derived(byName(onGraph.flatMap((n) => n.government?.value.civics ?? [])));
+	const legendOrigins = $derived(
+		byName(onGraph.flatMap((n) => (n.origin ? [n.origin.value] : [])))
+	);
+	// how many empires on the graph an item lights
+	const legendCount = (k: LegendKey) =>
+		legendMatch([k], nodes, [], data.ethics.axes)?.nodes.size ?? 0;
+	const legendEdges = $derived(EDGE_KINDS.filter((k) => edges.some((e) => e.kind === k)));
+	const anyStale = $derived(edges.some((e) => e.stale) || nodes.some((n) => n.government?.stale));
 	const capitalOf = (id: number) => {
 		const c = data.capitals[id];
 		return c === undefined ? undefined : pos.get(c);
@@ -106,6 +206,35 @@
 	);
 	const opinionColor = (v: number) => scaleColor(v, -200, 200);
 
+	// --- ethics
+	const axes = $derived(data.ethics.axes);
+	const ethicsOf = (n: DiploNode) => sortEthics(n.government?.value.ethics ?? [], axes);
+	const usNode = $derived(nodes.find((n) => n.us));
+	// steps apart from our ethics; null where unknown, Infinity between a gestalt and the others
+	const distance = (n: DiploNode) => {
+		if (n.us || !n.government || !usNode?.government) return null;
+		return ethicDistance(profile(ethicsOf(n), axes), profile(ethicsOf(usNode), axes)) ?? Infinity;
+	};
+	const distanceTitle = (n: DiploNode) => {
+		if (!n.government || !usNode?.government) return '';
+		const opp = opposingAxes(profile(ethicsOf(n), axes), profile(ethicsOf(usNode), axes));
+		return opp.length ? `opposed to ours on ${opp.map((a) => AXIS_NAMES[a]).join(', ')}` : '';
+	};
+	const AXIS_NAMES = {
+		col: 'authority (authoritarian–egalitarian)',
+		xen: 'aliens (xenophobe–xenophile)',
+		mil: 'war (militarist–pacifist)',
+		spi: 'faith (spiritualist–materialist)'
+	};
+	const changes = $derived(
+		Object.entries(data.ethicsHistory)
+			.flatMap(([id, cs]) => cs.map((c) => ({ ...c, id: Number(id) })))
+			.filter((c) => d?.nodes.some((n) => n.id === c.id))
+			.sort((a, b) => b.by.localeCompare(a.by))
+	);
+	const changeText = (c: EthicsChange) =>
+		`${c.from.map(ethicName).join(', ')} → ${c.to.map(ethicName).join(', ')}, between ${c.after} and ${c.by}`;
+
 	// --- table
 	const pacts = (n: DiploNode) =>
 		edges.filter(
@@ -124,8 +253,17 @@
 		{
 			id: 'ethics',
 			label: 'Ethics',
-			value: (n) => n.government?.value.ethics.map((e) => nameOf(data.names, e)).join(', ') ?? null,
+			value: (n) => (n.government ? ethicsOf(n).map(ethicName).join(', ') : null),
 			cell: gov
+		},
+		{
+			id: 'distance',
+			label: 'Ethics apart',
+			value: distance,
+			cell: dist,
+			right: true,
+			title:
+				'steps between their ethics and ours over the four axes (0 = the same, 16 = every axis fanatic against fanatic); — a gestalt against a non-gestalt'
 		},
 		{
 			id: 'federation',
@@ -187,19 +325,56 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (focus = null)} />
 
+{#snippet legendItem(k: LegendKey, label: string, swatch?: Snippet, count?: number)}
+	<button
+		class="flex items-center gap-1 rounded border px-2 py-0.5 {legendPinned.includes(k)
+			? 'border-sky-500 ring-1 ring-sky-500'
+			: 'border-gray-300 dark:border-gray-700'} {count === 0 ? 'opacity-50' : ''}"
+		title="hover: light it up in the graph; click: keep it lit{count === undefined
+			? ''
+			: ` — ${count} on the graph`}"
+		onmouseenter={() => (legendHover = k)}
+		onmouseleave={() => (legendHover = null)}
+		onfocus={() => (legendHover = k)}
+		onblur={() => (legendHover = null)}
+		onclick={() => pinLegend(k)}
+		>{@render swatch?.()}{label}{#if count}<span class="text-gray-500">{count}</span>{/if}</button
+	>
+{/snippet}
 {#snippet empire(n: DiploNode)}
-	<EmpireName name={n.name} color={n.color} kind={n.kind} nomadic={n.nomadic} />
+	<span class="cursor-help" title={tooltip(n)}
+		><EmpireName name={n.name} color={n.color} kind={n.kind} nomadic={n.nomadic} /></span
+	>
 {/snippet}
 {#snippet gov(n: DiploNode)}
-	{#if n.government}<span
-			class={n.government.stale ? 'text-amber-600' : ''}
+	{#if n.government}
+		{@const hist = data.ethicsHistory[n.id] ?? []}
+		<span
+			class="inline-flex flex-wrap items-center gap-1"
 			title={[n.government.value.governmentType, n.government.value.authority]
 				.flatMap((k) => (k ? [nameOf(data.names, k)] : []))
 				.join(', ') + stale(n.government)}
-			>{n.government.value.ethics.map((e) => nameOf(data.names, e)).join(', ')}</span
-		>{:else}<span class="text-gray-400" title="our intel does not reach their government"
-			>unknown</span
+			>{#each ethicsOf(n) as e (e)}<EthicChip
+					ethic={e}
+					name={ethicName(e)}
+					{axes}
+					stale={n.government.stale}
+					explanation={data.explain[`ethic:${e}`]}
+				/>{/each}{#if hist.length}<span
+					class="cursor-help text-xs text-sky-600"
+					title={`ethics changed, as our intel saw:\n${hist.map(changeText).join('\n')}`}
+					>↻{hist.length > 1 ? hist.length : ''}</span
+				>{/if}</span
+		>
+	{:else}<span class="text-gray-400" title="our intel does not reach their government">unknown</span
 		>{/if}
+{/snippet}
+{#snippet dist(n: DiploNode)}
+	{@const v = distance(n)}
+	{#if v === null}–{:else if v === Infinity}<span
+			class="text-gray-500"
+			title="a gestalt consciousness and an empire of ethics: no common scale">—</span
+		>{:else}<span title={distanceTitle(n)} style:color={scaleColor(-v, -8, 0)}>{v}</span>{/if}
 {/snippet}
 {#snippet fed(n: DiploNode)}
 	{#if n.federation}<span
@@ -302,6 +477,78 @@
 	</div>
 
 	<Panel title="Relations graph">
+		<div class="mb-3 flex flex-col gap-1 text-xs">
+			<div class="flex flex-wrap items-center gap-1">
+				<span class="w-16 text-gray-500">relations</span>
+				{#each legendEdges as k (k)}
+					{@const st = edgeStyle(k)}
+					{#snippet line()}<span
+							class="inline-block w-4"
+							style:border-top="{st.width}px solid {st.color}"
+						></span>{/snippet}
+					{@render legendItem(`edge:${k}`, edgeLabel(k), line)}
+				{/each}
+				{#if anyStale}
+					{#snippet dashed()}<span class="inline-block w-4 border-t-2 border-dashed border-gray-500"
+						></span>{/snippet}
+					{@render legendItem('stale', 'unverified', dashed)}
+				{/if}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
+				<span class="w-16 text-gray-500">ethics</span>
+				{#each legendEthics as e (e)}
+					{#snippet dot()}<span
+							class="inline-block size-2 rounded-full"
+							style:background={colorOf(ethicMark(e, axes)?.color ?? '')}
+						></span>{/snippet}
+					{@const k: LegendKey = `ethics:${e}`}
+					{@render legendItem(k, ethicName(e), dot, legendCount(k))}
+				{/each}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
+				<span class="w-16 text-gray-500">authorities</span>
+				{#each data.authorities as a (a)}
+					{@const k: LegendKey = `authority:${a}`}
+					{@render legendItem(k, nameOf(data.names, a), undefined, legendCount(k))}
+				{/each}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
+				<span
+					class="w-16 text-gray-500"
+					title="the civics our intel has shown of the empires on the graph">civics</span
+				>
+				{#each legendCivics as c (c)}
+					{@const k: LegendKey = `civic:${c}`}
+					{@render legendItem(k, nameOf(data.names, c), undefined, legendCount(k))}
+				{:else}<span class="text-gray-500">none known yet</span>{/each}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
+				<span
+					class="w-16 text-gray-500"
+					title="the origins our intel has shown of the empires on the graph (from intel 40)"
+					>origins</span
+				>
+				{#each legendOrigins as o (o)}
+					{@const k: LegendKey = `origin:${o}`}
+					{@render legendItem(k, nameOf(data.names, o), undefined, legendCount(k))}
+				{:else}<span class="text-gray-500">none known yet (from intel 40)</span>{/each}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
+				{#if legendPinned.length}
+					<button
+						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"
+						onclick={() => (legendPinned = [])}>clear</button
+					>
+				{/if}
+				<label class="ml-auto flex items-center gap-1"
+					><input
+						type="checkbox"
+						checked={view.details}
+						onchange={(e) => save({ ...view, details: e.currentTarget.checked })}
+					/> government and civics on the graph</label
+				>
+			</div>
+		</div>
 		{#if view.layout === 'map'}
 			<GalaxyMap
 				systems={data.systems}
@@ -341,13 +588,7 @@
 								stroke={st.color}
 								stroke-width={st.width}
 								stroke-dasharray={e.stale ? '4 3' : undefined}
-								opacity={focus === null
-									? e.stale
-										? 0.55
-										: 0.85
-									: e.from === focus || e.to === focus
-										? 1
-										: 0.06}
+								opacity={edgeOpacity(e)}
 							/>
 						{/if}
 					{/each}
@@ -365,7 +606,13 @@
 									stroke-width={focus === n.id ? 3 : 1}
 								/>
 								<text x={p.x + 10} y={p.y + 4} class="fill-current text-[12px] font-semibold"
-									>{n.name}</text
+									>{n.name}{#if view.details}{#each details(n) as l, i (i)}<tspan
+												x={p.x + 10}
+												dy={i ? 11 : 13}
+												class="text-[10px] font-normal {l.stale
+													? 'fill-amber-600'
+													: 'fill-gray-500'}">{l.text}</tspan
+											>{/each}{/if}</text
 								>
 							</g>
 						{/if}
@@ -409,14 +656,55 @@
 							onchange={(e) => save({ ...view, threshold: Number(e.currentTarget.value) || 0 })}
 						/></label
 					>
+				{:else if view.cluster === 'ethics'}
+					<label class="flex items-center gap-1"
+						>at most
+						<input
+							type="number"
+							step="1"
+							min="0"
+							class="w-16 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+							value={view.ethicsDistance}
+							onchange={(e) =>
+								save({ ...view, ethicsDistance: Number(e.currentTarget.value) || 0 })}
+						/> steps apart</label
+					>
+				{:else if view.cluster === 'federation'}
+					<label class="flex items-center gap-1"
+						>cohesion at least ≈
+						<input
+							type="number"
+							step="0.05"
+							max="0"
+							class="w-20 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+							value={view.cohesionFloor}
+							onchange={(e) => save({ ...view, cohesionFloor: Number(e.currentTarget.value) || 0 })}
+						/></label
+					>
 				{/if}
 			</div>
-			<DiplomacyCircle {nodes} {edges} {groups} bind:focus />
+			<DiplomacyCircle
+				{nodes}
+				{edges}
+				{groups}
+				{axes}
+				{tooltip}
+				{highlight}
+				details={view.details ? details : undefined}
+				bind:focus
+			/>
 			{#if groups.some((g) => g.ids.length > 1)}
 				<ul class="mt-2 text-sm">
 					{#each groups.filter((g) => g.ids.length > 1) as g, i (g.ids.join())}
 						<li>
-							<span class="text-gray-500">{g.label ?? `group ${i + 1}`}:</span>
+							<span class="text-gray-500"
+								>{g.label ??
+									`group ${i + 1}`}{#if view.cluster === 'federation' && g.penalty !== undefined}
+									<span
+										title="what their ethics would cost a federation's cohesion (≈, the defines)"
+										>(cohesion ≈ {g.penalty.toFixed(2)})</span
+									>{/if}:</span
+							>
 							{#each g.ids as id, j (id)}{j ? ', ' : ''}<button
 									class="cursor-pointer hover:underline {faded(id) ? 'opacity-30' : ''}"
 									style:color={byId.get(id)?.color ?? undefined}
@@ -446,6 +734,7 @@
 										? 'text-sky-600'
 										: ''}"
 									style:color={focus === c.id ? undefined : (c.color ?? undefined)}
+									title={tooltip(c)}
 									onclick={() => (focus = focus === c.id ? null : c.id)}>{c.name}</button
 								>
 							</th>
@@ -512,6 +801,34 @@
 			rowClass={(n) => (faded(n.id) ? 'opacity-30' : '')}
 		/>
 	</Panel>
+
+	{#if changes.length}
+		<Panel
+			title="Ethics changes seen"
+			note="An empire's ethics change by embracing a faction (at most once per 10 years). Dated between the last save our intel showed the old ethics and the first that showed the new."
+		>
+			<ul class="text-sm">
+				{#each changes as c (`${c.id}:${c.by}`)}
+					{@const n = d.nodes.find((x) => x.id === c.id)}
+					<li class="flex flex-wrap items-center gap-1 {faded(c.id) ? 'opacity-30' : ''}">
+						{#if n}<EmpireName name={n.name} color={n.color} />{/if}:
+						{#each sortEthics(c.from, axes) as e (e)}<EthicChip
+								ethic={e}
+								name={ethicName(e)}
+								{axes}
+							/>{/each}→
+						{#each sortEthics(c.to, axes) as e (e)}<EthicChip
+								ethic={e}
+								name={ethicName(e)}
+								{axes}
+								explanation={data.explain[`ethic:${e}`]}
+							/>{/each}
+						<span class="text-gray-500">between {c.after} and {c.by}</span>
+					</li>
+				{/each}
+			</ul>
+		</Panel>
+	{/if}
 
 	{#if d.wars.length}
 		<Panel title="Wars">

@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [0.1.3] - 2026-10-27
+
+### Added
+
+- The diplomacy tab shows what our intel knows of each empire's ethics as coloured chips (each
+  explained on hover), how many steps apart they are from ours, and every change of ethics our
+  intel saw, dated between two saves. The circle marks each empire's ethics beside its name.
+- Every empire's name on the diplomacy tab shows what our intel knows of it on hover — government,
+  ethics, civics, origin (from intel 40), capital, federation, opinions — and from which intel the
+  rest would show. The graph names each empire's government and civics (a switch).
+- A legend for the relations graph: hovering a relation kind, an ethic (regular and fanatic as
+  one), an authority, a civic or origin our intel has shown of an empire on the graph, or "unverified" lights it up in the
+  graph, a click keeps it lit.
+- Two more ways to group the circle: by **ethics** (empires at most N steps apart on average) and
+  by **federation fit** (≈ what their ethics would cost a federation's cohesion, by the game's
+  defines).
+
 ## [0.1.2] - 2026-10-26
 
 ### Added

@@ -769,7 +769,8 @@ on average one point per pair) — each group an arc, listed under the circle. E
 focuses one empire and fades the rest (per viewer, Esc clears). **What we know is the game's intel
 model**: our `intel_manager` value per country (0–100) → a level per category (4.5.2
 `common/intel_levels/00_intel_levels.txt`), and what a level reveals
-(`common/intel_categories/*`): government 1 (intel 10) ethics, civics, capital; diplomacy 1 (20)
+(`common/intel_categories/*`): government 1 (intel 10) ethics, civics, capital (and the ruler, not
+stored); government 2 (40) origin; diplomacy 1 (20)
 rivalries, federation; diplomacy 2 (50) pacts and opinions. A pact shows through either side,
 their opinion of us always; subjects and wars are **assumed public** (Open). `diplomacyView()`
 walks the branch's saves: a fact keeps its reading from the last save whose intel showed it — gone
@@ -779,6 +780,32 @@ marauders) and with communications (`Snapshot.diplomacy`, `intel`, `allWars`, RE
 `diplomacyAll` cheat (⚙) is the latest save's truth; the route strips nothing else, since the
 model never passes hidden facts. 2214.01.01: 47 countries, 113 relations shown of 141, 115
 opinions of 228.
+**Ethics** (the user's ask 2026-10-27, `#lib/ethics.ts` pure): what government intel shows, as
+`EthicChip`s (a dot per pole, `ethic-*` in `colors.ts`, bold when fanatic, `ethic:` popups), short
+names on the circle (`Au`, `XI` fanatic, …), **steps apart from ours** — each ethic's place on its
+axis from the data DB (`ethic.category_value` − 2: −2…+2, `GameData.ethicAxes`), summed over the
+four axes, 0–16; gestalt against non-gestalt has no scale — and **changes seen**
+(`ethicsHistory()`: two visible readings in a row that differ, dated between them). Two more
+circle groupings: `ethics` (average linkage while the mean steps apart stay ≤
+`diplomacyView.ethicsDistance`, 3) and `federation` (`agglomerateGroups()`: a group's ethics scored
+whole by the defines — −0.15 per unique ethic beyond 3, −0.5 per axis held at both poles — while ≥
+`cohesionFloor`, −0.3); unknown ethics stay alone. **The counting is a guess** (≈): a fanatic ethic
+as its regular one, an opposition once per axis, and a gestalt is just one more ethic there, so it
+joins anyone. Ethics' effect on AI opinion is not modelled — saves store no ethics opinion
+modifier (2214: claims, insult, gift, GalCom, new contact only). 2214.02.01: we (Authoritarian,
+Fanatic Materialist) group with the two other fanatic materialists; no change seen in the history.
+**What we know of an empire** (the user's ask 2026-10-27, `empireFacts()`): every empire name —
+table, matrix, circle — has it as a tooltip (`factsText()`): intel and its levels, government,
+ethics, civics, origin, capital, federation, overlord, subjects, opinions, and for what intel does
+not reach "unknown — from intel N"; the graph names each empire's government and civics under it
+(`diplomacyView.details`). **Legend** above the graph: relation kinds, "unverified", each ethic once for both its variants
+(`ethics:<regular>`, the user's call), every authority (`GameData.authorities`), and the civics
+and origins our intel has shown of the empires on the graph (the user's call 2026-10-27: every
+known empire's listed 42 civics, most of fallen empires, enclaves and pre-FTL civilisations the
+graph filters out; all empires with `diplomacyAll`) — ethics and authorities no empire on the
+graph has are greyed, the count of those that do beside each item. Hover lights what an
+item stands for (`legendMatch()`: its edges and the empires on them, or the empires holding it), a
+click keeps it lit (several at once, per viewer, not stored). The map draws only in a browser (`GalaxyMap` waits for its size), so its lines are unchecked here.
 
 **DLCs and mods** (`/dlc`, `/mods`, `#lib/addons.ts`, pure): what is active comes from each
 save's `meta` (`required_dlcs`, `mods`: names; `version`) → `Snapshot.dlcs|mods|gameVersion`;
@@ -1485,6 +1512,14 @@ screen, trade calibration, stored research, releases).
   empire's diplomacy view at intel < 50 (no pacts expected) and one ≥ 50 against the tab; at the
   first intel drop (lost embassy or pact), whether the tab marks its facts "unverified since".
   Federations (`federation.<id>.name`, `country.federation`) are not yet seen in a save.
+- **Diplomacy tab, ethics**: check the chips against the game's contacts screen (ethics column)
+  for two or three empires, and `federation fit` against a real federation's cohesion tooltip
+  ("Opposing ethics(N)", the defines' lines) — how a fanatic ethic and a gestalt count.
+  **The game has its own distance**, engine-computed: the trigger `opposing_ethics_divergence =
+{ steps > N who = <country> }` (4.5.2 `common/scripted_effects/first_contact_effects.txt`), and
+  `calculate_ethics_divergence` in `script_values/01_script_values_paragon.txt` turns it into a
+  value (`complex_trigger_modifier`, `mode = add`). The companion mod could export that per empire
+  to check our steps (whether it counts only opposed axes is unknown).
 - **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
   (`is_rival=yes`); no AI rivalled us yet (2205.06).
 - **Galactic Community: session timing, solved** (2214.01.01): `galactic_community.days` counts

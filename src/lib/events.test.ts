@@ -66,6 +66,8 @@ const data: GameData = {
 	traditionTrees: {},
 	perks: {},
 	flagColors: {},
+	ethicAxes: {},
+	authorities: [],
 	anomalyLevels: { GEN_PLAYGROUND_CAT: 3 },
 	costs: { district: {}, ship: {}, building: {}, deposit: {}, module: {}, starbaseBuilding: {} },
 	districtJobs: {},
