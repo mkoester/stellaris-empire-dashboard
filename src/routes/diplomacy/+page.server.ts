@@ -58,6 +58,7 @@ export function load({ url }) {
 			)
 		},
 		ethicsHistory: ethicsHistory(snaps, cheat),
+		authorities: data.authorities,
 		explain: pick(
 			getExplanations(),
 			Object.keys(data.ethicAxes).map((k) => `ethic:${k}`)

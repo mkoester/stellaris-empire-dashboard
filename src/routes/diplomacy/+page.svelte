@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { scaleColor } from '#lib/colors.ts';
+	import { colorOf, scaleColor } from '#lib/colors.ts';
 	import { CONTACT_KINDS, KIND_LABELS, kindTypes } from '#lib/contacts.ts';
 	import DiplomacyCircle from '#lib/DiplomacyCircle.svelte';
 	import {
@@ -23,7 +23,7 @@
 	} from '#lib/diplomacy.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import EthicChip from '#lib/EthicChip.svelte';
-	import { ethicDistance, opposingAxes, profile, sortEthics } from '#lib/ethics.ts';
+	import { ethicDistance, ethicMark, opposingAxes, profile, sortEthics } from '#lib/ethics.ts';
 	import { nameOf } from '#lib/format.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import { followGame } from '#lib/live.ts';
@@ -104,7 +104,8 @@
 				? [...legendPinned, legendHover]
 				: legendPinned,
 			nodes,
-			edges
+			edges,
+			data.ethics.axes
 		)
 	);
 	const faded = (id: number) =>
@@ -151,12 +152,31 @@
 			g.value.civics.map((k) => nameOf(data.names, k)).join(', ')
 		].flatMap((text) => (text ? [{ text, stale: g.stale }] : []));
 	};
+	// the legend lists what our intel knows of (every empire with the cheat): an ethic once for
+	// both its variants, every authority, the civics and origins seen
+	const known = $derived((d?.nodes ?? []).filter((n) => !n.us));
+	const regularOf = (e: string) => {
+		const a = data.ethics.axes[e];
+		if (!a || a.pos === 0) return e;
+		return (
+			Object.keys(data.ethics.axes).find(
+				(k) => data.ethics.axes[k].axis === a.axis && data.ethics.axes[k].pos === Math.sign(a.pos) // the regular one: ±1
+			) ?? e
+		);
+	};
+	const byName = (ks: Iterable<string>) =>
+		[...new Set(ks)].sort((a, b) => nameOf(data.names, a).localeCompare(nameOf(data.names, b)));
 	const legendEthics = $derived(
 		sortEthics(
-			[...new Set(nodes.flatMap((n) => n.government?.value.ethics ?? []))],
+			[...new Set(known.flatMap((n) => (n.government?.value.ethics ?? []).map(regularOf)))],
 			data.ethics.axes
 		)
 	);
+	const legendCivics = $derived(byName(known.flatMap((n) => n.government?.value.civics ?? [])));
+	const legendOrigins = $derived(byName(known.flatMap((n) => (n.origin ? [n.origin.value] : []))));
+	// how many empires on the graph an item lights
+	const legendCount = (k: LegendKey) =>
+		legendMatch([k], nodes, [], data.ethics.axes)?.nodes.size ?? 0;
 	const legendEdges = $derived(EDGE_KINDS.filter((k) => edges.some((e) => e.kind === k)));
 	const anyStale = $derived(edges.some((e) => e.stale) || nodes.some((n) => n.government?.stale));
 	const capitalOf = (id: number) => {
@@ -302,17 +322,20 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (focus = null)} />
 
-{#snippet legendItem(k: LegendKey, label: string, swatch: Snippet)}
+{#snippet legendItem(k: LegendKey, label: string, swatch?: Snippet, count?: number)}
 	<button
 		class="flex items-center gap-1 rounded border px-2 py-0.5 {legendPinned.includes(k)
 			? 'border-sky-500 ring-1 ring-sky-500'
-			: 'border-gray-300 dark:border-gray-700'}"
-		title="hover: light it up in the graph; click: keep it lit"
+			: 'border-gray-300 dark:border-gray-700'} {count === 0 ? 'opacity-50' : ''}"
+		title="hover: light it up in the graph; click: keep it lit{count === undefined
+			? ''
+			: ` — ${count} on the graph`}"
 		onmouseenter={() => (legendHover = k)}
 		onmouseleave={() => (legendHover = null)}
 		onfocus={() => (legendHover = k)}
 		onblur={() => (legendHover = null)}
-		onclick={() => pinLegend(k)}>{@render swatch()}{label}</button
+		onclick={() => pinLegend(k)}
+		>{@render swatch?.()}{label}{#if count}<span class="text-gray-500">{count}</span>{/if}</button
 	>
 {/snippet}
 {#snippet empire(n: DiploNode)}
@@ -471,9 +494,38 @@
 			<div class="flex flex-wrap items-center gap-1">
 				<span class="w-16 text-gray-500">ethics</span>
 				{#each legendEthics as e (e)}
-					{#snippet chip()}<EthicChip ethic={e} name="" {axes} short />{/snippet}
-					{@render legendItem(`ethic:${e}`, ethicName(e), chip)}
+					{#snippet dot()}<span
+							class="inline-block size-2 rounded-full"
+							style:background={colorOf(ethicMark(e, axes)?.color ?? '')}
+						></span>{/snippet}
+					{@const k: LegendKey = `ethics:${e}`}
+					{@render legendItem(k, ethicName(e), dot, legendCount(k))}
 				{/each}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
+				<span class="w-16 text-gray-500">authorities</span>
+				{#each data.authorities as a (a)}
+					{@const k: LegendKey = `authority:${a}`}
+					{@render legendItem(k, nameOf(data.names, a), undefined, legendCount(k))}
+				{/each}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
+				<span class="w-16 text-gray-500" title="the civics our intel has shown">civics</span>
+				{#each legendCivics as c (c)}
+					{@const k: LegendKey = `civic:${c}`}
+					{@render legendItem(k, nameOf(data.names, c), undefined, legendCount(k))}
+				{:else}<span class="text-gray-500">none known yet</span>{/each}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
+				<span class="w-16 text-gray-500" title="the origins our intel has shown (from intel 40)"
+					>origins</span
+				>
+				{#each legendOrigins as o (o)}
+					{@const k: LegendKey = `origin:${o}`}
+					{@render legendItem(k, nameOf(data.names, o), undefined, legendCount(k))}
+				{:else}<span class="text-gray-500">none known yet (from intel 40)</span>{/each}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
 				{#if legendPinned.length}
 					<button
 						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"

@@ -479,6 +479,9 @@ export function loadGameData(file: string): GameData {
 					{ axis: e.category!, pos: e.category === 'hive' ? 0 : (e.category_value ?? 2) - 2 }
 				])
 			),
+			authorities: rows<{ key: string }>('SELECT key FROM authority ORDER BY sort_order').map(
+				(r) => r.key
+			),
 			anomalyLevels: Object.fromEntries(
 				rows<{ key: string; level: number | null }>('SELECT key, level FROM anomaly_category').map(
 					(r) => [r.key, r.level]

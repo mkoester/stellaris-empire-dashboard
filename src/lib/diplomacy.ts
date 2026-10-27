@@ -655,9 +655,17 @@ export const factsText = (name: string, facts: EmpireFact[]) =>
 
 /**
  * What a legend item stands for: `edge:<kind>` the relations of that kind, `ethic:<key>` the
- * empires holding that ethic, `stale` what our intel no longer confirms.
+ * empires holding that ethic, `ethics:<regular ethic>` it or its fanatic variant, `authority:`,
+ * `civic:`, `origin:<key>` the empires known to have it, `stale` what our intel no longer confirms.
  */
-export type LegendKey = `edge:${string}` | `ethic:${string}` | 'stale';
+export type LegendKey =
+	| `edge:${string}`
+	| `ethic:${string}`
+	| `ethics:${string}`
+	| `authority:${string}`
+	| `civic:${string}`
+	| `origin:${string}`
+	| 'stale';
 export const edgeKey = (e: DiploEdge) => `${e.kind}:${e.from}:${e.to}`;
 
 /**
@@ -667,22 +675,35 @@ export const edgeKey = (e: DiploEdge) => `${e.kind}:${e.from}:${e.to}`;
 export function legendMatch(
 	keys: LegendKey[],
 	nodes: DiploNode[],
-	edges: DiploEdge[]
+	edges: DiploEdge[],
+	axes: Record<string, EthicAxis> = {}
 ): { nodes: Set<number>; edges: Set<string> } | null {
 	if (!keys.length) return null;
 	const set = new Set<string>(keys);
 	const lit = edges.filter((e) => set.has(`edge:${e.kind}`) || (set.has('stale') && e.stale));
+	// `ethics:<regular ethic>`: either variant, the same pole of the same axis
+	const poles = keys.flatMap((k) => {
+		const a = k.startsWith('ethics:') ? axes[k.slice(7)] : undefined;
+		return a ? [a] : [];
+	});
+	const ethicLit = (e: string) =>
+		set.has(`ethic:${e}`) ||
+		poles.some((p) => axes[e]?.axis === p.axis && Math.sign(axes[e].pos) === Math.sign(p.pos));
+	const nodeLit = (n: DiploNode) => {
+		const g = n.government?.value;
+		return (
+			(set.has('stale') && !!(n.government?.stale || n.origin?.stale)) ||
+			(g?.ethics ?? []).some(ethicLit) ||
+			(!!g?.authority && set.has(`authority:${g.authority}`)) ||
+			(g?.civics ?? []).some((c) => set.has(`civic:${c}`)) ||
+			(!!n.origin && set.has(`origin:${n.origin.value}`))
+		);
+	};
 	return {
 		edges: new Set(lit.map(edgeKey)),
 		nodes: new Set([
 			...lit.flatMap((e) => [e.from, e.to]),
-			...nodes
-				.filter(
-					(n) =>
-						(set.has('stale') && (n.government?.stale || n.origin?.stale)) ||
-						(n.government?.value.ethics ?? []).some((x) => set.has(`ethic:${x}`))
-				)
-				.map((n) => n.id)
+			...nodes.filter(nodeLit).map((n) => n.id)
 		])
 	};
 }

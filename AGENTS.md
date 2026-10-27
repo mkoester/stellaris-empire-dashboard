@@ -798,10 +798,12 @@ Fanatic Materialist) group with the two other fanatic materialists; no change se
 table, matrix, circle — has it as a tooltip (`factsText()`): intel and its levels, government,
 ethics, civics, origin, capital, federation, overlord, subjects, opinions, and for what intel does
 not reach "unknown — from intel N"; the graph names each empire's government and civics under it
-(`diplomacyView.details`). **Legend** above the graph: relation kinds, "unverified", the ethics
-present; hover lights what an item stands for (`legendMatch()`: its edges and the empires on them,
-or the empires holding the ethic), a click keeps it lit (several at once, per viewer, not stored).
-The map draws only in a browser (`GalaxyMap` waits for its size), so its lines are unchecked here.
+(`diplomacyView.details`). **Legend** above the graph: relation kinds, "unverified", each ethic once for both its variants
+(`ethics:<regular>`, the user's call), every authority (`GameData.authorities`), and the civics
+and origins our intel has shown of any known empire (all of them with `diplomacyAll`) — greyed
+where no empire on the graph has it, the count of those that do beside it. Hover lights what an
+item stands for (`legendMatch()`: its edges and the empires on them, or the empires holding it), a
+click keeps it lit (several at once, per viewer, not stored). The map draws only in a browser (`GalaxyMap` waits for its size), so its lines are unchecked here.
 
 **DLCs and mods** (`/dlc`, `/mods`, `#lib/addons.ts`, pure): what is active comes from each
 save's `meta` (`required_dlcs`, `mods`: names; `version`) → `Snapshot.dlcs|mods|gameVersion`;

@@ -12,7 +12,8 @@ import {
 	pairOffsets,
 	parseDiplomacyView,
 	type DiploNode,
-	type DiploSnap
+	type DiploSnap,
+	type LegendKey
 } from './diplomacy.ts';
 import type { DiploCountry, Relation } from './types.ts';
 
@@ -408,5 +409,29 @@ describe('what we know of an empire', () => {
 		expect([...m.nodes].sort()).toEqual([1, 2, 3]);
 		expect([...m.edges]).toEqual(['defensive_pact:2:3']);
 		expect([...legendMatch(['stale'], nodes, edges)!.nodes].sort()).toEqual([3, 4]);
+	});
+
+	it('lights an ethic with its fanatic variant, and by authority, civic and origin', () => {
+		const axes = {
+			ethic_pacifist: { axis: 'mil', pos: 1 },
+			ethic_fanatic_pacifist: { axis: 'mil', pos: 2 },
+			ethic_militarist: { axis: 'mil', pos: -1 }
+		};
+		const gov = (ethics: string[], authority: string, civics: string[]) =>
+			known({ ethics, authority, governmentType: null, civics });
+		const nodes = [
+			node(1, { government: gov(['ethic_pacifist'], 'auth_democratic', ['civic_a']) }),
+			node(2, { government: gov(['ethic_fanatic_pacifist'], 'auth_imperial', []) }),
+			node(3, {
+				government: gov(['ethic_militarist'], 'auth_democratic', ['civic_b']),
+				origin: known('origin_x')
+			})
+		];
+		const lit = (k: LegendKey) => [...legendMatch([k], nodes, [], axes)!.nodes].sort();
+		expect(lit('ethics:ethic_pacifist')).toEqual([1, 2]);
+		expect(lit('ethic:ethic_fanatic_pacifist')).toEqual([2]);
+		expect(lit('authority:auth_democratic')).toEqual([1, 3]);
+		expect(lit('civic:civic_b')).toEqual([3]);
+		expect(lit('origin:origin_x')).toEqual([3]);
 	});
 });

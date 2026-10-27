@@ -978,6 +978,7 @@ export type GameData = {
 	perks: Record<string, string>; // ascension perk names
 	flagColors: Record<string, string>; // flag colour swatch → its galaxy-map colour (#rrggbb)
 	ethicAxes: Record<string, EthicAxis>; // ethic → its place on its axis
+	authorities: string[]; // every authority, in the game's order
 	anomalyLevels: Record<string, number | null>; // anomaly category → level
 	blockers: string[]; // deposit keys that are blockers
 	// what clearing each blocker takes
