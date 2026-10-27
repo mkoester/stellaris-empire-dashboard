@@ -779,6 +779,20 @@ marauders) and with communications (`Snapshot.diplomacy`, `intel`, `allWars`, RE
 `diplomacyAll` cheat (⚙) is the latest save's truth; the route strips nothing else, since the
 model never passes hidden facts. 2214.01.01: 47 countries, 113 relations shown of 141, 115
 opinions of 228.
+**Ethics** (the user's ask 2026-10-27, `#lib/ethics.ts` pure): what government intel shows, as
+`EthicChip`s (a dot per pole, `ethic-*` in `colors.ts`, bold when fanatic, `ethic:` popups), short
+names on the circle (`Au`, `XI` fanatic, …), **steps apart from ours** — each ethic's place on its
+axis from the data DB (`ethic.category_value` − 2: −2…+2, `GameData.ethicAxes`), summed over the
+four axes, 0–16; gestalt against non-gestalt has no scale — and **changes seen**
+(`ethicsHistory()`: two visible readings in a row that differ, dated between them). Two more
+circle groupings: `ethics` (average linkage while the mean steps apart stay ≤
+`diplomacyView.ethicsDistance`, 3) and `federation` (`agglomerateGroups()`: a group's ethics scored
+whole by the defines — −0.15 per unique ethic beyond 3, −0.5 per axis held at both poles — while ≥
+`cohesionFloor`, −0.3); unknown ethics stay alone. **The counting is a guess** (≈): a fanatic ethic
+as its regular one, an opposition once per axis, and a gestalt is just one more ethic there, so it
+joins anyone. Ethics' effect on AI opinion is not modelled — saves store no ethics opinion
+modifier (2214: claims, insult, gift, GalCom, new contact only). 2214.02.01: we (Authoritarian,
+Fanatic Materialist) group with the two other fanatic materialists; no change seen in the history.
 
 **DLCs and mods** (`/dlc`, `/mods`, `#lib/addons.ts`, pure): what is active comes from each
 save's `meta` (`required_dlcs`, `mods`: names; `version`) → `Snapshot.dlcs|mods|gameVersion`;
@@ -1485,6 +1499,9 @@ screen, trade calibration, stored research, releases).
   empire's diplomacy view at intel < 50 (no pacts expected) and one ≥ 50 against the tab; at the
   first intel drop (lost embassy or pact), whether the tab marks its facts "unverified since".
   Federations (`federation.<id>.name`, `country.federation`) are not yet seen in a save.
+- **Diplomacy tab, ethics**: check the chips against the game's contacts screen (ethics column)
+  for two or three empires, and `federation fit` against a real federation's cohesion tooltip
+  ("Opposing ethics(N)", the defines' lines) — how a fanatic ethic and a gestalt count.
 - **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
   (`is_rival=yes`); no AI rivalled us yet (2205.06).
 - **Galactic Community: session timing, solved** (2214.01.01): `galactic_community.days` counts

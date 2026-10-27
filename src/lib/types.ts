@@ -819,6 +819,13 @@ export type ActionKind =
 	| 'federation_law'
 	| 'enclave';
 
+/**
+ * An ethic's place on its axis (`col`, `xen`, `mil`, `spi`; gestalt `hive`): −2 fanatic, −1 regular
+ * on the first pole (authoritarian, xenophobe, militarist, spiritualist), +1 / +2 on the second —
+ * the game's `category_value` − 2 (4.5.2 `common/ethics/99_documentation.txt`).
+ */
+export type EthicAxis = { axis: string; pos: number };
+
 export type GameData = {
 	// per timed modifier or flag (`modifier:<key>`, `flag:<key>`): the actions that wait for it to
 	// end (`cooldown`), whose effect only sets it again once it has ended (`bonus`), or only set it
@@ -970,6 +977,7 @@ export type GameData = {
 	>;
 	perks: Record<string, string>; // ascension perk names
 	flagColors: Record<string, string>; // flag colour swatch → its galaxy-map colour (#rrggbb)
+	ethicAxes: Record<string, EthicAxis>; // ethic → its place on its axis
 	anomalyLevels: Record<string, number | null>; // anomaly category → level
 	blockers: string[]; // deposit keys that are blockers
 	// what clearing each blocker takes

@@ -1,5 +1,6 @@
 import { agreementName, kindOf, parseKinds, type ContactKind } from './contacts.ts';
-import type { CountryInfo, DiploCountry, Relation, WarSides } from './types.ts';
+import { ethicDistance, federationPenalty, profile } from './ethics.ts';
+import type { CountryInfo, DiploCountry, EthicAxis, Relation, WarSides } from './types.ts';
 
 // The diplomacy tab: what we know of every empire and of the relations between them, as our intel
 // shows them — or everything, with the `diplomacyAll` cheat. Pure.
@@ -21,6 +22,8 @@ export type DiplomacyView = {
 	hiddenEdges: string[]; // edge kinds not drawn
 	cluster: ClusterMode; // the circle's grouping
 	threshold: number; // opinion clusters: the mutual opinion a group needs
+	ethicsDistance: number; // ethics clusters: the mean steps apart a group may have
+	cohesionFloor: number; // federation clusters: the least cohesion its ethics may cost
 };
 export const DEFAULT_DIPLOMACY_VIEW: DiplomacyView = {
 	communicationsOnly: true,
@@ -28,8 +31,12 @@ export const DEFAULT_DIPLOMACY_VIEW: DiplomacyView = {
 	layout: 'circle',
 	hiddenEdges: ['embassy', 'closed_borders'],
 	cluster: 'blocs',
-	threshold: 100
+	threshold: 100,
+	ethicsDistance: 3,
+	cohesionFloor: -0.3 // two ethics more than three, nothing opposed
 };
+const num = (v: unknown, fallback: number) =>
+	typeof v === 'number' && Number.isFinite(v) ? v : fallback;
 export function parseDiplomacyView(v: unknown): DiplomacyView {
 	const o = (v && typeof v === 'object' ? v : {}) as Partial<DiplomacyView>;
 	return {
@@ -42,16 +49,21 @@ export function parseDiplomacyView(v: unknown): DiplomacyView {
 		cluster: CLUSTER_MODES.includes(o.cluster as ClusterMode)
 			? (o.cluster as ClusterMode)
 			: 'blocs',
-		threshold: typeof o.threshold === 'number' && Number.isFinite(o.threshold) ? o.threshold : 100
+		threshold: num(o.threshold, DEFAULT_DIPLOMACY_VIEW.threshold),
+		ethicsDistance: num(o.ethicsDistance, DEFAULT_DIPLOMACY_VIEW.ethicsDistance),
+		cohesionFloor: num(o.cohesionFloor, DEFAULT_DIPLOMACY_VIEW.cohesionFloor)
 	};
 }
 
 /**
  * How the circle groups empires: `blocs` — federations, and overlords with their subjects;
  * `opinion` — empires whose known opinions of each other average at least the threshold;
- * `pacts` — empires tied by pacts (`PACT_SCORE`), rivalries and wars pushing apart.
+ * `pacts` — empires tied by pacts (`PACT_SCORE`), rivalries and wars pushing apart;
+ * `ethics` — empires whose known ethics are on average at most `ethicsDistance` steps apart
+ * (`ethicDistance()`); `federation` — groups whose ethics would cost a federation at most
+ * `cohesionFloor` cohesion (`federationPenalty()`). Unknown ethics stay alone in both.
  */
-export const CLUSTER_MODES = ['blocs', 'opinion', 'pacts'] as const;
+export const CLUSTER_MODES = ['blocs', 'opinion', 'pacts', 'ethics', 'federation'] as const;
 export type ClusterMode = (typeof CLUSTER_MODES)[number];
 
 // how much a relation pulls two empires together (pacts mode); ours, not the game's
@@ -70,8 +82,11 @@ const PACT_SCORE: Record<string, number> = {
 	war: -5
 };
 
-/** A group of empires on the circle: a name where it has one (federation, overlord). */
-export type Cluster = { label: string | null; ids: number[] };
+/**
+ * A group of empires on the circle: a name where it has one (federation, overlord); in the
+ * ethics modes the ethics all its members hold (`shared`) and what they cost a federation.
+ */
+export type Cluster = { label: string | null; ids: number[]; shared?: string[]; penalty?: number };
 
 /**
  * Average-linkage grouping: start with each empire alone, merge the two groups that like each
@@ -104,13 +119,40 @@ export function agglomerate(
 	}
 }
 
+/**
+ * The same, scoring a would-be group as a whole: merge the two groups whose union scores best
+ * while that is at least `min`.
+ */
+export function agglomerateGroups(
+	ids: number[],
+	score: (group: number[]) => number,
+	min: number
+): number[][] {
+	let groups = ids.map((id) => [id]);
+	for (;;) {
+		let best: { i: number; j: number; v: number } | null = null;
+		for (let i = 0; i < groups.length; i++)
+			for (let j = i + 1; j < groups.length; j++) {
+				const v = score([...groups[i], ...groups[j]]);
+				if (v >= min && (!best || v > best.v)) best = { i, j, v };
+			}
+		if (!best) return groups;
+		const { i, j } = best;
+		groups = [...groups.filter((_, k) => k !== i && k !== j), [...groups[i], ...groups[j]]];
+	}
+}
+
+export type EthicsData = { axes: Record<string, EthicAxis>; defines: Record<string, number> };
+
 export function clusters(
 	d: Pick<Diplomacy, 'opinions'>,
 	nodes: DiploNode[],
 	edges: DiploEdge[],
 	mode: ClusterMode,
-	threshold: number
+	limits: Pick<DiplomacyView, 'threshold' | 'ethicsDistance' | 'cohesionFloor'>,
+	ethics: EthicsData = { axes: {}, defines: {} }
 ): Cluster[] {
+	const { threshold } = limits;
 	const ids = nodes.map((n) => n.id);
 	const byId = new Map(nodes.map((n) => [n.id, n]));
 	let groups: number[][];
@@ -134,6 +176,24 @@ export function clusters(
 			},
 			threshold
 		);
+	} else if (mode === 'ethics' || mode === 'federation') {
+		const known = ids.filter((id) => byId.get(id)?.government);
+		const ethicsOf = (id: number) => byId.get(id)?.government?.value.ethics ?? [];
+		const unknown = ids.filter((id) => !byId.get(id)?.government).map((id) => [id]);
+		if (mode === 'ethics') {
+			const prof = new Map(known.map((id) => [id, profile(ethicsOf(id), ethics.axes)]));
+			groups = agglomerate(
+				known,
+				(a, b) => -(ethicDistance(prof.get(a)!, prof.get(b)!) ?? Infinity),
+				-limits.ethicsDistance
+			);
+		} else
+			groups = agglomerateGroups(
+				known,
+				(g) => federationPenalty(g.map(ethicsOf), ethics.axes, ethics.defines),
+				limits.cohesionFloor
+			);
+		groups = [...groups, ...unknown];
 	} else {
 		const score = new Map<string, number>();
 		const pair = (a: number, b: number) => `${Math.min(a, b)}:${Math.max(a, b)}`;
@@ -155,8 +215,15 @@ export function clusters(
 			null
 		);
 	};
+	const ethicsOf = (id: number) => byId.get(id)?.government?.value.ethics ?? [];
+	const byEthics = mode === 'ethics' || mode === 'federation';
 	return groups
-		.map((g) => ({ label: label(g), ids: g }))
+		.map((g): Cluster => {
+			if (!byEthics || g.length < 2) return { label: label(g), ids: g };
+			const shared = ethicsOf(g[0]).filter((e) => g.every((id) => ethicsOf(id).includes(e)));
+			const penalty = federationPenalty(g.map(ethicsOf), ethics.axes, ethics.defines);
+			return { label: null, ids: g, shared, penalty };
+		})
 		.sort((a, b) => b.ids.length - a.ids.length);
 }
 
@@ -340,6 +407,45 @@ function factsOf(s: DiploSnap): Fact[] {
 	});
 }
 
+/** Our intel level on each country in a save: everything on us, and with the cheat. */
+function levelsAt(s: DiploSnap, us: number, cheat: boolean) {
+	const intel = new Map((s.intel ?? []).map((i) => [i.countryId, i.intel]));
+	return (id: number, category: IntelCategory) =>
+		cheat || id === us ? Infinity : levelOf(intel.get(id) ?? 0, category);
+}
+
+/** A change of an empire's ethics our intel saw: somewhen after `after`, by `by`. */
+export type EthicsChange = { from: string[]; to: string[]; after: string; by: string };
+
+/**
+ * Every change of ethics along the saves, per country, as our intel saw them: two readings in a
+ * row that differ (with saves our intel did not reach between them, the change lies somewhere in
+ * that gap). With `cheat`, every save's truth.
+ */
+export function ethicsHistory(snaps: DiploSnap[], cheat: boolean): Record<number, EthicsChange[]> {
+	const steps = snaps.filter((s) => s.diplomacy !== null && s.intel !== null);
+	const us = steps.at(-1)?.countryId ?? 0;
+	const seen = new Map<number, { ethics: string[]; date: string }>();
+	const out: Record<number, EthicsChange[]> = {};
+	const same = (a: string[], b: string[]) => a.length === b.length && a.every((e) => b.includes(e));
+	for (const s of steps) {
+		const level = levelsAt(s, us, cheat);
+		for (const c of s.countries ?? []) {
+			if (level(c.id, NEEDS.gov[0]) < NEEDS.gov[1]) continue;
+			const before = seen.get(c.id);
+			if (before && !same(before.ethics, c.ethics))
+				(out[c.id] ??= []).push({
+					from: before.ethics,
+					to: c.ethics,
+					after: before.date,
+					by: s.date
+				});
+			seen.set(c.id, { ethics: c.ethics, date: s.date });
+		}
+	}
+	return out;
+}
+
 /**
  * What we know at the latest save: each fact as last seen while our intel showed it. A fact our
  * intel shows now is current (or gone); one it no longer shows keeps its last reading, stale.
@@ -354,11 +460,7 @@ export function diplomacyView(
 	const latest = steps.at(-1);
 	if (!latest) return null;
 	const us = latest.countryId ?? 0;
-	const levels = (s: DiploSnap) => {
-		const intel = new Map((s.intel ?? []).map((i) => [i.countryId, i.intel]));
-		return (id: number, category: IntelCategory) =>
-			cheat || id === us ? Infinity : levelOf(intel.get(id) ?? 0, category);
-	};
+	const levels = (s: DiploSnap) => levelsAt(s, us, cheat);
 	const canSee = (level: ReturnType<typeof levels>, f: Omit<Fact, 'value'>) => {
 		// their opinion of us: the game always shows it
 		if (f.kind === 'opinion' && f.b === us) return true;

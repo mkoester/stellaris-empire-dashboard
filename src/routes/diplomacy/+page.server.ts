@@ -1,8 +1,9 @@
 import { error } from '@sveltejs/kit';
-import { diplomacyView as view } from '#lib/diplomacy.ts';
+import { ethicsHistory, diplomacyView as view } from '#lib/diplomacy.ts';
 import { mapView } from '#lib/situations.ts';
-import { getGameData } from '#lib/server/app.ts';
+import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
+import { pick } from '#lib/server/explain.ts';
 import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
 import { diplomacyView, display } from '#lib/server/settings.ts';
 
@@ -48,6 +49,18 @@ export function load({ url }) {
 		],
 		territories: territoriesOf(snaps),
 		view: diplomacyView(),
-		names: data.identityNames
+		names: data.identityNames,
+		// ethics: their axes, the federation defines, what intel saw change, the ethics' popups
+		ethics: {
+			axes: data.ethicAxes,
+			defines: Object.fromEntries(
+				Object.entries(data.defines).filter(([k]) => k.startsWith('FEDERATION_'))
+			)
+		},
+		ethicsHistory: ethicsHistory(snaps, cheat),
+		explain: pick(
+			getExplanations(),
+			Object.keys(data.ethicAxes).map((k) => `ethic:${k}`)
+		)
 	};
 }

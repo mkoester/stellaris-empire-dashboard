@@ -3,6 +3,7 @@ import {
 	agglomerate,
 	clusters,
 	diplomacyView,
+	ethicsHistory,
 	levelOf,
 	neighbours,
 	pairOffsets,
@@ -165,7 +166,9 @@ describe('the graph', () => {
 			layout: 'circle',
 			hiddenEdges: ['embassy'],
 			cluster: 'blocs',
-			threshold: 100
+			threshold: 100,
+			ethicsDistance: 3,
+			cohesionFloor: -0.3
 		});
 		expect(parseDiplomacyView({ layout: 'map', cluster: 'pacts' })).toMatchObject({
 			layout: 'map',
@@ -193,6 +196,7 @@ describe('clusters', () => {
 		...n
 	});
 	const known = <T>(value: T) => ({ value, asOf: '2210.01.01', stale: false });
+	const LIMITS = { threshold: 100, ethicsDistance: 3, cohesionFloor: -0.3 };
 
 	it('merges the groups that like each other most, ignoring what is unknown', () => {
 		const like: Record<string, number> = { '1:2': 300, '2:3': 150, '1:3': 120, '3:4': -50 };
@@ -209,17 +213,118 @@ describe('clusters', () => {
 			node(4)
 		];
 		const ids = (cs: { ids: number[] }[]) => cs.map((c) => [...c.ids].sort());
-		const blocs = clusters({ opinions: {} }, nodes, [], 'blocs', 100);
+		const blocs = clusters({ opinions: {} }, nodes, [], 'blocs', LIMITS);
 		expect(ids(blocs)).toEqual([[1, 2, 3], [4]]);
 		expect(blocs[0].label).toBe('Alliance');
 
 		const opinions = { '1:4': known(200), '4:1': known(100), '2:3': known(-100) };
-		expect(ids(clusters({ opinions }, nodes, [], 'opinion', 100))).toEqual([[1, 4], [2], [3]]);
+		expect(ids(clusters({ opinions }, nodes, [], 'opinion', LIMITS))).toEqual([[1, 4], [2], [3]]);
 
 		const edges = [
 			{ kind: 'defensive_pact', from: 2, to: 3, asOf: '', stale: false },
 			{ kind: 'war', from: 1, to: 2, asOf: '', stale: false }
 		];
-		expect(ids(clusters({ opinions: {} }, nodes, edges, 'pacts', 100))[0]).toEqual([2, 3]);
+		expect(ids(clusters({ opinions: {} }, nodes, edges, 'pacts', LIMITS))[0]).toEqual([2, 3]);
+	});
+
+	it('groups by ethics and by federation fit, unknown ethics alone', () => {
+		const axes = {
+			ethic_authoritarian: { axis: 'col', pos: -1 },
+			ethic_egalitarian: { axis: 'col', pos: 1 },
+			ethic_xenophile: { axis: 'xen', pos: 1 },
+			ethic_xenophobe: { axis: 'xen', pos: -1 },
+			ethic_pacifist: { axis: 'mil', pos: 1 },
+			ethic_militarist: { axis: 'mil', pos: -1 },
+			ethic_materialist: { axis: 'spi', pos: 1 },
+			ethic_gestalt_consciousness: { axis: 'hive', pos: 0 }
+		};
+		const defines = {
+			FEDERATION_BASE_ETHICS: 3,
+			FEDERATION_ETHICS_PENALTY: -0.15,
+			FEDERATION_OPPOSING_ETHICS_PENALTY: -0.5
+		};
+		const gov = (...ethics: string[]) =>
+			known({ ethics, authority: null, governmentType: null, civics: [] });
+		const nodes = [
+			node(1, { government: gov('ethic_egalitarian', 'ethic_xenophile', 'ethic_pacifist') }),
+			node(2, { government: gov('ethic_egalitarian', 'ethic_xenophile', 'ethic_materialist') }),
+			node(3, { government: gov('ethic_authoritarian', 'ethic_xenophobe', 'ethic_militarist') }),
+			node(4, { government: gov('ethic_gestalt_consciousness') }),
+			node(5)
+		];
+		const ids = (cs: { ids: number[] }[]) => cs.map((c) => [...c.ids].sort());
+		const data = { axes, defines };
+		// 1 and 2: 2 steps apart, 4 unique ethics — together in both; 3 opposes them on every axis
+		const byEthics = clusters({ opinions: {} }, nodes, [], 'ethics', LIMITS, data);
+		expect(ids(byEthics)).toEqual([[1, 2], [3], [4], [5]]);
+		expect(byEthics[0]).toMatchObject({
+			shared: ['ethic_egalitarian', 'ethic_xenophile'],
+			penalty: -0.15
+		});
+		// the federation rule has no gestalt gap: the gestalt costs 3 only one ethic more
+		expect(ids(clusters({ opinions: {} }, nodes, [], 'federation', LIMITS, data))).toEqual([
+			[1, 2],
+			[3, 4],
+			[5]
+		]);
+		// a floor of 0 allows no ethic beyond three
+		expect(
+			ids(
+				clusters({ opinions: {} }, nodes, [], 'federation', { ...LIMITS, cohesionFloor: 0 }, data)
+			)
+		).toEqual([[1], [2], [3], [4], [5]]);
+	});
+});
+
+describe('ethicsHistory', () => {
+	const snap = (date: string, intel: number, ethics: string[]): DiploSnap => ({
+		date,
+		countryId: 0,
+		intel: [{ countryId: 1, intel }],
+		diplomacy: [],
+		allWars: [],
+		relations: [],
+		countries: [
+			{
+				id: 1,
+				name: 'C1',
+				type: 'default',
+				shipset: null,
+				flagColor: null,
+				ethics,
+				authority: null,
+				civics: [],
+				governmentType: null,
+				origin: null
+			}
+		]
+	});
+
+	it('dates a change between the readings our intel saw', () => {
+		const h = ethicsHistory(
+			[
+				snap('2210.01.01', 10, ['ethic_spiritualist', 'ethic_xenophile']),
+				snap('2211.01.01', 5, ['ethic_materialist', 'ethic_xenophile']), // not seen
+				snap('2212.01.01', 10, ['ethic_xenophile', 'ethic_materialist']),
+				snap('2213.01.01', 10, ['ethic_materialist', 'ethic_xenophile'])
+			],
+			false
+		);
+		expect(h[1]).toEqual([
+			{
+				from: ['ethic_spiritualist', 'ethic_xenophile'],
+				to: ['ethic_xenophile', 'ethic_materialist'],
+				after: '2210.01.01',
+				by: '2212.01.01'
+			}
+		]);
+	});
+
+	it('sees every save with the cheat', () => {
+		const h = ethicsHistory(
+			[snap('2210.01.01', 0, ['ethic_spiritualist']), snap('2211.01.01', 0, ['ethic_materialist'])],
+			true
+		);
+		expect(h[1]).toMatchObject([{ after: '2210.01.01', by: '2211.01.01' }]);
 	});
 });

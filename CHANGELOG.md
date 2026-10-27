@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The diplomacy tab shows what our intel knows of each empire's ethics as coloured chips (each
+  explained on hover), how many steps apart they are from ours, and every change of ethics our
+  intel saw, dated between two saves. The circle marks each empire's ethics beside its name.
+- Two more ways to group the circle: by **ethics** (empires at most N steps apart on average) and
+  by **federation fit** (≈ what their ethics would cost a federation's cohesion, by the game's
+  defines).
+
 ## [0.1.2] - 2026-10-26
 
 ### Added

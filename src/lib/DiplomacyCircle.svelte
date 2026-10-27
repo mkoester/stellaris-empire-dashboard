@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { colorOf } from './colors.ts';
+	import { ethicMark, sortEthics } from './ethics.ts';
+	import type { EthicAxis } from './types.ts';
 	import {
 		edgeLabel,
 		type Cluster,
@@ -11,18 +14,23 @@
 
 	// The diplomacy graph without geography: the empires on a circle by group (`groups`, from
 	// `clusters()`), a gap and an arc between groups, their relations as chords bent towards the
-	// centre. A click on an empire focuses it (again: unfocus).
+	// centre. Each name carries its known ethics' short names, coloured by pole (faint when
+	// unverified). A click on an empire focuses it (again: unfocus).
 	let {
 		nodes,
 		edges,
 		groups,
+		axes = {},
 		focus = $bindable(null)
 	}: {
 		nodes: DiploNode[];
 		edges: DiploEdge[];
 		groups: Cluster[];
+		axes?: Record<string, EthicAxis>;
 		focus?: number | null;
 	} = $props();
+	const marks = (n: DiploNode) =>
+		sortEthics(n.government?.value.ethics ?? [], axes).flatMap((e) => ethicMark(e, axes) ?? []);
 
 	// wide enough for the names beside the circle
 	const W = 1040;
@@ -158,7 +166,13 @@
 				x={p.x + (right ? 12 : -12)}
 				y={p.y + 4}
 				text-anchor={right ? 'start' : 'end'}
-				class="fill-current text-[12px] {n.us ? 'font-bold' : ''}">{n.name}</text
+				class="fill-current text-[12px] {n.us ? 'font-bold' : ''}"
+				>{n.name}{#each marks(n) as m, i (i)}<tspan
+						dx={i ? 3 : 6}
+						class="text-[10px] {m.fanatic ? 'font-bold' : 'font-normal'}"
+						fill={colorOf(m.color)}
+						opacity={n.government?.stale ? 0.5 : 1}>{m.short}</tspan
+					>{/each}</text
 			>
 		</g>
 	{/each}

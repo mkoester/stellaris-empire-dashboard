@@ -471,6 +471,14 @@ export function loadGameData(file: string): GameData {
 					`#${[c.r, c.g, c.b].map((v) => v.toString(16).padStart(2, '0')).join('')}`
 				])
 			),
+			ethicAxes: Object.fromEntries(
+				rows<{ key: string; category: string | null; category_value: number | null }>(
+					'SELECT key, category, category_value FROM ethic WHERE category IS NOT NULL'
+				).map((e) => [
+					e.key,
+					{ axis: e.category!, pos: e.category === 'hive' ? 0 : (e.category_value ?? 2) - 2 }
+				])
+			),
 			anomalyLevels: Object.fromEntries(
 				rows<{ key: string; level: number | null }>('SELECT key, level FROM anomaly_category').map(
 					(r) => [r.key, r.level]

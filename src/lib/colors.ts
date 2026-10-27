@@ -55,6 +55,16 @@ const COLORS: Record<string, string> = {
 	'class-commander': '#d0403a',
 	'class-scientist': '#2f8fe0',
 	'class-envoy': '#8a7fb8', // ours: envoys have no class colour of their own
+	// ethics by pole (#lib/ethics.ts) — ours, the game's ethic icons are many-coloured
+	'ethic-col-0': '#c9962e', // authoritarian
+	'ethic-col-1': '#3aa857', // egalitarian
+	'ethic-xen-0': '#b3402f', // xenophobe
+	'ethic-xen-1': '#d36fb3', // xenophile
+	'ethic-mil-0': '#d0742a', // militarist
+	'ethic-mil-1': '#4fb3c9', // pacifist
+	'ethic-spi-0': '#8e5fc8', // spiritualist
+	'ethic-spi-1': '#3a86c8', // materialist
+	'ethic-hive': '#7a8a99', // gestalt consciousness
 	// empire focus categories, after the game's focus panel (blue, red, gold; core cards brown)
 	'focus-exploration': '#3a86c8',
 	'focus-conquest': '#c8463a',
