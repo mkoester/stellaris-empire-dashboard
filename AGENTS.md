@@ -769,7 +769,8 @@ on average one point per pair) — each group an arc, listed under the circle. E
 focuses one empire and fades the rest (per viewer, Esc clears). **What we know is the game's intel
 model**: our `intel_manager` value per country (0–100) → a level per category (4.5.2
 `common/intel_levels/00_intel_levels.txt`), and what a level reveals
-(`common/intel_categories/*`): government 1 (intel 10) ethics, civics, capital; diplomacy 1 (20)
+(`common/intel_categories/*`): government 1 (intel 10) ethics, civics, capital (and the ruler, not
+stored); government 2 (40) origin; diplomacy 1 (20)
 rivalries, federation; diplomacy 2 (50) pacts and opinions. A pact shows through either side,
 their opinion of us always; subjects and wars are **assumed public** (Open). `diplomacyView()`
 walks the branch's saves: a fact keeps its reading from the last save whose intel showed it — gone
@@ -793,6 +794,14 @@ as its regular one, an opposition once per axis, and a gestalt is just one more 
 joins anyone. Ethics' effect on AI opinion is not modelled — saves store no ethics opinion
 modifier (2214: claims, insult, gift, GalCom, new contact only). 2214.02.01: we (Authoritarian,
 Fanatic Materialist) group with the two other fanatic materialists; no change seen in the history.
+**What we know of an empire** (the user's ask 2026-10-27, `empireFacts()`): every empire name —
+table, matrix, circle — has it as a tooltip (`factsText()`): intel and its levels, government,
+ethics, civics, origin, capital, federation, overlord, subjects, opinions, and for what intel does
+not reach "unknown — from intel N"; the graph names each empire's government and civics under it
+(`diplomacyView.details`). **Legend** above the graph: relation kinds, "unverified", the ethics
+present; hover lights what an item stands for (`legendMatch()`: its edges and the empires on them,
+or the empires holding the ethic), a click keeps it lit (several at once, per viewer, not stored).
+The map draws only in a browser (`GalaxyMap` waits for its size), so its lines are unchecked here.
 
 **DLCs and mods** (`/dlc`, `/mods`, `#lib/addons.ts`, pure): what is active comes from each
 save's `meta` (`required_dlcs`, `mods`: names; `version`) → `Snapshot.dlcs|mods|gameVersion`;

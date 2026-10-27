@@ -9,6 +9,7 @@ import type { CountryInfo, DiploCountry, EthicAxis, Relation, WarSides } from '.
 // `common/intel_levels/00_intel_levels.txt`; what each level reveals is
 // `common/intel_categories/*` — re-check both on game updates:
 // - government 1 (intel 10, communications give that): ethics, civics, authority, capital, ruler
+// - government 2 (intel 40): origin
 // - diplomacy 1 (intel 20): rivalries, federation name, GalCom votes, relative power
 // - diplomacy 2 (intel 50): opinion breakdown, diplomatic pacts
 // A pact between A and B shows through either side. Subjects and wars count as public (assumed:
@@ -24,6 +25,7 @@ export type DiplomacyView = {
 	threshold: number; // opinion clusters: the mutual opinion a group needs
 	ethicsDistance: number; // ethics clusters: the mean steps apart a group may have
 	cohesionFloor: number; // federation clusters: the least cohesion its ethics may cost
+	details: boolean; // the graph names each empire's government and civics
 };
 export const DEFAULT_DIPLOMACY_VIEW: DiplomacyView = {
 	communicationsOnly: true,
@@ -33,7 +35,8 @@ export const DEFAULT_DIPLOMACY_VIEW: DiplomacyView = {
 	cluster: 'blocs',
 	threshold: 100,
 	ethicsDistance: 3,
-	cohesionFloor: -0.3 // two ethics more than three, nothing opposed
+	cohesionFloor: -0.3, // two ethics more than three, nothing opposed
+	details: true
 };
 const num = (v: unknown, fallback: number) =>
 	typeof v === 'number' && Number.isFinite(v) ? v : fallback;
@@ -51,7 +54,8 @@ export function parseDiplomacyView(v: unknown): DiplomacyView {
 			: 'blocs',
 		threshold: num(o.threshold, DEFAULT_DIPLOMACY_VIEW.threshold),
 		ethicsDistance: num(o.ethicsDistance, DEFAULT_DIPLOMACY_VIEW.ethicsDistance),
-		cohesionFloor: num(o.cohesionFloor, DEFAULT_DIPLOMACY_VIEW.cohesionFloor)
+		cohesionFloor: num(o.cohesionFloor, DEFAULT_DIPLOMACY_VIEW.cohesionFloor),
+		details: o.details !== false
 	};
 }
 
@@ -294,6 +298,7 @@ export function levelOf(intel: number, category: IntelCategory): number {
 const NEEDS = {
 	gov: ['government', 1],
 	capital: ['government', 1],
+	origin: ['government', 2],
 	federation: ['diplomacy', 1],
 	is_rival: ['diplomacy', 1],
 	opinion: ['diplomacy', 2],
@@ -324,6 +329,7 @@ export type DiploNode = {
 	government: Known<Government> | null;
 	capital: Known<number> | null; // system
 	federation: Known<string> | null;
+	origin: Known<string> | null;
 	overlord: number | null;
 	unmet: number; // relations shown with countries we have not met
 };
@@ -380,6 +386,7 @@ function factsOf(s: DiploSnap): Fact[] {
 						}
 					]
 				: []),
+			...(i?.origin ? [{ kind: 'origin' as const, a: c.id, value: i.origin }] : []),
 			...(c.capitalSystem === null
 				? []
 				: [{ kind: 'capital' as const, a: c.id, value: c.capitalSystem }]),
@@ -535,6 +542,7 @@ export function diplomacyView(
 			government: known1('gov', c.id) as Known<Government> | null,
 			capital: known1('capital', c.id) as Known<number> | null,
 			federation: known1('federation', c.id) as Known<string> | null,
+			origin: known1('origin', c.id) as Known<string> | null,
 			overlord: c.overlord,
 			unmet: new Set(
 				edges.flatMap((e) =>
@@ -561,5 +569,120 @@ export function diplomacyView(
 		edges: edges.filter((e) => ids.has(e.from) && ids.has(e.to)),
 		opinions,
 		wars
+	};
+}
+
+/** One line of what we know about an empire; `asOf` when our intel no longer shows it. */
+export type EmpireFact = { label: string; value: string; asOf?: string };
+
+/**
+ * Everything the tab knows about one empire, as lines for its tooltip — and, where intel does not
+ * reach, from which intel it would show (the game's levels, `NEEDS`).
+ */
+export function empireFacts(
+	n: DiploNode,
+	d: Pick<Diplomacy, 'nodes' | 'opinions'>,
+	names: {
+		key: (k: string) => string;
+		empire: (id: number) => string;
+		system: (id: number) => string | undefined;
+	}
+): EmpireFact[] {
+	const us = d.nodes.find((x) => x.us)?.id ?? 0;
+	const from = (kind: FactKind) => {
+		const [category, level] = NEEDS[kind];
+		const at = INTEL_LEVELS.find((l) => l[category] >= level)?.from;
+		return `unknown — from intel ${at}`;
+	};
+	const known = <T>(k: Known<T> | null, value: (v: T) => string, kind: FactKind) =>
+		k
+			? { value: value(k.value), ...(k.stale ? { asOf: k.asOf } : {}) }
+			: { value: n.us ? '–' : from(kind) };
+	const list = (ks: string[]) => ks.map(names.key).join(', ') || '–';
+	const g = n.government;
+	const subjects = d.nodes.filter((x) => x.overlord === n.id).map((x) => x.name);
+	const opinion = (a: number, b: number) => d.opinions[`${a}:${b}`];
+	const facts: EmpireFact[] = [
+		...(n.intel === null
+			? []
+			: [
+					{
+						label: 'Intel',
+						value: `${Math.round(n.intel)} (government ${levelOf(n.intel, 'government')}, diplomacy ${levelOf(n.intel, 'diplomacy')})`
+					}
+				]),
+		{
+			label: 'Government',
+			...known(
+				g,
+				(v) =>
+					[v.governmentType, v.authority].flatMap((k) => (k ? [names.key(k)] : [])).join(', ') ||
+					'–',
+				'gov'
+			)
+		},
+		{ label: 'Ethics', ...known(g, (v) => list(v.ethics), 'gov') },
+		{ label: 'Civics', ...known(g, (v) => list(v.civics), 'gov') },
+		{ label: 'Origin', ...known(n.origin, names.key, 'origin') },
+		{
+			label: 'Capital',
+			...known(n.capital, (id) => names.system(id) ?? `system ${id}`, 'capital')
+		},
+		{ label: 'Federation', ...known(n.federation, (v) => v, 'federation') },
+		...(n.overlord === null ? [] : [{ label: 'Overlord', value: names.empire(n.overlord) }]),
+		...(subjects.length ? [{ label: 'Subjects', value: subjects.join(', ') }] : [])
+	];
+	if (!n.us) {
+		const theirs = opinion(n.id, us);
+		const ours = opinion(us, n.id);
+		if (theirs)
+			facts.push({
+				label: 'Opinion of us',
+				value: String(theirs.value),
+				...(theirs.stale ? { asOf: theirs.asOf } : {})
+			});
+		if (ours) facts.push({ label: 'Our opinion', value: String(ours.value) });
+	}
+	return facts;
+}
+
+/** The facts as a plain-text tooltip. */
+export const factsText = (name: string, facts: EmpireFact[]) =>
+	[
+		name,
+		...facts.map((f) => `${f.label}: ${f.value}${f.asOf ? ` (unverified since ${f.asOf})` : ''}`)
+	].join('\n');
+
+/**
+ * What a legend item stands for: `edge:<kind>` the relations of that kind, `ethic:<key>` the
+ * empires holding that ethic, `stale` what our intel no longer confirms.
+ */
+export type LegendKey = `edge:${string}` | `ethic:${string}` | 'stale';
+export const edgeKey = (e: DiploEdge) => `${e.kind}:${e.from}:${e.to}`;
+
+/**
+ * What the legend items picked light up: the edges they stand for and the empires on them, plus
+ * the empires they stand for. Null when nothing is picked.
+ */
+export function legendMatch(
+	keys: LegendKey[],
+	nodes: DiploNode[],
+	edges: DiploEdge[]
+): { nodes: Set<number>; edges: Set<string> } | null {
+	if (!keys.length) return null;
+	const set = new Set<string>(keys);
+	const lit = edges.filter((e) => set.has(`edge:${e.kind}`) || (set.has('stale') && e.stale));
+	return {
+		edges: new Set(lit.map(edgeKey)),
+		nodes: new Set([
+			...lit.flatMap((e) => [e.from, e.to]),
+			...nodes
+				.filter(
+					(n) =>
+						(set.has('stale') && (n.government?.stale || n.origin?.stale)) ||
+						(n.government?.value.ethics ?? []).some((x) => set.has(`ethic:${x}`))
+				)
+				.map((n) => n.id)
+		])
 	};
 }

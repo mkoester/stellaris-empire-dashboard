@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
 	agglomerate,
+	empireFacts,
+	factsText,
+	legendMatch,
 	clusters,
 	diplomacyView,
 	ethicsHistory,
@@ -168,7 +171,8 @@ describe('the graph', () => {
 			cluster: 'blocs',
 			threshold: 100,
 			ethicsDistance: 3,
-			cohesionFloor: -0.3
+			cohesionFloor: -0.3,
+			details: true
 		});
 		expect(parseDiplomacyView({ layout: 'map', cluster: 'pacts' })).toMatchObject({
 			layout: 'map',
@@ -191,6 +195,7 @@ describe('clusters', () => {
 		government: null,
 		capital: null,
 		federation: null,
+		origin: null,
 		overlord: null,
 		unmet: 0,
 		...n
@@ -326,5 +331,82 @@ describe('ethicsHistory', () => {
 			true
 		);
 		expect(h[1]).toMatchObject([{ after: '2210.01.01', by: '2211.01.01' }]);
+	});
+});
+
+describe('what we know of an empire', () => {
+	const node = (id: number, n: Partial<DiploNode> = {}): DiploNode => ({
+		id,
+		name: `E${id}`,
+		type: 'default',
+		kind: 'empires',
+		color: null,
+		us: false,
+		nomadic: false,
+		communications: true,
+		intel: 25,
+		government: null,
+		capital: null,
+		federation: null,
+		origin: null,
+		overlord: null,
+		unmet: 0,
+		...n
+	});
+	const known = <T>(value: T, stale = false) => ({ value, asOf: '2210.01.01', stale });
+	const names = {
+		key: (k: string) => k.replace(/^[a-z]+_/, ''),
+		empire: (id: number) => `E${id}`,
+		system: (id: number) => (id === 7 ? 'Sol' : undefined)
+	};
+
+	it('lists what intel shows, and from which intel the rest would', () => {
+		const n = node(1, {
+			government: known(
+				{
+					ethics: ['ethic_xenophile'],
+					authority: 'auth_democratic',
+					governmentType: 'gov_republic',
+					civics: ['civic_idealistic_foundation']
+				},
+				true
+			),
+			capital: known(7)
+		});
+		const d = { nodes: [node(0, { us: true, intel: null }), n], opinions: { '1:0': known(-20) } };
+		const f = Object.fromEntries(empireFacts(n, d, names).map((x) => [x.label, x]));
+		expect(f.Intel.value).toBe('25 (government 1, diplomacy 1)');
+		expect(f.Government).toMatchObject({ value: 'republic, democratic', asOf: '2210.01.01' });
+		expect(f.Origin.value).toBe('unknown — from intel 40');
+		expect(f.Capital.value).toBe('Sol');
+		expect(f['Opinion of us'].value).toBe('-20');
+		expect(factsText('E1', empireFacts(n, d, names))).toContain(
+			'Ethics: xenophile (unverified since 2210.01.01)'
+		);
+	});
+
+	it('lights the empires a legend item stands for', () => {
+		const nodes = [
+			node(1, {
+				government: known({
+					ethics: ['ethic_pacifist'],
+					authority: null,
+					governmentType: null,
+					civics: []
+				})
+			}),
+			node(2),
+			node(3),
+			node(4)
+		];
+		const edges = [
+			{ kind: 'defensive_pact', from: 2, to: 3, asOf: '', stale: false },
+			{ kind: 'embassy', from: 3, to: 4, asOf: '', stale: true }
+		];
+		expect(legendMatch([], nodes, edges)).toBeNull();
+		const m = legendMatch(['edge:defensive_pact', 'ethic:ethic_pacifist'], nodes, edges)!;
+		expect([...m.nodes].sort()).toEqual([1, 2, 3]);
+		expect([...m.edges]).toEqual(['defensive_pact:2:3']);
+		expect([...legendMatch(['stale'], nodes, edges)!.nodes].sort()).toEqual([3, 4]);
 	});
 });

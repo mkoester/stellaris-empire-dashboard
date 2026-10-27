@@ -6,15 +6,20 @@
 		CLUSTER_MODES,
 		clusters,
 		EDGE_KINDS,
+		edgeKey,
 		edgeLabel,
 		edgeStyle,
+		empireFacts,
+		factsText,
+		legendMatch,
 		neighbours,
 		pairOffsets,
 		type DiploEdge,
 		type DiploNode,
 		type DiplomacyView,
 		type EthicsChange,
-		type Known
+		type Known,
+		type LegendKey
 	} from '#lib/diplomacy.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import EthicChip from '#lib/EthicChip.svelte';
@@ -26,6 +31,7 @@
 	import { putSettings } from '#lib/settings.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
+	import type { Snippet } from 'svelte';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -84,7 +90,30 @@
 	// focus: one empire and its relations, the rest faded; a click on it again or Esc clears it
 	let focus: number | null = $state(null);
 	const lit = $derived(focus === null ? null : neighbours(edges, focus));
-	const faded = (id: number) => lit !== null && !lit.has(id);
+
+	// the legend: hovering an item lights what it stands for, a click keeps it lit (per viewer)
+	let legendHover: LegendKey | null = $state(null);
+	let legendPinned: LegendKey[] = $state([]);
+	const pinLegend = (k: LegendKey) =>
+		(legendPinned = legendPinned.includes(k)
+			? legendPinned.filter((x) => x !== k)
+			: [...legendPinned, k]);
+	const highlight = $derived(
+		legendMatch(
+			legendHover && !legendPinned.includes(legendHover)
+				? [...legendPinned, legendHover]
+				: legendPinned,
+			nodes,
+			edges
+		)
+	);
+	const faded = (id: number) =>
+		(lit !== null && !lit.has(id)) || (highlight !== null && !highlight.nodes.has(id));
+	const edgeOpacity = (e: DiploEdge) => {
+		if (highlight) return highlight.edges.has(edgeKey(e)) ? 1 : 0.06;
+		if (focus === null) return e.stale ? 0.55 : 0.85;
+		return e.from === focus || e.to === focus ? 1 : 0.06;
+	};
 
 	const stale = <T,>(k: Known<T> | null) => (k?.stale ? ` — unverified since ${k.asOf}` : '');
 	// the oldest date one of an empire's facts was last verified, if any is stale
@@ -102,6 +131,34 @@
 
 	// --- map
 	const pos = $derived(new Map(data.systems.map((s) => [s.id, s])));
+
+	// --- what we know of each empire: its tooltip, and on the graph its government and civics
+	const facts = (n: DiploNode) =>
+		d
+			? empireFacts(n, d, {
+					key: (k) => nameOf(data.names, k),
+					empire: name,
+					system: (id) => pos.get(id)?.name
+				})
+			: [];
+	const tooltip = (n: DiploNode) => factsText(n.name, facts(n));
+	const details = (n: DiploNode) => {
+		const g = n.government;
+		if (!g) return n.us ? [] : [{ text: 'government unknown', stale: false }];
+		const type = g.value.governmentType ?? g.value.authority;
+		return [
+			type ? nameOf(data.names, type) : '',
+			g.value.civics.map((k) => nameOf(data.names, k)).join(', ')
+		].flatMap((text) => (text ? [{ text, stale: g.stale }] : []));
+	};
+	const legendEthics = $derived(
+		sortEthics(
+			[...new Set(nodes.flatMap((n) => n.government?.value.ethics ?? []))],
+			data.ethics.axes
+		)
+	);
+	const legendEdges = $derived(EDGE_KINDS.filter((k) => edges.some((e) => e.kind === k)));
+	const anyStale = $derived(edges.some((e) => e.stale) || nodes.some((n) => n.government?.stale));
 	const capitalOf = (id: number) => {
 		const c = data.capitals[id];
 		return c === undefined ? undefined : pos.get(c);
@@ -245,8 +302,23 @@
 
 <svelte:window onkeydown={(e) => e.key === 'Escape' && (focus = null)} />
 
+{#snippet legendItem(k: LegendKey, label: string, swatch: Snippet)}
+	<button
+		class="flex items-center gap-1 rounded border px-2 py-0.5 {legendPinned.includes(k)
+			? 'border-sky-500 ring-1 ring-sky-500'
+			: 'border-gray-300 dark:border-gray-700'}"
+		title="hover: light it up in the graph; click: keep it lit"
+		onmouseenter={() => (legendHover = k)}
+		onmouseleave={() => (legendHover = null)}
+		onfocus={() => (legendHover = k)}
+		onblur={() => (legendHover = null)}
+		onclick={() => pinLegend(k)}>{@render swatch()}{label}</button
+	>
+{/snippet}
 {#snippet empire(n: DiploNode)}
-	<EmpireName name={n.name} color={n.color} kind={n.kind} nomadic={n.nomadic} />
+	<span class="cursor-help" title={tooltip(n)}
+		><EmpireName name={n.name} color={n.color} kind={n.kind} nomadic={n.nomadic} /></span
+	>
 {/snippet}
 {#snippet gov(n: DiploNode)}
 	{#if n.government}
@@ -379,6 +451,44 @@
 	</div>
 
 	<Panel title="Relations graph">
+		<div class="mb-3 flex flex-col gap-1 text-xs">
+			<div class="flex flex-wrap items-center gap-1">
+				<span class="w-16 text-gray-500">relations</span>
+				{#each legendEdges as k (k)}
+					{@const st = edgeStyle(k)}
+					{#snippet line()}<span
+							class="inline-block w-4"
+							style:border-top="{st.width}px solid {st.color}"
+						></span>{/snippet}
+					{@render legendItem(`edge:${k}`, edgeLabel(k), line)}
+				{/each}
+				{#if anyStale}
+					{#snippet dashed()}<span class="inline-block w-4 border-t-2 border-dashed border-gray-500"
+						></span>{/snippet}
+					{@render legendItem('stale', 'unverified', dashed)}
+				{/if}
+			</div>
+			<div class="flex flex-wrap items-center gap-1">
+				<span class="w-16 text-gray-500">ethics</span>
+				{#each legendEthics as e (e)}
+					{#snippet chip()}<EthicChip ethic={e} name="" {axes} short />{/snippet}
+					{@render legendItem(`ethic:${e}`, ethicName(e), chip)}
+				{/each}
+				{#if legendPinned.length}
+					<button
+						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"
+						onclick={() => (legendPinned = [])}>clear</button
+					>
+				{/if}
+				<label class="ml-auto flex items-center gap-1"
+					><input
+						type="checkbox"
+						checked={view.details}
+						onchange={(e) => save({ ...view, details: e.currentTarget.checked })}
+					/> government and civics on the graph</label
+				>
+			</div>
+		</div>
 		{#if view.layout === 'map'}
 			<GalaxyMap
 				systems={data.systems}
@@ -418,13 +528,7 @@
 								stroke={st.color}
 								stroke-width={st.width}
 								stroke-dasharray={e.stale ? '4 3' : undefined}
-								opacity={focus === null
-									? e.stale
-										? 0.55
-										: 0.85
-									: e.from === focus || e.to === focus
-										? 1
-										: 0.06}
+								opacity={edgeOpacity(e)}
 							/>
 						{/if}
 					{/each}
@@ -442,7 +546,13 @@
 									stroke-width={focus === n.id ? 3 : 1}
 								/>
 								<text x={p.x + 10} y={p.y + 4} class="fill-current text-[12px] font-semibold"
-									>{n.name}</text
+									>{n.name}{#if view.details}{#each details(n) as l, i (i)}<tspan
+												x={p.x + 10}
+												dy={i ? 11 : 13}
+												class="text-[10px] font-normal {l.stale
+													? 'fill-amber-600'
+													: 'fill-gray-500'}">{l.text}</tspan
+											>{/each}{/if}</text
 								>
 							</g>
 						{/if}
@@ -513,7 +623,16 @@
 					>
 				{/if}
 			</div>
-			<DiplomacyCircle {nodes} {edges} {groups} {axes} bind:focus />
+			<DiplomacyCircle
+				{nodes}
+				{edges}
+				{groups}
+				{axes}
+				{tooltip}
+				{highlight}
+				details={view.details ? details : undefined}
+				bind:focus
+			/>
 			{#if groups.some((g) => g.ids.length > 1)}
 				<ul class="mt-2 text-sm">
 					{#each groups.filter((g) => g.ids.length > 1) as g, i (g.ids.join())}
@@ -555,6 +674,7 @@
 										? 'text-sky-600'
 										: ''}"
 									style:color={focus === c.id ? undefined : (c.color ?? undefined)}
+									title={tooltip(c)}
 									onclick={() => (focus = focus === c.id ? null : c.id)}>{c.name}</button
 								>
 							</th>
