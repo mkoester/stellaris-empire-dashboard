@@ -800,8 +800,10 @@ ethics, civics, origin, capital, federation, overlord, subjects, opinions, and f
 not reach "unknown — from intel N"; the graph names each empire's government and civics under it
 (`diplomacyView.details`). **Legend** above the graph: relation kinds, "unverified", each ethic once for both its variants
 (`ethics:<regular>`, the user's call), every authority (`GameData.authorities`), and the civics
-and origins our intel has shown of any known empire (all of them with `diplomacyAll`) — greyed
-where no empire on the graph has it, the count of those that do beside it. Hover lights what an
+and origins our intel has shown of the empires on the graph (the user's call 2026-10-27: every
+known empire's listed 42 civics, most of fallen empires, enclaves and pre-FTL civilisations the
+graph filters out; all empires with `diplomacyAll`) — ethics and authorities no empire on the
+graph has are greyed, the count of those that do beside each item. Hover lights what an
 item stands for (`legendMatch()`: its edges and the empires on them, or the empires holding it), a
 click keeps it lit (several at once, per viewer, not stored). The map draws only in a browser (`GalaxyMap` waits for its size), so its lines are unchecked here.
 

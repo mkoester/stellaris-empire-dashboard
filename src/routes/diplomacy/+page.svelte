@@ -153,8 +153,9 @@
 		].flatMap((text) => (text ? [{ text, stale: g.stale }] : []));
 	};
 	// the legend lists what our intel knows of (every empire with the cheat): an ethic once for
-	// both its variants, every authority, the civics and origins seen
+	// both its variants, every authority; civics and origins only those of empires on the graph
 	const known = $derived((d?.nodes ?? []).filter((n) => !n.us));
+	const onGraph = $derived(nodes.filter((n) => !n.us));
 	const regularOf = (e: string) => {
 		const a = data.ethics.axes[e];
 		if (!a || a.pos === 0) return e;
@@ -172,8 +173,10 @@
 			data.ethics.axes
 		)
 	);
-	const legendCivics = $derived(byName(known.flatMap((n) => n.government?.value.civics ?? [])));
-	const legendOrigins = $derived(byName(known.flatMap((n) => (n.origin ? [n.origin.value] : []))));
+	const legendCivics = $derived(byName(onGraph.flatMap((n) => n.government?.value.civics ?? [])));
+	const legendOrigins = $derived(
+		byName(onGraph.flatMap((n) => (n.origin ? [n.origin.value] : [])))
+	);
 	// how many empires on the graph an item lights
 	const legendCount = (k: LegendKey) =>
 		legendMatch([k], nodes, [], data.ethics.axes)?.nodes.size ?? 0;
@@ -510,14 +513,19 @@
 				{/each}
 			</div>
 			<div class="flex flex-wrap items-center gap-1">
-				<span class="w-16 text-gray-500" title="the civics our intel has shown">civics</span>
+				<span
+					class="w-16 text-gray-500"
+					title="the civics our intel has shown of the empires on the graph">civics</span
+				>
 				{#each legendCivics as c (c)}
 					{@const k: LegendKey = `civic:${c}`}
 					{@render legendItem(k, nameOf(data.names, c), undefined, legendCount(k))}
 				{:else}<span class="text-gray-500">none known yet</span>{/each}
 			</div>
 			<div class="flex flex-wrap items-center gap-1">
-				<span class="w-16 text-gray-500" title="the origins our intel has shown (from intel 40)"
+				<span
+					class="w-16 text-gray-500"
+					title="the origins our intel has shown of the empires on the graph (from intel 40)"
 					>origins</span
 				>
 				{#each legendOrigins as o (o)}

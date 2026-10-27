@@ -15,7 +15,7 @@ All notable changes to this project are documented here. The format follows
   ethics, civics, origin (from intel 40), capital, federation, opinions — and from which intel the
   rest would show. The graph names each empire's government and civics (a switch).
 - A legend for the relations graph: hovering a relation kind, an ethic (regular and fanatic as
-  one), an authority, a civic or origin our intel has shown, or "unverified" lights it up in the
+  one), an authority, a civic or origin our intel has shown of an empire on the graph, or "unverified" lights it up in the
   graph, a click keeps it lit.
 - Two more ways to group the circle: by **ethics** (empires at most N steps apart on average) and
   by **federation fit** (≈ what their ethics would cost a federation's cohesion, by the game's
