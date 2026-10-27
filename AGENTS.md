@@ -1502,6 +1502,11 @@ screen, trade calibration, stored research, releases).
 - **Diplomacy tab, ethics**: check the chips against the game's contacts screen (ethics column)
   for two or three empires, and `federation fit` against a real federation's cohesion tooltip
   ("Opposing ethics(N)", the defines' lines) — how a fanatic ethic and a gestalt count.
+  **The game has its own distance**, engine-computed: the trigger `opposing_ethics_divergence =
+{ steps > N who = <country> }` (4.5.2 `common/scripted_effects/first_contact_effects.txt`), and
+  `calculate_ethics_divergence` in `script_values/01_script_values_paragon.txt` turns it into a
+  value (`complex_trigger_modifier`, `mode = add`). The companion mod could export that per empire
+  to check our steps (whether it counts only opposed axes is unknown).
 - **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
   (`is_rival=yes`); no AI rivalled us yet (2205.06).
 - **Galactic Community: session timing, solved** (2214.01.01): `galactic_community.days` counts
