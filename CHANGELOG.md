@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-27
+
 ### Added
 
 - The diplomacy tab shows what our intel knows of each empire's ethics as coloured chips (each
