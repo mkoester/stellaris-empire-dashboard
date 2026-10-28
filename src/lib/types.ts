@@ -371,6 +371,7 @@ export type Snapshot = {
 	galcom: GalacticCommunity | null; // null before it forms, and before 2026-10-19
 	claims: Claim[] | null; // ours, and on our systems; null before 2026-10-19
 	factions: Faction[] | null; // ours; null before 2026-10-19
+	ethics: EthicsState | null; // our pops' ethics and attraction; null before READER 24
 	combats: Combat[] | null; // our fleets' last combats this save still holds; null before 2026-10-19
 	shroud: Shroud | null; // null before access to the Shroud, and before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
@@ -672,6 +673,20 @@ export type Shroud = {
 	lastDelve: string | null;
 	preferred: string | null; // is_preferred_patron
 	patrons: PatronRelation[];
+};
+
+/**
+ * Our pops' ethics: `country.<id>.ethics_distribution | pops_ethics_attraction | pops_ethics_change
+ * | ethics_attraction` and `pops_ethics_on_colonies = { { colony num_pops change } }` (4.5.2; a colony id, kept as its planet), each
+ * a list by the game's ethic index — the order of `common/ethics/` (data DB `ethic.sort_order`,
+ * `GameData.ethicOrder`). Kept as the save's lists, mapped to keys on read (`#lib/ethicsTab.ts`).
+ */
+export type EthicsState = {
+	pops: number[]; // pops per ethic
+	attraction: number[]; // attraction-weighted pops: where the pops are heading
+	change: number[]; // pops gained or lost last month
+	weight: number[]; // `ethics_attraction`, empire-wide per ethic; meaning unverified
+	colonies: { planetId: number; pops: number[]; change: number[] }[]; // by colony, its planet
 };
 
 /**
@@ -978,6 +993,7 @@ export type GameData = {
 	perks: Record<string, string>; // ascension perk names
 	flagColors: Record<string, string>; // flag colour swatch → its galaxy-map colour (#rrggbb)
 	ethicAxes: Record<string, EthicAxis>; // ethic → its place on its axis
+	ethicOrder: string[]; // ethic keys by the game's ethic index (`EthicsState` lists)
 	authorities: string[]; // every authority, in the game's order
 	anomalyLevels: Record<string, number | null>; // anomaly category → level
 	blockers: string[]; // deposit keys that are blockers

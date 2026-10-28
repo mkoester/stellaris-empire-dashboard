@@ -285,7 +285,7 @@ left, net per month right (`resourcePanelSeries()`) — and the latest save's mo
 `#lib/flows.ts`; its total is the save's balance: 2207.04.02 energy +3.455 both), and below it
 what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
 `trade-offs` (only with its switch, below) and `events`
-(`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `shroud` (patrons and attunement), `focus`,
+(`/events`: the milestone log, searchable, filtered in the page), `government`, `ethics`, `situations`, `shroud` (patrons and attunement), `focus`,
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `megastructures` (all below), `mods` and
 `dlc` (last; see
 "DLCs and mods" below); tabs keep `?node=`. **Every list is a `SortTable.svelte`** (the user's ask
@@ -448,9 +448,8 @@ e.g. `enclave.7100`: 50 influence and energy by empire size), so the extraction 
 leaders; the Thought Warden (`has_leader_flag = mindwarden_commander`, the Mindwardens origin)
 stays unknown, hidden. Agendas show "while preparing" (`modifier`, active while being enacted —
 `99_README_AGENDAS.txt`) and "once launched" (launch effect text, `finish_modifier` for its
-duration); edicts their effects, in the table. Factions: none has formed in a save yet, so the
-panel lists faction types only with the profile's `factionTypes` (our ethics) or
-`allFactionTypes` switch — both marked cheating. `unlocked_civic_council_slots` is the number of
+duration); edicts their effects, in the table. Factions are on the ethics tab (below).
+`unlocked_civic_council_slots` is the number of
 seats (3 at 2207.03.10, all held). The agenda being prepared shows progress / cost (at empire size),
 percentage and months; every other open one "~N months if picked next" — the measured rate and
 size factor of the current agenda, started from 0. Same-status agendas sort alphabetically.
@@ -642,7 +641,8 @@ identity panel, ruler and council seats, the agenda with its due date (`events.t
 empire can have (`potential` not false: current, cooldown, open, open? — `allow` not answerable —,
 not allowed now, locked — none of the traditions or perks in its `unlocked_by` taken; 2207.03.10:
 7 open, matching ethics such as Open Arms and Give and Take), policies with the options this empire can have, edicts (active with their
-start, the others by unlock), and per faction type its demands. The data DB's normalised triggers
+start, the others by unlock); factions moved to the ethics tab (2026-10-28), whose faction
+demands use the same evaluation. The data DB's normalised triggers
 (`*_json`) are evaluated **three-valued** against the save (`facts()`: country type, civics,
 ethics, authority, origin, DLCs, policy and country flags, traditions, perks, techs, war): what
 the save cannot answer (`num_rivals`, scopes like `any_owned_pop_group`) is unknown, shown `?`,
@@ -663,6 +663,43 @@ type of each for every species. Each option explains itself on hover (`right:<ke
 `<key>_tooltip` and the unconditional `pop_group_modifier`s). `is_nomadic` is
 built into the game; read as running `situation_nomad_economy` (the origin misses most nomads,
 see the trade tab).
+
+**Ethics tab** (`/ethics`, `#lib/ethicsTab.ts` pure; the user's ask 2026-10-28: "which ethic gets
+how much attraction, now and over time", and the factions' details): our pops per ethic, their
+share, the **attraction share** — the country's `pops_ethics_attraction` (attraction-weighted
+pops) as a share: where the pops are heading; above its pop share an ethic gains — last month's
+change, and the save's empire-wide `ethics_attraction` per ethic as "× ≈" (meaning unchecked,
+`docs/open-checks.md` 16). `Snapshot.ethics` keeps the save's lists **by index** (READER 24) and
+the tab maps them through `GameData.ethicOrder` (data DB `ethic.sort_order`, the order of
+`common/ethics/` — 4.5.2: fanatic authoritarian 0 … materialist 15, gestalt 16), so a wrong
+order is fixed without re-reading saves. The real-save test checks it: the pop groups' named
+`ethos` summed per ethic give the same ethics as the lists (UNE 2207.04, Planetforgers 2214.02,
+spiritualist and materialist included), the counts a few pops apart (4032 vs. 4042 — the lists
+lag). The governing ethic an embrace of a new ethic would remove is marked (the lowest attraction,
+none while a fanatic ethic is held — it is demoted instead; insights doc 18). Charts: share and
+attraction per ethic, faction support and approval (lines by faction type, named by the latest
+reading — older readings hold shorter names, "of Scientific Betterment"); per colony
+`pops_ethics_on_colonies` (a colony id, stored as its planet). **Factions** (`FactionCard.svelte`,
+moved from the government tab): support, approval, pops as the game's factions screen (confirmed
+2212.03.05, below), its guiding ethic, promoted / suppressed (`promoted_<ethic>`,
+`suppressed_<ethic>` country modifiers, 4.5.2 `inline_scripts/pop_faction_types/actions/`), what
+embracing it needs (`embrace()`: support > 20 %, 5000 unity, no `embraced_faction_timer`, not
+already fanatic) and its demands; faction types not formed only with the `factionTypes` /
+`allFactionTypes` switches (cheating). The ethics history starts with READER 24's re-read of the
+saves on disk: 5 of 32 UNE snapshots, 32 of 191 Planetforgers' on the 2026-10-28 DB copy.
+
+**Time window** (the user's ask 2026-10-28): every history chart (`Chart` with `extent`, the
+history's first and last save from `xExtent()`) shows one shared window
+(`#lib/timeWindow.svelte.ts`, session-only by the user's call — a reload starts at the default):
+`{ years }` follows the latest save (the last N years and one ahead, default 20; `all` from the
+first save) or `{ from, to }` stays put (`windowRange()`, `zoomWindow()`, `panWindow()`,
+`spanWindow()` in `#lib/series.ts`, pure; bounded by 2200 and a year ahead, a month at least;
+panning back to the right edge follows again). In a chart: drag selects (uPlot's own zoom and
+double-click reset are off), Ctrl/⌘+wheel zooms around the cursor, Shift+wheel moves, a
+double-click resets; the plain wheel scrolls the page. The bar under the tabs (`TimeWindow.svelte`,
+on pages whose data has `xExtent`) has presets, from/to years, ◀ ▶ half a window and "now".
+Projections (growth, trade-offs, the systems horizon) keep their own `range`. Drawn only in a
+browser: the interactions are unchecked here.
 
 **Situations tab** (`/situations`, `#lib/situations.ts` pure, readers in `server/world.ts`): first
 contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
@@ -1043,6 +1080,13 @@ pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − wo
   the build queue (`clear_deposit_blocker`) shows as being cleared.
 - Planet modifiers: `planets.planet.<id>.timed_modifier`, as the country's; features like
   `tidal_locked` and `mineral_poor` are permanent ones (`days=-1`).
+- Ethics (2026-10-28): `country.<id>.ethics_distribution` (pops per ethic, summing to
+  `pops_with_ethic`), `pops_ethics_attraction`, `pops_ethics_change`, `ethics_attraction` — lists of
+  17, one slot per ethic in the files' order (the fanatic slots stay 0) — and
+  `pops_ethics_on_colonies = { { colony num_pops = {…} change = {…} } }`; a pop group's own split is
+  `ethos = { ethics = { "ethic_x" … } pops = { n … } }`, by name. Faction membership:
+  `pop_groups.<id>.factions` and `factions_attraction`; the country's
+  `standard_pop_factions_module.potential_count` (42 slots, order unknown) not read.
 - Pop groups: `colony.pop_groups` → top-level `pop_groups.<id> = { key = { species category } size
 happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.01.01, where the
   game showed Earth at 100 % happiness and 100 % approval (the user, 2026-10-25); the AIs' stored
@@ -1289,8 +1333,7 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   `district`, `army`, `ship`, `starbase_building`, `clear_deposit_blocker` (→ `deposit.<id>.type`).
   `building` not yet seen — `save.ts` names it by the block's first string field.
 - Game length: top-level `galaxy = { mid_game_start=100 end_game_start=200 victory_year=300 }`,
-  years after the 2200.01.01 start (small/default galaxy). Stored as `Snapshot.endGameYear` — the
-  outer bound for zooming out, once zoom exists.
+  years after the 2200.01.01 start (small/default galaxy). Stored as `Snapshot.endGameYear`.
 - Top bar: `country.<id>.empire_size` — **already raised to `EMPIRE_SIZE_FLOOR` (50)**: Yorphia
   read 50 in every save to 2203.10.01. While it sits at the floor the empire chart adds the
   unfloored size, estimated (`#lib/empireSize.ts`): the defines' `EMPIRE_SIZE_FROM_*` weights
@@ -1603,8 +1646,6 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   through 2203.10.01 — we alone had access and never traded on it; the market tab says so. The
   game's market screen at base prices is still to be screenshotted. Prices exist
   only for saves read since 2026-10-17; older ones' saves are gone.
-- **Chart zoom and pan**: wanted — the default window (`xRange`: last 20 years, 1 ahead) should
-  zoom out/in and shift. Not started.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
 - **Next, the user's plan:** a configurable main dashboard (custom tabs pick empire panels now;

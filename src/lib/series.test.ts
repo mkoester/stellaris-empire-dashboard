@@ -13,7 +13,11 @@ import {
 	resourceSeries,
 	stockpileSeries,
 	withoutResearch,
-	xRange
+	panWindow,
+	spanWindow,
+	windowRange,
+	xExtent,
+	zoomWindow
 } from './series.ts';
 import type { Snapshot } from './types.ts';
 
@@ -44,16 +48,44 @@ describe('series with mod-feed months', () => {
 	});
 });
 
-describe('xRange', () => {
+describe('time window', () => {
 	const at = (date: string) => ({ date }) as Snapshot;
+	const extent: [number, number] = [2200, 2250.5];
 
-	it('shows the last 20 years and one ahead', () => {
-		expect(xRange([at('2200.01.01'), at('2250.07.01')])).toEqual([2230.5, 2251.5]);
+	it('shows the last 20 years and one ahead by default', () => {
+		expect(windowRange(xExtent([at('2200.01.01'), at('2250.07.01')]), { years: 20 })).toEqual([
+			2230.5, 2251.5
+		]);
 	});
 
 	it('never starts before 2200', () => {
-		expect(xRange([at('2205.01.01')])).toEqual([2200, 2206]);
-		expect(xRange([])).toEqual([2200, 2201]);
+		expect(windowRange(xExtent([at('2205.01.01')]), { years: 20 })).toEqual([2200, 2206]);
+		expect(windowRange(xExtent([]), { years: 20 })).toEqual([2200, 2201]);
+		expect(windowRange([2203, 2240], { years: 'all' })).toEqual([2203, 2241]);
+	});
+
+	it('pans into the past and follows the latest again at the right edge', () => {
+		expect(panWindow({ years: 20 }, extent, -10)).toEqual({ from: 2220.5, to: 2241.5 });
+		expect(panWindow({ from: 2220.5, to: 2241.5 }, extent, 10)).toEqual({ years: 20 });
+		expect(panWindow({ from: 2220.5, to: 2241.5 }, extent, 50)).toEqual({ years: 20 });
+		// stopped at 2200, the width kept
+		expect(panWindow({ years: 20 }, extent, -100)).toEqual({ from: 2200, to: 2221 });
+	});
+
+	it('zooms around the year under the cursor', () => {
+		expect(zoomWindow({ years: 20 }, extent, 0.5, 2251.5)).toEqual({ years: 9.5 });
+		expect(zoomWindow({ from: 2210, to: 2220 }, extent, 0.5, 2215)).toEqual({
+			from: 2212.5,
+			to: 2217.5
+		});
+		// out past both ends: everything
+		expect(zoomWindow({ years: 20 }, extent, 10, 2240)).toEqual({ years: 'all' });
+	});
+
+	it('takes a selection either way round, at least a month wide', () => {
+		expect(spanWindow(extent, 2230, 2210)).toEqual({ from: 2210, to: 2230 });
+		const w = spanWindow(extent, 2210, 2210) as { from: number; to: number };
+		expect(w.to - w.from).toBeCloseTo(1 / 12);
 	});
 });
 

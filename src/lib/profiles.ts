@@ -30,7 +30,7 @@ export type Display = {
 	surveyAll: boolean; // every system as if fully surveyed: bodies, deposits, anomalies (spoiler)
 	hiddenTimers: boolean; // upcoming: event timers no action names (spoiler)
 	showLocked: boolean; // government: agendas, edicts and policies the game does not list
-	factionTypes: boolean; // government: faction types of our ethics, before any has formed (cheating)
+	factionTypes: boolean; // ethics tab: faction types of our ethics, before any has formed (cheating)
 	allFactionTypes: boolean; // … and those of ethics we do not hold (cheating)
 	tradeoffs: boolean; // the trade-offs tab: where to spend scarce resources (exploratory)
 	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)

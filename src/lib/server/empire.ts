@@ -28,7 +28,7 @@ import {
 	resourceSeries,
 	stockpileSeries,
 	withoutResearch,
-	xRange
+	xExtent
 } from '#lib/series.ts';
 
 // The empire's data at a branch tip: what the `all` tab shows and custom tabs pick from.
@@ -109,7 +109,7 @@ export function empireData(url: URL) {
 		},
 		expansionRowLine: ROW_LINES[display().expansionRowLine],
 		expansionView: expansionView(),
-		xRange: xRange(snaps),
+		xExtent: xExtent(snaps),
 		charts: {
 			pops: popSeries(snaps),
 			agenda: agendaSeries(snaps),

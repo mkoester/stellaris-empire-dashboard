@@ -157,7 +157,7 @@
 		'chart-balance': { title: 'Net per month', series: data.charts.balance },
 		'chart-stockpile': { title: 'Stockpile', series: data.charts.stockpile },
 		'chart-income': { title: 'Income per month', series: data.charts.income }
-	} as Record<string, Omit<ComponentProps<typeof Chart>, 'range'>>);
+	} as Record<string, Omit<ComponentProps<typeof Chart>, 'range' | 'extent'>>);
 </script>
 
 {#if id === 'header'}
@@ -244,7 +244,7 @@
 	</section>
 {:else if id in charts}
 	{#key data.tip}
-		<Chart {...charts[id]} range={data.xRange} events={data.milestones} />
+		<Chart {...charts[id]} extent={data.xExtent} events={data.milestones} />
 	{/key}
 {:else if id === 'colonies'}
 	<section>

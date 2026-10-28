@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- An **ethics** tab: per ethic how many of our pops hold it, how strongly the empire draws pops to
+  it (attraction) and last month's change, both over time as charts, and where each ethic's pops
+  live. It marks the governing ethic that embracing a faction of a new ethic would remove.
+- Our factions moved there from the government tab, with charts of their support and approval
+  over time, whether they are promoted or suppressed, and what embracing each still needs
+  (support over 20 %, 5000 unity, the 10-year cooldown).
+- One time window for every history chart: a bar under the tabs picks 5, 10, 20 or 50 years or
+  everything, a stretch of years, or half a window back and on; in a chart, drag to zoom to a
+  stretch, Ctrl+wheel zooms, Shift+wheel moves, a double-click goes back to the last 20 years.
+  Every chart follows, on every page. Not stored: a reload starts at the last 20 years.
+
+### Changed
+
+- Saves are read again (READER 24) for the ethics; the ethics history starts with the saves still
+  on disk. The bundled extractor needs `ethic.sort_order`.
+
 ## [0.1.3] - 2026-10-27
 
 ### Added

@@ -5,7 +5,7 @@ import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
-import { colonySeries, xRange } from '#lib/series.ts';
+import { colonySeries, xExtent } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
 
 const pct = (v: number | null) => (v === null ? null : Math.round(v * 1000) / 10);
@@ -51,7 +51,7 @@ export function load({ url, params }) {
 			getExplanations(),
 			(b.jobs[planetId] ?? []).map((j) => `job:${j.type}`)
 		),
-		xRange: xRange(snaps),
+		xExtent: xExtent(snaps),
 		charts: {
 			pops: colonySeries(snaps, planetId, {
 				pops: (c) => c.pops,

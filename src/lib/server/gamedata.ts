@@ -479,6 +479,9 @@ export function loadGameData(file: string): GameData {
 					{ axis: e.category!, pos: e.category === 'hive' ? 0 : (e.category_value ?? 2) - 2 }
 				])
 			),
+			ethicOrder: rows<{ key: string }>('SELECT key FROM ethic ORDER BY sort_order').map(
+				(r) => r.key
+			),
 			authorities: rows<{ key: string }>('SELECT key FROM authority ORDER BY sort_order').map(
 				(r) => r.key
 			),

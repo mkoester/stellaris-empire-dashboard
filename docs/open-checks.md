@@ -98,6 +98,18 @@ lines change, the suspected cause.
 - **Send:** a screenshot of the fleet manager's naval capacity and the date; any console error
   and the start window's output if the 500 shows again.
 
+### 16. Ethics attraction — ethics tab (from 2026-10-28)
+
+The tab's shares come straight from the country's lists (`ethics_distribution`,
+`pops_ethics_attraction`, `pops_ethics_change`); what the game's own ethics view shows as
+"attraction" is not yet compared, nor what the `ethics_attraction` list (the "× ≈" column: 4.5
+egalitarian, 2.4 xenophile at 2202.08.01) is. The pop counts run a few pops behind the pop groups'
+(materialist 4032 listed, 4042 in the groups, 2214.02.01).
+
+- **Do:** at an autosave on the 1st, open the empire's ethics view (the pops' ethics with their
+  percentages and the attraction tooltip of two or three ethics) and the factions screen.
+- **Send:** the screenshots and the date; the tab's table for the same save.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

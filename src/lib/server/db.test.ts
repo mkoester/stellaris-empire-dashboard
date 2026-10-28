@@ -93,6 +93,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	galcom: null,
 	claims: null,
 	factions: null,
+	ethics: null,
 	combats: null,
 	shroud: null,
 	warLostDate: null,

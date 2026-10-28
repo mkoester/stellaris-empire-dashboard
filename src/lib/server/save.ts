@@ -38,6 +38,7 @@ import type {
 	War,
 	WarSides,
 	Subject,
+	EthicsState,
 	Faction,
 	Combat,
 	Shroud,
@@ -265,7 +266,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '23'; // 23: capital, rights and insult cooldowns (22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '24'; // 24: our pops' ethics (23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -382,6 +383,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		subjects: subjects(raw),
 		galcom: galacticCommunity(raw),
 		factions: factions(raw),
+		ethics: ethics(raw.country, raw.planets),
 		combats: combats(raw),
 		shroud: shroud(raw),
 		warLostDate:
@@ -1858,6 +1860,32 @@ export function shroud(
 				deeds: items(p.deeds)
 					.map((d) => d?.patron_objective)
 					.filter((d) => typeof d === 'string')
+			}))
+	};
+}
+
+/**
+ * Our pops' ethics (see `EthicsState`); null where the save has none (a gestalt: no ethics). The
+ * per-colony lists name colonies, which `planets.planet.<id>.colony` points to.
+ */
+export function ethics(country: Raw, planets: Record<string, Raw>): EthicsState | null {
+	if (!country || country.ethics_distribution === undefined) return null;
+	const planetOf = new Map(
+		Object.entries(planets).flatMap(([id, p]) =>
+			p && typeof p === 'object' && p.colony !== undefined ? [[Number(p.colony), Number(id)]] : []
+		)
+	);
+	return {
+		pops: list(country.ethics_distribution),
+		attraction: list(country.pops_ethics_attraction),
+		change: list(country.pops_ethics_change),
+		weight: list(country.ethics_attraction),
+		colonies: items(country.pops_ethics_on_colonies)
+			.filter((c) => c && typeof c === 'object')
+			.map((c) => ({
+				planetId: planetOf.get(Number(c.colony)) ?? -1,
+				pops: list(c.num_pops),
+				change: list(c.change)
 			}))
 	};
 }

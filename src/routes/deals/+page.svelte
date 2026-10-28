@@ -39,7 +39,7 @@
 			<Chart
 				title="monthly resources from trade deals"
 				series={data.flows}
-				range={data.xRange}
+				extent={data.xExtent}
 				events={data.milestones}
 			/>
 		</div>

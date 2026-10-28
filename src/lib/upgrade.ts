@@ -65,6 +65,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	galcom: null,
 	claims: null,
 	factions: null,
+	ethics: null,
 	combats: null,
 	shroud: null,
 	warLostDate: null,

@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { branch } from '#lib/server/branch.ts';
 import { feeSeries, marketFee, marketSwitches, priceSeries } from '#lib/market.ts';
-import { xRange } from '#lib/series.ts';
+import { xExtent } from '#lib/series.ts';
 
 const BASIC = ['energy', 'minerals', 'food', 'consumer_goods', 'alloys'];
 const STRATEGIC = [
@@ -28,6 +28,6 @@ export function load({ url }) {
 		switches: marketSwitches(snaps),
 		basic: priceSeries(snaps, BASIC),
 		strategic: priceSeries(snaps, STRATEGIC),
-		xRange: xRange(snaps)
+		xExtent: xExtent(snaps)
 	};
 }

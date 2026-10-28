@@ -127,7 +127,7 @@
 		<Chart
 			title="Pops"
 			series={data.charts.pops}
-			range={data.xRange}
+			extent={data.xExtent}
 			events={planetEvents}
 			scope="colony"
 			right={['open jobs']}
@@ -135,21 +135,21 @@
 		<Chart
 			title="Stability"
 			series={data.charts.stability}
-			range={data.xRange}
+			extent={data.xExtent}
 			events={planetEvents}
 			scope="colony"
 		/>
 		<Chart
 			title="Pops per month: growth and migration"
 			series={data.charts.growth}
-			range={data.xRange}
+			extent={data.xExtent}
 			events={planetEvents}
 			scope="colony"
 		/>
 		<Chart
 			title="Happiness %"
 			series={data.charts.happiness}
-			range={data.xRange}
+			extent={data.xExtent}
 			events={planetEvents}
 			scope="colony"
 			yMin={0}
@@ -158,14 +158,14 @@
 		<Chart
 			title="Free housing and amenities"
 			series={data.charts.free}
-			range={data.xRange}
+			extent={data.xExtent}
 			events={planetEvents}
 			scope="colony"
 		/>
 		<Chart
 			title="Districts"
 			series={data.charts.districts}
-			range={data.xRange}
+			extent={data.xExtent}
 			events={planetEvents}
 			scope="colony"
 		/>

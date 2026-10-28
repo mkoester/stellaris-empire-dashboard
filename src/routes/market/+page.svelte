@@ -120,7 +120,7 @@
 			<Chart
 				title="prices: basic and advanced"
 				series={data.basic}
-				range={data.xRange}
+				extent={data.xExtent}
 				yMin={0}
 				{markers}
 				events={data.milestones}
@@ -130,7 +130,7 @@
 			<Chart
 				title="market fee"
 				series={data.fees}
-				range={data.xRange}
+				extent={data.xExtent}
 				yMin={0}
 				yMax={40}
 				events={data.milestones}
@@ -140,7 +140,7 @@
 			<Chart
 				title="prices: strategic"
 				series={data.strategic}
-				range={data.xRange}
+				extent={data.xExtent}
 				yMin={0}
 				{markers}
 				events={data.milestones}
