@@ -17,6 +17,7 @@ import {
 	countryIds,
 	colonyGrowth,
 	colonyJobs,
+	colonyDistricts,
 	displayName,
 	setPrescriptedNames,
 	speciesName,
@@ -1507,6 +1508,25 @@ describe('milestone fields', () => {
 				approval: 0.45,
 				pops: 173,
 				change: 3
+			}
+		]);
+	});
+
+	it('reads which buildings the player disabled', () => {
+		// 4.5.2, the nomad game's arkship at 2201.05.01 (`buildings.2`: its Holo Theatres)
+		const raw = {
+			districtsDb: { '11': { type: 'district_ark_city', level: 3, zones: [7] } },
+			zones: { '7': { type: 'zone_ark_city', buildings: [1, 2, 4294967295] } },
+			buildings: {
+				'1': { type: 'building_temple', position: 0 },
+				'2': { type: 'building_holo_theatres', disabled: 'yes', position: 1 }
+			}
+		};
+		expect(colonyDistricts(raw, [11]).districtList[0].zones).toEqual([
+			{
+				type: 'zone_ark_city',
+				buildings: ['building_temple', 'building_holo_theatres'],
+				disabled: ['building_holo_theatres']
 			}
 		]);
 	});

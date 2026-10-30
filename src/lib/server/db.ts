@@ -187,6 +187,13 @@ export function nodes(db: Db): TimelineNode[] {
 	return (db.prepare('SELECT * FROM node ORDER BY id').all() as NodeRow[]).map(toNode);
 }
 
+/** A node as people read it: its campaign and its number there ("#17 of roamingkorinth_…"). */
+export function nodeLabel(db: Db, id: number): string {
+	const row = db.prepare('SELECT campaign, seq FROM node WHERE id = ?').get(id) as
+		{ campaign: string; seq: number | null } | undefined;
+	return row ? `#${row.seq ?? id} of ${row.campaign}` : `id ${id}`;
+}
+
 export function headId(db: Db): number | null {
 	const row = db.prepare("SELECT value FROM state WHERE key = 'head'").get() as
 		{ value: string } | undefined;

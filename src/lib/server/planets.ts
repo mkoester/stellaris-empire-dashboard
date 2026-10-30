@@ -1,3 +1,4 @@
+import { colonyActiveBuildings } from '#lib/buildings.ts';
 import { blockerHints, type BlockerHint } from '#lib/blockers.ts';
 import { districtCaps, type PlanetDetailsData } from '#lib/districtCaps.ts';
 import { pretty } from '#lib/format.ts';
@@ -49,8 +50,8 @@ export function planetDetails(
 	};
 }
 
-const buildingsOf = (c: Colony) =>
-	c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings));
+// what raises district limits: the working buildings only (#lib/buildings.ts)
+const buildingsOf = (c: Colony) => colonyActiveBuildings(c.districtList);
 
 /** What of the empire can raise its planets' district limits, as `districtCaps` owners. */
 export const empireOwners = (s: Snapshot | null): string[] =>

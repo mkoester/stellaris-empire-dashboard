@@ -166,7 +166,8 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   global key of links (`?node=`), parents and snapshots. Checked 2026-10-30 on a copy of this
   machine's DB: five campaigns, ids 1…303 → each 1…n without gaps (Roaming Korinth 287–303 →
   1–17), `dashboard.v15.sqlite` left beside it. Tests building an older DB use the base tables
-  alone (`openDb(file, [])`) and insert nodes as 0.1.0 did.
+  alone (`openDb(file, [])`) and insert nodes as 0.1.0 did. The server log names nodes the same
+  way (`nodeLabel()`: "new node #17 of roamingkorinth_…").
 
 `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`; vitest swallows its
 `console.log` dump unless run with `--silent=false`. Its assertions fit our 4.5.2 campaign (a
@@ -1167,6 +1168,13 @@ pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − wo
   need a tech (`deposit.prerequisites` in the data DB, 12 in 4.5.2), natural ones
   (`deposit_cat_blockers_natural`) cannot be cleared while the planet has a Ranger Lodge; one in
   the build queue (`clear_deposit_blocker`) shows as being cleared.
+- **Disabled buildings** (2026-10-30, the nomad game's arkship, 2201.05.01): `buildings.<id> =
+  { type disabled=yes position }` — the building keeps its slot and does nothing: its Entertainer
+  jobs went and amenities fell 12,188 → 8,493. Read per zone as `disabled` (types, only when any;
+  READER 27); `#lib/buildings.ts` `activeBuildings()` for what reads effects (district caps,
+  ethic attraction sources, the market fee), the full list for what asks whether one exists
+  (built before, Ranger Lodge, milestones, popups). The districts panel strikes them through.
+  Jobs, budget, amenities and stability come from the save and already follow.
 - Planet modifiers: `planets.planet.<id>.timed_modifier`, as the country's; features like
   `tidal_locked` and `mineral_poor` are permanent ones (`days=-1`).
 - Ethics (2026-10-28): `country.<id>.ethics_distribution` (pops per ethic, summing to

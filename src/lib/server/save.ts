@@ -266,7 +266,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '26'; // 26: leaders' ethic and governors (25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '27'; // 27: disabled buildings (26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -2068,12 +2068,20 @@ export function colonyDistricts(
 				zones: list(d.zones)
 					.map((z) => raw.zones[String(z)])
 					.filter((z) => z && typeof z === 'object')
-					.map((z) => ({
-						type: String(z.type),
-						buildings: list(z.buildings)
-							.map((b) => raw.buildings[String(b)]?.type)
-							.filter((b) => typeof b === 'string')
-					}))
+					.map((z) => {
+						const built = list(z.buildings)
+							.map((b) => raw.buildings[String(b)])
+							.filter((b) => typeof b?.type === 'string');
+						// switched off by the player: `buildings.<id>.disabled=yes` (#lib/buildings.ts)
+						const off = built
+							.filter((b) => b.disabled === true || b.disabled === 'yes')
+							.map((b) => b.type as string);
+						return {
+							type: String(z.type),
+							buildings: built.map((b) => b.type as string),
+							...(off.length ? { disabled: off } : {})
+						};
+					})
 			}
 		];
 	});

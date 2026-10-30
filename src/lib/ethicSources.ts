@@ -1,3 +1,4 @@
+import { colonyActiveBuildings } from './buildings.ts';
 import { regular } from './ethicsTab.ts';
 import { evaluate, type Facts, type Trigger } from './triggers.ts';
 import type { GameData, Snapshot } from './types.ts';
@@ -171,11 +172,10 @@ export function holdings(s: Snapshot): Holdings {
 			...(s.countryModifiers ?? []).map((m) => m.key),
 			...s.colonies.flatMap((c) => (c.planet?.modifiers ?? []).map((m) => m.key))
 		],
-		// every one built: a building's planet modifier applies per building — checked 2026-10-30,
-		// a second Temple took a pop group's spiritualist attraction from 5.225 × 1.30 to × 1.35
-		buildings: count(
-			s.colonies.flatMap((c) => c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings)))
-		),
+		// every working one: a building's planet modifier applies per building — checked
+		// 2026-10-30, a second Temple took a pop group's spiritualist attraction from 5.225 × 1.30
+		// to × 1.35; a disabled one does nothing (#lib/buildings.ts)
+		buildings: count(s.colonies.flatMap((c) => colonyActiveBuildings(c.districtList))),
 		designations: count(s.colonies.map((c) => c.designation)),
 		deposits: count(s.colonies.flatMap((c) => [...new Set(c.deposits)])),
 		councilSeats: (s.council ?? []).map((c) => c.type),

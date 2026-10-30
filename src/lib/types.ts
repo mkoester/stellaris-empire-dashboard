@@ -148,7 +148,8 @@ export type BudgetSource = { source: string; income: Resources; expenses: Resour
 export type ColonyDistrict = {
 	type: string;
 	built: number;
-	zones: { type: string; buildings: string[] }[];
+	// buildings: every one built; disabled: those the player turned off (READER 27), by type
+	zones: { type: string; buildings: string[]; disabled?: string[] }[];
 };
 
 /** One job on a colony. Positions null: unlimited (civilian). */

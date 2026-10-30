@@ -11,6 +11,7 @@ import {
 	noteModVersions,
 	openDb,
 	record,
+	nodeLabel,
 	type Db,
 	type Recorded
 } from './db.ts';
@@ -100,7 +101,8 @@ function takeLoaded(): number | null {
 }
 
 function recorded(r: Recorded, source: string) {
-	console.log(`${r.isNew ? 'new ' : 'seen'} node ${r.nodeId} ← ${source}`);
+	const label = state.db ? nodeLabel(state.db, r.nodeId) : `id ${r.nodeId}`;
+	console.log(`${r.isNew ? 'new ' : 'seen'} node ${label} ← ${source}`);
 	for (const m of r.mismatches) console.warn(`mod and save disagree on net income: ${m}`);
 	updates.emit('update', r.nodeId);
 }
@@ -204,7 +206,8 @@ async function run() {
 	state.watcher = await watchSaves(store, saveDir, {
 		onIngest: (r) => recorded(r, r.file),
 		loadedFrom: takeLoaded,
-		onRefresh: (r) => console.log(`${r.isNew ? 'late' : 're-read'} node ${r.nodeId} ← ${r.file}`),
+		onRefresh: (r) =>
+			console.log(`${r.isNew ? 'late' : 're-read'} node ${nodeLabel(store, r.nodeId)} ← ${r.file}`),
 		onError: (file, e) => console.error(`cannot ingest ${file}:`, e),
 		reader: `${READER}:${data.mtimeMs}:${data.size}`
 	});

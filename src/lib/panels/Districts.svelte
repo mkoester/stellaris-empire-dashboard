@@ -25,6 +25,13 @@
 		built: number;
 		zone: string | null;
 		buildings: string[] | null;
+		disabled: boolean[]; // per building: switched off by the player (#lib/buildings.ts)
+	};
+	// whether a zone's j-th building works: of a type with N disabled, the first N are shown off
+	const activeAt = (z: ColonyDistrict['zones'][number], j: number) => {
+		const b = z.buildings[j];
+		const off = (z.disabled ?? []).filter((d) => d === b).length;
+		return z.buildings.slice(0, j + 1).filter((x) => x === b).length > off;
 	};
 	const rows: Row[] = $derived(
 		districts.flatMap((d) =>
@@ -33,7 +40,8 @@
 				type: d.type,
 				built: d.built,
 				zone: z ? nameOf(names, z.type) : null,
-				buildings: z ? z.buildings : null
+				buildings: z ? z.buildings : null,
+				disabled: z ? z.buildings.map((b, j) => !activeAt(z, j)) : []
 			}))
 		)
 	);
@@ -55,7 +63,12 @@
 
 {#snippet buildings(r: Row)}{#if r.buildings !== null}{#each r.buildings as b, i (i)}{i
 				? ', '
-				: ''}<BuildingName key={b} name={nameOf(names, b)} />{:else}none yet{/each}{/if}{/snippet}
+				: ''}{#if r.disabled[i]}<span class="text-gray-500 line-through" title="disabled"
+					><BuildingName key={b} name={nameOf(names, b)} /></span
+				> <span class="text-xs text-gray-500">disabled</span>{:else}<BuildingName
+					key={b}
+					name={nameOf(names, b)}
+				/>{/if}{:else}none yet{/each}{/if}{/snippet}
 {#snippet district(r: Row)}<DistrictName
 		name={nameOf(names, r.type)}
 		color={colors[r.type]}

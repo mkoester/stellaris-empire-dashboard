@@ -1,3 +1,4 @@
+import { colonyActiveBuildings } from './buildings.ts';
 import { gameYear, type Series } from './series.ts';
 import type { MarketOrder, Snapshot } from './types.ts';
 
@@ -186,9 +187,7 @@ export function marketFee(s: Snapshot): MarketFee | null {
 	const found: Record<FeeSource['in'], string[]> = {
 		tradition: s.traditions,
 		modifier: s.countryModifiers.map((m) => m.key),
-		building: s.colonies.flatMap((c) =>
-			c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings))
-		),
+		building: s.colonies.flatMap((c) => colonyActiveBuildings(c.districtList)),
 		station: s.stations.flatMap((st) => [...st.modules, ...st.buildings])
 	};
 	const sources = FEE_SOURCES.map((f) => ({
