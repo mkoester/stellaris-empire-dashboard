@@ -397,7 +397,8 @@ export function situations(raw: Pick<RawSave, 'countryId' | 'situations'>): Situ
 						progress: num(s.progress),
 						monthly: numOrNull(s.last_month_progress),
 						approach: strOrNull(s.approach),
-						stage: strOrNull(s.stage)
+						stage: numOrNull(s.stage),
+						ends: items(s.stage_durations).map((d) => num(d?.end))
 					}
 				]
 			: []

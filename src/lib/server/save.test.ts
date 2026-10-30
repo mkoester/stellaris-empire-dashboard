@@ -1520,14 +1520,14 @@ describe('milestone fields', () => {
 			ethics_attraction: [0, 0.75, 0, 4.5, 0, 1],
 			pops_ethics_on_colonies: { colony: 27, num_pops: [0, 0, 0, 75], change: [0, 0, 0, 75] }
 		};
-		expect(ethics(country, { '3': { colony: 27 }, '4': {} })).toEqual({
+		expect(ethics(country, new Map([[27, [3, {}]]]))).toEqual({
 			pops: [0, 0, 0, 3385, 0, 2135],
 			attraction: [0, 0, 0, 58873.5, 0, 17001.6],
 			change: [0, 0, 0, 76, 0, -45],
 			weight: [0, 0.75, 0, 4.5, 0, 1],
 			colonies: [{ planetId: 3, pops: [0, 0, 0, 75], change: [0, 0, 0, 75] }]
 		});
-		expect(ethics({ type: 'default' }, {})).toBeNull();
+		expect(ethics({ type: 'default' }, new Map())).toBeNull();
 	});
 
 	it("reads our fleets' last combats, skipping the empty records", () => {

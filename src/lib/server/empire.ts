@@ -1,3 +1,4 @@
+import { RESERVES, reservesAlong, withReserves } from '#lib/nomad.ts';
 import { storageRows } from '#lib/storage.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
@@ -42,6 +43,11 @@ export function empireData(url: URL) {
 	const modifiers = snaps.findLast((s) => s.countryModifiers !== null)?.countryModifiers ?? [];
 	const species = speciesChoices(latest.species ?? []);
 	const government = identity(snaps.findLast((s) => s.government !== null));
+	// a nomad's energy and minerals as the one pool its top bar shows (#lib/nomad.ts)
+	const reserves = reservesAlong(snaps);
+	const shown = snaps.map((s, i) => withReserves(s, reserves[i]));
+	const top = shown[shown.length - 1];
+	const pool = reserves[reserves.length - 1];
 	return {
 		empty: false as const,
 		...rest,
@@ -78,11 +84,36 @@ export function empireData(url: URL) {
 		// Researched techs per field and tier, at the latest full save.
 		tiers: techTiers(b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [], data.techs),
 		// storage under the resources panel: exact from the latest save with companion mod 0.5.0, else ≈ base
-		storage: storageRows(
-			latest.stockpile,
-			b.snaps.findLast((s) => s.kind === 'save')?.storageMax ?? null,
-			data.resourceInfo
-		),
+		storage: [
+			...storageRows(
+				top.stockpile,
+				b.snaps.findLast((s) => s.kind === 'save')?.storageMax ?? null,
+				data.resourceInfo
+			),
+			...(pool?.capacity
+				? [
+						{
+							resource: RESERVES,
+							name: 'Operational Reserves',
+							have: pool.stock,
+							max: pool.capacity,
+							exact: !pool.estimated
+						}
+					]
+				: [])
+		],
+		// the top bar: a nomad's energy and minerals folded into its reserves, and their level
+		topBar: {
+			stockpile: top.stockpile,
+			balance: top.balance,
+			reserves: pool && {
+				level:
+					pool.stage === null
+						? null
+						: (data.situationTypes['situation_nomad_economy']?.stages[pool.stage] ?? null),
+				estimated: pool.estimated
+			}
+		},
 		// Overview panels, named from the game data.
 		modifiers: modifiers.map((m) => ({
 			...m,
@@ -121,8 +152,8 @@ export function empireData(url: URL) {
 			}),
 			empireSize: empireSizeSeries(snaps),
 			research: researchSeries(snaps),
-			stockpile: stockpileSeries(snaps),
-			balance: resourceSeries(snaps, (s) => withoutResearch(s.balance)),
+			stockpile: stockpileSeries(shown),
+			balance: resourceSeries(shown, (s) => withoutResearch(s.balance)),
 			income: resourceSeries(snaps, (s) => withoutResearch(s.income))
 		}
 	};

@@ -1,4 +1,12 @@
 import {
+	NOMAD_ECONOMY,
+	nextStage,
+	RESERVES,
+	reserves,
+	withReserves,
+	type Reserves
+} from './nomad.ts';
+import {
 	DEFAULT_DAYS_PER_JUMP,
 	daysPerJump,
 	estimateMonthsLeft,
@@ -415,7 +423,10 @@ export function upcoming(
 			exact: true
 		});
 
-	out.push(...deficits(latest));
+	// a nomad's energy and minerals never run out on their own: their pool changes level instead
+	const pool = reserves(latest);
+	out.push(...deficits(withReserves(latest, pool)).filter((d) => d.tint !== RESERVES));
+	out.push(...reserveLevels(latest.date, pool, data.situationTypes[NOMAD_ECONOMY]?.stages ?? []));
 
 	return out.sort((a, b) => toDays(a.date) - toDays(b.date) || a.what.localeCompare(b.what));
 }
@@ -450,6 +461,30 @@ export function deficits(latest: Pick<Snapshot, 'date' | 'stockpile' | 'balance'
 			}
 		];
 	});
+}
+
+/**
+ * When a nomad's Operational Reserves reach their next level at this month's net (#lib/nomad.ts):
+ * each level is a stage of `situation_nomad_economy` with its own modifiers — Critical cripples
+ * research and production. The game does not warn ahead.
+ */
+export function reserveLevels(now: string, r: Reserves | null, names: string[]): Upcoming[] {
+	const next = r && nextStage(r);
+	if (!r || !next) return [];
+	const months = Math.ceil(next.months);
+	const name = names[next.stage] ?? `stage ${next.stage + 1}`;
+	return [
+		{
+			date: fromDays(toDays(now) + months * 30),
+			months,
+			kind: 'deficit',
+			act: r.monthly < 0,
+			what: `Operational Reserves ${r.monthly < 0 ? 'fall' : 'rise'} to ${name}`,
+			tint: RESERVES,
+			detail: `${fmt(r.stock)} of ${fmt(r.capacity ?? 0)} · ${r.monthly >= 0 ? '+' : ''}${r.monthly.toFixed(1)}/month`,
+			exact: !r.estimated
+		}
+	];
 }
 
 const ACTION_KINDS: Record<ActionKind, string> = {

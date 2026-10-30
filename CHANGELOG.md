@@ -18,10 +18,16 @@ All notable changes to this project are documented here. The format follows
   everything, a stretch of years, or half a window back and on; in a chart, drag to zoom to a
   stretch, Ctrl+wheel zooms, Shift+wheel moves, a double-click goes back to the last 20 years.
   Every chart follows, on every page. Not stored: a reload starts at the last 20 years.
+- Nomads: energy and minerals show as the one pool the game has, the Operational Reserves — stock,
+  capacity and level (Critical, Low, Medium, High) in the top bar, a chart, the resources tab
+  with both budgets, and in Upcoming when the reserves reach their next level.
+- A nomad's arkship colony is named after its ship ("Peshnab the Faithful", not "colony 0"), with
+  its class and size; ship names from the game's name lists read as the game writes them.
+- The situations tab names each situation's stage.
 
 ### Changed
 
-- Saves are read again (READER 24) for the ethics; the ethics history starts with the saves still
+- Saves are read again (READER 25) for the ethics and situation stages; the ethics history starts with the saves still
   on disk. The bundled extractor needs `ethic.sort_order`.
 
 ## [0.1.3] - 2026-10-27

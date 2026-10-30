@@ -266,7 +266,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '24'; // 24: our pops' ethics (23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '25'; // 25: situation stages and their ends (24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -383,7 +383,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		subjects: subjects(raw),
 		galcom: galacticCommunity(raw),
 		factions: factions(raw),
-		ethics: ethics(raw.country, raw.planets),
+		ethics: ethics(raw.country, colonyPlaces(raw)),
 		combats: combats(raw),
 		shroud: shroud(raw),
 		warLostDate:
@@ -1508,13 +1508,32 @@ export function progress(raw: Pick<RawSave, 'country' | 'galaxy'>): Progress {
 	};
 }
 
-function playerColonies(raw: RawSave): Colony[] {
-	const planetOfColony = new Map<number, [number, Raw]>();
+/**
+ * Each colony's place: its planet (`planets.planet.<id>.colony`), or for a nomad's arkship the ship
+ * that carries it (`colony.<id>.carrier = { type=ship reference }`; the ship holds `colony`,
+ * `planet_class="pc_ark"`, `planet_size`, `build_queue` and its name, 2026-10-30) under the id
+ * −1 − ship id, so ship 0 stays the −1 stored before.
+ */
+export function colonyPlaces(
+	raw: Pick<RawSave, 'planets' | 'colonies' | 'ships'>
+): Map<number, [number, Raw]> {
+	const places = new Map<number, [number, Raw]>();
 	for (const [id, planet] of Object.entries(raw.planets)) {
 		if (planet && typeof planet === 'object' && planet.colony !== undefined) {
-			planetOfColony.set(Number(planet.colony), [Number(id), planet]);
+			places.set(Number(planet.colony), [Number(id), planet]);
 		}
 	}
+	for (const [id, c] of Object.entries(raw.colonies)) {
+		const ship = c?.carrier?.type === 'ship' ? raw.ships?.[String(c.carrier.reference)] : undefined;
+		if (ship && typeof ship === 'object' && !places.has(Number(id))) {
+			places.set(Number(id), [-1 - Number(c.carrier.reference), ship]);
+		}
+	}
+	return places;
+}
+
+function playerColonies(raw: RawSave): Colony[] {
+	const planetOfColony = colonyPlaces(raw);
 	const sectorOf = sectorBySystem(raw);
 	return list(raw.country?.controlled_colonies).map((colonyId) => {
 		const c = raw.colonies[String(colonyId)] ?? {};
@@ -1866,15 +1885,10 @@ export function shroud(
 
 /**
  * Our pops' ethics (see `EthicsState`); null where the save has none (a gestalt: no ethics). The
- * per-colony lists name colonies, which `planets.planet.<id>.colony` points to.
+ * per-colony lists name colonies, kept as their place's id (`colonyPlaces`).
  */
-export function ethics(country: Raw, planets: Record<string, Raw>): EthicsState | null {
+export function ethics(country: Raw, places: Map<number, [number, Raw]>): EthicsState | null {
 	if (!country || country.ethics_distribution === undefined) return null;
-	const planetOf = new Map(
-		Object.entries(planets).flatMap(([id, p]) =>
-			p && typeof p === 'object' && p.colony !== undefined ? [[Number(p.colony), Number(id)]] : []
-		)
-	);
 	return {
 		pops: list(country.ethics_distribution),
 		attraction: list(country.pops_ethics_attraction),
@@ -1883,7 +1897,7 @@ export function ethics(country: Raw, planets: Record<string, Raw>): EthicsState 
 		colonies: items(country.pops_ethics_on_colonies)
 			.filter((c) => c && typeof c === 'object')
 			.map((c) => ({
-				planetId: planetOf.get(Number(c.colony)) ?? -1,
+				planetId: places.get(Number(c.colony))?.[0] ?? -1,
 				pops: list(c.num_pops),
 				change: list(c.change)
 			}))

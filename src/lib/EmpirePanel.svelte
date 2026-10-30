@@ -224,8 +224,9 @@
 	</header>
 {:else if id === 'resources'}
 	<Resources
-		stockpile={data.latest.stockpile}
-		balance={data.latest.balance}
+		stockpile={data.topBar.stockpile}
+		balance={data.topBar.balance ?? {}}
+		reserves={data.topBar.reserves}
 		orders={data.latest.marketOrders}
 		galactic={data.latest.market?.galactic}
 		date={data.latest.date}

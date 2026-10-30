@@ -688,6 +688,33 @@ already fanatic) and its demands; faction types not formed only with the `factio
 `allFactionTypes` switches (cheating). The ethics history starts with READER 24's re-read of the
 saves on disk: 5 of 32 UNE snapshots, 32 of 191 Planetforgers' on the 2026-10-28 DB copy.
 
+**Nomads: Operational Reserves** (`#lib/nomad.ts` pure; throwaway nomad game
+`roamingkorinth_1232667372`, 2026-10-30, screenshot `2026_10_30_1`): a nomadic empire has no
+energy and minerals storage — both live in one pool (4.5.2 `resource_converters`,
+`nomadic_operational_reserves`: `bottomless`, each payable with the other, `visible_stockpile = no`).
+The pool **is** the situation `situation_nomad_economy`: `progress` the stock (10069.85, the game's
+"Stored: 10069 / 20000"), the last `stage_durations` end the capacity (base 15000 + 5000 for a
+tier I arkship; ends 1000/5000/15000/20000), `stage` its level (data DB `situation_stage`:
+Critical, Low, Medium, High — the top bar's "Medium"), and each unit of energy or minerals net
+moves it by one (2200.02.01: +98.91 − 29.06 = the game's "69.8"; it started at
+`initial_progress` 10000). The save's energy and minerals stockpiles are their start values
+(1200 / 15000) plus their own nets — ignored by the game. `withReserves()` folds them into
+`operational_reserves` for the top bar, its storage line, the stockpile and net charts and the
+resources tab (whose budget for it is energy's and minerals' together; `stripOrder()` puts it
+first, as the game); a month only the mod logged is ≈ the last save plus its net
+(`reservesAlong()`); Upcoming has "Operational Reserves fall/rise to <level>" instead of energy or
+minerals running out (`reserveLevels()`). Income and every economic tab keep the real energy and
+minerals flows. `SituationInfo.stage` is the save's number (it was read as a string, always
+null, before READER 25) with `ends`. **The arkship is the colony's place**: `colony.<id>.carrier =
+{ type=ship reference }`, the ship holding `colony`, `planet_class="pc_ark"`, `planet_size`,
+`build_queue` and its name — `colonyPlaces()` gives it the id −1 − ship id (ship 0 stays −1, as
+stored before) and its name from the name lists (data DB `prescripted_name` now holds ship names
+that differ from their key: `HUM1_SHIP_PeshnabtheFaithful` = "Peshnab the Faithful"). Not yet
+nomad-aware: other places that map a colony to its planet themselves (capital, construction,
+migration, growth), the trade tab's valuation of energy and minerals for us, and whether the
+approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
+Balance at ×1.
+
 **Time window** (the user's ask 2026-10-28): every history chart (`Chart` with `extent`, the
 history's first and last save from `xExtent()`) shows one shared window
 (`#lib/timeWindow.svelte.ts`, session-only by the user's call — a reload starts at the default):

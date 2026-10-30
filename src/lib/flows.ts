@@ -1,3 +1,4 @@
+import { RESERVES } from './nomad.ts';
 import { splitByGroup } from './resourceGroups.ts';
 import type { BudgetSource, Resources } from './types.ts';
 
@@ -47,13 +48,15 @@ export type ResourceBudgetRow = { label: string; income: number; expenses: numbe
 /**
  * One resource's month by budget source: what each source earns and spends of it, biggest
  * earner first, biggest spender last; sources that do not touch it left out. The total is the
- * resource's net per month.
+ * resource's net per month. A nomad's Operational Reserves are energy and minerals together.
  */
 export function resourceBudget(sources: BudgetSource[], key: string) {
+	const keys = key === RESERVES ? ['energy', 'minerals'] : [key];
+	const of = (r: Record<string, number>) => keys.reduce((t, k) => t + (r[k] ?? 0), 0);
 	const rows: ResourceBudgetRow[] = sources
 		.map((s) => {
-			const income = s.income[key] ?? 0;
-			const expenses = s.expenses[key] ?? 0;
+			const income = of(s.income);
+			const expenses = of(s.expenses);
 			return { label: sourceLabel(s.source), income, expenses, net: income - expenses };
 		})
 		.filter((r) => r.income !== 0 || r.expenses !== 0)

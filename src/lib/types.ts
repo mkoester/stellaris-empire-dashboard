@@ -606,7 +606,8 @@ export type SituationInfo = {
 	progress: number;
 	monthly: number | null; // last month's progress
 	approach: string | null;
-	stage: string | null;
+	stage: number | null; // index into the situation's stages (data DB `situation_stage`); null before READER 25
+	ends?: number[]; // where each stage ends (`stage_durations`); the last is the most there is
 };
 
 export type AnomalyInfo = { planetId: number; planet: string; systemId: number; category: string };
@@ -1008,7 +1009,7 @@ export type GameData = {
 	dlcs: Dlc[]; // every DLC the game knows (dlc_info.txt), in release order
 	situationTypes: Record<
 		string,
-		{ name: string; category: string | null; approaches: Record<string, string> }
+		{ name: string; category: string | null; approaches: Record<string, string>; stages: string[] }
 	>;
 	projects: Record<
 		string,
