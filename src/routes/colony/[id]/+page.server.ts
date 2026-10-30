@@ -34,9 +34,7 @@ export function load({ url, params }) {
 		},
 		name: named ? colonyAt(named)!.name : `planet ${planetId}`,
 		// the dropdown: the colonies at the tip
-		colonies: b.latest.colonies
-			.filter((c) => c.planetId >= 0)
-			.map((c) => ({ planetId: c.planetId, name: c.name })),
+		colonies: b.latest.colonies.map((c) => ({ planetId: c.planetId, name: c.name })),
 		colony: colonyAt(b.latest) ?? null,
 		details: colonyDetails(colonyAt(b.latest), b.snaps.findLast((s) => s.kind === 'save') ?? null),
 		blockerHints: colonyBlockerHints(

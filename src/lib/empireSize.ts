@@ -46,7 +46,7 @@ export const speciesSizeMult = (traitModifiers: Modifier[]) => {
 /** What the snapshot holds of the parts; null without the owned systems (older snapshots). */
 export function sizeParts(s: Snapshot, speciesMult: (id: string) => number): SizeParts | null {
 	if (!s.knownSystems || !s.species) return null;
-	const colonies = s.colonies.filter((c) => c.planetId >= 0);
+	const colonies = s.colonies;
 	return {
 		colonies: colonies.length,
 		systems: s.knownSystems.filter((k) => k.owned).length,

@@ -7,8 +7,6 @@ export function load({ url }) {
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	// colonies ever held on this branch, for the colony filter (latest name wins)
-	const colonies = new Map(
-		snaps.flatMap((s) => s.colonies.filter((c) => c.planetId >= 0).map((c) => [c.planetId, c.name]))
-	);
+	const colonies = new Map(snaps.flatMap((s) => s.colonies.map((c) => [c.planetId, c.name])));
 	return { ...rest, colonies: [...colonies].map(([planetId, name]) => ({ planetId, name })) };
 }

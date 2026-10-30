@@ -141,7 +141,7 @@ export function tradeoffData(b: NonNullable<ReturnType<typeof branch>>) {
 	const { staffed, jobGroups, unmeasured } = jobMeasure(save);
 	const costFactor = (kind: 'district' | 'building') => paidFactor(save, kind);
 
-	const colonies = save.colonies.filter((c) => c.planetId >= 0 && !c.colonizing);
+	const colonies = save.colonies.filter((c) => !c.colonizing);
 	const districts: TradeOption[] = colonies.flatMap((c) => {
 		const caps = colonyDetails(c, save)?.caps;
 		if (!caps || caps.limit === null) return [];

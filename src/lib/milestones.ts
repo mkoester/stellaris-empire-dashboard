@@ -127,7 +127,7 @@ const DETECTORS = [
 	]),
 	field(
 		// no colonies at all only where a snapshot does not know them (an empire without any is gone)
-		(s) => (s.colonies.length ? s.colonies.filter((c) => c.planetId >= 0) : null),
+		(s) => (s.colonies.length ? s.colonies : null),
 		(a, b) => {
 			const was = new Map(a.map((c) => [c.planetId, c]));
 			const now = new Set(b.map((c) => c.planetId));
@@ -162,7 +162,7 @@ const DETECTORS = [
 		(a, b, names) =>
 			b.flatMap((c) => {
 				const before = a.find((o) => o.planetId === c.planetId);
-				if (!before || c.planetId < 0) return [];
+				if (!before) return [];
 				const at = { planetId: c.planetId };
 				const n = (d: number) => (Math.abs(d) > 1 ? ` ×${Math.abs(d)}` : '');
 				return [

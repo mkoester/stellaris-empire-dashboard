@@ -190,7 +190,7 @@ export function colonyEfficiency(
 			.map(([job, s]) => [job, add({}, s.income, 1 / filled[job])])
 	);
 	return colonies
-		.filter((c) => !c.colonizing && c.planetId >= 0)
+		.filter((c) => !c.colonizing)
 		.map((c) => {
 			const worked = c.jobs.filter((j) => j.filled > 0 && perPop[j.type]);
 			const expected = worked.reduce<Resources>((e, j) => add(e, perPop[j.type], j.filled), {});

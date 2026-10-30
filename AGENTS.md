@@ -786,7 +786,13 @@ null, before READER 25) with `ends`. **The arkship is the colony's place**: `col
 { type=ship reference }`, the ship holding `colony`, `planet_class="pc_ark"`, `planet_size`,
 `build_queue` and its name — `colonyPlaces()` gives it the id −1 − ship id (ship 0 stays −1, as
 stored before) and its name from the name lists (data DB `prescripted_name` now holds ship names
-that differ from their key: `HUM1_SHIP_PeshnabtheFaithful` = "Peshnab the Faithful"). Not yet
+that differ from their key: `HUM1_SHIP_PeshnabtheFaithful` = "Peshnab the Faithful"). **A negative
+`planetId` is the arkship, a full colony** (districts, buildings, jobs; the capital,
+`col_capital_nomad`) — never filter colonies by `planetId >= 0`, which hid it from every colony
+list until 2026-10-30. A save's colony carriers are `type=planet` or `type=ship` only (checked on
+Roaming Korinth 2203.02.01: 75 / 11); habitats and ringworlds are planets. **Empire size is
+unexplained for nomads:** the save says 69 at 2203.02.01 with the ark the only colony (8 districts,
+5514 pops, 0 systems) — 51.6 with the ark counted, 27.6 without, before modifiers. Not yet
 nomad-aware: other places that map a colony to its planet themselves (capital, construction,
 migration, growth), the trade tab's valuation of energy and minerals for us, and whether the
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was

@@ -364,14 +364,10 @@
 {#snippet designationCell(c: Colony)}<Designation key={c.designation} />{/snippet}
 {#snippet happinessCell(c: Colony)}{pct(c.happiness)}{/snippet}
 {#snippet colonyName(c: Colony)}
-	{#if c.planetId >= 0}
-		<a class="underline" href={colonyHref(c.planetId)}>{c.name}</a>{#if c.colonizing}&nbsp;<span
-				class="text-xs text-green-700"
-				title="being settled: complete at 100 colonists">colonizing {fmt(c.pops)}/100</span
-			>{/if}
-	{:else}
-		{c.name}
-	{/if}
+	<a class="underline" href={colonyHref(c.planetId)}>{c.name}</a>{#if c.colonizing}&nbsp;<span
+			class="text-xs text-green-700"
+			title="being settled: complete at 100 colonists">colonizing {fmt(c.pops)}/100</span
+		>{/if}
 {/snippet}
 {#snippet colonyGrowth(c: Colony)}<span
 		class={(c.growth?.net ?? 0) < 0

@@ -55,6 +55,12 @@ All notable changes to this project are documented here. The format follows
 - Saves are read again (READER 25) for the ethics and situation stages; the ethics history starts with the saves still
   on disk. The bundled extractor needs `ethic.sort_order`.
 
+### Fixed
+
+- A nomad's arkship shows as a colony everywhere: the colonies tab, its colony page (the colony
+  tab opens on it), the events filter, growth, trade-offs, job efficiency and the `all` tab's
+  link. Its districts count towards empire size.
+
 ## [0.1.3] - 2026-10-27
 
 ### Added
