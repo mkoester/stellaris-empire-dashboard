@@ -60,6 +60,9 @@ All notable changes to this project are documented here. The format follows
 - A nomad's arkship shows as a colony everywhere: the colonies tab, its colony page (the colony
   tab opens on it), the events filter, growth, trade-offs, job efficiency and the `all` tab's
   link. Its districts count towards empire size.
+- The estimated empire size under 50 counts what the game does per colony — its ascension tier
+  and its governor's skill — and a nomad's +100 % from colonies and districts; it matches the
+  game's own breakdown.
 
 ## [0.1.3] - 2026-10-27
 

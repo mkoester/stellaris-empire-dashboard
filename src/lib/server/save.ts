@@ -266,7 +266,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '28'; // 28: amenities, crime, approval (27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '29'; // 29: ascension tier and governor skill per colony (28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1541,6 +1541,10 @@ export function colonyPlaces(
 	return places;
 }
 
+/** A leader's skill: `level` + `bonus_skill_level`; 0 without a leader. */
+const leaderSkill = (l: Raw) =>
+	l && typeof l === 'object' ? num(l.level) + num(l.bonus_skill_level) : 0;
+
 function playerColonies(raw: RawSave): Colony[] {
 	const planetOfColony = colonyPlaces(raw);
 	const sectorOf = sectorBySystem(raw);
@@ -1567,6 +1571,8 @@ function playerColonies(raw: RawSave): Colony[] {
 			amenities: numOrNull(c.amenities),
 			amenitiesUsage: numOrNull(c.amenities_usage),
 			crime: numOrNull(c.crime),
+			ascensionTier: num(c.ascension_tier),
+			governorSkill: leaderSkill(raw.leaders[String(c.governor)]),
 			...colonyDistricts(raw, list(c.districts)),
 			planetClass: String(planet?.planet_class ?? ''),
 			planetSize: num(planet?.planet_size),

@@ -745,8 +745,11 @@ how much more still helps, and what beyond twice the need is wasted; the Pop App
 (happiness weighted by `pop_groups.<id>.power`) moves stability −50 at 0 % … +30 at 100 %
 (`LOW|HIGH_HAPPINESS_STABILITY_EFFECT`, neutral at `BASE_HAPPINESS` 0.5); stability scales job
 output −50 % at 0 … +30 % at 100 (`planet_stability_low|high`, neutral at 50). Defines and the
-static modifiers' values come from the data DB (`wellbeingRules()`); **the scaling between the
-ends is assumed linear**, marked ≈ (`docs/open-checks.md` 17). Civic needs carry their authority
+static modifiers' values come from the data DB (`wellbeingRules()`). **The scaling is linear for
+approval → stability and stability → job output** (Roaming Korinth 2203.02.01: approval 97.5 % →
++28.5, stability 98.143 → +28.88 %, the game's tooltips); **amenities between the ends are still
+assumed linear**, marked ≈ (`docs/open-checks.md` 17). Civilians use no amenities (need there:
+500 base + 1 per elite, specialist and worker pop). Civic needs carry their authority
 (`civicAuthority`, data DB `civic_requirement`): the three Memorialist civics differ only by it,
 ours first, the others greyed.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
@@ -790,9 +793,8 @@ that differ from their key: `HUM1_SHIP_PeshnabtheFaithful` = "Peshnab the Faithf
 `planetId` is the arkship, a full colony** (districts, buildings, jobs; the capital,
 `col_capital_nomad`) — never filter colonies by `planetId >= 0`, which hid it from every colony
 list until 2026-10-30. A save's colony carriers are `type=planet` or `type=ship` only (checked on
-Roaming Korinth 2203.02.01: 75 / 11); habitats and ringworlds are planets. **Empire size is
-unexplained for nomads:** the save says 69 at 2203.02.01 with the ark the only colony (8 districts,
-5514 pops, 0 systems) — 51.6 with the ark counted, 27.6 without, before modifiers. Not yet
+Roaming Korinth 2203.02.01: 75 / 11); habitats and ringworlds are planets. Nomads get the engine's
+static modifier `nomadic_empire` (+100 % empire size from colonies and districts; see Top bar). Not yet
 nomad-aware: other places that map a colony to its planet themselves (capital, construction,
 migration, growth), the trade tab's valuation of energy and minerals for us, and whether the
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
@@ -1456,8 +1458,15 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   unfloored size, estimated (`#lib/empireSize.ts`): the defines' `EMPIRE_SIZE_FROM_*` weights
   (colonies 20, systems 1, districts 0.5, pops 0.005; branch offices not counted) × the
   `empire_size_*_mult` modifiers of civics, ethics, authority, origin, traditions, perks, techs,
-  timed modifiers and species traits (Yorphia 2203.10.01: 48.9; not yet checked against the game's
-  tooltip). Also `starbase_capacity_used` / `starbase_capacity`,
+  timed modifiers and species traits, `nomadic_empire` for a nomad; then **per colony** its ascension
+  tier (`colony.ascension_tier`: −5 % a tier, `PLANET_ASCENSION_SPRAWL_MODIFIER`, × (1 +
+  `planetary_ascension_effect_mult`)) on all its parts and its governor (`species_empire_size_mult
+= @planet_empire_size`, −2 % per skill = `level` + `bonus_skill_level`) on its colony and pops, not
+  its districts (READER 29). **Checked against the game's tooltip** (Roaming Korinth 2203.02.01,
+  screenshot `~/Pictures/Screenshots/screenshot_2026-10-30_22-11-54.png`): districts 8 × 0.5 × 2 ×
+  0.9375 = 7.5, colony 20 × 2 × 0.9375 × 0.96 = 36.0, pops 5514 × 0.005 × 0.9375 × 0.96 = 24.8;
+  the sum 68.31 shows as 69 (rounded up). A species' pops are not split by colony: they shrink by the
+  colonies' pop-weighted factor. Also `starbase_capacity_used` / `starbase_capacity`,
   `used_naval_capacity`; research per field is `physics|society|engineering_research` in the
   budget income. Envoys are `leaders.<id>` with `class="envoy"` and `country=<id>`; one is in use
   while it has `location = { assignment=… }` (seen: `first_contact`). **Not stored: the naval

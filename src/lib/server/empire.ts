@@ -1,6 +1,7 @@
 import {
 	levelTone,
 	nextStage,
+	NOMAD_ECONOMY,
 	RESERVES,
 	reservesAlong,
 	withReserves,
@@ -204,7 +205,9 @@ function empireSizeSeries(snaps: Snapshot[]) {
 				...(s.traditions ?? []).map((k) => `tradition:${k}`),
 				...(s.ascensionPerks ?? []).map((k) => `perk:${k}`),
 				...(s.progress?.researched ?? []).map((k) => `tech:${k}`),
-				...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`)
+				...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`),
+				// the engine's static modifier for nomads: +100 % from colonies and districts
+				...(s.situations?.some((x) => x.type === NOMAD_ECONOMY) ? ['modifier:nomadic_empire'] : [])
 			])
 		);
 		return empireSizeEstimate(parts, mods, defines);

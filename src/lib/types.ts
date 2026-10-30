@@ -26,6 +26,8 @@ export type Colony = {
 	amenities?: number | null; // provided; since READER 28
 	amenitiesUsage?: number | null; // needed by the pops; since READER 28
 	crime?: number | null; // since READER 28
+	ascensionTier?: number; // `ascension_tier`; since READER 29
+	governorSkill?: number; // its governor's level + bonus_skill_level, 0 without one; since READER 29
 	districts: number;
 	districtList: ColonyDistrict[]; // per district type: built, zones and their buildings
 	planetClass: string;

@@ -73,7 +73,8 @@ const raw: RawSave = {
 	focusCards: {},
 	endGameStart: 150,
 	galaxy: { technology: 1.25, traditions: 1 },
-	leaders: {},
+	// colony 7's governor, skill 2 (level 1 + bonus 1) as Peshnab's at 2203.02.01
+	leaders: { '5': { level: 1, bonus_skill_level: 1 } },
 	monthlyTrades: undefined,
 	market: undefined,
 	popJobs: {},
@@ -144,7 +145,9 @@ const raw: RawSave = {
 			civilian: 1500,
 			stability: 75.2,
 			districts: [1, 2, 3],
-			final_designation: 'col_capital'
+			final_designation: 'col_capital',
+			ascension_tier: 1,
+			governor: 5
 		},
 		'9': { num_sapient_pops: 200, districts: 4 }
 	},
@@ -225,6 +228,8 @@ describe('toSnapshot', () => {
 				amenities: null,
 				amenitiesUsage: null,
 				crime: null,
+				ascensionTier: 1,
+				governorSkill: 2,
 				planetClass: '',
 				planetSize: 0,
 				deposits: [],
