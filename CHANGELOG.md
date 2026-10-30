@@ -32,6 +32,12 @@ All notable changes to this project are documented here. The format follows
 - The ethics table shows the game's Average Ethic Attraction beside its share, cut as the game
   does; the reasons the game lists (council, governor, living standards, jobs) are now told from
   the save, matching the game's tooltips.
+- Every attraction source says how to get it — the traditions, perks, techs, civic or policy it
+  needs, which leaders have a trait — with popups; what this empire can never have is hidden, so
+  the nomads' variants no longer show twice. An agenda shows as one row, while preparing and after
+  launch.
+- Buildings explain themselves on hover everywhere: cost, upkeep, output, jobs, modifiers and the
+  civics that unlock them.
 
 ### Changed
 

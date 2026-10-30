@@ -710,7 +710,22 @@ and the scopes the reasons look into, which the extraction turns into leaves
 (`attraction_structured()`): `council_leader_ethic` / `governor_ethic` (leaders' `ethic` and our
 colonies' `governor`, READER 26), `assigned_jobs` (jobs with a pop), `has_living_standard` and
 `species_has_living_standard` / `species_has_trait` / `species_is_robotic` (our species' rights and
-traits). Relations, enslaved species and citizenship counts stay "?".
+traits), `other_organic_species` / `all_organic_full_citizenship` / `enslaved_organic_species`
+(our species, their citizenship; slavery = data DB `species_right.is_slavery`). Relations stay
+"?". "Pop is enslaved" is positive for egalitarian in the files (slaves are drawn to it).
+**How to get each source** (`unlockOf()`, the user's ask 2026-10-30): edicts and agendas their
+unlocking traditions or perks (alternatives, "or"), techs and the progress their `potential`
+asks for (`has_technology`, `has_tradition`, `has_ascension_perk` — not yet, not never: Hearts
+and Minds is an ambition behind Ascension Theory); policy options their policy; council seats
+their civic; buildings the civics or origins that unlock them (data DB `building_unlock`, no
+techs known); leader traits the leaders who have one. `forUs` false — a potential false on who
+the empire is (`identityOnly()`: nomadic, gestalt, civics …) — hides a source but under
+"everything": the nomads' twins of agendas and policy options (Open Arms, Isolationist) showed
+twice before. An agenda's two modifiers are one row, preparing then after launch.
+**Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
+cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
+of every building on our colonies or queued (`buildings`, like `designations`), so the districts
+panel, build queues, trade-offs and produce tabs show them.
 The group header shows the save's ×, the known product and the rest "from N rules the save cannot
 tell" (council, relations, federation, script values). Checked 2026-10-30 on the nomad game
 (2200.02.01): authoritarian ×0.75 and pacifist ×0.75 fully explained; egalitarian ×3 = known ×2.5

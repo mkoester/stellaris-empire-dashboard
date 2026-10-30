@@ -9,8 +9,9 @@ import type { CouncilSeat, Faction, GameData, Modifier, Snapshot } from './types
 export function facts(
 	s: Snapshot,
 	scripted: Facts['scripted'] = {},
-	electionTypes: Record<string, string> = {}
+	data: { electionTypes?: Record<string, string>; slavery?: string[] } = {}
 ): Facts {
+	const electionTypes = data.electionTypes ?? {};
 	const authority = (s.government ?? []).find((k) => k.startsWith('auth_'));
 	return {
 		countryType: s.countryType,
@@ -31,7 +32,7 @@ export function facts(
 		leaderTraits: s.leaderList?.flatMap((l) => l.traits),
 		edicts: s.edicts,
 		electionType: authority ? (electionTypes[authority] ?? null) : null,
-		...attractionFacts(s),
+		...attractionFacts(s, data.slavery ?? []),
 		factions: s.factions?.map((x) => x.type) ?? null,
 		// our own entry of the diplomacy reading: its federation and overlord
 		...(() => {
@@ -42,7 +43,7 @@ export function facts(
 }
 
 /** What the ethic attraction reasons look into: leaders' ethics, our species, worked jobs. */
-function attractionFacts(s: Snapshot): Partial<Facts> {
+function attractionFacts(s: Snapshot, slavery: string[]): Partial<Facts> {
 	const leaders = s.leaderList;
 	// leaders read before READER 26 carry no ethic: unknown, not none
 	const read = leaders !== null && leaders.every((l) => l.ethic !== undefined);
@@ -60,7 +61,24 @@ function attractionFacts(s: Snapshot): Partial<Facts> {
 		speciesTraits: s.species === null ? null : s.species.flatMap((x) => x.traits),
 		roboticSpecies:
 			s.species === null ? null : s.species.some((x) => x.cls === 'ROBOT' || x.cls === 'MACHINE'),
-		jobs: s.colonies.flatMap((c) => c.jobs.filter((j) => j.filled > 0).map((j) => j.type))
+		jobs: s.colonies.flatMap((c) => c.jobs.filter((j) => j.filled > 0).map((j) => j.type)),
+		...citizenshipFacts(s, slavery)
+	};
+}
+
+/**
+ * Citizenship and slavery among our organic species (egalitarian's reasons): another one than a
+ * pop's own, every one on full citizenship, one enslaved (`slavery`: the citizenships that are).
+ */
+function citizenshipFacts(s: Snapshot, slavery: string[]): Partial<Facts> {
+	if (s.species === null || s.speciesRights === null) return {};
+	const rights = s.speciesRights;
+	const organic = s.species.filter((x) => x.cls !== 'ROBOT' && x.cls !== 'MACHINE');
+	const citizenship = (id: string) => rights[id]?.citizenship;
+	return {
+		otherOrganicSpecies: organic.length > 1,
+		allOrganicFullCitizenship: organic.every((x) => citizenship(x.id) === 'citizenship_full'),
+		enslavedOrganicSpecies: organic.some((x) => slavery.includes(citizenship(x.id) ?? ''))
 	};
 }
 

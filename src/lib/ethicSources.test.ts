@@ -8,6 +8,7 @@ import {
 	holdings,
 	ruleRows,
 	targetOf,
+	unlockOf,
 	type AttractionSource
 } from './ethicSources.ts';
 import type { Facts } from './triggers.ts';
@@ -20,6 +21,13 @@ const rows = [
 		owner: 'veneration_of_saints',
 		modifier: 'pop_ethic_spiritualist_attraction_mult',
 		value: 0.25,
+		scope: null
+	},
+	{
+		tbl: 'tradition_modifier',
+		owner: 'agenda_a_higher_purpose',
+		modifier: 'pop_ethic_spiritualist_attraction_mult',
+		value: 0.1,
 		scope: null
 	},
 	{
@@ -88,7 +96,7 @@ describe('attraction sources', () => {
 		const s = attractionSources(rows, owners);
 		expect(s.map((x) => `${x.target} ${x.kind} ${x.key}`)).toEqual([
 			'ethic_spiritualist edict veneration_of_saints',
-			'ethic_spiritualist agenda agenda_a_higher_purpose#finish',
+			'ethic_spiritualist agenda agenda_a_higher_purpose',
 			'government policy diplo_stance_isolationist',
 			'ethic_spiritualist building building_temple',
 			'government leader leader_trait_reformer',
@@ -121,9 +129,106 @@ describe('attraction sources', () => {
 		const h = holdings(snap);
 		const s = attractionSources(rows, owners);
 		expect(s.map((x) => applies(x, h))).toEqual([true, true, true, 1, false, false, false]);
+		// preparing +10 %, then +40 % after launch: one source
+		expect(s[1]).toMatchObject({ value: 0.1, after: 0.4 });
 		// a governor's trait: whose planet is not read
 		const governor = { ...s[4], scope: 'planet' } as AttractionSource;
 		expect(applies(governor, h)).toBeNull();
+	});
+
+	it('says what a source needs, and drops what this empire can never have', () => {
+		const g = {
+			edicts: {
+				hearts_and_minds: {
+					name: 'Decree: Hearts and Minds',
+					category: null,
+					length: null,
+					cost: {},
+					potential: null,
+					unlockedBy: ['tr_harmony_adopt', 'ap_one_vision'],
+					prerequisites: ['tech_x']
+				}
+			},
+			agendas: {},
+			policies: [
+				{
+					key: 'diplomatic_stance',
+					name: 'Diplomatic Stance',
+					category: null,
+					options: [
+						{
+							key: 'diplo_stance_isolationist',
+							name: 'Isolationist',
+							potential: { leaf: 'is_nomadic', value: 'no' },
+							valid: null
+						},
+						{
+							key: 'diplo_stance_isolationist_nomad',
+							name: 'Isolationist',
+							potential: { leaf: 'is_nomadic', value: 'yes' },
+							valid: null
+						}
+					]
+				}
+			],
+			councilPositions: {
+				councilor_police_state: {
+					name: 'Police State',
+					civic: 'civic_police_state',
+					classes: [],
+					possible: null
+				}
+			},
+			traditionTrees: {},
+			techs: { tech_x: { name: 'X', cost: 1, area: 'society', tier: 1 } }
+		} as unknown as Parameters<typeof unlockOf>[1];
+		const f = {
+			government: [],
+			traditions: ['tr_harmony_adopt'],
+			perks: [],
+			techs: [],
+			nomadic: true
+		} as unknown as Facts;
+		const name = (_: string, k: string) => k;
+		const edict = unlockOf({ kind: 'edict', key: 'hearts_and_minds', scope: null }, g, f, name);
+		expect(edict).toMatchObject({ forUs: true, available: false });
+		expect(edict.needs.map((n) => [n.text, n.any ?? false])).toEqual([
+			['tradition tr_harmony_adopt', true],
+			['perk ap_one_vision', true],
+			['tech X', false]
+		]);
+		// an ambition: its potential asks for a tech — not yet, rather than never
+		const ambition = unlockOf(
+			{ kind: 'edict', key: 'ambition', scope: null },
+			{
+				...g,
+				edicts: {
+					ambition: {
+						...g.edicts.hearts_and_minds,
+						unlockedBy: [],
+						prerequisites: [],
+						potential: { leaf: 'has_technology', value: 'tech_x' }
+					}
+				}
+			},
+			f,
+			name
+		);
+		expect(ambition).toMatchObject({ forUs: true, available: false, needs: [{ text: 'tech X' }] });
+		expect(
+			unlockOf({ kind: 'policy', key: 'diplo_stance_isolationist', scope: null }, g, f, name).forUs
+		).toBe(false);
+		expect(
+			unlockOf({ kind: 'policy', key: 'diplo_stance_isolationist_nomad', scope: null }, g, f, name)
+				.forUs
+		).toBe(true);
+		const seat = unlockOf(
+			{ kind: 'council', key: 'councilor_police_state', scope: null },
+			g,
+			f,
+			name
+		);
+		expect(seat).toMatchObject({ available: false, needs: [{ ref: 'civic:civic_police_state' }] });
 	});
 
 	it('tells what the player can change and how', () => {

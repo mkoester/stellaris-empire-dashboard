@@ -1,6 +1,6 @@
 <script lang="ts">
 	import EthicChip from './EthicChip.svelte';
-	import type { AttractionSource, Change, RuleRow } from './ethicSources.ts';
+	import type { AttractionSource, Change, RuleRow, Unlock } from './ethicSources.ts';
 	import InfoPopup from './InfoPopup.svelte';
 	import SortTable from './SortTable.svelte';
 	import type { Column } from './sort.ts';
@@ -15,6 +15,8 @@
 		ref: string | null;
 		applies: boolean | number | null;
 		change: Change;
+		unlock: Unlock;
+		holders: { name: string; council: boolean }[];
 	};
 	type Group = {
 		target: string;
@@ -46,6 +48,10 @@
 		no: 'text-gray-500'
 	};
 
+	// promoting or suppressing a faction leaves a static modifier on the empire: say so
+	const kindOf = (m: Source) =>
+		m.kind === 'static' && /^(promoted|suppressed)_/.test(m.key) ? 'faction' : m.kind;
+
 	const shownModifiers = (g: Group) =>
 		g.modifiers
 			.filter((m) =>
@@ -53,7 +59,8 @@
 					? true
 					: show === 'applies'
 						? on(m.applies)
-						: on(m.applies) || m.change.how !== 'no'
+						: // what this empire can never have (the nomads' twin of an agenda) left out
+							on(m.applies) || (m.change.how !== 'no' && m.unlock.forUs !== false)
 			)
 			// what applies first, then what can be changed now, then the rest; biggest first
 			.sort(
@@ -73,9 +80,17 @@
 			cell: appliesCell
 		},
 		{ id: 'name', label: 'Source', value: (m) => m.name, cell: nameCell },
-		{ id: 'kind', label: 'Kind', value: (m) => m.kind, cell: kindCell },
+		{ id: 'kind', label: 'Kind', value: (m) => kindOf(m), cell: kindCell },
 		{ id: 'value', label: 'Attraction', value: (m) => m.value, cell: valueCell, right: true },
-		{ id: 'change', label: 'Change it', value: (m) => m.change.how, cell: changeCell }
+		{ id: 'change', label: 'Change it', value: (m) => m.change.how, cell: changeCell },
+		{
+			id: 'needs',
+			label: 'How to get it',
+			value: (m) => (m.unlock.available === null ? null : Number(m.unlock.available)),
+			cell: needsCell,
+			title:
+				'what it takes (the data DB knows nothing of buildings yet): ✓ possible now, ✗ not yet, — not for this empire'
+		}
 	];
 	const ruleColumns: Column<RuleRow & { i: number }>[] = [
 		{
@@ -109,9 +124,29 @@
 	>{#if m.scope && m.scope !== 'country'}<span class="text-xs text-gray-500">
 			· {m.scope}</span
 		>{/if}{/snippet}
-{#snippet kindCell(m: Source)}<span class="text-gray-500">{m.kind}</span>{/snippet}
+{#snippet kindCell(m: Source)}<span class="text-gray-500">{kindOf(m)}</span>{/snippet}
 {#snippet valueCell(m: Source)}<span class={m.value < 0 ? 'text-red-600' : ''}>{pct(m.value)}</span
-	>{/snippet}
+	>{#if m.after !== undefined}<span
+			class="text-xs text-gray-500"
+			title="while preparing, then after launch">&nbsp;then {pct(m.after)}</span
+		>{/if}{/snippet}
+{#snippet needsCell(m: Source)}{#if m.unlock.forUs === false}<span class="text-gray-500"
+			>— not for us</span
+		>{:else}{#if m.unlock.available !== null}<span
+				class={m.unlock.available ? 'text-green-700 dark:text-green-500' : 'text-gray-500'}
+				>{m.unlock.available ? '✓ ' : '✗ '}</span
+			>{/if}<span class="text-xs"
+			>{#each m.unlock.needs as n, i (i)}{i
+					? n.any && m.unlock.needs[i - 1].any
+						? ' or '
+						: ' · '
+					: ''}<InfoPopup explanation={n.ref ? explain[n.ref] : undefined}>{n.text}</InfoPopup
+				>{/each}{#if m.holders.length}<span class="text-gray-500"
+					>&nbsp;— have it: {m.holders
+						.map((l) => `${l.name}${l.council ? ' (on the council)' : ''}`)
+						.join(', ')}</span
+				>{/if}</span
+		>{/if}{/snippet}
 {#snippet changeCell(m: Source)}<span class={TONE[m.change.how]}>{m.change.label}</span>{/snippet}
 {#snippet ruleApplies(r: RuleRow)}<span
 		class={r.applies ? 'font-semibold text-green-700 dark:text-green-500' : 'text-gray-500'}

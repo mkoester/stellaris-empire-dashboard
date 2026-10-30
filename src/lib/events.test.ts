@@ -70,6 +70,7 @@ const data: GameData = {
 	ethicOrder: [],
 	ethicRules: {},
 	electionTypes: {},
+	buildingUnlocks: {},
 	attractionSources: [],
 	authorities: [],
 	anomalyLevels: { GEN_PLAYGROUND_CAT: 3 },

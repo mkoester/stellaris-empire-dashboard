@@ -39,6 +39,9 @@ export type Facts = {
 	speciesTraits?: string[] | null; // of our species
 	roboticSpecies?: boolean | null; // a robotic species among ours
 	jobs?: string[] | null; // worked by at least one pop
+	otherOrganicSpecies?: boolean | null; // more than one organic species
+	allOrganicFullCitizenship?: boolean | null;
+	enslavedOrganicSpecies?: boolean | null;
 	// the Galactic Community, for what resolutions test (#lib/proposable.ts)
 	activeResolutions?: string[] | null; // in force (`galactic_community.passed`)
 	globalFlags?: string[] | null;
@@ -94,6 +97,12 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			return has(f.perks);
 		case 'has_technology':
 			return has(f.techs);
+		case 'other_organic_species':
+			return yes(f.otherOrganicSpecies ?? null);
+		case 'all_organic_full_citizenship':
+			return yes(f.allOrganicFullCitizenship ?? null);
+		case 'enslaved_organic_species':
+			return yes(f.enslavedOrganicSpecies ?? null);
 		case 'council_leader_ethic':
 			return has(f.councilEthics ?? null);
 		case 'governor_ethic':

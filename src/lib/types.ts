@@ -1000,6 +1000,7 @@ export type GameData = {
 	ethicOrder: string[]; // ethic keys by the game's ethic index (`EthicsState` lists)
 	ethicRules: Record<string, AttractionRule[]>; // per ethic, its own attraction rules
 	electionTypes: Record<string, string>; // authority → democratic / oligarchic / none
+	buildingUnlocks: Record<string, string[]>; // building → the civics or origins that unlock it
 	attractionSources: AttractionSource[]; // every modifier moving an ethic's attraction or the shift
 	authorities: string[]; // every authority, in the game's order
 	anomalyLevels: Record<string, number | null>; // anomaly category → level

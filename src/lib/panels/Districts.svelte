@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BuildingName from '../BuildingName.svelte';
 	import DistrictName from '../DistrictName.svelte';
 	import { nameOf } from '../format.ts';
 	import SortTable from '../SortTable.svelte';
@@ -32,7 +33,7 @@
 				type: d.type,
 				built: d.built,
 				zone: z ? nameOf(names, z.type) : null,
-				buildings: z ? z.buildings.map((b) => nameOf(names, b)) : null
+				buildings: z ? z.buildings : null
 			}))
 		)
 	);
@@ -43,11 +44,18 @@
 		{
 			id: 'buildings',
 			label: 'Buildings',
-			value: (r) => (r.buildings === null ? null : r.buildings.join(', ') || 'none yet')
+			value: (r) =>
+				r.buildings === null
+					? null
+					: r.buildings.map((b) => nameOf(names, b)).join(', ') || 'none yet',
+			cell: buildings
 		}
 	];
 </script>
 
+{#snippet buildings(r: Row)}{#if r.buildings !== null}{#each r.buildings as b, i (i)}{i
+				? ', '
+				: ''}<BuildingName key={b} name={nameOf(names, b)} />{:else}none yet{/each}{/if}{/snippet}
 {#snippet district(r: Row)}<DistrictName
 		name={nameOf(names, r.type)}
 		color={colors[r.type]}

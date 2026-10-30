@@ -525,6 +525,12 @@ export function loadGameData(file: string): GameData {
 					origin: rows<{ key: string }>('SELECT key FROM origin').map((r) => r.key)
 				}
 			),
+			buildingUnlocks: rows<{ owner_key: string; building_key: string }>(
+				'SELECT owner_key, building_key FROM building_unlock ORDER BY owner_key'
+			).reduce<GameData['buildingUnlocks']>(
+				(out, r) => ({ ...out, [r.building_key]: [...(out[r.building_key] ?? []), r.owner_key] }),
+				{}
+			),
 			electionTypes: Object.fromEntries(
 				rows<{ key: string; election_type: string }>(
 					'SELECT key, election_type FROM authority'

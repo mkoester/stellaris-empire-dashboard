@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BuildingName from '#lib/BuildingName.svelte';
 	import Chart from '#lib/Chart.svelte';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { colorOf } from '#lib/colors.ts';
@@ -95,7 +96,7 @@
 	type Option = (typeof ranked)[number];
 	const total = (r: Resources) => Object.values(r).reduce((n, v) => n + v, 0);
 	const columns: Column<Option>[] = [
-		{ id: 'build', label: 'Build', value: (o) => o.label },
+		{ id: 'build', label: 'Build', value: (o) => o.label, cell: build },
 		{ id: 'where', label: 'Where', value: (o) => o.where },
 		{ id: 'count', label: '×', value: (o) => o.count, right: true },
 		{ id: 'cost', label: 'Cost', value: (o) => total(o.cost), cell: cost },
@@ -125,6 +126,11 @@
 		{ id: 'payback', label: 'Payback', value: (o) => o.payback, cell: payback, right: true }
 	];
 </script>
+
+{#snippet build(o: Option)}{#if o.kind === 'building'}<BuildingName
+			key={o.what}
+			name={o.label}
+		/>{:else}{o.label}{/if}{/snippet}
 
 {#snippet cost(o: Option)}{#each res(o.cost) as [k, v] (k)}<span class="mr-2 whitespace-nowrap"
 			><span style:color={colorOf(k)}>{pretty(k)}</span> {fmt(v)}</span

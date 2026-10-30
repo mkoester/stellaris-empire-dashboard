@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { pretty } from '#lib/format.ts';
 import type { Explanation, Modifier } from '#lib/types.ts';
 
-// Popup texts for traits, edicts, council agendas, policy options, techs, jobs, colony designations and the empire's civics, origin,
+// Popup texts for traits, edicts, council agendas, policy options, techs, jobs, buildings, colony designations and the empire's civics, origin,
 // authority, ethics and government type, from the extraction's SQLite:
 // descriptions, modifiers (labelled via modifier_label) and a few facts. Loaded once at start,
 // keyed `<kind>:<key>` (e.g. `edict:fortify_the_border`).
@@ -191,6 +191,66 @@ export function loadExplanations(file: string): Explanations {
 					...(d.is_blocker
 						? [`blocker: clearing takes ${d.clear_time ?? '?'} days and ${amounts('cost') || '?'}`]
 						: [])
+				]
+			};
+		}
+
+		// Buildings: what they cost, use and make, their jobs, their modifiers (planet-wide unless
+		// marked) and the civics or origins that unlock them (data DB `building_unlock`).
+		const buildingMods = new Map<string, Modifier[]>();
+		for (const r of rows<{ owner: string; scope: string; key: string; value: number }>(
+			'SELECT building_key AS owner, scope, modifier_key AS key, value FROM building_modifier ORDER BY sort_order'
+		)) {
+			const m = modifier(r.key, r.value);
+			buildingMods.set(r.owner, [
+				...(buildingMods.get(r.owner) ?? []),
+				r.scope === 'planet' ? m : { ...m, label: `${m.label ?? pretty(m.key)} (${r.scope})` }
+			]);
+		}
+		const buildingRes = rows<{
+			building_key: string;
+			kind: string;
+			resource: string;
+			amount: number;
+		}>('SELECT building_key, kind, resource, amount FROM building_resource ORDER BY sort_order');
+		const buildingJobs = rows<{ building_key: string; job: string; amount: number }>(
+			'SELECT building_key, job, amount FROM building_job ORDER BY sort_order'
+		);
+		const unlockNames = new Map(
+			rows<{ key: string; name: string | null }>(
+				'SELECT key, name FROM civic UNION ALL SELECT key, name FROM origin'
+			).map((r) => [r.key, r.name ?? r.key])
+		);
+		const buildingUnlocks = rows<{ owner_key: string; building_key: string }>(
+			'SELECT owner_key, building_key FROM building_unlock'
+		);
+		for (const b of rows<{ key: string; name: string | null; description: string | null }>(
+			'SELECT key, name, description FROM building'
+		)) {
+			const res = (kind: string) =>
+				buildingRes
+					.filter((r) => r.building_key === b.key && r.kind === kind)
+					.map((r) => `${r.amount} ${pretty(r.resource)}`)
+					.join(', ');
+			const jobs = buildingJobs
+				.filter((j) => j.building_key === b.key)
+				// a job amount is workforce: 100 = one job (workspace AGENTS.md)
+				.map((j) => `${j.amount / 100} ${pretty(j.job)}`)
+				.join(', ');
+			const by = buildingUnlocks
+				.filter((u) => u.building_key === b.key)
+				.map((u) => unlockNames.get(u.owner_key) ?? u.owner_key);
+			out[`building:${b.key}`] = {
+				title: b.name ?? pretty(b.key),
+				description: b.description,
+				modifiers: buildingMods.get(b.key) ?? [],
+				text: null,
+				facts: [
+					...(res('cost') ? [`costs ${res('cost')}`] : []),
+					...(res('upkeep') ? [`upkeep ${res('upkeep')} per month`] : []),
+					...(res('produces') ? [`produces ${res('produces')} per month`] : []),
+					...(jobs ? [`jobs: ${jobs}`] : []),
+					...(by.length ? [`unlocked by ${by.join(' or ')}`] : [])
 				]
 			};
 		}

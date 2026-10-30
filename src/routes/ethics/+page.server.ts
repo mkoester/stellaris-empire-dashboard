@@ -6,6 +6,7 @@ import {
 	groupTargets,
 	holdings,
 	ruleRows,
+	unlockOf,
 	type SourceKind
 } from '#lib/ethicSources.ts';
 import {
@@ -39,7 +40,8 @@ const PREFIX: Partial<Record<SourceKind, string>> = {
 	council: 'seat',
 	leader: 'ltrait',
 	static: 'modifier',
-	deposit: 'deposit'
+	deposit: 'deposit',
+	building: 'building'
 };
 export function load({ url }) {
 	const b = branch(url);
@@ -65,7 +67,12 @@ export function load({ url }) {
 		})
 	);
 	const explanations = getExplanations();
-	const f = facts(s, data.scriptedTriggers, data.electionTypes);
+	const f = facts(s, data.scriptedTriggers, {
+		electionTypes: data.electionTypes,
+		slavery: data.speciesRights.flatMap((k) =>
+			k.options.filter((o) => o.isSlavery).map((o) => o.key)
+		)
+	});
 	const held = holdings(s);
 	const weights = reading?.ethics ? byEthic(reading.ethics.weight, order) : {};
 	const sourceName = (kind: SourceKind, key: string) => {
@@ -95,7 +102,19 @@ export function load({ url }) {
 					name: sourceName(x.kind, x.key),
 					ref: PREFIX[x.kind] ? `${PREFIX[x.kind]}:${x.key.split('#')[0]}` : null,
 					applies: applies(x, held),
-					change: changeOf(x)
+					change: changeOf(x),
+					unlock: unlockOf(x, data, f, (prefix, key) =>
+						prefix === 'civic'
+							? (data.identityNames[key] ?? key)
+							: (explanations[`${prefix}:${key}`]?.title ?? key)
+					),
+					// a leader trait's: our leaders who have it, and whether they sit on the council
+					holders:
+						x.kind === 'leader'
+							? (s.leaderList ?? [])
+									.filter((l) => l.traits.includes(x.key))
+									.map((l) => ({ name: l.name, council: l.council || l.ruler }))
+							: []
 				}))
 		};
 	});
@@ -142,7 +161,9 @@ export function load({ url }) {
 			// the sources the panel shows by default: those that apply or can be changed
 			...sources.flatMap((g) =>
 				g.modifiers.flatMap((m) =>
-					m.ref && (m.applies !== false || m.change.how !== 'no') ? [m.ref] : []
+					m.applies !== false || m.change.how !== 'no'
+						? [...(m.ref ? [m.ref] : []), ...m.unlock.needs.flatMap((n) => (n.ref ? [n.ref] : []))]
+						: []
 				)
 			)
 		])

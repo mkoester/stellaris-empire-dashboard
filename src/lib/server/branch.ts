@@ -69,6 +69,11 @@ export function branch(url: URL) {
 			colonies.map((c) => [c.planetId, withFlows(jobRows(c.jobs, info), flows, empirePops, shared)])
 		),
 		empireJobs,
+		// what each building on our colonies or in their queues is, for BuildingName on every page
+		buildings: pick(
+			getExplanations(),
+			held.map((k) => `building:${k}`)
+		),
 		// what each colony's designation does, for the Designation popup on every page
 		designations: pick(
 			getExplanations(),

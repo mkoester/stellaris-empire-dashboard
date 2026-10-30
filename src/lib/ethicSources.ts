@@ -1,6 +1,6 @@
 import { regular } from './ethicsTab.ts';
 import { evaluate, type Facts, type Trigger } from './triggers.ts';
-import type { Snapshot } from './types.ts';
+import type { GameData, Snapshot } from './types.ts';
 
 // Everything that draws pops to an ethic, for the ethics tab's last panel: the ethic's own rules
 // (common/ethics/00_ethics.txt — empire-wide `country_attraction` factors and the reasons the
@@ -36,6 +36,7 @@ export type AttractionSource = {
 	kind: SourceKind;
 	key: string; // the owner's key; an agenda's after-launch modifier ends in `#finish`
 	value: number; // +0.25 = +25 %
+	after?: number; // an agenda's: its modifier for years after launch (`#finish`), beside `value` while preparing
 	scope: string | null; // a leader trait's: councilor, planet, sector; a building's: planet
 };
 
@@ -63,12 +64,30 @@ export function attractionSources(
 		const base = owner.split('#')[0];
 		return (sets.find(([, keys]) => keys.has(base))?.[0] as SourceKind | undefined) ?? 'other';
 	};
-	return rows.flatMap((r) => {
+	const all: AttractionSource[] = rows.flatMap((r) => {
 		const target = targetOf(r.modifier);
 		return target
 			? [{ target, kind: kindOf(r.tbl, r.owner), key: r.owner, value: r.value, scope: r.scope }]
 			: [];
 	});
+	// an agenda's two modifiers, while preparing and after launch, as one source
+	const finish = (s: AttractionSource) => s.kind === 'agenda' && s.key.endsWith('#finish');
+	return all
+		.filter((s) => !finish(s))
+		.map((s) => {
+			const after = all.find(
+				(x) => finish(x) && x.target === s.target && x.key === `${s.key}#finish`
+			);
+			return after && s.kind === 'agenda' ? { ...s, after: after.value } : s;
+		})
+		.concat(
+			// an after-launch modifier without one while preparing stays on its own
+			all.filter(
+				(x) =>
+					finish(x) &&
+					!all.some((s) => !finish(s) && s.target === x.target && `${s.key}#finish` === x.key)
+			)
+		);
 }
 
 /** A modifier key → whose attraction it moves; null for any other modifier. */
@@ -189,7 +208,8 @@ export function applies(s: AttractionSource, h: Holdings): boolean | number | nu
 		case 'agenda': {
 			// while preparing it, then its after-launch modifier as a timed one of the same key
 			const [key, finish] = s.key.split('#');
-			return finish ? h.modifiers.includes(key) : h.agenda === key;
+			if (finish) return h.modifiers.includes(key);
+			return h.agenda === key || (s.after !== undefined && h.modifiers.includes(key));
 		}
 		case 'building':
 			return h.buildings[s.key] ?? 0;
@@ -205,6 +225,170 @@ export function applies(s: AttractionSource, h: Holdings): boolean | number | nu
 		default:
 			return null;
 	}
+}
+
+/**
+ * How a source is had: whether this empire can have it at all (`forUs`, its potential — false
+ * hides it, as the nomads' twin of an agenda), whether it can be taken now (`available`), and what
+ * it needs, named. null where the data DB or the save cannot tell.
+ */
+export type Unlock = { forUs: boolean | null; available: boolean | null; needs: Need[] };
+/** One thing a source needs: its text and, where it has one, its popup (`civic:`, `tech:`, …). */
+export type Need = { text: string; ref?: string; any?: boolean }; // any: one of the `any` ones suffices
+
+export type UnlockData = Pick<
+	GameData,
+	| 'edicts'
+	| 'agendas'
+	| 'policies'
+	| 'councilPositions'
+	| 'traditionTrees'
+	| 'techs'
+	| 'buildingUnlocks'
+>;
+
+// Progress a potential may ask for: it makes a source unavailable yet, not "never for us".
+const PROGRESS: Record<string, string> = {
+	has_technology: 'tech',
+	has_tradition: 'tradition',
+	has_ascension_perk: 'perk'
+};
+
+/** A trigger with its progress leaves taken as met: what is left is who the empire is. */
+function identityOnly(t: Trigger | null): Trigger | null {
+	if (t === null) return null;
+	if ('leaf' in t) return PROGRESS[t.leaf] ? { leaf: 'always', value: 'yes' } : t;
+	return { ...t, args: t.args.map((a) => identityOnly(a) ?? { leaf: 'always', value: 'yes' }) };
+}
+
+/** The progress leaves a trigger asks for outright (not under a `not`), as [kind, key]. */
+function progressOf(t: Trigger | null): [string, string][] {
+	if (t === null) return [];
+	if ('leaf' in t) return PROGRESS[t.leaf] ? [[PROGRESS[t.leaf], t.value]] : [];
+	return t.op === 'and' ? t.args.flatMap(progressOf) : [];
+}
+
+export function unlockOf(
+	s: Pick<AttractionSource, 'kind' | 'key' | 'scope'>,
+	g: UnlockData,
+	f: Facts,
+	name: (prefix: string, key: string) => string
+): Unlock {
+	const named = (prefix: string, key: string, text = `${prefix} ${name(prefix, key)}`): Need => ({
+		text,
+		ref: `${prefix}:${key}`
+	});
+	const techName = (t: string) => `tech ${g.techs[t]?.name ?? t}`;
+	// whether this empire can have it at all, and the progress its potential asks for
+	const potential = (t: Trigger | null) => ({
+		forUs: evaluate(identityOnly(t), f),
+		now: evaluate(t, f),
+		needs: progressOf(t).map(([kind, key]) =>
+			named(kind, key, kind === 'tech' ? techName(key) : undefined)
+		)
+	});
+	const base = s.key.split('#')[0];
+	const taken = (by: string[]) =>
+		by.length === 0 || by.some((k) => f.traditions.includes(k) || f.perks.includes(k));
+	// one of them suffices: the game unlocks it with any
+	const unlockers = (by: string[]) =>
+		by.map((k) => ({ ...named(k.startsWith('ap_') ? 'perk' : 'tradition', k), any: true }));
+	const and = (...v: (boolean | null)[]) =>
+		v.includes(false) ? false : v.includes(null) ? null : true;
+	switch (s.kind) {
+		case 'edict': {
+			const e = g.edicts[base];
+			if (!e) break;
+			const p = potential(e.potential);
+			const techs = e.prerequisites.filter((t) => !f.techs.includes(t));
+			return {
+				forUs: p.forUs,
+				available: and(p.now, taken(e.unlockedBy), techs.length === 0),
+				needs: [
+					...unlockers(e.unlockedBy),
+					...e.prerequisites.map((t) => named('tech', t, techName(t))),
+					...p.needs
+				]
+			};
+		}
+		case 'agenda': {
+			const a = g.agendas[base];
+			if (!a) break;
+			const p = potential(a.potential ?? null);
+			return {
+				forUs: p.forUs,
+				available: and(p.now, taken(a.unlockedBy), evaluate(a.allow ?? null, f)),
+				needs: [...unlockers(a.unlockedBy), ...p.needs]
+			};
+		}
+		case 'policy': {
+			const p = g.policies.find((x) => x.options.some((o) => o.key === base));
+			const o = p?.options.find((x) => x.key === base);
+			if (!p || !o) break;
+			const pot = potential(o.potential);
+			return {
+				forUs: pot.forUs,
+				available: and(pot.now, evaluate(o.valid, f)),
+				needs: [named('policy', base, `the policy ${p.name}`), ...pot.needs]
+			};
+		}
+		case 'building': {
+			// the civics or origins that unlock it (data DB `building_unlock`); techs are not known
+			const by = g.buildingUnlocks[base] ?? [];
+			if (!by.length) return { forUs: null, available: null, needs: [{ text: 'build it' }] };
+			return {
+				forUs: null,
+				available: by.some((k) => f.government.includes(k) || f.origin === k),
+				needs: by.map((k) => ({
+					...named(k.startsWith('origin_') ? 'origin' : 'civic', k),
+					any: true
+				}))
+			};
+		}
+		case 'council': {
+			const c = g.councilPositions[base];
+			if (!c?.civic) break;
+			return {
+				forUs: null,
+				available: f.government.includes(c.civic),
+				needs: [named('civic', c.civic, `the civic ${name('civic', c.civic)} (its council seat)`)]
+			};
+		}
+		case 'tradition': {
+			const tree = Object.values(g.traditionTrees).find((t) =>
+				t.traditions.some((x) => x.key === base)
+			);
+			return {
+				forUs: null,
+				available: null,
+				needs: tree ? [{ text: `the ${tree.name} tree` }] : []
+			};
+		}
+		case 'perk':
+			return { forUs: null, available: null, needs: [{ text: 'an ascension perk slot' }] };
+		case 'civic':
+			return { forUs: null, available: null, needs: [{ text: 'the civic, by a reform' }] };
+		case 'leader':
+			return {
+				forUs: null,
+				available: f.leaderTraits?.includes(base) ?? null,
+				needs: [
+					named(
+						'ltrait',
+						base,
+						`a leader with the trait ${s.scope === 'councilor' ? 'on the council' : 'as governor'}`
+					)
+				]
+			};
+		case 'static':
+			if (/^(promoted|suppressed)_/.test(base))
+				return {
+					forUs: null,
+					available: (f.factions?.length ?? 0) > 0 ? null : false,
+					needs: [{ text: 'a faction of the ethic to promote or suppress' }]
+				};
+	}
+	return { forUs: null, available: null, needs: [] };
 }
 
 export type RuleRow = AttractionRule & { applies: boolean | null };
