@@ -13,7 +13,8 @@
 	let { data } = $props();
 	followGame(() => data.isHead);
 
-	const pct = (v: number) => `${(v * 100).toFixed(1)} %`;
+	// cut, not rounded, as the game's ethics tooltip (26.38 % shows as 26.3 %)
+	const pct = (v: number) => `${(Math.floor(v * 1000 + 1e-9) / 10).toFixed(1)} %`;
 	const signed = (v: number) => (v ? `${v > 0 ? '+' : ''}${v}` : '');
 	// the chart lines in their ethic's colour, by name
 	const lineColors = $derived(
@@ -42,7 +43,7 @@
 			cell: attraction,
 			right: true,
 			title:
-				"share of the attraction-weighted pops (the save's pops_ethics_attraction): where our pops are heading — above its share, an ethic gains pops"
+				"the game's Average Ethic Attraction (attraction-weighted pops per pop, the save's pops_ethics_attraction) and its share: where our pops are heading — above its pop share, an ethic gains pops"
 		},
 		{
 			id: 'change',
@@ -100,7 +101,7 @@
 			? 'text-green-700 dark:text-green-500'
 			: r.attraction < r.share - 0.005
 				? 'text-red-600'
-				: ''}>{pct(r.attraction)}</span
+				: ''}>{(Math.floor(r.average * 100 + 1e-9) / 100).toFixed(2)} ({pct(r.attraction)})</span
 	>{/snippet}
 {#snippet change(r: EthicRow)}{signed(r.change)}{/snippet}
 {#snippet weight(r: EthicRow)}{r.weight ?? ''}{/snippet}

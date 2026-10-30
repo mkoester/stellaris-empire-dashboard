@@ -70,6 +70,7 @@ describe('ethics tab', () => {
 		]);
 		expect(rows[0].share).toBeCloseTo(3385 / 10321);
 		expect(rows[0].attraction).toBeCloseTo(58873.5 / 155797.5);
+		expect(rows[0].average).toBeCloseTo(58873.5 / 10321);
 		expect(rows[0].weight).toBe(4.5);
 		// pacifist is held but no pop holds it: the weakest pull
 		expect(rows.find((r) => r.dropped)?.key).toBe('ethic_pacifist');

@@ -668,8 +668,16 @@ see the trade tab).
 how much attraction, now and over time", and the factions' details): our pops per ethic, their
 share, the **attraction share** — the country's `pops_ethics_attraction` (attraction-weighted
 pops) as a share: where the pops are heading; above its pop share an ethic gains — last month's
-change, and the save's empire-wide `ethics_attraction` per ethic as "× ≈" (meaning unchecked,
-`docs/open-checks.md` 16). `Snapshot.ethics` keeps the save's lists **by index** (READER 24) and
+change, and the save's empire-wide `ethics_attraction` per ethic as "×" (the product of the ethic's
+`country_attraction` factors, below). **Checked against the game's Ethics Attraction tooltips
+2026-10-30** (throwaway nomad game, 2200.05.01, screenshots
+`~/Pictures/Screenshots/screenshot_2026-10-30_20-09-12` … `20-09-53`): pops, change and the
+"Average Ethic Attraction" match — that average is `pops_ethics_attraction` ÷ `pops_with_ethic`
+(egalitarian 64509.70 / 5218 = 12.36), its percentage the attraction share; the game **cuts**
+percentages and the average (26.38 % → 26.3 %, 6.305 → 6.30), so the tab does too. Every reason
+the game listed per ethic is ✓ on the tab and none more (governing ethic, High Living Standards,
+Democratic Authority, council, governor; "− Pop works as a Priest" for materialist — a
+spiritualist's bureaucrat). `Snapshot.ethics` keeps the save's lists **by index** (READER 24) and
 the tab maps them through `GameData.ethicOrder` (data DB `ethic.sort_order`, the order of
 `common/ethics/` — 4.5.2: fanatic authoritarian 0 … materialist 15, gestalt 16), so a wrong
 order is fixed without re-reading saves. The real-save test checks it: the pop groups' named
@@ -697,7 +705,12 @@ governing ethics (`pop_government_ethic_attraction`) and the shift speed
 ×1.25 for egalitarian and ×0.75 for authoritarian, Unrestricted Warfare ×0.75 for pacifist …) —
 and the `pop_attraction_tag` reasons the game's tooltip lists, each evaluated three-valued by
 `#lib/triggers.ts`, which now also answers `has_edict`, `has_faction`, `has_federation`,
-`is_subject`, `exists = overlord` and `has_election_type` (data DB `authority.election_type`).
+`is_subject`, `exists = overlord` and `has_election_type` (data DB `authority.election_type`),
+and the scopes the reasons look into, which the extraction turns into leaves
+(`attraction_structured()`): `council_leader_ethic` / `governor_ethic` (leaders' `ethic` and our
+colonies' `governor`, READER 26), `assigned_jobs` (jobs with a pop), `has_living_standard` and
+`species_has_living_standard` / `species_has_trait` / `species_is_robotic` (our species' rights and
+traits). Relations, enslaved species and citizenship counts stay "?".
 The group header shows the save's ×, the known product and the rest "from N rules the save cannot
 tell" (council, relations, federation, script values). Checked 2026-10-30 on the nomad game
 (2200.02.01): authoritarian ×0.75 and pacifist ×0.75 fully explained; egalitarian ×3 = known ×2.5

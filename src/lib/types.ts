@@ -470,6 +470,8 @@ export type LeaderInfo = {
 	species: string | null; // its species' name
 	council: boolean; // holds a council seat
 	ruler: boolean;
+	ethic?: string | null; // `leaders.<id>.ethic`; since READER 26
+	governor?: boolean; // governs one of our colonies; since READER 26
 };
 
 /**

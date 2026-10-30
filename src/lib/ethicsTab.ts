@@ -22,6 +22,7 @@ export type EthicRow = {
 	pops: number;
 	share: number; // of our pops with an ethic, 0–1
 	attraction: number; // share of the attraction-weighted pops, 0–1: where the pops are heading
+	average: number; // the game's "Average Ethic Attraction": attraction-weighted pops per pop
 	change: number; // pops last month
 	weight: number | null; // empire-wide `ethics_attraction` (meaning unverified)
 	held: boolean; // a governing ethic of ours, fanatic or not
@@ -54,6 +55,7 @@ export function ethicRows(e: EthicsState, order: string[], government: string[])
 			pops: pops[key] ?? 0,
 			share: popTotal ? (pops[key] ?? 0) / popTotal : 0,
 			attraction: pullTotal ? (attraction[key] ?? 0) / pullTotal : 0,
+			average: popTotal ? (attraction[key] ?? 0) / popTotal : 0,
 			change: change[key] ?? 0,
 			weight: weight[key] ?? null,
 			held: held.includes(key),

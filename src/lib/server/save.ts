@@ -266,7 +266,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '25'; // 25: situation stages and their ends (24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '26'; // 26: leaders' ethic and governors (25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -478,8 +478,15 @@ export function empireFocus(raw: Pick<RawSave, 'country' | 'focusCards'>) {
 
 /** Every hired leader (`country.owned_leaders`), with its traits and whether it sits on the council. */
 export function leaderList(
-	raw: Pick<RawSave, 'country' | 'leaders' | 'speciesDb' | 'councilPositions'>
+	raw: Pick<RawSave, 'country' | 'leaders' | 'speciesDb' | 'councilPositions'> &
+		Partial<Pick<RawSave, 'colonies'>>
 ) {
+	// our colonies' governors: `colony.<id>.governor` (2026-10-30)
+	const governors = new Set(
+		list(raw.country?.controlled_colonies).map((c) =>
+			numOrNull(raw.colonies?.[String(c)]?.governor)
+		)
+	);
 	const seated = new Set(
 		list(raw.country?.government?.council_positions).map((id) =>
 			numOrNull(raw.councilPositions[String(id)]?.leader)
@@ -501,7 +508,9 @@ export function leaderList(
 				job: strOrNull(l.job),
 				species: sp ? displayName(sp.name) : null,
 				council: seated.has(id),
-				ruler: id === rulerId
+				ruler: id === rulerId,
+				ethic: strOrNull(l.ethic),
+				governor: governors.has(id)
 			}
 		];
 	});

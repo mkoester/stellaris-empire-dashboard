@@ -29,6 +29,9 @@ All notable changes to this project are documented here. The format follows
 - The ethics tab ends with what draws pops to each ethic, to the governing ethics and how fast
   they shift: the ethic's own rules (they explain the empire-wide factor) and every modifier in
   the game files — which apply to us, and how each can be changed (now, slowly, not).
+- The ethics table shows the game's Average Ethic Attraction beside its share, cut as the game
+  does; the reasons the game lists (council, governor, living standards, jobs) are now told from
+  the save, matching the game's tooltips.
 
 ### Changed
 

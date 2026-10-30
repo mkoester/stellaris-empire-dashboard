@@ -31,12 +31,36 @@ export function facts(
 		leaderTraits: s.leaderList?.flatMap((l) => l.traits),
 		edicts: s.edicts,
 		electionType: authority ? (electionTypes[authority] ?? null) : null,
+		...attractionFacts(s),
 		factions: s.factions?.map((x) => x.type) ?? null,
 		// our own entry of the diplomacy reading: its federation and overlord
 		...(() => {
 			const us = s.diplomacy?.find((c) => c.id === s.countryId);
 			return us ? { federation: us.federation !== null, subject: us.overlord !== null } : {};
 		})()
+	};
+}
+
+/** What the ethic attraction reasons look into: leaders' ethics, our species, worked jobs. */
+function attractionFacts(s: Snapshot): Partial<Facts> {
+	const leaders = s.leaderList;
+	// leaders read before READER 26 carry no ethic: unknown, not none
+	const read = leaders !== null && leaders.every((l) => l.ethic !== undefined);
+	const ethics = (keep: (l: NonNullable<typeof leaders>[number]) => boolean) =>
+		read ? leaders!.filter(keep).flatMap((l) => (l.ethic ? [l.ethic] : [])) : null;
+	return {
+		councilEthics: ethics((l) => l.council || l.ruler),
+		governorEthics: ethics((l) => l.governor === true),
+		livingStandards:
+			s.speciesRights === null
+				? null
+				: Object.values(s.speciesRights).flatMap((r) =>
+						r.living_standard ? [r.living_standard] : []
+					),
+		speciesTraits: s.species === null ? null : s.species.flatMap((x) => x.traits),
+		roboticSpecies:
+			s.species === null ? null : s.species.some((x) => x.cls === 'ROBOT' || x.cls === 'MACHINE'),
+		jobs: s.colonies.flatMap((c) => c.jobs.filter((j) => j.filled > 0).map((j) => j.type))
 	};
 }
 
