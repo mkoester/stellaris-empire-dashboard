@@ -728,6 +728,12 @@ techs known); leader traits the leaders who have one. `forUs` false — a potent
 the empire is (`identityOnly()`: nomadic, gestalt, civics …) — hides a source but under
 "everything": the nomads' twins of agendas and policy options (Open Arms, Isolationist) showed
 twice before. An agenda's two modifiers are one row, preparing then after launch.
+**A building's planet modifier stacks per building** (checked 2026-10-30 in the nomad game's
+saves, no screenshot needed): the arkship's second Temple (between 2201.01.01 and 02.01) took a
+pop group's spiritualist attraction (`pop_groups.<id>.ethics_attraction`, by ethic index) from
+6.7925 to 7.05375 = 5.225 × 1.30 → × 1.35 (Veneration of Saints +25 %, +5 % per Temple); so
+`holdings()` counts every building. Pop groups take a change up one by one — another group still
+read 6.7925 at 2201.04.01.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts

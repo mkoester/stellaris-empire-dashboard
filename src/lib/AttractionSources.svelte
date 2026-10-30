@@ -117,7 +117,7 @@
 			? 'the save cannot tell'
 			: typeof m.applies === 'number'
 				? m.kind === 'building'
-					? 'this many built (each counted, assumed — not yet checked in game)'
+					? 'this many built (each one counts)'
 					: 'on this many colonies'
 				: ''}>{mark(m.applies)}</span
 	>{/snippet}
