@@ -1,3 +1,12 @@
+import {
+	levelTone,
+	nextStage,
+	NOMAD_ECONOMY,
+	RESERVES,
+	reservesAlong,
+	withReserves,
+	type Reserves
+} from '#lib/nomad.ts';
 import { storageRows } from '#lib/storage.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
@@ -28,7 +37,7 @@ import {
 	resourceSeries,
 	stockpileSeries,
 	withoutResearch,
-	xRange
+	xExtent
 } from '#lib/series.ts';
 
 // The empire's data at a branch tip: what the `all` tab shows and custom tabs pick from.
@@ -42,6 +51,11 @@ export function empireData(url: URL) {
 	const modifiers = snaps.findLast((s) => s.countryModifiers !== null)?.countryModifiers ?? [];
 	const species = speciesChoices(latest.species ?? []);
 	const government = identity(snaps.findLast((s) => s.government !== null));
+	// a nomad's energy and minerals as the one pool its top bar shows (#lib/nomad.ts)
+	const reserves = reservesAlong(snaps);
+	const shown = snaps.map((s, i) => withReserves(s, reserves[i]));
+	const top = shown[shown.length - 1];
+	const pool = reserves[reserves.length - 1];
 	return {
 		empty: false as const,
 		...rest,
@@ -78,11 +92,31 @@ export function empireData(url: URL) {
 		// Researched techs per field and tier, at the latest full save.
 		tiers: techTiers(b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [], data.techs),
 		// storage under the resources panel: exact from the latest save with companion mod 0.5.0, else ≈ base
-		storage: storageRows(
-			latest.stockpile,
-			b.snaps.findLast((s) => s.kind === 'save')?.storageMax ?? null,
-			data.resourceInfo
-		),
+		storage: [
+			...storageRows(
+				top.stockpile,
+				b.snaps.findLast((s) => s.kind === 'save')?.storageMax ?? null,
+				data.resourceInfo
+			),
+			...(pool?.capacity
+				? [
+						{
+							resource: RESERVES,
+							name: 'Operational Reserves',
+							have: pool.stock,
+							max: pool.capacity,
+							exact: !pool.estimated
+						}
+					]
+				: [])
+		],
+		// the top bar: a nomad's energy and minerals folded into its reserves, and their level
+		topBar: {
+			stockpile: top.stockpile,
+			balance: top.balance,
+			reserves:
+				pool && reserveLine(pool, data.situationTypes['situation_nomad_economy']?.stages ?? [])
+		},
 		// Overview panels, named from the game data.
 		modifiers: modifiers.map((m) => ({
 			...m,
@@ -109,7 +143,7 @@ export function empireData(url: URL) {
 		},
 		expansionRowLine: ROW_LINES[display().expansionRowLine],
 		expansionView: expansionView(),
-		xRange: xRange(snaps),
+		xExtent: xExtent(snaps),
 		charts: {
 			pops: popSeries(snaps),
 			agenda: agendaSeries(snaps),
@@ -121,10 +155,30 @@ export function empireData(url: URL) {
 			}),
 			empireSize: empireSizeSeries(snaps),
 			research: researchSeries(snaps),
-			stockpile: stockpileSeries(snaps),
-			balance: resourceSeries(snaps, (s) => withoutResearch(s.balance)),
+			stockpile: stockpileSeries(shown),
+			balance: resourceSeries(shown, (s) => withoutResearch(s.balance)),
 			income: resourceSeries(snaps, (s) => withoutResearch(s.income))
 		}
+	};
+}
+
+/** The top bar's second line for a nomad's reserves: level, share, the next level and how far. */
+function reserveLine(pool: Reserves, names: string[]) {
+	const name = (i: number) => names[i] ?? `stage ${i + 1}`;
+	const next = nextStage(pool);
+	return {
+		level: pool.stage === null ? null : name(pool.stage),
+		tone: pool.stage === null ? ('neutral' as const) : levelTone(pool.stage, pool.ends.length),
+		share: pool.capacity ? pool.stock / pool.capacity : null,
+		capacity: pool.capacity,
+		next: next && {
+			level: name(next.stage),
+			tone: levelTone(next.stage, pool.ends.length),
+			amount: next.amount,
+			months: next.months,
+			down: pool.monthly < 0
+		},
+		estimated: pool.estimated
 	};
 }
 
@@ -151,7 +205,9 @@ function empireSizeSeries(snaps: Snapshot[]) {
 				...(s.traditions ?? []).map((k) => `tradition:${k}`),
 				...(s.ascensionPerks ?? []).map((k) => `perk:${k}`),
 				...(s.progress?.researched ?? []).map((k) => `tech:${k}`),
-				...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`)
+				...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`),
+				// the engine's static modifier for nomads: +100 % from colonies and districts
+				...(s.situations?.some((x) => x.type === NOMAD_ECONOMY) ? ['modifier:nomadic_empire'] : [])
 			])
 		);
 		return empireSizeEstimate(parts, mods, defines);

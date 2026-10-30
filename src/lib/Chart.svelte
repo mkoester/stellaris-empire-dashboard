@@ -3,7 +3,17 @@
 	import 'uplot/dist/uPlot.min.css';
 	import type uPlot from 'uplot';
 	import { colorOf } from './colors.ts';
-	import { gameMonth, type Series } from './series.ts';
+	import {
+		DEFAULT_WINDOW,
+		START_YEAR,
+		gameMonth,
+		panWindow,
+		spanWindow,
+		windowRange,
+		zoomWindow,
+		type Series
+	} from './series.ts';
+	import { timeWindow } from './timeWindow.svelte.ts';
 	import { isDark, onThemeChange } from './theme.ts';
 	import { chartEvents } from './chartEvents.svelte.ts';
 	import EventPicker from './EventPicker.svelte';
@@ -13,11 +23,13 @@
 	export type Marker = { x: number; tint: string; label: string };
 
 	// yMin: a floor the value cannot go below (empire size starts at 50), so the axis does not
-	// spend its height on impossible values.
+	// spend its height on impossible values. A history chart passes its `extent` (first and last
+	// save) and shows the window all history charts share; a projection passes its own `range`.
 	let {
 		title,
 		series,
 		range,
+		extent,
 		yMin,
 		yMax,
 		markers = [],
@@ -29,7 +41,8 @@
 	}: {
 		title: string;
 		series: Series;
-		range: [number, number];
+		range?: [number, number];
+		extent?: [number, number];
 		yMin?: number;
 		yMax?: number; // a fixed top, e.g. 100 for percentages
 		markers?: Marker[];
@@ -39,6 +52,10 @@
 		events?: Milestone[]; // milestones the viewer can switch on, per kind, for this chart
 		scope?: 'empire' | 'colony'; // the choice is stored per `<scope>:<title>`, so all colonies share it
 	} = $props();
+
+	const xr = $derived<[number, number]>(
+		extent ? windowRange(extent, timeWindow.value) : (range ?? [START_YEAR, START_YEAR + 1])
+	);
 
 	// Picked milestones: thin lines in their kind's colour, named on hover.
 	const picker = chartEvents(() => `${scope}:${title}`);
@@ -75,7 +92,7 @@
 
 	function drawMarkers(u: uPlot, px: number) {
 		const { ctx, bbox } = u;
-		const max = u.scales.x.max ?? range[1];
+		const max = u.scales.x.max ?? xr[1];
 		let beyond = 0;
 		// Labels sit left of their line; markers close together (three research fields due the same
 		// month) would print over each other, so a label that would touch the one before moves down
@@ -118,7 +135,7 @@
 
 	function drawEvents(u: uPlot, px: number) {
 		const { ctx, bbox } = u;
-		const [min, max] = [u.scales.x.min ?? range[0], u.scales.x.max ?? range[1]];
+		const [min, max] = [u.scales.x.min ?? xr[0], u.scales.x.max ?? xr[1]];
 		ctx.save();
 		ctx.lineWidth = px;
 		ctx.globalAlpha = 0.7;
@@ -160,7 +177,7 @@
 			width: el.clientWidth,
 			height: 220,
 			scales: {
-				x: { time: false, range: () => range },
+				x: { time: false, range: () => xr },
 				// The right axis (e.g. open jobs) spans at least 0–rightFloor, so small changes stay
 				// small; below 0 only for a line that goes there (a resource's net per month).
 				right: {
@@ -194,8 +211,17 @@
 					spanGaps: true
 				}))
 			],
+			// A history chart: dragging selects the stretch to zoom to — for every history chart, so
+			// uPlot's own zoom and its double-click reset stay off.
+			cursor: extent
+				? {
+						drag: { x: true, y: false, setScale: false },
+						bind: { dblclick: () => null } as unknown as uPlot.Cursor.Bind
+					}
+				: {},
 			// uPlot shows "--" unless the cursor is over the chart; show the latest values instead.
 			hooks: {
+				setSelect: [select],
 				ready: [showLatest],
 				setData: [showLatest],
 				setCursor: [(u) => u.cursor.idx == null && showLatest(u), hover],
@@ -205,8 +231,34 @@
 		plot = new UPlot(opts, data(series), el);
 	}
 
+	function select(u: uPlot) {
+		if (!extent || u.select.width < 4) return;
+		const from = u.posToVal(u.select.left, 'x');
+		const to = u.posToVal(u.select.left + u.select.width, 'x');
+		u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+		timeWindow.set(spanWindow(extent, from, to));
+	}
+
+	// Ctrl (⌘) + wheel zooms around the cursor, Shift + wheel moves; the plain wheel scrolls the page.
+	function wheel(e: WheelEvent) {
+		if (!extent || !plot || !(e.ctrlKey || e.metaKey || e.shiftKey)) return;
+		e.preventDefault();
+		const delta = e.deltaY || e.deltaX;
+		if (!delta) return;
+		if (e.shiftKey) {
+			timeWindow.set(panWindow(timeWindow.value, extent, Math.sign(delta) * (xr[1] - xr[0]) * 0.1));
+		} else {
+			const at = plot.posToVal(e.clientX - plot.over.getBoundingClientRect().left, 'x');
+			timeWindow.set(zoomWindow(timeWindow.value, extent, delta > 0 ? 1.25 : 0.8, at));
+		}
+	}
+
+	const reset = () => extent && timeWindow.set(DEFAULT_WINDOW);
+
 	onMount(() => {
 		let disposed = false;
+		el.addEventListener('wheel', wheel, { passive: false });
+		el.addEventListener('dblclick', reset);
 		import('uplot').then(({ default: loaded }) => {
 			if (disposed) return;
 			UPlot = loaded;
@@ -217,6 +269,8 @@
 		const unsubscribe = onThemeChange(() => plot?.redraw());
 		return () => {
 			disposed = true;
+			el.removeEventListener('wheel', wheel);
+			el.removeEventListener('dblclick', reset);
 			unsubscribe();
 			resize.disconnect();
 			plot?.destroy();
@@ -231,7 +285,7 @@
 	// then never rerun (the growth tab's horizon buttons changed nothing).
 	$effect(() => {
 		const d = data(series);
-		const [min, max] = range;
+		const [min, max] = xr;
 		const key = lineKey(series, right);
 		if (!plot || !UPlot) return;
 		if (key !== built) build(UPlot);
@@ -256,7 +310,12 @@
 			{/if}
 		</p>
 	{/if}
-	<div bind:this={el}></div>
+	<div
+		bind:this={el}
+		title={extent
+			? 'drag: zoom to a stretch · Ctrl+wheel: zoom · Shift+wheel: move · double-click: the default window — for every chart'
+			: undefined}
+	></div>
 </section>
 
 <style>

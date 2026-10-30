@@ -93,7 +93,7 @@
 		{ id: 'progress', label: 'Progress', value: (r) => r.progress, right: true },
 		{ id: 'monthly', label: '±/mo', value: (r) => r.monthly, right: true },
 		{ id: 'approach', label: 'Approach', value: (r) => r.approachName },
-		{ id: 'stage', label: 'Stage', value: (r) => (r.stage ? pretty(r.stage) : null) }
+		{ id: 'stage', label: 'Stage', value: (r) => r.stageName }
 	];
 	type Anomaly = (typeof data.anomalies)[number];
 	type Project = (typeof data.projects)[number];

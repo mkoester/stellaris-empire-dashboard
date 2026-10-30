@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BuildingName from './BuildingName.svelte';
 	import { fromDays, scheduleQueue, toDays } from './events.ts';
 	import { fmt, pretty } from './format.ts';
 	import type { QueueItem } from './types.ts';
@@ -14,7 +15,9 @@
 {:else}
 	{#each queue as item, i (i)}
 		<div class="whitespace-nowrap {plan[i].startsNow ? '' : 'text-gray-500'}">
-			{pretty(item.name)}{item.design ? ` "${item.design}"` : ''}
+			{#if item.kind === 'building'}<BuildingName key={item.name} />{:else}{pretty(
+					item.name
+				)}{/if}{item.design ? ` "${item.design}"` : ''}
 			<span class="text-gray-500"
 				>{fmt(item.progress)}/{fmt(item.needed)} · {fromDays(toDays(date) + plan[i].doneIn)}</span
 			>

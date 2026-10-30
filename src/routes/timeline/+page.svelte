@@ -2,7 +2,8 @@
 	import { resolve } from '$app/paths';
 	let { data, form } = $props();
 
-	const label = (r: { id: number; date: string }) => `#${r.id} ${r.date}`;
+	// numbered per campaign; the link keeps the global id
+	const label = (r: { seq: number; date: string }) => `#${r.seq} ${r.date}`;
 	// Any node's parent can be corrected (a load the mod logged can be wrong too: one the game did
 	// not log left the branch on the save loaded before); guessed ones show the form at once, the
 	// rest on demand — a select per node would be hundreds of options each in a long campaign.

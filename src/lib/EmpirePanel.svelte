@@ -157,7 +157,7 @@
 		'chart-balance': { title: 'Net per month', series: data.charts.balance },
 		'chart-stockpile': { title: 'Stockpile', series: data.charts.stockpile },
 		'chart-income': { title: 'Income per month', series: data.charts.income }
-	} as Record<string, Omit<ComponentProps<typeof Chart>, 'range'>>);
+	} as Record<string, Omit<ComponentProps<typeof Chart>, 'range' | 'extent'>>);
 </script>
 
 {#if id === 'header'}
@@ -224,8 +224,9 @@
 	</header>
 {:else if id === 'resources'}
 	<Resources
-		stockpile={data.latest.stockpile}
-		balance={data.latest.balance}
+		stockpile={data.topBar.stockpile}
+		balance={data.topBar.balance ?? {}}
+		reserves={data.topBar.reserves}
 		orders={data.latest.marketOrders}
 		galactic={data.latest.market?.galactic}
 		date={data.latest.date}
@@ -244,7 +245,7 @@
 	</section>
 {:else if id in charts}
 	{#key data.tip}
-		<Chart {...charts[id]} range={data.xRange} events={data.milestones} />
+		<Chart {...charts[id]} extent={data.xExtent} events={data.milestones} />
 	{/key}
 {:else if id === 'colonies'}
 	<section>
@@ -363,14 +364,10 @@
 {#snippet designationCell(c: Colony)}<Designation key={c.designation} />{/snippet}
 {#snippet happinessCell(c: Colony)}{pct(c.happiness)}{/snippet}
 {#snippet colonyName(c: Colony)}
-	{#if c.planetId >= 0}
-		<a class="underline" href={colonyHref(c.planetId)}>{c.name}</a>{#if c.colonizing}&nbsp;<span
-				class="text-xs text-green-700"
-				title="being settled: complete at 100 colonists">colonizing {fmt(c.pops)}/100</span
-			>{/if}
-	{:else}
-		{c.name}
-	{/if}
+	<a class="underline" href={colonyHref(c.planetId)}>{c.name}</a>{#if c.colonizing}&nbsp;<span
+			class="text-xs text-green-700"
+			title="being settled: complete at 100 colonists">colonizing {fmt(c.pops)}/100</span
+		>{/if}
 {/snippet}
 {#snippet colonyGrowth(c: Colony)}<span
 		class={(c.growth?.net ?? 0) < 0

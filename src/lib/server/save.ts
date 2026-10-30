@@ -38,6 +38,7 @@ import type {
 	War,
 	WarSides,
 	Subject,
+	EthicsState,
 	Faction,
 	Combat,
 	Shroud,
@@ -265,7 +266,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '23'; // 23: capital, rights and insult cooldowns (22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '29'; // 29: ascension tier and governor skill per colony (28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -382,6 +383,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		subjects: subjects(raw),
 		galcom: galacticCommunity(raw),
 		factions: factions(raw),
+		ethics: ethics(raw.country, colonyPlaces(raw)),
 		combats: combats(raw),
 		shroud: shroud(raw),
 		warLostDate:
@@ -476,8 +478,15 @@ export function empireFocus(raw: Pick<RawSave, 'country' | 'focusCards'>) {
 
 /** Every hired leader (`country.owned_leaders`), with its traits and whether it sits on the council. */
 export function leaderList(
-	raw: Pick<RawSave, 'country' | 'leaders' | 'speciesDb' | 'councilPositions'>
+	raw: Pick<RawSave, 'country' | 'leaders' | 'speciesDb' | 'councilPositions'> &
+		Partial<Pick<RawSave, 'colonies'>>
 ) {
+	// our colonies' governors: `colony.<id>.governor` (2026-10-30)
+	const governors = new Set(
+		list(raw.country?.controlled_colonies).map((c) =>
+			numOrNull(raw.colonies?.[String(c)]?.governor)
+		)
+	);
 	const seated = new Set(
 		list(raw.country?.government?.council_positions).map((id) =>
 			numOrNull(raw.councilPositions[String(id)]?.leader)
@@ -499,7 +508,9 @@ export function leaderList(
 				job: strOrNull(l.job),
 				species: sp ? displayName(sp.name) : null,
 				council: seated.has(id),
-				ruler: id === rulerId
+				ruler: id === rulerId,
+				ethic: strOrNull(l.ethic),
+				governor: governors.has(id)
 			}
 		];
 	});
@@ -1506,13 +1517,36 @@ export function progress(raw: Pick<RawSave, 'country' | 'galaxy'>): Progress {
 	};
 }
 
-function playerColonies(raw: RawSave): Colony[] {
-	const planetOfColony = new Map<number, [number, Raw]>();
+/**
+ * Each colony's place: its planet (`planets.planet.<id>.colony`), or for a nomad's arkship the ship
+ * that carries it (`colony.<id>.carrier = { type=ship reference }`; the ship holds `colony`,
+ * `planet_class="pc_ark"`, `planet_size`, `build_queue` and its name, 2026-10-30) under the id
+ * −1 − ship id, so ship 0 stays the −1 stored before.
+ */
+export function colonyPlaces(
+	raw: Pick<RawSave, 'planets' | 'colonies' | 'ships'>
+): Map<number, [number, Raw]> {
+	const places = new Map<number, [number, Raw]>();
 	for (const [id, planet] of Object.entries(raw.planets)) {
 		if (planet && typeof planet === 'object' && planet.colony !== undefined) {
-			planetOfColony.set(Number(planet.colony), [Number(id), planet]);
+			places.set(Number(planet.colony), [Number(id), planet]);
 		}
 	}
+	for (const [id, c] of Object.entries(raw.colonies)) {
+		const ship = c?.carrier?.type === 'ship' ? raw.ships?.[String(c.carrier.reference)] : undefined;
+		if (ship && typeof ship === 'object' && !places.has(Number(id))) {
+			places.set(Number(id), [-1 - Number(c.carrier.reference), ship]);
+		}
+	}
+	return places;
+}
+
+/** A leader's skill: `level` + `bonus_skill_level`; 0 without a leader. */
+const leaderSkill = (l: Raw) =>
+	l && typeof l === 'object' ? num(l.level) + num(l.bonus_skill_level) : 0;
+
+function playerColonies(raw: RawSave): Colony[] {
+	const planetOfColony = colonyPlaces(raw);
 	const sectorOf = sectorBySystem(raw);
 	return list(raw.country?.controlled_colonies).map((colonyId) => {
 		const c = raw.colonies[String(colonyId)] ?? {};
@@ -1533,6 +1567,12 @@ function playerColonies(raw: RawSave): Colony[] {
 			housing: numOrNull(c.total_housing),
 			housingUsed: numOrNull(c.housing_usage),
 			freeAmenities: num(c.free_amenities),
+			// what the colony has and needs (the game's amenities tooltip), and its crime
+			amenities: numOrNull(c.amenities),
+			amenitiesUsage: numOrNull(c.amenities_usage),
+			crime: numOrNull(c.crime),
+			ascensionTier: num(c.ascension_tier),
+			governorSkill: leaderSkill(raw.leaders[String(c.governor)]),
 			...colonyDistricts(raw, list(c.districts)),
 			planetClass: String(planet?.planet_class ?? ''),
 			planetSize: num(planet?.planet_size),
@@ -1862,6 +1902,27 @@ export function shroud(
 	};
 }
 
+/**
+ * Our pops' ethics (see `EthicsState`); null where the save has none (a gestalt: no ethics). The
+ * per-colony lists name colonies, kept as their place's id (`colonyPlaces`).
+ */
+export function ethics(country: Raw, places: Map<number, [number, Raw]>): EthicsState | null {
+	if (!country || country.ethics_distribution === undefined) return null;
+	return {
+		pops: list(country.ethics_distribution),
+		attraction: list(country.pops_ethics_attraction),
+		change: list(country.pops_ethics_change),
+		weight: list(country.ethics_attraction),
+		colonies: items(country.pops_ethics_on_colonies)
+			.filter((c) => c && typeof c === 'object')
+			.map((c) => ({
+				planetId: places.get(Number(c.colony))?.[0] ?? -1,
+				pops: list(c.num_pops),
+				change: list(c.change)
+			}))
+	};
+}
+
 /** Our factions (see `Faction`), by support. */
 export function factions(raw: Pick<RawSave, 'popFactions' | 'countryId'>): Faction[] {
 	return Object.values(raw.popFactions)
@@ -2017,12 +2078,20 @@ export function colonyDistricts(
 				zones: list(d.zones)
 					.map((z) => raw.zones[String(z)])
 					.filter((z) => z && typeof z === 'object')
-					.map((z) => ({
-						type: String(z.type),
-						buildings: list(z.buildings)
-							.map((b) => raw.buildings[String(b)]?.type)
-							.filter((b) => typeof b === 'string')
-					}))
+					.map((z) => {
+						const built = list(z.buildings)
+							.map((b) => raw.buildings[String(b)])
+							.filter((b) => typeof b?.type === 'string');
+						// switched off by the player: `buildings.<id>.disabled=yes` (#lib/buildings.ts)
+						const off = built
+							.filter((b) => b.disabled === true || b.disabled === 'yes')
+							.map((b) => b.type as string);
+						return {
+							type: String(z.type),
+							buildings: built.map((b) => b.type as string),
+							...(off.length ? { disabled: off } : {})
+						};
+					})
 			}
 		];
 	});
@@ -2038,6 +2107,7 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const by = new Map<string, { size: number; known: number; weighted: number }>();
 	// habitability (0–1) of the species on this planet, per pop group: overall and per species
 	const hab = { size: 0, weighted: 0 };
+	const power = { total: 0, weighted: 0 };
 	const bySpecies = new Map<string, { size: number; weighted: number }>();
 	for (const id of ids) {
 		const g = popGroups[String(id)];
@@ -2055,6 +2125,9 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 		const cat = String(g.key?.category ?? 'unknown');
 		const s = by.get(cat) ?? { size: 0, known: 0, weighted: 0 };
 		const happiness = typeof g.happiness === 'number' ? g.happiness : 1;
+		// the Pop Approval Rating weighs happiness by political power (`pop_groups.<id>.power`)
+		power.total += num(g.power);
+		power.weighted += num(g.power) * happiness;
 		by.set(cat, {
 			size: s.size + num(g.size),
 			known: s.known + num(g.size),
@@ -2069,6 +2142,7 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const known = [...by.values()].reduce((n, s) => n + s.known, 0);
 	return {
 		strata: list,
+		approval: power.total > 0 ? power.weighted / power.total : null,
 		happiness: known > 0 ? [...by.values()].reduce((n, s) => n + s.weighted, 0) / known : null,
 		habitability: hab.size > 0 ? hab.weighted / hab.size : null,
 		speciesHabitability: Object.fromEntries(

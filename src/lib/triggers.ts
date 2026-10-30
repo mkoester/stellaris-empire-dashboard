@@ -27,6 +27,21 @@ export type Facts = {
 	scripted?: Record<string, Trigger | null>;
 	traits?: string[]; // the species' traits, where a trigger is in a species' scope (rights)
 	leaderTraits?: string[]; // every trait of the empire's leaders
+	edicts?: string[] | null; // active
+	factions?: string[] | null; // the types of our factions
+	federation?: boolean | null; // in a federation
+	subject?: boolean | null; // has an overlord
+	electionType?: string | null; // our authority's: democratic, oligarchic, none
+	// what ethic attraction reasons look into (#lib/ethicSources.ts; null: not read)
+	councilEthics?: string[] | null; // the ruler's and councilors' ethics
+	governorEthics?: string[] | null;
+	livingStandards?: string[] | null; // of our species
+	speciesTraits?: string[] | null; // of our species
+	roboticSpecies?: boolean | null; // a robotic species among ours
+	jobs?: string[] | null; // worked by at least one pop
+	otherOrganicSpecies?: boolean | null; // more than one organic species
+	allOrganicFullCitizenship?: boolean | null;
+	enslavedOrganicSpecies?: boolean | null;
 	// the Galactic Community, for what resolutions test (#lib/proposable.ts)
 	activeResolutions?: string[] | null; // in force (`galactic_community.passed`)
 	globalFlags?: string[] | null;
@@ -82,6 +97,37 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			return has(f.perks);
 		case 'has_technology':
 			return has(f.techs);
+		case 'other_organic_species':
+			return yes(f.otherOrganicSpecies ?? null);
+		case 'all_organic_full_citizenship':
+			return yes(f.allOrganicFullCitizenship ?? null);
+		case 'enslaved_organic_species':
+			return yes(f.enslavedOrganicSpecies ?? null);
+		case 'council_leader_ethic':
+			return has(f.councilEthics ?? null);
+		case 'governor_ethic':
+			return has(f.governorEthics ?? null);
+		case 'assigned_jobs':
+			return has(f.jobs ?? null);
+		case 'has_living_standard':
+		case 'species_has_living_standard':
+			return has(f.livingStandards ?? null);
+		case 'species_has_trait':
+			return has(f.speciesTraits ?? null);
+		case 'species_is_robotic':
+			return yes(f.roboticSpecies ?? null);
+		case 'has_election_type':
+			return f.electionType == null ? null : f.electionType === value;
+		case 'has_edict':
+			return has(f.edicts ?? null);
+		case 'has_faction':
+			return has(f.factions ?? null);
+		case 'has_federation':
+			return yes(f.federation ?? null);
+		case 'is_subject':
+			return yes(f.subject ?? null);
+		case 'exists':
+			return value === 'overlord' ? (f.subject ?? null) : null;
 		case 'is_at_war':
 			return yes(f.atWar);
 		case 'is_gestalt':

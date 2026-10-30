@@ -30,13 +30,70 @@ export function addGameDays(date: string, days: number): string {
 
 /** Every game starts on 2200.01.01. */
 export const START_YEAR = 2200;
-const YEARS_BACK = 20;
 const YEARS_AHEAD = 1;
+const MIN_SPAN = 1 / 12; // zoomed in to a month at most
 
-/** Default x-axis window: the last 20 years (never before the start) and one year ahead. */
-export function xRange(history: Snapshot[]): [number, number] {
-	const last = history.length ? gameYear(history[history.length - 1].date) : START_YEAR;
-	return [Math.max(START_YEAR, last - YEARS_BACK), last + YEARS_AHEAD];
+/**
+ * The x-axis window every history chart shares (`#lib/timeWindow.svelte.ts`): the last `years`
+ * up to now and one year ahead, following new saves; or a fixed stretch `from`–`to`, once zoomed
+ * or panned into the past.
+ */
+export type TimeWindow = { years: number | 'all' } | { from: number; to: number };
+export const DEFAULT_YEARS = 20;
+export const DEFAULT_WINDOW: TimeWindow = { years: DEFAULT_YEARS };
+export const WINDOW_PRESETS = [5, 10, 20, 50] as const;
+
+/** The history's first and last date as fractional years (2200 when empty). */
+export function xExtent(history: Snapshot[]): [number, number] {
+	if (!history.length) return [START_YEAR, START_YEAR];
+	return [gameYear(history[0].date), gameYear(history[history.length - 1].date)];
+}
+
+/** The x range of `w` over a history spanning `extent`, never before 2200 nor past a year ahead. */
+export function windowRange([first, last]: [number, number], w: TimeWindow): [number, number] {
+	const end = last + YEARS_AHEAD;
+	if ('years' in w) {
+		const from = w.years === 'all' ? first : last - w.years;
+		return [Math.max(START_YEAR, from), end];
+	}
+	return clampSpan(w.from, w.to, end);
+}
+
+/** `from`–`to` moved (not squeezed) into START_YEAR … end. */
+function clampSpan(from: number, to: number, end: number): [number, number] {
+	const span = Math.min(Math.max(to - from, MIN_SPAN), end - START_YEAR);
+	const lo = Math.min(Math.max(from, START_YEAR), end - span);
+	return [lo, lo + span];
+}
+
+/** A fixed stretch, or following the latest again once it reaches the right edge. */
+function settle(from: number, to: number, [first, last]: [number, number]): TimeWindow {
+	const end = last + YEARS_AHEAD;
+	const [lo, hi] = clampSpan(from, to, end);
+	if (hi < end - 1e-9) return { from: lo, to: hi };
+	return lo <= Math.max(START_YEAR, first) + 1e-9 ? { years: 'all' } : { years: last - lo };
+}
+
+/** Zoomed by `factor` (< 1 in, > 1 out) around the year `at`, which stays where it is. */
+export function zoomWindow(
+	w: TimeWindow,
+	extent: [number, number],
+	factor: number,
+	at: number
+): TimeWindow {
+	const [from, to] = windowRange(extent, w);
+	return settle(at - (at - from) * factor, at + (to - at) * factor, extent);
+}
+
+/** Moved by `years` (negative: into the past). */
+export function panWindow(w: TimeWindow, extent: [number, number], years: number): TimeWindow {
+	const [from, to] = windowRange(extent, w);
+	return settle(from + years, to + years, extent);
+}
+
+/** Exactly `from`–`to` (a drag-selection or the menu's years). */
+export function spanWindow(extent: [number, number], from: number, to: number): TimeWindow {
+	return settle(Math.min(from, to), Math.max(from, to), extent);
 }
 
 /** One line per resource that appears anywhere in the history; 0 where a reported map lacks it. */

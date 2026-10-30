@@ -99,7 +99,7 @@ export function growthRows(
 	room: (c: Colony) => Room
 ): GrowthRow[] {
 	return latest.colonies
-		.filter((c) => !c.colonizing && c.planetId >= 0)
+		.filter((c) => !c.colonizing)
 		.map((c) => {
 			const samples = growthSamples(history, c.planetId).slice(-SAVES);
 			const growth = mean(samples);

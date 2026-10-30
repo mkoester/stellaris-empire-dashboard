@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
 import type { ActionKind, CapEffect, Costs, GameData } from '#lib/types.ts';
 
@@ -307,7 +308,8 @@ export function loadGameData(file: string): GameData {
 			})),
 			situationTypes: situationTypes(
 				rows('SELECT key, name, category FROM situation'),
-				rows('SELECT situation_key, key, name FROM situation_approach ORDER BY sort_order')
+				rows('SELECT situation_key, key, name FROM situation_approach ORDER BY sort_order'),
+				rows('SELECT situation_key, key, name FROM situation_stage ORDER BY sort_order')
 			),
 			projects: Object.fromEntries(
 				rows<{
@@ -478,6 +480,70 @@ export function loadGameData(file: string): GameData {
 					e.key,
 					{ axis: e.category!, pos: e.category === 'hive' ? 0 : (e.category_value ?? 2) - 2 }
 				])
+			),
+			ethicOrder: rows<{ key: string }>('SELECT key FROM ethic ORDER BY sort_order').map(
+				(r) => r.key
+			),
+			ethicRules: rows<{
+				ethic_key: string;
+				kind: 'tag' | 'country';
+				description: string | null;
+				factor: number | null;
+				factor_text: string | null;
+				trigger_json: string | null;
+			}>(
+				'SELECT ethic_key, kind, description, factor, factor_text, trigger_json FROM ethic_attraction ORDER BY ethic_key, sort_order'
+			).reduce<GameData['ethicRules']>((out, r) => {
+				(out[r.ethic_key] ??= []).push({
+					kind: r.kind,
+					description: r.description,
+					factor: r.factor,
+					factorText: r.factor_text,
+					trigger: parseTrigger(r.trigger_json)
+				});
+				return out;
+			}, {}),
+			attractionSources: attractionSources(
+				rows<{ tbl: string; owner: string; modifier: string; value: number; scope: string | null }>(
+					`SELECT 'tradition_modifier' AS tbl, owner_key AS owner, modifier_key AS modifier, modifier_value AS value, NULL AS scope FROM tradition_modifier
+					 UNION ALL SELECT 'building', building_key, modifier_key, value, scope FROM building_modifier
+					 UNION ALL SELECT 'civic', civic_key, modifier_key, modifier_value, NULL FROM civic_modifier
+					 UNION ALL SELECT 'origin', origin_key, modifier_key, modifier_value, NULL FROM origin_modifier
+					 UNION ALL SELECT 'designation', colony_type_key, modifier, value, NULL FROM colony_type_modifier
+					 UNION ALL SELECT 'council', position_key, modifier_key, modifier_value, NULL FROM council_position_modifier
+					 UNION ALL SELECT 'leader', trait_key, modifier_key, modifier_value, scope FROM leader_trait_modifier
+					 UNION ALL SELECT 'static', static_key, modifier_key, modifier_value, NULL FROM static_modifier_modifier
+					 UNION ALL SELECT 'deposit', deposit_key, modifier_key, modifier_value, NULL FROM deposit_modifier
+					 UNION ALL SELECT 'relic', relic_key, modifier_key, modifier_value, NULL FROM precursor_relic_active_modifier`
+				),
+				{
+					tradition: rows<{ key: string }>('SELECT key FROM tradition').map((r) => r.key),
+					perk: rows<{ key: string }>('SELECT key FROM ascension_perk').map((r) => r.key),
+					edict: rows<{ key: string }>('SELECT key FROM edict').map((r) => r.key),
+					agenda: rows<{ key: string }>('SELECT key FROM council_agenda').map((r) => r.key),
+					policy: rows<{ key: string }>('SELECT key FROM policy_option').map((r) => r.key),
+					origin: rows<{ key: string }>('SELECT key FROM origin').map((r) => r.key)
+				}
+			),
+			civicAuthority: rows<{ civic_key: string; kind: string; operator: string; value: string }>(
+				`SELECT civic_key, kind, operator, value FROM civic_requirement
+				 WHERE kind = 'authority' OR (kind = 'ethic' AND value = 'ethic_gestalt_consciousness')`
+			).reduce<GameData['civicAuthority']>((out, r) => {
+				const c = (out[r.civic_key] ??= { require: [], forbid: [] });
+				const key = r.kind === 'ethic' ? 'gestalt' : r.value;
+				(r.operator === 'forbid' ? c.forbid : c.require).push(key);
+				return out;
+			}, {}),
+			buildingUnlocks: rows<{ owner_key: string; building_key: string }>(
+				'SELECT owner_key, building_key FROM building_unlock ORDER BY owner_key'
+			).reduce<GameData['buildingUnlocks']>(
+				(out, r) => ({ ...out, [r.building_key]: [...(out[r.building_key] ?? []), r.owner_key] }),
+				{}
+			),
+			electionTypes: Object.fromEntries(
+				rows<{ key: string; election_type: string }>(
+					'SELECT key, election_type FROM authority'
+				).map((r) => [r.key, r.election_type])
 			),
 			authorities: rows<{ key: string }>('SELECT key FROM authority ORDER BY sort_order').map(
 				(r) => r.key
@@ -706,7 +772,8 @@ const jsonList = <T = string>(json: string | null): T[] => (json ? JSON.parse(js
 /** Situations with their approaches' names. */
 export function situationTypes(
 	types: { key: string; name: string | null; category: string | null }[],
-	approaches: { situation_key: string; key: string; name: string | null }[]
+	approaches: { situation_key: string; key: string; name: string | null }[],
+	stages: { situation_key: string; key: string; name: string | null }[]
 ): GameData['situationTypes'] {
 	return Object.fromEntries(
 		types.map((t) => [
@@ -716,7 +783,8 @@ export function situationTypes(
 				category: t.category,
 				approaches: Object.fromEntries(
 					approaches.filter((a) => a.situation_key === t.key).map((a) => [a.key, a.name ?? a.key])
-				)
+				),
+				stages: stages.filter((x) => x.situation_key === t.key).map((x) => x.name ?? x.key)
 			}
 		])
 	);

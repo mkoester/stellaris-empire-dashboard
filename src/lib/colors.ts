@@ -5,6 +5,7 @@
 const COLORS: Record<string, string> = {
 	energy: '#d9a521',
 	minerals: '#d0403a',
+	operational_reserves: '#38c0d8', // a nomad's energy and minerals pool: the situation bar's cyan
 	food: '#4caf3a',
 	alloys: '#b55bc4',
 	consumer_goods: '#c8743a',

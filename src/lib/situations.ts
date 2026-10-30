@@ -99,6 +99,7 @@ export type SituationRow = SituationInfo & {
 	name: string;
 	category: string | null;
 	approachName: string | null;
+	stageName: string | null;
 };
 
 export function situationRows(
@@ -109,7 +110,8 @@ export function situationRows(
 		...s,
 		name: types[s.type]?.name ?? s.type,
 		category: types[s.type]?.category ?? null,
-		approachName: s.approach ? (types[s.type]?.approaches[s.approach] ?? s.approach) : null
+		approachName: s.approach ? (types[s.type]?.approaches[s.approach] ?? s.approach) : null,
+		stageName: s.stage === null ? null : (types[s.type]?.stages[s.stage] ?? `stage ${s.stage + 1}`)
 	}));
 }
 

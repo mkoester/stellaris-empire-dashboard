@@ -2,6 +2,7 @@
 	import { colorOf } from './colors.ts';
 	import { fmt, pretty } from './format.ts';
 	import { monthlyLimit } from './market.ts';
+	import { RESERVES, type LevelTone } from './nomad.ts';
 	import { followTicks } from './live.ts';
 	import { stripOrder } from './resourceGroups.ts';
 	import { monthsLeft, urgencyColor, type StorageRow } from './storage.ts';
@@ -20,7 +21,8 @@
 		galactic = false,
 		date,
 		live = false,
-		storage = []
+		storage = [],
+		reserves = null
 	}: {
 		stockpile: Resources;
 		balance: Resources;
@@ -29,6 +31,22 @@
 		date: string;
 		live?: boolean;
 		storage?: StorageRow[];
+		// a nomad's Operational Reserves (energy and minerals in one pool): its level, the game's word,
+		// its share of the capacity and the next level at this month's net
+		reserves?: {
+			level: string | null;
+			tone: LevelTone;
+			share: number | null;
+			capacity: number | null;
+			next: {
+				level: string;
+				tone: LevelTone;
+				amount: number;
+				months: number;
+				down: boolean;
+			} | null;
+			estimated: boolean;
+		} | null;
 	} = $props();
 
 	const limits = $derived(new Map(storage.map((s) => [s.resource, s])));
@@ -37,7 +55,19 @@
 	let tick = $state<Tick | null>(null);
 	followTicks((t) => (tick = t));
 	const today = $derived(live && tick && tick.date > date ? tick : null);
-	const stockpile = $derived(today?.stockpile ?? saved);
+	// a nomad's tick logs the energy and minerals stockpiles the game ignores: the reserves stay saved
+	const stockpile = $derived(
+		today
+			? reserves
+				? {
+						...Object.fromEntries(
+							Object.entries(today.stockpile).filter(([k]) => k !== 'energy' && k !== 'minerals')
+						),
+						[RESERVES]: saved[RESERVES]
+					}
+				: today.stockpile
+			: saved
+	);
 
 	const shown = $derived(
 		stripOrder(
@@ -48,6 +78,13 @@
 	);
 
 	const signed = (n: number) => (n >= 0 ? '+' : '−') + fmt(Math.abs(n));
+	// the game's stage colours: Critical red, Low orange, Medium plain, High green
+	const TONES: Record<LevelTone, string> = {
+		bad: 'text-red-600',
+		warn: 'text-orange-500',
+		neutral: '',
+		good: 'text-green-600'
+	};
 </script>
 
 <div class="mb-4 flex flex-wrap gap-x-5 gap-y-1">
@@ -64,13 +101,31 @@
 		{@const left = limit ? monthsLeft(have, limit.max, net) : null}
 		<span class="inline-flex flex-col whitespace-nowrap">
 			<span>
-				<span style:color={colorOf(key)}>{pretty(key)}</span>
-				<b>{fmt(have)}</b>
+				<span
+					style:color={colorOf(key)}
+					title={key === RESERVES
+						? `energy and minerals in one pool, spent from either${reserves?.estimated ? ' — ≈ the last save plus the months since, which the companion mod logged' : ''}`
+						: undefined}>{pretty(key)}</span
+				>
+				<b>{key === RESERVES && reserves?.estimated ? '≈' : ''}{fmt(have)}</b>
 				<span class={net < 0 ? 'text-red-600' : net > 0 ? 'text-green-600' : 'text-gray-500'}
 					>{signed(net)}</span
 				>
 			</span>
-			{#if limit}
+			{#if key === RESERVES && reserves}
+				<!-- the game's "Current Reserves: Medium (50%)", and how far the next level is -->
+				<span
+					class="text-xs text-gray-500"
+					title="Current Reserves of {fmt(
+						reserves.capacity ?? 0
+					)}, as the game rounds them (down); each level is a stage of the Operational Reserves situation"
+					><b class={TONES[reserves.tone]}>{reserves.level ?? '?'}</b
+					>{#if reserves.share !== null}&nbsp;{Math.floor(reserves.share * 100)} %{/if}{#if reserves.next}&nbsp;·
+						{reserves.next.down ? '−' : '+'}{fmt(reserves.next.amount)} to
+						<span class={TONES[reserves.next.tone]}>{reserves.next.level}</span>
+						({months(reserves.next.months)}){/if}</span
+				>
+			{:else if limit}
 				<span
 					class="text-right text-xs text-gray-500"
 					title={`storage ${limit.exact ? '' : '≈ '}${fmt(limit.max)}${limit.exact ? '' : " (the base; silos, Mega-Engineering and others add to it — companion mod 0.5.0 stores the game's value)"}${left === null ? '' : `; ${net > 0 ? 'full' : 'empty'} in ${months(left)} at ${signed(net)} a month`}`}

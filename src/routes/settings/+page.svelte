@@ -39,10 +39,10 @@
 		],
 		[
 			'factionTypes',
-			'Government: faction types of your ethics, with their demands, before any has formed',
+			'Ethics: faction types of your ethics, with their demands, before any has formed',
 			'cheating'
 		],
-		['allFactionTypes', 'Government: also the faction types of ethics you do not hold', 'cheating'],
+		['allFactionTypes', 'Ethics: also the faction types of ethics you do not hold', 'cheating'],
 		['anomalySpoilers', 'Situations: show what an anomaly can lead to', 'spoilers'],
 		['projectSpoilers', 'Situations: show what a special project leads to', 'spoilers'],
 		[

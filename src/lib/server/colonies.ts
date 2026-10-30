@@ -19,7 +19,7 @@ import { colonyBlockerHints, colonyDetails } from './planets.ts';
 export function colonyRows(b: NonNullable<ReturnType<typeof branch>>) {
 	const data = getGameData();
 	const explain = getExplanations();
-	const colonies = b.latest.colonies.filter((c) => c.planetId >= 0);
+	const colonies = b.latest.colonies;
 	const species = speciesChoices(b.snaps.findLast((s) => s.species !== null)?.species ?? []);
 	const save = b.snaps.findLast((s) => s.kind === 'save') ?? null;
 	const hints = colonyBlockerHints(

@@ -1,7 +1,10 @@
 import { addGameDays } from '#lib/series.ts';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
+import { loadGameData } from './gamedata.ts';
 import {
+	ethics,
+	list,
 	storageMax,
 	budgetSources,
 	buildQueue,
@@ -14,6 +17,7 @@ import {
 	countryIds,
 	colonyGrowth,
 	colonyJobs,
+	colonyDistricts,
 	displayName,
 	setPrescriptedNames,
 	speciesName,
@@ -69,7 +73,8 @@ const raw: RawSave = {
 	focusCards: {},
 	endGameStart: 150,
 	galaxy: { technology: 1.25, traditions: 1 },
-	leaders: {},
+	// colony 7's governor, skill 2 (level 1 + bonus 1) as Peshnab's at 2203.02.01
+	leaders: { '5': { level: 1, bonus_skill_level: 1 } },
 	monthlyTrades: undefined,
 	market: undefined,
 	popJobs: {},
@@ -140,7 +145,9 @@ const raw: RawSave = {
 			civilian: 1500,
 			stability: 75.2,
 			districts: [1, 2, 3],
-			final_designation: 'col_capital'
+			final_designation: 'col_capital',
+			ascension_tier: 1,
+			governor: 5
 		},
 		'9': { num_sapient_pops: 200, districts: 4 }
 	},
@@ -218,6 +225,11 @@ describe('toSnapshot', () => {
 				housing: null,
 				housingUsed: null,
 				freeAmenities: 0,
+				amenities: null,
+				amenitiesUsage: null,
+				crime: null,
+				ascensionTier: 1,
+				governorSkill: 2,
 				planetClass: '',
 				planetSize: 0,
 				deposits: [],
@@ -245,6 +257,7 @@ describe('toSnapshot', () => {
 				openJobs: 0,
 				strata: [],
 				happiness: null,
+				approval: null,
 				habitability: null,
 				speciesHabitability: {},
 				sector: null,
@@ -1508,6 +1521,44 @@ describe('milestone fields', () => {
 		]);
 	});
 
+	it('reads which buildings the player disabled', () => {
+		// 4.5.2, the nomad game's arkship at 2201.05.01 (`buildings.2`: its Holo Theatres)
+		const raw = {
+			districtsDb: { '11': { type: 'district_ark_city', level: 3, zones: [7] } },
+			zones: { '7': { type: 'zone_ark_city', buildings: [1, 2, 4294967295] } },
+			buildings: {
+				'1': { type: 'building_temple', position: 0 },
+				'2': { type: 'building_holo_theatres', disabled: 'yes', position: 1 }
+			}
+		};
+		expect(colonyDistricts(raw, [11]).districtList[0].zones).toEqual([
+			{
+				type: 'zone_ark_city',
+				buildings: ['building_temple', 'building_holo_theatres'],
+				disabled: ['building_holo_theatres']
+			}
+		]);
+	});
+
+	it("reads our pops' ethics as the save's lists; a gestalt has none", () => {
+		// 4.5.2, the United Nations of Earth at 2202.08.01 (shortened: 17 slots in the save)
+		const country = {
+			ethics_distribution: [0, 0, 0, 3385, 0, 2135],
+			pops_ethics_attraction: [0, 0, 0, 58873.5, 0, 17001.6],
+			pops_ethics_change: [0, 0, 0, 76, 0, -45],
+			ethics_attraction: [0, 0.75, 0, 4.5, 0, 1],
+			pops_ethics_on_colonies: { colony: 27, num_pops: [0, 0, 0, 75], change: [0, 0, 0, 75] }
+		};
+		expect(ethics(country, new Map([[27, [3, {}]]]))).toEqual({
+			pops: [0, 0, 0, 3385, 0, 2135],
+			attraction: [0, 0, 0, 58873.5, 0, 17001.6],
+			change: [0, 0, 0, 76, 0, -45],
+			weight: [0, 0.75, 0, 4.5, 0, 1],
+			colonies: [{ planetId: 3, pops: [0, 0, 0, 75], change: [0, 0, 0, 75] }]
+		});
+		expect(ethics({ type: 'default' }, new Map())).toBeNull();
+	});
+
 	it("reads our fleets' last combats, skipping the empty records", () => {
 		// 4.5.2, the throwaway game's 2205.11.01 save: our corvettes against the salvagers
 		const side = (country_name: string, fleet_name: string, count: number[], lost: number[]) => ({
@@ -1758,6 +1809,30 @@ describe.skipIf(!real)('real save', () => {
 		expect(s.council?.length).toBeGreaterThan(0);
 		expect(s.focus?.rewards.length).toBeGreaterThan(0);
 		expect(s.leaderList?.length).toBeGreaterThan(0);
+		// the ethic index: our pop groups name their ethics; summed per ethic they must give the
+		// same ethics as the country's list read in the data DB's order, and about its counts —
+		// the list runs a few pops behind (2214.02.01: materialist 4032 listed, 4042 in the groups)
+		if (process.env.STELLARIS_DATA_DB && s.ethics) {
+			const order = loadGameData(process.env.STELLARIS_DATA_DB).ethicOrder;
+			const raw = await readSave(readFileSync(real!));
+			const named: Record<string, number> = {};
+			const ours = list(raw.country?.controlled_colonies).flatMap((c) =>
+				list(raw.colonies[String(c)]?.pop_groups)
+			);
+			for (const id of ours) {
+				const g = raw.popGroups[String(id)];
+				if (!g?.ethos) continue;
+				const keys = Array.isArray(g.ethos.ethics) ? g.ethos.ethics : [g.ethos.ethics];
+				const pops = Array.isArray(g.ethos.pops) ? g.ethos.pops : [g.ethos.pops];
+				keys.forEach((k: string, i: number) => (named[k] = (named[k] ?? 0) + Number(pops[i])));
+			}
+			const listed = Object.fromEntries(
+				s.ethics.pops.flatMap((v, i) => (v ? [[order[i], v]] : []))
+			);
+			expect(Object.keys(listed).sort()).toEqual(Object.keys(named).sort());
+			for (const [k, v] of Object.entries(named))
+				expect(Math.abs(listed[k] - v)).toBeLessThanOrEqual(Math.max(5, v * 0.01));
+		}
 		console.log(
 			JSON.stringify({
 				leaders: s.leaders,

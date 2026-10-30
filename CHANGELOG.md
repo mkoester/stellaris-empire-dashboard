@@ -4,7 +4,65 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.4] - 2026-10-31
+
+### Added
+
+- An **ethics** tab: per ethic how many of our pops hold it, how strongly the empire draws pops to
+  it (attraction) and last month's change, both over time as charts, and where each ethic's pops
+  live. It marks the governing ethic that embracing a faction of a new ethic would remove.
+- Our factions moved there from the government tab, with charts of their support and approval
+  over time, whether they are promoted or suppressed, and what embracing each still needs
+  (support over 20 %, 5000 unity, the 10-year cooldown).
+- One time window for every history chart: a bar under the tabs picks 5, 10, 20 or 50 years or
+  everything, a stretch of years, or half a window back and on; in a chart, drag to zoom to a
+  stretch, Ctrl+wheel zooms, Shift+wheel moves, a double-click goes back to the last 20 years.
+  Every chart follows, on every page. Not stored: a reload starts at the last 20 years.
+- Nomads: energy and minerals show as the one pool the game has, the Operational Reserves — stock,
+  capacity and level (Critical, Low, Medium, High) in the top bar, a chart, the resources tab
+  with both budgets, and in Upcoming when the reserves reach their next level.
+- A nomad's arkship colony is named after its ship ("Peshnab the Faithful", not "colony 0"), with
+  its class and size; ship names from the game's name lists read as the game writes them.
+- The situations tab names each situation's stage.
+- The reserves' level is coloured as in the game (Critical red, Low orange, High green), with the
+  share of the capacity and how far the next level is at this month's net, up or down.
+- The ethics tab ends with what draws pops to each ethic, to the governing ethics and how fast
+  they shift: the ethic's own rules (they explain the empire-wide factor) and every modifier in
+  the game files — which apply to us, and how each can be changed (now, slowly, not).
+- The ethics table shows the game's Average Ethic Attraction beside its share, cut as the game
+  does; the reasons the game lists (council, governor, living standards, jobs) are now told from
+  the save, matching the game's tooltips.
+- Every attraction source says how to get it — the traditions, perks, techs, civic or policy it
+  needs, which leaders have a trait — with popups; what this empire can never have is hidden, so
+  the nomads' variants no longer show twice. An agenda shows as one row, while preparing and after
+  launch.
+- The timeline numbers each game's saves on its own (#1, #2, …) instead of counting across all
+  games. Existing histories are renumbered once at the first start (a copy of the database is
+  left beside it); links keep working.
+- Each colony page explains its amenities, happiness and stability: what they do now, how many
+  amenities are missing, how many more would still help and how many are wasted beyond twice the
+  need (the scaling between the game's ends assumed, marked ≈).
+- Civics that unlock a source show the authority they need (the three Memorialist civics), the ones
+  this empire cannot take greyed.
+- Disabled buildings count for nothing where the dashboard works out effects (district limits,
+  ethic attraction, the market fee) and are struck through in a colony's districts.
+- The server log names saves by their number in their game ("#17 of …").
+- Buildings explain themselves on hover everywhere: cost, upkeep, output, jobs, modifiers and the
+  civics that unlock them.
+
+### Changed
+
+- Saves are read again (READER 25) for the ethics and situation stages; the ethics history starts with the saves still
+  on disk. The bundled extractor needs `ethic.sort_order`.
+
+### Fixed
+
+- A nomad's arkship shows as a colony everywhere: the colonies tab, its colony page (the colony
+  tab opens on it), the events filter, growth, trade-offs, job efficiency and the `all` tab's
+  link. Its districts count towards empire size.
+- The estimated empire size under 50 counts what the game does per colony — its ascension tier
+  and its governor's skill — and a nomad's +100 % from colonies and districts; it matches the
+  game's own breakdown.
 
 ## [0.1.3] - 2026-10-27
 

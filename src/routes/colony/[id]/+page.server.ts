@@ -5,8 +5,9 @@ import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
-import { colonySeries, xRange } from '#lib/series.ts';
+import { colonySeries, xExtent } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
+import { wellbeingRules } from '#lib/wellbeing.ts';
 
 const pct = (v: number | null) => (v === null ? null : Math.round(v * 1000) / 10);
 
@@ -33,9 +34,7 @@ export function load({ url, params }) {
 		},
 		name: named ? colonyAt(named)!.name : `planet ${planetId}`,
 		// the dropdown: the colonies at the tip
-		colonies: b.latest.colonies
-			.filter((c) => c.planetId >= 0)
-			.map((c) => ({ planetId: c.planetId, name: c.name })),
+		colonies: b.latest.colonies.map((c) => ({ planetId: c.planetId, name: c.name })),
 		colony: colonyAt(b.latest) ?? null,
 		details: colonyDetails(colonyAt(b.latest), b.snaps.findLast((s) => s.kind === 'save') ?? null),
 		blockerHints: colonyBlockerHints(
@@ -44,6 +43,15 @@ export function load({ url, params }) {
 			b.snaps.findLast((s) => s.kind === 'save') ?? null
 		),
 		jobRows: b.jobs[planetId] ?? [],
+		// what amenities, happiness and stability do (#lib/wellbeing.ts)
+		wellbeing: wellbeingRules(
+			getGameData().defines,
+			(key, mod) =>
+				getExplanations()[`modifier:${key}`]?.modifiers.find((m) => m.key === mod)?.value
+		),
+		gestalt: (b.latest.government ?? []).some(
+			(k) => k === 'auth_machine_intelligence' || k === 'auth_hive_mind'
+		),
 		classNames: Object.fromEntries(
 			Object.entries(getGameData().planetClasses).map(([k, v]) => [k, v.name])
 		),
@@ -51,7 +59,7 @@ export function load({ url, params }) {
 			getExplanations(),
 			(b.jobs[planetId] ?? []).map((j) => `job:${j.type}`)
 		),
-		xRange: xRange(snaps),
+		xExtent: xExtent(snaps),
 		charts: {
 			pops: colonySeries(snaps, planetId, {
 				pops: (c) => c.pops,

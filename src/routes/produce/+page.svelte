@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BuildingName from '#lib/BuildingName.svelte';
 	import { colorOf } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
@@ -121,7 +122,10 @@
 	const neg = (r: Resources) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, -v]));
 </script>
 
-{#snippet label(r: ProduceRow)}{r.option.label}
+{#snippet label(r: ProduceRow)}{#if r.option.kind === 'building'}<BuildingName
+			key={r.option.what}
+			name={r.option.label}
+		/>{:else}{r.option.label}{/if}
 	<span class="text-xs text-gray-500">{KIND[r.option.kind] ?? r.option.kind}</span>{/snippet}
 {#snippet gain(r: ProduceRow)}<span style:color={colorOf(resource ?? '')}>{fmt(r.gain)}</span
 	>{/snippet}

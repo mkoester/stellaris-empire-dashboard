@@ -7,6 +7,7 @@
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
 	import { followLoads } from '#lib/live.ts';
+	import TimeWindow from '#lib/TimeWindow.svelte';
 
 	let { data, children } = $props();
 
@@ -98,6 +99,11 @@
 			name: 'government',
 			href: node ? resolve(`/government?node=${node}`) : resolve('/government'),
 			active: path === '/government'
+		},
+		{
+			name: 'ethics',
+			href: node ? resolve(`/ethics?node=${node}`) : resolve('/ethics'),
+			active: path === '/ethics'
 		},
 		{
 			name: 'situations',
@@ -280,6 +286,7 @@
 				>v{__APP_VERSION__}</span
 			>
 		</nav>
+		{#if page.data.xExtent}<TimeWindow extent={page.data.xExtent as [number, number]} />{/if}
 		{#if loaded}
 			<p
 				class="mb-2 flex flex-wrap items-center gap-2 rounded border border-sky-400 px-3 py-1 text-sm"

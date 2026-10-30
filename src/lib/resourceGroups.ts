@@ -1,3 +1,4 @@
+import { RESERVES } from './nomad.ts';
 import type { Resources } from './types.ts';
 
 // Resources in groups as the game's top bar orders them. Anything not listed (rarer strategic
@@ -37,8 +38,14 @@ const STRIP_FIRST = ['energy', 'minerals', 'food', 'consumer_goods', 'alloys', '
 const STRIP_LAST = ['unity', 'influence'];
 const RESEARCH = ['physics_research', 'society_research', 'engineering_research'];
 
-/** `keys` plus the always-shown ones, in the Resources strip's order, research left out. */
+/**
+ * `keys` plus the always-shown ones, in the Resources strip's order, research left out. A nomad's
+ * Operational Reserves take energy's and minerals' place, as in the game's top bar.
+ */
 export function stripOrder(keys: string[]): string[] {
-	const skip = new Set([...STRIP_FIRST, ...STRIP_LAST, ...RESEARCH]);
-	return [...STRIP_FIRST, ...[...new Set(keys)].filter((k) => !skip.has(k)).sort(), ...STRIP_LAST];
+	const first = keys.includes(RESERVES)
+		? [RESERVES, ...STRIP_FIRST.filter((k) => k !== 'energy' && k !== 'minerals')]
+		: STRIP_FIRST;
+	const skip = new Set([...STRIP_FIRST, RESERVES, ...STRIP_LAST, ...RESEARCH]);
+	return [...first, ...[...new Set(keys)].filter((k) => !skip.has(k)).sort(), ...STRIP_LAST];
 }

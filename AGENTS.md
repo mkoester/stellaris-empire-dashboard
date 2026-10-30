@@ -161,6 +161,13 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   step runs in every test. Before migrating, `openDb` leaves a copy beside the DB
   (`dashboard.v<old>.sqlite`); a DB of a newer dashboard is refused (the reason shows on `/setup`),
   never dropped — a player who starts an older zip by mistake keeps their history.
+- **Migrations so far:** 16 — `node.seq`, each campaign numbering its own nodes (the timeline's
+  "#", the user's ask 2026-10-30), the stored ones in the order they were recorded; `id` stays the
+  global key of links (`?node=`), parents and snapshots. Checked 2026-10-30 on a copy of this
+  machine's DB: five campaigns, ids 1…303 → each 1…n without gaps (Roaming Korinth 287–303 →
+  1–17), `dashboard.v15.sqlite` left beside it. Tests building an older DB use the base tables
+  alone (`openDb(file, [])`) and insert nodes as 0.1.0 did. The server log names nodes the same
+  way (`nodeLabel()`: "new node #17 of roamingkorinth_…").
 
 `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`; vitest swallows its
 `console.log` dump unless run with `--silent=false`. Its assertions fit our 4.5.2 campaign (a
@@ -285,7 +292,7 @@ left, net per month right (`resourcePanelSeries()`) — and the latest save's mo
 `#lib/flows.ts`; its total is the save's balance: 2207.04.02 energy +3.455 both), and below it
 what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
 `trade-offs` (only with its switch, below) and `events`
-(`/events`: the milestone log, searchable, filtered in the page), `government`, `situations`, `shroud` (patrons and attunement), `focus`,
+(`/events`: the milestone log, searchable, filtered in the page), `government`, `ethics`, `situations`, `shroud` (patrons and attunement), `focus`,
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `megastructures` (all below), `mods` and
 `dlc` (last; see
 "DLCs and mods" below); tabs keep `?node=`. **Every list is a `SortTable.svelte`** (the user's ask
@@ -448,9 +455,8 @@ e.g. `enclave.7100`: 50 influence and energy by empire size), so the extraction 
 leaders; the Thought Warden (`has_leader_flag = mindwarden_commander`, the Mindwardens origin)
 stays unknown, hidden. Agendas show "while preparing" (`modifier`, active while being enacted —
 `99_README_AGENDAS.txt`) and "once launched" (launch effect text, `finish_modifier` for its
-duration); edicts their effects, in the table. Factions: none has formed in a save yet, so the
-panel lists faction types only with the profile's `factionTypes` (our ethics) or
-`allFactionTypes` switch — both marked cheating. `unlocked_civic_council_slots` is the number of
+duration); edicts their effects, in the table. Factions are on the ethics tab (below).
+`unlocked_civic_council_slots` is the number of
 seats (3 at 2207.03.10, all held). The agenda being prepared shows progress / cost (at empire size),
 percentage and months; every other open one "~N months if picked next" — the measured rate and
 size factor of the current agenda, started from 0. Same-status agendas sort alphabetically.
@@ -642,7 +648,8 @@ identity panel, ruler and council seats, the agenda with its due date (`events.t
 empire can have (`potential` not false: current, cooldown, open, open? — `allow` not answerable —,
 not allowed now, locked — none of the traditions or perks in its `unlocked_by` taken; 2207.03.10:
 7 open, matching ethics such as Open Arms and Give and Take), policies with the options this empire can have, edicts (active with their
-start, the others by unlock), and per faction type its demands. The data DB's normalised triggers
+start, the others by unlock); factions moved to the ethics tab (2026-10-28), whose faction
+demands use the same evaluation. The data DB's normalised triggers
 (`*_json`) are evaluated **three-valued** against the save (`facts()`: country type, civics,
 ethics, authority, origin, DLCs, policy and country flags, traditions, perks, techs, war): what
 the save cannot answer (`num_rivals`, scopes like `any_owned_pop_group`) is unknown, shown `?`,
@@ -663,6 +670,148 @@ type of each for every species. Each option explains itself on hover (`right:<ke
 `<key>_tooltip` and the unconditional `pop_group_modifier`s). `is_nomadic` is
 built into the game; read as running `situation_nomad_economy` (the origin misses most nomads,
 see the trade tab).
+
+**Ethics tab** (`/ethics`, `#lib/ethicsTab.ts` pure; the user's ask 2026-10-28: "which ethic gets
+how much attraction, now and over time", and the factions' details): our pops per ethic, their
+share, the **attraction share** — the country's `pops_ethics_attraction` (attraction-weighted
+pops) as a share: where the pops are heading; above its pop share an ethic gains — last month's
+change, and the save's empire-wide `ethics_attraction` per ethic as "×" (the product of the ethic's
+`country_attraction` factors, below). **Checked against the game's Ethics Attraction tooltips
+2026-10-30** (throwaway nomad game, 2200.05.01, screenshots
+`~/Pictures/Screenshots/screenshot_2026-10-30_20-09-12` … `20-09-53`): pops, change and the
+"Average Ethic Attraction" match — that average is `pops_ethics_attraction` ÷ `pops_with_ethic`
+(egalitarian 64509.70 / 5218 = 12.36), its percentage the attraction share; the game **cuts**
+percentages and the average (26.38 % → 26.3 %, 6.305 → 6.30), so the tab does too. Every reason
+the game listed per ethic is ✓ on the tab and none more (governing ethic, High Living Standards,
+Democratic Authority, council, governor; "− Pop works as a Priest" for materialist — a
+spiritualist's bureaucrat). `Snapshot.ethics` keeps the save's lists **by index** (READER 24) and
+the tab maps them through `GameData.ethicOrder` (data DB `ethic.sort_order`, the order of
+`common/ethics/` — 4.5.2: fanatic authoritarian 0 … materialist 15, gestalt 16), so a wrong
+order is fixed without re-reading saves. The real-save test checks it: the pop groups' named
+`ethos` summed per ethic give the same ethics as the lists (UNE 2207.04, Planetforgers 2214.02,
+spiritualist and materialist included), the counts a few pops apart (4032 vs. 4042 — the lists
+lag). The governing ethic an embrace of a new ethic would remove is marked (the lowest attraction,
+none while a fanatic ethic is held — it is demoted instead; insights doc 18). Charts: share and
+attraction per ethic, faction support and approval (lines by faction type, named by the latest
+reading — older readings hold shorter names, "of Scientific Betterment"); per colony
+`pops_ethics_on_colonies` (a colony id, stored as its planet). **Factions** (`FactionCard.svelte`,
+moved from the government tab): support, approval, pops as the game's factions screen (confirmed
+2212.03.05, below), its guiding ethic, promoted / suppressed (`promoted_<ethic>`,
+`suppressed_<ethic>` country modifiers, 4.5.2 `inline_scripts/pop_faction_types/actions/`), what
+embracing it needs (`embrace()`: support > 20 %, 5000 unity, no `embraced_faction_timer`, not
+already fanatic) and its demands; faction types not formed only with the `factionTypes` /
+`allFactionTypes` switches (cheating). The ethics history starts with READER 24's re-read of the
+saves on disk: 5 of 32 UNE snapshots, 32 of 191 Planetforgers' on the 2026-10-28 DB copy.
+**What draws pops to each ethic** (the user's ask 2026-10-30: "all sources of ethics attraction,
+grouped by ethic, and governing ethics attraction; which apply; which can be changed";
+`#lib/ethicSources.ts` pure, `AttractionSources.svelte`): per ethic (ours first), then the
+governing ethics (`pop_government_ethic_attraction`) and the shift speed
+(`pop_ethics_shift_speed_mult`). **The ethic's own rules** (data DB `ethic_attraction`, from
+`common/ethics/00_ethics.txt`): `country_attraction` factors — their product is the save's
+`ethics_attraction` (the "×" column, now explained: held ×2, fanatic ×3, Democratic Authority
+×1.25 for egalitarian and ×0.75 for authoritarian, Unrestricted Warfare ×0.75 for pacifist …) —
+and the `pop_attraction_tag` reasons the game's tooltip lists, each evaluated three-valued by
+`#lib/triggers.ts`, which now also answers `has_edict`, `has_faction`, `has_federation`,
+`is_subject`, `exists = overlord` and `has_election_type` (data DB `authority.election_type`),
+and the scopes the reasons look into, which the extraction turns into leaves
+(`attraction_structured()`): `council_leader_ethic` / `governor_ethic` (leaders' `ethic` and our
+colonies' `governor`, READER 26), `assigned_jobs` (jobs with a pop), `has_living_standard` and
+`species_has_living_standard` / `species_has_trait` / `species_is_robotic` (our species' rights and
+traits), `other_organic_species` / `all_organic_full_citizenship` / `enslaved_organic_species`
+(our species, their citizenship; slavery = data DB `species_right.is_slavery`). Relations stay
+"?". "Pop is enslaved" is positive for egalitarian in the files (slaves are drawn to it).
+**How to get each source** (`unlockOf()`, the user's ask 2026-10-30): edicts and agendas their
+unlocking traditions or perks (alternatives, "or"), techs and the progress their `potential`
+asks for (`has_technology`, `has_tradition`, `has_ascension_perk` — not yet, not never: Hearts
+and Minds is an ambition behind Ascension Theory); policy options their policy; council seats
+their civic; buildings the civics or origins that unlock them (data DB `building_unlock`, no
+techs known); leader traits the leaders who have one. `forUs` false — a potential false on who
+the empire is (`identityOnly()`: nomadic, gestalt, civics …) — hides a source but under
+"everything": the nomads' twins of agendas and policy options (Open Arms, Isolationist) showed
+twice before. An agenda's two modifiers are one row, preparing then after launch.
+**A building's planet modifier stacks per building** (checked 2026-10-30 in the nomad game's
+saves, no screenshot needed): the arkship's second Temple (between 2201.01.01 and 02.01) took a
+pop group's spiritualist attraction (`pop_groups.<id>.ethics_attraction`, by ethic index) from
+6.7925 to 7.05375 = 5.225 × 1.30 → × 1.35 (Veneration of Saints +25 %, +5 % per Temple); so
+`holdings()` counts every building. Pop groups take a change up one by one — another group still
+read 6.7925 at 2201.04.01.
+**Amenities, happiness and stability** (the user's ask 2026-10-30: "when do I have enough amenities
+on a colony, when does it make sense to provide more?"; `#lib/wellbeing.ts` pure,
+`ColonyWellbeing.svelte` on the colony page; the rules in `stellaris-modding-insights/docs/19`):
+amenities provided ÷ needed (`colony.amenities`, `amenities_usage`, READER 28) count between 25 %
+and 200 % (`MIN|MAX_PLANET_AMENITIES`): −50 % happiness at 25 %, +20 % citizen happiness at 200 %
+(`planet_amenities_low|high`; a gestalt's stability −50 / +20), so the panel says what is short,
+how much more still helps, and what beyond twice the need is wasted; the Pop Approval Rating
+(happiness weighted by `pop_groups.<id>.power`) moves stability −50 at 0 % … +30 at 100 %
+(`LOW|HIGH_HAPPINESS_STABILITY_EFFECT`, neutral at `BASE_HAPPINESS` 0.5); stability scales job
+output −50 % at 0 … +30 % at 100 (`planet_stability_low|high`, neutral at 50). Defines and the
+static modifiers' values come from the data DB (`wellbeingRules()`). **The scaling is linear for
+approval → stability and stability → job output** (Roaming Korinth 2203.02.01: approval 97.5 % →
++28.5, stability 98.143 → +28.88 %, the game's tooltips); **amenities between the ends are still
+assumed linear**, marked ≈ (`docs/open-checks.md` 17). Civilians use no amenities (need there:
+500 base + 1 per elite, specialist and worker pop). Civic needs carry their authority
+(`civicAuthority`, data DB `civic_requirement`): the three Memorialist civics differ only by it,
+ours first, the others greyed.
+**Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
+cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
+of every building on our colonies or queued (`buildings`, like `designations`), so the districts
+panel, build queues, trade-offs and produce tabs show them.
+The group header shows the save's ×, the known product and the rest "from N rules the save cannot
+tell" (council, relations, federation, script values). Checked 2026-10-30 on the nomad game
+(2200.02.01): authoritarian ×0.75 and pacifist ×0.75 fully explained; egalitarian ×3 = known ×2.5
+× 1.2 unknown. **Modifiers** (every data DB modifier table: traditions, perks, edicts, agendas
+— `#finish` = after launch —, policy options, civics, origins, buildings, designations, council
+seats, leader traits, static modifiers, deposits, relics): ✓ / ×N colonies / ✗ / ? (`applies()`
+from `holdings()` of the latest save), and how to change it (`changeOf()`: now — edict, policy,
+building, designation, leader, agenda, promote/suppress; slowly — tradition, perk, reform; not —
+events, origin, deposits). Filters (per viewer): what applies or can be changed (default), what
+applies, everything. Not covered: job modifiers (bureaucrats, enforcers, telepaths add governing
+attraction on their planet) — the data DB has no job modifier table.
+
+**Nomads: Operational Reserves** (`#lib/nomad.ts` pure; throwaway nomad game
+`roamingkorinth_1232667372`, 2026-10-30, screenshot `2026_10_30_1`): a nomadic empire has no
+energy and minerals storage — both live in one pool (4.5.2 `resource_converters`,
+`nomadic_operational_reserves`: `bottomless`, each payable with the other, `visible_stockpile = no`).
+The pool **is** the situation `situation_nomad_economy`: `progress` the stock (10069.85, the game's
+"Stored: 10069 / 20000"), the last `stage_durations` end the capacity (base 15000 + 5000 for a
+tier I arkship; ends 1000/5000/15000/20000), `stage` its level (data DB `situation_stage`:
+Critical, Low, Medium, High — the top bar's "Medium"), and each unit of energy or minerals net
+moves it by one (2200.02.01: +98.91 − 29.06 = the game's "69.8"; it started at
+`initial_progress` 10000). The save's energy and minerals stockpiles are their start values
+(1200 / 15000) plus their own nets — ignored by the game. `withReserves()` folds them into
+`operational_reserves` for the top bar, its storage line, the stockpile and net charts and the
+resources tab (whose budget for it is energy's and minerals' together; `stripOrder()` puts it
+first, as the game); a month only the mod logged is ≈ the last save plus its net
+(`reservesAlong()`); Upcoming has "Operational Reserves fall/rise to <level>" instead of energy or
+minerals running out (`reserveLevels()`). Income and every economic tab keep the real energy and
+minerals flows. `SituationInfo.stage` is the save's number (it was read as a string, always
+null, before READER 25) with `ends`. **The arkship is the colony's place**: `colony.<id>.carrier =
+{ type=ship reference }`, the ship holding `colony`, `planet_class="pc_ark"`, `planet_size`,
+`build_queue` and its name — `colonyPlaces()` gives it the id −1 − ship id (ship 0 stays −1, as
+stored before) and its name from the name lists (data DB `prescripted_name` now holds ship names
+that differ from their key: `HUM1_SHIP_PeshnabtheFaithful` = "Peshnab the Faithful"). **A negative
+`planetId` is the arkship, a full colony** (districts, buildings, jobs; the capital,
+`col_capital_nomad`) — never filter colonies by `planetId >= 0`, which hid it from every colony
+list until 2026-10-30. A save's colony carriers are `type=planet` or `type=ship` only (checked on
+Roaming Korinth 2203.02.01: 75 / 11); habitats and ringworlds are planets. Nomads get the engine's
+static modifier `nomadic_empire` (+100 % empire size from colonies and districts; see Top bar). Not yet
+nomad-aware: other places that map a colony to its planet themselves (capital, construction,
+migration, growth), the trade tab's valuation of energy and minerals for us, and whether the
+approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
+Balance at ×1.
+
+**Time window** (the user's ask 2026-10-28): every history chart (`Chart` with `extent`, the
+history's first and last save from `xExtent()`) shows one shared window
+(`#lib/timeWindow.svelte.ts`, session-only by the user's call — a reload starts at the default):
+`{ years }` follows the latest save (the last N years and one ahead, default 20; `all` from the
+first save) or `{ from, to }` stays put (`windowRange()`, `zoomWindow()`, `panWindow()`,
+`spanWindow()` in `#lib/series.ts`, pure; bounded by 2200 and a year ahead, a month at least;
+panning back to the right edge follows again). In a chart: drag selects (uPlot's own zoom and
+double-click reset are off), Ctrl/⌘+wheel zooms around the cursor, Shift+wheel moves, a
+double-click resets; the plain wheel scrolls the page. The bar under the tabs (`TimeWindow.svelte`,
+on pages whose data has `xExtent`) has presets, from/to years, ◀ ▶ half a window and "now".
+Projections (growth, trade-offs, the systems horizon) keep their own `range`. Drawn only in a
+browser: the interactions are unchecked here.
 
 **Situations tab** (`/situations`, `#lib/situations.ts` pure, readers in `server/world.ts`): first
 contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
@@ -1041,8 +1190,22 @@ pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − wo
   need a tech (`deposit.prerequisites` in the data DB, 12 in 4.5.2), natural ones
   (`deposit_cat_blockers_natural`) cannot be cleared while the planet has a Ranger Lodge; one in
   the build queue (`clear_deposit_blocker`) shows as being cleared.
+- **Disabled buildings** (2026-10-30, the nomad game's arkship, 2201.05.01): `buildings.<id> =
+{ type disabled=yes position }` — the building keeps its slot and does nothing: its Entertainer
+  jobs went and amenities fell 12,188 → 8,493. Read per zone as `disabled` (types, only when any;
+  READER 27); `#lib/buildings.ts` `activeBuildings()` for what reads effects (district caps,
+  ethic attraction sources, the market fee), the full list for what asks whether one exists
+  (built before, Ranger Lodge, milestones, popups). The districts panel strikes them through.
+  Jobs, budget, amenities and stability come from the save and already follow.
 - Planet modifiers: `planets.planet.<id>.timed_modifier`, as the country's; features like
   `tidal_locked` and `mineral_poor` are permanent ones (`days=-1`).
+- Ethics (2026-10-28): `country.<id>.ethics_distribution` (pops per ethic, summing to
+  `pops_with_ethic`), `pops_ethics_attraction`, `pops_ethics_change`, `ethics_attraction` — lists of
+  17, one slot per ethic in the files' order (the fanatic slots stay 0) — and
+  `pops_ethics_on_colonies = { { colony num_pops = {…} change = {…} } }`; a pop group's own split is
+  `ethos = { ethics = { "ethic_x" … } pops = { n … } }`, by name. Faction membership:
+  `pop_groups.<id>.factions` and `factions_attraction`; the country's
+  `standard_pop_factions_module.potential_count` (42 slots, order unknown) not read.
 - Pop groups: `colony.pop_groups` → top-level `pop_groups.<id> = { key = { species category } size
 happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.01.01, where the
   game showed Earth at 100 % happiness and 100 % approval (the user, 2026-10-25); the AIs' stored
@@ -1289,15 +1452,21 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   `district`, `army`, `ship`, `starbase_building`, `clear_deposit_blocker` (→ `deposit.<id>.type`).
   `building` not yet seen — `save.ts` names it by the block's first string field.
 - Game length: top-level `galaxy = { mid_game_start=100 end_game_start=200 victory_year=300 }`,
-  years after the 2200.01.01 start (small/default galaxy). Stored as `Snapshot.endGameYear` — the
-  outer bound for zooming out, once zoom exists.
+  years after the 2200.01.01 start (small/default galaxy). Stored as `Snapshot.endGameYear`.
 - Top bar: `country.<id>.empire_size` — **already raised to `EMPIRE_SIZE_FLOOR` (50)**: Yorphia
   read 50 in every save to 2203.10.01. While it sits at the floor the empire chart adds the
   unfloored size, estimated (`#lib/empireSize.ts`): the defines' `EMPIRE_SIZE_FROM_*` weights
   (colonies 20, systems 1, districts 0.5, pops 0.005; branch offices not counted) × the
   `empire_size_*_mult` modifiers of civics, ethics, authority, origin, traditions, perks, techs,
-  timed modifiers and species traits (Yorphia 2203.10.01: 48.9; not yet checked against the game's
-  tooltip). Also `starbase_capacity_used` / `starbase_capacity`,
+  timed modifiers and species traits, `nomadic_empire` for a nomad; then **per colony** its ascension
+  tier (`colony.ascension_tier`: −5 % a tier, `PLANET_ASCENSION_SPRAWL_MODIFIER`, × (1 +
+  `planetary_ascension_effect_mult`)) on all its parts and its governor (`species_empire_size_mult
+= @planet_empire_size`, −2 % per skill = `level` + `bonus_skill_level`) on its colony and pops, not
+  its districts (READER 29). **Checked against the game's tooltip** (Roaming Korinth 2203.02.01,
+  screenshot `~/Pictures/Screenshots/screenshot_2026-10-30_22-11-54.png`): districts 8 × 0.5 × 2 ×
+  0.9375 = 7.5, colony 20 × 2 × 0.9375 × 0.96 = 36.0, pops 5514 × 0.005 × 0.9375 × 0.96 = 24.8;
+  the sum 68.31 shows as 69 (rounded up). A species' pops are not split by colony: they shrink by the
+  colonies' pop-weighted factor. Also `starbase_capacity_used` / `starbase_capacity`,
   `used_naval_capacity`; research per field is `physics|society|engineering_research` in the
   budget income. Envoys are `leaders.<id>` with `class="envoy"` and `country=<id>`; one is in use
   while it has `location = { assignment=… }` (seen: `first_contact`). **Not stored: the naval
@@ -1603,8 +1772,6 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   through 2203.10.01 — we alone had access and never traded on it; the market tab says so. The
   game's market screen at base prices is still to be screenshotted. Prices exist
   only for saves read since 2026-10-17; older ones' saves are gone.
-- **Chart zoom and pan**: wanted — the default window (`xRange`: last 20 years, 1 ahead) should
-  zoom out/in and shift. Not started.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
 - **Next, the user's plan:** a configurable main dashboard (custom tabs pick empire panels now;

@@ -44,7 +44,7 @@
 			<Chart
 				title={pretty(p.key)}
 				series={p.series}
-				range={data.xRange}
+				extent={data.xExtent}
 				right={['per month']}
 				rightFloor={0}
 				colors={color ? { stockpile: color, 'per month': color } : {}}

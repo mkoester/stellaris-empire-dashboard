@@ -1,3 +1,4 @@
+import type { AttractionRule, AttractionSource } from './ethicSources.ts';
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
@@ -22,6 +23,11 @@ export type Colony = {
 	housing: number | null; // total_housing; null before 2026-10-22
 	housingUsed: number | null; // housing_usage: pops × their housing need
 	freeAmenities: number;
+	amenities?: number | null; // provided; since READER 28
+	amenitiesUsage?: number | null; // needed by the pops; since READER 28
+	crime?: number | null; // since READER 28
+	ascensionTier?: number; // `ascension_tier`; since READER 29
+	governorSkill?: number; // its governor's level + bonus_skill_level, 0 without one; since READER 29
 	districts: number;
 	districtList: ColonyDistrict[]; // per district type: built, zones and their buildings
 	planetClass: string;
@@ -35,6 +41,7 @@ export type Colony = {
 	openJobs: number; // unfilled positions, summed over the colony's jobs
 	strata: Stratum[]; // pops and happiness per stratum (worker, specialist, …)
 	happiness: number | null; // 0–1, pops-weighted over the strata
+	approval?: number | null; // the Pop Approval Rating: happiness weighted by political power; READER 28
 	habitability: number | null; // 0–1, pops-weighted over the pop groups
 	speciesHabitability: Record<string, number>; // per species id living there, pops-weighted
 	automation: { enabled: boolean; settings: string[] };
@@ -147,7 +154,8 @@ export type BudgetSource = { source: string; income: Resources; expenses: Resour
 export type ColonyDistrict = {
 	type: string;
 	built: number;
-	zones: { type: string; buildings: string[] }[];
+	// buildings: every one built; disabled: those the player turned off (READER 27), by type
+	zones: { type: string; buildings: string[]; disabled?: string[] }[];
 };
 
 /** One job on a colony. Positions null: unlimited (civilian). */
@@ -371,6 +379,7 @@ export type Snapshot = {
 	galcom: GalacticCommunity | null; // null before it forms, and before 2026-10-19
 	claims: Claim[] | null; // ours, and on our systems; null before 2026-10-19
 	factions: Faction[] | null; // ours; null before 2026-10-19
+	ethics: EthicsState | null; // our pops' ethics and attraction; null before READER 24
 	combats: Combat[] | null; // our fleets' last combats this save still holds; null before 2026-10-19
 	shroud: Shroud | null; // null before access to the Shroud, and before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
@@ -468,6 +477,8 @@ export type LeaderInfo = {
 	species: string | null; // its species' name
 	council: boolean; // holds a council seat
 	ruler: boolean;
+	ethic?: string | null; // `leaders.<id>.ethic`; since READER 26
+	governor?: boolean; // governs one of our colonies; since READER 26
 };
 
 /**
@@ -605,7 +616,8 @@ export type SituationInfo = {
 	progress: number;
 	monthly: number | null; // last month's progress
 	approach: string | null;
-	stage: string | null;
+	stage: number | null; // index into the situation's stages (data DB `situation_stage`); null before READER 25
+	ends?: number[]; // where each stage ends (`stage_durations`); the last is the most there is
 };
 
 export type AnomalyInfo = { planetId: number; planet: string; systemId: number; category: string };
@@ -672,6 +684,20 @@ export type Shroud = {
 	lastDelve: string | null;
 	preferred: string | null; // is_preferred_patron
 	patrons: PatronRelation[];
+};
+
+/**
+ * Our pops' ethics: `country.<id>.ethics_distribution | pops_ethics_attraction | pops_ethics_change
+ * | ethics_attraction` and `pops_ethics_on_colonies = { { colony num_pops change } }` (4.5.2; a colony id, kept as its planet), each
+ * a list by the game's ethic index — the order of `common/ethics/` (data DB `ethic.sort_order`,
+ * `GameData.ethicOrder`). Kept as the save's lists, mapped to keys on read (`#lib/ethicsTab.ts`).
+ */
+export type EthicsState = {
+	pops: number[]; // pops per ethic
+	attraction: number[]; // attraction-weighted pops: where the pops are heading
+	change: number[]; // pops gained or lost last month
+	weight: number[]; // `ethics_attraction`, empire-wide per ethic; meaning unverified
+	colonies: { planetId: number; pops: number[]; change: number[] }[]; // by colony, its planet
 };
 
 /**
@@ -803,6 +829,7 @@ export type TimelineNode = {
 	fingerprint: string;
 	parentId: number | null;
 	ambiguous: boolean;
+	seq: number; // the node's number within its campaign (1, 2, …); `id` is global
 };
 
 /** Names, costs and rules from the extraction's SQLite (STELLARIS_DATA_DB), loaded once. */
@@ -978,6 +1005,13 @@ export type GameData = {
 	perks: Record<string, string>; // ascension perk names
 	flagColors: Record<string, string>; // flag colour swatch → its galaxy-map colour (#rrggbb)
 	ethicAxes: Record<string, EthicAxis>; // ethic → its place on its axis
+	ethicOrder: string[]; // ethic keys by the game's ethic index (`EthicsState` lists)
+	ethicRules: Record<string, AttractionRule[]>; // per ethic, its own attraction rules
+	electionTypes: Record<string, string>; // authority → democratic / oligarchic / none
+	buildingUnlocks: Record<string, string[]>; // building → the civics or origins that unlock it
+	// civic → the authorities it needs or forbids ('gestalt': the gestalt consciousness ethic)
+	civicAuthority: Record<string, { require: string[]; forbid: string[] }>;
+	attractionSources: AttractionSource[]; // every modifier moving an ethic's attraction or the shift
 	authorities: string[]; // every authority, in the game's order
 	anomalyLevels: Record<string, number | null>; // anomaly category → level
 	blockers: string[]; // deposit keys that are blockers
@@ -992,7 +1026,7 @@ export type GameData = {
 	dlcs: Dlc[]; // every DLC the game knows (dlc_info.txt), in release order
 	situationTypes: Record<
 		string,
-		{ name: string; category: string | null; approaches: Record<string, string> }
+		{ name: string; category: string | null; approaches: Record<string, string>; stages: string[] }
 	>;
 	projects: Record<
 		string,

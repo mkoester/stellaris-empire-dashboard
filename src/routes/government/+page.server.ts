@@ -4,7 +4,6 @@ import {
 	atLevel,
 	councilorBonus,
 	edictRows,
-	factionRows,
 	facts,
 	policyRows,
 	possibleSeats,
@@ -16,8 +15,8 @@ import { identity } from '#lib/server/empire.ts';
 import { pick } from '#lib/server/explain.ts';
 import { display } from '#lib/server/settings.ts';
 
-// The game's government screen: identity, council and agendas, policies, edicts, factions, read
-// against the branch's latest save that has the government fields.
+// The game's government screen: identity, council and agendas, policies, edicts (factions: the
+// ethics tab), read against the branch's latest save that has the government fields.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
@@ -25,8 +24,13 @@ export function load({ url }) {
 	const data = getGameData();
 	const s = snaps.findLast((x) => x.council !== null) ?? snaps.findLast((x) => x.kind === 'save');
 	if (!s) error(404, 'no save yet');
-	const f = facts(s, data.scriptedTriggers);
-	const { showLocked, factionTypes, allFactionTypes } = display();
+	const f = facts(s, data.scriptedTriggers, {
+		electionTypes: data.electionTypes,
+		slavery: data.speciesRights.flatMap((k) =>
+			k.options.filter((o) => o.isSlavery).map((o) => o.key)
+		)
+	});
+	const { showLocked } = display();
 	const policies = policyRows(data.policies, s.policies ?? {}, f, showLocked);
 	// the measured agenda rate (progress/month) and the empire-size factor on costs, from the
 	// agenda being prepared: an estimate for every other one, if picked next and started from 0
@@ -42,7 +46,6 @@ export function load({ url }) {
 	}));
 	const edicts = edictRows(data.edicts, s, f);
 	const government = identity(snaps.findLast((x) => x.government !== null));
-	const formed = snaps.findLast((x) => x.factions !== null)?.factions ?? [];
 	const explanations = getExplanations();
 	const bonus = councilorBonus(s, data.councilorSkill);
 	const bonusTotal = bonus.reduce((a, b) => a + b.value, 0);
@@ -86,10 +89,6 @@ export function load({ url }) {
 		showLocked,
 		complete: s.council !== null, // read since the government tab exists
 		government,
-		// a gestalt consciousness never has factions (its pops "will not join Factions")
-		gestalt: (s.government ?? []).some(
-			(k) => k === 'auth_machine_intelligence' || k === 'auth_hive_mind'
-		),
 		seats,
 		councilBonus: bonus.map((b) => ({
 			...b,
@@ -110,13 +109,6 @@ export function load({ url }) {
 		techNames: Object.fromEntries(
 			edicts.flatMap((e) => e.needs).map((t) => [t, data.techs[t]?.name ?? t])
 		),
-		// formed factions as the game lists them; the types not formed only with the switches
-		factions: factionRows(data.factionTypes, f)
-			.map((t) => ({ ...t, formed: formed.find((x) => x.type === t.key) }))
-			.filter((t) => t.formed || allFactionTypes || (factionTypes && t.ours))
-			.sort((a, b) => (b.formed?.support ?? -1) - (a.formed?.support ?? -1)),
-		anyFormed: formed.length > 0,
-		factionTypes: factionTypes || allFactionTypes,
 		explain: pick(explanations, [
 			...seats.map((r) => `seat:${r.key}`),
 			...seats.flatMap((r) => r.traits.map((t) => `ltrait:${t}`)),

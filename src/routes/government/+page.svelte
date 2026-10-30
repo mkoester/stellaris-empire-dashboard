@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { pretty } from '#lib/format.ts';
-	import type { AgendaRow, EdictRow, FactionRow } from '#lib/government.ts';
+	import type { AgendaRow, EdictRow } from '#lib/government.ts';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
 	import { colorOf } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { formatModifierValue, modifierColor, modifierLabel } from '#lib/modifiers.ts';
@@ -9,7 +11,6 @@
 	import Panel from '#lib/panels/Panel.svelte';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
-	import { describe } from '#lib/triggers.ts';
 	import type { Modifier, Resources } from '#lib/types.ts';
 
 	let { data } = $props();
@@ -46,9 +47,6 @@
 			.join(', ');
 	const length = (days: number | null) =>
 		days === null ? null : days === -1 ? 'perpetual' : `${Math.round(days / 30)} months`;
-	const effect = (v: number | null) =>
-		v === null || Math.abs(v) < 0.01 ? null : `${v > 0 ? '+' : ''}${v}`;
-	const mark = (v: boolean | null) => (v === null ? '?' : v ? '✓' : '✗');
 
 	const agendaColumns: Column<AgendaRow & { months: number | null }>[] = [
 		{ id: 'name', label: 'Agenda', value: (r) => r.name, cell: agendaName },
@@ -112,28 +110,9 @@
 			cell: edictEffects
 		}
 	];
-	type Demand = (typeof data.factions)[number]['demands'][number] & { i: number };
-	const demandColumns: Column<Demand>[] = [
-		{
-			id: 'met',
-			label: 'Met',
-			value: (d) => (d.met === null ? null : d.met ? 1 : 0),
-			cell: met
-		},
-		{ id: 'demand', label: 'Demand', value: (d) => d.title, cell: demand }
-	];
+	const node = $derived(page.url.searchParams.get('node'));
 </script>
 
-{#snippet met(d: Demand)}{mark(d.met)}{/snippet}
-{#snippet demand(d: Demand)}
-	<b>{d.met === false && d.unfulfilledTitle ? d.unfulfilledTitle : d.title}</b>
-	{#if effect(d.fulfilled)}<span class="text-green-700 dark:text-green-500">
-			{effect(d.fulfilled)} if met</span
-		>{/if}
-	{#if effect(d.unfulfilled)}<span class="text-red-600"> {effect(d.unfulfilled)} if not</span>{/if}
-	{#if d.description}<div class="text-gray-500">{d.description}</div>{/if}
-	<div class="text-xs text-gray-500">how: {describe(d.trigger)}</div>
-{/snippet}
 {#snippet classes(list: string[])}
 	{#each list as k (k)}<span
 			class="mr-1 rounded px-1 text-xs text-white"
@@ -392,52 +371,9 @@
 	</Panel>
 </div>
 
-<div class="mt-8">
-	<Panel
-		title="Factions"
-		note={(data.anyFormed
-			? 'Our factions with their support and approval, and what each demands'
-			: data.gestalt
-				? 'A gestalt consciousness has no factions: its drones never join one.'
-				: 'No faction has formed yet.') +
-			(data.factionTypes
-				? ' — the faction types the switches in ⚙ add too: ✓ met, ✗ not, ? cannot be told from the save, and how to meet it.'
-				: data.anyFormed
-					? ': ✓ met, ✗ not, ? cannot be told from the save, and how to meet it.'
-					: ' The faction types and their demands show with the switches in ⚙ (cheating).')}
-	>
-		<div class="grid gap-6 lg:grid-cols-2">
-			{#each data.factions as f (f.key)}
-				{@render faction(f)}
-			{/each}
-		</div>
-	</Panel>
-</div>
-
-{#snippet faction(f: FactionRow)}
-	<section class="text-sm">
-		<h3 class="text-base font-semibold">
-			{f.name}
-			<span class="font-normal text-gray-500"
-				>{f.ethic ? pretty(f.ethic.replace(/^ethic_/, '')) : ''}</span
-			>
-		</h3>
-		{#if f.formed}<p class="mb-1 tabular-nums">
-				<!-- rounded down, as the game's factions screen: 5.72 % shows as 5 % -->
-				support <b>{Math.floor(f.formed.support * 100)} %</b> · approval
-				<b class={f.formed.approval < 0.5 ? 'text-red-600' : 'text-green-600'}
-					>{Math.floor(f.formed.approval * 100)} %</b
-				>{f.formed.pops !== null
-					? ` · ${f.formed.pops} pops${f.formed.change ? ` (${f.formed.change > 0 ? '+' : ''}${f.formed.change})` : ''}`
-					: ''}
-			</p>
-		{:else if data.anyFormed}<p class="mb-1 text-gray-500">not formed</p>{/if}
-		{#if f.description}<p class="mb-1 text-gray-500">{f.description}</p>{/if}
-		<SortTable
-			rows={f.demands.map((d, i) => ({ ...d, i }))}
-			columns={demandColumns}
-			key={(d) => d.i}
-			sort={{ column: '', desc: false }}
-		/>
-	</section>
-{/snippet}
+<p class="mt-8 text-sm text-gray-500">
+	Factions — support, approval, demands and what embracing one takes — are on the <a
+		class="underline"
+		href={node ? resolve(`/ethics?node=${node}`) : resolve('/ethics')}>ethics tab</a
+	>.
+</p>

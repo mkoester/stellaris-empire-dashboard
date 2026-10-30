@@ -98,6 +98,29 @@ lines change, the suspected cause.
 - **Send:** a screenshot of the fleet manager's naval capacity and the date; any console error
   and the start window's output if the 500 shows again.
 
+### 16. Ethics attraction — the factors the save cannot tell (from 2026-10-30)
+
+Settled 2026-10-30 (throwaway nomad game, 2200.05.01, screenshots
+`~/Pictures/Screenshots/screenshot_2026-10-30_20-09-12` … `20-09-53`; `AGENTS.md` → Ethics tab).
+Open: the empire-wide factors from rules the save cannot answer — egalitarian ×3 = ×2.5 known ×
+1.2, xenophile and spiritualist ×2.2 = ×2 × 1.1 — most likely "From Council"
+(`value:count_councilors_with_ethic`, a script value).
+
+- **Do:** hover the ethic icon with ALT ("the attraction modifiers' sources") for egalitarian and
+  xenophile.
+- **Send:** the screenshots and the date.
+
+### 17. Amenities, happiness and stability — colony page (from 2026-10-30)
+
+Settled 2026-10-30 (Roaming Korinth 2203.02.01, screenshots
+`~/Pictures/Screenshots/screenshot_2026-10-30_22-12-11` … `22-13-38`): approval → stability and
+stability → job output are linear (+28.5 at 97.5 %, +28.88 % at 98.143); the amenities' +20 % cap.
+Open: amenities between the ends — the ark had 2.57× its need, past the cap.
+
+- **Do:** hover the amenities of a colony with amenities between 25 % and 200 % of its need (the
+  "Citizen Pop Happiness" line, or the penalty below 100 %).
+- **Send:** the screenshot and the date.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

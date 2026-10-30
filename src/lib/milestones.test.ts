@@ -96,6 +96,17 @@ describe('milestones', () => {
 		]);
 	});
 
+	it("records a nomad arkship's districts like a planet's (its id is −1 − ship id)", () => {
+		const ms = milestones(
+			[
+				save('2200.01.01', { colonies: [built(-1, 'Peshnab', [['district_ark_city', 1, []]])] }),
+				save('2200.02.01', { colonies: [built(-1, 'Peshnab', [['district_ark_city', 2, []]])] })
+			],
+			names
+		);
+		expect(ms.map((m) => [m.planetId, m.kind])).toEqual([[-1, 'district']]);
+	});
+
 	it('follows a colony from landing to established, and notices gains and losses', () => {
 		const ms = milestones(
 			[

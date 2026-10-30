@@ -30,7 +30,17 @@ const BASE = 15;
  * MIGRATIONS[i] brings the tables from version BASE + i to BASE + i + 1. Append only: a released
  * step has run on players' DBs, so it is never edited or removed.
  */
-const MIGRATIONS: ((db: Db) => void)[] = [];
+export const MIGRATIONS: ((db: Db) => void)[] = [
+	// 16: each campaign numbers its own nodes (`seq`, the timeline's "#"; the user's ask
+	// 2026-10-30), the existing ones in the order they were recorded. `id` stays global: links
+	// (`?node=`) and the stored parents keep using it.
+	(db) =>
+		db.exec(`
+			ALTER TABLE node ADD COLUMN seq INTEGER;
+			UPDATE node SET seq = (SELECT count(*) FROM node m WHERE m.campaign = node.campaign AND m.id <= node.id);
+			CREATE INDEX node_campaign_seq ON node (campaign, seq);
+		`)
+];
 
 export const VERSION = BASE + MIGRATIONS.length;
 
@@ -159,6 +169,7 @@ type NodeRow = {
 	fingerprint: string;
 	parent_id: number | null;
 	ambiguous: number;
+	seq: number | null;
 };
 
 const toNode = (r: NodeRow): TimelineNode => ({
@@ -168,11 +179,19 @@ const toNode = (r: NodeRow): TimelineNode => ({
 	date: r.date,
 	fingerprint: r.fingerprint,
 	parentId: r.parent_id,
-	ambiguous: r.ambiguous === 1
+	ambiguous: r.ambiguous === 1,
+	seq: r.seq ?? r.id
 });
 
 export function nodes(db: Db): TimelineNode[] {
 	return (db.prepare('SELECT * FROM node ORDER BY id').all() as NodeRow[]).map(toNode);
+}
+
+/** A node as people read it: its campaign and its number there ("#17 of roamingkorinth_…"). */
+export function nodeLabel(db: Db, id: number): string {
+	const row = db.prepare('SELECT campaign, seq FROM node WHERE id = ?').get(id) as
+		{ campaign: string; seq: number | null } | undefined;
+	return row ? `#${row.seq ?? id} of ${row.campaign}` : `id ${id}`;
 }
 
 export function headId(db: Db): number | null {
@@ -294,8 +313,9 @@ export function record(
 	try {
 		const { lastInsertRowid } = db
 			.prepare(
-				`INSERT INTO node (kind, campaign, date, fingerprint, parent_id, ambiguous, source, observed_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+				`INSERT INTO node (kind, campaign, date, fingerprint, parent_id, ambiguous, source, observed_at, seq)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?,
+				   (SELECT coalesce(max(seq), 0) + 1 FROM node WHERE campaign = ?))`
 			)
 			.run(
 				snap.kind,
@@ -305,7 +325,8 @@ export function record(
 				placement.parentId,
 				placement.ambiguous ? 1 : 0,
 				source,
-				new Date().toISOString()
+				new Date().toISOString(),
+				snap.campaign
 			);
 		const nodeId = Number(lastInsertRowid);
 		db.prepare('INSERT INTO snapshot (node_id, json) VALUES (?, ?)').run(nodeId, stored(db, snap));
