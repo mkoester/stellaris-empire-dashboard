@@ -22,6 +22,7 @@ import {
 	refresh,
 	setParent,
 	setSetting,
+	MIGRATIONS,
 	VERSION
 } from './db.ts';
 
@@ -305,6 +306,16 @@ describe('migrations', () => {
 	const version = (db: DatabaseSync) =>
 		(db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
 	const addColumn = (db: DatabaseSync) => db.exec('ALTER TABLE node ADD COLUMN note TEXT');
+	// a node as 0.1.0 recorded it (no `seq`)
+	const oldNode = (db: DatabaseSync, date: string, fingerprint: string, campaign = 'c') =>
+		db
+			.prepare(
+				`INSERT INTO node (kind, campaign, date, fingerprint, source, observed_at)
+				 VALUES ('save', ?, ?, ?, 't', '')`
+			)
+			.run(campaign, date, fingerprint);
+	// the real steps, then a test step after them
+	const steps = [...MIGRATIONS, addColumn];
 
 	it('builds a new DB at the current version', () => {
 		const db = openDb(':memory:');
@@ -313,27 +324,27 @@ describe('migrations', () => {
 		expect(nodes(db)).toHaveLength(1);
 	});
 
-	it("takes over 0.1.0's DB, history and settings kept, without a copy", () => {
+	it("takes over 0.1.0's DB, history and settings kept, after a copy", () => {
 		const file = tmpDb();
 		// 0.1.0's tables are the base; it marked them in `state`, not in `user_version`
-		const base = openDb(file);
-		record(base, snap('2200.01.01', 'a'), 't');
+		const base = openDb(file, []);
+		oldNode(base, '2200.01.01', 'a');
 		setSetting(base, 'theme', 'dark');
 		base.exec("INSERT INTO state VALUES ('schema', '15'); PRAGMA user_version = 0;");
 		base.close();
 
 		const db = openDb(file);
-		expect(version(db)).toBe(15);
+		expect(version(db)).toBe(VERSION);
 		expect(nodes(db)).toHaveLength(1);
 		expect(getSetting(db, 'theme')).toBe('dark');
 		expect(db.prepare("SELECT 1 FROM state WHERE key = 'schema'").get()).toBeUndefined();
-		expect(existsSync(file.replace('.sqlite', '.v15.sqlite'))).toBe(false);
+		expect(existsSync(file.replace('.sqlite', '.v15.sqlite'))).toBe(true);
 	});
 
 	it('gives a version-15 DB of a build before 0.1.0 the tables it lacks', () => {
 		const file = tmpDb();
-		const base = openDb(file);
-		record(base, snap('2200.01.01', 'a'), 't');
+		const base = openDb(file, []);
+		oldNode(base, '2200.01.01', 'a');
 		base.exec(
 			"DROP TABLE save_file; INSERT INTO state VALUES ('schema', '15'); PRAGMA user_version = 0;"
 		);
@@ -350,18 +361,18 @@ describe('migrations', () => {
 		record(db, snap('2200.01.01', 'a'), 't');
 		db.close();
 
-		const migrated = openDb(file, [addColumn]);
-		expect(version(migrated)).toBe(16);
+		const migrated = openDb(file, steps);
+		expect(version(migrated)).toBe(VERSION + 1);
 		migrated.prepare("UPDATE node SET note = 'x'").run();
 		expect(nodes(migrated)).toHaveLength(1);
 		migrated.close();
-		expect(nodes(openDb(file.replace('.sqlite', '.v15.sqlite')))).toHaveLength(1);
-		expect(version(openDb(file, [addColumn]))).toBe(16); // and not again
+		expect(nodes(openDb(file.replace('.sqlite', `.v${VERSION}.sqlite`)))).toHaveLength(1);
+		expect(version(openDb(file, steps))).toBe(VERSION + 1); // and not again
 	});
 
 	it('builds a new DB through every step', () => {
-		const db = openDb(':memory:', [addColumn]);
-		expect(version(db)).toBe(16);
+		const db = openDb(':memory:', steps);
+		expect(version(db)).toBe(VERSION + 1);
 		db.prepare("UPDATE node SET note = 'x'").run();
 	});
 
@@ -372,19 +383,43 @@ describe('migrations', () => {
 			addColumn(db);
 			throw new Error('broken step');
 		};
-		expect(() => openDb(file, [broken])).toThrow('broken step');
+		expect(() => openDb(file, [...MIGRATIONS, broken])).toThrow('broken step');
 		const db = new DatabaseSync(file);
-		expect(version(db)).toBe(15);
+		expect(version(db)).toBe(VERSION);
 		expect(() => db.prepare('SELECT note FROM node').all()).toThrow();
+	});
+
+	it('numbers the nodes per campaign, the stored ones by the order they were recorded', () => {
+		// a 0.1.0 DB (version 15) holding two campaigns, recorded interleaved
+		const file = tmpDb();
+		const old = openDb(file, []);
+		for (const [date, campaign] of [
+			['2200.01.01', 'a'],
+			['2200.01.01', 'b'],
+			['2200.02.01', 'a'],
+			['2200.02.01', 'b']
+		])
+			oldNode(old, date, `${campaign}${date}`, campaign);
+		old.close();
+
+		const db = openDb(file);
+		expect(nodes(db).map((n) => `${n.campaign}${n.seq}#${n.id}`)).toEqual([
+			'a1#1',
+			'b1#2',
+			'a2#3',
+			'b2#4'
+		]);
+		record(db, { ...snap('2200.03.01', 'a2200.03.01'), campaign: 'a' }, 't');
+		expect(nodes(db).at(-1)).toMatchObject({ campaign: 'a', seq: 3, id: 5 });
 	});
 
 	it('refuses a DB of a newer dashboard and leaves it as it is', () => {
 		const file = tmpDb();
-		const newer = openDb(file, [addColumn]);
+		const newer = openDb(file, steps);
 		record(newer, snap('2200.01.01', 'a'), 't');
 		newer.close();
 		expect(() => openDb(file)).toThrow(/newer dashboard/);
-		expect(nodes(openDb(file, [addColumn]))).toHaveLength(1);
+		expect(nodes(openDb(file, steps))).toHaveLength(1);
 	});
 
 	it('refuses a development DB from before 0.1.0 instead of dropping it', () => {

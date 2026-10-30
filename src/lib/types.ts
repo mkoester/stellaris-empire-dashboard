@@ -822,6 +822,7 @@ export type TimelineNode = {
 	fingerprint: string;
 	parentId: number | null;
 	ambiguous: boolean;
+	seq: number; // the node's number within its campaign (1, 2, …); `id` is global
 };
 
 /** Names, costs and rules from the extraction's SQLite (STELLARIS_DATA_DB), loaded once. */

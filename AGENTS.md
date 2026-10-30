@@ -161,6 +161,12 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   step runs in every test. Before migrating, `openDb` leaves a copy beside the DB
   (`dashboard.v<old>.sqlite`); a DB of a newer dashboard is refused (the reason shows on `/setup`),
   never dropped — a player who starts an older zip by mistake keeps their history.
+- **Migrations so far:** 16 — `node.seq`, each campaign numbering its own nodes (the timeline's
+  "#", the user's ask 2026-10-30), the stored ones in the order they were recorded; `id` stays the
+  global key of links (`?node=`), parents and snapshots. Checked 2026-10-30 on a copy of this
+  machine's DB: five campaigns, ids 1…303 → each 1…n without gaps (Roaming Korinth 287–303 →
+  1–17), `dashboard.v15.sqlite` left beside it. Tests building an older DB use the base tables
+  alone (`openDb(file, [])`) and insert nodes as 0.1.0 did.
 
 `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`; vitest swallows its
 `console.log` dump unless run with `--silent=false`. Its assertions fit our 4.5.2 campaign (a

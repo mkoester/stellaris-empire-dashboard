@@ -15,7 +15,8 @@ const node = (
 	date,
 	fingerprint: `f${id}`,
 	parentId,
-	ambiguous: false
+	ambiguous: false,
+	seq: id
 });
 const obs = (date: string, fingerprint = 'new', campaign = 'c', kind: SourceKind = 'save') => ({
 	kind,

@@ -36,6 +36,9 @@ All notable changes to this project are documented here. The format follows
   needs, which leaders have a trait — with popups; what this empire can never have is hidden, so
   the nomads' variants no longer show twice. An agenda shows as one row, while preparing and after
   launch.
+- The timeline numbers each game's saves on its own (#1, #2, …) instead of counting across all
+  games. Existing histories are renumbered once at the first start (a copy of the database is
+  left beside it); links keep working.
 - Buildings explain themselves on hover everywhere: cost, upkeep, output, jobs, modifiers and the
   civics that unlock them.
 
