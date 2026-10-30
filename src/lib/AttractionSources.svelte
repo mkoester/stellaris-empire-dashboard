@@ -116,7 +116,9 @@
 		title={m.applies === null
 			? 'the save cannot tell'
 			: typeof m.applies === 'number'
-				? 'on this many colonies'
+				? m.kind === 'building'
+					? 'this many built (each counted, assumed — not yet checked in game)'
+					: 'on this many colonies'
 				: ''}>{mark(m.applies)}</span
 	>{/snippet}
 {#snippet nameCell(m: Source)}<InfoPopup explanation={m.ref ? explain[m.ref] : undefined}

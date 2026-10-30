@@ -110,6 +110,15 @@ Open: the empire-wide factors from rules the save cannot answer — egalitarian 
   xenophile.
 - **Send:** the screenshots and the date.
 
+### 16b. Does a building's planet modifier stack per building? — ethics tab (from 2026-10-30)
+
+The attraction sources count every building built (Temple ✓ ×2 = 2 × +5 %), assumed; the nomad
+game had one Temple at 2200.05.01 (screenshot `screenshot_2026-10-30_20-49-36`), two more queued.
+
+- **Do:** once the arkship holds two Temples, hover the spiritualist ethic with ALT.
+- **Send:** the screenshot: one Temple line of +10 % (or two of +5 %) settles it; +5 % means once
+  per colony (then `holdings()` in `#lib/ethicSources.ts` counts a building once per colony).
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

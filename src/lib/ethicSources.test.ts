@@ -128,7 +128,8 @@ describe('attraction sources', () => {
 		} as unknown as Snapshot;
 		const h = holdings(snap);
 		const s = attractionSources(rows, owners);
-		expect(s.map((x) => applies(x, h))).toEqual([true, true, true, 1, false, false, false]);
+		// two Temples on one colony: two
+		expect(s.map((x) => applies(x, h))).toEqual([true, true, true, 2, false, false, false]);
 		// preparing +10 %, then +40 % after launch: one source
 		expect(s[1]).toMatchObject({ value: 0.1, after: 0.4 });
 		// a governor's trait: whose planet is not read

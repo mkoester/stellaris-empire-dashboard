@@ -199,7 +199,7 @@
 
 		<Panel
 			title="What draws pops to each ethic"
-			note="Every source of ethic attraction in the game files, by ethic, then the governing ethics' attraction (it holds our current ethics) and how fast pops shift: the ethic's own rules (empire-wide factors and the reasons the game's tooltip names) and every modifier — ✓ applies to us (×N: on N colonies), ✗ not, ? the save cannot tell; and how to change it: green now (edicts, policies, buildings, designations, leaders, agendas, promoting or suppressing a faction), amber slowly (traditions, perks, a reform), grey not. Not covered: the jobs that add governing-ethics attraction on their planet (bureaucrats, enforcers, telepaths)."
+			note="Every source of ethic attraction in the game files, by ethic, then the governing ethics' attraction (it holds our current ethics) and how fast pops shift: the ethic's own rules (empire-wide factors and the reasons the game's tooltip names) and every modifier — ✓ applies to us (×N: N built, or on N colonies), ✗ not, ? the save cannot tell; and how to change it: green now (edicts, policies, buildings, designations, leaders, agendas, promoting or suppressing a faction), amber slowly (traditions, perks, a reform), grey not. Not covered: the jobs that add governing-ethics attraction on their planet (bureaucrats, enforcers, telepaths)."
 		>
 			<AttractionSources groups={data.sources} axes={data.axes} explain={data.explain} />
 		</Panel>

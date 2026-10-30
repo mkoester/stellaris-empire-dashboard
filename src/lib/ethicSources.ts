@@ -171,11 +171,10 @@ export function holdings(s: Snapshot): Holdings {
 			...(s.countryModifiers ?? []).map((m) => m.key),
 			...s.colonies.flatMap((c) => (c.planet?.modifiers ?? []).map((m) => m.key))
 		],
-		// once per colony, as a building's planet modifier counts once per planet
+		// every one built: a building's planet modifier is assumed to apply per building (a Temple
+		// +5 % each) — unchecked until a colony holds two of one (2026-10-30: one Temple, two queued)
 		buildings: count(
-			s.colonies.flatMap((c) => [
-				...new Set(c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings)))
-			])
+			s.colonies.flatMap((c) => c.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings)))
 		),
 		designations: count(s.colonies.map((c) => c.designation)),
 		deposits: count(s.colonies.flatMap((c) => [...new Set(c.deposits)])),
