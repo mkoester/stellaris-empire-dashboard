@@ -16,7 +16,11 @@ version's `CHANGELOG.md` section.
    `git tag vX.Y.Z`.
 4. Optional, before pushing: `node scripts/package.mjs --os linux` on that clean `main` and a smoke
    test (unzip into a temp dir, `XDG_DATA_HOME=<temp> ./start.sh`, pick the folders, open a few
-   tabs). The Windows zip on a Windows machine, the Mac zip for its architecture on a Mac (copy a few
+   tabs). **The extractor's checkout must sit on the pinned tag** — the tag existing is not enough
+   (`… is on no tag` while it is on `develop`): check out `vX.Y.Z` in
+   `../stellaris-data-extraction` for the build, back to `develop` after. To skip `/setup` (e.g. driving it with `curl`),
+   write `<temp>/stellaris-empire-dashboard/config.json` = `{"gameDir": …, "userDir": …}` first and
+   start with `BROWSER=true`; the launcher prints its URL (checked 2026-10-31 for v0.1.4). The Windows zip on a Windows machine, the Mac zip for its architecture on a Mac (copy a few
    saves over; the game need not run there), when the launcher or packaging changed.
 5. `git checkout develop`, bump the patch in `package.json`, commit `chore: version bump (vX.Y.Z+1)`.
 6. Publish (by hand): `git push origin main develop`, then `git push origin vX.Y.Z` — the workflow
