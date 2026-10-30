@@ -735,6 +735,20 @@ pop group's spiritualist attraction (`pop_groups.<id>.ethics_attraction`, by eth
 6.7925 to 7.05375 = 5.225 × 1.30 → × 1.35 (Veneration of Saints +25 %, +5 % per Temple); so
 `holdings()` counts every building. Pop groups take a change up one by one — another group still
 read 6.7925 at 2201.04.01.
+**Amenities, happiness and stability** (the user's ask 2026-10-30: "when do I have enough amenities
+on a colony, when does it make sense to provide more?"; `#lib/wellbeing.ts` pure,
+`ColonyWellbeing.svelte` on the colony page; the rules in `stellaris-modding-insights/docs/19`):
+amenities provided ÷ needed (`colony.amenities`, `amenities_usage`, READER 28) count between 25 %
+and 200 % (`MIN|MAX_PLANET_AMENITIES`): −50 % happiness at 25 %, +20 % citizen happiness at 200 %
+(`planet_amenities_low|high`; a gestalt's stability −50 / +20), so the panel says what is short,
+how much more still helps, and what beyond twice the need is wasted; the Pop Approval Rating
+(happiness weighted by `pop_groups.<id>.power`) moves stability −50 at 0 % … +30 at 100 %
+(`LOW|HIGH_HAPPINESS_STABILITY_EFFECT`, neutral at `BASE_HAPPINESS` 0.5); stability scales job
+output −50 % at 0 … +30 % at 100 (`planet_stability_low|high`, neutral at 50). Defines and the
+static modifiers' values come from the data DB (`wellbeingRules()`); **the scaling between the
+ends is assumed linear**, marked ≈ (`docs/open-checks.md` 17). Civic needs carry their authority
+(`civicAuthority`, data DB `civic_requirement`): the three Memorialist civics differ only by it,
+ours first, the others greyed.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
@@ -1169,7 +1183,7 @@ pop_groups = { { pop_group amount } } }`; open positions = `max_workforce − wo
   (`deposit_cat_blockers_natural`) cannot be cleared while the planet has a Ranger Lodge; one in
   the build queue (`clear_deposit_blocker`) shows as being cleared.
 - **Disabled buildings** (2026-10-30, the nomad game's arkship, 2201.05.01): `buildings.<id> =
-  { type disabled=yes position }` — the building keeps its slot and does nothing: its Entertainer
+{ type disabled=yes position }` — the building keeps its slot and does nothing: its Entertainer
   jobs went and amenities fell 12,188 → 8,493. Read per zone as `disabled` (types, only when any;
   READER 27); `#lib/buildings.ts` `activeBuildings()` for what reads effects (district caps,
   ethic attraction sources, the market fee), the full list for what asks whether one exists

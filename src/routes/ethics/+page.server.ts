@@ -162,7 +162,15 @@ export function load({ url }) {
 			...sources.flatMap((g) =>
 				g.modifiers.flatMap((m) =>
 					m.applies !== false || m.change.how !== 'no'
-						? [...(m.ref ? [m.ref] : []), ...m.unlock.needs.flatMap((n) => (n.ref ? [n.ref] : []))]
+						? [
+								...(m.ref ? [m.ref] : []),
+								...m.unlock.needs.flatMap((n) => [
+									...(n.ref ? [n.ref] : []),
+									...[...(n.authority?.require ?? []), ...(n.authority?.forbid ?? [])].map(
+										(k) => `authority:${k}`
+									)
+								])
+							]
 						: []
 				)
 			)

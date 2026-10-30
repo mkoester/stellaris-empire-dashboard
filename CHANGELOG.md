@@ -39,6 +39,11 @@ All notable changes to this project are documented here. The format follows
 - The timeline numbers each game's saves on its own (#1, #2, …) instead of counting across all
   games. Existing histories are renumbered once at the first start (a copy of the database is
   left beside it); links keep working.
+- Each colony page explains its amenities, happiness and stability: what they do now, how many
+  amenities are missing, how many more would still help and how many are wasted beyond twice the
+  need (the scaling between the game's ends assumed, marked ≈).
+- Civics that unlock a source show the authority they need (the three Memorialist civics), the ones
+  this empire cannot take greyed.
 - Disabled buildings count for nothing where the dashboard works out effects (district limits,
   ethic attraction, the market fee) and are struck through in a colony's districts.
 - The server log names saves by their number in their game ("#17 of …").

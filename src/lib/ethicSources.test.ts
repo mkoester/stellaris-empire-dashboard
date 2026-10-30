@@ -181,6 +181,7 @@ describe('attraction sources', () => {
 				}
 			},
 			traditionTrees: {},
+			civicAuthority: {},
 			techs: { tech_x: { name: 'X', cost: 1, area: 'society', tier: 1 } }
 		} as unknown as Parameters<typeof unlockOf>[1];
 		const f = {

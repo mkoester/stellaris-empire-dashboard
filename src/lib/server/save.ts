@@ -266,7 +266,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '27'; // 27: disabled buildings (26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '28'; // 28: amenities, crime, approval (27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1563,6 +1563,10 @@ function playerColonies(raw: RawSave): Colony[] {
 			housing: numOrNull(c.total_housing),
 			housingUsed: numOrNull(c.housing_usage),
 			freeAmenities: num(c.free_amenities),
+			// what the colony has and needs (the game's amenities tooltip), and its crime
+			amenities: numOrNull(c.amenities),
+			amenitiesUsage: numOrNull(c.amenities_usage),
+			crime: numOrNull(c.crime),
 			...colonyDistricts(raw, list(c.districts)),
 			planetClass: String(planet?.planet_class ?? ''),
 			planetSize: num(planet?.planet_size),
@@ -2097,6 +2101,7 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const by = new Map<string, { size: number; known: number; weighted: number }>();
 	// habitability (0–1) of the species on this planet, per pop group: overall and per species
 	const hab = { size: 0, weighted: 0 };
+	const power = { total: 0, weighted: 0 };
 	const bySpecies = new Map<string, { size: number; weighted: number }>();
 	for (const id of ids) {
 		const g = popGroups[String(id)];
@@ -2114,6 +2119,9 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 		const cat = String(g.key?.category ?? 'unknown');
 		const s = by.get(cat) ?? { size: 0, known: 0, weighted: 0 };
 		const happiness = typeof g.happiness === 'number' ? g.happiness : 1;
+		// the Pop Approval Rating weighs happiness by political power (`pop_groups.<id>.power`)
+		power.total += num(g.power);
+		power.weighted += num(g.power) * happiness;
 		by.set(cat, {
 			size: s.size + num(g.size),
 			known: s.known + num(g.size),
@@ -2128,6 +2136,7 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const known = [...by.values()].reduce((n, s) => n + s.known, 0);
 	return {
 		strata: list,
+		approval: power.total > 0 ? power.weighted / power.total : null,
 		happiness: known > 0 ? [...by.values()].reduce((n, s) => n + s.weighted, 0) / known : null,
 		habitability: hab.size > 0 ? hab.weighted / hab.size : null,
 		speciesHabitability: Object.fromEntries(

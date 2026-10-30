@@ -233,7 +233,14 @@ export function applies(s: AttractionSource, h: Holdings): boolean | number | nu
  */
 export type Unlock = { forUs: boolean | null; available: boolean | null; needs: Need[] };
 /** One thing a source needs: its text and, where it has one, its popup (`civic:`, `tech:`, …). */
-export type Need = { text: string; ref?: string; any?: boolean }; // any: one of the `any` ones suffices
+export type Need = {
+	text: string;
+	ref?: string;
+	any?: boolean; // one of the `any` ones suffices
+	// a civic's authority: those it needs, those it forbids (`gestalt`: any gestalt), and whether
+	// ours may take it — three Memorialist civics differ only by it
+	authority?: { require: string[]; forbid: string[]; forUs: boolean | null };
+};
 
 export type UnlockData = Pick<
 	GameData,
@@ -244,6 +251,7 @@ export type UnlockData = Pick<
 	| 'traditionTrees'
 	| 'techs'
 	| 'buildingUnlocks'
+	| 'civicAuthority'
 >;
 
 // Progress a potential may ask for: it makes a source unavailable yet, not "never for us".
@@ -278,6 +286,21 @@ export function unlockOf(
 		ref: `${prefix}:${key}`
 	});
 	const techName = (t: string) => `tech ${g.techs[t]?.name ?? t}`;
+	// a civic need with its authority: required, forbidden, and whether ours fits
+	const ours = f.government.find((k) => k.startsWith('auth_')) ?? null;
+	const gestalt = ours === 'auth_hive_mind' || ours === 'auth_machine_intelligence';
+	const civic = (k: string, text?: string): Need => {
+		const a = g.civicAuthority[k];
+		const need = named('civic', k, text);
+		if (!a) return need;
+		const fits =
+			ours === null
+				? null
+				: (a.require.length === 0 || a.require.includes(ours)) &&
+					!a.forbid.includes(ours) &&
+					!(gestalt && a.forbid.includes('gestalt'));
+		return { ...need, authority: { ...a, forUs: fits } };
+	};
 	// whether this empire can have it at all, and the progress its potential asks for
 	const potential = (t: Trigger | null) => ({
 		forUs: evaluate(identityOnly(t), f),
@@ -338,10 +361,15 @@ export function unlockOf(
 			return {
 				forUs: null,
 				available: by.some((k) => f.government.includes(k) || f.origin === k),
-				needs: by.map((k) => ({
-					...named(k.startsWith('origin_') ? 'origin' : 'civic', k),
-					any: true
-				}))
+				// the ones our authority may take first
+				needs: by
+					.map((k) => ({
+						...(k.startsWith('origin_') ? named('origin', k) : civic(k)),
+						any: true
+					}))
+					.sort(
+						(a, b) => Number(b.authority?.forUs !== false) - Number(a.authority?.forUs !== false)
+					)
 			};
 		}
 		case 'council': {
@@ -350,7 +378,7 @@ export function unlockOf(
 			return {
 				forUs: null,
 				available: f.government.includes(c.civic),
-				needs: [named('civic', c.civic, `the civic ${name('civic', c.civic)} (its council seat)`)]
+				needs: [civic(c.civic, `the civic ${name('civic', c.civic)} (its council seat)`)]
 			};
 		}
 		case 'tradition': {

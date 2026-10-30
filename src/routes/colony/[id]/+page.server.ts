@@ -7,6 +7,7 @@ import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
 import { colonySeries, xExtent } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
+import { wellbeingRules } from '#lib/wellbeing.ts';
 
 const pct = (v: number | null) => (v === null ? null : Math.round(v * 1000) / 10);
 
@@ -44,6 +45,15 @@ export function load({ url, params }) {
 			b.snaps.findLast((s) => s.kind === 'save') ?? null
 		),
 		jobRows: b.jobs[planetId] ?? [],
+		// what amenities, happiness and stability do (#lib/wellbeing.ts)
+		wellbeing: wellbeingRules(
+			getGameData().defines,
+			(key, mod) =>
+				getExplanations()[`modifier:${key}`]?.modifiers.find((m) => m.key === mod)?.value
+		),
+		gestalt: (b.latest.government ?? []).some(
+			(k) => k === 'auth_machine_intelligence' || k === 'auth_hive_mind'
+		),
 		classNames: Object.fromEntries(
 			Object.entries(getGameData().planetClasses).map(([k, v]) => [k, v.name])
 		),

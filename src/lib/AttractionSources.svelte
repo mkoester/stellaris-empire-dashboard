@@ -1,6 +1,6 @@
 <script lang="ts">
 	import EthicChip from './EthicChip.svelte';
-	import type { AttractionSource, Change, RuleRow, Unlock } from './ethicSources.ts';
+	import type { AttractionSource, Change, Need, RuleRow, Unlock } from './ethicSources.ts';
 	import InfoPopup from './InfoPopup.svelte';
 	import SortTable from './SortTable.svelte';
 	import type { Column } from './sort.ts';
@@ -142,12 +142,26 @@
 					? n.any && m.unlock.needs[i - 1].any
 						? ' or '
 						: ' · '
-					: ''}<InfoPopup explanation={n.ref ? explain[n.ref] : undefined}>{n.text}</InfoPopup
+					: ''}<span class={n.authority?.forUs === false ? 'opacity-50' : ''}
+					><InfoPopup explanation={n.ref ? explain[n.ref] : undefined}>{n.text}</InfoPopup
+					>{#if n.authority}{@render authorityBadge(n.authority)}{/if}</span
 				>{/each}{#if m.holders.length}<span class="text-gray-500"
 					>&nbsp;— have it: {m.holders
 						.map((l) => `${l.name}${l.council ? ' (on the council)' : ''}`)
 						.join(', ')}</span
 				>{/if}</span
+		>{/if}{/snippet}
+{#snippet authorityBadge(a: NonNullable<Need['authority']>)}{#each a.require as k (k)}&nbsp;<span
+			class="rounded bg-gray-100 px-1 text-[10px] text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+			><InfoPopup explanation={explain[`authority:${k}`]}
+				>{explain[`authority:${k}`]?.title ?? k}</InfoPopup
+			></span
+		>{:else}&nbsp;<span
+			class="rounded bg-gray-100 px-1 text-[10px] text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+			title="not for {a.forbid
+				.map((k) => (k === 'gestalt' ? 'gestalt empires' : (explain[`authority:${k}`]?.title ?? k)))
+				.join(', ')}">{a.forbid.includes('gestalt') ? 'non-gestalt' : 'any authority'}</span
+		>{/each}{#if a.forUs === false}<span class="text-[10px] text-gray-500">&nbsp;not ours</span
 		>{/if}{/snippet}
 {#snippet changeCell(m: Source)}<span class={TONE[m.change.how]}>{m.change.label}</span>{/snippet}
 {#snippet ruleApplies(r: RuleRow)}<span

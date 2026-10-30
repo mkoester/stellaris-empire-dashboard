@@ -525,6 +525,15 @@ export function loadGameData(file: string): GameData {
 					origin: rows<{ key: string }>('SELECT key FROM origin').map((r) => r.key)
 				}
 			),
+			civicAuthority: rows<{ civic_key: string; kind: string; operator: string; value: string }>(
+				`SELECT civic_key, kind, operator, value FROM civic_requirement
+				 WHERE kind = 'authority' OR (kind = 'ethic' AND value = 'ethic_gestalt_consciousness')`
+			).reduce<GameData['civicAuthority']>((out, r) => {
+				const c = (out[r.civic_key] ??= { require: [], forbid: [] });
+				const key = r.kind === 'ethic' ? 'gestalt' : r.value;
+				(r.operator === 'forbid' ? c.forbid : c.require).push(key);
+				return out;
+			}, {}),
 			buildingUnlocks: rows<{ owner_key: string; building_key: string }>(
 				'SELECT owner_key, building_key FROM building_unlock ORDER BY owner_key'
 			).reduce<GameData['buildingUnlocks']>(

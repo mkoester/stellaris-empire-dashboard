@@ -23,6 +23,9 @@ export type Colony = {
 	housing: number | null; // total_housing; null before 2026-10-22
 	housingUsed: number | null; // housing_usage: pops × their housing need
 	freeAmenities: number;
+	amenities?: number | null; // provided; since READER 28
+	amenitiesUsage?: number | null; // needed by the pops; since READER 28
+	crime?: number | null; // since READER 28
 	districts: number;
 	districtList: ColonyDistrict[]; // per district type: built, zones and their buildings
 	planetClass: string;
@@ -36,6 +39,7 @@ export type Colony = {
 	openJobs: number; // unfilled positions, summed over the colony's jobs
 	strata: Stratum[]; // pops and happiness per stratum (worker, specialist, …)
 	happiness: number | null; // 0–1, pops-weighted over the strata
+	approval?: number | null; // the Pop Approval Rating: happiness weighted by political power; READER 28
 	habitability: number | null; // 0–1, pops-weighted over the pop groups
 	speciesHabitability: Record<string, number>; // per species id living there, pops-weighted
 	automation: { enabled: boolean; settings: string[] };
@@ -1003,6 +1007,8 @@ export type GameData = {
 	ethicRules: Record<string, AttractionRule[]>; // per ethic, its own attraction rules
 	electionTypes: Record<string, string>; // authority → democratic / oligarchic / none
 	buildingUnlocks: Record<string, string[]>; // building → the civics or origins that unlock it
+	// civic → the authorities it needs or forbids ('gestalt': the gestalt consciousness ethic)
+	civicAuthority: Record<string, { require: string[]; forbid: string[] }>;
 	attractionSources: AttractionSource[]; // every modifier moving an ethic's attraction or the shift
 	authorities: string[]; // every authority, in the game's order
 	anomalyLevels: Record<string, number | null>; // anomaly category → level

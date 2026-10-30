@@ -110,6 +110,17 @@ Open: the empire-wide factors from rules the save cannot answer — egalitarian 
   xenophile.
 - **Send:** the screenshots and the date.
 
+### 17. Amenities, happiness and stability — colony page (from 2026-10-30)
+
+The ends are from the game files; the scaling between them is assumed linear (`#lib/wellbeing.ts`,
+`stellaris-modding-insights/docs/19`). The colony page marks each effect ≈.
+
+- **Do:** on one colony, the same day: hover its amenities, its happiness (Pop Approval Rating,
+  the "Amenities" line) and its stability (the "Happiness" line and the job-output bonus). Best a
+  colony with amenities between 100 % and 200 % of the need, or below it.
+- **Send:** the screenshots and the date. The arkship at 2202.09.01 predicts +20 % (capped), +28.5
+  stability from 97.5 % approval, +28.9 % job output at 98.1.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

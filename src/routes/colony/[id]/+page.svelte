@@ -6,6 +6,7 @@
 	import Jobs from '#lib/Jobs.svelte';
 	import Designation from '#lib/Designation.svelte';
 	import DistrictName from '#lib/DistrictName.svelte';
+	import ColonyWellbeing from '#lib/ColonyWellbeing.svelte';
 	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
 	import PlanetInfo from '#lib/panels/PlanetInfo.svelte';
@@ -110,6 +111,10 @@
 			</tbody>
 		</table>
 	{/if}
+{/if}
+
+{#if data.colony}
+	<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
 {/if}
 
 <div class="grid gap-4 lg:grid-cols-2">
