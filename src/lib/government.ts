@@ -6,7 +6,12 @@ import type { CouncilSeat, Faction, GameData, Modifier, Snapshot } from './types
 // against one save. What the save cannot answer stays unknown (null), see #lib/triggers.ts.
 
 /** What a snapshot tells the trigger evaluator; `scripted`: the data DB's scripted triggers. */
-export function facts(s: Snapshot, scripted: Facts['scripted'] = {}): Facts {
+export function facts(
+	s: Snapshot,
+	scripted: Facts['scripted'] = {},
+	electionTypes: Record<string, string> = {}
+): Facts {
+	const authority = (s.government ?? []).find((k) => k.startsWith('auth_'));
 	return {
 		countryType: s.countryType,
 		government: s.government ?? [],
@@ -23,7 +28,15 @@ export function facts(s: Snapshot, scripted: Facts['scripted'] = {}): Facts {
 		nomadic:
 			s.situations === null ? null : s.situations.some((x) => x.type === 'situation_nomad_economy'),
 		scripted,
-		leaderTraits: s.leaderList?.flatMap((l) => l.traits)
+		leaderTraits: s.leaderList?.flatMap((l) => l.traits),
+		edicts: s.edicts,
+		electionType: authority ? (electionTypes[authority] ?? null) : null,
+		factions: s.factions?.map((x) => x.type) ?? null,
+		// our own entry of the diplomacy reading: its federation and overlord
+		...(() => {
+			const us = s.diplomacy?.find((c) => c.id === s.countryId);
+			return us ? { federation: us.federation !== null, subject: us.overlord !== null } : {};
+		})()
 	};
 }
 

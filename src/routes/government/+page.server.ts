@@ -24,7 +24,7 @@ export function load({ url }) {
 	const data = getGameData();
 	const s = snaps.findLast((x) => x.council !== null) ?? snaps.findLast((x) => x.kind === 'save');
 	if (!s) error(404, 'no save yet');
-	const f = facts(s, data.scriptedTriggers);
+	const f = facts(s, data.scriptedTriggers, data.electionTypes);
 	const { showLocked } = display();
 	const policies = policyRows(data.policies, s.policies ?? {}, f, showLocked);
 	// the measured agenda rate (progress/month) and the empire-size factor on costs, from the

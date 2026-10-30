@@ -1,4 +1,11 @@
-import { RESERVES, reservesAlong, withReserves } from '#lib/nomad.ts';
+import {
+	levelTone,
+	nextStage,
+	RESERVES,
+	reservesAlong,
+	withReserves,
+	type Reserves
+} from '#lib/nomad.ts';
 import { storageRows } from '#lib/storage.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
@@ -106,13 +113,8 @@ export function empireData(url: URL) {
 		topBar: {
 			stockpile: top.stockpile,
 			balance: top.balance,
-			reserves: pool && {
-				level:
-					pool.stage === null
-						? null
-						: (data.situationTypes['situation_nomad_economy']?.stages[pool.stage] ?? null),
-				estimated: pool.estimated
-			}
+			reserves:
+				pool && reserveLine(pool, data.situationTypes['situation_nomad_economy']?.stages ?? [])
 		},
 		// Overview panels, named from the game data.
 		modifiers: modifiers.map((m) => ({
@@ -156,6 +158,26 @@ export function empireData(url: URL) {
 			balance: resourceSeries(shown, (s) => withoutResearch(s.balance)),
 			income: resourceSeries(snaps, (s) => withoutResearch(s.income))
 		}
+	};
+}
+
+/** The top bar's second line for a nomad's reserves: level, share, the next level and how far. */
+function reserveLine(pool: Reserves, names: string[]) {
+	const name = (i: number) => names[i] ?? `stage ${i + 1}`;
+	const next = nextStage(pool);
+	return {
+		level: pool.stage === null ? null : name(pool.stage),
+		tone: pool.stage === null ? ('neutral' as const) : levelTone(pool.stage, pool.ends.length),
+		share: pool.capacity ? pool.stock / pool.capacity : null,
+		capacity: pool.capacity,
+		next: next && {
+			level: name(next.stage),
+			tone: levelTone(next.stage, pool.ends.length),
+			amount: next.amount,
+			months: next.months,
+			down: pool.monthly < 0
+		},
+		estimated: pool.estimated
 	};
 }
 

@@ -24,6 +24,11 @@ All notable changes to this project are documented here. The format follows
 - A nomad's arkship colony is named after its ship ("Peshnab the Faithful", not "colony 0"), with
   its class and size; ship names from the game's name lists read as the game writes them.
 - The situations tab names each situation's stage.
+- The reserves' level is coloured as in the game (Critical red, Low orange, High green), with the
+  share of the capacity and how far the next level is at this month's net, up or down.
+- The ethics tab ends with what draws pops to each ethic, to the governing ethics and how fast
+  they shift: the ethic's own rules (they explain the empire-wide factor) and every modifier in
+  the game files — which apply to us, and how each can be changed (now, slowly, not).
 
 ### Changed
 

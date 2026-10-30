@@ -27,6 +27,11 @@ export type Facts = {
 	scripted?: Record<string, Trigger | null>;
 	traits?: string[]; // the species' traits, where a trigger is in a species' scope (rights)
 	leaderTraits?: string[]; // every trait of the empire's leaders
+	edicts?: string[] | null; // active
+	factions?: string[] | null; // the types of our factions
+	federation?: boolean | null; // in a federation
+	subject?: boolean | null; // has an overlord
+	electionType?: string | null; // our authority's: democratic, oligarchic, none
 	// the Galactic Community, for what resolutions test (#lib/proposable.ts)
 	activeResolutions?: string[] | null; // in force (`galactic_community.passed`)
 	globalFlags?: string[] | null;
@@ -82,6 +87,18 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			return has(f.perks);
 		case 'has_technology':
 			return has(f.techs);
+		case 'has_election_type':
+			return f.electionType == null ? null : f.electionType === value;
+		case 'has_edict':
+			return has(f.edicts ?? null);
+		case 'has_faction':
+			return has(f.factions ?? null);
+		case 'has_federation':
+			return yes(f.federation ?? null);
+		case 'is_subject':
+			return yes(f.subject ?? null);
+		case 'exists':
+			return value === 'overlord' ? (f.subject ?? null) : null;
 		case 'is_at_war':
 			return yes(f.atWar);
 		case 'is_gestalt':

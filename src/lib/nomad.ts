@@ -78,17 +78,29 @@ export function withReserves<
 
 /**
  * The next stage the reserves reach at this month's net — up to the next stage's start, down
- * below the current one's — with the months until then; null when it does not move or is at the
- * end already.
+ * below the current one's — with how much is left to it and the months until then; null when it
+ * does not move or is at the end already.
  */
-export function nextStage(r: Reserves): { stage: number; months: number } | null {
+export function nextStage(r: Reserves): { stage: number; amount: number; months: number } | null {
 	if (r.stage === null || !r.ends.length || Math.abs(r.monthly) < 0.01) return null;
 	if (r.monthly > 0) {
-		const end = r.ends[r.stage];
 		if (r.stage >= r.ends.length - 1) return null;
-		return { stage: r.stage + 1, months: Math.max(0, (end - r.stock) / r.monthly) };
+		const amount = Math.max(0, r.ends[r.stage] - r.stock);
+		return { stage: r.stage + 1, amount, months: amount / r.monthly };
 	}
 	if (r.stage === 0) return null;
-	const start = r.ends[r.stage - 1];
-	return { stage: r.stage - 1, months: Math.max(0, (r.stock - start) / -r.monthly) };
+	const amount = Math.max(0, r.stock - r.ends[r.stage - 1]);
+	return { stage: r.stage - 1, amount, months: amount / -r.monthly };
+}
+
+export type LevelTone = 'bad' | 'warn' | 'neutral' | 'good';
+
+/**
+ * A level's tone, as the game colours its stage icons: the lowest red, the next orange, the
+ * highest green, the rest neutral (4.5.2: Critical, Low, Medium, High).
+ */
+export function levelTone(stage: number, stages: number): LevelTone {
+	if (stage <= 0) return 'bad';
+	if (stage >= stages - 1) return 'good';
+	return stage === 1 ? 'warn' : 'neutral';
 }

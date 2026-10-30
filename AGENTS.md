@@ -687,6 +687,28 @@ embracing it needs (`embrace()`: support > 20 %, 5000 unity, no `embraced_factio
 already fanatic) and its demands; faction types not formed only with the `factionTypes` /
 `allFactionTypes` switches (cheating). The ethics history starts with READER 24's re-read of the
 saves on disk: 5 of 32 UNE snapshots, 32 of 191 Planetforgers' on the 2026-10-28 DB copy.
+**What draws pops to each ethic** (the user's ask 2026-10-30: "all sources of ethics attraction,
+grouped by ethic, and governing ethics attraction; which apply; which can be changed";
+`#lib/ethicSources.ts` pure, `AttractionSources.svelte`): per ethic (ours first), then the
+governing ethics (`pop_government_ethic_attraction`) and the shift speed
+(`pop_ethics_shift_speed_mult`). **The ethic's own rules** (data DB `ethic_attraction`, from
+`common/ethics/00_ethics.txt`): `country_attraction` factors — their product is the save's
+`ethics_attraction` (the "×" column, now explained: held ×2, fanatic ×3, Democratic Authority
+×1.25 for egalitarian and ×0.75 for authoritarian, Unrestricted Warfare ×0.75 for pacifist …) —
+and the `pop_attraction_tag` reasons the game's tooltip lists, each evaluated three-valued by
+`#lib/triggers.ts`, which now also answers `has_edict`, `has_faction`, `has_federation`,
+`is_subject`, `exists = overlord` and `has_election_type` (data DB `authority.election_type`).
+The group header shows the save's ×, the known product and the rest "from N rules the save cannot
+tell" (council, relations, federation, script values). Checked 2026-10-30 on the nomad game
+(2200.02.01): authoritarian ×0.75 and pacifist ×0.75 fully explained; egalitarian ×3 = known ×2.5
+× 1.2 unknown. **Modifiers** (every data DB modifier table: traditions, perks, edicts, agendas
+— `#finish` = after launch —, policy options, civics, origins, buildings, designations, council
+seats, leader traits, static modifiers, deposits, relics): ✓ / ×N colonies / ✗ / ? (`applies()`
+from `holdings()` of the latest save), and how to change it (`changeOf()`: now — edict, policy,
+building, designation, leader, agenda, promote/suppress; slowly — tradition, perk, reform; not —
+events, origin, deposits). Filters (per viewer): what applies or can be changed (default), what
+applies, everything. Not covered: job modifiers (bureaucrats, enforcers, telepaths add governing
+attraction on their planet) — the data DB has no job modifier table.
 
 **Nomads: Operational Reserves** (`#lib/nomad.ts` pure; throwaway nomad game
 `roamingkorinth_1232667372`, 2026-10-30, screenshot `2026_10_30_1`): a nomadic empire has no

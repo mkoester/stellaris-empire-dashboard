@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextStage, RESERVES, reserves, reservesAlong, withReserves } from './nomad.ts';
+import { levelTone, nextStage, RESERVES, reserves, reservesAlong, withReserves } from './nomad.ts';
 import type { Snapshot } from './types.ts';
 
 // the throwaway nomad game at 2200.02.01 (screenshot 2026_10_30_1: "Medium (50%)", 10069 / 20000,
@@ -60,11 +60,20 @@ describe('operational reserves', () => {
 
 	it('names the next level and the months to it', () => {
 		const r = reserves(save)!;
-		expect(nextStage(r)).toEqual({ stage: 3, months: (15000 - 10069.84976) / r.monthly });
+		const up = nextStage(r)!;
+		expect(up.stage).toBe(3);
+		expect(up.amount).toBeCloseTo(4930.15);
+		expect(up.months).toBeCloseTo(70.58, 2);
+		// a deficit counts down to the current level's start
 		const down = nextStage({ ...r, monthly: -100 })!;
-		expect(down.stage).toBe(1);
+		expect(down).toMatchObject({ stage: 1 });
+		expect(down.amount).toBeCloseTo(5069.85);
 		expect(down.months).toBeCloseTo(50.698, 3);
 		expect(nextStage({ ...r, monthly: 0 })).toBeNull();
 		expect(nextStage({ ...r, stage: 3, monthly: 10 })).toBeNull();
+	});
+
+	it('colour Critical red, Low orange, Medium neutral, High green', () => {
+		expect([0, 1, 2, 3].map((s) => levelTone(s, 4))).toEqual(['bad', 'warn', 'neutral', 'good']);
 	});
 });

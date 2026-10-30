@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
 import type { ActionKind, CapEffect, Costs, GameData } from '#lib/types.ts';
 
@@ -482,6 +483,52 @@ export function loadGameData(file: string): GameData {
 			),
 			ethicOrder: rows<{ key: string }>('SELECT key FROM ethic ORDER BY sort_order').map(
 				(r) => r.key
+			),
+			ethicRules: rows<{
+				ethic_key: string;
+				kind: 'tag' | 'country';
+				description: string | null;
+				factor: number | null;
+				factor_text: string | null;
+				trigger_json: string | null;
+			}>(
+				'SELECT ethic_key, kind, description, factor, factor_text, trigger_json FROM ethic_attraction ORDER BY ethic_key, sort_order'
+			).reduce<GameData['ethicRules']>((out, r) => {
+				(out[r.ethic_key] ??= []).push({
+					kind: r.kind,
+					description: r.description,
+					factor: r.factor,
+					factorText: r.factor_text,
+					trigger: parseTrigger(r.trigger_json)
+				});
+				return out;
+			}, {}),
+			attractionSources: attractionSources(
+				rows<{ tbl: string; owner: string; modifier: string; value: number; scope: string | null }>(
+					`SELECT 'tradition_modifier' AS tbl, owner_key AS owner, modifier_key AS modifier, modifier_value AS value, NULL AS scope FROM tradition_modifier
+					 UNION ALL SELECT 'building', building_key, modifier_key, value, scope FROM building_modifier
+					 UNION ALL SELECT 'civic', civic_key, modifier_key, modifier_value, NULL FROM civic_modifier
+					 UNION ALL SELECT 'origin', origin_key, modifier_key, modifier_value, NULL FROM origin_modifier
+					 UNION ALL SELECT 'designation', colony_type_key, modifier, value, NULL FROM colony_type_modifier
+					 UNION ALL SELECT 'council', position_key, modifier_key, modifier_value, NULL FROM council_position_modifier
+					 UNION ALL SELECT 'leader', trait_key, modifier_key, modifier_value, scope FROM leader_trait_modifier
+					 UNION ALL SELECT 'static', static_key, modifier_key, modifier_value, NULL FROM static_modifier_modifier
+					 UNION ALL SELECT 'deposit', deposit_key, modifier_key, modifier_value, NULL FROM deposit_modifier
+					 UNION ALL SELECT 'relic', relic_key, modifier_key, modifier_value, NULL FROM precursor_relic_active_modifier`
+				),
+				{
+					tradition: rows<{ key: string }>('SELECT key FROM tradition').map((r) => r.key),
+					perk: rows<{ key: string }>('SELECT key FROM ascension_perk').map((r) => r.key),
+					edict: rows<{ key: string }>('SELECT key FROM edict').map((r) => r.key),
+					agenda: rows<{ key: string }>('SELECT key FROM council_agenda').map((r) => r.key),
+					policy: rows<{ key: string }>('SELECT key FROM policy_option').map((r) => r.key),
+					origin: rows<{ key: string }>('SELECT key FROM origin').map((r) => r.key)
+				}
+			),
+			electionTypes: Object.fromEntries(
+				rows<{ key: string; election_type: string }>(
+					'SELECT key, election_type FROM authority'
+				).map((r) => [r.key, r.election_type])
 			),
 			authorities: rows<{ key: string }>('SELECT key FROM authority ORDER BY sort_order').map(
 				(r) => r.key

@@ -1,3 +1,4 @@
+import type { AttractionRule, AttractionSource } from './ethicSources.ts';
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
@@ -995,6 +996,9 @@ export type GameData = {
 	flagColors: Record<string, string>; // flag colour swatch → its galaxy-map colour (#rrggbb)
 	ethicAxes: Record<string, EthicAxis>; // ethic → its place on its axis
 	ethicOrder: string[]; // ethic keys by the game's ethic index (`EthicsState` lists)
+	ethicRules: Record<string, AttractionRule[]>; // per ethic, its own attraction rules
+	electionTypes: Record<string, string>; // authority → democratic / oligarchic / none
+	attractionSources: AttractionSource[]; // every modifier moving an ethic's attraction or the shift
 	authorities: string[]; // every authority, in the game's order
 	anomalyLevels: Record<string, number | null>; // anomaly category → level
 	blockers: string[]; // deposit keys that are blockers
