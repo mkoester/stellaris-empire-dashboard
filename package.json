@@ -4,6 +4,7 @@
 	"version": "0.1.7",
 	"license": "AGPL-3.0-only",
 	"extractorVersion": "v0.1.6",
+	"openBeta": "4.5.3",
 	"type": "module",
 	"engines": {
 		"node": ">=24"
