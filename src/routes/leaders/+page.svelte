@@ -95,11 +95,11 @@
 {/snippet}
 {#snippet bonusList(list: Bonus[])}
 	{#each list as b, i (i)}<div class="text-xs">
-			<span class="text-gray-500">{b.source}:</span>
 			{#each b.modifiers as m, j (j)}{j ? ', ' : ''}<span class={modifierColor(m)}
 					>{formatModifierValue(m)}</span
 				>
 				{modifierLabel(m)}{/each}
+			<span class="text-gray-500">({b.source})</span>
 		</div>{/each}
 {/snippet}
 {#snippet bonuses(r: Leader)}
@@ -155,6 +155,26 @@
 			<span class="text-gray-500">{hired('envoy')}</span></label
 		>
 	</div>
+	<details class="mb-3 text-sm">
+		<summary class="cursor-pointer text-gray-500">
+			What each class gives per skill level, by role (the game's class tooltip, "Per Level")
+		</summary>
+		<div class="mt-2 grid gap-4 md:grid-cols-3">
+			{#each data.classSkill as c (c.cls)}<div>
+					<span class="rounded px-1 text-xs text-white" style:background={colorOf(`class-${c.cls}`)}
+						>{c.cls}</span
+					>
+					{#each c.roles as r (r.role)}<div class="mt-1">
+							<div class="text-xs font-semibold">{r.role}</div>
+							{#each r.modifiers as m, j (j)}<div class="text-xs">
+									<span class={modifierColor(m)}>{formatModifierValue(m)}</span>
+									{modifierLabel(m)}
+								</div>{:else}<div class="text-xs text-gray-500">–</div>{/each}
+						</div>{/each}
+					<div class="mt-1 text-xs text-gray-500">council: its seat's effects per level</div>
+				</div>{/each}
+		</div>
+	</details>
 	<SortTable {rows} {columns} key={(r) => r.id} sort={{ column: '', desc: false }} />
 
 	<h2 class="mt-6 mb-2 text-lg font-semibold">

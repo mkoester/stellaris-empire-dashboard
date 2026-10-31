@@ -34,7 +34,9 @@ const explain = {
 	'ltrait-councilor:leader_trait_curator': ex([mod('country_research_mult', 0.05)]),
 	'ltrait-modifier:leader_trait_curator': ex([mod('ship_anomaly_research_speed_mult', 0.1)]),
 	'ltrait-self:leader_trait_curator': ex([mod('leader_age', 10)]),
-	'ltrait-planet:leader_trait_curator': ex([mod('planet_stability_add', 2)])
+	'ltrait-planet:leader_trait_curator': ex([mod('planet_stability_add', 2)]),
+	// a class's effects per skill level (static modifiers skill_*)
+	'modifier:skill_commander_navy': ex([mod('ship_fire_rate_mult', 0.03)])
 };
 
 describe('leaderRoles', () => {
@@ -53,6 +55,7 @@ describe('leaderRoles', () => {
 		);
 		expect(roles.map((r) => [r.kind, r.name, r.level])).toEqual([
 			['council', 'Science Officer', 5],
+			['governor', null, 4], // not held: what it would do there
 			['science ship', 'Voyager', 4]
 		]);
 		expect(roles[0].bonuses.map((b) => [b.source, b.modifiers.map((m) => m.key)])).toEqual([
@@ -60,7 +63,8 @@ describe('leaderRoles', () => {
 			['Curator', ['country_research_mult']]
 		]);
 		// on a ship only what applies where it is assigned, not the governor's planet modifier
-		expect(roles[1].bonuses[0].modifiers.map((m) => m.key)).toEqual([
+		const ship = roles.find((r) => r.kind === 'science ship')!;
+		expect(ship.bonuses[0].modifiers.map((m) => m.key)).toEqual([
 			'ship_anomaly_research_speed_mult'
 		]);
 		expect(self[0].modifiers.map((m) => m.key)).toEqual(['leader_age']);
@@ -94,13 +98,26 @@ describe('leaderRoles', () => {
 		]);
 	});
 
+	it("gives a commander's class effect per level where it commands, at its level", () => {
+		const { roles } = leaderRoles(
+			leader({ class: 'commander', assigned: { kind: 'fleet', name: 'Braulster Fleet' } }),
+			undefined,
+			{ 'modifier:skill_commander_navy': explain['modifier:skill_commander_navy'] }
+		);
+		const fleet = roles.find((r) => r.kind === 'fleet')!;
+		expect(fleet.bonuses).toEqual([
+			{ source: 'commander × 4', modifiers: [mod('ship_fire_rate_mult', 0.12)] }
+		]);
+	});
+
 	it('shows an idle leader what its class could do, none held', () => {
 		const { roles } = leaderRoles(leader({}), undefined, explain);
 		expect(roles.map((r) => [r.kind, r.active])).toEqual([
 			['council', false],
+			['governor', false],
 			['science ship', false]
 		]);
-		expect(roles[1].bonuses[0].modifiers.map((m) => m.key)).toEqual([
+		expect(roles[2].bonuses[0].modifiers.map((m) => m.key)).toEqual([
 			'ship_anomaly_research_speed_mult'
 		]);
 	});

@@ -27,6 +27,10 @@ All notable changes to this project are documented here. The format follows
   delegate); the ruler first, then by level (ties: officials, scientists, commanders); per class
   how many are hired of its (soft) limit, and a filter to show only some classes; and the
   recruitable leaders in a table of their own, with their age and how many of each class.
+- Leaders tab: what each class gives per skill level in each role (the game's "Per Level"
+  tooltip: as governor of a planet, a sector, its home planet; commanding a fleet or an army; on
+  a science ship), in a table and in each leader's roles at its level — commanders and scientists
+  can govern too; each bonus names its source in brackets.
 - Upcoming: when each leader reaches its next level, at the experience it gained since an earlier
   save.
 - The game's difficulty in the tab bar, before the dates: "Admiral (6/7)".

@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { councilorBonus, councilSeats } from '#lib/government.ts';
-import { leaderLimits, leaderRoles } from '#lib/leaders.ts';
+import { CLASS_SKILL, leaderLimits, leaderRoles } from '#lib/leaders.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -35,6 +35,16 @@ export function load({ url }) {
 		pool,
 		poolKnown: s?.leaderPool !== null && s?.leaderPool !== undefined,
 		limits: s ? leaderLimits(s, data.leaderCap) : null,
+		// what each class gives per skill level, by role
+		classSkill: Object.entries(CLASS_SKILL).map(([cls, roles]) => ({
+			cls,
+			roles: Object.entries(roles).flatMap(([role, parts]) =>
+				parts.map(([where, key]) => ({
+					role: where ? `${role}: ${where}` : role,
+					modifiers: explanations[`modifier:${key}`]?.modifiers ?? []
+				}))
+			)
+		})),
 		explain: pick(
 			explanations,
 			[...leaders, ...pool].flatMap((l) => (l.traits ?? []).map((t) => `ltrait:${t}`))

@@ -44,8 +44,42 @@ const ROLE_SCOPES: Record<string, string[]> = {
 };
 const CLASS_ROLES: Record<string, string[]> = {
 	official: ['council', 'governor', 'galcom', 'federation'],
-	scientist: ['council', 'science ship'],
-	commander: ['council', 'fleet', 'army']
+	scientist: ['council', 'governor', 'science ship'],
+	commander: ['council', 'governor', 'fleet', 'army']
+};
+
+/**
+ * What a class gives per skill level in each role: the static modifiers `skill_<class>_<role>`
+ * (common/static_modifiers/00_static_modifiers.txt, 4.5.3; the game's class tooltip, "Per Level":
+ * "Commanding Fleet Effect", "Planet Governor Effect" …). A governor's are the planet's, the
+ * sector's (governing the sector capital) and its home planet's (governing it); a seat gives its
+ * own instead (#lib/government.ts).
+ */
+export const CLASS_SKILL: Record<string, Record<string, [string, string][]>> = {
+	official: {
+		governor: [
+			['planet', 'skill_official_planet_governor'],
+			['sector', 'skill_official_sector_governor'],
+			['home planet', 'skill_official_background_planet_governor']
+		]
+	},
+	scientist: {
+		governor: [
+			['planet', 'skill_scientist_planet_governor'],
+			['sector', 'skill_scientist_sector_governor'],
+			['home planet', 'skill_scientist_background_planet_governor']
+		],
+		'science ship': [['', 'skill_scientist']]
+	},
+	commander: {
+		governor: [
+			['planet', 'skill_commander_planet_governor'],
+			['sector', 'skill_commander_sector_governor'],
+			['home planet', 'skill_commander_background_planet_governor']
+		],
+		fleet: [['', 'skill_commander_navy']],
+		army: [['', 'skill_commander_army']]
+	}
 };
 
 /** A role's kind by where the leader is assigned (`LeaderInfo.assigned`): a ship's fleet … */
@@ -68,6 +102,19 @@ export function leaderRoles(
 	councilBonus = 0
 ): { roles: Role[]; self: Bonus[] } {
 	const own = l.level + (l.bonus ?? 0);
+	// the class's effects in a role, at a level
+	const skill = (kind: string, level: number | null): Bonus[] =>
+		(CLASS_SKILL[l.class]?.[kind] ?? []).flatMap(([where, key]) => {
+			const per = explain[`modifier:${key}`]?.modifiers ?? [];
+			if (!per.length) return [];
+			const at = level ?? 1;
+			return [
+				{
+					source: `${l.class} × ${at}${where ? `: ${where}` : ''}`,
+					modifiers: per.map((m) => ({ ...m, value: m.value * at }))
+				}
+			];
+		});
 	const traits = (scopes: string[]): Bonus[] =>
 		l.traits.flatMap((t) => {
 			const modifiers = scopes.flatMap((sc) => explain[`ltrait-${sc}:${t}`]?.modifiers ?? []);
@@ -93,7 +140,7 @@ export function leaderRoles(
 			name: l.governs ?? null,
 			level: own,
 			active: true,
-			bonuses: traits(ROLE_SCOPES.governor)
+			bonuses: [...skill('governor', own), ...traits(ROLE_SCOPES.governor)]
 		});
 	if (l.assigned) {
 		const kind = assignedKind(l);
@@ -102,7 +149,7 @@ export function leaderRoles(
 			name: l.assigned.name,
 			level: own,
 			active: true,
-			bonuses: traits(ROLE_SCOPES[kind] ?? ['modifier'])
+			bonuses: [...skill(kind, own), ...traits(ROLE_SCOPES[kind] ?? ['modifier'])]
 		});
 	}
 	// the ruler holds the council's first seat
@@ -115,7 +162,7 @@ export function leaderRoles(
 			name: null,
 			level: kind === 'council' ? own + councilBonus : own,
 			active: false,
-			bonuses: traits(ROLE_SCOPES[kind])
+			bonuses: [...skill(kind, own), ...traits(ROLE_SCOPES[kind])]
 		}));
 	const order = (r: Role) => {
 		const i = (CLASS_ROLES[l.class] ?? []).indexOf(r.kind === 'ruler' ? 'council' : r.kind);
