@@ -46,6 +46,8 @@ const data: GameData = {
 	speciesRights: [],
 	councilorSkill: {},
 	leaderCap: {},
+	leaderCost: {},
+	speciesArchetypes: {},
 	focus: { categories: {}, cards: {}, rewards: {} },
 	jobs: {},
 	edicts: {},

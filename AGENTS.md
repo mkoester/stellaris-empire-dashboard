@@ -1239,6 +1239,10 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   campaigns fits); the defines' comment (200 475 825 1250) is stale. Class limits are not in the
   save: base 3 + `country_<class>_cap_add` / `country_leader_cap_add` of what is held
   (#lib/leaders.ts leaderLimits; docs/open-checks.md 20).
+- Leader upkeep: unity 2 × level (`paragon/leader_base_upkeep`) × the class's factor, which the
+  budget gives exactly (`leader_<class>s` unity: commanders 3.3 for levels 2 + 1 → 0.55, each 2.2 /
+  1.1 as the game shows), plus a leader's own traits. Recruitment: `leader_cost` = 100 + 50 (L − 1)² +
+  25 (L − 1) × (1 + `leaders_cost_mult` …): 75 with The Empire Needs You, as the game shows.
 - A leader's home: `background_planet = { type=planet|ship reference }` (4.5.3; the same form as a
   colony's `carrier`), so "governs its home" is the colony's carrier equal to it. An immortal
   leader is read as `immortal=yes` — **spelling assumed**, none seen in a 4.5.3 save.

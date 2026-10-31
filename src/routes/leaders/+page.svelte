@@ -5,9 +5,9 @@
 	import { LEADER_CLASSES, leaderOrder, type Bonus } from '#lib/leaders.ts';
 	import { followGame } from '#lib/live.ts';
 	import { formatModifierValue, modifierColor, modifierLabel } from '#lib/modifiers.ts';
+	import RoleBadge from '#lib/RoleBadge.svelte';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
-	import type { PoolLeader } from '#lib/types.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -63,14 +63,41 @@
 			title:
 				'what each role gives now: a seat’s modifiers at the councilor level, the traits’ in that role; triggered trait effects are not known'
 		},
+		{
+			id: 'upkeep',
+			label: 'Upkeep',
+			value: (r) => r.upkeep,
+			right: true,
+			cell: unity,
+			title:
+				'unity a month: 2 × its level, × what the budget shows for its class and its own traits'
+		},
 		{ id: 'age', label: 'Age', value: (r) => r.age, right: true },
 		{ id: 'species', label: 'Species', value: (r) => r.species },
 		{ id: 'traits', label: 'Traits', value: (r) => r.traits.length, cell: traits }
 	];
-	const poolColumns: Column<PoolLeader>[] = [
+	type Pooled = (typeof data.pool)[number];
+	const poolColumns: Column<Pooled>[] = [
 		{ id: 'name', label: 'Leader', value: (r) => r.name ?? null, cell: name },
 		{ id: 'class', label: 'Class', value: (r) => r.class, cell: cls },
 		{ id: 'level', label: 'Level', value: (r) => r.level ?? null, right: true, cell: level },
+		{
+			id: 'cost',
+			label: 'Cost',
+			value: (r) => r.cost,
+			right: true,
+			cell: cost,
+			title:
+				'unity to recruit: 100 + 50 (level − 1)² + 25 (level − 1), × your leader cost modifiers'
+		},
+		{
+			id: 'upkeep',
+			label: 'Upkeep',
+			value: (r) => r.upkeep,
+			right: true,
+			cell: unity,
+			title: 'unity a month once hired'
+		},
 		{ id: 'age', label: 'Age', value: (r) => r.age ?? null, right: true },
 		{ id: 'species', label: 'Species', value: (r) => r.species ?? null },
 		{ id: 'traits', label: 'Traits', value: (r) => r.traits?.length ?? 0, cell: traits }
@@ -90,7 +117,7 @@
 {/snippet}
 {#snippet roles(r: Leader)}
 	{#each r.roles.filter((x) => x.active) as x, i (i)}<div class="whitespace-nowrap">
-			{roleLabel(x)}
+			<RoleBadge kind={x.kind} />{roleLabel(x)}
 		</div>{:else}<span class="text-gray-500">–</span>{/each}
 {/snippet}
 {#snippet bonusList(list: Bonus[])}
@@ -113,7 +140,9 @@
 			title={x.active ? undefined : `not held: what it would give as ${x.kind}`}
 		>
 			<div class="text-xs font-semibold">
-				{x.kind}{x.level !== null ? ` (${x.level})` : ''}{x.active ? '' : ' — if assigned'}
+				<RoleBadge kind={x.kind} />{x.kind}{x.level !== null ? ` (${x.level})` : ''}{x.active
+					? ''
+					: ' — if assigned'}
 			</div>
 			{#if x.bonuses.length}{@render bonusList(x.bonuses)}{:else}<div class="text-xs text-gray-500">
 					{x.kind === 'council' && !x.active
@@ -122,19 +151,29 @@
 				</div>{/if}
 		</div>{/each}
 	{#if r.homeBonuses.length}<div class="mb-1">
-			<div class="text-xs font-semibold">home colony{r.home ? ` (${r.home})` : ''}</div>
+			<div class="text-xs font-semibold">
+				<RoleBadge kind="home colony" />home colony{r.home ? ` (${r.home})` : ''}
+			</div>
 			{@render bonusList(r.homeBonuses)}
 		</div>{/if}
 	{#if r.self.length}<div>
-			<div class="text-xs font-semibold">itself</div>
+			<div class="text-xs font-semibold"><RoleBadge kind="itself" />itself</div>
 			{@render bonusList(r.self)}
 		</div>{/if}
 {/snippet}
-{#snippet traits(r: { traits?: string[] })}
+{#snippet unity(r: { upkeep: number | null })}
+	{#if r.upkeep !== null}{Math.round(r.upkeep * 100) / 100}
+		<span class="text-xs text-gray-500">unity</span>{:else}–{/if}
+{/snippet}
+{#snippet cost(r: { cost: number | null })}
+	{#if r.cost !== null}{r.cost} <span class="text-xs text-gray-500">unity</span>{:else}–{/if}
+{/snippet}
+{#snippet traits(r: { traits?: string[]; class: string })}
+	<!-- each trait with a badge for every role it acts in -->
 	{#each r.traits ?? [] as t, i (t)}{i ? ' · ' : ''}<InfoPopup
 			explanation={data.explain[`ltrait:${t}`]}
 			>{data.explain[`ltrait:${t}`]?.title ?? pretty(t.replace(/^(leader_)?trait_/, ''))}</InfoPopup
-		>{/each}
+		>{#each data.traitRoles[`${r.class}:${t}`] ?? [] as k (k)}<RoleBadge kind={k} />{/each}{/each}
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -173,7 +212,9 @@
 						>{c.cls}</span
 					>
 					{#each c.roles as r (r.role)}<div class="mt-1">
-							<div class="text-xs font-semibold">{r.role}</div>
+							<div class="text-xs font-semibold">
+								<RoleBadge kind={r.role.split(':')[0]} />{r.role}
+							</div>
 							{#each r.modifiers as m, j (j)}<div class="text-xs">
 									<span class={modifierColor(m)}>{formatModifierValue(m)}</span>
 									{modifierLabel(m)}

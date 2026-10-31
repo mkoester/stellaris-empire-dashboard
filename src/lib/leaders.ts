@@ -277,20 +277,132 @@ const BASE_LEADER_CAP = 3; // `@base_leader_cap`, common/leader_classes/00_base_
  * `country_<class>_cap_add` (and `country_leader_cap_add`, every class) of what the save shows held:
  * traditions, perks, edicts, policies, civics, the origin, technologies, timed and static modifiers.
  */
-export function leaderLimits(s: Snapshot, cap: GameData['leaderCap']): Record<string, number> {
-	const held = [
-		...[...(s.traditions ?? []), ...(s.ascensionPerks ?? []), ...(s.edicts ?? [])].map(
-			(k) => `tradition:${k}`
-		),
-		...Object.values(s.policies ?? {}).map((k) => `tradition:${k}`),
-		...(s.government ?? []).map((k) => `civic:${k}`),
-		...(s.origin ? [`origin:${s.origin}`] : []),
-		...(s.progress?.researched ?? []).map((k) => `tech:${k}`),
-		...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`)
+/** What the save shows the empire holding, as `bySource` keys (#lib/server/gamedata.ts). */
+function heldSources(s: Snapshot): string[] {
+	return [
+		...new Set([
+			...[...(s.traditions ?? []), ...(s.ascensionPerks ?? []), ...(s.edicts ?? [])].map(
+				(k) => `tradition:${k}`
+			),
+			...Object.values(s.policies ?? {}).map((k) => `tradition:${k}`),
+			...(s.government ?? []).map((k) => `civic:${k}`),
+			...(s.origin ? [`origin:${s.origin}`] : []),
+			...(s.progress?.researched ?? []).map((k) => `tech:${k}`),
+			...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`)
+		])
 	];
-	const add = (cls: string) =>
-		[...new Set(held)].reduce((n, k) => n + (cap[k]?.[cls] ?? 0) + (cap[k]?.leader ?? 0), 0);
+}
+
+/** Per class: what the held sources add for it (`map[source][class]` + `map[source].leader`). */
+const perClass = (s: Snapshot, map: Record<string, Record<string, number>>) => {
+	const held = heldSources(s);
+	return (cls: string) =>
+		held.reduce((n, k) => n + (map[k]?.[cls] ?? 0) + (map[k]?.leader ?? 0), 0);
+};
+
+export function leaderLimits(s: Snapshot, cap: GameData['leaderCap']): Record<string, number> {
+	const add = perClass(s, cap);
 	return Object.fromEntries(LEADER_CLASSES.map((c) => [c, BASE_LEADER_CAP + add(c)]));
+}
+
+/**
+ * A leader's recruitment cost in unity before modifiers: `leader_cost` (common/script_values/
+ * 00_script_values.txt, 4.5.3) — 100 + 50 (level − 1)² + 25 (level − 1), rounded.
+ */
+export const baseLeaderCost = (level: number) =>
+	Math.round(100 + 50 * (level - 1) ** 2 + 25 * (level - 1));
+
+/**
+ * Each class's recruitment cost factor: 1 + the `leaders_cost_mult` and `leader_<class>s_cost_mult`
+ * of what is held — traditions, policies, civics, the authority … and the council seats at their
+ * level. Roaming Korinth 2204.12 (4.5.3): The Empire Needs You −25 % → 75 for a level-1 leader, as
+ * the game's Recruitable Leaders show.
+ */
+export function leaderCostFactors(
+	s: Snapshot,
+	cost: GameData['leaderCost'],
+	seats: { effects: { now: Modifier }[] }[] = []
+): Record<string, number> {
+	const add = perClass(s, cost);
+	const seat = (cls: string) =>
+		seats
+			.flatMap((x) => x.effects.map((e) => e.now))
+			.reduce(
+				(n, m) =>
+					n + (m.key === 'leaders_cost_mult' || m.key === `leader_${cls}s_cost_mult` ? m.value : 0),
+				0
+			);
+	return Object.fromEntries(LEADER_CLASSES.map((c) => [c, Math.max(0, 1 + add(c) + seat(c))]));
+}
+
+/**
+ * Leader upkeep: unity 2 × level (`paragon/leader_base_upkeep`, `mult = trigger:has_base_skill`)
+ * × the empire's factor for the class and the leader's own (`leaders_upkeep_mult` of its traits on
+ * itself). The empire's factor is read back from the budget (`leader_<class>s` unity expenses), so
+ * every modifier the game applies is in it: Roaming Korinth 2204.12 — commanders 3.3 for levels 2
+ * and 1 → 0.55 (Healthcare Program −25 %, Wanderlust −10 %, Talented −10 %), each leader 2.2 or 1.1
+ * as the game shows.
+ */
+export function upkeepFactors(
+	leaders: { class: string; level: number; own: number }[],
+	budget: { source: string; expenses: Record<string, number> }[] | null
+): Record<string, number | null> {
+	return Object.fromEntries(
+		LEADER_CLASSES.map((c) => {
+			const mine = leaders.filter((l) => l.class === c);
+			const paid = budget?.find((b) => b.source === `leader_${c}s`)?.expenses.unity;
+			const base = mine.reduce((n, l) => n + 2 * l.level, 0);
+			if (paid === undefined || !base) return [c, null];
+			const own = mine.reduce((n, l) => n + 2 * l.level * l.own, 0);
+			return [c, (paid - own) / base];
+		})
+	);
+}
+
+/** A leader's monthly unity upkeep at the class factor (`upkeepFactors`) and its own. */
+export const leaderUpkeep = (level: number, factor: number, own = 0) =>
+	2 * level * Math.max(0, factor + own);
+
+/** A badge for each role a leader can hold, and for where else its traits act. */
+export const ROLE_BADGES: Record<string, { short: string; title: string; color: string }> = {
+	ruler: { short: 'Ru', title: 'ruler', color: '#b8902a' },
+	council: { short: 'Co', title: 'council', color: '#8f6ad8' },
+	governor: { short: 'Gov', title: 'governor', color: '#2e8b3e' },
+	'science ship': { short: 'Sci', title: 'science ship', color: '#2f8fe0' },
+	fleet: { short: 'Flt', title: 'fleet', color: '#d0403a' },
+	army: { short: 'Arm', title: 'army', color: '#8c6d1f' },
+	galcom: { short: 'GC', title: 'Galactic Community delegate', color: '#4f6fd6' },
+	federation: { short: 'Fed', title: 'federation delegate', color: '#2a9fa8' },
+	'home colony': { short: 'Home', title: 'its home colony', color: '#6d8f2e' },
+	itself: { short: 'Self', title: 'the leader itself', color: '#6b7280' }
+};
+
+/**
+ * The roles a trait acts in, as badges: from the scopes its modifiers apply in
+ * (`ltrait-<scope>:<trait>`); "wherever assigned" (`modifier`) means the roles the class is
+ * assigned to — governing, and its ship, fleet or army. In `ROLE_BADGES` order.
+ */
+export function traitRoles(
+	trait: string,
+	cls: string,
+	explain: Record<string, Explanation>
+): string[] {
+	const has = (scope: string) => (explain[`ltrait-${scope}:${trait}`]?.modifiers.length ?? 0) > 0;
+	const assigned = (CLASS_ROLES[cls] ?? []).filter(
+		(k) => k !== 'council' && k !== 'galcom' && k !== 'federation'
+	);
+	const kinds = new Set<string>([
+		...(has('councilor') ? ['council'] : []),
+		...(has('planet') || has('sector') ? ['governor'] : []),
+		...(has('modifier') ? assigned : []),
+		...(has('fleet') ? ['fleet'] : []),
+		...(has('army') ? ['army'] : []),
+		...(has('galcom') ? ['galcom'] : []),
+		...(has('federation') ? ['federation'] : []),
+		...(has('background_planet') ? ['home colony'] : []),
+		...(has('self') ? ['itself'] : [])
+	]);
+	return Object.keys(ROLE_BADGES).filter((k) => kinds.has(k));
 }
 
 // the classes in the order the leaders tab lists them, and a level's ties

@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { leaderLimits, leaderOrder, leaderRoles } from './leaders.ts';
+import {
+	baseLeaderCost,
+	leaderCostFactors,
+	leaderLimits,
+	leaderOrder,
+	leaderRoles,
+	leaderUpkeep,
+	traitRoles,
+	upkeepFactors
+} from './leaders.ts';
 import type { Facts } from './triggers.ts';
 import type { Explanation, LeaderInfo, Modifier, Snapshot } from './types.ts';
 
@@ -231,5 +240,67 @@ describe('leaderLimits', () => {
 			'tradition:tr_not_taken': { official: 5 }
 		};
 		expect(leaderLimits(s, cap)).toEqual({ official: 4, scientist: 5, commander: 5 });
+	});
+});
+
+describe('leader cost and upkeep', () => {
+	it('costs 100, 175, 350 unity at levels 1–3 before modifiers', () => {
+		expect([1, 2, 3].map(baseLeaderCost)).toEqual([100, 175, 350]);
+	});
+
+	it("applies the held cost modifiers and the seats' — 75 for a level-1 leader", () => {
+		// Roaming Korinth 2204.12 (4.5.3): The Empire Needs You −25 %, the game's Recruitable Leaders 75
+		const s = { traditions: ['tr_aptitude_the_empire_needs_you'] } as unknown as Snapshot;
+		const cost = {
+			'tradition:tr_aptitude_the_empire_needs_you': { leader: -0.25 },
+			'tradition:tr_not_taken': { leader: -0.5 }
+		};
+		const f = leaderCostFactors(s, cost);
+		expect(Math.round(baseLeaderCost(1) * f.official)).toBe(75);
+		const seat = { effects: [{ now: mod('leader_scientists_cost_mult', -0.1) }] };
+		expect(leaderCostFactors(s, cost, [seat]).scientist).toBeCloseTo(0.65);
+	});
+
+	it("reads the class's upkeep factor back from the budget, with each leader's own", () => {
+		// commanders 3.3 unity for levels 2 and 1 → 0.55: 2.2 and 1.1, as the game shows
+		const f = upkeepFactors(
+			[
+				{ class: 'commander', level: 2, own: 0 },
+				{ class: 'commander', level: 1, own: 0 }
+			],
+			[{ source: 'leader_commanders', expenses: { unity: 3.3 } }]
+		);
+		expect(f.commander).toBeCloseTo(0.55);
+		expect(f.official).toBeNull(); // no budget line
+		expect(leaderUpkeep(2, f.commander!)).toBeCloseTo(2.2);
+		// a leader whose trait halves its own upkeep shares the class's line
+		const g = upkeepFactors(
+			[
+				{ class: 'commander', level: 2, own: -0.5 },
+				{ class: 'commander', level: 1, own: 0 }
+			],
+			[{ source: 'leader_commanders', expenses: { unity: 1.3 } }] // 2·2·(0.55 − 0.5) + 2·1·0.55
+		);
+		expect(leaderUpkeep(2, g.commander!, -0.5)).toBeCloseTo(0.2);
+	});
+});
+
+describe('traitRoles', () => {
+	it("badges the roles a trait acts in; 'wherever assigned' as the class's assignments", () => {
+		// the fixture's Curator: council, governor (planet), wherever assigned, itself
+		expect(traitRoles('leader_trait_curator', 'scientist', explain)).toEqual([
+			'council',
+			'governor',
+			'science ship',
+			'itself'
+		]);
+		expect(traitRoles('leader_trait_curator', 'commander', explain)).toEqual([
+			'council',
+			'governor',
+			'fleet',
+			'army',
+			'itself'
+		]);
+		expect(traitRoles('leader_trait_unknown', 'official', explain)).toEqual([]);
 	});
 });

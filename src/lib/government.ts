@@ -9,10 +9,17 @@ import type { CouncilSeat, Explanation, Faction, GameData, Modifier, Snapshot } 
 export function facts(
 	s: Snapshot,
 	scripted: Facts['scripted'] = {},
-	data: { electionTypes?: Record<string, string>; slavery?: string[] } = {}
+	data: {
+		electionTypes?: Record<string, string>;
+		slavery?: string[];
+		archetypes?: Record<string, string>; // species class → archetype (data DB species_class)
+	} = {}
 ): Facts {
 	const electionTypes = data.electionTypes ?? {};
 	const authority = (s.government ?? []).find((k) => k.startsWith('auth_'));
+	const archetype =
+		s.founderClass && data.archetypes ? (data.archetypes[s.founderClass] ?? null) : null;
+	const gestalt = authority === 'auth_hive_mind' || authority === 'auth_machine_intelligence';
 	return {
 		countryType: s.countryType,
 		government: s.government ?? [],
@@ -28,6 +35,8 @@ export function facts(
 		situations: s.situations === null ? null : s.situations.length,
 		nomadic:
 			s.situations === null ? null : s.situations.some((x) => x.type === 'situation_nomad_economy'),
+		individualMachine: archetype === null ? null : archetype === 'MACHINE' && !gestalt,
+		usesFood: s.expenses ? (s.expenses.food ?? 0) > 0 || null : null,
 		scripted,
 		leaderTraits: s.leaderList?.flatMap((l) => l.traits),
 		edicts: s.edicts,

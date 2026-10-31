@@ -38,6 +38,9 @@ export type Facts = {
 	livingStandards?: string[] | null; // of our species
 	speciesTraits?: string[] | null; // of our species
 	roboticSpecies?: boolean | null; // a robotic species among ours
+	// `is_individual_machine`: the founder species a machine (archetype MACHINE), not a gestalt
+	individualMachine?: boolean | null;
+	usesFood?: boolean | null; // `country_uses_food`: food among the monthly expenses
 	jobs?: string[] | null; // worked by at least one pop
 	otherOrganicSpecies?: boolean | null; // more than one organic species
 	allOrganicFullCitizenship?: boolean | null;
@@ -132,6 +135,12 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			return yes(f.atWar);
 		case 'is_gestalt':
 			return yes(auth('auth_machine_intelligence') || auth('auth_hive_mind'));
+		// scripted triggers whose bodies a save cannot answer as written (`founder_species = {…}`,
+		// `resource_expenses_compare`), answered from what it says
+		case 'is_individual_machine':
+			return yes(f.individualMachine ?? null);
+		case 'country_uses_food':
+			return yes(f.usesFood ?? null);
 		case 'is_machine_empire':
 			return yes(auth('auth_machine_intelligence'));
 		case 'is_hive_empire':

@@ -25,6 +25,7 @@ export function load({ url }) {
 	if (!s) error(404, 'no save yet');
 	const f = facts(s, data.scriptedTriggers, {
 		electionTypes: data.electionTypes,
+		archetypes: data.speciesArchetypes,
 		slavery: data.speciesRights.flatMap((k) =>
 			k.options.filter((o) => o.isSlavery).map((o) => o.key)
 		)

@@ -27,6 +27,13 @@ All notable changes to this project are documented here. The format follows
   delegate); the ruler first, then by level (ties: officials, scientists, commanders); per class
   how many are hired of its (soft) limit, and a filter to show only some classes; and the
   recruitable leaders in a table of their own, with their age and how many of each class.
+- Leaders tab: a badge for each role (ruler, council, governor, science ship, fleet, army,
+  delegates, home colony, itself) beside every role, and beside each trait for every role it
+  acts in; each leader's unity upkeep (read back from the budget, so every modifier counts), and
+  the recruitable leaders' recruitment cost and upkeep.
+- Traits that depend on a synthetic empire or on food (`is_individual_machine`,
+  `country_uses_food`) are decided from the founder species and the food expenses, no longer
+  "may apply" (Fertility Preacher).
 - Leaders tab: the traits' conditional effects (Righteous's −25 crime as governor, the
   Expertise traits' research with Technocracy …), each where its condition holds — by the leader
   (ruler, class) and the empire (gestalt, nomadic, civics); one the save cannot answer is shown

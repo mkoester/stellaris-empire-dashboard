@@ -435,6 +435,7 @@ export type Snapshot = {
 	leaderPool: PoolLeader[] | null;
 	// the Wanderlust perk's progress (#lib/wanderlust.ts); null without it, or before READER 31
 	wanderlust: Wanderlust | null;
+	founderClass: string | null; // its founder species' class (`NECROID`); since READER 35
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
@@ -1046,6 +1047,7 @@ export type GameData = {
 	ethicOrder: string[]; // ethic keys by the game's ethic index (`EthicsState` lists)
 	ethicRules: Record<string, AttractionRule[]>; // per ethic, its own attraction rules
 	electionTypes: Record<string, string>; // authority → democratic / oligarchic / none
+	speciesArchetypes: Record<string, string>; // species class → archetype (MACHINE, BIOLOGICAL …)
 	buildingUnlocks: Record<string, string[]>; // building → the civics or origins that unlock it
 	// civic → the authorities it needs or forbids ('gestalt': the gestalt consciousness ethic)
 	civicAuthority: Record<string, { require: string[]; forbid: string[] }>;
@@ -1093,6 +1095,8 @@ export type GameData = {
 	// what raises a class's leader limit: source (`tradition:<key>` — perks, edicts, policies too —,
 	// `civic:`, `origin:`, `tech:`, `modifier:`) → class (`leader`: every class) → +n
 	leaderCap: Record<string, Record<string, number>>;
+	// what changes a class's recruitment cost, as `leaderCap`: source → class (`leader`) → mult
+	leaderCost: Record<string, Record<string, number>>;
 	focus: {
 		categories: Record<string, string>; // key → name
 		cards: Record<
