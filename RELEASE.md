@@ -43,6 +43,14 @@ Every release's notes open with the game it was built for (`scripts/game-version
 build's `openBeta`, else the bundled extractor's `sql/stellaris.sql` `meta.game_version` ("Built for
 Stellaris Cygnus v4.5.2 (9776).").
 
+**A prerelease needs a non-empty `## [Unreleased]` section** — right after a regular release there
+is none, and the run fails at its last step, after building everything (caught by a dry run before
+the first beta build, 2026-10-31). **Dry run before pushing a new kind of tag**: clone the branch
+into `$TMPDIR` with the extractor's pinned tag beside it, commit and tag there,
+`git update-ref refs/remotes/origin/<branch> HEAD`, then run the workflow's check step (its `run:`
+block, with `GITHUB_REF_NAME`, `GITHUB_SHA`, `GITHUB_ENV` set), `node scripts/version.mjs` and the
+notes commands; a tag off its branch and one without `openBeta` must be refused.
+
 X.Y.Z is always `package.json`'s version, N counts from 1 per X.Y.Z, B is `package.json`'s
 `openBeta` (the game's beta version, e.g. `4.5.3`; set on `open-beta` only — a beta tag without it
 fails). The workflow refuses a tag that is not on its branch or does not match the version. Every
@@ -67,7 +75,9 @@ the branch **`open-beta`** (cut from `develop`, `develop` merged in as needed); 
 its `Unreleased` section.
 
 1. **Extractor first**: a beta tag on its `open-beta` (its `RELEASE.md`), unless the beta needs no
-   extractor change; pin that tag in `extractorVersion` on `open-beta`.
+   extractor change; pin that tag in `extractorVersion` on `open-beta`. No change = the released
+   extractor already reads the beta: v0.1.7-beta.1 (4.5.3, 2026-10-31) pinned v0.1.6, whose
+   4.5.3 fixes had gone in through `develop`.
 2. On `open-beta`, once per beta: `"openBeta": "4.5.3"` in `package.json` (the game's beta
    version, as the release title shows it), committed.
 3. On `open-beta`, everything committed: `git tag vX.Y.Z-beta.N` (X.Y.Z = `package.json`'s
