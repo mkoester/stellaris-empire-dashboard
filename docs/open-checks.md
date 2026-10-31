@@ -155,6 +155,19 @@ traits, leaders' own traits and situations are not counted.
 - **Do:** open the game's leader screen (where it shows each class's count and limit).
 - **Send:** a screenshot and the date.
 
+### 21. The outliner's Roman numerals — colony vs. fleet (from 2026-10-31)
+
+**Unverified.** On 2204.12 (4.5.3) the outliner showed "III" on the arkship colony (and beside its
+designation, Capital Arkship) and "II" on Military Arkship I. Read as: the colony's numeral is its
+governor's skill (Clyda Alford, level 2 + 1 bonus = 3; the colony's `governorSkill` 3, ascension
+tier 1, capital building level 2), the fleet's its commander's base level (Fagan Nightsedge, also
+2 + 1, shown as II). The leaders tab acts on level + bonus for every role ("fleet (3)"), as the
+game's leader tooltip ("Skill Level: (2+1)/10") does. One sample only, both leaders at 2 + 1.
+
+- **Do:** later in the game, when a governor and a commander differ in level or bonus (or the
+  colony gets another ascension tier or capital upgrade), hover both numerals.
+- **Send:** the screenshots and the date; the save.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

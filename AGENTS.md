@@ -77,7 +77,10 @@ against `gameDir` — `data/stellaris-<rawVersion>_<build>-<hash of the DLC fold
 open beta shares its `rawVersion` with the release), so a game update, a beta build, a new DLC or a
 dashboard with a newer extractor (new tables) extracts again (~5 s), older files stay. The footer
 shows the data DB's own `meta.game_version`. The packaged launcher names the extractor and
-its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`).
+its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`). **During development the extractor's
+`__version__` stays the same across changes**, so a running dashboard keeps its old data file:
+delete `data/stellaris-<key>.sqlite` (the app data folder) after an extractor change, or the new
+tables and values never arrive — silently.
 
 ## Packaging and releases
 
