@@ -257,6 +257,13 @@ campaign suffice, no cheats.
 
 - **Send:** nothing; read from the next autosaves (`tech_status.stored_techpoints` vs. progress).
 
+### 25. A root 404 during the first start — release smoke test (2026-10-31)
+
+Smoke-testing the v0.1.6 Linux zip on an empty data folder, `/` answered 404 once, seconds after
+answering 200, while the backlog of other campaigns was being read; the log showed nothing. Not
+reproduced: 116 later requests, including a second empty data folder polled every second through
+the backlog, were all 200. If a player reports a blank first page, start here.
+
 ## C. Not in the game
 
 ### 14. Storage, computed — resources panel (open task, 2026-10-24)

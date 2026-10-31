@@ -1182,7 +1182,11 @@ which also matches the Bash command's own shell and ends it (exit 143).
 
 - **`pnpm install` / `pnpm add` must run outside the sandbox** (`! pnpm install`): pnpm 12 fails to
   take its store lock (`pnpm-store-operation-locks: Operation not permitted`) even with the store in
-  `$TMPDIR`. Tests, check, build and dev don't touch the store and work sandboxed.
+  `$TMPDIR`. Tests, check, build and dev don't touch the store and work sandboxed. On Linux
+  (2026-10-31) `pnpm update` was denied by permission: hand it over the same way.
+- **After `pnpm update`/`install`, run `node_modules/.bin/prettier --write pnpm-lock.yaml`**: the
+  lockfile is kept in Prettier's format (`pnpm lint` checks it), pnpm writes its own, and the diff
+  balloons (2026-10-31: 2028 lines → 552 after the reformat).
 - **Node 24 is not first on PATH** (MacPorts' `node` is 22, pulled in by the `pnpm` port). Prefix
   commands with `fnm exec --using=24 --`.
 - Starting the dev server needs `sandbox.network.allowLocalBinding` (set in the workspace
