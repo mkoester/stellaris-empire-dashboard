@@ -6,10 +6,48 @@ import type { ActionKind, CapEffect, Costs, GameData } from '#lib/types.ts';
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
 
+/** The game version the data DB was extracted from (`Cygnus v4.5.3 (7793)`), null if it has none. */
+export function loadDataVersion(file: string): string | null {
+	const db = new DatabaseSync(file, { readOnly: true });
+	try {
+		const row = db.prepare("SELECT value FROM meta WHERE key = 'game_version'").get() as
+			{ value: string } | undefined;
+		return row?.value ?? null;
+	} catch {
+		return null; // no meta table
+	} finally {
+		db.close();
+	}
+}
+
+// the leader limits' modifiers: per class, and `leader` for every class
+const LEADER_CAP = `modifier_key IN ('country_official_cap_add', 'country_scientist_cap_add',
+	'country_commander_cap_add', 'country_leader_cap_add')`;
+// … and the recruitment cost's
+const LEADER_COST = `modifier_key IN ('leaders_cost_mult', 'leader_officials_cost_mult',
+	'leader_scientists_cost_mult', 'leader_commanders_cost_mult')`;
+
 export function loadGameData(file: string): GameData {
 	const db = new DatabaseSync(file, { readOnly: true });
 	try {
 		const rows = <T>(sql: string) => db.prepare(sql).all() as T[];
+		// what an empire may hold that has modifiers `where` picks, as source (`tradition:<key>` —
+		// perks, edicts, policies too —, `civic:` — authorities too —, `origin:`, `tech:`,
+		// `modifier:`) → `group(modifier key)` → their sum
+		const bySource = (where: string, group: (key: string) => string) =>
+			rows<{ owner: string; key: string; value: number }>(
+				`SELECT 'tradition:' || owner_key AS owner, modifier_key AS key, modifier_value AS value
+				   FROM tradition_modifier WHERE potential_json IS NULL AND ${where}
+				 UNION ALL SELECT 'civic:' || civic_key, modifier_key, modifier_value FROM civic_modifier WHERE ${where}
+				 UNION ALL SELECT 'civic:' || authority_key, modifier_key, modifier_value FROM authority_modifier WHERE ${where}
+				 UNION ALL SELECT 'origin:' || origin_key, modifier_key, modifier_value FROM origin_modifier WHERE ${where}
+				 UNION ALL SELECT 'tech:' || tech_key, modifier_key, modifier_value FROM technology_modifier WHERE ${where}
+				 UNION ALL SELECT 'modifier:' || static_key, modifier_key, modifier_value FROM static_modifier_modifier WHERE ${where}`
+			).reduce<Record<string, Record<string, number>>>((out, r) => {
+				const g = group(r.key);
+				(out[r.owner] ??= {})[g] = (out[r.owner][g] ?? 0) + r.value;
+				return out;
+			}, {});
 		const accords = rows<{ patron_key: string; kind: string; key: string; name: string | null }>(
 			'SELECT patron_key, kind, key, name FROM patron_accord ORDER BY sort_order'
 		);
@@ -388,6 +426,27 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, trigger_json FROM scripted_trigger'
 				).map((r) => [r.key, parseTrigger(r.trigger_json)])
 			),
+			entryEvents: rows<{
+				event_id: string;
+				title: string | null;
+				description: string | null;
+				star_flags_json: string;
+				any_star_flags_json: string | null;
+				not_star_flags_json: string | null;
+				once_flag: string | null;
+			}>(
+				`SELECT event_id, title, description, star_flags_json, any_star_flags_json,
+				        not_star_flags_json, once_flag
+				 FROM system_entry_event ORDER BY sort_order`
+			).map((r) => ({
+				id: r.event_id,
+				title: r.title ?? r.event_id,
+				description: r.description,
+				flags: JSON.parse(r.star_flags_json) as string[],
+				anyFlags: r.any_star_flags_json ? (JSON.parse(r.any_star_flags_json) as string[]) : [],
+				notFlags: r.not_star_flags_json ? (JSON.parse(r.not_star_flags_json) as string[]) : [],
+				onceFlag: r.once_flag
+			})),
 			prescriptedNames: Object.fromEntries(
 				rows<{ key: string; text: string }>('SELECT key, text FROM prescripted_name').map((r) => [
 					r.key,
@@ -403,6 +462,11 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT 'modifier:' || static_key, modifier_value FROM static_modifier_modifier
 					   WHERE modifier_key = 'councilor_skill_add'`
 				).map((r) => [r.owner, r.value])
+			),
+			leaderCap: bySource(LEADER_CAP, (k) => k.replace(/^country_(\w+)_cap_add$/, '$1')),
+			// `leaders_cost_mult` (every class: `leader`), `leader_<class>s_cost_mult`
+			leaderCost: bySource(LEADER_COST, (k) =>
+				k === 'leaders_cost_mult' ? 'leader' : k.replace(/^leader_(\w+)s_cost_mult$/, '$1')
 			),
 			depositCategories: Object.fromEntries(
 				rows<{ key: string; category: string }>(
@@ -491,12 +555,19 @@ export function loadGameData(file: string): GameData {
 				factor: number | null;
 				factor_text: string | null;
 				trigger_json: string | null;
+				op?: 'factor' | 'add' | null; // extractor 0.1.5+
+				per_json?: string | null;
+				per_value?: number | null;
 			}>(
-				'SELECT ethic_key, kind, description, factor, factor_text, trigger_json FROM ethic_attraction ORDER BY ethic_key, sort_order'
+				// `*`: a data DB from an older extractor has no `op` (its rules are all factors)
+				'SELECT * FROM ethic_attraction ORDER BY ethic_key, sort_order'
 			).reduce<GameData['ethicRules']>((out, r) => {
 				(out[r.ethic_key] ??= []).push({
 					kind: r.kind,
 					description: r.description,
+					op: r.op ?? null,
+					per: parseTrigger(r.per_json ?? null),
+					perValue: r.per_value ?? null,
 					factor: r.factor,
 					factorText: r.factor_text,
 					trigger: parseTrigger(r.trigger_json)
@@ -539,6 +610,11 @@ export function loadGameData(file: string): GameData {
 			).reduce<GameData['buildingUnlocks']>(
 				(out, r) => ({ ...out, [r.building_key]: [...(out[r.building_key] ?? []), r.owner_key] }),
 				{}
+			),
+			speciesArchetypes: Object.fromEntries(
+				rows<{ key: string; archetype: string | null }>(
+					'SELECT key, archetype FROM species_class WHERE archetype IS NOT NULL'
+				).map((r) => [r.key, r.archetype!])
 			),
 			electionTypes: Object.fromEntries(
 				rows<{ key: string; election_type: string }>(

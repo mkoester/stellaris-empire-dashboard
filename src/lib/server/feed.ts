@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { open, stat } from 'node:fs/promises';
-import type { LogEvent, Resources, Snapshot, Tick } from '#lib/types.ts';
+import type { ColonyDay, LogEvent, Resources, Snapshot, Tick } from '#lib/types.ts';
 
 // Reads the companion mod's lines from game.log (mod/dashboard_feed, events/sdash_events.txt):
 //   SDASH|2|<date>|timeline|<id>|<previous id>              monthly, first
@@ -9,6 +9,8 @@ import type { LogEvent, Resources, Snapshot, Tick } from '#lib/types.ts';
 //   SDASH|2|<date>|tick|<resource>|<stockpile>  …  tick-end   daily stockpiles
 //   SDASH|2|<date>|load|<id>                                  a save was loaded (0: unknown id)
 //   SDASH|2|<date>|event|<kind>|<field>…                      at once (colony, war-started, …)
+//   SDASH|2|<date>|event|colony-jobs|<colony>|<open jobs>|<unemployed>|<pops>
+//                                    within the daily tick, a colony whose numbers changed (0.9.0)
 // Format 1 (mod 0.1.0) had the monthly resource and end lines only. Format 3 (mod 0.7.0) is format
 // 2 with a run id after the date on every line but events' — SDASH|3|<date>|<run>|end — drawn at
 // each load: the game drops a line it has already written this session, so without it a branch
@@ -39,6 +41,7 @@ export type Line =
 	| { kind: 'timeline'; date: string; id: number; previous: number }
 	| { kind: 'tick'; date: string; resource: string; stockpile: number }
 	| { kind: 'tick-end'; date: string }
+	| ({ kind: 'colony-day'; date: string; colony: string } & ColonyDay)
 	| { kind: 'load'; date: string; id: number | null }
 	| { kind: 'event'; event: LogEvent }
 	| ({ kind: 'unsupported' } & FeedFormat);
@@ -66,7 +69,8 @@ const EVENT_FIELDS: Record<LogEvent['kind'], number> = {
 	decision: 1, // colony
 	'leader-hired': 1, // leader
 	'colonization-started': 1, // planet
-	'megastructure-started': 1 // system
+	'megastructure-started': 1, // system
+	'system-entered': 1 // mod 0.10.0: the system a ship of ours entered first
 };
 
 /**
@@ -103,6 +107,18 @@ export function parseLine(raw: string): Line | null {
 			const id = num(args[0]);
 			return { kind: 'load', date, id: id === 0 ? null : id };
 		}
+		// mod 0.9.0: a colony's day, filed with the daily tick (an older dashboard skips the kind)
+		if (head === 'event' && args[0] === 'colony-jobs') {
+			if (args.length !== 5 || !args[1]) throw bad();
+			return {
+				kind: 'colony-day',
+				date,
+				colony: args[1],
+				openJobs: num(args[2]),
+				unemployed: num(args[3]),
+				pops: num(args[4])
+			};
+		}
 		if (head === 'event') {
 			const [kind, ...fields] = args;
 			// a newer mod's kind: skipped, so an older dashboard keeps reading the rest
@@ -129,6 +145,7 @@ function gameDate(raw: string): string {
 export function assembler() {
 	const months = new Map<string, Month>();
 	const days = new Map<string, Resources>();
+	const colonyDays = new Map<string, Record<string, ColonyDay>>();
 	let events: LogEvent[] = [];
 	let ticks: Tick[] = [];
 	const monthOf = (date: string) => {
@@ -170,9 +187,20 @@ export function assembler() {
 			case 'tick':
 				days.set(line.date, { ...days.get(line.date), [line.resource]: line.stockpile });
 				return null;
+			case 'colony-day': {
+				const day = { openJobs: line.openJobs, unemployed: line.unemployed, pops: line.pops };
+				colonyDays.set(line.date, { ...colonyDays.get(line.date), [line.colony]: day });
+				return null;
+			}
 			case 'tick-end': {
-				const tick = { date: line.date, stockpile: days.get(line.date) ?? {} };
+				const colonies = colonyDays.get(line.date);
+				const tick: Tick = {
+					date: line.date,
+					stockpile: days.get(line.date) ?? {},
+					...(colonies && { colonies })
+				};
 				days.delete(line.date);
+				colonyDays.delete(line.date);
 				ticks.push(tick);
 				return { kind: 'tick', tick };
 			}
@@ -182,6 +210,7 @@ export function assembler() {
 			case 'load':
 				months.clear();
 				days.clear();
+				colonyDays.clear();
 				events = [];
 				ticks = [];
 				return { kind: 'load', date: line.date, id: line.id };
@@ -295,6 +324,10 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		focus: null,
 		techOptions: null,
 		leaderList: null,
+		leaderPool: null,
+		wanderlust: null,
+		entryEvents: null,
+		founderClass: null,
 		speciesRights: null
 	};
 }

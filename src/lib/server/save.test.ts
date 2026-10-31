@@ -52,6 +52,9 @@ import {
 	toSnapshot,
 	tradeDeals,
 	wars,
+	wanderlust,
+	systemEntries,
+	leaderPool,
 	type RawSave
 } from './save.ts';
 
@@ -209,6 +212,19 @@ describe('toSnapshot', () => {
 		expect(toSnapshot(withMod, 'camp').navalMax).toBe(40);
 	});
 
+	it('reads the stability companion mod 0.8.0 exports on each colony (sdash_stab_*)', () => {
+		const id = Object.keys(raw.colonies)[0];
+		const withMod = {
+			...raw,
+			colonies: {
+				...raw.colonies,
+				[id]: { ...raw.colonies[id], variables: { sdash_stab_add: 32.6, sdash_stab_mult: 0.1 } }
+			}
+		};
+		const c = toSnapshot(withMod, 'camp').colonies.find((x) => x.stabilityAdd != null);
+		expect(c).toMatchObject({ stabilityAdd: 32.6, stabilityMult: 0.1 });
+	});
+
 	it('lists controlled colonies, joined to their planet when there is one', () => {
 		expect(s.colonies).toEqual([
 			{
@@ -228,6 +244,8 @@ describe('toSnapshot', () => {
 				amenities: null,
 				amenitiesUsage: null,
 				crime: null,
+				stabilityAdd: null, // without companion mod 0.8.0
+				stabilityMult: null,
 				ascensionTier: 1,
 				governorSkill: 2,
 				planetClass: '',
@@ -290,8 +308,13 @@ describe('progress', () => {
 		next_election: '2210.01.01'
 	};
 
-	it('reads current research, agenda, election and the galaxy cost sliders', () => {
-		expect(progress({ country, galaxy: raw.galaxy })).toEqual({
+	it('reads current research, agenda, election and the galaxy cost settings', () => {
+		const galaxy = {
+			...raw.galaxy,
+			difficulty: 'admiral',
+			technology_difficulty_scale: 'scaling_normal'
+		};
+		expect(progress({ country, galaxy })).toEqual({
 			research: [
 				{ area: 'physics', tech: 'tech_physics_1', progress: 42.79314 },
 				{ area: 'society', tech: 'tech_planetary_unification', progress: 56.56 }
@@ -300,7 +323,12 @@ describe('progress', () => {
 			agenda: { key: 'agenda_unlock_slot', progress: 126 },
 			traditionsTaken: 0,
 			nextElection: '2210.01.01',
-			costSettings: { technology: 1.25, traditions: 1 }
+			costSettings: {
+				technology: 1.25,
+				traditions: 1,
+				difficulty: 'admiral',
+				techDifficultyScale: 'scaling_normal'
+			}
 		});
 	});
 
@@ -542,6 +570,51 @@ describe('colonyGrowth', () => {
 			})
 		).toEqual({ net: 18, by: { immigration: 18 }, byStratum: { worker: 18 } });
 		expect(colonyGrowth(undefined)).toBeNull();
+	});
+});
+
+describe('systemEntries', () => {
+	// Bir (2205.09.18): the Asteroid Hive guardian's star flags, set at galaxy generation
+	const hive = {
+		id: 'leviathans.3202',
+		title: 'Crystalline Asteroids',
+		description: null,
+		flags: ['guardians_hive_system'],
+		anyFlags: [],
+		notFlags: ['hivers_defeated'],
+		onceFlag: null
+	};
+	const raw = (visited: number[]) =>
+		({
+			countryId: 0,
+			country: { visited_objects: visited },
+			systems: {
+				'61': {
+					name: { key: 'Bir' },
+					flags: { guardians_hive_system: 62808000, guardian: 62808000 }
+				},
+				'62': {
+					name: { key: 'Elsewhere' },
+					flags: { guardians_hive_system: 1, hivers_defeated: 2 }
+				},
+				'63': { name: { key: 'Quiet' } }
+			},
+			starbases: {},
+			construction: undefined,
+			deposits: {},
+			shipDesigns: {}
+		}) as unknown as Parameters<typeof systemEntries>[0];
+
+	it('lists the systems we entered whose flags fire an entry event', () => {
+		expect(systemEntries(raw([61, 62, 63]), [hive])).toEqual([
+			{
+				systemId: 61,
+				system: 'Bir',
+				events: [{ id: 'leviathans.3202', title: 'Crystalline Asteroids' }]
+			}
+		]);
+		expect(systemEntries(raw([63]), [hive])).toEqual([]); // not entered: no spoiler
+		expect(systemEntries(raw([61]), [])).toBeNull(); // no game data: unknown
 	});
 });
 
@@ -1280,6 +1353,9 @@ describe('helpers', () => {
 
 	it('displayName resolves templates and strips key decoration', () => {
 		expect(displayName({ key: 'NAME_Bunker' })).toBe('Bunker');
+		// name-list fleets and armies like ships: the key's tail where no prescripted name says more
+		expect(displayName({ key: 'NECROID1_FLEET_Vanguard' })).toBe('Vanguard');
+		expect(displayName({ key: 'NECROID1_ARMY_Legion' })).toBe('Legion');
 		expect(
 			displayName({
 				key: '%ADJECTIVE%',
@@ -1847,4 +1923,83 @@ describe.skipIf(!real)('real save', () => {
 		);
 		console.log(JSON.stringify({ ...s, colonies: s.colonies.slice(0, 3) }, null, 1));
 	}, 30_000);
+});
+
+describe('wanderlust', () => {
+	// shaped like Roaming Korinth 2204.10.01 (4.5.3): the counters as the perk set them, flags in
+	// game hours (2200.01.01 = 62808000)
+	const raw = (variables: Record<string, number>, flags: Record<string, number> = {}) =>
+		({
+			date: '2205.03.01',
+			countryId: 0,
+			country: {
+				variables: { energy_storage: 5, ...variables },
+				flags: { first_colony_finished: 62808000, ...flags }
+			},
+			systems: {
+				'1': {
+					name: { key: 'Sol' },
+					flags: { galactic_landmark_system: 62808000 }
+				}
+			}
+		}) as unknown as RawSave;
+
+	it('is null without the perk', () => {
+		expect(wanderlust(raw({}))).toBeNull();
+	});
+
+	it('reads each category and the systems an arkship counted, dated by the flag', () => {
+		const w = wanderlust({
+			...raw(
+				{ galactic_landmark_system_count: 17, galactic_landmark_system_seen: 1 },
+				{ galactic_landmark_completed: 62808000 }
+			),
+			systems: {
+				'1': {
+					name: { key: 'Sol' },
+					// 2205.02.11: 5 years and 40 days after 2200.01.01, 24 hours a day
+					flags: {
+						galactic_landmark_system: 62808000,
+						'visited_by_nomad@0': 62808000 + 1840 * 24,
+						'visited_by_nomad@3': 62808000 // another nomad's visit
+					}
+				},
+				'2': { name: { key: 'Elsewhere' }, flags: { 'visited_by_nomad@3': 62808000 } }
+			}
+		} as unknown as RawSave);
+		expect(w).toEqual({
+			categories: [{ key: 'galactic_landmark', seen: 1, count: 17, done: true }],
+			visits: [
+				{ systemId: 1, system: 'Sol', date: '2205.02.11', categories: ['galactic_landmark'] }
+			],
+			complete: false
+		});
+	});
+});
+
+describe('leaderPool', () => {
+	it('details the recruitable leaders, aged from their date while the save says 0', () => {
+		// Roaming Korinth 2204.10.01 (4.5.3): Lougher Namnden, 33 in the game's Recruitable Leaders
+		const raw = {
+			date: '2204.10.01',
+			country: { modules: { standard_leader_module: { leaders: [272] } } },
+			leaders: {
+				'272': {
+					name: { full_names: { key: 'NECROID1_CHR_Lougher' } },
+					class: 'official',
+					level: 1,
+					bonus_skill_level: 1,
+					age: 0,
+					date: '2171.01.01',
+					date_added: '2200.01.01',
+					traits: ['leader_trait_eye_for_talent']
+				}
+			},
+			speciesDb: {},
+			councilPositions: {}
+		} as unknown as RawSave;
+		expect(leaderPool(raw)).toMatchObject([
+			{ id: 272, class: 'official', level: 1, bonus: 1, age: 33, added: '2200.01.01' }
+		]);
+	});
 });

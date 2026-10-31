@@ -110,7 +110,11 @@ export function resourceSeries(
  */
 export function stockpileSeries(history: Snapshot[]): Series {
 	return pointSeries(
-		stockpilePoints(history).map((p) => ({ date: p.date, values: withoutResearch(p.stockpile) }))
+		stockpilePoints(history).map((p) => ({
+			date: p.date,
+			values: withoutResearch(p.stockpile),
+			partial: p.snap === null
+		}))
 	);
 }
 
@@ -135,7 +139,8 @@ export function resourcePanelSeries(history: Snapshot[], key: string): Series {
 	return {
 		x: points.map((p) => gameYear(p.date)),
 		lines: {
-			stockpile: points.map((p) => p.stockpile[key] ?? 0),
+			// a tick without the resource did not log it (a nomad's reserves): a gap, not 0
+			stockpile: points.map((p) => p.stockpile[key] ?? (p.snap ? 0 : null)),
 			'per month': points.map((p) => (p.snap ? (p.snap.balance[key] ?? 0) : null))
 		}
 	};
@@ -189,12 +194,18 @@ export function resourceKeys(history: Snapshot[]): string[] {
 	return stripOrder(history.flatMap((s) => [...moved(s.stockpile), ...moved(s.balance)]));
 }
 
-function pointSeries(points: { date: string; values: Resources | null }[]): Series {
+/** One line per key; a key a point lacks is 0 — a gap where the point is `partial` (a tick's). */
+function pointSeries(
+	points: { date: string; values: Resources | null; partial?: boolean }[]
+): Series {
 	const keys = [...new Set(points.flatMap((p) => Object.keys(p.values ?? {})))].sort();
 	return {
 		x: points.map((p) => gameYear(p.date)),
 		lines: Object.fromEntries(
-			keys.map((k) => [k, points.map((p) => (p.values === null ? null : (p.values[k] ?? 0)))])
+			keys.map((k) => [
+				k,
+				points.map((p) => (p.values === null ? null : (p.values[k] ?? (p.partial ? null : 0))))
+			])
 		)
 	};
 }
@@ -287,6 +298,53 @@ export function agendaSeries(history: Snapshot[]): Series {
 				if (!a || !b || a.key !== b.key) return null;
 				return Math.round(((a.progress - b.progress) / monthStarts(before.date, s.date)) * 10) / 10;
 			})
+		}
+	};
+}
+
+/**
+ * A colony's pops, employed, civilians and open jobs: at each snapshot from the save, and between
+ * them on the days the companion mod (0.9.0) logged a change — its ticks, filed with the month
+ * after them, matched by the colony's name (`name`: the page's, for months the log alone saw).
+ * A day's employed is pops − unemployed, its civilians the unemployed (docs/open-checks.md 23).
+ */
+export function colonyDaySeries(
+	history: Snapshot[],
+	planetId: number,
+	name: string,
+	atSave: (c: Colony) => { pops: number; employed: number; civilians: number; open: number }
+): Series {
+	const points = history.flatMap((s, i) => {
+		const after = i > 0 ? history[i - 1].date : '';
+		const colony = s.colonies.find((c) => c.planetId === planetId);
+		const key = colony?.name ?? name;
+		const days = (s.ticks ?? []).flatMap((t) => {
+			const d = t.colonies?.[key];
+			return d && t.date > after && t.date < s.date
+				? [
+						{
+							date: t.date,
+							v: {
+								pops: d.pops,
+								employed: d.pops - d.unemployed,
+								civilians: d.unemployed,
+								open: d.openJobs
+							}
+						}
+					]
+				: [];
+		});
+		return [...days, { date: s.date, v: colony ? atSave(colony) : null }];
+	});
+	const line = (k: 'pops' | 'employed' | 'civilians' | 'open') =>
+		points.map((p) => (p.v ? p.v[k] : null));
+	return {
+		x: points.map((p) => gameYear(p.date)),
+		lines: {
+			pops: line('pops'),
+			employed: line('employed'),
+			civilians: line('civilians'),
+			'open jobs': line('open')
 		}
 	};
 }

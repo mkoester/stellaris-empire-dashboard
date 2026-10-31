@@ -4,7 +4,7 @@ import { evaluate, type Facts, type Trigger } from './triggers.ts';
 import type { GameData, Snapshot } from './types.ts';
 
 // Everything that draws pops to an ethic, for the ethics tab's last panel: the ethic's own rules
-// (common/ethics/00_ethics.txt — empire-wide `country_attraction` factors and the reasons the
+// (common/ethics/00_ethics.txt — empire-wide `country_attraction` rules and the reasons the
 // game's tooltip names, `pop_attraction_tag`) and every modifier that raises an ethic's attraction
 // (`pop_ethic_<x>_attraction_mult`), the governing ethics' (`pop_government_ethic_attraction`) or
 // the speed pops shift (`pop_ethics_shift_speed_mult`) — from the data DB's modifier tables.
@@ -45,8 +45,14 @@ export type AttractionSource = {
 export type AttractionRule = {
 	kind: 'tag' | 'country';
 	description: string | null;
-	factor: number | null; // 'country': × this
+	// 'country': × the number (4.5.2's rules; also a data DB older than the column), or + it (4.5.3)
+	op?: 'factor' | 'add' | null;
+	factor: number | null; // 'country': the number (with `per`, its base)
 	factorText: string | null; // 'country': a script value the save cannot answer
+	// 'country': + `perValue` for each leader `per` counts (the ruler and councilors with the
+	// ethic, 4.5.3's "From Council"); extractor 0.1.5+
+	per?: Trigger | null;
+	perValue?: number | null;
 	trigger: Trigger | null;
 };
 
@@ -420,28 +426,51 @@ export function unlockOf(
 
 export type RuleRow = AttractionRule & { applies: boolean | null };
 
-/** An ethic's own rules, each evaluated against the empire (a pop-scope condition stays null). */
-export function ruleRows(rules: AttractionRule[], f: Facts): RuleRow[] {
-	return rules.map((r) => ({
-		...r,
-		applies: r.kind === 'country' && r.factorText !== null ? null : evaluate(r.trigger, f)
-	}));
+/** How many leaders a rule's `per` counts; null when the save cannot tell or it counts others. */
+function perCount(per: Trigger, f: Facts): number | null {
+	if (!('leaf' in per) || per.leaf !== 'council_leader_ethic' || !f.councilEthics) return null;
+	return f.councilEthics.filter((e) => e === per.value).length;
 }
 
 /**
- * The empire-wide factor of an ethic from its rules: the product of the factors known to apply,
- * and how many rules may apply but cannot be told (a script value, a condition the save cannot
- * answer). The save's `ethics_attraction` (the tab's "×") over `known` is what those add.
+ * An ethic's own rules, each evaluated against the empire (a pop-scope condition stays null); a
+ * rule that counts leaders gets its number from the save (unknown: null, like a script value).
  */
-export function countryFactor(rows: RuleRow[]): { known: number; open: number } {
+export function ruleRows(rules: AttractionRule[], f: Facts): RuleRow[] {
+	return rules.map((r) => {
+		const n = r.per ? perCount(r.per, f) : null;
+		const factor = r.per
+			? n === null || r.factor === null
+				? null
+				: r.factor + (r.perValue ?? 0) * n
+			: r.factor;
+		return {
+			...r,
+			factor,
+			applies: r.kind === 'country' && r.factorText !== null ? null : evaluate(r.trigger, f)
+		};
+	});
+}
+
+/**
+ * The empire-wide factor of an ethic from its rules, applied in file order onto 1 as the game
+ * does — a `factor` multiplies, an `add` (4.5.3) adds —, over the rules known to apply; and how
+ * many rules may apply but cannot be told (a script value, a condition the save cannot answer).
+ * What those make of the save's `ethics_attraction` (the tab's "×"): its quotient over `known`,
+ * or its difference when the rules add (`additive`).
+ */
+export function countryFactor(rows: RuleRow[]): { known: number; open: number; additive: boolean } {
 	let known = 1;
 	let open = 0;
+	let additive = false;
 	for (const r of rows) {
-		if (r.kind !== 'country' || r.applies === false) continue;
+		if (r.kind !== 'country') continue;
+		if (r.op === 'add') additive = true;
+		if (r.applies === false) continue;
 		if (r.applies === null || r.factor === null) open++;
-		else known *= r.factor;
+		else known = r.op === 'add' ? known + r.factor : known * r.factor;
 	}
-	return { known, open };
+	return { known, open, additive };
 }
 
 /** The sources grouped by target, governing ethics and shift speed last; ours first in each. */

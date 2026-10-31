@@ -1,6 +1,6 @@
 import { addGameDays } from './series.ts';
 import { evaluate, type Facts } from './triggers.ts';
-import type { CouncilSeat, Faction, GameData, Modifier, Snapshot } from './types.ts';
+import type { CouncilSeat, Explanation, Faction, GameData, Modifier, Snapshot } from './types.ts';
 
 // The government tab (council, agendas, policies, edicts, factions): the data DB's rules read
 // against one save. What the save cannot answer stays unknown (null), see #lib/triggers.ts.
@@ -9,10 +9,17 @@ import type { CouncilSeat, Faction, GameData, Modifier, Snapshot } from './types
 export function facts(
 	s: Snapshot,
 	scripted: Facts['scripted'] = {},
-	data: { electionTypes?: Record<string, string>; slavery?: string[] } = {}
+	data: {
+		electionTypes?: Record<string, string>;
+		slavery?: string[];
+		archetypes?: Record<string, string>; // species class → archetype (data DB species_class)
+	} = {}
 ): Facts {
 	const electionTypes = data.electionTypes ?? {};
 	const authority = (s.government ?? []).find((k) => k.startsWith('auth_'));
+	const archetype =
+		s.founderClass && data.archetypes ? (data.archetypes[s.founderClass] ?? null) : null;
+	const gestalt = authority === 'auth_hive_mind' || authority === 'auth_machine_intelligence';
 	return {
 		countryType: s.countryType,
 		government: s.government ?? [],
@@ -28,6 +35,8 @@ export function facts(
 		situations: s.situations === null ? null : s.situations.length,
 		nomadic:
 			s.situations === null ? null : s.situations.some((x) => x.type === 'situation_nomad_economy'),
+		individualMachine: archetype === null ? null : archetype === 'MACHINE' && !gestalt,
+		usesFood: s.expenses ? (s.expenses.food ?? 0) > 0 || null : null,
 		scripted,
 		leaderTraits: s.leaderList?.flatMap((l) => l.traits),
 		edicts: s.edicts,
@@ -245,6 +254,7 @@ export function factionRows(types: GameData['factionTypes'], f: Facts): FactionR
 export type SeatRow = {
 	key: string;
 	name: string;
+	leaderId: number | null;
 	leader: string | null;
 	level: number | null; // the leader's level
 	bonus: number; // the leader's own extra levels (bonus_skill_level)
@@ -269,6 +279,7 @@ export function seatRows(
 					{
 						key: rulerKey,
 						name: positions[rulerKey].name,
+						leaderId: ruler?.id ?? null,
 						leader: ruler?.name ?? null,
 						level: ruler?.level ?? null,
 						bonus: ruler?.bonus ?? 0,
@@ -280,6 +291,7 @@ export function seatRows(
 		...council.map((c) => ({
 			key: c.type,
 			name: positions[c.type]?.name ?? c.type,
+			leaderId: c.leaderId,
 			leader: c.leaderName,
 			level: c.leaderLevel,
 			bonus: c.leaderBonus ?? 0,
@@ -312,6 +324,47 @@ export function councilorBonus(
 /** A seat's modifiers at a leader's level: the files give them per level. */
 export const atLevel = (mods: Modifier[], level: number | null): Modifier[] =>
 	level === null ? mods : mods.map((m) => ({ ...m, value: m.value * level }));
+
+/**
+ * The council with what each seat gives: its modifiers per level and at the councilor level (the
+ * leader's level, its own extra levels and the country's `councilor_skill_add`), and its leader's
+ * traits while on the council (`ltrait-councilor:<trait>`, flat). For the government and leaders tabs.
+ */
+export function councilSeats(
+	s: Snapshot,
+	data: Pick<GameData, 'councilPositions' | 'councilorSkill'>,
+	explain: Record<string, Explanation>
+) {
+	const bonusTotal = councilorBonus(s, data.councilorSkill).reduce((a, b) => a + b.value, 0);
+	return seatRows(
+		s.council ?? [],
+		s.ruler,
+		s.government?.find((k) => k.startsWith('auth_')),
+		data.councilPositions
+	).map((r) => {
+		const council = r.level === null ? null : r.level + r.bonus + bonusTotal;
+		const perLevel = explain[`seat:${r.key}`]?.modifiers ?? [];
+		return {
+			...r,
+			council,
+			classes: data.councilPositions[r.key]?.classes ?? [],
+			// per level, and what that gives at the councilor level
+			effects: perLevel.map((m, i) => ({ perLevel: m, now: atLevel(perLevel, council)[i] })),
+			// the leader's traits while on the council (flat, not per level)
+			traitEffects: r.traits.flatMap((t) =>
+				explain[`ltrait-councilor:${t}`]
+					? [
+							{
+								trait: t,
+								name: explain[`ltrait:${t}`]?.title ?? t,
+								modifiers: explain[`ltrait-councilor:${t}`].modifiers
+							}
+						]
+					: []
+			)
+		};
+	});
+}
 
 export type PossibleSeat = {
 	key: string;

@@ -167,6 +167,50 @@ describe('milestones', () => {
 		).toEqual(['2201.04.01 new admiral: Bo']);
 	});
 
+	it('dates a refreshed leader pool by its new leaders, not hiring the pool empty', () => {
+		const pool = (ids: number[], added: string) =>
+			ids.map((id) => ({ id, class: 'official', added }));
+		expect(
+			labels([
+				save('2204.12.01', { leaderPool: pool([272, 273], '2200.01.01') }),
+				save('2205.01.01', { leaderPool: pool([273], '2200.01.01') }), // one hired
+				save('2205.02.01', { leaderPool: [] }), // the last one hired
+				save('2205.03.01', { leaderPool: pool([301, 302], '2205.02.10') }) // an early refresh
+			])
+		).toEqual(['2205.02.10 recruitable leaders refreshed']);
+	});
+
+	it("dates an arkship's Wanderlust visits by the save's flags, the rest at the save", () => {
+		const cat = (seen: number, done = false) => ({
+			key: 'galactic_landmark',
+			seen,
+			count: 17,
+			done
+		});
+		const visit = {
+			systemId: 1,
+			system: 'Sol',
+			date: '2205.02.11',
+			categories: ['galactic_landmark']
+		};
+		expect(
+			labels([
+				save('2205.02.01', { wanderlust: { categories: [cat(0)], visits: [], complete: false } }),
+				save('2205.03.01', {
+					wanderlust: { categories: [cat(1)], visits: [visit], complete: false }
+				}),
+				// a rise without a named system (the flag's spelling not as read), then the category done
+				save('2205.04.01', {
+					wanderlust: { categories: [cat(17, true)], visits: [visit], complete: false }
+				})
+			])
+		).toEqual([
+			'2205.02.11 Wanderlust: Sol (Galactic Landmarks)',
+			'2205.04.01 Wanderlust: Galactic Landmarks 17 / 17',
+			'2205.04.01 Wanderlust: Galactic Landmarks done'
+		]);
+	});
+
 	it('reports systems, species changes, wars, rulers and policies', () => {
 		const sp = { id: '1', name: 'Human', cls: 'HUM', pops: 10 };
 		expect(
@@ -286,6 +330,30 @@ describe("milestones from the companion mod's events", () => {
 			})
 		];
 		expect(labels(snaps)).toEqual(['2200.01.17 colony established: Mars']);
+	});
+
+	it('dates a system entry event by the mod’s first entry, and shows no entry without one', () => {
+		const bir = {
+			systemId: 61,
+			system: 'Bir',
+			events: [{ id: 'leviathans.3202', title: 'Crystalline Asteroids' }]
+		};
+		const snaps = [
+			save('2205.09.01', { entryEvents: [] }),
+			save('2205.10.01', {
+				entryEvents: [bir],
+				logEvents: [
+					ev('2205.09.20', 'system-entered', 'Bir'),
+					ev('2205.09.22', 'system-entered', 'Phiroza') // fires nothing
+				]
+			}),
+			save('2205.11.01', { entryEvents: [bir] })
+		];
+		expect(labels(snaps)).toEqual(['2205.09.20 Bir: Crystalline Asteroids']);
+		// without the mod: at the save that first lists it; none before the history knew of them
+		expect(labels([save('2205.08.01'), ...snaps.map((x) => ({ ...x, logEvents: [] }))])).toEqual([
+			'2205.10.01 Bir: Crystalline Asteroids'
+		]);
 	});
 
 	it('keeps an event no save shows, and battles, which only the mod reports', () => {

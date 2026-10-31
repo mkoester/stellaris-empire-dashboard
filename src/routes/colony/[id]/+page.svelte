@@ -6,6 +6,7 @@
 	import Jobs from '#lib/Jobs.svelte';
 	import Designation from '#lib/Designation.svelte';
 	import DistrictName from '#lib/DistrictName.svelte';
+	import ColonyStabilityRoom from '#lib/ColonyStabilityRoom.svelte';
 	import ColonyWellbeing from '#lib/ColonyWellbeing.svelte';
 	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
@@ -13,7 +14,8 @@
 	import { automationRows } from '#lib/automation.ts';
 	import { net } from '#lib/flows.ts';
 	import { fmt, nameOf, pretty } from '#lib/format.ts';
-	import { followBranch, followGame } from '#lib/live.ts';
+	import { followBranch, followGame, followTicks } from '#lib/live.ts';
+	import type { ColonyDay } from '#lib/types.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -29,6 +31,15 @@
 			{ replace: true, reset: false }
 		);
 	});
+
+	// The companion mod's day (0.9.0): this colony's jobs and pops when they change mid-month —
+	// the latest, while the page shows the head; the Pops chart has the days once the month is in.
+	let today = $state<{ date: string; day: ColonyDay } | null>(null);
+	followTicks((t) => {
+		const day = t.colonies?.[data.name];
+		if (day) today = { date: t.date, day };
+	});
+	const live = $derived(data.isHead && today && today.date > data.latest.date ? today : null);
 
 	// Due dates of this planet's queue, from the shared upcoming list (same order as the queue).
 	const done = $derived(
@@ -114,7 +125,20 @@
 {/if}
 
 {#if data.colony}
-	<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
+	<!-- beside it while the colony is at the stability cap: what is spent there for nothing -->
+	<div class="grid items-start gap-x-4 lg:grid-cols-2">
+		<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
+		{#if data.colony.stability >= data.wellbeing.maxStability}
+			<ColonyStabilityRoom
+				colony={data.colony}
+				rules={data.wellbeing}
+				gestalt={data.gestalt}
+				uncapped={data.uncapped}
+				levers={data.levers}
+				explain={data.explain}
+			/>
+		{/if}
+	</div>
 {/if}
 
 <div class="grid gap-4 lg:grid-cols-2">
@@ -130,7 +154,9 @@
 			</div>
 		{/if}
 		<Chart
-			title="Pops"
+			title={live
+				? `Pops — ${live.date}: ${fmt(live.day.pops - live.day.unemployed)} employed, ${fmt(live.day.unemployed)} civilians, ${fmt(live.day.openJobs)} open jobs`
+				: 'Pops'}
 			series={data.charts.pops}
 			extent={data.xExtent}
 			events={planetEvents}
@@ -143,6 +169,8 @@
 			extent={data.xExtent}
 			events={planetEvents}
 			scope="colony"
+			right={['over 100']}
+			rightFloor={10}
 		/>
 		<Chart
 			title="Pops per month: growth and migration"

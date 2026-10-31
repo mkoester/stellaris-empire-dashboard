@@ -1,10 +1,12 @@
 # A version tag on main (`vX.Y.Z`, RELEASE.md) builds the player zips and publishes them as a
-# GitHub release, its notes taken from CHANGELOG.md. Any other tag, or one off main, fails early.
+# GitHub release, its notes taken from CHANGELOG.md. A beta tag on open-beta (`vX.Y.Z-beta.N`, for a
+# game's open beta) publishes them as a prerelease, its notes CHANGELOG's Unreleased section. Any
+# other tag, or one off its branch, fails early.
 name: Release
 
 on:
   push:
-    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+    tags: ['v[0-9]+.[0-9]+.[0-9]+', 'v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+']
 
 permissions:
   contents: write # create the release
@@ -19,13 +21,17 @@ jobs:
           path: stellaris-empire-dashboard
           fetch-depth: 0 # main, to check the tag is on it
 
-      - name: Check the tag is a release on main that matches package.json
+      - name: Check the tag is a release on main (a beta on open-beta) that matches package.json
         working-directory: stellaris-empire-dashboard
         run: |
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main ||
-            { echo "::error::$GITHUB_REF_NAME is not on main"; exit 1; }
           version=$(node -p "require('./package.json').version")
-          [ "$GITHUB_REF_NAME" = "v$version" ] ||
+          case "$GITHUB_REF_NAME" in
+            *-beta.*) branch=open-beta; expected="v$version-beta.${GITHUB_REF_NAME##*-beta.}"; echo "BETA=1" >> "$GITHUB_ENV" ;;
+            *) branch=main; expected="v$version" ;;
+          esac
+          git merge-base --is-ancestor "$GITHUB_SHA" "origin/$branch" ||
+            { echo "::error::$GITHUB_REF_NAME is not on $branch"; exit 1; }
+          [ "$GITHUB_REF_NAME" = "$expected" ] ||
             { echo "::error::tag $GITHUB_REF_NAME, but package.json says $version"; exit 1; }
           echo "EXTRACTOR=$(node -p "require('./package.json').extractorVersion")" >> "$GITHUB_ENV"
 
@@ -60,8 +66,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version=${GITHUB_REF_NAME#v}
-          # this version's CHANGELOG section, without its heading
-          awk -v v="$version" '/^## \[/ { on = index($0, "## [" v "]") == 1; next } on' CHANGELOG.md > notes.md
-          [ -s notes.md ] || { echo "::error::no '## [$version]' section in CHANGELOG.md"; exit 1; }
-          gh release create "$GITHUB_REF_NAME" dist/*.zip --verify-tag \
+          # this version's CHANGELOG section (a beta's: Unreleased), without its heading
+          section=$([ -n "$BETA" ] && echo Unreleased || echo "$version")
+          awk -v v="$section" '/^## \[/ { on = index($0, "## [" v "]") == 1; next } on' CHANGELOG.md > notes.md
+          [ -s notes.md ] || { echo "::error::no '## [$section]' section in CHANGELOG.md"; exit 1; }
+          gh release create "$GITHUB_REF_NAME" dist/*.zip --verify-tag ${BETA:+--prerelease} \
             --title "Stellaris Empire Dashboard $version" --notes-file notes.md

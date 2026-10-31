@@ -4,6 +4,99 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.5] - 2026-10-31
+
+### Added
+
+- Map tab: the table shows each find's difficulty (first contacts, dig sites, anomalies by their
+  level), when it was first seen and how many months ago — first contacts by their own date,
+  anomalies and dig sites by the first save listing them, wormholes, gateways, L-Gates and
+  megastructures by the first visit of their system.
+- System entry events: the popups entering a system shows — guardians (Bir's "Crystalline
+  Asteroids"), ruined megastructures, abandoned gateways, Helito's "Missing Orbitals", … — on the
+  map (layer "system entry events") and the events tab ("Bir: Crystalline Asteroids"), matched by
+  the system's star flags; a popup that shows once per empire (the first abandoned gateway) only
+  where it did. With **companion mod 0.10.0** dated to the day of entry. Saves still on disk are
+  read again once.
+- Companion mod 0.10.0: each first entry of our ships into a system (a log line older dashboards
+  skip).
+- Colony page, while a colony sits at the stability cap of 100: a panel beside "Amenities,
+  happiness and stability" with how far above the cap the game's sum is, how much approval and
+  how many amenities could go before stability drops below 100, and what holds each up on the
+  colony and empire-wide — how to change it and what else giving it up costs. The Stability chart
+  draws "over 100" on its right axis. How far above the cap needs **companion mod 0.8.0** (the
+  game saves stability capped); without it the panel gives the rates.
+- Colony page: with **companion mod 0.9.0** the Pops chart shows employed, civilians and open
+  jobs on each day they changed, not only at the monthly save — a building finished mid-month and
+  its jobs filling up — and its title the latest day while the game runs.
+- Companion mod 0.9.0: a colony's open jobs, unemployed pops and pops, logged on the day one
+  changes (an event line older dashboards skip).
+- Companion mod 0.8.0: each colony's flat stability and stability multiplier, stored in the save
+  every month (no new log line). Saves still on disk are read again once.
+- Stellaris open betas: the game data is extracted per game **build**, not per version — an open
+  beta (4.5.3, build 7793) and the release after it share their version, and the release would
+  have kept the beta's data. Every player's dashboard extracts once more after this update (~5 s).
+- The footer names the game version and build the game data was read from (`game 4.5.3 (7793)`).
+- At the right end of the tab bar: the game's **last save** and **last data** — a save, the companion
+  mod's month or its daily tick, whichever came last — so it shows whether the dashboard keeps up.
+- The recruitable leaders: Upcoming shows when the game replaces them (5 years after the pool
+  was filled; estimated, as an event may do it early), and the history marks each refresh on the
+  day it happened (event kind "recruitable leaders refreshed"). Saves still on disk are read
+  again for it once.
+- Leaders tab: what each leader holds — the rule, a council seat, a colony, a fleet or the science
+  ship it leads, several at once — with the level it acts at there (a councilor with the
+  country's councilor bonus), and what each role gives now (a seat's modifiers at that level, the
+  traits' in that role, and what they do to the leader itself) — and, dimmed, every other role its
+  class can hold and what it would do there (scientists: council, science ship; commanders:
+  council, fleet, army; officials: council, governor, Galactic Community and federation
+  delegate); the ruler first, then by level (ties: officials, scientists, commanders); per class
+  how many are hired of its (soft) limit, and a filter to show only some classes; and the
+  recruitable leaders in a table of their own, with their age and how many of each class.
+- Leaders tab: a badge for each role (ruler, council, governor, science ship, fleet, army,
+  delegates, home colony, itself) beside every role, and beside each trait for every role it
+  acts in; each leader's unity upkeep (read back from the budget, so every modifier counts), and
+  the recruitable leaders' recruitment cost and upkeep.
+- Traits that depend on a synthetic empire or on food (`is_individual_machine`,
+  `country_uses_food`) are decided from the founder species and the food expenses, no longer
+  "may apply" (Fertility Preacher).
+- Leaders tab: the traits' conditional effects (Righteous's −25 crime as governor, the
+  Expertise traits' research with Technocracy …), each where its condition holds — by the leader
+  (ruler, class) and the empire (gestalt, nomadic, civics); one the save cannot answer is shown
+  as "may apply". What a trait does on the leader's home colony, whatever its role. A governor's
+  home-planet bonus applies only on its home: elsewhere it is marked wasted. Seats' and classes'
+  effects name the level they are at, "(Ruler × 3)"; officials' delegate effects per level.
+- Leaders tab: what each class gives per skill level in each role (the game's "Per Level"
+  tooltip: as governor of a planet, a sector, its home planet; commanding a fleet or an army; on
+  a science ship), in a table and in each leader's roles at its level — commanders and scientists
+  can govern too; each bonus names its source in brackets.
+- Upcoming: when each leader reaches its next level, at the experience it gained since an earlier
+  save.
+- The game's difficulty in the tab bar, before the dates: "Admiral (6/7)".
+- Wanderlust (the nomads' perk): the events tab and the charts mark each system an arkship
+  counts, a category done and all of them; the map gets a Wanderlust layer — the target systems
+  you have visited, with whether the arkship has counted them yet, and above the map each
+  category's progress (seen / needed). A new spoiler setting marks every target, visited or not.
+- Ethics tab: "From Council" counts the ruler and councilors with the ethic from the save
+  (+0.1 each), so the empire-wide factor is known in full where it was "+0.2 from 4 rules the
+  save cannot tell".
+
+### Fixed
+
+- "Show it now" (a save loaded in game) stays on the page you are on — a colony, a custom tab,
+  settings, the timeline — with its other query parameters; it took some pages back to `all`.
+  Going back to following the game keeps them too.
+- Fleets named from the game's name lists show their name ("Maelstrom Fleet"), not their key
+  ("NECROID1 FLEET MaelstromFleet"); armies too. Needs extractor 0.1.5.
+- Research due dates (Upcoming, tech tab) ignored the difficulty: the galaxy setting
+  "Difficulty Adjusted Technology Costs" raises tech costs by the difficulty and the tier — 1875
+  for a 1500 tier-1 tech on Admiral, where the dashboard said 1575 and so months too early.
+- Ethics tab, an ethic's own rules: 4.5.3 adds most of them onto a base of 1 instead of
+  multiplying (`+1` for the ethic itself, `−0.25` for a democracy); they show as such, and the
+  known part of the empire-wide factor adds them in the game's order. Needs extractor 0.1.5.
+- A nomad's Operational Reserves in the Stockpile charts dropped to 0 on each day of the
+  companion mod's tick (it logs energy and minerals, not the reserves); those days are a gap the
+  line bridges now — as is any resource a tick does not log.
+
 ## [0.1.4] - 2026-10-31
 
 ### Added

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	agendaSeries,
+	colonyDaySeries,
 	colonySeries,
 	gameMonth,
 	gameYear,
@@ -130,6 +131,43 @@ describe('colonySeries', () => {
 	});
 });
 
+describe('colonyDaySeries', () => {
+	it('adds the days the mod logged a change between the saves', () => {
+		const ark = { planetId: -1, name: 'Ark', pops: 5689, employed: 5689, civilians: 0 };
+		const day = (pops: number, unemployed: number, openJobs: number) => ({
+			Ark: { pops, unemployed, openJobs }
+		});
+		const h = [
+			{ date: '2205.10.01', colonies: [ark] },
+			{
+				date: '2205.11.01',
+				colonies: [{ ...ark, pops: 5701, employed: 5650, civilians: 51 }],
+				ticks: [
+					{ date: '2205.10.01', stockpile: {}, colonies: day(1, 1, 1) }, // the save's own day
+					{ date: '2205.10.12', stockpile: {}, colonies: day(5701, 0, 391) },
+					{ date: '2205.10.15', stockpile: {} },
+					{ date: '2205.10.20', stockpile: {}, colonies: { Other: day(1, 1, 1).Ark } },
+					{ date: '2205.10.21', stockpile: {}, colonies: day(5701, 51, 240) }
+				]
+			},
+			{ date: '2205.12.01', colonies: [] } // a month only the log saw
+		] as unknown as Snapshot[];
+		const r = colonyDaySeries(h, -1, 'Ark', (c) => ({
+			pops: c.pops,
+			employed: c.employed,
+			civilians: c.civilians,
+			open: 7
+		}));
+		expect(r.x.length).toBe(5);
+		expect(r.lines).toEqual({
+			pops: [5689, 5701, 5701, 5701, null],
+			employed: [5689, 5701, 5650, 5650, null],
+			civilians: [0, 0, 51, 51, null],
+			'open jobs': [7, 391, 240, 7, null]
+		});
+	});
+});
+
 describe('agendaSeries', () => {
 	const a = (date: string, key: string, progress: number) =>
 		({ date, progress: { agenda: { key, progress } } }) as unknown as Snapshot;
@@ -182,6 +220,23 @@ describe('stockpileSeries', () => {
 			lines: { energy: [1, 7, 2] }
 		});
 	});
+	it("leaves a gap where a tick did not log a resource (a nomad's reserves), not 0", () => {
+		// the reserves come from saves only; withReserves drops the tick's energy and minerals
+		const jan = {
+			date: '2200.01.01',
+			stockpile: { operational_reserves: 14000, alloys: 1 },
+			ticks: null
+		} as unknown as Snapshot;
+		const feb = {
+			date: '2200.02.01',
+			stockpile: { operational_reserves: 14100, alloys: 3 },
+			ticks: [{ date: '2200.01.16', stockpile: { alloys: 2 } }]
+		} as unknown as Snapshot;
+		expect(stockpileSeries([jan, feb]).lines).toEqual({
+			alloys: [1, 2, 3],
+			operational_reserves: [14000, null, 14100]
+		});
+	});
 });
 
 describe('resourcePanelSeries', () => {
@@ -200,7 +255,7 @@ describe('resourcePanelSeries', () => {
 		} as unknown as Snapshot;
 		expect(resourcePanelSeries([jan, feb], 'energy')).toEqual({
 			x: [2200, 2200 + 15 / 360, 2200 + 1 / 12],
-			lines: { stockpile: [1, 0, 2], 'per month': [5, null, 0] }
+			lines: { stockpile: [1, null, 2], 'per month': [5, null, 0] }
 		});
 	});
 });

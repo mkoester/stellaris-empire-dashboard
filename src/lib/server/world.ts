@@ -1,4 +1,5 @@
 import { kindOf, type ContactKind } from '#lib/contacts.ts';
+import { wanderlustCategories } from '#lib/wanderlust.ts';
 import type { Bypass } from '#lib/galaxyGraph.ts';
 import type {
 	AnomalyInfo,
@@ -199,6 +200,9 @@ export function galaxy(
 				lanesKnown: lanesKnown.has(id),
 				lgate,
 				lcluster: starFlags(s).some((f) => f.startsWith('lcluster')),
+				...(wanderlustCategories(starFlags(s)).length && {
+					wanderlust: wanderlustCategories(starFlags(s))
+				}),
 				lgateTo: lgate && open ? entrance : [],
 				sector: own.has(id) ? (sectorOf.get(id) ?? null) : null,
 				bypasses: seen

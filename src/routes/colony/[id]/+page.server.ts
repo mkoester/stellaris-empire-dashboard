@@ -5,9 +5,10 @@ import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
-import { colonySeries, xExtent } from '#lib/series.ts';
+import { colonyDaySeries, colonySeries, xExtent } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
-import { wellbeingRules } from '#lib/wellbeing.ts';
+import { uncappedStability, wellbeingRules } from '#lib/wellbeing.ts';
+import { heldOf, wellbeingLevers } from '#lib/wellbeingLevers.ts';
 
 const pct = (v: number | null) => (v === null ? null : Math.round(v * 1000) / 10);
 
@@ -23,6 +24,30 @@ export function load({ url, params }) {
 	const colonyAt = (s: (typeof snaps)[number]) => s.colonies.find((c) => c.planetId === planetId);
 	const named = snaps.findLast(colonyAt);
 	const growth = growthData(snaps);
+	const wellbeing = wellbeingRules(
+		getGameData().defines,
+		(key, mod) => getExplanations()[`modifier:${key}`]?.modifiers.find((m) => m.key === mod)?.value
+	);
+	const gestalt = (b.latest.government ?? []).some(
+		(k) => k === 'auth_machine_intelligence' || k === 'auth_hive_mind'
+	);
+	// stability as the game sums it before the cap (companion mod 0.8.0), null without the mod
+	const uncapped = (c: Colony) =>
+		uncappedStability(
+			c.stabilityAdd,
+			c.stabilityMult,
+			c.approval ?? c.happiness,
+			gestalt,
+			wellbeing
+		);
+	const colony = colonyAt(b.latest) ?? null;
+	const save = b.snaps.findLast((s) => s.kind === 'save') ?? null;
+	// what could go to lower happiness or amenities, from the latest save (#lib/wellbeingLevers.ts)
+	const saved = save && colonyAt(save);
+	const levers =
+		save && saved
+			? wellbeingLevers(getExplanations(), heldOf(save, saved), gestalt)
+			: { happiness: [], amenities: [] };
 	return {
 		...rest,
 		planetId,
@@ -35,40 +60,44 @@ export function load({ url, params }) {
 		name: named ? colonyAt(named)!.name : `planet ${planetId}`,
 		// the dropdown: the colonies at the tip
 		colonies: b.latest.colonies.map((c) => ({ planetId: c.planetId, name: c.name })),
-		colony: colonyAt(b.latest) ?? null,
-		details: colonyDetails(colonyAt(b.latest), b.snaps.findLast((s) => s.kind === 'save') ?? null),
+		colony,
+		details: colonyDetails(colonyAt(b.latest), save),
 		blockerHints: colonyBlockerHints(
 			b.latest.colonies.filter((c) => c.planetId === planetId),
 			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [],
-			b.snaps.findLast((s) => s.kind === 'save') ?? null
+			save
 		),
 		jobRows: b.jobs[planetId] ?? [],
 		// what amenities, happiness and stability do (#lib/wellbeing.ts)
-		wellbeing: wellbeingRules(
-			getGameData().defines,
-			(key, mod) =>
-				getExplanations()[`modifier:${key}`]?.modifiers.find((m) => m.key === mod)?.value
-		),
-		gestalt: (b.latest.government ?? []).some(
-			(k) => k === 'auth_machine_intelligence' || k === 'auth_hive_mind'
-		),
+		wellbeing,
+		gestalt,
+		uncapped: colony ? uncapped(colony) : null,
+		levers,
 		classNames: Object.fromEntries(
 			Object.entries(getGameData().planetClasses).map(([k, v]) => [k, v.name])
 		),
-		explain: pick(
-			getExplanations(),
-			(b.jobs[planetId] ?? []).map((j) => `job:${j.type}`)
-		),
+		explain: pick(getExplanations(), [
+			...(b.jobs[planetId] ?? []).map((j) => `job:${j.type}`),
+			...[...levers.happiness, ...levers.amenities].map((l) => l.ref)
+		]),
 		xExtent: xExtent(snaps),
 		charts: {
-			pops: colonySeries(snaps, planetId, {
-				pops: (c) => c.pops,
-				employed: (c) => c.employed,
-				civilians: (c) => c.civilians,
+			// the saves' months, and between them the days the mod logged a change (0.9.0)
+			pops: colonyDaySeries(snaps, planetId, named ? colonyAt(named)!.name : '', (c) => ({
+				pops: c.pops,
+				employed: c.employed,
+				civilians: c.civilians,
 				// enforcer posts left to crime automation do not count, as in the colony table
-				'open jobs': (c) => openJobs(c).open
+				open: openJobs(c).open
+			})),
+			// above the cap: how far, once the mod has read the colony (the right axis)
+			stability: colonySeries(snaps, planetId, {
+				stability: (c) => c.stability,
+				'over 100': (c) => {
+					const u = uncapped(c);
+					return u !== null && u > wellbeing.maxStability ? u - wellbeing.maxStability : null;
+				}
 			}),
-			stability: colonySeries(snaps, planetId, { stability: (c) => c.stability }),
 			// last month's change in pops by cause (growth, immigration, emigration, …) and net
 			growth: colonySeries(snaps, planetId, {
 				net: (c) => c.growth?.net ?? null,

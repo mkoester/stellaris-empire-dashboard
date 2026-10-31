@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { mapMarkers } from '#lib/mapLayers.ts';
+import { firstSeen, mapMarkers } from '#lib/mapLayers.ts';
+import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -19,11 +20,23 @@ export function load({ url }) {
 	const g = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const contactSites = (s?.firstContacts ?? []).map((c) => c.systemId);
 	const capital = snaps.findLast((x) => x.knownSystems)?.knownSystems?.find((k) => k.capital)?.id;
+	// Wanderlust's targets once we have the perk; every one, revealed, with the spoiler
+	const wanderlust = snaps.findLast((x) => x.wanderlust)?.wanderlust ?? null;
+	const allTargets = wanderlust !== null && display().wanderlustAll;
+	const spoiled = (x: (typeof g)[number]) =>
+		!x.visited &&
+		!x.owned &&
+		((display().lgates && x.lgate) || (allTargets && (x.wanderlust?.length ?? 0) > 0));
+	const entries = firstEntries(
+		snaps.map((x) => ({ entries: x.entryEvents, flags: x.countryFlags }))
+	);
+	const entriesStart = snaps.findIndex((x) => x.entryEvents);
 	return {
 		...rest,
 		seenAt: s?.date ?? null,
 		filter: mapFilter(),
-		systems: mapView(g, reveal(), contactSites).map((x) => ({
+		wanderlust,
+		systems: mapView(g, { ...reveal(), wanderlust: allTargets }, contactSites).map((x) => ({
 			...x,
 			capital: x.id === capital
 		})),
@@ -31,9 +44,20 @@ export function load({ url }) {
 		markers: mapMarkers({
 			// what was discovered only: a marker's place is never a spoiler
 			galaxy: [
-				...discovered(g, { whole: false, stars: false }, contactSites),
-				...(display().lgates ? g.filter((x) => x.lgate && !x.visited && !x.owned) : [])
+				...new Map(
+					[
+						...discovered(g, { whole: false, stars: false }, contactSites),
+						...g.filter(spoiled)
+					].map((x) => [x.id, x])
+				).values()
 			],
+			wanderlust: wanderlust && { progress: wanderlust, all: allTargets },
+			// entry popups (#lib/systemEvents.ts): the start of the first one's text
+			entries: entries.map((e) => ({
+				...e,
+				seen: { date: snaps[e.at].date, by: e.at === entriesStart },
+				detail: entryDetail(data.entryEvents.find((x) => x.id === e.events[0]?.id)?.description)
+			})),
 			contacts: s?.firstContacts ?? [],
 			anomalies: s?.anomalies ?? [],
 			digSites: s?.digSites ?? [],
@@ -44,7 +68,12 @@ export function load({ url }) {
 			anomalyNames: Object.fromEntries(
 				Object.entries(data.anomalyCategories).map(([k, v]) => [k, v.name])
 			),
-			seen: mergeSightings(snaps)
+			seen: mergeSightings(snaps),
+			// when the saves first show each thing, and how hard an anomaly is (its category's level)
+			firstSeen: firstSeen(snaps.filter((x) => x.kind === 'save')),
+			anomalyLevels: Object.fromEntries(
+				Object.entries(data.anomalyCategories).map(([k, v]) => [k, v.level])
+			)
 		}).map((m, id) => ({ ...m, id }))
 	};
 }

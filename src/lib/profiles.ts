@@ -28,6 +28,7 @@ export type Display = {
 	wormholePairs: boolean; // maps: every wormhole pair, explored or not (spoiler)
 	lgates: boolean; // maps: every L-Gate and, once spawned, the L-Cluster with its links (spoiler)
 	surveyAll: boolean; // every system as if fully surveyed: bodies, deposits, anomalies (spoiler)
+	wanderlustAll: boolean; // map: every Wanderlust target, not only the visited (spoiler)
 	hiddenTimers: boolean; // upcoming: event timers no action names (spoiler)
 	showLocked: boolean; // government: agendas, edicts and policies the game does not list
 	factionTypes: boolean; // ethics tab: faction types of our ethics, before any has formed (cheating)
@@ -49,6 +50,7 @@ export const DEFAULT_DISPLAY: Display = {
 	wormholePairs: false,
 	lgates: false,
 	surveyAll: false,
+	wanderlustAll: false,
 	hiddenTimers: false,
 	showLocked: false,
 	factionTypes: false,
@@ -106,6 +108,7 @@ export function parseDisplay(v: unknown): Display {
 		wormholePairs: o.wormholePairs === true,
 		lgates: o.lgates === true,
 		surveyAll: o.surveyAll === true,
+		wanderlustAll: o.wanderlustAll === true,
 		hiddenTimers: o.hiddenTimers === true,
 		showLocked: o.showLocked === true,
 		factionTypes: o.factionTypes === true,

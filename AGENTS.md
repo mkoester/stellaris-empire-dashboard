@@ -14,6 +14,9 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   `@sveltejs/kit/hooks`. The typed `resolve()` wants the query written out —
   ``node ? resolve(`/map?node=${node}`) : resolve('/map')``, not ``resolve(`/map${q}`)`` with `q`
   maybe empty.
+- **Every `goto()` takes a `resolve()`** — the lint's `svelte/no-navigation-without-resolve`
+  refuses a plain string; for "this page with another query" pass `resolve(...args)` with the
+  route id plus query and `page.params` (`here()` in `+layout.svelte`).
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
   (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14.
 
@@ -72,10 +75,15 @@ path when they are wrong. A machine moved from Proton to the native build keeps 
 (`scripts/stellaris-native.sh`); ranking by newest save picks the one in play.
 
 **Game data** (`server/extract.ts`): without `STELLARIS_DATA_DB` the extractor runs at start
-against `gameDir` — `data/stellaris-<rawVersion>-<hash of the DLC folders and the extractor's
-`**version**`>.sqlite`, so a game update, a new DLC or a dashboard with a newer extractor (new
-tables) extracts again (~5 s), older files stay. The packaged launcher names the extractor and
-its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`).
+against `gameDir` — `data/stellaris-<rawVersion>_<build>-<hash of the DLC folders and the extractor's
+`**version**`>.sqlite` (`v4.5.3_7793-…`; the build from `launcher-settings.json`'s `version`, as an
+open beta shares its `rawVersion` with the release), so a game update, a beta build, a new DLC or a
+dashboard with a newer extractor (new tables) extracts again (~5 s), older files stay. The footer
+shows the data DB's own `meta.game_version`. The packaged launcher names the extractor and
+its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`). **During development the extractor's
+`__version__` stays the same across changes**, so a running dashboard keeps its old data file:
+delete `data/stellaris-<key>.sqlite` (the app data folder) after an extractor change, or the new
+tables and values never arrive — silently.
 
 ## Packaging and releases
 
@@ -122,7 +130,9 @@ The version in the header and the zip names is `scripts/version.mjs` (decorated 
 a commit tagged `v<version>` counts as a release, since CI builds from the detached tag).
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
 which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
-creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. The Windows zip
+creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. A
+`vX.Y.Z-beta.N` tag on `open-beta` (the branch for a running open beta) does the same as a GitHub
+prerelease, its notes the `Unreleased` section (`RELEASE.md`, "Beta build"). The Windows zip
 ran on a real Windows machine (2026-10-25, the user); Wine cannot start in the sandbox
 (`wineserver` needs a writable `/tmp`).
 
@@ -352,7 +362,14 @@ stations seen, anomalies, dig sites, special projects, wormholes, gateways and L
 (`GalaxySystem.bypasses`), megastructures and their ruins (`*_ruined`) — each layer hidden by the
 profile's `mapFilter`, plus a table with what is worked on and how far (an envoy on a contact,
 an excavation running; stage, clues, days — anomalies and special projects carry no progress in
-the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). Say
+the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). The table
+also shows each marker's **difficulty** (first contacts and dig sites as the save holds it, an
+anomaly its category's `level`), when it was **seen** and its **age** in months (the user's ask
+2026-10-31): a first contact its own `date`, a station its first sighting, an anomaly or dig site
+the first save listing it, a wormhole, gateway, L-Gate or megastructure the first save listing its
+system in `knownSystems` (`firstSeen()` in `#lib/mapLayers.ts`), an entry event its first reading;
+"≤" where that is the first save showing the field at all (then or earlier), none for what a
+spoiler shows unvisited. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
@@ -752,6 +769,27 @@ assumed linear**, marked ≈ (`docs/open-checks.md` 17). Civilians use no amenit
 500 base + 1 per elite, specialist and worker pop). Civic needs carry their authority
 (`civicAuthority`, data DB `civic_requirement`): the three Memorialist civics differ only by it,
 ours first, the others greyed.
+**Room above the stability cap** (the user's ask 2026-10-31: "by how much I am over the ceiling of
+100, by how much happiness and amenities could be decreased, what I could change, and its side
+effects"; `ColonyStabilityRoom.svelte` beside it while stability ≥ `MAX_PLANET_STABILITY`): **the
+save holds stability capped** (`stability=100`, no breakdown), and the data DB cannot rebuild it —
+the arkship's tooltip (2205.06.01, screenshot `screenshot_2026-10-31_08-50-48`: base 50, Economic 10,
+Capital Arkship 5.6, + Pop Jobs 17 + approval 27 = 109.6) took 10 from the nomad economy
+situation's stage modifiers and most of 17 from triggered job modifiers, none in the data DB. So
+companion mod 0.8.0 exports `planet_stability_add|mult` per colony (below) and
+`uncappedStability()` adds base and approval's share — assumptions in `docs/open-checks.md` 22.
+`approvalRoom()` / `amenityRoom()` invert the linear scales: approval points (and amenities,
+wasted ones first) that may go before the overshoot is spent; without the mod `roomRates()`
+(2205.06: 1.67 approval points per stability point, ≈ 310 amenities per approval point). The
+Stability chart's right axis shows "over 100". **What holds them up** (`#lib/wellbeingLevers.ts`):
+every popup explanation that holds now (`heldOf()`: this colony's active buildings, designation,
+worked jobs, deposits, planet modifiers; the empire's traditions, perks, edicts, policies, civics,
+ethics, authority, origin, council seats, species rights, techs, species traits, country
+modifiers) with a modifier that raises happiness or amenities (`raises()`: a cut in amenity usage
+counts, a gestalt's `no_happiness` ones instead); its other modifiers are the side effects. Only
+unconditional modifiers — living standards' happiness, most job variants and leader traits are
+triggered and missing; 2205.07 listed Prosperous Unification, the capital building and Medical
+Workers.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
@@ -766,7 +804,8 @@ from `holdings()` of the latest save), and how to change it (`changeOf()`: now �
 building, designation, leader, agenda, promote/suppress; slowly — tradition, perk, reform; not —
 events, origin, deposits). Filters (per viewer): what applies or can be changed (default), what
 applies, everything. Not covered: job modifiers (bureaucrats, enforcers, telepaths add governing
-attraction on their planet) — the data DB has no job modifier table.
+attraction on their planet) — the data DB's `job_modifier` holds a job's unconditional modifiers
+only (the colony page's levers use them), most of these are triggered.
 
 **Nomads: Operational Reserves** (`#lib/nomad.ts` pure; throwaway nomad game
 `roamingkorinth_1232667372`, 2026-10-30, screenshot `2026_10_30_1`): a nomadic empire has no
@@ -799,6 +838,29 @@ nomad-aware: other places that map a colony to its planet themselves (capital, c
 migration, growth), the trade tab's valuation of energy and minerals for us, and whether the
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
+
+**System entry events** (the user's ask 2026-10-31: Bir's "Crystalline Asteroids" popup "on the
+map and on the events tab"; `#lib/systemEvents.ts` pure, data DB `system_entry_event`): the popups
+entering a system fires — the events of `on_entering_system_first_time`, `on_entering_system` and
+`on_entering_system_fleet` that test star flags on the system (73 in 4.5.3: guardians, ruined
+megastructures, gateways, Helito's "Missing Orbitals" on `on_entering_system_fleet`, …). The save
+keeps star flags from galaxy generation (`galactic_object.<id>.flags`), so `systemEntries()`
+(`save.ts`, the events set at start by `setEntryEvents()`) lists the systems we entered
+(`visited_objects` and our own) whose flags match one — all of its flags, one of its `OR` flags,
+none forbidden (`entryEventsFor()`) — as `Snapshot.entryEvents` (READER 37). **A once-per-empire
+popup** (`once_flag`: the trigger wants a country flag unset, the event sets it — apoc.1
+`encountered_first_gateway`) counts only at a system first listed while that flag turned from
+unset (at the last save that listed entries) to set (`firstEntries()`); several such systems in one
+interval are each "one of N". Checked 2026-10-31 on a copy of this machine's DB (Roaming Korinth,
+2206.10): of four abandoned gateways the L-Gate at Urakhannon's Maw (2204.01.01, `apoc.3`) and
+Acamar (2205.07.21) — Achernar and Elissa came after the flag; Bir (2205.09.18) and Helito
+(2206.03.28) as the user saw them. The events tab's kind `system-event` ("Bir: Crystalline
+Asteroids"; not at the history's first save) and the map's layer "system entry events" (each
+system at its first reading — the popup's own outcome may set a flag that no longer matches, as
+Helito's `solarpunk_system_revealed`). **Likely, not certain**: the events' other conditions (a
+ruined gateway in the system, global flags) are not checked. Companion mod 0.10.0 logs each first
+entry (`system-entered`), which only re-dates a matching milestone to the day (`fromLog()`, `alone:
+false`) — most first entries fire nothing.
 
 **Time window** (the user's ask 2026-10-28): every history chart (`Chart` with `extent`, the
 history's first and last save from `xExtent()`) shows one shared window
@@ -998,6 +1060,11 @@ does not. So `feed.ts` reads the formats in `FEED_FORMATS` and **skips any other
 mod's, or one newer than the build) instead of failing; the layout then names the format and which
 side to update (`unsupportedFeed()`, until a month is read). Released 0.1.1 still threw per line
 on format 3: **upload a mod with a new format only after the dashboard reading it is released.**
+**New mod data goes in an `event|<kind>|…` line** (0.9.0's `colony-jobs`, 0.10.0's
+`system-entered`): `parseLine` returns null for an unknown event kind, so older dashboards skip it
+without a format bump — a new head of its own (`tick-colony|…`) falls through to the resource
+parse and throws per line there. Values the save can carry go into variables instead (`sdash_nc`,
+`sdash_stab_*`), with no line at all.
 Drop an old format by raising `FEED_FORMATS.min`, never by erroring.
 
 Hidden events write `game.log` lines for human players, `SDASH|2|<date>|…` (format 2 since mod
@@ -1033,6 +1100,29 @@ shows format 2.
   with. Read as `Snapshot.storageMax` and `AiIntel.max` (`storageMax()`); the resources panel's storage line
   and the trade tab's "They take" use them, else ≈ the base (`docs/storage.md` lists every
   source). Confirmed in game 2026-10-24 (Open).
+- **Colony stability** (0.8.0): no log line — each month `every_controlled_colony` (arkships
+  included) exports `planet_stability_add` and `planet_stability_mult`
+  (`export_modifier_to_variable`, colony scope per 4.5.3 effects.log) into the colony's
+  `sdash_stab_add` / `sdash_stab_mult`. They land on the colony's **carrier** — the arkship's
+  `ships.<id>.variables` (2205.10.01), a planet colony's planet assumed, not seen yet — and are
+  read as `Colony.stabilityAdd|Mult` (READER 36). **Checked 2205.10.01** (screenshots
+  `screenshot_2026-10-31_09-25-00`, `-09`): `sdash_stab_add=33.35` = the tooltip's lines but
+  approval (10 + 5.6 + 17.7); the page's 110.9 = the tooltip's sum with approval unrounded (95.8 %
+  → +27.5, shown "+27").
+- **First entry into a system** (0.10.0): `on_entering_system_first_time` (scope: ship, From =
+  the system) logs `event|system-entered|<system>` for a human owner's ship; the line only dates a
+  system entry event (see "System entry events"), never stands alone.
+- **Colony jobs and pops, by day** (0.9.0): inside the daily tick, before `tick-end`, every
+  colony's `free_jobs`, `num_unemployed` and `num_sapient_pops` (triggers, colony scope) go to
+  `sdash_fj|un|pp`, and only when one differs from the last logged (`sdash_*_log`) a line
+  `SDASH|2|<date>|event|colony-jobs|<colony>|<open jobs>|<unemployed>|<pops>` — an event line, so
+  a dashboard without the kind skips it. `feed.ts` files it with its day (`Tick.colonies`, by
+  colony name), so it reaches the page live (the colony page's Pops chart title: "Pops —
+  <date>: … employed, … civilians, … open jobs") and is stored with the month; the Pops chart
+  draws those days between the saves (`colonyDaySeries()`). **Assumed until checked**
+  (`docs/open-checks.md` 23): unemployed = the civilians, employed = pops − unemployed, and
+  `free_jobs` the same count as the save's open jobs. Checked 2026-10-31 on a DB copy with a
+  replayed line: the `tick` server event carries it.
 - **The daily tick**: 4.5.2 has no sub-monthly on_action, so `sdash.2` re-fires itself with
   `days = 1`. The stockpile moves within a month (spending, the market, rewards, deals); income
   does not, so the tick logs stockpiles only. Pending events are saved with the game, so the chain
@@ -1217,9 +1307,41 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   `automation_resources.<country> = { "energy" … }` read as the **disallowed** resources (empty at
   2200.04, all listed after the player unticked all).
 - Leaders: **`country.owned_leaders`**, not `leaders.*.country` — that also matches the recruitment
-  pool (19 vs. 7). Leader capacity is **per class**, base `@base_leader_cap = 3`
+  pool (19 vs. 7). The pool itself is **`country.modules.standard_leader_module.leaders`**, each
+  leader's `date_added` the day it joined (`recruitment_date` "0.01.01" until hired); the game
+  replaces it all `LEADER_POOL_REFRESH_TIME` (1800 days) after it was filled — 2200.01.01 →
+  "Refreshes 2205.01.01" (4.5.3, 2204.10). Whether an event's early `refresh_leader_pool` restarts
+  that count is assumed, not seen. Leader capacity is **per class**, base `@base_leader_cap = 3`
   (`common/leader_classes`), raised by `country_<class>_cap_add`; the result is not in the save. Ships: `country.fleets_manager.owned_fleets` → `fleet.<id>.{ship_class, ships}`
   → `ships.<id>.ship_design_implementation.design` → `ship_design.<id>.growth_stages[0].ship_size`.
+- A leader's assignment: `leaders.<id>.location = { type id }` — `ship` (that ship's fleet: a
+  commander's fleet or the science ship a scientist leads), `army`; a councilor's is a `planet`
+  (the capital, no assignment), its seat `council_location`. A leader still in the pool has
+  `age=0`: its age counts from `date` (2171.01.01 → 33 on 2204.10, as the game shows).
+- Leader experience: `leaders.<id>.experience` counts towards the next level and starts again from
+  the overflow (Planetforgers 2213.10: level 3 at 2043 → level 4 at 21). From level n it takes
+  `LEADER_EXPERIENCE_REQUIREMENT_BASE_VALUE` + `_SCALE_VALUE` × n(3n + 4) / 6 = 450, 1100, 2050 —
+  measured (the game's "Experience for next skill level: 1100" at level 2; every level-up in five
+  campaigns fits); the defines' comment (200 475 825 1250) is stale. Class limits are not in the
+  save: base 3 + `country_<class>_cap_add` / `country_leader_cap_add` of what is held
+  (#lib/leaders.ts leaderLimits; docs/open-checks.md 20).
+- Leader upkeep: unity 2 × level (`paragon/leader_base_upkeep`) × the class's factor, which the
+  budget gives exactly (`leader_<class>s` unity: commanders 3.3 for levels 2 + 1 → 0.55, each 2.2 /
+  1.1 as the game shows), plus a leader's own traits. Recruitment: `leader_cost` = 100 + 50 (L − 1)² +
+  25 (L − 1) × (1 + `leaders_cost_mult` …): 75 with The Empire Needs You, as the game shows.
+- A leader's home: `background_planet = { type=planet|ship reference }` (4.5.3; the same form as a
+  colony's `carrier`), so "governs its home" is the colony's carrier equal to it. An immortal
+  leader is read as `immortal=yes` — **spelling assumed**, none seen in a 4.5.3 save.
+- Tech costs: × (1 + `TECH_COST_DIFFICULTY_SCALE_MULT` × step × difficulty rank × tier) —
+  `galaxy.difficulty`, `galaxy.technology_difficulty_scale`; Normal = 2, cadet 1, admiral 5
+  measured (#lib/events.ts techCostFactor), the other steps assumed (docs/open-checks.md 19).
+- Wanderlust (nomads' perk, `#lib/wanderlust.ts`): progress in `country.variables`
+  (`<category>_system_seen` / `_count`, the counts 80 % of the flagged systems: 21 galactic
+  landmarks → 17, all eight checked 2204.10.01), done `country.flags.<category>_completed`; a
+  system's categories are star flags (`galactic_object.<id>.flags`: `galactic_landmark_system`, …
+  and plain `enclave`) on every system from galaxy generation; a counted system
+  `visited_by_nomad@<country>` (spelling assumed, docs/open-checks.md 18). Flag values are game
+  hours (2200.01.01 = 62808000).
 - Overview: `country.victory_rank|victory_score|economy_power|tech_power|military_power` (the score
   breakdown is not stored); fleets `fleet.<id>.military_power`, names `%SEQ%` + `fmt`/`num` → "1st
   Fleet"; active edicts `country.edicts = { { edict … } }` — the **edict fund (10 / 15) is not

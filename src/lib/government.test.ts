@@ -11,6 +11,7 @@ import {
 	possibleSeats,
 	seatRows
 } from './government.ts';
+import { evaluate } from './triggers.ts';
 import { upgrade } from './upgrade.ts';
 import type { GameData, Snapshot } from './types.ts';
 
@@ -37,6 +38,34 @@ const snap = upgrade({
 } as Partial<Snapshot> & Pick<Snapshot, 'kind' | 'campaign' | 'date'>);
 const f = facts(snap);
 const fallen = { leaf: 'is_country_type', value: 'fallen_empire' };
+
+describe('facts', () => {
+	it('answers is_individual_machine and country_uses_food from the save', () => {
+		const archetypes = { NECROID: 'BIOLOGICAL', MACHINE: 'MACHINE' };
+		const of = (founderClass: string, government: string[], food: number) =>
+			facts({ ...snap, founderClass, government, expenses: { food } }, {}, { archetypes });
+		// Roaming Korinth 2204.12 (4.5.3): Necroids, 127 food a month — Fertility Preacher's +15 % food
+		const ours = of('NECROID', ['auth_democratic'], 127);
+		expect([
+			evaluate({ leaf: 'is_individual_machine', value: 'yes' }, ours),
+			evaluate({ leaf: 'country_uses_food', value: 'yes' }, ours)
+		]).toEqual([false, true]);
+		expect(
+			evaluate(
+				{ leaf: 'is_individual_machine', value: 'yes' },
+				of('MACHINE', ['auth_democratic'], 0)
+			)
+		).toBe(true);
+		expect(
+			evaluate(
+				{ leaf: 'is_individual_machine', value: 'yes' },
+				of('MACHINE', ['auth_machine_intelligence'], 0)
+			)
+		).toBe(false);
+		// no food spent: maybe bio-ships, the save cannot tell
+		expect(evaluate({ leaf: 'country_uses_food', value: 'yes' }, of('NECROID', [], 0))).toBeNull();
+	});
+});
 
 describe('policyRows', () => {
 	it('drops options this empire cannot have and keeps the selected one', () => {

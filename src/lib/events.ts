@@ -16,7 +16,7 @@ import {
 	orderLabel,
 	orderRate
 } from './ships.ts';
-import type { QueueItem, Snapshot } from './types.ts';
+import type { Progress, QueueItem, Snapshot } from './types.ts';
 
 // Upcoming events of the empire: when current research, the next tradition, the council agenda,
 // queued construction and the next election are due. Pure; the page shows them as one list.
@@ -41,6 +41,7 @@ export type Upcoming = {
 		| 'ship'
 		| 'colonization'
 		| 'election'
+		| 'leaders' // the recruitable leaders are replaced
 		| 'deficit'
 		| 'cooldown' // something may be done again
 		| 'expires' // a timed effect ends
@@ -63,13 +64,53 @@ export type Upcoming = {
 	dismiss?: string; // a cooldown that has run out: the id to dismiss it by (`timedOut()`)
 };
 
+// The galaxy setting "Difficulty Adjusted Technology Costs" (`technology_difficulty_scale`): "how
+// much the selected Difficulty affects the research cost … a greater effect on more advanced
+// technologies" (localisation FE_TECH_SPEED_DIFFICULTY_SCALE_TOOLTIP). Its steps and the ranks of the
+// difficulties: Normal = 2, cadet = 1, admiral = 5 fit both games measured (below); the others are
+// assumed, in order.
+const TECH_DIFFICULTY_SCALE: Record<string, number> = {
+	scaling_off: 0,
+	scaling_low: 1,
+	scaling_normal: 2,
+	scaling_high: 3
+};
+export const DIFFICULTY_RANK: Record<string, number> = {
+	civilian: 0,
+	cadet: 1,
+	ensign: 2,
+	captain: 3,
+	commodore: 4,
+	admiral: 5,
+	grand_admiral: 6
+};
+
+/** A difficulty as the game names it, with its place: `admiral` → "Admiral (6/7)". */
+export function difficultyLabel(difficulty: string): string {
+	const rank = DIFFICULTY_RANK[difficulty];
+	const name = difficulty.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+	const levels = Object.keys(DIFFICULTY_RANK).length;
+	return rank === undefined ? name : `${name} (${rank + 1}/${levels})`;
+}
+
 /**
- * Tech costs in game are × (1 + 0.05 × tier) of the base cost, rounded down (4.5.2, technology
- * slider 1, empire size ≤ 100): tier 1 1575 / 1312 / 1050 for 1500 / 1250 / 1000, tier 2 2200 for
- * 2000 and 2750 for 2500, rare or not (Planetforgers 2212.03.05, screenshots 2026_10_22_19–21).
- * Source unconfirmed — no define names it.
+ * Tech costs in game are × (1 + `TECH_COST_DIFFICULTY_SCALE_MULT` (0.025) × scale step × difficulty
+ * rank × tier) of the base cost, rounded down (technology slider 1, empire size ≤ 100). Measured:
+ * cadet, Normal — tier 1 1575 / 1312 / 1050 for 1500 / 1250 / 1000, tier 2 2200 for 2000 and 2750
+ * for 2500, rare or not (Planetforgers 2212.03.05, 4.5.2, screenshots 2026_10_22_19–21); admiral,
+ * Normal — tier 1 1875 for 1500 (Roaming Korinth 2204.11, 4.5.3, screenshot
+ * 2026-10-31_03-07-59). Settings the save did not tell (before READER 32): cadet's, as before.
  */
-export const techCostFactor = (tier: number | null) => 1 + 0.05 * (tier ?? 1);
+export function techCostFactor(
+	tier: number | null,
+	settings: Progress['costSettings'] | null = null,
+	mult = 0.025
+): number {
+	const scale = TECH_DIFFICULTY_SCALE[settings?.techDifficultyScale ?? ''];
+	const rank = DIFFICULTY_RANK[settings?.difficulty ?? ''];
+	const perTier = scale === undefined || rank === undefined ? 0.05 : mult * scale * rank;
+	return 1 + perTier * (tier ?? 1);
+}
 
 // ── Game calendar: 12 months of 30 days ────────────────────────────────────
 
@@ -219,7 +260,7 @@ export function upcoming(
 			tech.cost *
 				p.costSettings.technology *
 				sizePenalty(latest.empireSize, d.EMPIRE_SIZE_TECH_COST_PENALTY, d) *
-				techCostFactor(tech.tier) +
+				techCostFactor(tech.tier, p.costSettings, d.TECH_COST_DIFFICULTY_SCALE_MULT) +
 				1e-9
 		);
 		const rate =
@@ -411,6 +452,9 @@ export function upcoming(
 		});
 	}
 
+	out.push(...leaderPoolRefresh(latest, data.defines.LEADER_POOL_REFRESH_TIME ?? 1800));
+	out.push(...leaderLevelUps(latest, earlier, data.defines));
+
 	if (p.nextElection && toDays(p.nextElection) >= toDays(latest.date))
 		out.push({
 			date: p.nextElection,
@@ -429,6 +473,95 @@ export function upcoming(
 	out.push(...reserveLevels(latest.date, pool, data.situationTypes[NOMAD_ECONOMY]?.stages ?? []));
 
 	return out.sort((a, b) => toDays(a.date) - toDays(b.date) || a.what.localeCompare(b.what));
+}
+
+/**
+ * The experience a leader needs from level `n` to the next: `LEADER_EXPERIENCE_REQUIREMENT_BASE_
+ * VALUE` + `_SCALE_VALUE` × n(3n + 4) / 6 — 450, 1100, 2050 (100, 300). Measured, not in the
+ * files (whose comment says 200 475 825 1250): the game's "Experience for next skill level: 1100" at
+ * level 2 (Roaming Korinth 2204.12, 4.5.3, screenshot 2026-10-31_03-50-15), level 1 → 2 at exactly
+ * 450 (Yorphian 2203.06: 313.1 + 151.5 → 14.6), no level 2 seen past 1093.5 nor level 3 past 2043
+ * (Planetforgers 2213.10: → level 4 with 21). The experience starts again from the overflow.
+ */
+export function experienceToLevel(n: number, defines: Record<string, number> = {}): number {
+	const base = defines.LEADER_EXPERIENCE_REQUIREMENT_BASE_VALUE ?? 100;
+	const scale = defines.LEADER_EXPERIENCE_REQUIREMENT_SCALE_VALUE ?? 300;
+	return base + (scale * n * (3 * n + 4)) / 6;
+}
+
+/**
+ * When each leader reaches its next level, at the experience it gained a month since an earlier
+ * save at the same level (traits like Eye for Talent included); none past the skill cap (level and
+ * its own extra levels at `LEADER_BASE_SKILL_CAP`, 10), nor without a measured gain.
+ */
+export function leaderLevelUps(
+	latest: Pick<Snapshot, 'date' | 'leaderList'>,
+	earlier: Pick<Snapshot, 'date' | 'leaderList'>[],
+	defines: Record<string, number> = {}
+): Upcoming[] {
+	const cap = defines.LEADER_BASE_SKILL_CAP ?? 10;
+	return (latest.leaderList ?? []).flatMap((l) => {
+		if (l.experience === null || l.experience === undefined) return [];
+		if (l.level + (l.bonus ?? 0) >= cap) return [];
+		const then = (s: Pick<Snapshot, 'leaderList'>) =>
+			s.leaderList?.find((x) => x.id === l.id && x.level === l.level)?.experience;
+		const base = earlier.findLast(
+			(s) => typeof then(s) === 'number' && monthTicks(s.date, latest.date) >= 1
+		);
+		if (!base) return [];
+		const rate = (l.experience - then(base)!) / monthTicks(base.date, latest.date);
+		const need = experienceToLevel(l.level, defines);
+		const when = due(latest.date, need - l.experience, rate);
+		return when
+			? [
+					{
+						...when,
+						kind: 'leaders' as const,
+						sub: 'level up',
+						act: false,
+						what: `${l.name} reaches level ${l.level + 1}`,
+						tint: `class-${l.class}`,
+						done: l.experience,
+						total: need,
+						detail: `${l.class} · ${Math.round(l.experience)} / ${need} experience · +${rate.toFixed(1)}/month`,
+						exact: false
+					}
+				]
+			: [];
+	});
+}
+
+/**
+ * When the game replaces the recruitable leaders: `LEADER_POOL_REFRESH_TIME` (1800 days) after
+ * the pool was filled — the earliest `date_added` of its leaders (2200.01.01 → "Refreshes
+ * 2205.01.01", 4.5.3). Estimated: an event may refresh it early (`refresh_leader_pool`).
+ */
+export function leaderPoolRefresh(
+	latest: Pick<Snapshot, 'date' | 'leaderPool'>,
+	refreshDays: number
+): Upcoming[] {
+	const added = (latest.leaderPool ?? []).flatMap((l) => (l.added ? [toDays(l.added)] : []));
+	if (!added.length) return [];
+	const due = Math.min(...added) + refreshDays;
+	if (due < toDays(latest.date)) return [];
+	const pool = latest.leaderPool!;
+	const left = [...new Set(pool.map((l) => l.class))].map((c) => {
+		const n = pool.filter((l) => l.class === c).length;
+		return `${n} ${c}${n === 1 ? '' : 's'}`;
+	});
+	return [
+		{
+			date: fromDays(due),
+			months: (due - toDays(latest.date)) / 30,
+			kind: 'leaders',
+			sub: 'leader pool',
+			act: false,
+			what: 'Recruitable leaders refresh',
+			tint: 'leader',
+			detail: `${left.join(', ')} to pick from until then`,
+			exact: false
+		}
+	];
 }
 
 /**

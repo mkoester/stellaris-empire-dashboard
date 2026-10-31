@@ -102,24 +102,109 @@ lines change, the suspected cause.
 
 Settled 2026-10-30 (throwaway nomad game, 2200.05.01, screenshots
 `~/Pictures/Screenshots/screenshot_2026-10-30_20-09-12` … `20-09-53`; `AGENTS.md` → Ethics tab).
-Open: the empire-wide factors from rules the save cannot answer — egalitarian ×3 = ×2.5 known ×
-1.2, xenophile and spiritualist ×2.2 = ×2 × 1.1 — most likely "From Council"
-(`value:count_councilors_with_ethic`, a script value).
-
-- **Do:** hover the ethic icon with ALT ("the attraction modifiers' sources") for egalitarian and
-  xenophile.
-- **Send:** the screenshots and the date.
+**Settled 2026-10-31 on the 4.5.3 open beta** (Roaming Korinth 2204.08.01, save; dashboard's
+ethics tab): the rules now add onto 1, and what the save cannot tell is the council —
+`value:count_councilors_with_ethic` = 0.1 (`@council_ethic_attraction`) per ruler or councilor with
+the ethic. Egalitarian ×2.45 = 2.25 known + 0.2 (two councilors), xenophile ×2.1 = 2 + 0.1 (one),
+spiritualist ×2.1 = 2 + 0.1 (the ruler): every remainder exact, so "From Relations" was 0. The
+4.5.2 numbers (×3 = ×2.5 × 1.2, ×2.2 = ×2 × 1.1) fit the same count as a factor. The game's
+tooltip (`screenshot_2026-10-31_01-49-58` … `01-50-08`) shows pop attraction, not these factors.
+Done 2026-10-31: the dashboard counts the council rule from the save's leaders (extractor
+`ethic_attraction.per_json`); the three ethics read ×2.45 / ×2.1 / ×2.1, known in full.
 
 ### 17. Amenities, happiness and stability — colony page (from 2026-10-30)
 
 Settled 2026-10-30 (Roaming Korinth 2203.02.01, screenshots
 `~/Pictures/Screenshots/screenshot_2026-10-30_22-12-11` … `22-13-38`): approval → stability and
 stability → job output are linear (+28.5 at 97.5 %, +28.88 % at 98.143); the amenities' +20 % cap.
-Open: amenities between the ends — the ark had 2.57× its need, past the cap.
+**Settled 2026-10-31 (4.5.3 open beta, 2204.08.20, `screenshot_2026-10-31_01-49-08`):** amenities
+between the ends are linear too — 9659 provided for 6020 needed (1.604×) gives "Citizen Pop
+Happiness +12.0 %"; linear predicts +12.09 % (a curve would be far off: squared, +7.3 %). The
+save (2204.08.01) holds 9655.6 / 6020 / 3635.6 free against the tooltip's 9659 / 6020 / 3639 nineteen
+days later.
 
-- **Do:** hover the amenities of a colony with amenities between 25 % and 200 % of its need (the
-  "Citizen Pop Happiness" line, or the penalty below 100 %).
-- **Send:** the screenshot and the date.
+### 18. Wanderlust — an arkship's visit (from 2026-10-31)
+
+The dashboard reads the systems an arkship counted from the star flag `visited_by_nomad@<our
+country id>` (`nomads.4720` sets `visited_by_nomad@root.owner`) — **its spelling in a save is
+assumed**: no save has one yet. Without it the events still come, from the counters, dated to the
+month's save instead of the day.
+
+- **Do:** fly the arkship into a system the map marks ⚑ (Wanderlust, "not yet by an arkship"),
+  then save.
+- **Send:** the save's name. Check: `grep -o 'visited_by_nomad[^=]*=[0-9]*' gamestate`; the map
+  should then say "counted <date>" there and the events tab "Wanderlust: <system> (…)".
+
+### 19. Tech costs on another difficulty or tech-cost scaling (from 2026-10-31)
+
+Measured: cadet and admiral with "Difficulty Adjusted Technology Costs" on Normal (tier 1 ×1.05
+and ×1.25). Assumed: Low and High as steps 1 and 3 of Normal's 2, and the ranks of the
+difficulties in between (#lib/events.ts techCostFactor).
+
+- **Do:** in a game on another difficulty, or with that setting on Low, High or Off, open the
+  technology screen.
+- **Send:** a screenshot (a tech's cost) and the save, with the galaxy settings.
+
+### 20. Leader limits per class — leaders tab (from 2026-10-31)
+
+The tab shows hired / limit per class (Roaming Korinth 2204.12: 2 / 4 each), the limit computed:
+base 3 + every `country_<class>_cap_add` and `country_leader_cap_add` of what the save shows held —
+traditions, perks, edicts, policies, civics, the origin, technologies, timed modifiers. Species
+traits, leaders' own traits and situations are not counted.
+
+- **Do:** open the game's leader screen (where it shows each class's count and limit).
+- **Send:** a screenshot and the date.
+
+### 21. The outliner's Roman numerals — colony vs. fleet (from 2026-10-31)
+
+**Unverified.** On 2204.12 (4.5.3) the outliner showed "III" on the arkship colony (and beside its
+designation, Capital Arkship) and "II" on Military Arkship I. Read as: the colony's numeral is its
+governor's skill (Clyda Alford, level 2 + 1 bonus = 3; the colony's `governorSkill` 3, ascension
+tier 1, capital building level 2), the fleet's its commander's base level (Fagan Nightsedge, also
+2 + 1, shown as II). The leaders tab acts on level + bonus for every role ("fleet (3)"), as the
+game's leader tooltip ("Skill Level: (2+1)/10") does. One sample only, both leaders at 2 + 1.
+
+- **Do:** later in the game, when a governor and a commander differ in level or bonus (or the
+  colony gets another ascension tier or capital upgrade), hover both numerals.
+- **Send:** the screenshots and the date; the save.
+
+### 22. Stability above the cap — colony page, companion mod 0.8.0 (from 2026-10-31)
+
+**Partly checked 2205.10.01** (screenshots `screenshot_2026-10-31_09-25-00`, `-09`): the mod's
+`sdash_stab_add` (33.35) is the tooltip's lines but approval (10 + 5.6 + 17.7), and base + flat +
+approval's share is the tooltip's sum (110.9; the game shows approval rounded, +27). Stored on
+the colony's carrier — the arkship's ship block. Still open:
+
+- **A planet colony**: whether its variables land on the planet (`planets.planet.<id>.variables`,
+  which `save.ts` reads). **Do:** once there is one, find `sdash_stab_add` in a save.
+- **A stability multiplier** (`planet_stability_mult`, 0 so far): assumed to scale the whole sum.
+  **Do:** when one applies (an edict, a situation stage), hover the stability of a colony at the
+  cap. **Send:** the screenshot and the date.
+
+### 23. Colony jobs by day — colony page, companion mod 0.9.0 (from 2026-10-31)
+
+**Unverified.** The mod logs a colony's `free_jobs`, `num_unemployed` and `num_sapient_pops` on
+each day one changes; the dashboard reads unemployed as civilians and pops − unemployed as
+employed. Assumed: those triggers count what the save's `civilian`, `employable_pops` and open
+positions (`max_workforce − workforce`) count — `free_jobs` may include the enforcer posts the
+dashboard leaves out under crime automation (`openJobs()`), which would show as a jump at each save.
+
+- **Do:** with the mod at 0.9.0, queue a building with jobs on the arkship; on the day it finishes
+  and the few days after, hover the colony's jobs and pops in the game; a manual save on one of
+  those days.
+- **Send:** the screenshots with their dates, the save. Check: the `colony-jobs` lines in
+  `logs/game.log` against the game's numbers, and the Pops chart's tick days against the saves'.
+
+### 24. System entry events — map and events tab, companion mod 0.10.0 (from 2026-10-31)
+
+**Partly checked**: Bir and Helito as the user saw them (2026-10-31); the four abandoned gateways
+reduced to two by their once-flags (Urakhannon's Maw's L-Gate, Acamar) — not asked whether those
+two showed the popup. Unverified: the mod's `system-entered` line (`[From.GetName]` in a
+ship_event's scope), and the matches' other conditions (a match is "likely").
+
+- **Do:** with the mod at 0.10.0, enter a new system (any) and one with a popup.
+- **Send:** the date and the popup's title; `logs/game.log`'s `system-entered` lines. Check: the
+  events tab dates the popup's system to that day, and a system without a popup shows nothing.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 

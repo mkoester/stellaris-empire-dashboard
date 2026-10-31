@@ -62,6 +62,20 @@ writeFileSync(process.argv[process.argv.indexOf('--sqlite') + 1], 'db');`
 		expect(await ensureDataDb(game, app, node, () => {})).toBe(file);
 		expect(readFileSync(join(work, 'runs'), 'utf8')).toBe('x');
 	});
+	it('extracts again for another build of the same version (an open beta, then its release)', async () => {
+		const beta = mkdtempSync(join(tmpdir(), 'game-'));
+		const settings = (build: string) =>
+			writeFileSync(
+				join(beta, 'launcher-settings.json'),
+				`{ "rawVersion": "v4.5.3", "version": "Cygnus v4.5.3 (${build})" }`
+			);
+		const app = mkdtempSync(join(tmpdir(), 'app-'));
+		settings('7793');
+		const first = await ensureDataDb(beta, app, node, () => {});
+		expect(first).toMatch(/stellaris-v4\.5\.3_7793-\w+\.sqlite$/);
+		settings('7800');
+		expect(await ensureDataDb(beta, app, node, () => {})).not.toBe(first);
+	});
 	it('reports a missing Python plainly', async () => {
 		const app = mkdtempSync(join(tmpdir(), 'app-'));
 		await expect(

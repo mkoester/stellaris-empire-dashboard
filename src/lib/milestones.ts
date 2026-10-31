@@ -1,6 +1,8 @@
 import { sideSummary } from './deals.ts';
 import { nameOf, pretty } from './format.ts';
 import { addGameDays, gameYear } from './series.ts';
+import { entryLabel, firstEntries } from './systemEvents.ts';
+import { wanderlustName } from './wanderlust.ts';
 import type {
 	Colony,
 	GalacticCommunity,
@@ -37,6 +39,9 @@ export const KINDS = [
 	{ kind: 'agenda', label: 'agendas passed' },
 	{ kind: 'galcom', label: 'Galactic Community: proposals, votes, withdrawals' },
 	{ kind: 'leader', label: 'leaders' },
+	{ kind: 'leader-pool', label: 'recruitable leaders refreshed' },
+	{ kind: 'wanderlust', label: 'Wanderlust: systems explored by an arkship' },
+	{ kind: 'system-event', label: 'system entry events (guardians, ruins, …)' },
 	{ kind: 'ruler', label: 'ruler' },
 	{ kind: 'government', label: 'government: civics, ethics, authority, type, origin' },
 	{ kind: 'policy', label: 'policies' },
@@ -70,7 +75,8 @@ type Names = Pick<
 	| 'identityNames'
 	| 'diploNames'
 >;
-type Found = Omit<Milestone, 'date' | 'x'>;
+// `on`: the day it happened, where the save tells (else the save's date)
+type Found = Omit<Milestone, 'date' | 'x'> & { on?: string };
 
 const added = <T>(before: T[], after: T[]) => after.filter((x) => !before.includes(x));
 
@@ -317,6 +323,57 @@ const DETECTORS = [
 				.map((l) => ({ kind: 'leader' as const, label: `${l.class} gone: ${l.name}` }))
 		]
 	),
+	// the game replaces the whole pool (#lib/events.ts leaderPoolRefresh): none of it left, dated by
+	// the day the new leaders joined; hiring them all leaves it empty, which is no refresh
+	field(
+		(s) => s.leaderPool,
+		(a, b) => {
+			if (!b.length || b.some((l) => a.some((o) => o.id === l.id))) return [];
+			const on = b.flatMap((l) => (l.added ? [l.added] : [])).sort()[0];
+			return [{ kind: 'leader-pool' as const, label: 'recruitable leaders refreshed', on }];
+		}
+	),
+	// a system entered whose star flags fire an entry popup (#lib/systemEvents.ts): "Bir:
+	// Crystalline Asteroids", at the save that first lists it — the mod's line dates it exactly
+	(snaps: Snapshot[]) => {
+		const readings = snaps.map((s) => ({ entries: s.entryEvents, flags: s.countryFlags }));
+		// the first reading is the history's start: what it lists happened before
+		const start = readings.findIndex((r) => r.entries);
+		return firstEntries(readings)
+			.filter((e) => e.at !== start)
+			.map((e) => ({
+				s: snaps[e.at],
+				found: [{ kind: 'system-event', label: entryLabel(e) }] as Found[]
+			}));
+	},
+	// an arkship counting a system (#lib/wanderlust.ts): each on its day, where the save names it;
+	// a counter's rise the visits do not explain, at the save; a category, then all of them, done
+	field(
+		(s) => s.wanderlust,
+		(a, b) => {
+			const fresh = b.visits.filter((v) => !a.visits.some((o) => o.systemId === v.systemId));
+			const out: Found[] = fresh.map((v) => ({
+				kind: 'wanderlust' as const,
+				label: `Wanderlust: ${v.system} (${v.categories.map(wanderlustName).join(', ')})`,
+				on: v.date
+			}));
+			for (const c of b.categories) {
+				const was = a.categories.find((x) => x.key === c.key);
+				if (!was) continue;
+				const rest = c.seen - was.seen - fresh.filter((v) => v.categories.includes(c.key)).length;
+				if (rest > 0)
+					out.push({
+						kind: 'wanderlust',
+						label: `Wanderlust: ${wanderlustName(c.key)} ${c.seen} / ${c.count}`
+					});
+				if (c.done && !was.done)
+					out.push({ kind: 'wanderlust', label: `Wanderlust: ${wanderlustName(c.key)} done` });
+			}
+			if (b.complete && !a.complete)
+				out.push({ kind: 'wanderlust', label: 'Wanderlust: every category explored' });
+			return out;
+		}
+	),
 	field(
 		(s) => s.ruler,
 		(a, b) => (a.id !== b.id ? [{ kind: 'ruler' as const, label: `new ruler: ${b.name}` }] : [])
@@ -387,7 +444,9 @@ const DETECTORS = [
  * A mod event as the milestone it re-dates: its kind, the text a diffed label of that kind must
  * contain to be the same event, and the label to show when no save shows it.
  */
-function fromLog(e: LogEvent): { kind: EventKind; match: string | null; label: string } | null {
+function fromLog(
+	e: LogEvent
+): { kind: EventKind; match: string | null; label: string; alone?: false } | null {
 	const [a, b, c, d, system] = e.fields;
 	switch (e.kind) {
 		case 'colony':
@@ -410,6 +469,9 @@ function fromLog(e: LogEvent): { kind: EventKind; match: string | null; label: s
 				match: null, // no save diff to match
 				label: `battle at ${system}: ${a} (${b}) beat ${c} (${d})`
 			};
+		// every first entry is logged, most fire nothing: it only dates a system's entry event
+		case 'system-entered':
+			return { kind: 'system-event', match: `${a}: `, label: a, alone: false };
 		default: // spending, shown on the resources tab
 			return null;
 	}
@@ -423,7 +485,7 @@ export function milestones(snaps: Snapshot[], names: Names): Milestone[] {
 	const saves = snaps.filter((s) => s.kind === 'save');
 	const diffed: Milestone[] = DETECTORS.flatMap((detect) =>
 		detect(saves, names).flatMap(({ s, found }) =>
-			found.map((f) => ({ ...f, date: s.date, x: gameYear(s.date) }))
+			found.map(({ on, ...f }) => ({ ...f, date: on ?? s.date, x: gameYear(on ?? s.date) }))
 		)
 	);
 	// Each mod event takes over the earliest matching diffed milestone in its window, or stands alone.
@@ -447,6 +509,7 @@ export function milestones(snaps: Snapshot[], names: Names): Milestone[] {
 				)
 				.sort((p, q) => p.x - q.x)[0];
 			if (same) taken.add(same);
+			else if (found.alone === false) return [];
 			return [{ ...(same ?? { kind, label }), date: e.date, x: gameYear(e.date) }];
 		});
 	return [...diffed.filter((m) => !taken.has(m)), ...logged].sort((a, b) => a.x - b.x);

@@ -6,7 +6,7 @@
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
-	import { followLoads } from '#lib/live.ts';
+	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
 
 	let { data, children } = $props();
@@ -204,6 +204,16 @@
 		await invalidateAll();
 	}
 
+	// This very page — its route, params and other query parameters — pinned to a node, or
+	// unpinned: the arguments for resolve(), as the lint wants each goto() resolved.
+	const here = (n: number | null) => {
+		const query = new URLSearchParams(page.url.search);
+		if (n === null) query.delete('node');
+		else query.set('node', String(n));
+		const q = query.size ? `?${query}` : '';
+		return [`${page.route.id ?? '/'}${q}`, page.params] as Parameters<typeof resolve>;
+	};
+
 	// A save loaded in game: the dashboard follows it with the next save or month; until then the
 	// player may look at it at once, on the same tab — or wave the question away.
 	// A page pinned (`?node=`) to the save being played — the head, or the save just loaded — goes
@@ -212,10 +222,15 @@
 		() => invalidateAll(),
 		async () => {
 			if (node === null || ![data.head, data.loaded?.node].includes(Number(node))) return;
-			// the same page, unpinned (?node is its only query)
-			const here = [page.route.id ?? '/', page.params] as Parameters<typeof resolve>;
-			await goto(resolve(...here), { invalidateAll: true });
+			await goto(resolve(...here(null)), { invalidateAll: true }); // the same page, unpinned
 		}
+	);
+	// the last save and the last data of the game being played; a daily tick heard after the page
+	// loaded is newer data than the server knew
+	let tick = $state<{ date: string; at: number } | null>(null);
+	followTicks((t) => (tick = { date: t.date, at: Date.now() }));
+	const lastData = $derived(
+		data.dates && tick && tick.at > data.dates.at ? tick.date : (data.dates?.data ?? null)
 	);
 	let waved = $state<number | null>(null);
 	const loaded = $derived(
@@ -223,10 +238,8 @@
 			? data.loaded
 			: null
 	);
-	async function showLoaded(n: number) {
-		const same = tabsAt(String(n)).find((t) => t.active && t.name !== 'colony');
-		await goto(same?.href ?? resolve(`/?node=${n}`));
-	}
+	// the same page at the loaded save — every page, a colony's and a custom tab's included
+	const showLoaded = (n: number) => goto(resolve(...here(n)));
 
 	async function setTheme(theme: Theme) {
 		applyTheme(theme);
@@ -254,7 +267,7 @@
 			{/each}
 			<button class={tab(false)} onclick={addTab} title="add a tab of your own">+</button>
 			<a
-				class="ml-auto {tab(path === '/settings')}"
+				class={tab(path === '/settings')}
 				href={node ? resolve(`/settings?node=${node}`) : resolve('/settings')}
 				title="config: profiles and display">⚙ {data.profile.name}</a
 			>
@@ -285,6 +298,21 @@
 			<span class="pb-1 text-[11px] text-gray-400" title="dashboard version"
 				>v{__APP_VERSION__}</span
 			>
+			{#if data.gameVersion}<span
+					class="pb-1 text-[11px] text-gray-400"
+					title="the game version and build the game data was read from (an open beta shares its version with the release, not its build)"
+					>game {data.gameVersion.replace(/^\D*/, '')}</span
+				>{/if}
+			<!-- the difficulty and the dates alone on the right, also when they wrap onto a line of their own -->
+			{#if data.dates?.difficulty}<span
+					class="ml-auto pb-1 text-[11px] text-gray-400"
+					title="the game's difficulty (galaxy setup), of seven">{data.dates.difficulty}</span
+				>{/if}
+			{#if data.dates}<span
+					class="{data.dates.difficulty ? '' : 'ml-auto'} pb-1 text-[11px] text-gray-400"
+					title="the game being played: its latest save the dashboard read, and its latest data — a save, the companion mod's month or its daily tick (without the mod, saves only)"
+					>last save {data.dates.save ?? '—'} · last data {lastData ?? '—'}</span
+				>{/if}
 		</nav>
 		{#if page.data.xExtent}<TimeWindow extent={page.data.xExtent as [number, number]} />{/if}
 		{#if loaded}

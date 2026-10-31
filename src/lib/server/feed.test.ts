@@ -116,6 +116,9 @@ describe('parseLine', () => {
 
 	it('skips a newer mod\'s event kinds, refuses wrong field counts (a "|" in a name)', () => {
 		expect(parseLine('SDASH|2|2201.03.07|event|nonsense|x')).toBeNull();
+		expect(() => parseLine('SDASH|2|2201.03.07|event|colony-jobs|New|Hope|1|2|3')).toThrow(
+			/malformed/
+		);
 		expect(() => parseLine('SDASH|2|2201.03.07|event|colony|New|Hope')).toThrow(/malformed/);
 		expect(() => parseLine('SDASH|2|2201.03.07|tick|energy|')).toThrow(/malformed/);
 	});
@@ -172,6 +175,32 @@ describe('assembler', () => {
 				ticks: [{ date: '2201.02.29', stockpile: { energy: 4 } }]
 			}
 		});
+	});
+
+	it('files a colony’s changed jobs and pops (mod 0.9.0) with its day, live and in the month', () => {
+		const add = assembler();
+		const out = feed(
+			add,
+			`SDASH|3|2205.10.04|455928|tick|energy|4
+			SDASH|2|2205.10.04|event|colony-jobs|Peshnab the Faithful|391|0|5701
+			SDASH|2|2205.10.04|event|colony-jobs|Mars|0|12|300
+			SDASH|3|2205.10.04|455928|tick-end
+			SDASH|3|2205.10.05|455928|tick-end
+			SDASH|3|2205.11.01|455928|energy|5|1
+			SDASH|3|2205.11.01|455928|end`
+		);
+		const day = {
+			'Peshnab the Faithful': { openJobs: 391, unemployed: 0, pops: 5701 },
+			Mars: { openJobs: 0, unemployed: 12, pops: 300 }
+		};
+		expect(out[0]).toEqual({
+			kind: 'tick',
+			tick: { date: '2205.10.04', stockpile: { energy: 4 }, colonies: day }
+		});
+		// a day without changes has no colonies; neither is an event of the month
+		expect(out[1]).toEqual({ kind: 'tick', tick: { date: '2205.10.05', stockpile: {} } });
+		expect(out[2]).toMatchObject({ kind: 'month', month: { events: [] } });
+		expect((out[2] as { month: Month }).month.ticks[0].colonies).toEqual(day);
 	});
 
 	it('drops what happened after the last month once a save is loaded: that future was left', () => {

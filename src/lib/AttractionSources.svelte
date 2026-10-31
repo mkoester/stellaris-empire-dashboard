@@ -23,7 +23,7 @@
 		name: string;
 		ours: boolean;
 		weight: number | null;
-		computed: { known: number; open: number } | null;
+		computed: { known: number; open: number; additive: boolean } | null;
 		rules: RuleRow[];
 		modifiers: Source[];
 	};
@@ -42,6 +42,7 @@
 		a === null ? '?' : typeof a === 'number' ? (a > 0 ? `✓ ×${a}` : '✗') : a ? '✓' : '✗';
 	const pct = (v: number) => `${v > 0 ? '+' : ''}${Math.round(v * 1000) / 10} %`;
 	const times = (v: number) => `×${Math.round(v * 100) / 100}`;
+	const plus = (v: number) => `${v < 0 ? '−' : '+'}${Math.round(Math.abs(v) * 100) / 100}`;
 	const TONE = {
 		now: 'text-green-700 dark:text-green-500',
 		slow: 'text-amber-600',
@@ -105,7 +106,7 @@
 			value: (r) => r.factor,
 			cell: ruleEffect,
 			title:
-				"×: an empire-wide factor on the ethic (country_attraction); reason: a line of the game's attraction tooltip (pop_attraction_tag), for pops it applies to"
+				"× / +: an empire-wide rule on the ethic (country_attraction), applied in order onto 1; reason: a line of the game's attraction tooltip (pop_attraction_tag), for pops it applies to"
 		},
 		{ id: 'what', label: 'Rule', value: (r) => r.description, cell: ruleWhat }
 	];
@@ -171,8 +172,15 @@
 			: ''}>{r.applies === null ? '?' : r.applies ? '✓' : '✗'}</span
 	>{/snippet}
 {#snippet ruleEffect(r: RuleRow)}{#if r.kind === 'country'}<b
-			class={(r.factor ?? 1) < 1 ? 'text-red-600' : ''}
-			>{r.factor !== null ? times(r.factor) : '× script value'}</b
+			class={(r.factor ?? 1) < (r.op === 'add' ? 0 : 1) ? 'text-red-600' : ''}
+			title={r.per ? `${r.perValue} per ruler or councilor with the ethic` : undefined}
+			>{r.op === 'add'
+				? r.factor !== null
+					? plus(r.factor)
+					: '+ script value'
+				: r.factor !== null
+					? times(r.factor)
+					: '× script value'}</b
 		>{:else}<span class="text-gray-500">reason</span>{/if}{/snippet}
 {#snippet ruleWhat(r: RuleRow)}
 	{r.description ?? ''}
@@ -211,13 +219,16 @@
 			{#if g.weight !== null}
 				<span
 					class="text-sm"
-					title="the empire-wide factor on this ethic, as the save holds it (ethics_attraction); the known part is the product of the rules below that apply"
+					title="the empire-wide factor on this ethic, as the save holds it (ethics_attraction); the known part is the rules below that apply, in order onto 1 (× multiplies, + adds)"
 					>· empire-wide <b>{times(g.weight)}</b>{#if g.computed}<span class="text-gray-500"
 							>&nbsp;(known {times(
 								g.computed.known
-							)}{#if Math.abs(g.weight - g.computed.known) > 0.005}, {times(
-									g.weight / (g.computed.known || 1)
-								)} from {g.computed.open} rule{g.computed.open === 1 ? '' : 's'} the save cannot tell{/if})</span
+							)}{#if Math.abs(g.weight - g.computed.known) > 0.005}, {g.computed.additive
+									? plus(g.weight - g.computed.known)
+									: times(g.weight / (g.computed.known || 1))} from {g.computed.open} rule{g
+									.computed.open === 1
+									? ''
+									: 's'} the save cannot tell{/if})</span
 						>{/if}</span
 				>
 			{/if}

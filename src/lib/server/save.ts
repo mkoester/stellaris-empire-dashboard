@@ -24,6 +24,9 @@ import type {
 	Sector,
 	SpeciesInfo,
 	ColonyJob,
+	PoolLeader,
+	LeaderInfo,
+	Wanderlust,
 	TimedModifier,
 	PlanetState,
 	Market,
@@ -48,6 +51,8 @@ import type {
 } from '#lib/types.ts';
 import { MARKET_RESOURCES } from '#lib/market.ts';
 import { addGameDays, START_YEAR } from '#lib/series.ts';
+import { entryEventsFor, type EntryEvent, type SystemEntry } from '#lib/systemEvents.ts';
+import { WANDERLUST, wanderlustCategories } from '#lib/wanderlust.ts';
 import { readZipEntry } from './zip.ts';
 import {
 	anomalies,
@@ -104,7 +109,7 @@ export type RawSave = {
 	archSites: Record<string, Raw>; // archaeological_sites.sites
 	focusCards: Record<string, Raw>; // top-level focus_cards
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
-	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
+	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`; `difficulty`, `technology_difficulty_scale`
 	leaders: Record<string, Raw>;
 	monthlyTrades: Raw; // market.monthly_trades: every country's standing orders
 	market: Raw; // market: price fluctuations, galactic and internal
@@ -252,7 +257,12 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			bypasses: q.at('/bypasses') ?? {},
 			naturalWormholes: q.at('/natural_wormholes') ?? {},
 			globalFlags: q.at('/flags') ?? {},
-			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') },
+			galaxy: {
+				technology: q.at('/galaxy/technology'),
+				traditions: q.at('/galaxy/traditions'),
+				difficulty: q.at('/galaxy/difficulty'),
+				technology_difficulty_scale: q.at('/galaxy/technology_difficulty_scale')
+			},
 			councilPositions: q.at('/council_positions/council_positions') ?? {},
 			countries,
 			fleetOwner,
@@ -266,7 +276,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '29'; // 29: ascension tier and governor skill per colony (28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '37'; // 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -414,6 +424,10 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		// options that stay until researched (focus rewards' `add_research_option`), repeated keys
 		techPermanent: items(raw.country?.tech_status?.always_available_tech).map(String),
 		leaderList: leaderList(raw),
+		leaderPool: leaderPool(raw),
+		wanderlust: wanderlust(raw),
+		entryEvents: systemEntries(raw),
+		founderClass: strOrNull(raw.speciesDb[String(raw.country?.founder_species_ref)]?.class),
 		speciesRights: speciesRights(raw.country),
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
@@ -476,44 +490,153 @@ export function empireFocus(raw: Pick<RawSave, 'country' | 'focusCards'>) {
 	};
 }
 
-/** Every hired leader (`country.owned_leaders`), with its traits and whether it sits on the council. */
-export function leaderList(
-	raw: Pick<RawSave, 'country' | 'leaders' | 'speciesDb' | 'councilPositions'> &
-		Partial<Pick<RawSave, 'colonies'>>
-) {
-	// our colonies' governors: `colony.<id>.governor` (2026-10-30)
-	const governors = new Set(
-		list(raw.country?.controlled_colonies).map((c) =>
-			numOrNull(raw.colonies?.[String(c)]?.governor)
-		)
-	);
+type LeaderRaw = Pick<RawSave, 'country' | 'leaders' | 'speciesDb' | 'councilPositions'> &
+	Partial<Pick<RawSave, 'colonies' | 'planets' | 'ships' | 'fleets' | 'date'>>;
+
+/**
+ * A leader's age: `age`, or for one still in the recruitment pool (`age=0`) the years since its
+ * `date` — 2171.01.01 for a leader the game showed as 33 on 2204.10 (Recruitable Leaders, 4.5.3).
+ */
+function leaderAge(l: Raw, now: string | undefined): number | null {
+	const age = numOrNull(l.age);
+	const born = strOrNull(l.date);
+	if (age || !born || !now || born >= now) return age;
+	const [y, m, d] = born.split('.').map(Number);
+	const [ny, nm, nd] = now.split('.').map(Number);
+	return ny - y - (nm * 100 + nd < m * 100 + d ? 1 : 0);
+}
+
+/**
+ * A leader as the leaders tab shows it, by the save's `leaders.<id>`: what it holds — the council
+ * (`country.government.council_positions`), the rule, a colony (`colony.<id>.governor`,
+ * 2026-10-30) — and where it is assigned (`location = { type id }`: a ship → that ship's fleet, a
+ * commander's or a science ship's, 2204.11; an army). A councilor's `location` is a planet, the
+ * capital's (not an assignment).
+ */
+function leaderInfos(raw: LeaderRaw) {
+	const { planets, colonies, ships } = raw;
+	const places = planets && colonies && ships ? colonyPlaces({ planets, colonies, ships }) : null;
+	const governs = new Map<number, string | null>();
+	const governsPlace = new Map<number, number>(); // leader → its colony's place (colonyPlaces' id)
+	for (const c of list(raw.country?.controlled_colonies)) {
+		const leader = numOrNull(raw.colonies?.[String(c)]?.governor);
+		const place = places?.get(Number(c));
+		if (leader !== null) governs.set(leader, place ? displayName(place[1].name) : null);
+		if (leader !== null && place) governsPlace.set(leader, place[0]);
+	}
+	// a leader's home, `background_planet = { type=planet|ship reference }` (4.5.3; a number: a
+	// planet), as colonyPlaces' id — a ship's −1 − its id — and its name
+	const home = (l: Raw): { place: number; name: string | null } | null => {
+		const b = l.background_planet;
+		const type = typeof b === 'number' ? 'planet' : strOrNull(b?.type);
+		const ref = typeof b === 'number' ? b : numOrNull(b?.reference);
+		if (ref === null || (type !== 'planet' && type !== 'ship')) return null;
+		const at = type === 'planet' ? raw.planets?.[String(ref)] : raw.ships?.[String(ref)];
+		return {
+			place: type === 'planet' ? ref : -1 - ref,
+			name: at && typeof at === 'object' ? displayName(at.name) : null
+		};
+	};
 	const seated = new Set(
 		list(raw.country?.government?.council_positions).map((id) =>
 			numOrNull(raw.councilPositions[String(id)]?.leader)
 		)
 	);
 	const rulerId = numOrNull(raw.country?.ruler);
-	return list(raw.country?.owned_leaders).flatMap((id) => {
+	const assigned = (loc: Raw): LeaderInfo['assigned'] => {
+		const type = strOrNull(loc?.type);
+		if (!type || type === 'planet' || type === 'none') return null;
+		if (type === 'ship') {
+			const fleet = raw.fleets?.[String(raw.ships?.[String(loc.id)]?.fleet)];
+			return { kind: 'fleet', name: fleet ? displayName(fleet.name) : null };
+		}
+		return { kind: type, name: null };
+	};
+	return (id: number): LeaderInfo | null => {
 		const l = raw.leaders[String(id)];
-		if (!l || typeof l !== 'object') return [];
+		if (!l || typeof l !== 'object') return null;
 		const sp = raw.speciesDb[String(l.species)];
+		return {
+			id,
+			name: leaderName(l.name),
+			class: String(l.class),
+			level: num(l.level),
+			bonus: num(l.bonus_skill_level),
+			experience: numOrNull(l.experience),
+			// `immortal=yes` assumed (no immortal leader seen in a 4.5.3 save yet), else mortal
+			immortal: l.immortal === 'yes' || l.immortal === true,
+			age: leaderAge(l, raw.date),
+			traits: items(l.traits).map(String),
+			job: strOrNull(l.job),
+			species: sp ? displayName(sp.name) : null,
+			council: seated.has(id),
+			ruler: id === rulerId,
+			ethic: strOrNull(l.ethic),
+			governor: governs.has(id),
+			governs: governs.get(id) ?? null,
+			home: home(l)?.name ?? null,
+			governsHome: governsPlace.has(id) ? governsPlace.get(id) === home(l)?.place : null,
+			assigned: assigned(l.location)
+		};
+	};
+}
+
+/** Every hired leader (`country.owned_leaders`), with its traits and what it holds. */
+export function leaderList(raw: LeaderRaw): LeaderInfo[] {
+	const info = leaderInfos(raw);
+	return list(raw.country?.owned_leaders).flatMap((id) => info(Number(id)) ?? []);
+}
+
+/**
+ * The recruitable leaders: `country.modules.standard_leader_module.leaders` (4.5.3, 2204.10.01:
+ * 4 officials, 3 commanders, 3 scientists — not in `owned_leaders`), each with `date_added`, the
+ * day the pool was filled (2200.01.01, the game showing "Refreshes 2205.01.01").
+ */
+export function leaderPool(raw: LeaderRaw): PoolLeader[] {
+	const info = leaderInfos(raw);
+	return list(raw.country?.modules?.standard_leader_module?.leaders).flatMap((id) => {
+		const l = info(Number(id));
+		return l ? [{ ...l, added: strOrNull(raw.leaders[String(id)].date_added) }] : [];
+	});
+}
+
+const FLAG_EPOCH = 62808000; // a flag's value is the hour it was set: 2200.01.01 = 62808000, +24 a day
+
+/**
+ * The Wanderlust perk's progress (#lib/wanderlust.ts): per category `country.variables.<key>_
+ * system_seen` / `_count` (4.5.3, 2204.10.01: 0 / 6 … 0 / 17, the counts 80 % of the flagged
+ * systems) and the flag `<key>_completed`; the systems an arkship counted, by their star flag
+ * `visited_by_nomad@<our id>` — **assumed spelling**, not yet seen in a save. Null without the perk.
+ */
+export function wanderlust(
+	raw: Pick<RawSave, 'country' | 'countryId' | 'systems' | 'date'>
+): Wanderlust | null {
+	const vars = raw.country?.variables ?? {};
+	const flags = Object.keys(raw.country?.flags ?? {});
+	const complete = flags.includes('nomad_exploration_complete');
+	const categories = WANDERLUST.filter(
+		(c) => typeof vars[`${c.key}_system_count`] === 'number'
+	).map((c) => ({
+		key: c.key,
+		seen: num(vars[`${c.key}_system_seen`]),
+		count: num(vars[`${c.key}_system_count`]),
+		done: flags.includes(`${c.key}_completed`)
+	}));
+	if (!categories.length && !complete) return null;
+	const mark = `visited_by_nomad@${raw.countryId}`;
+	const visits = Object.entries(raw.systems).flatMap(([id, sys]) => {
+		const at = sys?.flags?.[mark];
+		if (typeof at !== 'number') return [];
 		return [
 			{
-				id,
-				name: leaderName(l.name),
-				class: String(l.class),
-				level: num(l.level),
-				age: numOrNull(l.age),
-				traits: items(l.traits).map(String),
-				job: strOrNull(l.job),
-				species: sp ? displayName(sp.name) : null,
-				council: seated.has(id),
-				ruler: id === rulerId,
-				ethic: strOrNull(l.ethic),
-				governor: governors.has(id)
+				systemId: Number(id),
+				system: displayName(sys.name),
+				date: addGameDays('2200.01.01', Math.floor((at - FLAG_EPOCH) / 24)),
+				categories: wanderlustCategories(Object.keys(sys.flags))
 			}
 		];
 	});
+	return { categories, visits, complete };
 }
 
 /** The galaxy and the others, as the empire knows them (server/world.ts). */
@@ -1512,7 +1635,9 @@ export function progress(raw: Pick<RawSave, 'country' | 'galaxy'>): Progress {
 		nextElection: typeof c.next_election === 'string' ? c.next_election : null,
 		costSettings: {
 			technology: numOrNull(raw.galaxy?.technology) ?? 1,
-			traditions: numOrNull(raw.galaxy?.traditions) ?? 1
+			traditions: numOrNull(raw.galaxy?.traditions) ?? 1,
+			difficulty: strOrNull(raw.galaxy?.difficulty),
+			techDifficultyScale: strOrNull(raw.galaxy?.technology_difficulty_scale)
 		}
 	};
 }
@@ -1571,6 +1696,11 @@ function playerColonies(raw: RawSave): Colony[] {
 			amenities: numOrNull(c.amenities),
 			amenitiesUsage: numOrNull(c.amenities_usage),
 			crime: numOrNull(c.crime),
+			// companion mod 0.8.0: the flat stability and its multiplier the game caps at 100 —
+			// stored on the colony's carrier (the arkship's ship block, 2205.10.01; a planet's
+			// assumed), the colony's own variables read too
+			stabilityAdd: numOrNull((c.variables ?? planet?.variables)?.sdash_stab_add),
+			stabilityMult: numOrNull((c.variables ?? planet?.variables)?.sdash_stab_mult),
 			ascensionTier: num(c.ascension_tier),
 			governorSkill: leaderSkill(raw.leaders[String(c.governor)]),
 			...colonyDistricts(raw, list(c.districts)),
@@ -2300,6 +2430,48 @@ export const setPrescriptedNames = (names: Record<string, string>) => {
 	prescripted = names;
 };
 
+// The popups a first entry into a system fires (data DB `system_entry_event`), set at start.
+let entryEvents: EntryEvent[] = [];
+export const setEntryEvents = (events: EntryEvent[]) => {
+	entryEvents = events;
+};
+
+/**
+ * The systems we entered (`visited_objects`, and our own) whose star flags fire an entry event —
+ * the save keeps the flags on `galactic_object.<id>.flags` from galaxy generation (Bir:
+ * `guardians_hive_system`). null before the game data is set.
+ */
+export function systemEntries(
+	raw: Pick<
+		RawSave,
+		'country' | 'countryId' | 'construction' | 'deposits' | 'shipDesigns' | 'starbases' | 'systems'
+	>,
+	events: EntryEvent[] = entryEvents
+): SystemEntry[] | null {
+	if (!events.length) return null;
+	const entered = new Set([...list(raw.country?.visited_objects), ...ownSystems(raw)]);
+	return [...entered]
+		.sort((a, b) => a - b)
+		.flatMap((id) => {
+			const s = raw.systems[String(id)];
+			if (!s || typeof s !== 'object') return [];
+			const found = entryEventsFor(Object.keys(s.flags ?? {}), events);
+			return found.length
+				? [
+						{
+							systemId: id,
+							system: displayName(s.name),
+							events: found.map(({ id, title, onceFlag }) => ({
+								id,
+								title,
+								...(onceFlag && { once: onceFlag })
+							}))
+						}
+					]
+				: [];
+		});
+}
+
 export function displayName(name: Raw): string {
 	const key = String(name?.key ?? name ?? '');
 	if (prescripted[key]) return prescripted[key];
@@ -2348,11 +2520,15 @@ export function displayName(name: Raw): string {
 			.filter(Boolean)
 			.join(' ');
 	}
-	return key
-		.replace(/^(SPEC|NAME|PRESCRIPTED)_/, '')
-		.replace(/^[A-Z0-9]+_(SHIP|CHR)_/, '') // name lists: HUMAN1_SHIP_Byzantium, HUMAN1_CHR_Gabriela
-		.replace(/_(planet|system|star)$/, '')
-		.replaceAll('_', ' ');
+	return (
+		key
+			.replace(/^(SPEC|NAME|PRESCRIPTED)_/, '')
+			// name lists: HUMAN1_SHIP_Byzantium, HUMAN1_CHR_Gabriela, NECROID1_FLEET_Vanguard; one whose
+			// text differs from its tail ("Maelstrom Fleet") is a prescripted name (extractor 0.1.5+)
+			.replace(/^[A-Z0-9]+_(SHIP|CHR|FLEET|ARMY)_/, '')
+			.replace(/_(planet|system|star)$/, '')
+			.replaceAll('_', ' ')
+	);
 }
 
 function resources(obj: Raw): Resources {

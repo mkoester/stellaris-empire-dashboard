@@ -3,9 +3,11 @@
 	import { followGame } from '#lib/live.ts';
 	import { LAYER_INFO, MAP_LAYERS, type MapFilter, type MapLayer } from '#lib/mapLayers.ts';
 	import Panel from '#lib/panels/Panel.svelte';
+	import { monthStarts } from '#lib/series.ts';
 	import { putSettings } from '#lib/settings.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
+	import { wanderlustName } from '#lib/wanderlust.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -74,6 +76,27 @@
 		{ id: 'system', label: 'System', value: (r) => byId.get(r.systemId)?.name ?? null },
 		{ id: 'detail', label: 'Detail', value: (r) => r.detail },
 		{
+			id: 'difficulty',
+			label: 'Difficulty',
+			value: (r) => r.difficulty ?? null,
+			title: 'first contacts and dig sites as the save holds it; anomalies their level'
+		},
+		{
+			id: 'seen',
+			label: 'Seen',
+			value: (r) => r.seen?.date ?? null,
+			cell: seen,
+			title:
+				'when the saves first show it — a first contact its own date, a bypass or megastructure the first visit of its system; ≤ at the history’s first save (then or earlier)'
+		},
+		{
+			id: 'age',
+			label: 'Age',
+			value: (r) => (r.seen ? monthStarts(r.seen.date, data.latest.date) : null),
+			cell: age,
+			title: 'months since it was first seen'
+		},
+		{
 			id: 'ongoing',
 			label: 'Ongoing',
 			value: (r) => (r.ongoing === undefined || r.ongoing === null ? null : r.ongoing ? 1 : 0),
@@ -84,6 +107,11 @@
 	];
 </script>
 
+{#snippet seen(r: Marker)}{#if r.seen}{r.seen.by ? '≤ ' : ''}{r.seen.date}{/if}{/snippet}
+{#snippet age(r: Marker)}{#if r.seen}{r.seen.by ? '≥ ' : ''}{monthStarts(
+			r.seen.date,
+			data.latest.date
+		)} mo{/if}{/snippet}
 {#snippet ongoing(r: Marker)}{r.ongoing ? '✓' : r.ongoing === false ? 'waiting' : '–'}{/snippet}
 {#snippet what(r: Marker)}
 	<span style:color={LAYER_INFO[r.layer].color}>{LAYER_INFO[r.layer].symbol}</span>
@@ -125,6 +153,20 @@
 		>
 	{/each}
 </div>
+
+{#if data.wanderlust && on('wanderlust')}
+	<p
+		class="mb-3 text-sm"
+		title="the arkship counts a target system once, on entering it; the game asks for 80 % of each category's systems"
+	>
+		<span style:color={LAYER_INFO.wanderlust.color}>{LAYER_INFO.wanderlust.symbol}</span>
+		Wanderlust{#if data.wanderlust.complete}: every category explored{:else}:
+			{#each data.wanderlust.categories as c, i (c.key)}{i ? ' · ' : ''}<span
+					class={c.done ? 'text-green-700 dark:text-green-500' : ''}
+					>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ''}</span
+				>{/each}{/if}
+	</p>
+{/if}
 
 <div class="flex flex-col gap-6">
 	<Panel

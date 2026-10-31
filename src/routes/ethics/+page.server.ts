@@ -69,6 +69,7 @@ export function load({ url }) {
 	const explanations = getExplanations();
 	const f = facts(s, data.scriptedTriggers, {
 		electionTypes: data.electionTypes,
+		archetypes: data.speciesArchetypes,
 		slavery: data.speciesRights.flatMap((k) =>
 			k.options.filter((o) => o.isSlavery).map((o) => o.key)
 		)

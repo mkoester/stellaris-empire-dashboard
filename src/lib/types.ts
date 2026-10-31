@@ -1,4 +1,5 @@
 import type { AttractionRule, AttractionSource } from './ethicSources.ts';
+import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
@@ -26,6 +27,10 @@ export type Colony = {
 	amenities?: number | null; // provided; since READER 28
 	amenitiesUsage?: number | null; // needed by the pops; since READER 28
 	crime?: number | null; // since READER 28
+	// the flat stability (`planet_stability_add`) and its multiplier, which the game caps at 100
+	// into `stability`; companion mod 0.8.0, READER 36 — null without the mod
+	stabilityAdd?: number | null;
+	stabilityMult?: number | null;
 	ascensionTier?: number; // `ascension_tier`; since READER 29
 	governorSkill?: number; // its governor's level + bonus_skill_level, 0 without one; since READER 29
 	districts: number;
@@ -291,7 +296,14 @@ export type Progress = {
 	agenda: { key: string; progress: number } | null; // council agenda being prepared
 	traditionsTaken: number; // adopted traditions, adoptions and finishers included
 	nextElection: string | null;
-	costSettings: { technology: number; traditions: number }; // galaxy setup sliders
+	// galaxy setup: the cost sliders, and the difficulty with how much it raises tech costs
+	// (`technology_difficulty_scale`; both unknown before READER 32)
+	costSettings: {
+		technology: number;
+		traditions: number;
+		difficulty?: string | null;
+		techDifficultyScale?: string | null;
+	};
 };
 
 /** One observed state of the player's empire at one game date. */
@@ -423,6 +435,15 @@ export type Snapshot = {
 	// each month up to the monthly gain of it is used on top, so research runs at up to double speed
 	techStored: Record<string, number> | null; // since 2026-10-22
 	leaderList: LeaderInfo[] | null; // every hired leader
+	// the recruitable leaders (`country.modules.standard_leader_module.leaders`), each with the date
+	// it joined the pool (`date_added`); null before READER 30
+	leaderPool: PoolLeader[] | null;
+	// the Wanderlust perk's progress (#lib/wanderlust.ts); null without it, or before READER 31
+	wanderlust: Wanderlust | null;
+	// the systems we entered (visited or own) whose star flags fire an entry event (#lib/systemEvents.ts);
+	// READER 37
+	entryEvents: SystemEntry[] | null;
+	founderClass: string | null; // its founder species' class (`NECROID`); since READER 35
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
@@ -436,7 +457,7 @@ export type Snapshot = {
 };
 
 export type MilestoneLogKind =
-	'colony' | 'war-started' | 'war-ended' | 'leader-died' | 'ruler' | 'combat';
+	'colony' | 'war-started' | 'war-ended' | 'leader-died' | 'ruler' | 'combat' | 'system-entered'; // mod 0.10.0: a ship's first entry into a system
 /** Spending the budget does not book (mod 0.3.0): what and where, not the item or its cost. */
 export type SpendLogKind =
 	| 'district-queued'
@@ -457,7 +478,33 @@ export type LogEvent = {
 };
 
 /** The stockpile on one day, from the mod's daily tick. */
-export type Tick = { date: string; stockpile: Resources };
+/** The nomads' Wanderlust perk: its categories' progress and the systems an arkship counted. */
+export type Wanderlust = {
+	categories: { key: string; seen: number; count: number; done: boolean }[];
+	// `visited_by_nomad@<country>` star flags, dated by their value (game hours)
+	visits: { systemId: number; system: string; date: string; categories: string[] }[];
+	complete: boolean; // all eight: the game clears the counters then (`nomad_exploration_complete`)
+};
+
+/**
+ * A leader the empire may recruit: one of the pool, which the game replaces as a whole; its
+ * details since READER 32 (before: id, class and `added` only).
+ */
+export type PoolLeader = Pick<LeaderInfo, 'id' | 'class'> &
+	Partial<Omit<LeaderInfo, 'id' | 'class'>> & { added: string | null };
+
+export type Tick = {
+	date: string;
+	stockpile: Resources;
+	// companion mod 0.9.0: the colonies whose jobs or pops changed that day, by colony name
+	colonies?: Record<string, ColonyDay>;
+};
+
+/**
+ * A colony's day from the mod (0.9.0): the game's `free_jobs`, `num_unemployed` and
+ * `num_sapient_pops` triggers. Unemployed read as the civilians, employed as pops − unemployed.
+ */
+export type ColonyDay = { openJobs: number; unemployed: number; pops: number };
 
 /** `country.focus` with its cards (top-level `focus_cards`). */
 export type EmpireFocus = {
@@ -471,6 +518,10 @@ export type LeaderInfo = {
 	name: string;
 	class: string;
 	level: number;
+	bonus?: number; // its own extra levels (`bonus_skill_level`); since READER 32
+	// towards its next level, from 0 at each level-up (the overflow kept); envoys have none; READER 33
+	experience?: number | null;
+	immortal?: boolean; // `leaders.<id>.immortal` (spelling assumed); READER 34
 	age: number | null;
 	traits: string[];
 	job: string | null;
@@ -479,6 +530,12 @@ export type LeaderInfo = {
 	ruler: boolean;
 	ethic?: string | null; // `leaders.<id>.ethic`; since READER 26
 	governor?: boolean; // governs one of our colonies; since READER 26
+	governs?: string | null; // … that colony's name; since READER 32
+	home?: string | null; // its home colony's name (`background_planet`); since READER 34
+	governsHome?: boolean | null; // a governor: whether of its home (its home bonus); READER 34
+	// where else it is assigned: a fleet (a commander's, or the science ship a scientist leads), an
+	// army; since READER 32
+	assigned?: { kind: string; name: string | null } | null;
 };
 
 /**
@@ -504,6 +561,7 @@ export type GalaxySystem = {
 	lgateTo?: number[]; // an L-Gate's link to the L-Cluster's entrance, once the gates are open
 	sector?: string | null; // own systems: the sector (`sectors.<id>.systems`); since 2026-10-18
 	lanesKnown?: boolean; // in `country.hyperlane_systems`: its hyperlanes are on our map (sensors); since 2026-10-18
+	wanderlust?: string[]; // its Wanderlust categories (star flags), in any system — a spoiler where not visited; READER 31
 };
 
 /** A star, planet, moon or asteroid in a visited system. */
@@ -1008,6 +1066,7 @@ export type GameData = {
 	ethicOrder: string[]; // ethic keys by the game's ethic index (`EthicsState` lists)
 	ethicRules: Record<string, AttractionRule[]>; // per ethic, its own attraction rules
 	electionTypes: Record<string, string>; // authority → democratic / oligarchic / none
+	speciesArchetypes: Record<string, string>; // species class → archetype (MACHINE, BIOLOGICAL …)
 	buildingUnlocks: Record<string, string[]>; // building → the civics or origins that unlock it
 	// civic → the authorities it needs or forbids ('gestalt': the gestalt consciousness ethic)
 	civicAuthority: Record<string, { require: string[]; forbid: string[] }>;
@@ -1035,6 +1094,7 @@ export type GameData = {
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
 	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1
+	entryEvents: EntryEvent[]; // the popups a first entry into a system fires (system_entry_event)
 	scriptedTriggers: Record<string, Trigger | null>; // parameter-free scripted triggers, normalised
 	// species rights per kind, in the game's order, each with its options
 	speciesRights: {
@@ -1052,6 +1112,11 @@ export type GameData = {
 	// `councilor_skill_add` by source: `tradition:` (traditions, edicts, policy options, agendas'
 	// `#finish`), `civic:`, `modifier:` (static modifiers)
 	councilorSkill: Record<string, number>;
+	// what raises a class's leader limit: source (`tradition:<key>` — perks, edicts, policies too —,
+	// `civic:`, `origin:`, `tech:`, `modifier:`) → class (`leader`: every class) → +n
+	leaderCap: Record<string, Record<string, number>>;
+	// what changes a class's recruitment cost, as `leaderCap`: source → class (`leader`) → mult
+	leaderCost: Record<string, Record<string, number>>;
 	focus: {
 		categories: Record<string, string>; // key → name
 		cards: Record<
@@ -1129,6 +1194,7 @@ export type Modifier = {
 	value: number;
 	label: string | null;
 	positiveIsGood: boolean;
+	when?: Trigger | null; // a leader trait's triggered one: its condition (THIS the leader)
 };
 
 /** What a popup explains about a game object: from the extraction's descriptions and modifiers. */

@@ -199,7 +199,12 @@ export function discovered(
  */
 export function mapView(
 	galaxy: GalaxySystem[],
-	reveal: Reveal & { wormholes?: boolean; wormholePairs?: boolean; lgates?: boolean },
+	reveal: Reveal & {
+		wormholes?: boolean;
+		wormholePairs?: boolean;
+		lgates?: boolean;
+		wanderlust?: boolean;
+	},
 	also: number[] = []
 ) {
 	const known = knownIds(galaxy, also);
@@ -209,8 +214,10 @@ export function mapView(
 		(s.wormholes ?? []).filter(
 			(to) => reveal.wormholePairs || (reveal.wormholes && visited(s.id) && visited(to))
 		);
+	// a spoiler's systems, named: the L-Gates and the L-Cluster's; Wanderlust's targets
 	const revealed = (s: GalaxySystem | undefined) =>
-		reveal.lgates === true && (s?.lgate === true || s?.lcluster === true);
+		(reveal.lgates === true && (s?.lgate === true || s?.lcluster === true)) ||
+		(reveal.wanderlust === true && (s?.wanderlust?.length ?? 0) > 0);
 	const lgates = (s: GalaxySystem) =>
 		(s.lgateTo ?? []).filter((to) => reveal.lgates || (visited(s.id) && visited(to)));
 	const lit = (id: number) =>

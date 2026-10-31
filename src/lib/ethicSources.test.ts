@@ -11,7 +11,7 @@ import {
 	unlockOf,
 	type AttractionSource
 } from './ethicSources.ts';
-import type { Facts } from './triggers.ts';
+import type { Facts, Trigger } from './triggers.ts';
 import type { Snapshot } from './types.ts';
 
 // 4.5.2's data DB rows, as `loadGameData()` reads them
@@ -288,7 +288,60 @@ describe('attraction sources', () => {
 			f
 		);
 		expect(rules.map((r) => r.applies)).toEqual([true, true, false, null, true]);
-		expect(countryFactor(rules)).toEqual({ known: 1.5, open: 1 });
+		expect(countryFactor(rules)).toEqual({ known: 1.5, open: 1, additive: false });
+	});
+
+	it("adds 4.5.3's rules onto 1 in file order, a factor multiplying what came before", () => {
+		const f = { government: ['ethic_authoritarian'] } as unknown as Facts;
+		const rule = (op: 'add' | 'factor', factor: number | null, trigger: Trigger | null) => ({
+			kind: 'country' as const,
+			description: null,
+			op,
+			factor,
+			factorText: factor === null ? 'value:count_councilors_with_ethic' : null,
+			trigger
+		});
+		// shaped like 4.5.3's ethic_authoritarian (beta 7793): + 1 for the ethic, −0.25 for a
+		// democracy, + a script value, × 0 when the empire blocks it
+		const rules = ruleRows(
+			[
+				rule('add', 1, { leaf: 'has_ethic', value: 'ethic_authoritarian' }),
+				rule('add', -0.25, { leaf: 'has_ethic', value: 'ethic_egalitarian' }),
+				rule('add', null, null),
+				rule('factor', 0.5, { leaf: 'has_ethic', value: 'ethic_authoritarian' })
+			],
+			f
+		);
+		expect(rules.map((r) => r.applies)).toEqual([true, false, null, true]);
+		expect(countryFactor(rules)).toEqual({ known: 1, open: 1, additive: true });
+	});
+
+	it('counts the ruler and councilors with the ethic for "From Council" (4.5.3)', () => {
+		const council = {
+			kind: 'country' as const,
+			description: 'From Council',
+			op: 'add' as const,
+			factor: 0,
+			factorText: null,
+			per: { leaf: 'council_leader_ethic', value: 'ethic_egalitarian' },
+			perValue: 0.1,
+			trigger: null
+		};
+		// Roaming Korinth 2204.08.01: two egalitarian councilors → +0.2, as the save's 2.45 − 2.25
+		const f = {
+			councilEthics: [
+				'ethic_spiritualist',
+				'ethic_egalitarian',
+				'ethic_xenophile',
+				'ethic_egalitarian'
+			]
+		} as unknown as Facts;
+		const [row] = ruleRows([council], f);
+		expect(row.factor).toBeCloseTo(0.2);
+		expect(countryFactor([row])).toEqual({ known: 1.2, open: 0, additive: true });
+		// leaders read before their ethics were: the save cannot tell
+		const [unknown] = ruleRows([council], { councilEthics: null } as unknown as Facts);
+		expect(countryFactor([unknown])).toEqual({ known: 1, open: 1, additive: true });
 	});
 
 	it('lists our ethics first, then the others, the governing ethics and the shift speed', () => {

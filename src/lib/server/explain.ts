@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { pretty } from '#lib/format.ts';
+import { describe, parseTrigger } from '#lib/triggers.ts';
 import type { Explanation, Modifier } from '#lib/types.ts';
 
 // Popup texts for traits, edicts, council agendas, policy options, techs, jobs, buildings, colony designations and the empire's civics, origin,
@@ -382,33 +383,40 @@ export function loadExplanations(file: string): Explanations {
 				'SELECT key, civic_key, name, leader_classes, effect FROM council_position WHERE civic_key IS NOT NULL'
 			).map((s) => [s.civic_key, s])
 		);
-		// Leader traits: `ltrait:<key>`, each modifier labelled with where it applies.
+		// Leader traits: `ltrait:<key>`, each modifier labelled with where it applies and, a
+		// triggered one, when. `*`: a data DB older than `potential_json` (extractor 0.1.5) has none.
+		const traitRows = rows<{
+			trait_key: string;
+			scope: string;
+			modifier_key: string;
+			modifier_value: number;
+			potential_json?: string | null;
+		}>('SELECT * FROM leader_trait_modifier ORDER BY sort_order');
 		const ltraitMods = new Map<string, Modifier[]>();
-		for (const r of rows<{ owner: string; scope: string; key: string; value: number }>(
-			'SELECT trait_key AS owner, scope, modifier_key AS key, modifier_value AS value FROM leader_trait_modifier ORDER BY sort_order'
-		)) {
-			const m = modifier(r.key, r.value);
-			const where = r.scope === 'country' ? '' : ` (${r.scope})`;
-			ltraitMods.set(r.owner, [
-				...(ltraitMods.get(r.owner) ?? []),
-				{ ...m, label: m.label ? `${m.label}${where}` : `${pretty(r.key)}${where}` }
+		for (const r of traitRows) {
+			const m = modifier(r.modifier_key, r.modifier_value);
+			const when = parseTrigger(r.potential_json ?? null);
+			const where = ` (${r.scope}${when ? `, if ${describe(when)}` : ''})`;
+			ltraitMods.set(r.trait_key, [
+				...(ltraitMods.get(r.trait_key) ?? []),
+				{ ...m, label: `${m.label ?? pretty(r.modifier_key)}${where}` }
 			]);
 		}
-		// and what each gives while its leader sits on the council (`councilor_modifier`: "applied to
-		// country if leader is on the Council", flat, not per level): `ltraitcouncil:<key>`
-		const councilMods = new Map<string, Modifier[]>();
-		for (const r of rows<{ owner: string; key: string; value: number }>(
-			"SELECT trait_key AS owner, modifier_key AS key, modifier_value AS value FROM leader_trait_modifier WHERE scope = 'councilor' ORDER BY sort_order"
-		))
-			councilMods.set(r.owner, [...(councilMods.get(r.owner) ?? []), modifier(r.key, r.value)]);
-		for (const [key, mods] of councilMods)
-			out[`ltraitcouncil:${key}`] = {
-				title: key,
-				description: null,
-				modifiers: mods,
-				text: null,
-				facts: []
-			};
+		// and what each gives in one place, flat (not per level): `ltrait-<scope>:<key>` — the game's
+		// trait documentation: councilor "to country if leader is on the Council", planet / sector
+		// while governing, fleet / army while commanding, modifier "to scope leader is assigned to",
+		// self "to the leader itself"
+		const scopeMods = new Map<string, Modifier[]>();
+		for (const r of traitRows) {
+			const id = `ltrait-${r.scope}:${r.trait_key}`;
+			const when = parseTrigger(r.potential_json ?? null);
+			scopeMods.set(id, [
+				...(scopeMods.get(id) ?? []),
+				{ ...modifier(r.modifier_key, r.modifier_value), ...(when && { when }) }
+			]);
+		}
+		for (const [id, mods] of scopeMods)
+			out[id] = { title: id, description: null, modifiers: mods, text: null, facts: [] };
 		for (const t of rows<{
 			key: string;
 			name: string | null;

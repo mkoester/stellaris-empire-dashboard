@@ -4,7 +4,11 @@ import {
 	researchTicks,
 	techCostFactor,
 	deficits,
+	difficultyLabel,
+	experienceToLevel,
+	leaderLevelUps,
 	expiries,
+	leaderPoolRefresh,
 	fromDays,
 	rolls,
 	timedOut,
@@ -38,9 +42,13 @@ const data: GameData = {
 	councilPositions: {},
 	depositCategories: {},
 	prescriptedNames: {},
+	entryEvents: [],
 	scriptedTriggers: {},
 	speciesRights: [],
 	councilorSkill: {},
+	leaderCap: {},
+	leaderCost: {},
+	speciesArchetypes: {},
 	focus: { categories: {}, cards: {}, rewards: {} },
 	jobs: {},
 	edicts: {},
@@ -194,9 +202,28 @@ describe('upcoming', () => {
 		expect(researchTicks('2212.03.05', '2212.03.30')).toBe(0);
 	});
 
-	it('scales tech costs by tier (game, 2212.03.05: 1575, 1312, 2200, 2750)', () => {
-		const at = (base: number, tier: number) => Math.floor(base * techCostFactor(tier) + 1e-9);
+	it('scales tech costs by tier and difficulty (game: cadet 1575, 1312, 2200, 2750; admiral 1875)', () => {
+		const cadet = {
+			technology: 1,
+			traditions: 1,
+			difficulty: 'cadet',
+			techDifficultyScale: 'scaling_normal'
+		};
+		const at = (base: number, tier: number, settings: typeof cadet | null = cadet) =>
+			Math.floor(base * techCostFactor(tier, settings) + 1e-9);
+		// Planetforgers 2212.03.05 (cadet, Normal); a snapshot without the settings reads the same
 		expect([at(1500, 1), at(1250, 1), at(2000, 2), at(2500, 2)]).toEqual([1575, 1312, 2200, 2750]);
+		expect(at(2000, 2, null)).toBe(2200);
+		// Roaming Korinth 2204.11 (admiral, Normal): Quantum Computing 1240/1875
+		expect(at(1500, 1, { ...cadet, difficulty: 'admiral' })).toBe(1875);
+		expect(at(1500, 1, { ...cadet, techDifficultyScale: 'scaling_off' })).toBe(1500);
+	});
+
+	it('names the difficulty with its place among the seven', () => {
+		expect(difficultyLabel('admiral')).toBe('Admiral (6/7)');
+		expect(difficultyLabel('grand_admiral')).toBe('Grand Admiral (7/7)');
+		expect(difficultyLabel('civilian')).toBe('Civilian (1/7)');
+		expect(difficultyLabel('mystery')).toBe('Mystery'); // unknown: the name alone
 	});
 
 	it('falls back to income when there is no earlier save', () => {
@@ -371,6 +398,28 @@ describe('upcoming colonization', () => {
 		expect(upcoming(now, null, data).find((e) => e.kind === 'colonization')!.detail).toContain(
 			'base rate'
 		);
+	});
+});
+
+describe('leaderPoolRefresh', () => {
+	// Roaming Korinth 2204.10.01 (4.5.3): a pool filled 2200.01.01, the game showing "Refreshes
+	// 2205.01.01"
+	const pool = [
+		{ id: 272, class: 'official', added: '2200.01.01' },
+		{ id: 273, class: 'official', added: '2200.01.01' },
+		{ id: 277, class: 'commander', added: '2200.01.01' },
+		{ id: 290, class: 'scientist', added: '2203.06.15' } // joined later: not when it refreshes
+	];
+
+	it('is due the define after the earliest leader joined the pool', () => {
+		const [r] = leaderPoolRefresh({ date: '2204.10.01', leaderPool: pool }, 1800);
+		expect(r).toMatchObject({ date: '2205.01.01', months: 3, kind: 'leaders', exact: false });
+		expect(r.detail).toBe('2 officials, 1 commander, 1 scientist to pick from until then');
+	});
+
+	it('says nothing without a pool, or one the save does not hold', () => {
+		expect(leaderPoolRefresh({ date: '2204.10.01', leaderPool: [] }, 1800)).toEqual([]);
+		expect(leaderPoolRefresh({ date: '2204.10.01', leaderPool: null }, 1800)).toEqual([]);
 	});
 });
 
@@ -713,5 +762,48 @@ describe('upcoming military fleets', () => {
 		expect(r.detail).toContain('(measured)');
 		const [alone] = upcoming(now, null, data).filter((e) => e.kind === 'fleet');
 		expect(alone.detail).toContain('(assumed)');
+	});
+});
+
+describe('leader level-ups', () => {
+	it('needs 450, 1100, 2050 experience from levels 1, 2, 3', () => {
+		expect([1, 2, 3].map((n) => experienceToLevel(n))).toEqual([450, 1100, 2050]);
+	});
+
+	// Cosha Boxley, Roaming Korinth (4.5.3): level 2 (+1), 527.5 → 538 a month; the game: 538 / 1100
+	const cosha = (experience: number, level = 2, bonus = 1) => ({
+		id: 7,
+		name: 'Cosha Boxley',
+		class: 'scientist',
+		level,
+		bonus,
+		experience,
+		age: 40,
+		traits: [],
+		job: null,
+		species: null,
+		council: true,
+		ruler: false
+	});
+	const at = (date: string, l: ReturnType<typeof cosha>) => ({ date, leaderList: [l] });
+
+	it('is due at the gain measured since an earlier save at the same level', () => {
+		const [u] = leaderLevelUps(at('2204.12.01', cosha(538)), [at('2204.11.01', cosha(527.5))]);
+		expect(u).toMatchObject({
+			what: 'Cosha Boxley reaches level 3',
+			months: 54, // (1100 − 538) / 10.5
+			done: 538,
+			total: 1100,
+			exact: false
+		});
+	});
+
+	it('says nothing without a gain at this level, or at the skill cap', () => {
+		expect(
+			leaderLevelUps(at('2204.12.01', cosha(538)), [at('2204.11.01', cosha(1000, 1))])
+		).toEqual([]);
+		expect(
+			leaderLevelUps(at('2204.12.01', cosha(538, 9, 1)), [at('2204.11.01', cosha(500, 9, 1))])
+		).toEqual([]);
 	});
 });

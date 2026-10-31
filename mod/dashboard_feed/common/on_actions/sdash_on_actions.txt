@@ -128,3 +128,11 @@ on_megastructure_build_start = {
 		sdash.28
 	}
 }
+
+# 0.10.0. Scope = Ship, From = System, FromFrom = Country — once per country and system
+# (4.5.3 00_on_actions.txt: "Triggers event when each country first sends a ship into the system")
+on_entering_system_first_time = {
+	events = {
+		sdash.29
+	}
+}
