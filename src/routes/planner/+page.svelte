@@ -14,13 +14,20 @@
 
 	// --- changes -------------------------------------------------------------------------------
 	let error = $state('');
+	// one change at a time: the next is computed from the page the last one reloaded — clicks
+	// faster than that each moved from the same old order (2026-10-31: ~40 orders in seconds)
+	let busy = $state(false);
 	async function change(changes: { goal: string; op: string; data?: Record<string, unknown> }[]) {
+		if (busy) return;
+		busy = true;
 		error = '';
 		try {
 			await planAction(data.tip, changes);
 			await invalidateAll();
 		} catch (e) {
 			error = e instanceof Error ? e.message : String(e);
+		} finally {
+			busy = false;
 		}
 	}
 	const addGoal = (
@@ -110,12 +117,19 @@
 	let over = $state<string | null>(null);
 	function drop(group: string, ids: string[], targetId: string) {
 		if (!dragging || dragging.group !== group || dragging.id === targetId) return;
-		reorder(group, moved(ids, dragging.id, ids.indexOf(targetId)));
+		// dropped right before the row it lands on
+		const id = dragging.id;
+		reorder(group, moved(ids, id, ids.filter((x) => x !== id).indexOf(targetId)));
 		dragging = null;
 		over = null;
 	}
-	const step = (group: string, ids: string[], id: string, by: number) =>
-		reorder(group, moved(ids, id, ids.indexOf(id) + by));
+	// ▲▼ pass the next goal shown (done goals are folded away below, but keep their place)
+	function step(group: string, ids: string[], shown: string[], id: string, by: number) {
+		const next = shown[shown.indexOf(id) + by];
+		if (next === undefined) return;
+		const rest = ids.filter((x) => x !== id);
+		reorder(group, moved(ids, id, rest.indexOf(next) + (by > 0 ? 1 : 0)));
+	}
 
 	// --- notes ---------------------------------------------------------------------------------
 	let editing = $state<string | null>(null);
@@ -207,7 +221,7 @@
 	>
 {/snippet}
 
-{#snippet goalRow(r: Row, group: string, ids: string[], draggable: boolean)}
+{#snippet goalRow(r: Row, group: string, ids: string[], shown: string[], draggable: boolean)}
 	<li
 		class="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-gray-100 py-1 dark:border-gray-800 {over ===
 		r.id
@@ -237,8 +251,18 @@
 		{#if draggable}
 			<span class="cursor-grab text-gray-400 select-none" title="drag to reorder">⠿</span>
 			<span class="flex flex-col text-[10px] leading-none text-gray-400">
-				<button type="button" title="move up" onclick={() => step(group, ids, r.id, -1)}>▲</button>
-				<button type="button" title="move down" onclick={() => step(group, ids, r.id, 1)}>▼</button>
+				<button
+					type="button"
+					title="move up"
+					disabled={busy}
+					onclick={() => step(group, ids, shown, r.id, -1)}>▲</button
+				>
+				<button
+					type="button"
+					title="move down"
+					disabled={busy}
+					onclick={() => step(group, ids, shown, r.id, 1)}>▼</button
+				>
 			</span>
 		{/if}
 		<span class="min-w-48 flex-1">{@render name(r)}</span>
@@ -379,13 +403,19 @@
 						</button>
 						{#if !folded.includes(g.id)}
 							<ul class="ml-6 text-sm">
-								{#each open as r (r.id)}{@render goalRow(r, g.id, ids, true)}{/each}
+								{#each open as r (r.id)}{@render goalRow(
+										r,
+										g.id,
+										ids,
+										open.map((x) => x.id),
+										true
+									)}{/each}
 							</ul>
 							{#if done.length}
 								<details class="ml-6 text-sm">
 									<summary class="cursor-pointer text-gray-500">done ({done.length})</summary>
 									<ul>
-										{#each done as r (r.id)}{@render goalRow(r, g.id, ids, false)}{/each}
+										{#each done as r (r.id)}{@render goalRow(r, g.id, ids, [], false)}{/each}
 									</ul>
 								</details>
 							{/if}

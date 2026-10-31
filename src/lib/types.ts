@@ -1070,6 +1070,8 @@ export type GameData = {
 	// perk → the tradition trees its adoption asks for (`has_ascension_perk` in the tree's adopt
 	// tradition's `possible`, e.g. The Flesh is Weak → Cybernetics)
 	perkTrees: Record<string, string[]>;
+	// tradition → the traditions of its tree it needs first (data DB `tradition_prereq`)
+	traditionPrereqs: Record<string, string[]>;
 	flagColors: Record<string, string>; // flag colour swatch → its galaxy-map colour (#rrggbb)
 	ethicAxes: Record<string, EthicAxis>; // ethic → its place on its axis
 	ethicOrder: string[]; // ethic keys by the game's ethic index (`EthicsState` lists)

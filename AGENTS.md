@@ -80,10 +80,12 @@ against `gameDir` — `data/stellaris-<rawVersion>_<build>-<hash of the DLC fold
 open beta shares its `rawVersion` with the release), so a game update, a beta build, a new DLC or a
 dashboard with a newer extractor (new tables) extracts again (~5 s), older files stay. The footer
 shows the data DB's own `meta.game_version`. The packaged launcher names the extractor and
-its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`). **During development the extractor's
-`__version__` stays the same across changes**, so a running dashboard keeps its old data file:
-delete `data/stellaris-<key>.sqlite` (the app data folder) after an extractor change, or the new
-tables and values never arrive — silently.
+its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`). **The key holds the extractor's
+`__version__` and a hash of its code** (`extractorVersion()`: the script and `extractor/*.py`) —
+during development the version stays the same across changes, and a dashboard kept serving data
+from older extractor code, silently (2026-10-31: Mega-Engineering's prerequisites, fixed in the
+extractor, never reached a dashboard with `STELLARIS_EXTRACTOR`); now any code change extracts
+once more (~5 s), a release's players only when its code changes.
 
 ## Packaging and releases
 
@@ -541,7 +543,16 @@ prerequisite block holding an OR read as empty) the first alternative whose `pot
 false, the others named ("or instead Citadel"); `inReach()` wants one of each group too. Checked
 2026-10-31 on Roaming Korinth (nomad): Mega-Engineering → the power, hull and arkship lines and
 seven tier gates, Arkship Mastery chosen over Citadel. They go with the tech: removing it removes
-them. **Traditions** are labelled with their tree ("Statecraft: Amongst Peers", "… (adopt)",
+them. **Group order follows the game's rules** (`arrange()`'s `constrain`, Kahn's algorithm
+keeping the plan's order wherever the rules leave a choice): traditions (`orderTraditions()`)
+taken ones first as picked (the save's `traditions` is pick order), each after its tree's
+adoption and the picks it needs (data DB `tradition_prereq`, `GameData.traditionPrereqs`), a
+finisher after its tree's other picks; research (`orderResearch()`) a tech after the planned
+techs it needs and the tier gates below it, a gate after the one below. A planned adoption brings
+its whole tree, a planned pick its adoption and the picks it needs (`autoGoals(…, wanted)`). On
+the page one change runs at a time (`busy`): the user's ▲▼ clicks 5–20 ms apart each moved from
+the same old order (~40 orders in seconds, 2026-10-31); ▲▼ pass the next goal shown, as done
+goals keep their place folded away below. **Traditions** are labelled with their tree ("Statecraft: Amongst Peers", "… (adopt)",
 "… (finished)"), perks carry a badge; a planned or taken perk that a tree's adoption names
 (`GameData.perkTrees`: `has_ascension_perk` in the adopt tradition's `possible`) suggests that
 tree first ("Cybernetics (adopt) · opened by The Flesh is Weak"). Nomads settle no planets either

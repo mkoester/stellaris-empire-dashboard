@@ -36,8 +36,18 @@ All notable changes to this project are documented here. The format follows
 - Nomads: no settling either — colony goals are left out like outposts. The suggestions' buttons
   sit at the left of each row.
 
+- Planner order follows the game: traditions as you picked them, a pick after the ones it needs,
+  a tree's finisher last; techs after what they need and tier gates in order. Your own order
+  still decides wherever the rules leave a choice.
+- Planning a tradition tree's adoption plans the whole tree; planning one pick plans the adoption
+  and the picks it needs.
+
 ### Fixed
 
+- Fast clicks on ▲▼ in the planner could scramble a group's order; one change now runs at a time,
+  and ▲▼ step past the next goal shown.
+- The game data is extracted again whenever the bundled extractor's code changes, not only its
+  version number.
 - Techs whose prerequisites include "one of" choices (Mega-Engineering and 16 others) were listed
   as within reach too early: their prerequisites were missing from the game data.
 

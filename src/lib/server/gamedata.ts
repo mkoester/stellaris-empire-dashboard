@@ -524,6 +524,12 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, name, category_key, role FROM tradition ORDER BY sort_order'
 				)
 			),
+			traditionPrereqs: rows<{ tradition_key: string; requires_key: string }>(
+				'SELECT tradition_key, requires_key FROM tradition_prereq ORDER BY tradition_key, requires_key'
+			).reduce<Record<string, string[]>>((out, r) => {
+				(out[r.tradition_key] ??= []).push(r.requires_key);
+				return out;
+			}, {}),
 			perkTrees: perkTrees(
 				rows<{ category_key: string; possible_json: string | null }>(
 					"SELECT category_key, possible_json FROM tradition WHERE role = 'adopt'"

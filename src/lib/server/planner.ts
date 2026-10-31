@@ -10,6 +10,8 @@ import {
 	arkships,
 	autoGoals,
 	check,
+	orderResearch,
+	orderTraditions,
 	GROUPS,
 	groupOf,
 	KINDS,
@@ -301,8 +303,15 @@ function explanations(refs: string[], c: Ctx | null): Record<string, Explanation
 function planFor(events: PlanEvent[], path: number[], c: Ctx | null): Plan {
 	if (!c) return planAt(events, path);
 	const data = getGameData();
-	const auto = autoGoals(c.ctx.latest, data);
-	const first = planAt(events, path, auto);
+	const first = planAt(events, path, autoGoals(c.ctx.latest, data));
+	// a planned adoption brings its tree, a planned pick its adoption and the picks it needs
+	const auto = autoGoals(
+		c.ctx.latest,
+		data,
+		[...first.goals.values()]
+			.filter((g) => g.kind === 'tradition' && !g.auto && !g.parked && g.polarity === 'want')
+			.map((g) => String(g.target.tradition))
+	);
 	const wanted = [...first.goals.values()]
 		.filter((g) => g.kind === 'tech' && !g.parked && g.polarity === 'want')
 		.map((g) => String(g.target.tech));
@@ -313,7 +322,7 @@ function planFor(events: PlanEvent[], path: number[], c: Ctx | null): Plan {
 		data.techRequirements,
 		c.ctx.possible
 	);
-	return needs.length ? planAt(events, path, [...auto, ...needs]) : first;
+	return planAt(events, path, [...auto, ...needs]);
 }
 
 /** Everything the planner tab shows for the branch ending at `tip`. */
@@ -323,7 +332,14 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 	const events = planEvents(getDb(), campaign);
 	const { path, dates, below } = pathOf(tip);
 	const plan = planFor(events, path, c);
-	const groups = arrange(plan, groupOf);
+	const picked = c?.ctx.latest.traditions ?? [];
+	const groups = arrange(plan, groupOf, (group, list) =>
+		group === 'traditions'
+			? orderTraditions(list, getGameData(), picked)
+			: group === 'research'
+				? orderResearch(list, getGameData())
+				: list
+	);
 	const others = c ? otherBranches(events, branchesOf(campaign, tip), plan) : [];
 	const toRow = (g: Goal) => (c ? row(g, c, dates) : null);
 	const rows = Object.fromEntries(

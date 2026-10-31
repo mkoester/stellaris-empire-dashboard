@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { upgrade } from '#lib/upgrade.ts';
-import type { Colony, GalaxySystem, Snapshot } from '#lib/types.ts';
+import type { Colony, GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
+import type { Target } from './replay.ts';
 import {
 	autoGoals,
+	orderResearch,
+	orderTraditions,
 	traditionName,
 	check,
 	groupOf,
@@ -388,6 +391,76 @@ describe('autoGoals', () => {
 	});
 });
 
+describe('traditions in the order the game allows', () => {
+	const t = (key: string, role = 'normal') => ({ key, name: key, role });
+	const data = {
+		traditionTrees: {
+			sc: {
+				name: 'Statecraft',
+				traditions: [
+					t('sc_adopt', 'adopt'),
+					t('sc_a'),
+					t('sc_b'),
+					t('sc_c'),
+					t('sc_finish', 'finish')
+				]
+			},
+			cy: {
+				name: 'Cybernetics',
+				traditions: [t('cy_adopt', 'adopt'), t('cy_a'), t('cy_b'), t('cy_finish', 'finish')]
+			}
+		},
+		traditionPrereqs: { sc_b: ['sc_a'] }
+	};
+	const g = (k: string) => ({ kind: 'tradition', target: { tradition: k } });
+	const keys = (list: { target: { tradition?: unknown } }[]) => list.map((x) => x.target.tradition);
+
+	it('auto goals: taken ones as picked, then the rest of the tree', () => {
+		const out = autoGoals(save({ traditions: ['sc_adopt', 'sc_c', 'sc_a'] }), data);
+		expect(out.map((x) => x.target.tradition)).toEqual([
+			'sc_adopt',
+			'sc_c',
+			'sc_a',
+			'sc_b',
+			'sc_finish'
+		]);
+	});
+
+	it('a planned adoption brings its tree; a planned pick its adoption and the picks it needs', () => {
+		expect(autoGoals(save(), data, ['cy_adopt']).map((x) => x.target.tradition)).toEqual([
+			'cy_a',
+			'cy_b',
+			'cy_finish'
+		]);
+		expect(autoGoals(save(), data, ['sc_b']).map((x) => x.target.tradition)).toEqual([
+			'sc_adopt',
+			'sc_a'
+		]);
+	});
+
+	it('repairs an order: the finisher last, a pick after what it needs, taken ones first as picked', () => {
+		// the user's stored order 2026-10-31: the finisher before a pick
+		const stored = ['sc_finish', 'sc_b', 'sc_c', 'sc_a', 'sc_adopt'].map(g);
+		expect(keys(orderTraditions(stored, data, []))).toEqual([
+			'sc_adopt',
+			'sc_c',
+			'sc_a',
+			'sc_b',
+			'sc_finish'
+		]);
+		// free choices keep the plan's order: sc_c before sc_a as stored
+		expect(keys(orderTraditions(['sc_adopt', 'sc_c', 'sc_a', 'sc_b'].map(g), data, []))).toEqual([
+			'sc_adopt',
+			'sc_c',
+			'sc_a',
+			'sc_b'
+		]);
+		expect(
+			keys(orderTraditions(['sc_a', 'sc_adopt', 'sc_c'].map(g), data, ['sc_adopt', 'sc_c']))
+		).toEqual(['sc_adopt', 'sc_c', 'sc_a']);
+	});
+});
+
 describe('tradition labels and tier gates', () => {
 	it('names a pick with its tree', () => {
 		const data = {
@@ -422,5 +495,41 @@ describe('tradition labels and tier gates', () => {
 			why: '1 of 6, 5 more'
 		});
 		expect(state('tech_tier', { area: 'engineering', tier: 3, count: 1 }, c)).toBe('done');
+	});
+});
+
+describe('orderResearch', () => {
+	it('puts a tech after the planned techs and tier gates it needs, gates in order', () => {
+		const techs = {
+			mega: { name: 'M', cost: 1, area: 'engineering', tier: 3 },
+			pre: { name: 'P', cost: 1, area: 'engineering', tier: 1 },
+			alt: { name: 'A', cost: 1, area: 'engineering', tier: 1 }
+		} as unknown as GameData['techs'];
+		const techRequirements = {
+			mega: {
+				prerequisites: ['pre'],
+				anyOf: [['alt', 'x']],
+				potential: null,
+				rare: false,
+				dangerous: false
+			}
+		} as unknown as GameData['techRequirements'];
+		const tech = (t: string) => ({ kind: 'tech', target: { tech: t } as Target });
+		const gate = (tier: number) => ({
+			kind: 'tech_tier',
+			target: { area: 'engineering', tier, count: 6 } as Target
+		});
+		// the user's stored order 2026-10-31: the tech among its gates, tier 3's gate before tier 2's
+		const out = orderResearch([gate(1), tech('mega'), gate(2), tech('alt'), tech('pre')], {
+			techs,
+			techRequirements
+		});
+		expect(out.map((g) => g.target.tech ?? `tier ${g.target.tier}`)).toEqual([
+			'tier 1',
+			'tier 2',
+			'alt',
+			'pre',
+			'mega'
+		]);
 	});
 });

@@ -640,23 +640,49 @@ export const arkships = (s: Snapshot, type: string) =>
 		.reduce((a, x) => a + x.count, 0);
 
 /**
- * What the save implies: every tradition of each adopted tree (adoption, picks and finisher —
- * those taken show as done, with their date, the rest as open goals) and every perk taken.
+ * What the save and the plan imply for traditions and perks: every tradition of each tree adopted
+ * — or whose adoption is planned (`wanted`, the user's ask: "wanting Cybernetics only added the
+ * adoption") — taken ones in the order picked, then the rest in the tree's order; for a single
+ * planned pick its tree's adoption and the picks it needs first (`traditionPrereqs`); and every
+ * perk taken. Ids are stable (`auto-tr-<key>`), so the same tradition is one goal whatever
+ * implies it.
  */
-export function autoGoals(s: Snapshot, data: Pick<GameData, 'traditionTrees'>): AutoGoal[] {
-	const taken = new Set(s.traditions ?? []);
-	const trees = Object.values(data.traditionTrees).filter((t) =>
-		t.traditions.some((x) => x.role === 'adopt' && taken.has(x.key))
-	);
+export function autoGoals(
+	s: Snapshot,
+	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'traditionPrereqs'>>,
+	wanted: string[] = []
+): AutoGoal[] {
+	const picked = s.traditions ?? [];
+	const taken = new Set(picked);
+	const goal = (key: string): AutoGoal => ({
+		id: `auto-tr-${key}`,
+		kind: 'tradition',
+		target: { tradition: key },
+		polarity: 'want'
+	});
+	const keys: string[] = [];
+	const add = (k: string) => {
+		if (!keys.includes(k)) keys.push(k);
+	};
+	// taken ones first, in the order picked
+	for (const k of picked) add(k);
+	const want = new Set(wanted);
+	const prereqs = data.traditionPrereqs ?? {};
+	const needs = (k: string): string[] => [...(prereqs[k] ?? []).flatMap((p) => [...needs(p), p])];
+	for (const t of Object.values(data.traditionTrees)) {
+		const adopt = t.traditions.find((x) => x.role === 'adopt')?.key;
+		if (adopt && (taken.has(adopt) || want.has(adopt))) {
+			for (const x of t.traditions) add(x.key);
+			continue;
+		}
+		for (const x of t.traditions)
+			if (want.has(x.key)) {
+				if (adopt) add(adopt);
+				for (const p of needs(x.key)) add(p);
+			}
+	}
 	return [
-		...trees.flatMap((t) =>
-			t.traditions.map((x) => ({
-				id: `auto-tr-${x.key}`,
-				kind: 'tradition',
-				target: { tradition: x.key },
-				polarity: 'want' as const
-			}))
-		),
+		...keys.filter((k) => !want.has(k) || taken.has(k)).map(goal),
 		...(s.ascensionPerks ?? []).map((k) => ({
 			id: `auto-ap-${k}`,
 			kind: 'perk',
@@ -664,4 +690,89 @@ export function autoGoals(s: Snapshot, data: Pick<GameData, 'traditionTrees'>): 
 			polarity: 'want' as const
 		}))
 	];
+}
+
+/**
+ * The traditions group in an order the game allows (the user's ask: "respect the order of
+ * tradition picks"): those taken first, as picked; then, in the plan's order, each tradition only
+ * after its tree's adoption and the picks it needs, a finisher after every other pick of its tree.
+ * Kahn's algorithm, always taking the earliest goal of the plan's order that is free. Pure.
+ */
+export function orderTraditions<G extends { kind: string; target: Target }>(
+	list: G[],
+	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'traditionPrereqs'>>,
+	picked: string[]
+): G[] {
+	const keyOf = (g: G) => (g.kind === 'tradition' ? String(g.target.tradition) : null);
+	const tree = new Map<string, { adopt?: string; members: string[]; role: string }>();
+	for (const t of Object.values(data.traditionTrees)) {
+		const adopt = t.traditions.find((x) => x.role === 'adopt')?.key;
+		for (const x of t.traditions)
+			tree.set(x.key, { adopt, members: t.traditions.map((y) => y.key), role: x.role });
+	}
+	const present = new Set(list.map(keyOf).filter((k) => k !== null));
+	const before = (k: string): string[] => {
+		const t = tree.get(k);
+		const out = [...((data.traditionPrereqs ?? {})[k] ?? [])];
+		if (t?.adopt && t.adopt !== k) out.push(t.adopt);
+		if (t?.role === 'finish') out.push(...t.members.filter((m) => m !== k));
+		return out.filter((p) => present.has(p) && p !== k);
+	};
+	const rank = (g: G) => {
+		const k = keyOf(g);
+		const i = k === null ? -1 : picked.indexOf(k);
+		return i >= 0 ? i : Infinity;
+	};
+	// taken ones first, as picked; the plan's order otherwise
+	const queue = list
+		.map((g, i) => ({ g, i }))
+		.sort((a, b) => rank(a.g) - rank(b.g) || a.i - b.i)
+		.map((x) => x.g);
+	return kahn(queue, (g) => (keyOf(g) === null ? [] : before(keyOf(g)!)), keyOf);
+}
+
+/**
+ * The research group in an order research allows: a tech after the planned techs it needs (its
+ * prerequisites and `OR` alternatives) and after the tier gates below its tier in its area, a
+ * gate after the gate below it; free choices keep the plan's order. Pure.
+ */
+export function orderResearch<G extends { kind: string; target: Target }>(
+	list: G[],
+	data: Pick<GameData, 'techs' | 'techRequirements'>
+): G[] {
+	const id = (g: G) =>
+		g.kind === 'tech'
+			? `tech:${g.target.tech}`
+			: g.kind === 'tech_tier'
+				? `tier:${g.target.area}:${g.target.tier}`
+				: null;
+	const present = new Set(list.map(id).filter((x) => x !== null));
+	const before = (g: G): string[] => {
+		if (g.kind === 'tech_tier') return [`tier:${g.target.area}:${Number(g.target.tier) - 1}`];
+		if (g.kind !== 'tech') return [];
+		const key = String(g.target.tech);
+		const r = data.techRequirements[key];
+		const t = data.techs[key];
+		const gates =
+			t?.tier != null ? Array.from({ length: t.tier }, (_, i) => `tier:${t.area}:${i}`) : [];
+		return [...(r?.prerequisites ?? []), ...(r?.anyOf ?? []).flat()]
+			.map((p) => `tech:${p}`)
+			.concat(gates);
+	};
+	return kahn(list, (g) => before(g).filter((x) => present.has(x)), id);
+}
+
+/** Kahn's algorithm, always taking the earliest item of `list` whose `before` are placed. */
+function kahn<G>(list: G[], before: (g: G) => string[], id: (g: G) => string | null): G[] {
+	const queue = [...list];
+	const out: G[] = [];
+	const placed = new Set<string>();
+	while (queue.length) {
+		const at = queue.findIndex((g) => before(g).every((p) => placed.has(p)));
+		const [g] = queue.splice(at < 0 ? 0 : at, 1); // a cycle: take the first
+		out.push(g);
+		const k = id(g);
+		if (k !== null) placed.add(k);
+	}
+	return out;
 }

@@ -154,7 +154,12 @@ export function planAt(events: PlanEvent[], path: number[], auto: AutoGoal[] = [
  * The plan's open goals per group, in the order last set; goals added since go to the end, in
  * the order added. Parked goals are left out (`parked()`).
  */
-export function arrange(plan: Plan, groupOf: (kind: string) => string): Record<string, Goal[]> {
+export function arrange(
+	plan: Plan,
+	groupOf: (kind: string) => string,
+	// a group's rules over the order (the traditions': the game's pick order), applied last
+	constrain: (group: string, list: Goal[]) => Goal[] = (_, list) => list
+): Record<string, Goal[]> {
 	const out: Record<string, Goal[]> = {};
 	const active = [...plan.goals.values()].filter((g) => !g.parked);
 	for (const g of active) (out[groupOf(g.kind)] ??= []).push(g);
@@ -166,6 +171,7 @@ export function arrange(plan: Plan, groupOf: (kind: string) => string): Record<s
 				(rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity) ||
 				added.get(a.id)! - added.get(b.id)!
 		);
+		out[group] = constrain(group, list);
 	}
 	return out;
 }
