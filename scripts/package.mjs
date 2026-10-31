@@ -8,8 +8,8 @@
 //
 //   node scripts/package.mjs [--os windows|linux|macos] [--extraction <repo>]   → dist/*.zip
 //
-// A release build (clean `main`, or a `v<version>-beta.<n>` tag, see RELEASE.md) refuses an extractor
-// that is not on the pinned tag.
+// A release build (clean `main`, or a `v<version>-rc.<n>` / `-beta.<n>` tag, see RELEASE.md)
+// refuses an extractor that is not on the pinned tag.
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
@@ -57,8 +57,8 @@ const run = (cmd, args, opts = {}) =>
 	execFileSync(cmd, args, { stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8', ...opts });
 
 const version = decoratedVersion();
-// a release or an open-beta prerelease (`-beta.<n>`): both bundle exactly the pinned extractor
-const release = /^\d+\.\d+\.\d+(-beta\.\d+)?$/.test(version);
+// a release or a prerelease (`-rc.<n>`, `-beta.<n>`): each bundles exactly the pinned extractor
+const release = /^\d+\.\d+\.\d+(-(rc|beta)\.\d+)?$/.test(version);
 /** `--os macos` builds both Mac architectures */
 const TARGETS = ['windows-x64', 'linux-x64', 'macos-arm64', 'macos-x64'];
 const targets = arg('os') ? TARGETS.filter((t) => t.startsWith(`${arg('os')}-`)) : TARGETS;

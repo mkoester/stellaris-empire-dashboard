@@ -131,8 +131,10 @@ a commit tagged `v<version>` counts as a release, since CI builds from the detac
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
 which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
 creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. A
-`vX.Y.Z-beta.N` tag on `open-beta` (the branch for a running open beta) does the same as a GitHub
-prerelease, its notes the `Unreleased` section (`RELEASE.md`, "Beta build"). The Windows zip
+`vX.Y.Z-rc.N` tag on `develop` (a release candidate, "X.Y.Z rc-N") and a `vX.Y.Z-beta.N` tag on
+`open-beta` (the branch for a running open beta, "X.Y.Z vN (for Open Beta <openBeta>)", from
+`package.json`'s `openBeta`) do the same as GitHub prereleases, their notes the `Unreleased`
+section (`RELEASE.md`, "Three kinds of build"). The Windows zip
 ran on a real Windows machine (2026-10-25, the user); Wine cannot start in the sandbox
 (`wineserver` needs a writable `/tmp`).
 
@@ -1119,7 +1121,10 @@ shows format 2.
   a dashboard without the kind skips it. `feed.ts` files it with its day (`Tick.colonies`, by
   colony name), so it reaches the page live (the colony page's Pops chart title: "Pops —
   <date>: … employed, … civilians, … open jobs") and is stored with the month; the Pops chart
-  draws those days between the saves (`colonyDaySeries()`). **Assumed until checked**
+  draws those days between the saves (`colonyDaySeries()`). **Broken in game (2026-10-31):**
+  `num_sapient_pops` is no trigger, and the lines come out empty (`docs/open-checks.md` 23). Mod
+  0.8.0–0.10.0 ran only on 4.5.3 (the Linux machine has the beta), never on 4.5.2; 0.10.0's
+  `system-entered` line has not been seen in a log yet. **Assumed until checked**
   (`docs/open-checks.md` 23): unemployed = the civilians, employed = pops − unemployed, and
   `free_jobs` the same count as the save's open jobs. Checked 2026-10-31 on a DB copy with a
   replayed line: the `tick` server event carries it.
