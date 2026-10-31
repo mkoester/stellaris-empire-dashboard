@@ -1121,7 +1121,10 @@ shows format 2.
   a dashboard without the kind skips it. `feed.ts` files it with its day (`Tick.colonies`, by
   colony name), so it reaches the page live (the colony page's Pops chart title: "Pops —
   <date>: … employed, … civilians, … open jobs") and is stored with the month; the Pops chart
-  draws those days between the saves (`colonyDaySeries()`). **Assumed until checked**
+  draws those days between the saves (`colonyDaySeries()`). **Broken in game (2026-10-31):**
+  `num_sapient_pops` is no trigger, and the lines come out empty (`docs/open-checks.md` 23). Mod
+  0.8.0–0.10.0 ran only on 4.5.3 (the Linux machine has the beta), never on 4.5.2; 0.10.0's
+  `system-entered` line has not been seen in a log yet. **Assumed until checked**
   (`docs/open-checks.md` 23): unemployed = the civilians, employed = pops − unemployed, and
   `free_jobs` the same count as the save's open jobs. Checked 2026-10-31 on a DB copy with a
   replayed line: the `tick` server event carries it.

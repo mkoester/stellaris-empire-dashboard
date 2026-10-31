@@ -183,6 +183,14 @@ the colony's carrier — the arkship's ship block. Still open:
 
 ### 23. Colony jobs by day — colony page, companion mod 0.9.0 (from 2026-10-31)
 
+**Broken in game — fix the mod first** (seen 2026-10-31 in the 10:59 session's logs, 4.5.3):
+`error.log` says `cannot find: num_sapient_pops` (`events/sdash_events.txt` line 181 — no such
+trigger in 4.5.3's `triggers.log`; `num_unemployed` and `free_jobs` are there), and every line came
+out empty, `SDASH|2|2205.10.02|event|colony-jobs|Peshnab the Faithful|||` once a month, with
+"Unknown property `sdash_fj`" for the colony's variables in the log text. The dashboard rejects
+those lines (malformed, per line), so nothing is stored. Don't upload 0.9.0+ to the stores before
+this check passes.
+
 **Unverified.** The mod logs a colony's `free_jobs`, `num_unemployed` and `num_sapient_pops` on
 each day one changes; the dashboard reads unemployed as civilians and pops − unemployed as
 employed. Assumed: those triggers count what the save's `civilian`, `employable_pops` and open
