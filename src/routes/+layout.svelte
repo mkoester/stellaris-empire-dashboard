@@ -6,7 +6,7 @@
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
-	import { followLoads } from '#lib/live.ts';
+	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
 
 	let { data, children } = $props();
@@ -217,6 +217,13 @@
 			await goto(resolve(...here), { invalidateAll: true });
 		}
 	);
+	// the last save and the last data of the game being played; a daily tick heard after the page
+	// loaded is newer data than the server knew
+	let tick = $state<{ date: string; at: number } | null>(null);
+	followTicks((t) => (tick = { date: t.date, at: Date.now() }));
+	const lastData = $derived(
+		data.dates && tick && tick.at > data.dates.at ? tick.date : (data.dates?.data ?? null)
+	);
 	let waved = $state<number | null>(null);
 	const loaded = $derived(
 		data.loaded && data.loaded.node !== waved && String(data.loaded.node) !== node
@@ -291,6 +298,14 @@
 					>game {data.gameVersion.replace(/^\D*/, '')}</span
 				>{/if}
 		</nav>
+		{#if data.dates}
+			<p
+				class="-mt-3 mb-2 text-right text-[11px] text-gray-400"
+				title="the game being played: its latest save the dashboard read, and its latest data — a save, the companion mod's month or its daily tick (without the mod, saves only)"
+			>
+				last save {data.dates.save ?? '—'} · last data {lastData ?? '—'}
+			</p>
+		{/if}
 		{#if page.data.xExtent}<TimeWindow extent={page.data.xExtent as [number, number]} />{/if}
 		{#if loaded}
 			<p

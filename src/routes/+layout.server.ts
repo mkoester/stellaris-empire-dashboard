@@ -2,6 +2,7 @@ import {
 	campaignsOnDisk,
 	dataVersion,
 	getDb,
+	lastDataDate,
 	pendingLoad,
 	refreshCampaign,
 	status,
@@ -9,7 +10,7 @@ import {
 } from '#lib/server/app.ts';
 import { FEED_FORMATS } from '#lib/server/feed.ts';
 import { askGone } from '#lib/server/campaigns.ts';
-import { campaignName, headCampaign, headId, nodes } from '#lib/server/db.ts';
+import { campaignName, headCampaign, headId, latestSaveDate, nodes } from '#lib/server/db.ts';
 import {
 	activeProfile,
 	chartEvents,
@@ -37,7 +38,8 @@ export function load() {
 			loaded: null,
 			feed: null,
 			head: null,
-			gameVersion: null
+			gameVersion: null,
+			dates: null
 		};
 	const db = getDb();
 	const { id, name } = activeProfile(db);
@@ -73,6 +75,18 @@ export function load() {
 		// the save being played, so a page pinned to it keeps following the game
 		head: headId(db),
 		// the game build the data is from: an open beta shares its version with the release
-		gameVersion: dataVersion()
+		gameVersion: dataVersion(),
+		// the game being played: its latest save, and its latest data (a save, month or daily tick)
+		dates: (() => {
+			const head = headId(db);
+			const node = head === null ? undefined : nodes(db).find((n) => n.id === head);
+			return node
+				? {
+						save: latestSaveDate(db, node.campaign),
+						data: lastDataDate(node.date),
+						at: Date.now() // ticks the page hears after this are newer
+					}
+				: null;
+		})()
 	};
 }

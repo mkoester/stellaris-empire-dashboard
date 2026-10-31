@@ -55,6 +55,9 @@ type State = {
 	loadedFrom?: number | null;
 	/** The companion mod writes a log format this build does not read (until a month is read). */
 	feedFormat?: FeedFormat;
+	/** when the last save or month was recorded, and the last daily tick (ms): which came last */
+	recordedAt?: number;
+	lastTick?: { date: string; at: number };
 };
 const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
 const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter(), status: 'setup' });
@@ -109,7 +112,18 @@ function recorded(r: Recorded, source: string) {
 	const label = state.db ? nodeLabel(state.db, r.nodeId) : `id ${r.nodeId}`;
 	console.log(`${r.isNew ? 'new ' : 'seen'} node ${label} ← ${source}`);
 	for (const m of r.mismatches) console.warn(`mod and save disagree on net income: ${m}`);
+	state.recordedAt = Date.now();
 	updates.emit('update', r.nodeId);
+}
+
+/**
+ * The game date of the latest data, in the order it came: the last daily tick of the companion
+ * mod when it came after the last save or month, else the head's date (`headDate`). By arrival,
+ * not by date: after loading an older save, the older ticks are the latest data.
+ */
+export function lastDataDate(headDate: string | null): string | null {
+	const t = state.lastTick;
+	return t && t.at > (state.recordedAt ?? 0) ? t.date : headDate;
 }
 
 function caughtUp(campaign: string, n: number) {
@@ -245,7 +259,10 @@ async function run() {
 					`game.log ${m.date}`
 				);
 			},
-			onTick: (t) => updates.emit('tick', t satisfies Tick),
+			onTick: (t) => {
+				state.lastTick = { date: t.date, at: Date.now() };
+				updates.emit('tick', t satisfies Tick);
+			},
 			onLoad: (date, id) => {
 				const campaign = headCampaign(store);
 				state.loadedFrom =

@@ -13,6 +13,7 @@ import {
 	headCampaign,
 	headId,
 	history,
+	latestSaveDate,
 	lastNode,
 	loadedNode,
 	nodes,
@@ -178,6 +179,9 @@ describe('db', () => {
 		expect(campaignName(db, 'c')).toBe('New name');
 		expect(campaignName(db, 'other')).toBe('Other');
 		expect(campaignName(db, 'unknown')).toBe('');
+		// the last save, not the game.log month after it
+		expect(latestSaveDate(db, 'c')).toBe('2201.01.01');
+		expect(latestSaveDate(db, 'unknown')).toBeNull();
 	});
 });
 

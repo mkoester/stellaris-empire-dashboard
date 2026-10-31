@@ -235,6 +235,14 @@ export function deleteCampaign(db: Db, campaign: string) {
 	}
 }
 
+/** The game date of the campaign's latest save (game.log months not counted), null before one. */
+export function latestSaveDate(db: Db, campaign: string): string | null {
+	const row = db
+		.prepare(`SELECT date FROM node WHERE campaign = ? AND kind = 'save' ORDER BY id DESC LIMIT 1`)
+		.get(campaign) as { date: string } | undefined;
+	return row?.date ?? null;
+}
+
 /** The empire's name in the campaign's latest save ('' before one; game.log nodes carry none). */
 export function campaignName(db: Db, campaign: string): string {
 	const row = db
