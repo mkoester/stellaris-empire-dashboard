@@ -297,9 +297,13 @@
 					title="the game version and build the game data was read from (an open beta shares its version with the release, not its build)"
 					>game {data.gameVersion.replace(/^\D*/, '')}</span
 				>{/if}
-			<!-- the dates alone on the right, also when they wrap onto a line of their own -->
-			{#if data.dates}<span
+			<!-- the difficulty and the dates alone on the right, also when they wrap onto a line of their own -->
+			{#if data.dates?.difficulty}<span
 					class="ml-auto pb-1 text-[11px] text-gray-400"
+					title="the game's difficulty (galaxy setup), of seven">{data.dates.difficulty}</span
+				>{/if}
+			{#if data.dates}<span
+					class="{data.dates.difficulty ? '' : 'ml-auto'} pb-1 text-[11px] text-gray-400"
 					title="the game being played: its latest save the dashboard read, and its latest data — a save, the companion mod's month or its daily tick (without the mod, saves only)"
 					>last save {data.dates.save ?? '—'} · last data {lastData ?? '—'}</span
 				>{/if}

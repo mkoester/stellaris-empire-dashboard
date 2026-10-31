@@ -1,13 +1,12 @@
 import { error } from '@sveltejs/kit';
 import {
 	agendaRows,
-	atLevel,
 	councilorBonus,
+	councilSeats,
 	edictRows,
 	facts,
 	policyRows,
-	possibleSeats,
-	seatRows
+	possibleSeats
 } from '#lib/government.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -48,36 +47,7 @@ export function load({ url }) {
 	const government = identity(snaps.findLast((x) => x.government !== null));
 	const explanations = getExplanations();
 	const bonus = councilorBonus(s, data.councilorSkill);
-	const bonusTotal = bonus.reduce((a, b) => a + b.value, 0);
-	const seats = seatRows(
-		s.council ?? [],
-		s.ruler,
-		s.government?.find((k) => k.startsWith('auth_')),
-		data.councilPositions
-	).map((r) => {
-		// the councilor level: the leader's level, its own extra levels, the country's bonus
-		const council = r.level === null ? null : r.level + r.bonus + bonusTotal;
-		const perLevel = explanations[`seat:${r.key}`]?.modifiers ?? [];
-		return {
-			...r,
-			council,
-			classes: data.councilPositions[r.key]?.classes ?? [],
-			// per level, and what that gives at the councilor level
-			effects: perLevel.map((m, i) => ({ perLevel: m, now: atLevel(perLevel, council)[i] })),
-			// the leader's traits while on the council (flat, not per level)
-			traitEffects: r.traits.flatMap((t) =>
-				explanations[`ltraitcouncil:${t}`]
-					? [
-							{
-								trait: t,
-								name: explanations[`ltrait:${t}`]?.title ?? t,
-								modifiers: explanations[`ltraitcouncil:${t}`].modifiers
-							}
-						]
-					: []
-			)
-		};
-	});
+	const seats = councilSeats(s, data, explanations);
 	const possible = possibleSeats(
 		data.councilPositions,
 		seats.map((r) => r.key),

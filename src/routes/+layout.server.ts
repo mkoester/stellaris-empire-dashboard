@@ -10,7 +10,15 @@ import {
 } from '#lib/server/app.ts';
 import { FEED_FORMATS } from '#lib/server/feed.ts';
 import { askGone } from '#lib/server/campaigns.ts';
-import { campaignName, headCampaign, headId, latestSaveDate, nodes } from '#lib/server/db.ts';
+import {
+	campaignDifficulty,
+	campaignName,
+	headCampaign,
+	headId,
+	latestSaveDate,
+	nodes
+} from '#lib/server/db.ts';
+import { difficultyLabel } from '#lib/events.ts';
 import {
 	activeProfile,
 	chartEvents,
@@ -82,6 +90,10 @@ export function load() {
 			const node = head === null ? undefined : nodes(db).find((n) => n.id === head);
 			return node
 				? {
+						difficulty: (() => {
+							const d = campaignDifficulty(db, node.campaign);
+							return d && difficultyLabel(d);
+						})(),
 						save: latestSaveDate(db, node.campaign),
 						data: lastDataDate(node.date),
 						at: Date.now() // ticks the page hears after this are newer

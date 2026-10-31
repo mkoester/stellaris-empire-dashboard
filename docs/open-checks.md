@@ -135,6 +135,16 @@ month's save instead of the day.
 - **Send:** the save's name. Check: `grep -o 'visited_by_nomad[^=]*=[0-9]*' gamestate`; the map
   should then say "counted <date>" there and the events tab "Wanderlust: <system> (…)".
 
+### 19. Tech costs on another difficulty or tech-cost scaling (from 2026-10-31)
+
+Measured: cadet and admiral with "Difficulty Adjusted Technology Costs" on Normal (tier 1 ×1.05
+and ×1.25). Assumed: Low and High as steps 1 and 3 of Normal's 2, and the ranks of the
+difficulties in between (#lib/events.ts techCostFactor).
+
+- **Do:** in a game on another difficulty, or with that setting on Low, High or Off, open the
+  technology screen.
+- **Send:** a screenshot (a tech's cost) and the save, with the galaxy settings.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

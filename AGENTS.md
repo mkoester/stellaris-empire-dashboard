@@ -1228,6 +1228,13 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   that count is assumed, not seen. Leader capacity is **per class**, base `@base_leader_cap = 3`
   (`common/leader_classes`), raised by `country_<class>_cap_add`; the result is not in the save. Ships: `country.fleets_manager.owned_fleets` → `fleet.<id>.{ship_class, ships}`
   → `ships.<id>.ship_design_implementation.design` → `ship_design.<id>.growth_stages[0].ship_size`.
+- A leader's assignment: `leaders.<id>.location = { type id }` — `ship` (that ship's fleet: a
+  commander's fleet or the science ship a scientist leads), `army`; a councilor's is a `planet`
+  (the capital, no assignment), its seat `council_location`. A leader still in the pool has
+  `age=0`: its age counts from `date` (2171.01.01 → 33 on 2204.10, as the game shows).
+- Tech costs: × (1 + `TECH_COST_DIFFICULTY_SCALE_MULT` × step × difficulty rank × tier) —
+  `galaxy.difficulty`, `galaxy.technology_difficulty_scale`; Normal = 2, cadet 1, admiral 5
+  measured (#lib/events.ts techCostFactor), the other steps assumed (docs/open-checks.md 19).
 - Wanderlust (nomads' perk, `#lib/wanderlust.ts`): progress in `country.variables`
   (`<category>_system_seen` / `_count`, the counts 80 % of the flagged systems: 21 galactic
   landmarks → 17, all eight checked 2204.10.01), done `country.flags.<category>_completed`; a

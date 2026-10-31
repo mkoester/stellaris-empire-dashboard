@@ -25,6 +25,7 @@ import type {
 	SpeciesInfo,
 	ColonyJob,
 	PoolLeader,
+	LeaderInfo,
 	Wanderlust,
 	TimedModifier,
 	PlanetState,
@@ -107,7 +108,7 @@ export type RawSave = {
 	archSites: Record<string, Raw>; // archaeological_sites.sites
 	focusCards: Record<string, Raw>; // top-level focus_cards
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
-	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`
+	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`; `difficulty`, `technology_difficulty_scale`
 	leaders: Record<string, Raw>;
 	monthlyTrades: Raw; // market.monthly_trades: every country's standing orders
 	market: Raw; // market: price fluctuations, galactic and internal
@@ -255,7 +256,12 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			bypasses: q.at('/bypasses') ?? {},
 			naturalWormholes: q.at('/natural_wormholes') ?? {},
 			globalFlags: q.at('/flags') ?? {},
-			galaxy: { technology: q.at('/galaxy/technology'), traditions: q.at('/galaxy/traditions') },
+			galaxy: {
+				technology: q.at('/galaxy/technology'),
+				traditions: q.at('/galaxy/traditions'),
+				difficulty: q.at('/galaxy/difficulty'),
+				technology_difficulty_scale: q.at('/galaxy/technology_difficulty_scale')
+			},
 			councilPositions: q.at('/council_positions/council_positions') ?? {},
 			countries,
 			fleetOwner,
@@ -269,7 +275,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '31'; // 31: Wanderlust (30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '32'; // 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details (31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -481,44 +487,81 @@ export function empireFocus(raw: Pick<RawSave, 'country' | 'focusCards'>) {
 	};
 }
 
-/** Every hired leader (`country.owned_leaders`), with its traits and whether it sits on the council. */
-export function leaderList(
-	raw: Pick<RawSave, 'country' | 'leaders' | 'speciesDb' | 'councilPositions'> &
-		Partial<Pick<RawSave, 'colonies'>>
-) {
-	// our colonies' governors: `colony.<id>.governor` (2026-10-30)
-	const governors = new Set(
-		list(raw.country?.controlled_colonies).map((c) =>
-			numOrNull(raw.colonies?.[String(c)]?.governor)
-		)
-	);
+type LeaderRaw = Pick<RawSave, 'country' | 'leaders' | 'speciesDb' | 'councilPositions'> &
+	Partial<Pick<RawSave, 'colonies' | 'planets' | 'ships' | 'fleets' | 'date'>>;
+
+/**
+ * A leader's age: `age`, or for one still in the recruitment pool (`age=0`) the years since its
+ * `date` — 2171.01.01 for a leader the game showed as 33 on 2204.10 (Recruitable Leaders, 4.5.3).
+ */
+function leaderAge(l: Raw, now: string | undefined): number | null {
+	const age = numOrNull(l.age);
+	const born = strOrNull(l.date);
+	if (age || !born || !now || born >= now) return age;
+	const [y, m, d] = born.split('.').map(Number);
+	const [ny, nm, nd] = now.split('.').map(Number);
+	return ny - y - (nm * 100 + nd < m * 100 + d ? 1 : 0);
+}
+
+/**
+ * A leader as the leaders tab shows it, by the save's `leaders.<id>`: what it holds — the council
+ * (`country.government.council_positions`), the rule, a colony (`colony.<id>.governor`,
+ * 2026-10-30) — and where it is assigned (`location = { type id }`: a ship → that ship's fleet, a
+ * commander's or a science ship's, 2204.11; an army). A councilor's `location` is a planet, the
+ * capital's (not an assignment).
+ */
+function leaderInfos(raw: LeaderRaw) {
+	const { planets, colonies, ships } = raw;
+	const places = planets && colonies && ships ? colonyPlaces({ planets, colonies, ships }) : null;
+	const governs = new Map<number, string | null>();
+	for (const c of list(raw.country?.controlled_colonies)) {
+		const leader = numOrNull(raw.colonies?.[String(c)]?.governor);
+		const place = places?.get(Number(c));
+		if (leader !== null) governs.set(leader, place ? displayName(place[1].name) : null);
+	}
 	const seated = new Set(
 		list(raw.country?.government?.council_positions).map((id) =>
 			numOrNull(raw.councilPositions[String(id)]?.leader)
 		)
 	);
 	const rulerId = numOrNull(raw.country?.ruler);
-	return list(raw.country?.owned_leaders).flatMap((id) => {
+	const assigned = (loc: Raw): LeaderInfo['assigned'] => {
+		const type = strOrNull(loc?.type);
+		if (!type || type === 'planet' || type === 'none') return null;
+		if (type === 'ship') {
+			const fleet = raw.fleets?.[String(raw.ships?.[String(loc.id)]?.fleet)];
+			return { kind: 'fleet', name: fleet ? displayName(fleet.name) : null };
+		}
+		return { kind: type, name: null };
+	};
+	return (id: number): LeaderInfo | null => {
 		const l = raw.leaders[String(id)];
-		if (!l || typeof l !== 'object') return [];
+		if (!l || typeof l !== 'object') return null;
 		const sp = raw.speciesDb[String(l.species)];
-		return [
-			{
-				id,
-				name: leaderName(l.name),
-				class: String(l.class),
-				level: num(l.level),
-				age: numOrNull(l.age),
-				traits: items(l.traits).map(String),
-				job: strOrNull(l.job),
-				species: sp ? displayName(sp.name) : null,
-				council: seated.has(id),
-				ruler: id === rulerId,
-				ethic: strOrNull(l.ethic),
-				governor: governors.has(id)
-			}
-		];
-	});
+		return {
+			id,
+			name: leaderName(l.name),
+			class: String(l.class),
+			level: num(l.level),
+			bonus: num(l.bonus_skill_level),
+			age: leaderAge(l, raw.date),
+			traits: items(l.traits).map(String),
+			job: strOrNull(l.job),
+			species: sp ? displayName(sp.name) : null,
+			council: seated.has(id),
+			ruler: id === rulerId,
+			ethic: strOrNull(l.ethic),
+			governor: governs.has(id),
+			governs: governs.get(id) ?? null,
+			assigned: assigned(l.location)
+		};
+	};
+}
+
+/** Every hired leader (`country.owned_leaders`), with its traits and what it holds. */
+export function leaderList(raw: LeaderRaw): LeaderInfo[] {
+	const info = leaderInfos(raw);
+	return list(raw.country?.owned_leaders).flatMap((id) => info(Number(id)) ?? []);
 }
 
 /**
@@ -526,12 +569,11 @@ export function leaderList(
  * 4 officials, 3 commanders, 3 scientists — not in `owned_leaders`), each with `date_added`, the
  * day the pool was filled (2200.01.01, the game showing "Refreshes 2205.01.01").
  */
-export function leaderPool(raw: Pick<RawSave, 'country' | 'leaders'>): PoolLeader[] {
+export function leaderPool(raw: LeaderRaw): PoolLeader[] {
+	const info = leaderInfos(raw);
 	return list(raw.country?.modules?.standard_leader_module?.leaders).flatMap((id) => {
-		const l = raw.leaders[String(id)];
-		return l && typeof l === 'object'
-			? [{ id: Number(id), class: String(l.class), added: strOrNull(l.date_added) }]
-			: [];
+		const l = info(Number(id));
+		return l ? [{ ...l, added: strOrNull(raw.leaders[String(id)].date_added) }] : [];
 	});
 }
 
@@ -1570,7 +1612,9 @@ export function progress(raw: Pick<RawSave, 'country' | 'galaxy'>): Progress {
 		nextElection: typeof c.next_election === 'string' ? c.next_election : null,
 		costSettings: {
 			technology: numOrNull(raw.galaxy?.technology) ?? 1,
-			traditions: numOrNull(raw.galaxy?.traditions) ?? 1
+			traditions: numOrNull(raw.galaxy?.traditions) ?? 1,
+			difficulty: strOrNull(raw.galaxy?.difficulty),
+			techDifficultyScale: strOrNull(raw.galaxy?.technology_difficulty_scale)
 		}
 	};
 }

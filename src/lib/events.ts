@@ -16,7 +16,7 @@ import {
 	orderLabel,
 	orderRate
 } from './ships.ts';
-import type { QueueItem, Snapshot } from './types.ts';
+import type { Progress, QueueItem, Snapshot } from './types.ts';
 
 // Upcoming events of the empire: when current research, the next tradition, the council agenda,
 // queued construction and the next election are due. Pure; the page shows them as one list.
@@ -64,13 +64,53 @@ export type Upcoming = {
 	dismiss?: string; // a cooldown that has run out: the id to dismiss it by (`timedOut()`)
 };
 
+// The galaxy setting "Difficulty Adjusted Technology Costs" (`technology_difficulty_scale`): "how
+// much the selected Difficulty affects the research cost … a greater effect on more advanced
+// technologies" (localisation FE_TECH_SPEED_DIFFICULTY_SCALE_TOOLTIP). Its steps and the ranks of the
+// difficulties: Normal = 2, cadet = 1, admiral = 5 fit both games measured (below); the others are
+// assumed, in order.
+const TECH_DIFFICULTY_SCALE: Record<string, number> = {
+	scaling_off: 0,
+	scaling_low: 1,
+	scaling_normal: 2,
+	scaling_high: 3
+};
+export const DIFFICULTY_RANK: Record<string, number> = {
+	civilian: 0,
+	cadet: 1,
+	ensign: 2,
+	captain: 3,
+	commodore: 4,
+	admiral: 5,
+	grand_admiral: 6
+};
+
+/** A difficulty as the game names it, with its place: `admiral` → "Admiral (6/7)". */
+export function difficultyLabel(difficulty: string): string {
+	const rank = DIFFICULTY_RANK[difficulty];
+	const name = difficulty.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+	const levels = Object.keys(DIFFICULTY_RANK).length;
+	return rank === undefined ? name : `${name} (${rank + 1}/${levels})`;
+}
+
 /**
- * Tech costs in game are × (1 + 0.05 × tier) of the base cost, rounded down (4.5.2, technology
- * slider 1, empire size ≤ 100): tier 1 1575 / 1312 / 1050 for 1500 / 1250 / 1000, tier 2 2200 for
- * 2000 and 2750 for 2500, rare or not (Planetforgers 2212.03.05, screenshots 2026_10_22_19–21).
- * Source unconfirmed — no define names it.
+ * Tech costs in game are × (1 + `TECH_COST_DIFFICULTY_SCALE_MULT` (0.025) × scale step × difficulty
+ * rank × tier) of the base cost, rounded down (technology slider 1, empire size ≤ 100). Measured:
+ * cadet, Normal — tier 1 1575 / 1312 / 1050 for 1500 / 1250 / 1000, tier 2 2200 for 2000 and 2750
+ * for 2500, rare or not (Planetforgers 2212.03.05, 4.5.2, screenshots 2026_10_22_19–21); admiral,
+ * Normal — tier 1 1875 for 1500 (Roaming Korinth 2204.11, 4.5.3, screenshot
+ * 2026-10-31_03-07-59). Settings the save did not tell (before READER 32): cadet's, as before.
  */
-export const techCostFactor = (tier: number | null) => 1 + 0.05 * (tier ?? 1);
+export function techCostFactor(
+	tier: number | null,
+	settings: Progress['costSettings'] | null = null,
+	mult = 0.025
+): number {
+	const scale = TECH_DIFFICULTY_SCALE[settings?.techDifficultyScale ?? ''];
+	const rank = DIFFICULTY_RANK[settings?.difficulty ?? ''];
+	const perTier = scale === undefined || rank === undefined ? 0.05 : mult * scale * rank;
+	return 1 + perTier * (tier ?? 1);
+}
 
 // ── Game calendar: 12 months of 30 days ────────────────────────────────────
 
@@ -220,7 +260,7 @@ export function upcoming(
 			tech.cost *
 				p.costSettings.technology *
 				sizePenalty(latest.empireSize, d.EMPIRE_SIZE_TECH_COST_PENALTY, d) *
-				techCostFactor(tech.tier) +
+				techCostFactor(tech.tier, p.costSettings, d.TECH_COST_DIFFICULTY_SCALE_MULT) +
 				1e-9
 		);
 		const rate =

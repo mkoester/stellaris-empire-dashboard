@@ -18,6 +18,12 @@ All notable changes to this project are documented here. The format follows
   was filled; estimated, as an event may do it early), and the history marks each refresh on the
   day it happened (event kind "recruitable leaders refreshed"). Saves still on disk are read
   again for it once.
+- Leaders tab: what each leader holds — the rule, a council seat, a colony, a fleet or the science
+  ship it leads, several at once — with the level it acts at there (a councilor with the
+  country's councilor bonus), and what each role gives now (a seat's modifiers at that level, the
+  traits' in that role, and what they do to the leader itself); filters for officials,
+  commanders and scientists; and the recruitable leaders in a table of their own, with their age.
+- The game's difficulty in the tab bar, before the dates: "Admiral (6/7)".
 - Wanderlust (the nomads' perk): the events tab and the charts mark each system an arkship
   counts, a category done and all of them; the map gets a Wanderlust layer — the target systems
   you have visited, with whether the arkship has counted them yet, and above the map each
@@ -28,6 +34,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Research due dates (Upcoming, tech tab) ignored the difficulty: the galaxy setting
+  "Difficulty Adjusted Technology Costs" raises tech costs by the difficulty and the tier — 1875
+  for a 1500 tier-1 tech on Admiral, where the dashboard said 1575 and so months too early.
 - Ethics tab, an ethic's own rules: 4.5.3 adds most of them onto a base of 1 instead of
   multiplying (`+1` for the ethic itself, `−0.25` for a democracy); they show as such, and the
   known part of the empire-wide factor adds them in the game's order. Needs extractor 0.1.5.

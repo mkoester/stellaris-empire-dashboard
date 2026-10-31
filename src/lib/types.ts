@@ -291,7 +291,14 @@ export type Progress = {
 	agenda: { key: string; progress: number } | null; // council agenda being prepared
 	traditionsTaken: number; // adopted traditions, adoptions and finishers included
 	nextElection: string | null;
-	costSettings: { technology: number; traditions: number }; // galaxy setup sliders
+	// galaxy setup: the cost sliders, and the difficulty with how much it raises tech costs
+	// (`technology_difficulty_scale`; both unknown before READER 32)
+	costSettings: {
+		technology: number;
+		traditions: number;
+		difficulty?: string | null;
+		techDifficultyScale?: string | null;
+	};
 };
 
 /** One observed state of the player's empire at one game date. */
@@ -470,8 +477,12 @@ export type Wanderlust = {
 	complete: boolean; // all eight: the game clears the counters then (`nomad_exploration_complete`)
 };
 
-/** A leader the empire may recruit: one of the pool, which the game replaces as a whole. */
-export type PoolLeader = { id: number; class: string; added: string | null };
+/**
+ * A leader the empire may recruit: one of the pool, which the game replaces as a whole; its
+ * details since READER 32 (before: id, class and `added` only).
+ */
+export type PoolLeader = Pick<LeaderInfo, 'id' | 'class'> &
+	Partial<Omit<LeaderInfo, 'id' | 'class'>> & { added: string | null };
 
 export type Tick = { date: string; stockpile: Resources };
 
@@ -487,6 +498,7 @@ export type LeaderInfo = {
 	name: string;
 	class: string;
 	level: number;
+	bonus?: number; // its own extra levels (`bonus_skill_level`); since READER 32
 	age: number | null;
 	traits: string[];
 	job: string | null;
@@ -495,6 +507,10 @@ export type LeaderInfo = {
 	ruler: boolean;
 	ethic?: string | null; // `leaders.<id>.ethic`; since READER 26
 	governor?: boolean; // governs one of our colonies; since READER 26
+	governs?: string | null; // … that colony's name; since READER 32
+	// where else it is assigned: a fleet (a commander's, or the science ship a scientist leads), an
+	// army; since READER 32
+	assigned?: { kind: string; name: string | null } | null;
 };
 
 /**

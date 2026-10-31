@@ -53,6 +53,7 @@ import {
 	tradeDeals,
 	wars,
 	wanderlust,
+	leaderPool,
 	type RawSave
 } from './save.ts';
 
@@ -291,8 +292,13 @@ describe('progress', () => {
 		next_election: '2210.01.01'
 	};
 
-	it('reads current research, agenda, election and the galaxy cost sliders', () => {
-		expect(progress({ country, galaxy: raw.galaxy })).toEqual({
+	it('reads current research, agenda, election and the galaxy cost settings', () => {
+		const galaxy = {
+			...raw.galaxy,
+			difficulty: 'admiral',
+			technology_difficulty_scale: 'scaling_normal'
+		};
+		expect(progress({ country, galaxy })).toEqual({
 			research: [
 				{ area: 'physics', tech: 'tech_physics_1', progress: 42.79314 },
 				{ area: 'society', tech: 'tech_planetary_unification', progress: 56.56 }
@@ -301,7 +307,12 @@ describe('progress', () => {
 			agenda: { key: 'agenda_unlock_slot', progress: 126 },
 			traditionsTaken: 0,
 			nextElection: '2210.01.01',
-			costSettings: { technology: 1.25, traditions: 1 }
+			costSettings: {
+				technology: 1.25,
+				traditions: 1,
+				difficulty: 'admiral',
+				techDifficultyScale: 'scaling_normal'
+			}
 		});
 	});
 
@@ -1899,5 +1910,32 @@ describe('wanderlust', () => {
 			],
 			complete: false
 		});
+	});
+});
+
+describe('leaderPool', () => {
+	it('details the recruitable leaders, aged from their date while the save says 0', () => {
+		// Roaming Korinth 2204.10.01 (4.5.3): Lougher Namnden, 33 in the game's Recruitable Leaders
+		const raw = {
+			date: '2204.10.01',
+			country: { modules: { standard_leader_module: { leaders: [272] } } },
+			leaders: {
+				'272': {
+					name: { full_names: { key: 'NECROID1_CHR_Lougher' } },
+					class: 'official',
+					level: 1,
+					bonus_skill_level: 1,
+					age: 0,
+					date: '2171.01.01',
+					date_added: '2200.01.01',
+					traits: ['leader_trait_eye_for_talent']
+				}
+			},
+			speciesDb: {},
+			councilPositions: {}
+		} as unknown as RawSave;
+		expect(leaderPool(raw)).toMatchObject([
+			{ id: 272, class: 'official', level: 1, bonus: 1, age: 33, added: '2200.01.01' }
+		]);
 	});
 });

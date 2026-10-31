@@ -4,6 +4,7 @@ import {
 	researchTicks,
 	techCostFactor,
 	deficits,
+	difficultyLabel,
 	expiries,
 	leaderPoolRefresh,
 	fromDays,
@@ -195,9 +196,28 @@ describe('upcoming', () => {
 		expect(researchTicks('2212.03.05', '2212.03.30')).toBe(0);
 	});
 
-	it('scales tech costs by tier (game, 2212.03.05: 1575, 1312, 2200, 2750)', () => {
-		const at = (base: number, tier: number) => Math.floor(base * techCostFactor(tier) + 1e-9);
+	it('scales tech costs by tier and difficulty (game: cadet 1575, 1312, 2200, 2750; admiral 1875)', () => {
+		const cadet = {
+			technology: 1,
+			traditions: 1,
+			difficulty: 'cadet',
+			techDifficultyScale: 'scaling_normal'
+		};
+		const at = (base: number, tier: number, settings: typeof cadet | null = cadet) =>
+			Math.floor(base * techCostFactor(tier, settings) + 1e-9);
+		// Planetforgers 2212.03.05 (cadet, Normal); a snapshot without the settings reads the same
 		expect([at(1500, 1), at(1250, 1), at(2000, 2), at(2500, 2)]).toEqual([1575, 1312, 2200, 2750]);
+		expect(at(2000, 2, null)).toBe(2200);
+		// Roaming Korinth 2204.11 (admiral, Normal): Quantum Computing 1240/1875
+		expect(at(1500, 1, { ...cadet, difficulty: 'admiral' })).toBe(1875);
+		expect(at(1500, 1, { ...cadet, techDifficultyScale: 'scaling_off' })).toBe(1500);
+	});
+
+	it('names the difficulty with its place among the seven', () => {
+		expect(difficultyLabel('admiral')).toBe('Admiral (6/7)');
+		expect(difficultyLabel('grand_admiral')).toBe('Grand Admiral (7/7)');
+		expect(difficultyLabel('civilian')).toBe('Civilian (1/7)');
+		expect(difficultyLabel('mystery')).toBe('Mystery'); // unknown: the name alone
 	});
 
 	it('falls back to income when there is no earlier save', () => {

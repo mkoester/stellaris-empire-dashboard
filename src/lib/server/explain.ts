@@ -394,21 +394,19 @@ export function loadExplanations(file: string): Explanations {
 				{ ...m, label: m.label ? `${m.label}${where}` : `${pretty(r.key)}${where}` }
 			]);
 		}
-		// and what each gives while its leader sits on the council (`councilor_modifier`: "applied to
-		// country if leader is on the Council", flat, not per level): `ltraitcouncil:<key>`
-		const councilMods = new Map<string, Modifier[]>();
-		for (const r of rows<{ owner: string; key: string; value: number }>(
-			"SELECT trait_key AS owner, modifier_key AS key, modifier_value AS value FROM leader_trait_modifier WHERE scope = 'councilor' ORDER BY sort_order"
-		))
-			councilMods.set(r.owner, [...(councilMods.get(r.owner) ?? []), modifier(r.key, r.value)]);
-		for (const [key, mods] of councilMods)
-			out[`ltraitcouncil:${key}`] = {
-				title: key,
-				description: null,
-				modifiers: mods,
-				text: null,
-				facts: []
-			};
+		// and what each gives in one place, flat (not per level): `ltrait-<scope>:<key>` — the game's
+		// trait documentation: councilor "to country if leader is on the Council", planet / sector
+		// while governing, fleet / army while commanding, modifier "to scope leader is assigned to",
+		// self "to the leader itself"
+		const scopeMods = new Map<string, Modifier[]>();
+		for (const r of rows<{ owner: string; scope: string; key: string; value: number }>(
+			'SELECT trait_key AS owner, scope, modifier_key AS key, modifier_value AS value FROM leader_trait_modifier ORDER BY sort_order'
+		)) {
+			const id = `ltrait-${r.scope}:${r.owner}`;
+			scopeMods.set(id, [...(scopeMods.get(id) ?? []), modifier(r.key, r.value)]);
+		}
+		for (const [id, mods] of scopeMods)
+			out[id] = { title: id, description: null, modifiers: mods, text: null, facts: [] };
 		for (const t of rows<{
 			key: string;
 			name: string | null;

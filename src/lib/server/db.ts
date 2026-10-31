@@ -243,6 +243,18 @@ export function latestSaveDate(db: Db, campaign: string): string | null {
 	return row?.date ?? null;
 }
 
+/** The difficulty of the campaign's latest save (`admiral`), null before READER 32 or a save. */
+export function campaignDifficulty(db: Db, campaign: string): string | null {
+	const row = db
+		.prepare(
+			`SELECT json_extract(s.json, '$.progress.costSettings.difficulty') AS d FROM node n
+			JOIN snapshot s ON s.node_id = n.id
+			WHERE n.campaign = ? AND n.kind = 'save' ORDER BY n.id DESC LIMIT 1`
+		)
+		.get(campaign) as { d: string | null } | undefined;
+	return row?.d ?? null;
+}
+
 /** The empire's name in the campaign's latest save ('' before one; game.log nodes carry none). */
 export function campaignName(db: Db, campaign: string): string {
 	const row = db
