@@ -359,7 +359,14 @@ stations seen, anomalies, dig sites, special projects, wormholes, gateways and L
 (`GalaxySystem.bypasses`), megastructures and their ruins (`*_ruined`) — each layer hidden by the
 profile's `mapFilter`, plus a table with what is worked on and how far (an envoy on a contact,
 an excavation running; stage, clues, days — anomalies and special projects carry no progress in
-the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). Say
+the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). The table
+also shows each marker's **difficulty** (first contacts and dig sites as the save holds it, an
+anomaly its category's `level`), when it was **seen** and its **age** in months (the user's ask
+2026-10-31): a first contact its own `date`, a station its first sighting, an anomaly or dig site
+the first save listing it, a wormhole, gateway, L-Gate or megastructure the first save listing its
+system in `knownSystems` (`firstSeen()` in `#lib/mapLayers.ts`), an entry event its first reading;
+"≤" where that is the first save showing the field at all (then or earlier), none for what a
+spoiler shows unvisited. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same

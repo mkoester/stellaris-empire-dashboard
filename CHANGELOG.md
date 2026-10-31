@@ -8,6 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Map tab: the table shows each find's difficulty (first contacts, dig sites, anomalies by their
+  level), when it was first seen and how many months ago — first contacts by their own date,
+  anomalies and dig sites by the first save listing them, wormholes, gateways, L-Gates and
+  megastructures by the first visit of their system.
 - System entry events: the popups entering a system shows — guardians (Bir's "Crystalline
   Asteroids"), ruined megastructures, abandoned gateways, Helito's "Missing Orbitals", … — on the
   map (layer "system entry events") and the events tab ("Bir: Crystalline Asteroids"), matched by

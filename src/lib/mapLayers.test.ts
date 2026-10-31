@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { mapMarkers, parseMapFilter } from './mapLayers.ts';
-import type { GalaxySystem } from './types.ts';
+import { firstSeen, mapMarkers, parseMapFilter } from './mapLayers.ts';
+import type { GalaxySystem, Snapshot } from './types.ts';
 
 const sys = (id: number, s: Partial<GalaxySystem> = {}): GalaxySystem => ({
 	id,
@@ -92,6 +92,79 @@ describe('mapMarkers', () => {
 		];
 		const [m] = mapMarkers({ ...none, galaxy: [sys(1)], contacts });
 		expect([m.ongoing, m.progress]).toEqual([true, 'first contact stage 2, 3 clues, 42 days left']);
+	});
+});
+
+describe('first seen', () => {
+	const snap = (date: string, s: Partial<Snapshot>) => ({ date, ...s }) as Snapshot;
+	const anomaly = (planetId: number, category = 'cat') => ({
+		planetId,
+		planet: `P${planetId}`,
+		systemId: 1,
+		category
+	});
+	const dig = (id: number) => ({
+		id,
+		type: 'site',
+		planetId: 9,
+		systemId: 1,
+		clues: 0,
+		difficulty: 4,
+		daysLeft: null,
+		excavating: false
+	});
+	const known = (...ids: number[]) =>
+		ids.map((id) => ({ id, name: `S${id}`, x: 0, y: 0, owned: false, capital: false, lanes: [] }));
+	const history = [
+		snap('2205.01.01', {}), // an older reader: none of the fields
+		snap('2205.02.01', { anomalies: [anomaly(1)], digSites: [], knownSystems: known(1) }),
+		snap('2205.03.01', {
+			anomalies: [anomaly(1), anomaly(2)],
+			digSites: [dig(7)],
+			knownSystems: known(1, 3)
+		})
+	];
+
+	it('dates each thing by the first save showing it, "by" what the first reading already had', () => {
+		const f = firstSeen(history);
+		expect(f.anomalies.get('1:cat')).toEqual({ date: '2205.02.01', by: true });
+		expect(f.anomalies.get('2:cat')).toEqual({ date: '2205.03.01', by: false });
+		// the field's first reading was empty: a site in the next one was found then
+		expect(f.digSites.get(7)).toEqual({ date: '2205.03.01', by: false });
+		expect(f.systems.get(3)).toEqual({ date: '2205.03.01', by: false });
+	});
+
+	it('puts difficulty and the sighting on the markers; a bypass dated by its system’s first visit', () => {
+		const m = mapMarkers({
+			...none,
+			galaxy: [sys(1), sys(3, { bypasses: ['wormhole'] })],
+			anomalies: [anomaly(2)],
+			digSites: [dig(7)],
+			contacts: [
+				{
+					id: 1,
+					countryId: 5,
+					name: 'Them',
+					systemId: 1,
+					leaderId: null,
+					leaderName: null,
+					date: '2204.11.20',
+					daysLeft: null,
+					difficulty: 3,
+					clues: 0,
+					stage: 'x',
+					status: 'in_progress'
+				}
+			],
+			firstSeen: firstSeen(history),
+			anomalyLevels: { cat: 2 }
+		});
+		expect(m.map((x) => [x.layer, x.difficulty ?? null, x.seen?.date ?? null])).toEqual([
+			['contacts', 3, '2204.11.20'],
+			['anomalies', 2, '2205.03.01'],
+			['digSites', 4, '2205.03.01'],
+			['wormholes', null, '2205.03.01']
+		]);
 	});
 });
 
