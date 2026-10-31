@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.6] - 2026-10-31
+
+### Changed
+
+- Bundles the extractor v0.1.6: it records which Steam branch the game it reads is on (`public`
+  or a beta), and its own release data is checked to be the public game's. What the dashboard
+  extracts from your game is unchanged.
+- The release notes name the game version a build was made for.
+- Dependencies updated (SvelteKit 3.1, Vite 8.3.5, Svelte 5.57.3, …).
+
 ## [0.1.5] - 2026-10-31
 
 ### Added
