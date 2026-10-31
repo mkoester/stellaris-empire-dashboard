@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- A build for the Stellaris 4.5.3 open beta (Steam's `stellaris_test` branch): what 0.1.6 does,
+  with the extractor v0.1.6, which reads 4.5.3's game files. The game data it extracts is kept
+  per game build, so a beta and the release after it never share one.
+
 ## [0.1.6] - 2026-10-31
 
 ### Changed
