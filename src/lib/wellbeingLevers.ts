@@ -52,8 +52,6 @@ const counted = (keys: string[]) =>
 	keys.reduce((m, k) => m.set(k, (m.get(k) ?? 0) + 1), new Map<string, number>());
 
 export function heldOf(s: Snapshot, c: Colony): Held {
-	const gov = s.government ?? [];
-	const of = (prefix: string) => counted(gov.filter((k) => k.startsWith(prefix)));
 	return {
 		local: {
 			building: counted(colonyActiveBuildings(c.districtList)),
@@ -62,25 +60,32 @@ export function heldOf(s: Snapshot, c: Colony): Held {
 			deposit: counted([...new Set(c.deposits)]),
 			modifier: counted((c.planet?.modifiers ?? []).map((m) => m.key))
 		},
-		empire: {
-			tradition: counted(s.traditions ?? []),
-			perk: counted(s.ascensionPerks ?? []),
-			edict: counted(s.edicts ?? []),
-			policy: counted(Object.values(s.policies ?? {})),
-			civic: counted(gov.filter((k) => !/^(ethic|auth)_/.test(k))),
-			ethic: of('ethic_'),
-			authority: of('auth_'),
-			origin: counted(s.origin ? [s.origin] : []),
-			seat: counted((s.council ?? []).map((x) => x.type)),
-			right: counted([
-				...new Set(Object.values(s.speciesRights ?? {}).flatMap((r) => Object.values(r)))
-			]),
-			tech: counted(s.progress?.researched ?? []),
-			trait: counted([
-				...new Set((s.species ?? []).filter((x) => x.pops > 0).flatMap((x) => x.traits))
-			]),
-			modifier: counted((s.countryModifiers ?? []).map((m) => m.key))
-		}
+		empire: empireHeld(s)
+	};
+}
+
+/** What the empire holds, by popup prefix: key → count (also the leaders tab's sources). */
+export function empireHeld(s: Snapshot): Held['empire'] {
+	const gov = s.government ?? [];
+	const of = (prefix: string) => counted(gov.filter((k) => k.startsWith(prefix)));
+	return {
+		tradition: counted(s.traditions ?? []),
+		perk: counted(s.ascensionPerks ?? []),
+		edict: counted(s.edicts ?? []),
+		policy: counted(Object.values(s.policies ?? {})),
+		civic: counted(gov.filter((k) => !/^(ethic|auth)_/.test(k))),
+		ethic: of('ethic_'),
+		authority: of('auth_'),
+		origin: counted(s.origin ? [s.origin] : []),
+		seat: counted((s.council ?? []).map((x) => x.type)),
+		right: counted([
+			...new Set(Object.values(s.speciesRights ?? {}).flatMap((r) => Object.values(r)))
+		]),
+		tech: counted(s.progress?.researched ?? []),
+		trait: counted([
+			...new Set((s.species ?? []).filter((x) => x.pops > 0).flatMap((x) => x.traits))
+		]),
+		modifier: counted((s.countryModifiers ?? []).map((m) => m.key))
 	};
 }
 

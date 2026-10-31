@@ -11,7 +11,9 @@ import {
 	traitRoles,
 	upkeepFactors
 } from '#lib/leaders.ts';
+import { leaderSources } from '#lib/leaderSources.ts';
 import type { LeaderInfo } from '#lib/types.ts';
+import { empireHeld } from '#lib/wellbeingLevers.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -69,6 +71,8 @@ export function load({ url }) {
 	};
 	const leaders = withRoles.map((l) => ({ ...l, upkeep: upkeep(l, own(l.self)) }));
 	const costs = s ? leaderCostFactors(s, data.leaderCost, seats) : null;
+	// what acts on leaders besides their traits: traditions, perks, civics, techs, …
+	const sources = s ? leaderSources(explanations, empireHeld(s), f) : [];
 	const pool = (s?.leaderPool ?? []).map((p) => {
 		// its traits on itself, as if hired
 		const self = p.traits
@@ -105,9 +109,10 @@ export function load({ url }) {
 				(l.traits ?? []).map((t) => [`${l.class}:${t}`, traitRoles(t, l.class, explanations)])
 			)
 		),
-		explain: pick(
-			explanations,
-			[...leaders, ...pool].flatMap((l) => (l.traits ?? []).map((t) => `ltrait:${t}`))
-		)
+		sources,
+		explain: pick(explanations, [
+			...[...leaders, ...pool].flatMap((l) => (l.traits ?? []).map((t) => `ltrait:${t}`)),
+			...sources.flatMap((r) => r.sources.map((x) => x.ref))
+		])
 	};
 }

@@ -29,10 +29,21 @@ export function loadExplanations(file: string): Explanations {
 			label: labels.get(key)?.label ?? null,
 			positiveIsGood: (labels.get(key)?.positive_is_good ?? 1) === 1
 		});
+		// a row's `when_json`, where the query has one: a triggered modifier's condition
 		const grouped = (sql: string) => {
 			const out = new Map<string, Modifier[]>();
-			for (const r of rows<{ owner: string; key: string; value: number }>(sql))
-				out.set(r.owner, [...(out.get(r.owner) ?? []), modifier(r.key, r.value)]);
+			for (const r of rows<{
+				owner: string;
+				key: string;
+				value: number;
+				when_json?: string | null;
+			}>(sql)) {
+				const when = parseTrigger(r.when_json ?? null);
+				out.set(r.owner, [
+					...(out.get(r.owner) ?? []),
+					{ ...modifier(r.key, r.value), ...(when && { when }) }
+				]);
+			}
 			return out;
 		};
 		const out: Explanations = {};
@@ -55,9 +66,10 @@ export function loadExplanations(file: string): Explanations {
 			};
 
 		// Edicts and agendas keep their modifiers in tradition_modifier (owner_key = key; an
-		// agenda's finish modifier under `<key>#finish`).
+		// agenda's finish modifier under `<key>#finish`), a triggered one with its condition
+		// (`potential_json`: ap_wanderlust's −10 % leader upkeep once a category is completed)
 		const ownedMods = grouped(
-			'SELECT owner_key AS owner, modifier_key AS key, modifier_value AS value FROM tradition_modifier ORDER BY sort_order'
+			'SELECT owner_key AS owner, modifier_key AS key, modifier_value AS value, potential_json AS when_json FROM tradition_modifier ORDER BY sort_order'
 		);
 		for (const e of rows<{
 			key: string;
