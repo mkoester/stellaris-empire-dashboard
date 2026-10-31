@@ -1,5 +1,5 @@
 # A version tag on main (`vX.Y.Z`, RELEASE.md) builds the player zips and publishes them as a
-# GitHub release, its notes taken from CHANGELOG.md. A beta tag on develop (`vX.Y.Z-beta.N`, for a
+# GitHub release, its notes taken from CHANGELOG.md. A beta tag on open-beta (`vX.Y.Z-beta.N`, for a
 # game's open beta) publishes them as a prerelease, its notes CHANGELOG's Unreleased section. Any
 # other tag, or one off its branch, fails early.
 name: Release
@@ -21,12 +21,12 @@ jobs:
           path: stellaris-empire-dashboard
           fetch-depth: 0 # main, to check the tag is on it
 
-      - name: Check the tag is a release on main (a beta on develop) that matches package.json
+      - name: Check the tag is a release on main (a beta on open-beta) that matches package.json
         working-directory: stellaris-empire-dashboard
         run: |
           version=$(node -p "require('./package.json').version")
           case "$GITHUB_REF_NAME" in
-            *-beta.*) branch=develop; expected="v$version-beta.${GITHUB_REF_NAME##*-beta.}"; echo "BETA=1" >> "$GITHUB_ENV" ;;
+            *-beta.*) branch=open-beta; expected="v$version-beta.${GITHUB_REF_NAME##*-beta.}"; echo "BETA=1" >> "$GITHUB_ENV" ;;
             *) branch=main; expected="v$version" ;;
           esac
           git merge-base --is-ancestor "$GITHUB_SHA" "origin/$branch" ||
