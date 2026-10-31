@@ -446,6 +446,9 @@ export type Snapshot = {
 	// READER 37
 	entryEvents: SystemEntry[] | null;
 	founderClass: string | null; // its founder species' class (`NECROID`); since READER 35
+	// its shipset (`graphical_culture`): which ship kinds it builds (`GameData.shipKinds`) —
+	// `biogenesis_02` builds bio ships, and researches their hulls; since READER 40
+	shipset: string | null;
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
@@ -949,7 +952,13 @@ export type GameData = {
 	// what researching a tech needs: prerequisites, who can get it (`potential`), rarity
 	techRequirements: Record<
 		string,
-		{ prerequisites: string[]; potential: Trigger | null; rare: boolean; dangerous: boolean }
+		{
+			prerequisites: string[]; // all researched first
+			anyOf?: string[][]; // one of each group researched first (`OR` in the files)
+			potential: Trigger | null;
+			rare: boolean;
+			dangerous: boolean;
+		}
 	>; // `tech:`/`tradition:` key → cost and output modifiers
 	techs: Record<string, { name: string; cost: number | null; area: string; tier: number | null }>;
 	agendas: Record<
@@ -1063,6 +1072,15 @@ export type GameData = {
 		{ name: string; traditions: { key: string; name: string; role: string }[] }
 	>;
 	perks: Record<string, string>; // ascension perk names
+	// shipset → the ship kinds it builds (data DB `graphical_culture`): `uses_ship_category`
+	shipKinds: Record<string, string[]>;
+	// who can ever take a perk (`potential`) and what taking it needs (`possible`), normalised
+	perkRules: Record<string, { potential: Trigger | null; possible: Trigger | null }>;
+	// perk → the tradition trees its adoption asks for (`has_ascension_perk` in the tree's adopt
+	// tradition's `possible`, e.g. The Flesh is Weak → Cybernetics)
+	perkTrees: Record<string, string[]>;
+	// tradition → the traditions of its tree it needs first (data DB `tradition_prereq`)
+	traditionPrereqs: Record<string, string[]>;
 	flagColors: Record<string, string>; // flag colour swatch → its galaxy-map colour (#rrggbb)
 	ethicAxes: Record<string, EthicAxis>; // ethic → its place on its axis
 	ethicOrder: string[]; // ethic keys by the game's ethic index (`EthicsState` lists)

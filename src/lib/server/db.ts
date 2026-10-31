@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { path, place } from '#lib/timeline.ts';
 import { upgrade } from '#lib/upgrade.ts';
+import type { PlanEvent, PlanOp } from '#lib/planner/replay.ts';
 import type {
 	GalaxySystem,
 	ModInfo,
@@ -39,6 +40,22 @@ export const MIGRATIONS: ((db: Db) => void)[] = [
 			ALTER TABLE node ADD COLUMN seq INTEGER;
 			UPDATE node SET seq = (SELECT count(*) FROM node m WHERE m.campaign = node.campaign AND m.id <= node.id);
 			CREATE INDEX node_campaign_seq ON node (campaign, seq);
+		`),
+	// 17: the planner's goals (#lib/planner/replay.ts; the user's ask 2026-10-31), as a log of
+	// changes, each made at the node the page showed: the plan at a node is the replay of the
+	// changes along its path, so a reload's branch gets a plan of its own.
+	(db) =>
+		db.exec(`
+			CREATE TABLE plan_event (
+				id INTEGER PRIMARY KEY,
+				campaign TEXT NOT NULL,
+				node_id INTEGER NOT NULL REFERENCES node(id),
+				at TEXT NOT NULL,
+				goal TEXT NOT NULL,
+				op TEXT NOT NULL,
+				json TEXT NOT NULL
+			);
+			CREATE INDEX plan_event_campaign ON plan_event (campaign, id);
 		`)
 ];
 
@@ -215,7 +232,7 @@ export function lastNode(db: Db, campaign: string): number | null {
 }
 
 /**
- * Forgets a campaign's history: its nodes, snapshots and galaxy, and the head if it was there.
+ * Forgets a campaign's history: its nodes, snapshots, galaxy and plan, and the head if it was there.
  * `save_file` keeps its rows, so saves still on disk are not read back in; the next new save of
  * the campaign starts it afresh.
  */
@@ -226,6 +243,7 @@ export function deleteCampaign(db: Db, campaign: string) {
 		db.prepare(
 			'DELETE FROM snapshot WHERE node_id IN (SELECT id FROM node WHERE campaign = ?)'
 		).run(campaign);
+		db.prepare('DELETE FROM plan_event WHERE campaign = ?').run(campaign);
 		db.prepare('DELETE FROM node WHERE campaign = ?').run(campaign);
 		db.prepare('DELETE FROM galaxy WHERE campaign = ?').run(campaign);
 		db.exec('COMMIT');
@@ -534,4 +552,54 @@ export function setParent(db: Db, nodeId: number, parentId: number | null) {
 		throw new Error(`node ${parentId} descends from ${nodeId}; that would make a cycle`);
 	}
 	db.prepare('UPDATE node SET parent_id = ?, ambiguous = 0 WHERE id = ?').run(parentId, nodeId);
+}
+
+/** The campaign's plan changes, in the order made (#lib/planner/replay.ts replays them). */
+export function planEvents(db: Db, campaign: string): PlanEvent[] {
+	const rows = db
+		.prepare(
+			'SELECT id, node_id, at, goal, op, json FROM plan_event WHERE campaign = ? ORDER BY id'
+		)
+		.all(campaign) as {
+		id: number;
+		node_id: number;
+		at: string;
+		goal: string;
+		op: string;
+		json: string;
+	}[];
+	return rows.map((r) => ({
+		id: r.id,
+		nodeId: r.node_id,
+		at: r.at,
+		goal: r.goal,
+		op: r.op as PlanOp,
+		data: JSON.parse(r.json)
+	}));
+}
+
+/** Appends plan changes made at a node, in one transaction; returns their ids. */
+export function addPlanEvents(
+	db: Db,
+	campaign: string,
+	nodeId: number,
+	changes: { goal: string; op: PlanOp; data: unknown }[],
+	at = new Date().toISOString()
+): number[] {
+	const insert = db.prepare(
+		'INSERT INTO plan_event (campaign, node_id, at, goal, op, json) VALUES (?, ?, ?, ?, ?, ?)'
+	);
+	db.exec('BEGIN');
+	try {
+		const ids = changes.map((c) =>
+			Number(
+				insert.run(campaign, nodeId, at, c.goal, c.op, JSON.stringify(c.data ?? {})).lastInsertRowid
+			)
+		);
+		db.exec('COMMIT');
+		return ids;
+	} catch (e) {
+		db.exec('ROLLBACK');
+		throw e;
+	}
 }

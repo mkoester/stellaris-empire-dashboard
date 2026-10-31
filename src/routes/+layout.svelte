@@ -17,6 +17,11 @@
 	const tabsAt = (node: string | null) => [
 		{ name: 'all', href: node ? resolve(`/?node=${node}`) : resolve('/'), active: path === '/' },
 		{
+			name: 'planner',
+			href: node ? resolve(`/planner?node=${node}`) : resolve('/planner'),
+			active: path === '/planner'
+		},
+		{
 			name: 'colonies',
 			href: node ? resolve(`/colonies?node=${node}`) : resolve('/colonies'),
 			active: path === '/colonies'
@@ -263,7 +268,13 @@
 				<a class={tab(path === `/tab/${t.id}`)} href={tabHref(t.id)}>{t.name}</a>
 			{/each}
 			{#each fixed as t (t.name)}
-				<a class={tab(t.active)} href={t.href}>{t.name}</a>
+				<a class={tab(t.active)} href={t.href}
+					>{t.name}{#if t.name === 'planner' && data.plan.alerts}<span
+							class="ml-1 rounded bg-red-600 px-1 text-[11px] font-semibold text-white"
+							title="goals no longer possible, or avoided ones that happened"
+							>⚠ {data.plan.alerts}</span
+						>{/if}</a
+				>
 			{/each}
 			<button class={tab(false)} onclick={addTab} title="add a tab of your own">+</button>
 			<a

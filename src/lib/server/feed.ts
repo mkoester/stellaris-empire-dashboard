@@ -328,6 +328,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		wanderlust: null,
 		entryEvents: null,
 		founderClass: null,
+		shipset: null,
 		speciesRights: null
 	};
 }

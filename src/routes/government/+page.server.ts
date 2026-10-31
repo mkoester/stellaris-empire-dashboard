@@ -24,6 +24,7 @@ export function load({ url }) {
 	const s = snaps.findLast((x) => x.council !== null) ?? snaps.findLast((x) => x.kind === 'save');
 	if (!s) error(404, 'no save yet');
 	const f = facts(s, data.scriptedTriggers, {
+		shipKinds: data.shipKinds,
 		electionTypes: data.electionTypes,
 		archetypes: data.speciesArchetypes,
 		slavery: data.speciesRights.flatMap((k) =>

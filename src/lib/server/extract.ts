@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
-import { dirname, join, sep } from 'node:path';
+import { dirname, join } from 'node:path';
 import { gameBuild, gameVersion } from './locate.ts';
 
 // The game data (names, costs, modifiers) comes from stellaris-data-extraction, run on this
@@ -18,9 +18,8 @@ export function extractorFromEnv(env: Record<string, string | undefined>): Extra
 
 /**
  * `v4.5.2` (with its build, `v4.5.3_7793`: an open beta and its release share the version) plus a
- * short hash of the installed DLC folders and the extractor (`extractorIdentity()`: its version and
- * sources): a new DLC is new data too, and a changed extractor may write tables or values the old
- * file lacks.
+ * short hash of the installed DLC folders and the extractor's version and code: a new DLC is new
+ * data too, and a dashboard update may need tables an older extractor did not write.
  */
 export function dataKey(version: string, dlcs: string[], extractor: string | null = null): string {
 	const hash = createHash('sha256')
@@ -30,46 +29,33 @@ export function dataKey(version: string, dlcs: string[], extractor: string | nul
 	return `${version.replace(/[^\w.-]/g, '_')}-${hash}`;
 }
 
-/** The extractor's `__version__` (`extractor/__init__.py` beside its script), null if unreadable. */
+/**
+ * The extractor's `__version__` (`extractor/__init__.py` beside its script) plus a hash of its
+ * code (the script and `extractor/*.py`), null if unreadable. The version alone stays the same
+ * while the extractor is developed, so a dashboard kept serving data from older extractor code —
+ * silently (2026-10-31: Mega-Engineering's prerequisites, fixed in the extractor, never arrived).
+ * A release's code is fixed, so players re-extract only when it changes.
+ */
 export function extractorVersion(script: string): string | null {
 	try {
-		const init = readFileSync(join(dirname(script), 'extractor', '__init__.py'), 'utf8');
-		return /^__version__\s*=\s*['"]([^'"]+)['"]/m.exec(init)?.[1] ?? null;
+		const dir = join(dirname(script), 'extractor');
+		const version = /^__version__\s*=\s*['"]([^'"]+)['"]/m.exec(
+			readFileSync(join(dir, '__init__.py'), 'utf8')
+		)?.[1];
+		if (!version) return null;
+		const code = createHash('sha256');
+		for (const f of [
+			script,
+			...readdirSync(dir)
+				.filter((n) => n.endsWith('.py'))
+				.sort()
+				.map((n) => join(dir, n))
+		])
+			if (existsSync(f)) code.update(readFileSync(f));
+		return `${version}+${code.digest('hex').slice(0, 8)}`;
 	} catch {
 		return null;
 	}
-}
-
-/**
- * The extractor as the cache key sees it: its `__version__` plus a hash of its sources (the script
- * and every `.py` under `extractor/`), so a changed extractor extracts again — during development
- * its version stays the same across changes. Null if there is no `extractor/` beside the script.
- */
-export function extractorIdentity(script: string): string | null {
-	const version = extractorVersion(script);
-	const pkg = join(dirname(script), 'extractor');
-	let files: string[];
-	try {
-		files = readdirSync(pkg, { recursive: true, encoding: 'utf8' })
-			.filter((f) => f.endsWith('.py'))
-			.sort();
-	} catch {
-		return null;
-	}
-	const hash = createHash('sha256');
-	for (const [name, file] of [
-		['<script>', script],
-		...files.map((f) => [f.split(sep).join('/'), join(pkg, f)])
-	]) {
-		hash.update(`${name}\0`);
-		try {
-			hash.update(readFileSync(file));
-		} catch {
-			// unreadable: its name alone
-		}
-		hash.update('\0');
-	}
-	return `${version ?? '?'}+${hash.digest('hex').slice(0, 12)}`;
 }
 
 export const dataDbFile = (appDir: string, key: string) =>
@@ -94,7 +80,7 @@ export async function ensureDataDb(
 	}
 	const file = dataDbFile(
 		appDir,
-		dataKey(version, dlcs, extractor && extractorIdentity(extractor.script))
+		dataKey(version, dlcs, extractor && extractorVersion(extractor.script))
 	);
 	if (existsSync(file)) return file;
 	if (!extractor)

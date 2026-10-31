@@ -102,6 +102,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	wanderlust: null,
 	entryEvents: null,
 	founderClass: null,
+	shipset: null,
 	speciesRights: null,
 	timelineId: null,
 	previousTimelineId: null,

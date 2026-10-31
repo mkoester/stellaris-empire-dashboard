@@ -14,7 +14,7 @@ export function load({ url }) {
 	const data = getGameData();
 	const last = snaps.findLast((s) => s.species !== null);
 	const species = last?.species ?? [];
-	const f = last ? facts(last, data.scriptedTriggers) : null;
+	const f = last ? facts(last, data.scriptedTriggers, { shipKinds: data.shipKinds }) : null;
 	return {
 		...rest,
 		species: species.map((s) => ({

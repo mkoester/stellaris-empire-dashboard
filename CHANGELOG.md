@@ -8,8 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- A build for the Stellaris 4.5.3 open beta (Steam's `stellaris_test` branch): what 0.1.6 does,
-  with the extractor v0.1.6, which reads 4.5.3's game files. The game data it extracts is kept
+- A build for the Stellaris 4.5.3 open beta (Steam's `stellaris_test` branch): what 0.1.7 does,
+  with the extractor v0.1.7, which reads 4.5.3's game files. The game data it extracts is kept
   per game build, so a beta and the release after it never share one.
 - Upcoming: what sits idle stays listed until it is busy again or dismissed (✕) — a research
   field without a tech, no council agenda in preparation, a colony or shipyard with nothing in its
@@ -33,6 +33,73 @@ All notable changes to this project are documented here. The format follows
   where it is.
 - Mods tab: a mod installed twice — a local copy and its Workshop subscription — is active only
   where the launcher loaded it, not both.
+
+## [0.1.7] - 2026-10-31
+
+### Added
+
+- Planner tab, right after `all`: goals for your playthrough — systems to survey, outposts,
+  colonies (planets, habitats, ring segments), starbase upgrades, modules and buildings, districts
+  and buildings per colony, megastructures, techs, traditions, ascension perks, focus cards,
+  anomalies, dig sites, situations, first contacts, Wanderlust categories (and systems your
+  arkship should stay out of), civics, ethics and government types, plus free-text goals. Add,
+  remove, reorder (drag or ▲▼), park, note; every change is kept in a history. Each goal is
+  checked against your latest save: done goals tick themselves off with their date, one that is
+  no longer possible is flagged (and counted on the tab), and a goal you want to avoid turns red
+  once it happens. The plan follows your save graph: loading an older save starts a branch with
+  its own plan, and goals from other branches can be copied over.
+- "+ goal" buttons on the tech, traditions, colony, expansion, megastructures and situations tabs;
+  a right-click on a system on the map lists the goals that fit it, and the map's new "planned
+  goals" layer shows where your goals are.
+- The planner picks up what you already did: every tradition of an adopted tree (taken ones as
+  done, with their date; the rest as the tree's remaining picks) and every ascension perk taken.
+- Nomads: no outposts; waystations and arkships (civilian, science, military) to plan instead.
+- Popups in the planner: what a tech, a tradition, a Wanderlust category's reward or a focus card
+  gives, and for an outpost or waystation what the system holds — station deposits (per
+  waystation module), a pre-FTL civilisation to observe, colonizable planets. Potential goals
+  start folded.
+- Planning a tech plans what it needs: every prerequisite not researched yet, down the whole chain
+  (of "either … or" prerequisites the one your empire can get), and the tier gates ("6
+  Engineering techs of tier 4"). Remove the tech and they go with it.
+- Traditions are named with their tree, perks are marked; a perk you plan or took suggests the
+  tradition tree it opens (The Flesh is Weak → Cybernetics).
+- Nomads: no settling either — colony goals are left out like outposts. The suggestions' buttons
+  sit at the left of each row.
+
+- Planner order follows the game: traditions as you picked them, a pick after the ones it needs,
+  a tree's finisher last; techs after what they need and tier gates in order. Your own order
+  still decides wherever the rules leave a choice.
+- Planning a tradition tree's adoption plans the whole tree; planning one pick plans the adoption
+  and the picks it needs.
+
+- Planner badges: a tech's tier and research area (in the game's colours, with a filter per area),
+  a tradition's place in its tree (adopt, pick, finisher), perks — in the plan, the suggestions and
+  the history, which hides reorderings unless you ask for them.
+- Research goals go as early as they can: tier by tier, a tech before the tier gate it counts
+  towards.
+- Removing a goal asks whether the requirements it brought, and nothing else needs, go too — or
+  stay as goals of their own.
+- A perk whose conditions do not hold yet can still be planned, with a warning (The Flesh is
+  Weak: two perks taken first).
+
+- Focus in the planner: tasks show the area they give points to and how many; the rewards are
+  goals of their own, one per Empire Progression tier ("Conquest tier 4: Improved Weaver
+  Development"), with the points still needed and each area's next tiers suggested.
+
+- Focus tab: each category unfolds to every tier of its Empire Progression — unlocked, current,
+  or how many points are still to go — with a button to plan any of them.
+
+### Fixed
+
+- A bio-ship empire (Biogenesis shipsets) was planned the classic hulls — Corvettes up to
+  Battleships — for techs that take either; it now gets Harbingers and Stingers. Tech within
+  reach, focus rewards and the other tabs that check a tech's conditions know the ship kind too.
+- Fast clicks on ▲▼ in the planner could scramble a group's order; one change now runs at a time,
+  and ▲▼ step past the next goal shown.
+- The game data is extracted again whenever the bundled extractor's code changes, not only its
+  version number.
+- Techs whose prerequisites include "one of" choices (Mega-Engineering and 16 others) were listed
+  as within reach too early: their prerequisites were missing from the game data.
 
 ## [0.1.6] - 2026-10-31
 

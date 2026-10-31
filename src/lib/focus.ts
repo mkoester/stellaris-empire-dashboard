@@ -16,6 +16,9 @@ export type FocusRewardRow = {
 	progress: number;
 	now: Reward | null; // the reward being worked towards
 	next: Reward | null; // the one after it
+	// every tier of the area (the game's Empire Progression panel), with how far each is: passed,
+	// current, or the points still to go — a tier costs its points, the rest carries over
+	tiers: (Reward & { tier: number; state: 'done' | 'current' | 'later'; left: number | null })[];
 };
 
 /** `development_rewards_2` → `development_rewards_3`. */
@@ -45,7 +48,34 @@ export function focusView(focus: EmpireFocus, data: GameData['focus'], f: Facts)
 		priority: focus.priority === r.category,
 		progress: r.progress,
 		now: reward(r.current, data, f),
-		next: reward(nextKey(r.current), data, f)
+		next: reward(nextKey(r.current), data, f),
+		tiers: tiersOf(r, data, f)
 	}));
 	return { priority: focus.priority, cards, rewards };
+}
+
+const tierOf = (key: string) => Number(/_(\d+)$/.exec(key)?.[1] ?? NaN);
+
+/** An area's tiers in order, each passed, current or with the points still to go. */
+function tiersOf(
+	now: EmpireFocus['rewards'][number],
+	data: GameData['focus'],
+	f: Facts
+): FocusRewardRow['tiers'] {
+	const cur = tierOf(now.current);
+	let left = 0;
+	return Object.keys(data.rewards)
+		.filter((k) => data.rewards[k].category === now.category)
+		.sort((a, b) => tierOf(a) - tierOf(b))
+		.flatMap((k): FocusRewardRow['tiers'] => {
+			const r = reward(k, data, f);
+			if (!r) return [];
+			const tier = tierOf(k);
+			const cost = r.cost ?? 0;
+			if (tier < cur) return [{ ...r, tier, state: 'done' as const, left: null }];
+			left += tier === cur ? cost - now.progress : cost;
+			return [
+				{ ...r, tier, state: tier === cur ? ('current' as const) : ('later' as const), left }
+			];
+		});
 }

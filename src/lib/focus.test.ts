@@ -68,4 +68,29 @@ describe('focusView', () => {
 			['tech_federation_code', true]
 		]);
 	});
+
+	it('lists every tier of an area: passed, current with its progress, later with the points to go', () => {
+		const tiers = (current: string, progress: number) =>
+			focusView(
+				{ priority: null, cards: [], rewards: [{ category: 'development', current, progress }] },
+				{
+					...data,
+					rewards: {
+						...data.rewards,
+						development_rewards_1: {
+							category: 'development',
+							cost: 40,
+							options: [{ tech: 'tech_planetary_unification', when: null }]
+						}
+					}
+				},
+				facts
+			).rewards[0].tiers.map((t) => [t.tier, t.state, t.left]);
+		// the UNE save 2206.12.01: development tier 2 with 40 carried over
+		expect(tiers('development_rewards_2', 40)).toEqual([
+			[1, 'done', null],
+			[2, 'current', 20],
+			[3, 'later', 100]
+		]);
+	});
 });

@@ -524,6 +524,35 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, name, category_key, role FROM tradition ORDER BY sort_order'
 				)
 			),
+			traditionPrereqs: rows<{ tradition_key: string; requires_key: string }>(
+				'SELECT tradition_key, requires_key FROM tradition_prereq ORDER BY tradition_key, requires_key'
+			).reduce<Record<string, string[]>>((out, r) => {
+				(out[r.tradition_key] ??= []).push(r.requires_key);
+				return out;
+			}, {}),
+			perkTrees: perkTrees(
+				rows<{ category_key: string; possible_json: string | null }>(
+					"SELECT category_key, possible_json FROM tradition WHERE role = 'adopt'"
+				)
+			),
+			// since extractor 2026-10-31; an older data DB has no such table (unknown then)
+			shipKinds: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'graphical_culture'"
+			).length
+				? Object.fromEntries(
+						rows<{ key: string; ship_kinds_json: string }>(
+							'SELECT key, ship_kinds_json FROM graphical_culture'
+						).map((r) => [r.key, jsonList(r.ship_kinds_json)])
+					)
+				: {},
+			perkRules: Object.fromEntries(
+				rows<{ key: string; potential_json: string | null; possible_json: string | null }>(
+					'SELECT key, potential_json, possible_json FROM ascension_perk'
+				).map((r) => [
+					r.key,
+					{ potential: parseTrigger(r.potential_json), possible: parseTrigger(r.possible_json) }
+				])
+			),
 			perks: Object.fromEntries(
 				rows<{ key: string; name: string | null }>('SELECT key, name FROM ascension_perk').map(
 					(r) => [r.key, r.name ?? r.key]
@@ -665,15 +694,26 @@ export function loadGameData(file: string): GameData {
 				rows<{
 					tech_key: string;
 					prerequisites_json: string;
+					prerequisites_any_json: string | null;
 					potential_json: string | null;
 					is_rare: number;
 					is_dangerous: number;
 				}>(
-					'SELECT tech_key, prerequisites_json, potential_json, is_rare, is_dangerous FROM technology_requirement'
+					// the OR groups since extractor 2026-10-31; an older data DB has none (read as [])
+					`SELECT tech_key, prerequisites_json, ${
+						rows<{ name: string }>('PRAGMA table_info(technology_requirement)').some(
+							(c) => c.name === 'prerequisites_any_json'
+						)
+							? 'prerequisites_any_json'
+							: 'NULL AS prerequisites_any_json'
+					}, potential_json, is_rare, is_dangerous FROM technology_requirement`
 				).map((r) => [
 					r.tech_key,
 					{
 						prerequisites: jsonList(r.prerequisites_json),
+						anyOf: (JSON.parse(r.prerequisites_any_json ?? '[]') as string[][]).filter(
+							(g) => Array.isArray(g) && g.length
+						),
 						potential: parseTrigger(r.potential_json),
 						rare: r.is_rare === 1,
 						dangerous: r.is_dangerous === 1
@@ -783,6 +823,19 @@ export function byKey(rows: unknown[]): Record<string, Record<string, number>> {
 		if (!Object.hasOwn(out, r.key)) out[r.key] = {};
 		out[r.key][r.name] = r.amount;
 	}
+	return out;
+}
+
+/** Perk → the trees whose adoption names it (any branch of the adopt tradition's `possible`). */
+export function perkTrees(
+	adopts: { category_key: string; possible_json: string | null }[]
+): Record<string, string[]> {
+	const out: Record<string, string[]> = {};
+	for (const a of adopts)
+		for (const m of (a.possible_json ?? '').matchAll(
+			/"leaf":"has_ascension_perk","value":"([^"]+)"/g
+		))
+			if (!(out[m[1]] ??= []).includes(a.category_key)) out[m[1]].push(a.category_key);
 	return out;
 }
 

@@ -10,7 +10,11 @@
 	} from '#lib/mapLayers.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import { monthStarts } from '#lib/series.ts';
-	import { putSettings } from '#lib/settings.ts';
+	import ContextMenu, { type MenuItem } from '#lib/ContextMenu.svelte';
+	import { goalKey } from '#lib/planner/replay.ts';
+	import { newGoalId, planAction, putSettings, systemGoals } from '#lib/settings.ts';
+	import { invalidateAll } from '$app/navigation';
+	import { page } from '$app/state';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 	import { wanderlustName } from '#lib/wanderlust.ts';
@@ -38,6 +42,45 @@
 	let hovered: number | null = $state(null);
 	let selected: number | null = $state(null);
 	let map: ReturnType<typeof GalaxyMap> | undefined = $state();
+
+	// a right-click on a system: the goals that fit it, to add to the planner (want or avoid)
+	let menu = $state<{ x: number; y: number; heading: string; items: MenuItem[] } | null>(null);
+	async function systemMenu(id: number, at: { x: number; y: number }) {
+		const name = byId.get(id)?.name ?? `system ${id}`;
+		menu = { ...at, heading: `Plan for ${name} …`, items: [] };
+		const goals = await systemGoals(data.tip, id);
+		const planned = new Set((page.data.plan?.keys as string[] | undefined) ?? []);
+		const add = (g: (typeof goals)[number], polarity: 'want' | 'avoid') => async () => {
+			await planAction(data.tip, [
+				{ goal: newGoalId(), op: 'add', data: { kind: g.kind, target: g.target, polarity } }
+			]);
+			await invalidateAll();
+		};
+		menu = {
+			...at,
+			heading: `Plan for ${name} …`,
+			items: goals.flatMap((g): MenuItem[] => {
+				const done = planned.has(goalKey(g.kind, g.target));
+				const avoid = g.why === 'to avoid';
+				const text = `${g.label}${g.why && !avoid ? ` · ${g.why}` : ''}`;
+				return done
+					? [
+							{
+								label: `✓ ${text}`,
+								disabled: true,
+								title: 'already in the planner',
+								action: () => {}
+							}
+						]
+					: [
+							{
+								label: `${avoid ? '⊘ avoid: ' : '+ '}${text}`,
+								action: () => void add(g, avoid ? 'avoid' : 'want')()
+							}
+						];
+			})
+		};
+	}
 
 	// search by system name, the known systems offered as completions
 	let query = $state('');
@@ -202,7 +245,7 @@
 <div class="flex flex-col gap-6">
 	<Panel
 		title="Discovered galaxy"
-		note="What your empire has found, in the systems it discovered. Borders: your empire and those you have communications with in their map colours; stations you saw but cannot name yet are guessed by shipset (dashed). Click a system to pick it."
+		note="What your empire has found, in the systems it discovered. Borders: your empire and those you have communications with in their map colours; stations you saw but cannot name yet are guessed by shipset (dashed). Click a system to pick it, right-click it to add a goal to the planner."
 	>
 		<GalaxyMap
 			systems={data.systems}
@@ -222,6 +265,7 @@
 			bind:hovered
 			bind:selected
 			bind:this={map}
+			onsystemmenu={systemMenu}
 		>
 			{#snippet layer(at)}
 				{#each [...bySystem] as [id, list] (id)}
@@ -281,3 +325,7 @@
 		{:else}<p class="text-sm text-gray-500">Nothing done yet in the layers shown.</p>{/if}
 	</details>
 </div>
+
+{#if menu}
+	<ContextMenu {...menu} onclose={() => (menu = null)} />
+{/if}
