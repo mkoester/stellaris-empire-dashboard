@@ -4,6 +4,7 @@
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
+	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 
@@ -15,6 +16,12 @@
 	// the game's colours per category: exploration blue, conquest red, development gold
 	const tint = (category: string | null) => colorOf(`focus-${category}`);
 	type RewardRow = NonNullable<typeof data.view>['rewards'][number];
+	// the areas unfolded to every tier (per page; none at first)
+	let unfolded = $state<string[]>([]);
+	const unfold = (category: string) =>
+		(unfolded = unfolded.includes(category)
+			? unfolded.filter((x) => x !== category)
+			: [...unfolded, category]);
 	const rewardColumns: Column<RewardRow>[] = [
 		{ id: 'category', label: 'Category', value: (r) => r.name, cell: category },
 		{ id: 'progress', label: 'Progress', value: (r) => r.progress, cell: progress, right: true },
@@ -22,10 +29,38 @@
 	];
 </script>
 
-{#snippet category(r: RewardRow)}<span
+{#snippet category(r: RewardRow)}<button
+		type="button"
 		class="whitespace-nowrap {r.priority ? 'font-semibold' : ''}"
-		style:color={tint(r.category)}>{r.name}{r.priority ? ' ★' : ''}</span
+		style:color={tint(r.category)}
+		title="every tier of {r.name}"
+		aria-expanded={unfolded.includes(r.category)}
+		onclick={() => unfold(r.category)}
+		>{unfolded.includes(r.category) ? '▾' : '▸'} {r.name}{r.priority ? ' ★' : ''}</button
 	>{/snippet}
+{#snippet tiers(r: RewardRow)}{#if unfolded.includes(r.category)}
+		<ol class="mb-2 text-sm">
+			{#each r.tiers as t (t.key)}
+				<li
+					class={t.state === 'done'
+						? 'text-gray-500'
+						: t.state === 'current'
+							? 'font-semibold'
+							: ''}
+				>
+					<span class="inline-block w-14 tabular-nums" style:color={tint(r.category)}
+						>Tier {t.tier}</span
+					>{@render reward(t)}<span class="ml-1 text-xs text-gray-500"
+						>{t.state === 'done'
+							? '✓ unlocked'
+							: t.state === 'current'
+								? `${r.progress} / ${t.cost} points`
+								: `${t.cost} points · ${t.left} more`}</span
+					>{#if t.state !== 'done'}<AddGoal kind="focus_reward" target={{ reward: t.key }} />{/if}
+				</li>
+			{/each}
+		</ol>
+	{/if}{/snippet}
 {#snippet progress(r: RewardRow)}<span class="whitespace-nowrap"
 		>{r.progress}{r.now?.cost != null ? ` / ${r.now.cost}` : ''}</span
 	>{/snippet}
@@ -63,13 +98,14 @@
 	<div class="grid gap-8 lg:grid-cols-2">
 		<Panel
 			title="Rewards"
-			note="Per category: progress towards the next reward and the one after it, each the tech your empire gets (hover for why, and the others)."
+			note="Per category: progress towards the next reward and the one after it, each the tech your empire gets (hover for why, and the others). ▸ unfolds every tier of a category, as the game's Empire Progression panel."
 		>
 			<SortTable
 				rows={data.view.rewards}
 				columns={rewardColumns}
 				key={(r) => r.category}
 				sort={{ column: '', desc: false }}
+				below={tiers}
 			/>
 		</Panel>
 

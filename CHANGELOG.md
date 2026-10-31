@@ -56,6 +56,9 @@ All notable changes to this project are documented here. The format follows
   goals of their own, one per Empire Progression tier ("Conquest tier 4: Improved Weaver
   Development"), with the points still needed and each area's next tiers suggested.
 
+- Focus tab: each category unfolds to every tier of its Empire Progression — unlocked, current,
+  or how many points are still to go — with a button to plan any of them.
+
 ### Fixed
 
 - A bio-ship empire (Biogenesis shipsets) was planned the classic hulls — Corvettes up to

@@ -1071,7 +1071,12 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   one after. A reward is `add_research_option` — "permanent until researched" (4.5.2
   `logs/script_documentation/effects.log`): no research, no progress. Several options are an
   if/else on the empire, not a choice; the one ours is evaluated (`is_diplomatic` …) and the
-  ⓘ popup says why. Categories in the game's colours (`focus-*` in `colors.ts`).
+  ⓘ popup says why. Categories in the game's colours (`focus-*` in `colors.ts`). ▸ on a category
+  unfolds every tier (`FocusRewardRow.tiers`, the game's Empire Progression panel; the user's ask
+  2026-10-31): unlocked, current with its progress, or its cost and the points still to go (a
+  tier costs its points, the rest carries over), each with "+ goal". Checked against the panel
+  (Roaming Korinth, nomad with bio ships: all ten Conquest tiers; Exploration tier 5 Planetary
+  Engineering for nomads, Terrestrial Sculpting otherwise — `is_nomadic` in the reward).
 - **traditions**: the active effects in two tables, traditions and perks (`totalEffects()`,
   `EffectTotals.svelte`, shared with the Government panel; text-only effects listed apart), every
   adopted tree in full with each tradition's effects (not yet active ones grey), the other trees,

@@ -18,7 +18,7 @@ export function load({ url }) {
 		? focusView(s.focus, data.focus, facts(s, data.scriptedTriggers, { shipKinds: data.shipKinds }))
 		: null;
 	const name = (t: string) => data.techs[t]?.name ?? t;
-	const rewards = view?.rewards.flatMap((r) => [r.now, r.next]).filter((x) => x !== null) ?? [];
+	const rewards = view?.rewards.flatMap((r) => r.tiers) ?? [];
 	const techs = rewards.flatMap((r) => r.options.map((o) => o.tech));
 	return {
 		...rest,
