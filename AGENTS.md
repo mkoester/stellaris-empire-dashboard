@@ -75,15 +75,15 @@ path when they are wrong. A machine moved from Proton to the native build keeps 
 (`scripts/stellaris-native.sh`); ranking by newest save picks the one in play.
 
 **Game data** (`server/extract.ts`): without `STELLARIS_DATA_DB` the extractor runs at start
-against `gameDir` — `data/stellaris-<rawVersion>_<build>-<hash of the DLC folders and the extractor's
-`**version**`>.sqlite` (`v4.5.3_7793-…`; the build from `launcher-settings.json`'s `version`, as an
-open beta shares its `rawVersion` with the release), so a game update, a beta build, a new DLC or a
-dashboard with a newer extractor (new tables) extracts again (~5 s), older files stay. The footer
-shows the data DB's own `meta.game_version`. The packaged launcher names the extractor and
-its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`). **During development the extractor's
-`__version__` stays the same across changes**, so a running dashboard keeps its old data file:
-delete `data/stellaris-<key>.sqlite` (the app data folder) after an extractor change, or the new
-tables and values never arrive — silently.
+against `gameDir` — `data/stellaris-<rawVersion>_<build>-<hash of the DLC folders and the extractor>.sqlite`
+(`v4.5.3_7793-…`; the build from `launcher-settings.json`'s `version`, as an open beta shares its
+`rawVersion` with the release), so a game update, a beta build, a new DLC or a changed extractor
+extracts again (~5 s), older files stay. The extractor counts by its `__version__` **and its
+sources** (`extractorIdentity()`: the script and every `.py` under `extractor/`), because during
+development the version stays the same across changes — until 2026-10-31 the key used the version
+alone, and an extractor change needed `data/stellaris-<key>.sqlite` deleted by hand. The footer
+shows the data DB's own `meta.game_version`. The packaged launcher names the extractor and its
+Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`).
 
 ## Packaging and releases
 
@@ -371,7 +371,16 @@ anomaly its category's `level`), when it was **seen** and its **age** in months 
 the first save listing it, a wormhole, gateway, L-Gate or megastructure the first save listing its
 system in `knownSystems` (`firstSeen()` in `#lib/mapLayers.ts`), an entry event its first reading;
 "≤" where that is the first save showing the field at all (then or earlier), none for what a
-spoiler shows unvisited. Say
+spoiler shows unvisited. **Found & done** (the user's ask 2026-10-31): what is no longer to do moves from "Found" to
+a folded table below it, and onto the map (faded) only while that is unfolded — per viewer, not
+stored. Done (`MapMarker.done`, `tracked()` over the branch's saves, `doneAt` the first save
+showing it): an anomaly or special project gone from the save's list (resolved; seen on the
+Planetforgers' history, where both lists shrink), a dig site gone (**assumed** — no site has been
+excavated to its end in our saves yet), a first contact `finished` or `aborted` (they stay listed),
+a station seen once the contact with its owner is `finished` (the user's call: aborted leaves it
+unnamed), a Wanderlust target counted, a ruin in a system someone owns ("claimed"; the structure's
+own owner is not stored), an entry popup in a system whose gateway, megastructure or ruin has its
+own row (the Abandoned Gateway). Wormholes, gateways, L-Gates and megastructures stay open. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
@@ -953,7 +962,14 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   field's tech researched meanwhile), research tiers, everything researched.
 - **leaders**: `Snapshot.leaderList`, traits explained by `ltrait:<key>` (data DB `leader_trait`,
   each modifier labelled with its scope); class colours (`class-*` in `colors.ts`, envoys ours);
-  envoys behind a switch, off by default.
+  envoys behind a switch, off by default. **Leader modifiers from the empire** (the user's ask
+  2026-10-31: "other sources of leader properties apart from their traits, e.g. experience gain";
+  `#lib/leaderSources.ts`): every held source (`empireHeld()`, shared with the colony levers)
+  whose popup carries a leader modifier (`isLeaderModifier()`: experience, skill, lifespan, limits
+  and pool, upkeep and cost, council, envoys), summed per modifier. Traditions' and perks'
+  triggered modifiers now carry their condition (`Modifier.when` from
+  `tradition_modifier.potential_json`) and are weighed against the save — ap_wanderlust's second
+  −10 % upkeep only once a category is completed; "?" where the save cannot tell.
 - **species**: traits with their effects in a grid (the climate preference, one line per planet
   class, a row of its own; more picks wrap into more rows), trait budget, rights. System names
   from random-name lists that are localisation keys (`VOIDWORM_SYSTEM_12` = Papqaqtet) resolve
