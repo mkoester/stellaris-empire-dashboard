@@ -947,7 +947,13 @@ export type GameData = {
 	// what researching a tech needs: prerequisites, who can get it (`potential`), rarity
 	techRequirements: Record<
 		string,
-		{ prerequisites: string[]; potential: Trigger | null; rare: boolean; dangerous: boolean }
+		{
+			prerequisites: string[]; // all researched first
+			anyOf?: string[][]; // one of each group researched first (`OR` in the files)
+			potential: Trigger | null;
+			rare: boolean;
+			dangerous: boolean;
+		}
 	>; // `tech:`/`tradition:` key → cost and output modifiers
 	techs: Record<string, { name: string; cost: number | null; area: string; tier: number | null }>;
 	agendas: Record<
@@ -1061,6 +1067,9 @@ export type GameData = {
 		{ name: string; traditions: { key: string; name: string; role: string }[] }
 	>;
 	perks: Record<string, string>; // ascension perk names
+	// perk → the tradition trees its adoption asks for (`has_ascension_perk` in the tree's adopt
+	// tradition's `possible`, e.g. The Flesh is Weak → Cybernetics)
+	perkTrees: Record<string, string[]>;
 	flagColors: Record<string, string>; // flag colour swatch → its galaxy-map colour (#rrggbb)
 	ethicAxes: Record<string, EthicAxis>; // ethic → its place on its axis
 	ethicOrder: string[]; // ethic keys by the game's ethic index (`EthicsState` lists)

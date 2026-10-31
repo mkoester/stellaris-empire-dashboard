@@ -3,6 +3,7 @@ import { upgrade } from '#lib/upgrade.ts';
 import type { Colony, GalaxySystem, Snapshot } from '#lib/types.ts';
 import {
 	autoGoals,
+	traditionName,
 	check,
 	groupOf,
 	label,
@@ -296,7 +297,8 @@ describe('nomads', () => {
 
 	it('build no outposts, but waystations and arkships', () => {
 		expect(state('outpost', { system: 3 }, ctx(nomad(), [system(3)]))).toBe('blocked');
-		expect(unavailable(nomad())).toEqual(['outpost']);
+		expect(unavailable(nomad())).toEqual(['outpost', 'colony']);
+		expect(state('colony', { planet: 4 }, ctx(nomad()))).toBe('blocked');
 		expect(unavailable(save())).toEqual(['waystation', 'arkship']);
 		expect(state('waystation', { system: 3 }, ctx(save(), [system(3)]))).toBe('blocked');
 		expect(state('arkship', { type: 'military', count: 1 }, ctx(save()))).toBe('blocked');
@@ -383,5 +385,42 @@ describe('autoGoals', () => {
 		expect(
 			state('tradition', { tradition: 'tr_exp_adopt' }, ctx(save({ traditions: ['tr_exp_adopt'] })))
 		).toBe('done');
+	});
+});
+
+describe('tradition labels and tier gates', () => {
+	it('names a pick with its tree', () => {
+		const data = {
+			traditionTrees: {
+				t: {
+					name: 'Expansion',
+					traditions: [
+						{ key: 'a', name: 'A', role: 'adopt' },
+						{ key: 'b', name: 'B', role: 'normal' },
+						{ key: 'f', name: 'F', role: 'finish' }
+					]
+				}
+			}
+		};
+		expect(['a', 'b', 'f'].map((k) => traditionName(k, data))).toEqual([
+			'Expansion (adopt)',
+			'Expansion: B',
+			'Expansion (finished)'
+		]);
+	});
+
+	it('counts the researched techs of a tier in an area', () => {
+		const s = save();
+		const c = ctx(s, [], {
+			data: {
+				...data,
+				techs: { tech_a: { name: 'A', cost: 1, area: 'engineering', tier: 3 } }
+			} as PlanCtx['data']
+		});
+		expect(check('tech_tier', { area: 'engineering', tier: 3, count: 6 }, false, c)).toEqual({
+			state: 'progress',
+			why: '1 of 6, 5 more'
+		});
+		expect(state('tech_tier', { area: 'engineering', tier: 3, count: 1 }, c)).toBe('done');
 	});
 });

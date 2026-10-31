@@ -139,7 +139,8 @@
 	// the typed label back to its value: a datalist shows labels, the target wants ids and keys
 	function valueOf(field: string): string | number | null {
 		const typed = (values[field] ?? '').trim();
-		if (field === 'count') return Number(typed) > 0 ? Math.round(Number(typed)) : null;
+		if (field === 'count' || field === 'tier')
+			return Number(typed) > 0 ? Math.round(Number(typed)) : null;
 		const o = optionsFor(field).find((x) => x.label === typed || String(x.value) === typed);
 		return o ? o.value : null;
 	}
@@ -195,9 +196,13 @@
 	<span class={r.polarity === 'avoid' ? 'text-red-700 dark:text-red-400' : ''}
 		>{#if r.polarity === 'avoid'}<span title="to avoid">⊘ </span>{/if}<InfoPopup
 			explanation={r.ref ? data.explain[r.ref] : undefined}>{r.label}</InfoPopup
-		>{#if r.auto}<span
+		>{#if r.kind === 'perk'}<span
+				class="ml-1 rounded bg-violet-100 px-1 text-[10px] text-violet-800 dark:bg-violet-900 dark:text-violet-200"
+				title="ascension perk">perk</span
+			>{/if}{#if r.auto}<span
 				class="ml-1 rounded bg-gray-100 px-1 text-[10px] text-gray-500 dark:bg-gray-800"
-				title="picked up from the save: a tradition of an adopted tree, or a perk taken">auto</span
+				title="added by itself: a tradition of an adopted tree, a perk taken, or what a planned tech needs"
+				>auto</span
 			>{/if}</span
 	>
 {/snippet}
@@ -419,7 +424,7 @@
 				{#each kindInfo?.fields ?? [] as f (f)}
 					<label class="flex flex-col"
 						><span class="text-xs text-gray-500">{f}</span>
-						{#if f === 'count'}
+						{#if f === 'count' || f === 'tier'}
 							<input
 								type="number"
 								min="1"
@@ -586,7 +591,10 @@
 			</Panel>
 		{/if}
 
-		<Panel title="Potential goals" note="What the latest save suggests; a click adds it.">
+		<Panel
+			title="Potential goals"
+			note="What the latest save suggests: + want adds it, ⊘ adds it as a goal to avoid."
+		>
 			{#each suggestionsBy as g (g.id)}
 				<details class="mt-1">
 					<summary class="cursor-pointer font-semibold"
@@ -595,23 +603,31 @@
 					>
 					<ul class="text-sm">
 						{#each g.list as s, i (i)}
-							<li class="flex items-center gap-2">
+							<!-- the buttons first, at a fixed width, and the whole row lit on hover: which
+							     item a button adds is plain to see -->
+							<li
+								class="flex items-baseline gap-2 rounded px-1 py-0.5 odd:bg-gray-50 hover:bg-sky-50 dark:odd:bg-gray-900 dark:hover:bg-sky-950"
+							>
+								<span class="flex w-24 shrink-0 gap-1">
+									<button
+										type="button"
+										class="rounded border border-sky-300 px-1 text-xs text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900"
+										title="add: want {s.label}"
+										aria-label="want {s.label}"
+										onclick={() => addGoal(s.kind, s.target, 'want')}>+ want</button
+									>
+									<button
+										type="button"
+										class="rounded border border-red-300 px-1 text-xs text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+										title="add: avoid {s.label}"
+										aria-label="avoid {s.label}"
+										onclick={() => addGoal(s.kind, s.target, 'avoid')}>⊘</button
+									>
+								</span>
 								<span class="flex-1"
 									><InfoPopup explanation={s.ref ? data.explain[s.ref] : undefined}
 										>{s.label}</InfoPopup
 									>{#if s.why}<span class="text-xs text-gray-500"> · {s.why}</span>{/if}</span
-								>
-								<button
-									type="button"
-									class="text-xs text-sky-600"
-									title="want it"
-									onclick={() => addGoal(s.kind, s.target, 'want')}>+ want</button
-								>
-								<button
-									type="button"
-									class="text-xs text-red-600"
-									title="avoid it"
-									onclick={() => addGoal(s.kind, s.target, 'avoid')}>+ avoid</button
 								>
 							</li>
 						{/each}

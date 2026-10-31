@@ -28,6 +28,18 @@ All notable changes to this project are documented here. The format follows
   gives, and for an outpost or waystation what the system holds — station deposits (per
   waystation module), a pre-FTL civilisation to observe, colonizable planets. Potential goals
   start folded.
+- Planning a tech plans what it needs: every prerequisite not researched yet, down the whole chain
+  (of "either … or" prerequisites the one your empire can get), and the tier gates ("6
+  Engineering techs of tier 4"). Remove the tech and they go with it.
+- Traditions are named with their tree, perks are marked; a perk you plan or took suggests the
+  tradition tree it opens (The Flesh is Weak → Cybernetics).
+- Nomads: no settling either — colony goals are left out like outposts. The suggestions' buttons
+  sit at the left of each row.
+
+### Fixed
+
+- Techs whose prerequisites include "one of" choices (Mega-Engineering and 16 others) were listed
+  as within reach too early: their prerequisites were missing from the game data.
 
 ## [0.1.6] - 2026-10-31
 

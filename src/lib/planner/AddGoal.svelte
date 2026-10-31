@@ -17,6 +17,10 @@
 	const planned = $derived(
 		((page.data.plan?.keys as string[] | undefined) ?? []).includes(goalKey(kind, target))
 	);
+	// a kind this empire cannot have (a nomad's outposts and colonies): no button
+	const offered = $derived(
+		!((page.data.plan?.unavailable as string[] | undefined) ?? []).includes(kind)
+	);
 	let busy = $state(false);
 
 	async function add(e: MouseEvent) {
@@ -32,7 +36,7 @@
 	}
 </script>
 
-{#if tip !== undefined}
+{#if tip !== undefined && offered}
 	<button
 		type="button"
 		class="ml-1 rounded px-1 text-[11px] whitespace-nowrap {planned

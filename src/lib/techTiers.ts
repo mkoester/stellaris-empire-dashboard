@@ -36,8 +36,8 @@ export function techTiers(
 }
 
 /**
- * Techs within reach: not researched, every prerequisite researched, their tier open in their
- * field, and not ruled out for this empire (`potential` false; unknown counts as possible — the
+ * Techs within reach: not researched, every prerequisite researched (and one of each `OR` group),
+ * their tier open in their field, and not ruled out for this empire (`potential` false; unknown counts as possible — the
  * save cannot answer every condition). Rare and dangerous ones included: they are within reach
  * too, only offered less often.
  */
@@ -59,6 +59,7 @@ export function inReach(
 				!done.has(k) &&
 				req !== undefined &&
 				req.prerequisites.every((p) => done.has(p)) &&
+				(req.anyOf ?? []).every((group) => group.some((p) => done.has(p))) &&
 				(t.tier === null || tiers[t.area]?.[t.tier]?.open !== false) &&
 				possible(req.potential) !== false
 			);

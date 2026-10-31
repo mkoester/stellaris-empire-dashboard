@@ -531,7 +531,23 @@ for a waystation with the module collecting it, from `collected_system_resources
 planets, unsurveyed bodies, anomalies, structures, passages). **Deposits only on surveyed bodies**
 unless `surveyAll`: the galaxy as shown (`surveyView()`) hides an unsurveyed body's anomaly but
 not its deposits, which the game hides — whether other tabs show them too is not checked.
-Potential goals start folded, per group. **Later phases** (not built): diplomacy (befriend,
+**What a planned tech needs** (`techNeeds()`, `#lib/planner/needs.ts`, the user's ask: "adding
+Mega-Engineering should add all direct and indirect requirements"): `planFor()` replays the plan,
+then seeds, for every wanted tech not parked, each unresearched prerequisite recursively and each
+unmet **tier gate** (kind `tech_tier`: 6 techs of the tier below in that area, as `techTiers()`),
+ids `auto-tech-<key>` / `auto-tier-<area>-<tier>`, noted "needed for …"; of an `OR` group
+(data DB `technology_requirement.prerequisites_any_json`, extractor 2026-10-31 — before, any
+prerequisite block holding an OR read as empty) the first alternative whose `potential` is not
+false, the others named ("or instead Citadel"); `inReach()` wants one of each group too. Checked
+2026-10-31 on Roaming Korinth (nomad): Mega-Engineering → the power, hull and arkship lines and
+seven tier gates, Arkship Mastery chosen over Citadel. They go with the tech: removing it removes
+them. **Traditions** are labelled with their tree ("Statecraft: Amongst Peers", "… (adopt)",
+"… (finished)"), perks carry a badge; a planned or taken perk that a tree's adoption names
+(`GameData.perkTrees`: `has_ascension_perk` in the adopt tradition's `possible`) suggests that
+tree first ("Cybernetics (adopt) · opened by The Flesh is Weak"). Nomads settle no planets either
+(`unavailable()`: outposts and colonies; the layout's `plan.unavailable` hides those "+ goal"
+buttons on other tabs). Potential goals start folded, per group, their "+ want" and "⊘" (avoid)
+buttons at the left of each row, the row lit on hover. **Later phases** (not built): diplomacy (befriend,
 rivals, pacts wanted or avoided), GalCom and federation (federation tables not loaded, none seen
 in a save), market prices and trade deals, leaders, Shroud, jobs and resource priorities, orbital
 rings (their `Station.level` not yet seen in a save), espionage (nothing in the save or the data

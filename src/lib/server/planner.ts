@@ -35,8 +35,9 @@ import {
 } from '#lib/planner/replay.ts';
 import { holdsSince, seenAlong, type Since } from '#lib/planner/status.ts';
 import { systemInfo } from '#lib/planner/systemInfo.ts';
+import { techNeeds } from '#lib/planner/needs.ts';
+import { AREAS, inReach } from '#lib/techTiers.ts';
 import { discovered, jumpsFromBorder } from '#lib/situations.ts';
-import { inReach } from '#lib/techTiers.ts';
 import { evaluate } from '#lib/triggers.ts';
 import type { Explanation, Snapshot } from '#lib/types.ts';
 import { WANDERLUST } from '#lib/wanderlust.ts';
@@ -293,13 +294,35 @@ function explanations(refs: string[], c: Ctx | null): Record<string, Explanation
 	return out;
 }
 
+/**
+ * The plan at a node over what the save and the plan imply: the adopted trees' traditions and the
+ * perks taken (`autoGoals`), then what each planned tech still needs (`techNeeds`).
+ */
+function planFor(events: PlanEvent[], path: number[], c: Ctx | null): Plan {
+	if (!c) return planAt(events, path);
+	const data = getGameData();
+	const auto = autoGoals(c.ctx.latest, data);
+	const first = planAt(events, path, auto);
+	const wanted = [...first.goals.values()]
+		.filter((g) => g.kind === 'tech' && !g.parked && g.polarity === 'want')
+		.map((g) => String(g.target.tech));
+	const needs = techNeeds(
+		wanted,
+		c.ctx.latest.progress?.researched ?? [],
+		data.techs,
+		data.techRequirements,
+		c.ctx.possible
+	);
+	return needs.length ? planAt(events, path, [...auto, ...needs]) : first;
+}
+
 /** Everything the planner tab shows for the branch ending at `tip`. */
 export function plannerPage(snaps: Snapshot[], tip: number) {
 	const c = planCtx(snaps);
 	const campaign = snaps.at(-1)?.campaign ?? '';
 	const events = planEvents(getDb(), campaign);
 	const { path, dates, below } = pathOf(tip);
-	const plan = planAt(events, path, c ? autoGoals(c.ctx.latest, getGameData()) : []);
+	const plan = planFor(events, path, c);
 	const groups = arrange(plan, groupOf);
 	const others = c ? otherBranches(events, branchesOf(campaign, tip), plan) : [];
 	const toRow = (g: Goal) => (c ? row(g, c, dates) : null);
@@ -388,7 +411,7 @@ function fieldOptions(c: Ctx): Record<string, Option[]> {
 		tech: keyed(d.techs, (k) => d.techs[k].name),
 		tradition: by(
 			Object.values(d.traditionTrees).flatMap((t) =>
-				t.traditions.map((x) => ({ value: x.key, label: `${traditionName(x.key, d)} · ${t.name}` }))
+				t.traditions.map((x) => ({ value: x.key, label: traditionName(x.key, d) }))
 			)
 		),
 		perk: keyed(d.perks, (k) => d.perks[k]),
@@ -398,6 +421,7 @@ function fieldOptions(c: Ctx): Record<string, Option[]> {
 		starbaseBuildings: keyed(d.costs.starbaseBuilding, (k) => d.names[k] ?? k),
 		level: STATION_LEVELS.map((l) => ({ value: l, label: l })),
 		type: Object.entries(ARKSHIPS).map(([value, label]) => ({ value, label })),
+		area: AREAS.map((a) => ({ value: a, label: a })),
 		structure: MEGA_KINDS.map((k) => ({ value: k, label: MEGA_RULES[k].name })),
 		situation: keyed(d.situationTypes, (k) => d.situationTypes[k].name),
 		approach: by(
@@ -554,6 +578,25 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 			}))
 	);
 	const taken = new Set(l.traditions ?? []);
+	// the trees a planned or taken perk opens (The Flesh is Weak → Cybernetics)
+	add(
+		'tradition',
+		[...plan.goals.values()]
+			.filter((g) => g.kind === 'perk' && g.polarity === 'want')
+			.flatMap((g) =>
+				(d.perkTrees[String(g.target.perk)] ?? []).flatMap((tree) => {
+					const adopt = d.traditionTrees[tree]?.traditions.find((t) => t.role === 'adopt')?.key;
+					return adopt && !taken.has(adopt)
+						? [
+								{
+									target: { tradition: adopt },
+									why: `opened by ${d.perks[String(g.target.perk)] ?? g.target.perk}`
+								}
+							]
+						: [];
+				})
+			)
+	);
 	add(
 		'tradition',
 		Object.values(d.traditionTrees).flatMap((tree) => {
@@ -648,22 +691,29 @@ export function plannedSystems(snaps: Snapshot[], tip: number): Record<number, s
 	return out;
 }
 
-let memo: { key: string; value: { keys: string[]; alerts: number } } | null = null;
+let memo: {
+	key: string;
+	value: { keys: string[]; alerts: number; unavailable: string[] };
+} | null = null;
 
 /**
  * For the tab bar and the "+ goal" buttons on every page: the plan's goal keys at the node shown,
  * and how many need attention — blocked, or avoided and happened. Cached by tip and plan.
  */
-export function planSummary(tip: number | null): { keys: string[]; alerts: number } {
-	if (tip === null) return { keys: [], alerts: 0 };
+export function planSummary(tip: number | null): {
+	keys: string[];
+	alerts: number;
+	unavailable: string[];
+} {
+	if (tip === null) return { keys: [], alerts: 0, unavailable: [] };
 	const db = getDb();
 	const node = nodes(db).find((n) => n.id === tip);
-	if (!node) return { keys: [], alerts: 0 };
+	if (!node) return { keys: [], alerts: 0, unavailable: [] };
 	const events = planEvents(db, node.campaign);
 	const key = `${tip}:${events.at(-1)?.id ?? 0}:${events.length}`;
 	if (memo?.key === key) return memo.value;
 	const c = planCtx(history(db, tip));
-	const plan = planAt(events, pathOf(tip).path, c ? autoGoals(c.ctx.latest, getGameData()) : []);
+	const plan = planFor(events, pathOf(tip).path, c);
 	const goals = [...plan.goals.values()];
 	let alerts = 0;
 	{
@@ -675,6 +725,13 @@ export function planSummary(tip: number | null): { keys: string[]; alerts: numbe
 				if (st === 'done' && g.polarity === 'avoid') alerts++;
 			}
 	}
-	memo = { key, value: { keys: goals.map((g) => goalKey(g.kind, g.target, g.title)), alerts } };
+	memo = {
+		key,
+		value: {
+			keys: goals.map((g) => goalKey(g.kind, g.target, g.title)),
+			alerts,
+			unavailable: c ? unavailable(c.ctx.latest) : []
+		}
+	};
 	return memo.value;
 }

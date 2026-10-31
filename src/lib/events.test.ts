@@ -73,6 +73,7 @@ const data: GameData = {
 	blockerInfo: {},
 	traditionTrees: {},
 	perks: {},
+	perkTrees: {},
 	flagColors: {},
 	ethicAxes: {},
 	ethicOrder: [],

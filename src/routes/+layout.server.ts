@@ -49,7 +49,7 @@ export function load({ url }) {
 			head: null,
 			gameVersion: null,
 			dates: null,
-			plan: { keys: [] as string[], alerts: 0 }
+			plan: { keys: [] as string[], alerts: 0, unavailable: [] as string[] }
 		};
 	const db = getDb();
 	const { id, name } = activeProfile(db);

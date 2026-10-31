@@ -46,6 +46,7 @@ export type PlanCtx = {
 		| 'identityNames'
 		| 'anomalyCategories'
 		| 'civicAuthority'
+		| 'perkTrees'
 	>;
 	possible: (t: GameData['techRequirements'][string]['potential']) => boolean | null;
 	reach: string[]; // techs within reach (`inReach`)
@@ -251,6 +252,8 @@ export const KINDS: Record<string, Kind> = {
 		label: (t, c) => `Settle ${c.planet(n(t, 'planet'))}`,
 		system: (t, c) => planetSystem(c, n(t, 'planet')),
 		check: (t, c) => {
+			if (nomadic(c.latest))
+				return { state: 'blocked', why: 'a nomadic empire settles no planets' };
 			const col = colonyOf(c, n(t, 'planet'));
 			if (col)
 				return col.colonizing ? { state: 'progress', why: 'being settled' } : { state: 'done' };
@@ -374,15 +377,37 @@ export const KINDS: Record<string, Kind> = {
 			if (c.latest.techPermanent?.includes(key))
 				return { state: 'open', why: 'a permanent option' };
 			if (c.reach.includes(key)) return { state: 'open', why: 'within reach' };
-			const missing = (c.data.techRequirements[key]?.prerequisites ?? []).filter(
-				(p) => !c.latest.progress?.researched.includes(p)
-			);
+			const has = (p: string) => c.latest.progress?.researched.includes(p);
+			const missing = [
+				...(c.data.techRequirements[key]?.prerequisites ?? []).filter((p) => !has(p)),
+				...(c.data.techRequirements[key]?.anyOf ?? [])
+					.filter((g) => !g.some(has))
+					.map((g) => g.map((p) => c.data.techs[p]?.name ?? p).join(' or '))
+			];
 			return {
 				state: 'open',
 				why: missing.length
 					? `needs ${missing.map((p) => c.data.techs[p]?.name ?? p).join(', ')}`
 					: 'its tier is not open yet'
 			};
+		}
+	},
+	tech_tier: {
+		group: 'research',
+		name: 'techs of a tier in an area (opens the next tier)',
+		fields: ['area', 'tier', 'count'],
+		label: (t) =>
+			`${n(t, 'count')} ${s(t, 'area').replace(/^./, (x) => x.toUpperCase())} techs of tier ${n(t, 'tier')}`,
+		check: (t, c) => {
+			const researched = c.latest.progress?.researched;
+			if (!researched) return { state: 'unknown' };
+			const have = researched.filter(
+				(k) => c.data.techs[k]?.area === s(t, 'area') && c.data.techs[k]?.tier === n(t, 'tier')
+			).length;
+			const want = n(t, 'count');
+			return have >= want
+				? { state: 'done' }
+				: { state: have > 0 ? 'progress' : 'open', why: `${have} of ${want}, ${want - have} more` };
 		}
 	},
 	tradition: {
@@ -540,7 +565,12 @@ const identityRef = (key: string) =>
 export function traditionName(key: string, data: Pick<GameData, 'traditionTrees'>): string {
 	for (const tree of Object.values(data.traditionTrees)) {
 		const t = tree.traditions.find((x) => x.key === key);
-		if (t) return t.role === 'adopt' ? `${tree.name} (adopt)` : t.name;
+		if (t)
+			return t.role === 'adopt'
+				? `${tree.name} (adopt)`
+				: t.role === 'finish'
+					? `${tree.name} (finished)`
+					: `${tree.name}: ${t.name}`;
 	}
 	return pretty(key);
 }
@@ -563,7 +593,7 @@ export function label(kind: string, target: Target, title: string, c: LabelCtx):
 export function validTarget(kind: string, target: Target): boolean {
 	const k = KINDS[kind];
 	if (!k) return false;
-	const numeric = ['system', 'planet', 'country', 'count'];
+	const numeric = ['system', 'planet', 'country', 'count', 'tier'];
 	return (
 		Object.keys(target).length === k.fields.length &&
 		k.fields.every((f) =>
@@ -588,14 +618,15 @@ export const sourceOf = (kind: string, field: string) => SOURCE[`${kind}.${field
 
 /**
  * A nomadic empire: running the nomad economy situation (the origin misses most nomads, see
- * AGENTS.md "Trade tab"). It claims no systems: no outposts, waystations instead.
+ * AGENTS.md "Trade tab"). It claims no systems and settles no planets (the game's
+ * `nomadic_gameplay_desc`): no outposts or colonies — waystations and arkships instead.
  */
 export const nomadic = (s: Snapshot) =>
 	(s.situations ?? []).some((x) => x.type === 'situation_nomad_economy');
 
 /** Kinds that cannot apply to this empire at all, left out of the add form and the suggestions. */
 export const unavailable = (s: Snapshot): string[] =>
-	nomadic(s) ? ['outpost'] : ['waystation', 'arkship'];
+	nomadic(s) ? ['outpost', 'colony'] : ['waystation', 'arkship'];
 
 /** The arkship types, as the game names them (localisation `<type>_arkship_class` + "Arkship"). */
 export const ARKSHIPS: Record<string, string> = {

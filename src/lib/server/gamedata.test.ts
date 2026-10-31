@@ -26,3 +26,22 @@ describe('byKey', () => {
 		).toEqual({ district_mining: { miner: 200 }, constructor: { x: 1 } });
 	});
 });
+
+describe('perkTrees', () => {
+	it("reads the perks a tree's adoption asks for", async () => {
+		const { perkTrees } = await import('./gamedata.ts');
+		expect(
+			perkTrees([
+				{
+					category_key: 'tradition_cybernetics',
+					possible_json:
+						'{"op":"or","args":[{"leaf":"has_ascension_perk","value":"ap_the_flesh_is_weak"},{"leaf":"has_ascension_perk","value":"ap_organo"}]}'
+				},
+				{ category_key: 'tradition_x', possible_json: null }
+			])
+		).toEqual({
+			ap_the_flesh_is_weak: ['tradition_cybernetics'],
+			ap_organo: ['tradition_cybernetics']
+		});
+	});
+});
