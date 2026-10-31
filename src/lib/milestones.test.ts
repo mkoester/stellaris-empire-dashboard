@@ -167,6 +167,19 @@ describe('milestones', () => {
 		).toEqual(['2201.04.01 new admiral: Bo']);
 	});
 
+	it('dates a refreshed leader pool by its new leaders, not hiring the pool empty', () => {
+		const pool = (ids: number[], added: string) =>
+			ids.map((id) => ({ id, class: 'official', added }));
+		expect(
+			labels([
+				save('2204.12.01', { leaderPool: pool([272, 273], '2200.01.01') }),
+				save('2205.01.01', { leaderPool: pool([273], '2200.01.01') }), // one hired
+				save('2205.02.01', { leaderPool: [] }), // the last one hired
+				save('2205.03.01', { leaderPool: pool([301, 302], '2205.02.10') }) // an early refresh
+			])
+		).toEqual(['2205.02.10 recruitable leaders refreshed']);
+	});
+
 	it('reports systems, species changes, wars, rulers and policies', () => {
 		const sp = { id: '1', name: 'Human', cls: 'HUM', pops: 10 };
 		expect(

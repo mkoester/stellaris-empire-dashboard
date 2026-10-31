@@ -98,6 +98,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	techPermanent: null,
 	techStored: null,
 	leaderList: null,
+	leaderPool: null,
 	speciesRights: null,
 	timelineId: null,
 	previousTimelineId: null,

@@ -24,6 +24,7 @@ import type {
 	Sector,
 	SpeciesInfo,
 	ColonyJob,
+	PoolLeader,
 	TimedModifier,
 	PlanetState,
 	Market,
@@ -266,7 +267,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '29'; // 29: ascension tier and governor skill per colony (28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '30'; // 30: the leader pool (29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -414,6 +415,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		// options that stay until researched (focus rewards' `add_research_option`), repeated keys
 		techPermanent: items(raw.country?.tech_status?.always_available_tech).map(String),
 		leaderList: leaderList(raw),
+		leaderPool: leaderPool(raw),
 		speciesRights: speciesRights(raw.country),
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
@@ -513,6 +515,20 @@ export function leaderList(
 				governor: governors.has(id)
 			}
 		];
+	});
+}
+
+/**
+ * The recruitable leaders: `country.modules.standard_leader_module.leaders` (4.5.3, 2204.10.01:
+ * 4 officials, 3 commanders, 3 scientists — not in `owned_leaders`), each with `date_added`, the
+ * day the pool was filled (2200.01.01, the game showing "Refreshes 2205.01.01").
+ */
+export function leaderPool(raw: Pick<RawSave, 'country' | 'leaders'>): PoolLeader[] {
+	return list(raw.country?.modules?.standard_leader_module?.leaders).flatMap((id) => {
+		const l = raw.leaders[String(id)];
+		return l && typeof l === 'object'
+			? [{ id: Number(id), class: String(l.class), added: strOrNull(l.date_added) }]
+			: [];
 	});
 }
 

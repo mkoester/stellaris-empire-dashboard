@@ -41,6 +41,7 @@ export type Upcoming = {
 		| 'ship'
 		| 'colonization'
 		| 'election'
+		| 'leaders' // the recruitable leaders are replaced
 		| 'deficit'
 		| 'cooldown' // something may be done again
 		| 'expires' // a timed effect ends
@@ -411,6 +412,8 @@ export function upcoming(
 		});
 	}
 
+	out.push(...leaderPoolRefresh(latest, data.defines.LEADER_POOL_REFRESH_TIME ?? 1800));
+
 	if (p.nextElection && toDays(p.nextElection) >= toDays(latest.date))
 		out.push({
 			date: p.nextElection,
@@ -429,6 +432,39 @@ export function upcoming(
 	out.push(...reserveLevels(latest.date, pool, data.situationTypes[NOMAD_ECONOMY]?.stages ?? []));
 
 	return out.sort((a, b) => toDays(a.date) - toDays(b.date) || a.what.localeCompare(b.what));
+}
+
+/**
+ * When the game replaces the recruitable leaders: `LEADER_POOL_REFRESH_TIME` (1800 days) after
+ * the pool was filled — the earliest `date_added` of its leaders (2200.01.01 → "Refreshes
+ * 2205.01.01", 4.5.3). Estimated: an event may refresh it early (`refresh_leader_pool`).
+ */
+export function leaderPoolRefresh(
+	latest: Pick<Snapshot, 'date' | 'leaderPool'>,
+	refreshDays: number
+): Upcoming[] {
+	const added = (latest.leaderPool ?? []).flatMap((l) => (l.added ? [toDays(l.added)] : []));
+	if (!added.length) return [];
+	const due = Math.min(...added) + refreshDays;
+	if (due < toDays(latest.date)) return [];
+	const pool = latest.leaderPool!;
+	const left = [...new Set(pool.map((l) => l.class))].map((c) => {
+		const n = pool.filter((l) => l.class === c).length;
+		return `${n} ${c}${n === 1 ? '' : 's'}`;
+	});
+	return [
+		{
+			date: fromDays(due),
+			months: (due - toDays(latest.date)) / 30,
+			kind: 'leaders',
+			sub: 'leader pool',
+			act: false,
+			what: 'Recruitable leaders refresh',
+			tint: 'leader',
+			detail: `${left.join(', ')} to pick from until then`,
+			exact: false
+		}
+	];
 }
 
 /**

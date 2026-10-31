@@ -1221,7 +1221,11 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   `automation_resources.<country> = { "energy" … }` read as the **disallowed** resources (empty at
   2200.04, all listed after the player unticked all).
 - Leaders: **`country.owned_leaders`**, not `leaders.*.country` — that also matches the recruitment
-  pool (19 vs. 7). Leader capacity is **per class**, base `@base_leader_cap = 3`
+  pool (19 vs. 7). The pool itself is **`country.modules.standard_leader_module.leaders`**, each
+  leader's `date_added` the day it joined (`recruitment_date` "0.01.01" until hired); the game
+  replaces it all `LEADER_POOL_REFRESH_TIME` (1800 days) after it was filled — 2200.01.01 →
+  "Refreshes 2205.01.01" (4.5.3, 2204.10). Whether an event's early `refresh_leader_pool` restarts
+  that count is assumed, not seen. Leader capacity is **per class**, base `@base_leader_cap = 3`
   (`common/leader_classes`), raised by `country_<class>_cap_add`; the result is not in the save. Ships: `country.fleets_manager.owned_fleets` → `fleet.<id>.{ship_class, ships}`
   → `ships.<id>.ship_design_implementation.design` → `ship_design.<id>.growth_stages[0].ship_size`.
 - Overview: `country.victory_rank|victory_score|economy_power|tech_power|military_power` (the score

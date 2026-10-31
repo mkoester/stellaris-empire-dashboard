@@ -125,6 +125,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	focus: null,
 	techOptions: null,
 	leaderList: null,
+	leaderPool: null,
 	speciesRights: null,
 	timelineId: null,
 	previousTimelineId: null,

@@ -423,6 +423,9 @@ export type Snapshot = {
 	// each month up to the monthly gain of it is used on top, so research runs at up to double speed
 	techStored: Record<string, number> | null; // since 2026-10-22
 	leaderList: LeaderInfo[] | null; // every hired leader
+	// the recruitable leaders (`country.modules.standard_leader_module.leaders`), each with the date
+	// it joined the pool (`date_added`); null before READER 30
+	leaderPool: PoolLeader[] | null;
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
@@ -457,6 +460,9 @@ export type LogEvent = {
 };
 
 /** The stockpile on one day, from the mod's daily tick. */
+/** A leader the empire may recruit: one of the pool, which the game replaces as a whole. */
+export type PoolLeader = { id: number; class: string; added: string | null };
+
 export type Tick = { date: string; stockpile: Resources };
 
 /** `country.focus` with its cards (top-level `focus_cards`). */

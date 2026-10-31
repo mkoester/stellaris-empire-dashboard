@@ -37,6 +37,7 @@ export const KINDS = [
 	{ kind: 'agenda', label: 'agendas passed' },
 	{ kind: 'galcom', label: 'Galactic Community: proposals, votes, withdrawals' },
 	{ kind: 'leader', label: 'leaders' },
+	{ kind: 'leader-pool', label: 'recruitable leaders refreshed' },
 	{ kind: 'ruler', label: 'ruler' },
 	{ kind: 'government', label: 'government: civics, ethics, authority, type, origin' },
 	{ kind: 'policy', label: 'policies' },
@@ -70,7 +71,8 @@ type Names = Pick<
 	| 'identityNames'
 	| 'diploNames'
 >;
-type Found = Omit<Milestone, 'date' | 'x'>;
+// `on`: the day it happened, where the save tells (else the save's date)
+type Found = Omit<Milestone, 'date' | 'x'> & { on?: string };
 
 const added = <T>(before: T[], after: T[]) => after.filter((x) => !before.includes(x));
 
@@ -317,6 +319,16 @@ const DETECTORS = [
 				.map((l) => ({ kind: 'leader' as const, label: `${l.class} gone: ${l.name}` }))
 		]
 	),
+	// the game replaces the whole pool (#lib/events.ts leaderPoolRefresh): none of it left, dated by
+	// the day the new leaders joined; hiring them all leaves it empty, which is no refresh
+	field(
+		(s) => s.leaderPool,
+		(a, b) => {
+			if (!b.length || b.some((l) => a.some((o) => o.id === l.id))) return [];
+			const on = b.flatMap((l) => (l.added ? [l.added] : [])).sort()[0];
+			return [{ kind: 'leader-pool' as const, label: 'recruitable leaders refreshed', on }];
+		}
+	),
 	field(
 		(s) => s.ruler,
 		(a, b) => (a.id !== b.id ? [{ kind: 'ruler' as const, label: `new ruler: ${b.name}` }] : [])
@@ -423,7 +435,7 @@ export function milestones(snaps: Snapshot[], names: Names): Milestone[] {
 	const saves = snaps.filter((s) => s.kind === 'save');
 	const diffed: Milestone[] = DETECTORS.flatMap((detect) =>
 		detect(saves, names).flatMap(({ s, found }) =>
-			found.map((f) => ({ ...f, date: s.date, x: gameYear(s.date) }))
+			found.map(({ on, ...f }) => ({ ...f, date: on ?? s.date, x: gameYear(on ?? s.date) }))
 		)
 	);
 	// Each mod event takes over the earliest matching diffed milestone in its window, or stands alone.

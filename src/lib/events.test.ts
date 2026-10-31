@@ -5,6 +5,7 @@ import {
 	techCostFactor,
 	deficits,
 	expiries,
+	leaderPoolRefresh,
 	fromDays,
 	rolls,
 	timedOut,
@@ -371,6 +372,28 @@ describe('upcoming colonization', () => {
 		expect(upcoming(now, null, data).find((e) => e.kind === 'colonization')!.detail).toContain(
 			'base rate'
 		);
+	});
+});
+
+describe('leaderPoolRefresh', () => {
+	// Roaming Korinth 2204.10.01 (4.5.3): a pool filled 2200.01.01, the game showing "Refreshes
+	// 2205.01.01"
+	const pool = [
+		{ id: 272, class: 'official', added: '2200.01.01' },
+		{ id: 273, class: 'official', added: '2200.01.01' },
+		{ id: 277, class: 'commander', added: '2200.01.01' },
+		{ id: 290, class: 'scientist', added: '2203.06.15' } // joined later: not when it refreshes
+	];
+
+	it('is due the define after the earliest leader joined the pool', () => {
+		const [r] = leaderPoolRefresh({ date: '2204.10.01', leaderPool: pool }, 1800);
+		expect(r).toMatchObject({ date: '2205.01.01', months: 3, kind: 'leaders', exact: false });
+		expect(r.detail).toBe('2 officials, 1 commander, 1 scientist to pick from until then');
+	});
+
+	it('says nothing without a pool, or one the save does not hold', () => {
+		expect(leaderPoolRefresh({ date: '2204.10.01', leaderPool: [] }, 1800)).toEqual([]);
+		expect(leaderPoolRefresh({ date: '2204.10.01', leaderPool: null }, 1800)).toEqual([]);
 	});
 });
 

@@ -295,6 +295,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		focus: null,
 		techOptions: null,
 		leaderList: null,
+		leaderPool: null,
 		speciesRights: null
 	};
 }

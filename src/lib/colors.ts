@@ -42,6 +42,7 @@ const COLORS: Record<string, string> = {
 	'trade-deal': '#d9a521', // energy
 	galcom: '#4f8fd6', // ours: a diplomatic blue
 	leader: '#6b7280',
+	'leader-pool': '#9ca3af', // the leaders' grey, lighter
 	ruler: '#8c6d1f',
 	government: '#d64a9b',
 	policy: '#a3a830',
