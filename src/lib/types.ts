@@ -426,6 +426,8 @@ export type Snapshot = {
 	// the recruitable leaders (`country.modules.standard_leader_module.leaders`), each with the date
 	// it joined the pool (`date_added`); null before READER 30
 	leaderPool: PoolLeader[] | null;
+	// the Wanderlust perk's progress (#lib/wanderlust.ts); null without it, or before READER 31
+	wanderlust: Wanderlust | null;
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
@@ -460,6 +462,14 @@ export type LogEvent = {
 };
 
 /** The stockpile on one day, from the mod's daily tick. */
+/** The nomads' Wanderlust perk: its categories' progress and the systems an arkship counted. */
+export type Wanderlust = {
+	categories: { key: string; seen: number; count: number; done: boolean }[];
+	// `visited_by_nomad@<country>` star flags, dated by their value (game hours)
+	visits: { systemId: number; system: string; date: string; categories: string[] }[];
+	complete: boolean; // all eight: the game clears the counters then (`nomad_exploration_complete`)
+};
+
 /** A leader the empire may recruit: one of the pool, which the game replaces as a whole. */
 export type PoolLeader = { id: number; class: string; added: string | null };
 
@@ -510,6 +520,7 @@ export type GalaxySystem = {
 	lgateTo?: number[]; // an L-Gate's link to the L-Cluster's entrance, once the gates are open
 	sector?: string | null; // own systems: the sector (`sectors.<id>.systems`); since 2026-10-18
 	lanesKnown?: boolean; // in `country.hyperlane_systems`: its hyperlanes are on our map (sensors); since 2026-10-18
+	wanderlust?: string[]; // its Wanderlust categories (star flags), in any system — a spoiler where not visited; READER 31
 };
 
 /** A star, planet, moon or asteroid in a visited system. */

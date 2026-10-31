@@ -180,6 +180,37 @@ describe('milestones', () => {
 		).toEqual(['2205.02.10 recruitable leaders refreshed']);
 	});
 
+	it("dates an arkship's Wanderlust visits by the save's flags, the rest at the save", () => {
+		const cat = (seen: number, done = false) => ({
+			key: 'galactic_landmark',
+			seen,
+			count: 17,
+			done
+		});
+		const visit = {
+			systemId: 1,
+			system: 'Sol',
+			date: '2205.02.11',
+			categories: ['galactic_landmark']
+		};
+		expect(
+			labels([
+				save('2205.02.01', { wanderlust: { categories: [cat(0)], visits: [], complete: false } }),
+				save('2205.03.01', {
+					wanderlust: { categories: [cat(1)], visits: [visit], complete: false }
+				}),
+				// a rise without a named system (the flag's spelling not as read), then the category done
+				save('2205.04.01', {
+					wanderlust: { categories: [cat(17, true)], visits: [visit], complete: false }
+				})
+			])
+		).toEqual([
+			'2205.02.11 Wanderlust: Sol (Galactic Landmarks)',
+			'2205.04.01 Wanderlust: Galactic Landmarks 17 / 17',
+			'2205.04.01 Wanderlust: Galactic Landmarks done'
+		]);
+	});
+
 	it('reports systems, species changes, wars, rulers and policies', () => {
 		const sp = { id: '1', name: 'Human', cls: 'HUM', pops: 10 };
 		expect(

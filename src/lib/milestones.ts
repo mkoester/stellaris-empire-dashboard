@@ -1,6 +1,7 @@
 import { sideSummary } from './deals.ts';
 import { nameOf, pretty } from './format.ts';
 import { addGameDays, gameYear } from './series.ts';
+import { wanderlustName } from './wanderlust.ts';
 import type {
 	Colony,
 	GalacticCommunity,
@@ -38,6 +39,7 @@ export const KINDS = [
 	{ kind: 'galcom', label: 'Galactic Community: proposals, votes, withdrawals' },
 	{ kind: 'leader', label: 'leaders' },
 	{ kind: 'leader-pool', label: 'recruitable leaders refreshed' },
+	{ kind: 'wanderlust', label: 'Wanderlust: systems explored by an arkship' },
 	{ kind: 'ruler', label: 'ruler' },
 	{ kind: 'government', label: 'government: civics, ethics, authority, type, origin' },
 	{ kind: 'policy', label: 'policies' },
@@ -327,6 +329,34 @@ const DETECTORS = [
 			if (!b.length || b.some((l) => a.some((o) => o.id === l.id))) return [];
 			const on = b.flatMap((l) => (l.added ? [l.added] : [])).sort()[0];
 			return [{ kind: 'leader-pool' as const, label: 'recruitable leaders refreshed', on }];
+		}
+	),
+	// an arkship counting a system (#lib/wanderlust.ts): each on its day, where the save names it;
+	// a counter's rise the visits do not explain, at the save; a category, then all of them, done
+	field(
+		(s) => s.wanderlust,
+		(a, b) => {
+			const fresh = b.visits.filter((v) => !a.visits.some((o) => o.systemId === v.systemId));
+			const out: Found[] = fresh.map((v) => ({
+				kind: 'wanderlust' as const,
+				label: `Wanderlust: ${v.system} (${v.categories.map(wanderlustName).join(', ')})`,
+				on: v.date
+			}));
+			for (const c of b.categories) {
+				const was = a.categories.find((x) => x.key === c.key);
+				if (!was) continue;
+				const rest = c.seen - was.seen - fresh.filter((v) => v.categories.includes(c.key)).length;
+				if (rest > 0)
+					out.push({
+						kind: 'wanderlust',
+						label: `Wanderlust: ${wanderlustName(c.key)} ${c.seen} / ${c.count}`
+					});
+				if (c.done && !was.done)
+					out.push({ kind: 'wanderlust', label: `Wanderlust: ${wanderlustName(c.key)} done` });
+			}
+			if (b.complete && !a.complete)
+				out.push({ kind: 'wanderlust', label: 'Wanderlust: every category explored' });
+			return out;
 		}
 	),
 	field(

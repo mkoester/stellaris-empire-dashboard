@@ -18,6 +18,10 @@ All notable changes to this project are documented here. The format follows
   was filled; estimated, as an event may do it early), and the history marks each refresh on the
   day it happened (event kind "recruitable leaders refreshed"). Saves still on disk are read
   again for it once.
+- Wanderlust (the nomads' perk): the events tab and the charts mark each system an arkship
+  counts, a category done and all of them; the map gets a Wanderlust layer — the target systems
+  you have visited, with whether the arkship has counted them yet, and above the map each
+  category's progress (seen / needed). A new spoiler setting marks every target, visited or not.
 - Ethics tab: "From Council" counts the ruler and councilors with the ethic from the save
   (+0.1 each), so the empire-wide factor is known in full where it was "+0.2 from 4 rules the
   save cannot tell".

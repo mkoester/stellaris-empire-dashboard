@@ -42,6 +42,32 @@ describe('mapMarkers', () => {
 		]);
 	});
 
+	it("marks Wanderlust's targets where we have been, or every one with the spoiler", () => {
+		const progress = {
+			categories: [{ key: 'enclave', seen: 1, count: 13, done: false }],
+			visits: [{ systemId: 1, system: 'S1', date: '2205.02.11', categories: ['enclave'] }],
+			complete: false
+		};
+		const galaxy = [
+			sys(1, { wanderlust: ['enclave'] }),
+			sys(2, { wanderlust: ['marauder', 'space_ecology'] }),
+			sys(3, { wanderlust: ['precursor'], visited: false }), // not been there: a spoiler
+			sys(4)
+		];
+		const marks = (all: boolean) =>
+			mapMarkers({ ...none, galaxy, wanderlust: { progress, all } }).map((m) => [
+				m.systemId,
+				m.label,
+				m.progress
+			]);
+		expect(marks(false)).toEqual([
+			[1, 'Enclave Systems', 'counted 2205.02.11'],
+			[2, 'Marauder Systems, Space Ecology', 'not yet by an arkship']
+		]);
+		expect(marks(true).map(([id]) => id)).toEqual([1, 2, 3]);
+		expect(mapMarkers({ ...none, galaxy, wanderlust: null })).toEqual([]); // without the perk
+	});
+
 	it('leaves out what lies outside the systems shown', () => {
 		const anomalies = [{ planetId: 1, planet: 'P', systemId: 9, category: 'x' }];
 		expect(mapMarkers({ ...none, galaxy: [sys(1)], anomalies })).toEqual([]);

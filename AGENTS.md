@@ -1228,6 +1228,13 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   that count is assumed, not seen. Leader capacity is **per class**, base `@base_leader_cap = 3`
   (`common/leader_classes`), raised by `country_<class>_cap_add`; the result is not in the save. Ships: `country.fleets_manager.owned_fleets` → `fleet.<id>.{ship_class, ships}`
   → `ships.<id>.ship_design_implementation.design` → `ship_design.<id>.growth_stages[0].ship_size`.
+- Wanderlust (nomads' perk, `#lib/wanderlust.ts`): progress in `country.variables`
+  (`<category>_system_seen` / `_count`, the counts 80 % of the flagged systems: 21 galactic
+  landmarks → 17, all eight checked 2204.10.01), done `country.flags.<category>_completed`; a
+  system's categories are star flags (`galactic_object.<id>.flags`: `galactic_landmark_system`, …
+  and plain `enclave`) on every system from galaxy generation; a counted system
+  `visited_by_nomad@<country>` (spelling assumed, docs/open-checks.md 18). Flag values are game
+  hours (2200.01.01 = 62808000).
 - Overview: `country.victory_rank|victory_score|economy_power|tech_power|military_power` (the score
   breakdown is not stored); fleets `fleet.<id>.military_power`, names `%SEQ%` + `fmt`/`num` → "1st
   Fleet"; active edicts `country.edicts = { { edict … } }` — the **edict fund (10 / 15) is not

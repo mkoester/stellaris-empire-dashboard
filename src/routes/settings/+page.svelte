@@ -67,6 +67,11 @@
 			'spoilers — until the gates open the L-Cluster does not exist yet: shown where it is predicted to spawn'
 		],
 		[
+			'wanderlustAll',
+			'Map: every Wanderlust target, not only the systems you have visited',
+			'spoilers — the save flags them all; the game names none'
+		],
+		[
 			'surveyAll',
 			'Treat every system as fully surveyed: bodies, deposits, anomalies, expansion and habitat sites',
 			'spoilers'

@@ -43,6 +43,7 @@ const COLORS: Record<string, string> = {
 	galcom: '#4f8fd6', // ours: a diplomatic blue
 	leader: '#6b7280',
 	'leader-pool': '#9ca3af', // the leaders' grey, lighter
+	wanderlust: '#1baf7a', // exploring: the special projects' green
 	ruler: '#8c6d1f',
 	government: '#d64a9b',
 	policy: '#a3a830',

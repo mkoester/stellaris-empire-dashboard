@@ -19,11 +19,19 @@ export function load({ url }) {
 	const g = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const contactSites = (s?.firstContacts ?? []).map((c) => c.systemId);
 	const capital = snaps.findLast((x) => x.knownSystems)?.knownSystems?.find((k) => k.capital)?.id;
+	// Wanderlust's targets once we have the perk; every one, revealed, with the spoiler
+	const wanderlust = snaps.findLast((x) => x.wanderlust)?.wanderlust ?? null;
+	const allTargets = wanderlust !== null && display().wanderlustAll;
+	const spoiled = (x: (typeof g)[number]) =>
+		!x.visited &&
+		!x.owned &&
+		((display().lgates && x.lgate) || (allTargets && (x.wanderlust?.length ?? 0) > 0));
 	return {
 		...rest,
 		seenAt: s?.date ?? null,
 		filter: mapFilter(),
-		systems: mapView(g, reveal(), contactSites).map((x) => ({
+		wanderlust,
+		systems: mapView(g, { ...reveal(), wanderlust: allTargets }, contactSites).map((x) => ({
 			...x,
 			capital: x.id === capital
 		})),
@@ -31,9 +39,14 @@ export function load({ url }) {
 		markers: mapMarkers({
 			// what was discovered only: a marker's place is never a spoiler
 			galaxy: [
-				...discovered(g, { whole: false, stars: false }, contactSites),
-				...(display().lgates ? g.filter((x) => x.lgate && !x.visited && !x.owned) : [])
+				...new Map(
+					[
+						...discovered(g, { whole: false, stars: false }, contactSites),
+						...g.filter(spoiled)
+					].map((x) => [x.id, x])
+				).values()
 			],
+			wanderlust: wanderlust && { progress: wanderlust, all: allTargets },
 			contacts: s?.firstContacts ?? [],
 			anomalies: s?.anomalies ?? [],
 			digSites: s?.digSites ?? [],

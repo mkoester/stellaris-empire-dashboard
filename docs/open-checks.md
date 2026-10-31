@@ -123,6 +123,18 @@ Happiness +12.0 %"; linear predicts +12.09 % (a curve would be far off: squared,
 save (2204.08.01) holds 9655.6 / 6020 / 3635.6 free against the tooltip's 9659 / 6020 / 3639 nineteen
 days later.
 
+### 18. Wanderlust — an arkship's visit (from 2026-10-31)
+
+The dashboard reads the systems an arkship counted from the star flag `visited_by_nomad@<our
+country id>` (`nomads.4720` sets `visited_by_nomad@root.owner`) — **its spelling in a save is
+assumed**: no save has one yet. Without it the events still come, from the counters, dated to the
+month's save instead of the day.
+
+- **Do:** fly the arkship into a system the map marks ⚑ (Wanderlust, "not yet by an arkship"),
+  then save.
+- **Send:** the save's name. Check: `grep -o 'visited_by_nomad[^=]*=[0-9]*' gamestate`; the map
+  should then say "counted <date>" there and the events tab "Wanderlust: <system> (…)".
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

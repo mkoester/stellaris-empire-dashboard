@@ -52,6 +52,7 @@ import {
 	toSnapshot,
 	tradeDeals,
 	wars,
+	wanderlust,
 	type RawSave
 } from './save.ts';
 
@@ -1847,4 +1848,56 @@ describe.skipIf(!real)('real save', () => {
 		);
 		console.log(JSON.stringify({ ...s, colonies: s.colonies.slice(0, 3) }, null, 1));
 	}, 30_000);
+});
+
+describe('wanderlust', () => {
+	// shaped like Roaming Korinth 2204.10.01 (4.5.3): the counters as the perk set them, flags in
+	// game hours (2200.01.01 = 62808000)
+	const raw = (variables: Record<string, number>, flags: Record<string, number> = {}) =>
+		({
+			date: '2205.03.01',
+			countryId: 0,
+			country: {
+				variables: { energy_storage: 5, ...variables },
+				flags: { first_colony_finished: 62808000, ...flags }
+			},
+			systems: {
+				'1': {
+					name: { key: 'Sol' },
+					flags: { galactic_landmark_system: 62808000 }
+				}
+			}
+		}) as unknown as RawSave;
+
+	it('is null without the perk', () => {
+		expect(wanderlust(raw({}))).toBeNull();
+	});
+
+	it('reads each category and the systems an arkship counted, dated by the flag', () => {
+		const w = wanderlust({
+			...raw(
+				{ galactic_landmark_system_count: 17, galactic_landmark_system_seen: 1 },
+				{ galactic_landmark_completed: 62808000 }
+			),
+			systems: {
+				'1': {
+					name: { key: 'Sol' },
+					// 2205.02.11: 5 years and 40 days after 2200.01.01, 24 hours a day
+					flags: {
+						galactic_landmark_system: 62808000,
+						'visited_by_nomad@0': 62808000 + 1840 * 24,
+						'visited_by_nomad@3': 62808000 // another nomad's visit
+					}
+				},
+				'2': { name: { key: 'Elsewhere' }, flags: { 'visited_by_nomad@3': 62808000 } }
+			}
+		} as unknown as RawSave);
+		expect(w).toEqual({
+			categories: [{ key: 'galactic_landmark', seen: 1, count: 17, done: true }],
+			visits: [
+				{ systemId: 1, system: 'Sol', date: '2205.02.11', categories: ['galactic_landmark'] }
+			],
+			complete: false
+		});
+	});
 });

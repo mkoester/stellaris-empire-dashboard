@@ -1,7 +1,15 @@
 import { pretty } from './format.ts';
 import type { SeenStation } from './territories.ts';
 import { shipsetName } from './territories.ts';
-import type { AnomalyInfo, DigSite, FirstContact, GalaxySystem, ProjectInfo } from './types.ts';
+import type {
+	AnomalyInfo,
+	DigSite,
+	FirstContact,
+	GalaxySystem,
+	ProjectInfo,
+	Wanderlust
+} from './types.ts';
+import { counted, wanderlustName } from './wanderlust.ts';
 
 // What the map tab draws on top of the galaxy — what the empire has discovered — each layer a
 // filter the viewer can switch off. The profile stores the hidden ones, so a layer added later
@@ -17,7 +25,8 @@ export const MAP_LAYERS = [
 	'wormholes',
 	'gateways',
 	'megastructures',
-	'ruins'
+	'ruins',
+	'wanderlust'
 ] as const;
 export type MapLayer = (typeof MAP_LAYERS)[number];
 
@@ -33,7 +42,8 @@ export const LAYER_INFO: Record<MapLayer, { label: string; symbol: string; color
 	wormholes: { label: 'wormholes', symbol: '◎', color: '#c64fb5' },
 	gateways: { label: 'gateways, L-gates', symbol: '◈', color: '#3bb2c2' },
 	megastructures: { label: 'megastructures', symbol: '✦', color: '#d9a521' },
-	ruins: { label: 'abandoned structures', symbol: '✧', color: '#8c6d1f' }
+	ruins: { label: 'abandoned structures', symbol: '✧', color: '#8c6d1f' },
+	wanderlust: { label: 'Wanderlust targets', symbol: '⚑', color: '#1baf7a' }
 };
 
 export type MapFilter = { hidden: MapLayer[] };
@@ -79,6 +89,8 @@ export function mapMarkers(p: {
 	projects: (ProjectInfo & { name: string })[];
 	anomalyNames: Record<string, string>;
 	seen: SeenStation[];
+	// the Wanderlust perk's progress, null without it; `all`: every target, not only the visited
+	wanderlust?: { progress: Wanderlust; all: boolean } | null;
 }): MapMarker[] {
 	const shown = new Set(p.galaxy.map((s) => s.id));
 	const out: MapMarker[] = [
@@ -149,5 +161,19 @@ export function mapMarkers(p: {
 				detail: 'megastructure'
 			});
 	}
+	// a Wanderlust target where we have been (we saw what it holds), or any with the spoiler
+	const w = p.wanderlust;
+	if (w)
+		for (const s of p.galaxy)
+			if (s.wanderlust?.length && (w.all || s.visited || s.owned)) {
+				const when = counted(w.progress, s.id);
+				out.push({
+					layer: 'wanderlust',
+					systemId: s.id,
+					label: s.wanderlust.map(wanderlustName).join(', '),
+					detail: 'Wanderlust: explore with an arkship',
+					progress: when ? `counted ${when}` : 'not yet by an arkship'
+				});
+			}
 	return out.filter((m) => shown.has(m.systemId));
 }

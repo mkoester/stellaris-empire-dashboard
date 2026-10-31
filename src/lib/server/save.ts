@@ -25,6 +25,7 @@ import type {
 	SpeciesInfo,
 	ColonyJob,
 	PoolLeader,
+	Wanderlust,
 	TimedModifier,
 	PlanetState,
 	Market,
@@ -49,6 +50,7 @@ import type {
 } from '#lib/types.ts';
 import { MARKET_RESOURCES } from '#lib/market.ts';
 import { addGameDays, START_YEAR } from '#lib/series.ts';
+import { WANDERLUST, wanderlustCategories } from '#lib/wanderlust.ts';
 import { readZipEntry } from './zip.ts';
 import {
 	anomalies,
@@ -267,7 +269,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '30'; // 30: the leader pool (29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '31'; // 31: Wanderlust (30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -416,6 +418,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		techPermanent: items(raw.country?.tech_status?.always_available_tech).map(String),
 		leaderList: leaderList(raw),
 		leaderPool: leaderPool(raw),
+		wanderlust: wanderlust(raw),
 		speciesRights: speciesRights(raw.country),
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
@@ -530,6 +533,45 @@ export function leaderPool(raw: Pick<RawSave, 'country' | 'leaders'>): PoolLeade
 			? [{ id: Number(id), class: String(l.class), added: strOrNull(l.date_added) }]
 			: [];
 	});
+}
+
+const FLAG_EPOCH = 62808000; // a flag's value is the hour it was set: 2200.01.01 = 62808000, +24 a day
+
+/**
+ * The Wanderlust perk's progress (#lib/wanderlust.ts): per category `country.variables.<key>_
+ * system_seen` / `_count` (4.5.3, 2204.10.01: 0 / 6 … 0 / 17, the counts 80 % of the flagged
+ * systems) and the flag `<key>_completed`; the systems an arkship counted, by their star flag
+ * `visited_by_nomad@<our id>` — **assumed spelling**, not yet seen in a save. Null without the perk.
+ */
+export function wanderlust(
+	raw: Pick<RawSave, 'country' | 'countryId' | 'systems' | 'date'>
+): Wanderlust | null {
+	const vars = raw.country?.variables ?? {};
+	const flags = Object.keys(raw.country?.flags ?? {});
+	const complete = flags.includes('nomad_exploration_complete');
+	const categories = WANDERLUST.filter(
+		(c) => typeof vars[`${c.key}_system_count`] === 'number'
+	).map((c) => ({
+		key: c.key,
+		seen: num(vars[`${c.key}_system_seen`]),
+		count: num(vars[`${c.key}_system_count`]),
+		done: flags.includes(`${c.key}_completed`)
+	}));
+	if (!categories.length && !complete) return null;
+	const mark = `visited_by_nomad@${raw.countryId}`;
+	const visits = Object.entries(raw.systems).flatMap(([id, sys]) => {
+		const at = sys?.flags?.[mark];
+		if (typeof at !== 'number') return [];
+		return [
+			{
+				systemId: Number(id),
+				system: displayName(sys.name),
+				date: addGameDays('2200.01.01', Math.floor((at - FLAG_EPOCH) / 24)),
+				categories: wanderlustCategories(Object.keys(sys.flags))
+			}
+		];
+	});
+	return { categories, visits, complete };
 }
 
 /** The galaxy and the others, as the empire knows them (server/world.ts). */
