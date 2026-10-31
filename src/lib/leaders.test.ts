@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { leaderOrder, leaderRoles } from './leaders.ts';
-import type { Explanation, LeaderInfo, Modifier } from './types.ts';
+import { leaderLimits, leaderOrder, leaderRoles } from './leaders.ts';
+import type { Explanation, LeaderInfo, Modifier, Snapshot } from './types.ts';
 
 const mod = (key: string, value: number): Modifier => ({
 	key,
@@ -70,28 +70,39 @@ describe('leaderRoles', () => {
 		const { roles } = leaderRoles(
 			leader({ class: 'official', governor: true, governs: 'Peshnab the Faithful' }),
 			undefined,
-			explain
+			explain,
+			1 // the country's councilor bonus
 		);
-		expect(roles).toEqual([
-			{
-				kind: 'governor',
-				name: 'Peshnab the Faithful',
-				level: 4,
-				bonuses: [
-					{
-						source: 'Curator',
-						modifiers: [
-							mod('planet_stability_add', 2),
-							mod('ship_anomaly_research_speed_mult', 0.1)
-						]
-					}
-				]
-			}
+		expect(roles.find((r) => r.active)).toEqual({
+			kind: 'governor',
+			name: 'Peshnab the Faithful',
+			level: 4,
+			active: true,
+			bonuses: [
+				{
+					source: 'Curator',
+					modifiers: [mod('planet_stability_add', 2), mod('ship_anomaly_research_speed_mult', 0.1)]
+				}
+			]
+		});
+		// and every other role an official can hold, not held: the council at its councilor level
+		expect(roles.map((r) => [r.kind, r.active, r.level])).toEqual([
+			['council', false, 5],
+			['governor', true, 4],
+			['galcom', false, 4],
+			['federation', false, 4]
 		]);
 	});
 
-	it('holds nothing when idle', () => {
-		expect(leaderRoles(leader({}), undefined, explain).roles).toEqual([]);
+	it('shows an idle leader what its class could do, none held', () => {
+		const { roles } = leaderRoles(leader({}), undefined, explain);
+		expect(roles.map((r) => [r.kind, r.active])).toEqual([
+			['council', false],
+			['science ship', false]
+		]);
+		expect(roles[1].bonuses[0].modifiers.map((m) => m.key)).toEqual([
+			'ship_anomaly_research_speed_mult'
+		]);
 	});
 });
 
@@ -106,5 +117,28 @@ describe('leaderOrder', () => {
 			{ name: 'Hi', class: 'commander', level: 3 }
 		];
 		expect(ls.sort(leaderOrder).map((l) => l.name)).toEqual(['R', 'Hi', 'O', 'S', 'C', 'Lo']);
+	});
+});
+
+describe('leaderLimits', () => {
+	it('adds what the save shows held to the base 3, per class and for every class', () => {
+		const s = {
+			traditions: ['tr_diplomacy_finish'],
+			ascensionPerks: [],
+			edicts: [],
+			policies: {},
+			government: ['civic_technocracy'],
+			origin: null,
+			progress: { researched: ['tech_x'] },
+			countryModifiers: [{ key: 'vitality_conservation' }]
+		} as unknown as Snapshot;
+		const cap = {
+			'tradition:tr_diplomacy_finish': { official: 1 },
+			'civic:civic_technocracy': { official: -1, scientist: 1 },
+			'tech:tech_x': { commander: 1 },
+			'modifier:vitality_conservation': { leader: 1 },
+			'tradition:tr_not_taken': { official: 5 }
+		};
+		expect(leaderLimits(s, cap)).toEqual({ official: 4, scientist: 5, commander: 5 });
 	});
 });

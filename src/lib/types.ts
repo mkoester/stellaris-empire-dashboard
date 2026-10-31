@@ -499,6 +499,8 @@ export type LeaderInfo = {
 	class: string;
 	level: number;
 	bonus?: number; // its own extra levels (`bonus_skill_level`); since READER 32
+	// towards its next level, from 0 at each level-up (the overflow kept); envoys have none; READER 33
+	experience?: number | null;
 	age: number | null;
 	traits: string[];
 	job: string | null;
@@ -1085,6 +1087,9 @@ export type GameData = {
 	// `councilor_skill_add` by source: `tradition:` (traditions, edicts, policy options, agendas'
 	// `#finish`), `civic:`, `modifier:` (static modifiers)
 	councilorSkill: Record<string, number>;
+	// what raises a class's leader limit: source (`tradition:<key>` — perks, edicts, policies too —,
+	// `civic:`, `origin:`, `tech:`, `modifier:`) → class (`leader`: every class) → +n
+	leaderCap: Record<string, Record<string, number>>;
 	focus: {
 		categories: Record<string, string>; // key → name
 		cards: Record<

@@ -145,6 +145,16 @@ difficulties in between (#lib/events.ts techCostFactor).
   technology screen.
 - **Send:** a screenshot (a tech's cost) and the save, with the galaxy settings.
 
+### 20. Leader limits per class — leaders tab (from 2026-10-31)
+
+The tab shows hired / limit per class (Roaming Korinth 2204.12: 2 / 4 each), the limit computed:
+base 3 + every `country_<class>_cap_add` and `country_leader_cap_add` of what the save shows held —
+traditions, perks, edicts, policies, civics, the origin, technologies, timed modifiers. Species
+traits, leaders' own traits and situations are not counted.
+
+- **Do:** open the game's leader screen (where it shows each class's count and limit).
+- **Send:** a screenshot and the date.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

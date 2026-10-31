@@ -5,6 +5,8 @@ import {
 	techCostFactor,
 	deficits,
 	difficultyLabel,
+	experienceToLevel,
+	leaderLevelUps,
 	expiries,
 	leaderPoolRefresh,
 	fromDays,
@@ -43,6 +45,7 @@ const data: GameData = {
 	scriptedTriggers: {},
 	speciesRights: [],
 	councilorSkill: {},
+	leaderCap: {},
 	focus: { categories: {}, cards: {}, rewards: {} },
 	jobs: {},
 	edicts: {},
@@ -756,5 +759,48 @@ describe('upcoming military fleets', () => {
 		expect(r.detail).toContain('(measured)');
 		const [alone] = upcoming(now, null, data).filter((e) => e.kind === 'fleet');
 		expect(alone.detail).toContain('(assumed)');
+	});
+});
+
+describe('leader level-ups', () => {
+	it('needs 450, 1100, 2050 experience from levels 1, 2, 3', () => {
+		expect([1, 2, 3].map((n) => experienceToLevel(n))).toEqual([450, 1100, 2050]);
+	});
+
+	// Cosha Boxley, Roaming Korinth (4.5.3): level 2 (+1), 527.5 → 538 a month; the game: 538 / 1100
+	const cosha = (experience: number, level = 2, bonus = 1) => ({
+		id: 7,
+		name: 'Cosha Boxley',
+		class: 'scientist',
+		level,
+		bonus,
+		experience,
+		age: 40,
+		traits: [],
+		job: null,
+		species: null,
+		council: true,
+		ruler: false
+	});
+	const at = (date: string, l: ReturnType<typeof cosha>) => ({ date, leaderList: [l] });
+
+	it('is due at the gain measured since an earlier save at the same level', () => {
+		const [u] = leaderLevelUps(at('2204.12.01', cosha(538)), [at('2204.11.01', cosha(527.5))]);
+		expect(u).toMatchObject({
+			what: 'Cosha Boxley reaches level 3',
+			months: 54, // (1100 − 538) / 10.5
+			done: 538,
+			total: 1100,
+			exact: false
+		});
+	});
+
+	it('says nothing without a gain at this level, or at the skill cap', () => {
+		expect(
+			leaderLevelUps(at('2204.12.01', cosha(538)), [at('2204.11.01', cosha(1000, 1))])
+		).toEqual([]);
+		expect(
+			leaderLevelUps(at('2204.12.01', cosha(538, 9, 1)), [at('2204.11.01', cosha(500, 9, 1))])
+		).toEqual([]);
 	});
 });

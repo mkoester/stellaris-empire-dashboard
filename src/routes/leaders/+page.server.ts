@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { councilSeats } from '#lib/government.ts';
-import { leaderRoles } from '#lib/leaders.ts';
+import { councilorBonus, councilSeats } from '#lib/government.ts';
+import { leaderLimits, leaderRoles } from '#lib/leaders.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -13,13 +13,19 @@ export function load({ url }) {
 	const { snaps, ...rest } = b;
 	const s = snaps.findLast((x) => x.leaderList !== null);
 	const explanations = getExplanations();
-	const seats = s ? councilSeats(s, getGameData(), explanations) : [];
+	const data = getGameData();
+	const seats = s ? councilSeats(s, data, explanations) : [];
+	// the country's councilor bonus: what a leader not seated would act at on the council
+	const councilBonus = s
+		? councilorBonus(s, data.councilorSkill).reduce((n, b) => n + b.value, 0)
+		: 0;
 	const leaders = (s?.leaderList ?? []).map((l) => ({
 		...l,
 		...leaderRoles(
 			l,
 			seats.find((x) => x.leaderId === l.id),
-			explanations
+			explanations,
+			councilBonus
 		)
 	}));
 	const pool = s?.leaderPool ?? [];
@@ -28,6 +34,7 @@ export function load({ url }) {
 		leaders,
 		pool,
 		poolKnown: s?.leaderPool !== null && s?.leaderPool !== undefined,
+		limits: s ? leaderLimits(s, data.leaderCap) : null,
 		explain: pick(
 			explanations,
 			[...leaders, ...pool].flatMap((l) => (l.traits ?? []).map((t) => `ltrait:${t}`))

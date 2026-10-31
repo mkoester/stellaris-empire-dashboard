@@ -453,6 +453,7 @@ export function upcoming(
 	}
 
 	out.push(...leaderPoolRefresh(latest, data.defines.LEADER_POOL_REFRESH_TIME ?? 1800));
+	out.push(...leaderLevelUps(latest, earlier, data.defines));
 
 	if (p.nextElection && toDays(p.nextElection) >= toDays(latest.date))
 		out.push({
@@ -472,6 +473,62 @@ export function upcoming(
 	out.push(...reserveLevels(latest.date, pool, data.situationTypes[NOMAD_ECONOMY]?.stages ?? []));
 
 	return out.sort((a, b) => toDays(a.date) - toDays(b.date) || a.what.localeCompare(b.what));
+}
+
+/**
+ * The experience a leader needs from level `n` to the next: `LEADER_EXPERIENCE_REQUIREMENT_BASE_
+ * VALUE` + `_SCALE_VALUE` × n(3n + 4) / 6 — 450, 1100, 2050 (100, 300). Measured, not in the
+ * files (whose comment says 200 475 825 1250): the game's "Experience for next skill level: 1100" at
+ * level 2 (Roaming Korinth 2204.12, 4.5.3, screenshot 2026-10-31_03-50-15), level 1 → 2 at exactly
+ * 450 (Yorphian 2203.06: 313.1 + 151.5 → 14.6), no level 2 seen past 1093.5 nor level 3 past 2043
+ * (Planetforgers 2213.10: → level 4 with 21). The experience starts again from the overflow.
+ */
+export function experienceToLevel(n: number, defines: Record<string, number> = {}): number {
+	const base = defines.LEADER_EXPERIENCE_REQUIREMENT_BASE_VALUE ?? 100;
+	const scale = defines.LEADER_EXPERIENCE_REQUIREMENT_SCALE_VALUE ?? 300;
+	return base + (scale * n * (3 * n + 4)) / 6;
+}
+
+/**
+ * When each leader reaches its next level, at the experience it gained a month since an earlier
+ * save at the same level (traits like Eye for Talent included); none past the skill cap (level and
+ * its own extra levels at `LEADER_BASE_SKILL_CAP`, 10), nor without a measured gain.
+ */
+export function leaderLevelUps(
+	latest: Pick<Snapshot, 'date' | 'leaderList'>,
+	earlier: Pick<Snapshot, 'date' | 'leaderList'>[],
+	defines: Record<string, number> = {}
+): Upcoming[] {
+	const cap = defines.LEADER_BASE_SKILL_CAP ?? 10;
+	return (latest.leaderList ?? []).flatMap((l) => {
+		if (l.experience === null || l.experience === undefined) return [];
+		if (l.level + (l.bonus ?? 0) >= cap) return [];
+		const then = (s: Pick<Snapshot, 'leaderList'>) =>
+			s.leaderList?.find((x) => x.id === l.id && x.level === l.level)?.experience;
+		const base = earlier.findLast(
+			(s) => typeof then(s) === 'number' && monthTicks(s.date, latest.date) >= 1
+		);
+		if (!base) return [];
+		const rate = (l.experience - then(base)!) / monthTicks(base.date, latest.date);
+		const need = experienceToLevel(l.level, defines);
+		const when = due(latest.date, need - l.experience, rate);
+		return when
+			? [
+					{
+						...when,
+						kind: 'leaders' as const,
+						sub: 'level up',
+						act: false,
+						what: `${l.name} reaches level ${l.level + 1}`,
+						tint: `class-${l.class}`,
+						done: l.experience,
+						total: need,
+						detail: `${l.class} · ${Math.round(l.experience)} / ${need} experience · +${rate.toFixed(1)}/month`,
+						exact: false
+					}
+				]
+			: [];
+	});
 }
 
 /**

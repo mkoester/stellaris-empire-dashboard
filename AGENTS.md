@@ -1232,6 +1232,13 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   commander's fleet or the science ship a scientist leads), `army`; a councilor's is a `planet`
   (the capital, no assignment), its seat `council_location`. A leader still in the pool has
   `age=0`: its age counts from `date` (2171.01.01 → 33 on 2204.10, as the game shows).
+- Leader experience: `leaders.<id>.experience` counts towards the next level and starts again from
+  the overflow (Planetforgers 2213.10: level 3 at 2043 → level 4 at 21). From level n it takes
+  `LEADER_EXPERIENCE_REQUIREMENT_BASE_VALUE` + `_SCALE_VALUE` × n(3n + 4) / 6 = 450, 1100, 2050 —
+  measured (the game's "Experience for next skill level: 1100" at level 2; every level-up in five
+  campaigns fits); the defines' comment (200 475 825 1250) is stale. Class limits are not in the
+  save: base 3 + `country_<class>_cap_add` / `country_leader_cap_add` of what is held
+  (#lib/leaders.ts leaderLimits; docs/open-checks.md 20).
 - Tech costs: × (1 + `TECH_COST_DIFFICULTY_SCALE_MULT` × step × difficulty rank × tier) —
   `galaxy.difficulty`, `galaxy.technology_difficulty_scale`; Normal = 2, cadet 1, admiral 5
   measured (#lib/events.ts techCostFactor), the other steps assumed (docs/open-checks.md 19).

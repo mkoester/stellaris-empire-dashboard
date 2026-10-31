@@ -20,6 +20,10 @@ export function loadDataVersion(file: string): string | null {
 	}
 }
 
+// the leader limits' modifiers: per class, and `leader` for every class
+const LEADER_CAP = `modifier_key IN ('country_official_cap_add', 'country_scientist_cap_add',
+	'country_commander_cap_add', 'country_leader_cap_add')`;
+
 export function loadGameData(file: string): GameData {
 	const db = new DatabaseSync(file, { readOnly: true });
 	try {
@@ -418,6 +422,18 @@ export function loadGameData(file: string): GameData {
 					   WHERE modifier_key = 'councilor_skill_add'`
 				).map((r) => [r.owner, r.value])
 			),
+			leaderCap: rows<{ owner: string; key: string; value: number }>(
+				`SELECT 'tradition:' || owner_key AS owner, modifier_key AS key, modifier_value AS value
+				   FROM tradition_modifier WHERE potential_json IS NULL AND ${LEADER_CAP}
+				 UNION ALL SELECT 'civic:' || civic_key, modifier_key, modifier_value FROM civic_modifier WHERE ${LEADER_CAP}
+				 UNION ALL SELECT 'origin:' || origin_key, modifier_key, modifier_value FROM origin_modifier WHERE ${LEADER_CAP}
+				 UNION ALL SELECT 'tech:' || tech_key, modifier_key, modifier_value FROM technology_modifier WHERE ${LEADER_CAP}
+				 UNION ALL SELECT 'modifier:' || static_key, modifier_key, modifier_value FROM static_modifier_modifier WHERE ${LEADER_CAP}`
+			).reduce<GameData['leaderCap']>((out, r) => {
+				const cls = r.key.replace(/^country_(\w+)_cap_add$/, '$1');
+				(out[r.owner] ??= {})[cls] = (out[r.owner][cls] ?? 0) + r.value;
+				return out;
+			}, {}),
 			depositCategories: Object.fromEntries(
 				rows<{ key: string; category: string }>(
 					'SELECT key, category FROM deposit WHERE category IS NOT NULL'

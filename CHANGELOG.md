@@ -21,9 +21,14 @@ All notable changes to this project are documented here. The format follows
 - Leaders tab: what each leader holds — the rule, a council seat, a colony, a fleet or the science
   ship it leads, several at once — with the level it acts at there (a councilor with the
   country's councilor bonus), and what each role gives now (a seat's modifiers at that level, the
-  traits' in that role, and what they do to the leader itself); the ruler first, then by level
-  (ties: officials, scientists, commanders); a filter to show only some classes; and the
-  recruitable leaders in a table of their own, with their age.
+  traits' in that role, and what they do to the leader itself) — and, dimmed, every other role its
+  class can hold and what it would do there (scientists: council, science ship; commanders:
+  council, fleet, army; officials: council, governor, Galactic Community and federation
+  delegate); the ruler first, then by level (ties: officials, scientists, commanders); per class
+  how many are hired of its (soft) limit, and a filter to show only some classes; and the
+  recruitable leaders in a table of their own, with their age and how many of each class.
+- Upcoming: when each leader reaches its next level, at the experience it gained since an earlier
+  save.
 - The game's difficulty in the tab bar, before the dates: "Admiral (6/7)".
 - Wanderlust (the nomads' perk): the events tab and the charts mark each system an arkship
   counts, a category done and all of them; the map gets a Wanderlust layer — the target systems

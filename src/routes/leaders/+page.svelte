@@ -20,9 +20,8 @@
 		cls === 'envoy' ? envoys : classes.length === 0 || classes.includes(cls);
 	const toggle = (c: string) =>
 		(classes = classes.includes(c) ? classes.filter((x) => x !== c) : [...classes, c]);
-	const count = (c: string) =>
-		data.leaders.filter((l) => l.class === c).length +
-		data.pool.filter((l) => l.class === c).length;
+	const hired = (c: string) => data.leaders.filter((l) => l.class === c).length;
+	const recruitable = (c: string) => data.pool.filter((l) => l.class === c).length;
 
 	type Leader = (typeof data.leaders)[number];
 	// the ruler first, then by level, ties officials, scientists, commanders; a header re-sorts
@@ -46,15 +45,20 @@
 		{
 			id: 'roles',
 			label: 'Holds (acting level)',
-			value: (r) => r.roles.map(roleLabel).join(', ') || null,
+			value: (r) =>
+				r.roles
+					.filter((x) => x.active)
+					.map(roleLabel)
+					.join(', ') || null,
 			cell: roles,
 			title:
 				'the rule, a council seat, a colony, a fleet or science ship; in brackets the level it acts at there — a councilor with the country’s councilor bonus'
 		},
 		{
 			id: 'bonuses',
-			label: 'Gives',
-			value: (r) => r.roles.reduce((n, x) => n + x.bonuses.length, 0) + r.self.length,
+			label: 'Gives (dimmed: if assigned)',
+			value: (r) =>
+				r.roles.filter((x) => x.active).reduce((n, x) => n + x.bonuses.length, 0) + r.self.length,
 			cell: bonuses,
 			title:
 				'what each role gives now: a seat’s modifiers at the councilor level, the traits’ in that role; triggered trait effects are not known'
@@ -85,9 +89,9 @@
 	{r.level ?? '–'}{#if r.bonus}<span class="text-gray-500"> +{r.bonus}</span>{/if}
 {/snippet}
 {#snippet roles(r: Leader)}
-	{#each r.roles as x, i (i)}<div class="whitespace-nowrap">{roleLabel(x)}</div>{:else}<span
-			class="text-gray-500">–</span
-		>{/each}
+	{#each r.roles.filter((x) => x.active) as x, i (i)}<div class="whitespace-nowrap">
+			{roleLabel(x)}
+		</div>{:else}<span class="text-gray-500">–</span>{/each}
 {/snippet}
 {#snippet bonusList(list: Bonus[])}
 	{#each list as b, i (i)}<div class="text-xs">
@@ -99,9 +103,19 @@
 		</div>{/each}
 {/snippet}
 {#snippet bonuses(r: Leader)}
-	{#each r.roles.filter((x) => x.bonuses.length) as x, i (i)}<div class="mb-1">
-			<div class="text-xs font-semibold">{x.kind}</div>
-			{@render bonusList(x.bonuses)}
+	<!-- every role its class can hold; those it does not, dimmed: what it would do there -->
+	{#each r.roles as x, i (i)}<div
+			class="mb-1 {x.active ? '' : 'opacity-50'}"
+			title={x.active ? undefined : `not held: what it would give as ${x.kind}`}
+		>
+			<div class="text-xs font-semibold">
+				{x.kind}{x.level !== null ? ` (${x.level})` : ''}{x.active ? '' : ' — if assigned'}
+			</div>
+			{#if x.bonuses.length}{@render bonusList(x.bonuses)}{:else}<div class="text-xs text-gray-500">
+					{x.kind === 'council' && !x.active
+						? 'its seat’s modifiers per level; no trait of its own there'
+						: 'no trait effect known there'}
+				</div>{/if}
 		</div>{/each}
 	{#if r.self.length}<div>
 			<div class="text-xs font-semibold">itself</div>
@@ -129,17 +143,25 @@
 				<span class="rounded px-1 text-xs text-white" style:background={colorOf(`class-${c}`)}
 					>{c}</span
 				>
-				<span class="text-gray-500">{count(c)}</span></label
+				<span
+					class={data.limits && hired(c) > data.limits[c] ? 'text-amber-600' : 'text-gray-500'}
+					title="hired / limit — a soft one: more cost more upkeep"
+					>{hired(c)}{data.limits ? ` / ${data.limits[c]}` : ''}</span
+				></label
 			>
 		{/each}
 		<label class="flex items-center gap-1"
 			><input type="checkbox" bind:checked={envoys} /> envoys
-			<span class="text-gray-500">{count('envoy')}</span></label
+			<span class="text-gray-500">{hired('envoy')}</span></label
 		>
 	</div>
 	<SortTable {rows} {columns} key={(r) => r.id} sort={{ column: '', desc: false }} />
 
-	<h2 class="mt-6 mb-2 text-lg font-semibold">Recruitable</h2>
+	<h2 class="mt-6 mb-2 text-lg font-semibold">
+		Recruitable{#if data.poolKnown}<span class="ml-2 text-sm font-normal text-gray-500"
+				>{LEADER_CLASSES.map((c) => `${recruitable(c)} ${c}s`).join(' · ')}</span
+			>{/if}
+	</h2>
 	{#if !data.poolKnown}
 		<p class="text-sm text-amber-600">Not read from this save yet; it fills after the next one.</p>
 	{:else if poolRows.length}
