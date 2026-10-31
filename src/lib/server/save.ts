@@ -275,7 +275,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '35'; // 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '36'; // 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1694,6 +1694,10 @@ function playerColonies(raw: RawSave): Colony[] {
 			amenities: numOrNull(c.amenities),
 			amenitiesUsage: numOrNull(c.amenities_usage),
 			crime: numOrNull(c.crime),
+			// companion mod 0.8.0: the flat stability and its multiplier the game caps at 100 —
+			// the colony's own variables, else (not seen yet) its planet's
+			stabilityAdd: numOrNull((c.variables ?? planet?.variables)?.sdash_stab_add),
+			stabilityMult: numOrNull((c.variables ?? planet?.variables)?.sdash_stab_mult),
 			ascensionTier: num(c.ascension_tier),
 			governorSkill: leaderSkill(raw.leaders[String(c.governor)]),
 			...colonyDistricts(raw, list(c.districts)),

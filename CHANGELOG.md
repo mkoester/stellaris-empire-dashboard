@@ -8,6 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Colony page, while a colony sits at the stability cap of 100: a panel beside "Amenities,
+  happiness and stability" with how far above the cap the game's sum is, how much approval and
+  how many amenities could go before stability drops below 100, and what holds each up on the
+  colony and empire-wide — how to change it and what else giving it up costs. The Stability chart
+  draws "over 100" on its right axis. How far above the cap needs **companion mod 0.8.0** (the
+  game saves stability capped); without it the panel gives the rates.
+- Companion mod 0.8.0: each colony's flat stability and stability multiplier, stored in the save
+  every month (no new log line). Saves still on disk are read again once.
+
 - Stellaris open betas: the game data is extracted per game **build**, not per version — an open
   beta (4.5.3, build 7793) and the release after it share their version, and the release would
   have kept the beta's data. Every player's dashboard extracts once more after this update (~5 s).

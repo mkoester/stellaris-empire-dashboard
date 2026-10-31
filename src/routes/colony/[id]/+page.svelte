@@ -6,6 +6,7 @@
 	import Jobs from '#lib/Jobs.svelte';
 	import Designation from '#lib/Designation.svelte';
 	import DistrictName from '#lib/DistrictName.svelte';
+	import ColonyStabilityRoom from '#lib/ColonyStabilityRoom.svelte';
 	import ColonyWellbeing from '#lib/ColonyWellbeing.svelte';
 	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
@@ -114,7 +115,20 @@
 {/if}
 
 {#if data.colony}
-	<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
+	<!-- beside it while the colony is at the stability cap: what is spent there for nothing -->
+	<div class="grid items-start gap-x-4 lg:grid-cols-2">
+		<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
+		{#if data.colony.stability >= data.wellbeing.maxStability}
+			<ColonyStabilityRoom
+				colony={data.colony}
+				rules={data.wellbeing}
+				gestalt={data.gestalt}
+				uncapped={data.uncapped}
+				levers={data.levers}
+				explain={data.explain}
+			/>
+		{/if}
+	</div>
 {/if}
 
 <div class="grid gap-4 lg:grid-cols-2">
@@ -143,6 +157,8 @@
 			extent={data.xExtent}
 			events={planetEvents}
 			scope="colony"
+			right={['over 100']}
+			rightFloor={10}
 		/>
 		<Chart
 			title="Pops per month: growth and migration"

@@ -759,6 +759,27 @@ assumed linear**, marked ≈ (`docs/open-checks.md` 17). Civilians use no amenit
 500 base + 1 per elite, specialist and worker pop). Civic needs carry their authority
 (`civicAuthority`, data DB `civic_requirement`): the three Memorialist civics differ only by it,
 ours first, the others greyed.
+**Room above the stability cap** (the user's ask 2026-10-31: "by how much I am over the ceiling of
+100, by how much happiness and amenities could be decreased, what I could change, and its side
+effects"; `ColonyStabilityRoom.svelte` beside it while stability ≥ `MAX_PLANET_STABILITY`): **the
+save holds stability capped** (`stability=100`, no breakdown), and the data DB cannot rebuild it —
+the arkship's tooltip (2205.06.01, screenshot `screenshot_2026-10-31_08-50-48`: base 50, Economic 10,
+Capital Arkship 5.6, + Pop Jobs 17 + approval 27 = 109.6) took 10 from the nomad economy
+situation's stage modifiers and most of 17 from triggered job modifiers, none in the data DB. So
+companion mod 0.8.0 exports `planet_stability_add|mult` per colony (below) and
+`uncappedStability()` adds base and approval's share — assumptions in `docs/open-checks.md` 22.
+`approvalRoom()` / `amenityRoom()` invert the linear scales: approval points (and amenities,
+wasted ones first) that may go before the overshoot is spent; without the mod `roomRates()`
+(2205.06: 1.67 approval points per stability point, ≈ 310 amenities per approval point). The
+Stability chart's right axis shows "over 100". **What holds them up** (`#lib/wellbeingLevers.ts`):
+every popup explanation that holds now (`heldOf()`: this colony's active buildings, designation,
+worked jobs, deposits, planet modifiers; the empire's traditions, perks, edicts, policies, civics,
+ethics, authority, origin, council seats, species rights, techs, species traits, country
+modifiers) with a modifier that raises happiness or amenities (`raises()`: a cut in amenity usage
+counts, a gestalt's `no_happiness` ones instead); its other modifiers are the side effects. Only
+unconditional modifiers — living standards' happiness, most job variants and leader traits are
+triggered and missing; 2205.07 listed Prosperous Unification, the capital building and Medical
+Workers.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
@@ -1040,6 +1061,12 @@ shows format 2.
   with. Read as `Snapshot.storageMax` and `AiIntel.max` (`storageMax()`); the resources panel's storage line
   and the trade tab's "They take" use them, else ≈ the base (`docs/storage.md` lists every
   source). Confirmed in game 2026-10-24 (Open).
+- **Colony stability** (0.8.0): no log line — each month `every_controlled_colony` (arkships
+  included) exports `planet_stability_add` and `planet_stability_mult`
+  (`export_modifier_to_variable`, colony scope per 4.5.3 effects.log) into the colony's
+  `sdash_stab_add` / `sdash_stab_mult`. Read as `Colony.stabilityAdd|Mult` (READER 36) from
+  `colony.<id>.variables`, else the planet's — **where they land is not yet seen**
+  (`docs/open-checks.md` 22).
 - **The daily tick**: 4.5.2 has no sub-monthly on_action, so `sdash.2` re-fires itself with
   `days = 1`. The stockpile moves within a month (spending, the market, rewards, deals); income
   does not, so the tick logs stockpiles only. Pending events are saved with the game, so the chain

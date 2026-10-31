@@ -211,6 +211,19 @@ describe('toSnapshot', () => {
 		expect(toSnapshot(withMod, 'camp').navalMax).toBe(40);
 	});
 
+	it('reads the stability companion mod 0.8.0 exports on each colony (sdash_stab_*)', () => {
+		const id = Object.keys(raw.colonies)[0];
+		const withMod = {
+			...raw,
+			colonies: {
+				...raw.colonies,
+				[id]: { ...raw.colonies[id], variables: { sdash_stab_add: 32.6, sdash_stab_mult: 0.1 } }
+			}
+		};
+		const c = toSnapshot(withMod, 'camp').colonies.find((x) => x.stabilityAdd != null);
+		expect(c).toMatchObject({ stabilityAdd: 32.6, stabilityMult: 0.1 });
+	});
+
 	it('lists controlled colonies, joined to their planet when there is one', () => {
 		expect(s.colonies).toEqual([
 			{
@@ -230,6 +243,8 @@ describe('toSnapshot', () => {
 				amenities: null,
 				amenitiesUsage: null,
 				crime: null,
+				stabilityAdd: null, // without companion mod 0.8.0
+				stabilityMult: null,
 				ascensionTier: 1,
 				governorSkill: 2,
 				planetClass: '',

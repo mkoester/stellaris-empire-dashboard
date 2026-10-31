@@ -168,6 +168,24 @@ game's leader tooltip ("Skill Level: (2+1)/10") does. One sample only, both lead
   colony gets another ascension tier or capital upgrade), hover both numerals.
 - **Send:** the screenshots and the date; the save.
 
+### 22. Stability above the cap — colony page, companion mod 0.8.0 (from 2026-10-31)
+
+**Unverified.** Mod 0.8.0 exports each colony's `planet_stability_add` and `planet_stability_mult`
+into its variables `sdash_stab_add` / `sdash_stab_mult` every month; the dashboard adds base 50
+and approval's share (`uncappedStability()`). Assumed: the flat sum holds every tooltip line but
+approval's, the multiplier scales the whole sum, and the variables land in the save's `colony.<id>
+.variables` (else its planet's). Reference (2205.06.01, screenshot
+`~/Pictures/Screenshots/screenshot_2026-10-31_08-50-48.png`): the arkship's tooltip, base 50 +
+Economic 10.0 + Capital Arkship 5.6 + Pop Jobs 17.0 + approval 95 % +27 = 109.6, i.e. a flat sum
+of 32.6.
+
+- **Do:** start the game with the mod at 0.8.0 (a game restart picks up the linked copy), play
+  past the next 1st, hover the arkship's stability.
+- **Send:** the screenshot and the date. Check: the save's `sdash_stab_add` = the tooltip's lines
+  but approval (32.6 above if nothing moved), and the colony page's "before the cap" = the
+  tooltip's sum. A sum off by approval's share means the flat sum includes it; off by a factor,
+  the multiplier applies per line.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

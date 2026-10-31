@@ -32,6 +32,14 @@ country_event = {
 		# 0.6.0: our naval capacity, which the game does not save (only the used part) — into
 		# sdash_nc, read from the save only. Trigger from 4.5.2 triggers.log (country scope).
 		export_trigger_value_to_variable = { trigger = max_naval_capacity variable = sdash_nc }
+		# 0.8.0: each colony's flat stability and stability multiplier — the game saves stability
+		# capped at 100, so how far above the cap a colony is shows nowhere else. Into the colony's
+		# sdash_stab_add / sdash_stab_mult, read from the save only (every_controlled_colony covers
+		# arkships too). Effect from 4.5.3 effects.log (scopes include colony).
+		every_controlled_colony = {
+			export_modifier_to_variable = { modifier = planet_stability_add variable = sdash_stab_add }
+			export_modifier_to_variable = { modifier = planet_stability_mult variable = sdash_stab_mult }
+		}
 		# 0.5.0: storage — each resource's maximum, which the game does not save: ours with every
 		# resource (sdash_m_<res>, in sdash_export_resource), the tradable ones of every empire we
 		# talk to (their room in a trade). No log line. Effect from 4.5.2 effects.log.
