@@ -504,7 +504,7 @@ export type Tick = {
 
 /**
  * A colony's day from the mod (0.9.0): the game's `free_jobs`, `num_unemployed` and
- * `num_sapient_pops` triggers. Unemployed read as the civilians, employed as pops − unemployed.
+ * `pop_amount` triggers (pop_amount counts every pop, the save's `num_sapient_pops` sapient ones only). Unemployed read as the civilians, employed as pops − unemployed.
  */
 export type ColonyDay = { openJobs: number; unemployed: number; pops: number };
 
