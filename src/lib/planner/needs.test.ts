@@ -75,4 +75,22 @@ describe('techNeeds', () => {
 		]);
 		expect(techNeeds(['mega'], ['starbase'], t, r, nomad)).toEqual([]); // one of the group is done
 	});
+
+	it('takes the bio hulls for a bio-ship empire (Stingers, not Battleships)', () => {
+		const t = {
+			mega: { ...tech('engineering', 1), name: 'Mega-Engineering' },
+			tech_battleships: { ...tech('engineering', 1), name: 'Battleships' },
+			tech_stingers: { ...tech('engineering', 1), name: 'Stingers' }
+		} as GameData['techs'];
+		const usesBio = (v: string) => ({ leaf: 'country_uses_bio_ships', value: v });
+		const r = {
+			mega: { ...req([]), anyOf: [['tech_battleships', 'tech_stingers']] },
+			tech_battleships: { ...req([]), potential: usesBio('no') },
+			tech_stingers: { ...req([]), potential: usesBio('yes') }
+		} as unknown as GameData['techRequirements'];
+		const bioEmpire = (p: unknown) => (p ? (p as { value: string }).value === 'yes' : true);
+		expect(techNeeds(['mega'], [], t, r, bioEmpire).map((g) => [g.id, g.note])).toEqual([
+			['auto-tech-tech_stingers', 'needed for Mega-Engineering — or instead Battleships']
+		]);
+	});
 });

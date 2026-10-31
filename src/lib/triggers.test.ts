@@ -116,3 +116,19 @@ group('perk and tree counts', () => {
 		expect(evaluate({ leaf: 'num_tradition_categories', cmp: '<', value: '7' }, f)).toBe(true);
 	});
 });
+
+group('ship kinds', () => {
+	// country_uses_bio_ships (4.5.2 scripted_triggers/07_scripted_triggers_ships.txt)
+	const bio: Trigger = {
+		op: 'and',
+		args: [
+			{ leaf: 'exists', value: 'this' },
+			{ leaf: 'uses_ship_category', value: 'bio_ship' }
+		]
+	};
+	it('answers uses_ship_category from the shipset, unknown without it', () => {
+		expect(evaluate(bio, { ...facts, shipKinds: ['bio_ship', 'tiyanki'] })).toBe(true);
+		expect(evaluate(bio, { ...facts, shipKinds: ['default_ship'] })).toBe(false);
+		expect(evaluate(bio, { ...facts, shipKinds: null })).toBeNull();
+	});
+});

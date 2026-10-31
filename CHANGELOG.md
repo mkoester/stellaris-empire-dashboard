@@ -54,6 +54,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- A bio-ship empire (Biogenesis shipsets) was planned the classic hulls — Corvettes up to
+  Battleships — for techs that take either; it now gets Harbingers and Stingers. Tech within
+  reach, focus rewards and the other tabs that check a tech's conditions know the ship kind too.
 - Fast clicks on ▲▼ in the planner could scramble a group's order; one change now runs at a time,
   and ▲▼ step past the next goal shown.
 - The game data is extracted again whenever the bundled extractor's code changes, not only its

@@ -103,7 +103,7 @@ export function planCtx(snaps: Snapshot[]): Ctx | null {
 	if (!latest) return null;
 	const data = getGameData();
 	const galaxy = campaignGalaxy(latest.campaign)?.systems ?? null;
-	const f = facts(latest, data.scriptedTriggers);
+	const f = facts(latest, data.scriptedTriggers, { shipKinds: data.shipKinds });
 	const possible: PlanCtx['possible'] = (p) => evaluate(p, f);
 	const fits = new Map<string, Map<number, boolean | null>>();
 	const megaFit = (kind: string, systemId: number) => {

@@ -535,6 +535,16 @@ export function loadGameData(file: string): GameData {
 					"SELECT category_key, possible_json FROM tradition WHERE role = 'adopt'"
 				)
 			),
+			// since extractor 2026-10-31; an older data DB has no such table (unknown then)
+			shipKinds: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'graphical_culture'"
+			).length
+				? Object.fromEntries(
+						rows<{ key: string; ship_kinds_json: string }>(
+							'SELECT key, ship_kinds_json FROM graphical_culture'
+						).map((r) => [r.key, jsonList(r.ship_kinds_json)])
+					)
+				: {},
 			perkRules: Object.fromEntries(
 				rows<{ key: string; potential_json: string | null; possible_json: string | null }>(
 					'SELECT key, potential_json, possible_json FROM ascension_perk'

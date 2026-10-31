@@ -540,7 +540,14 @@ unmet **tier gate** (kind `tech_tier`: 6 techs of the tier below in that area, a
 ids `auto-tech-<key>` / `auto-tier-<area>-<tier>`, noted "needed for …"; of an `OR` group
 (data DB `technology_requirement.prerequisites_any_json`, extractor 2026-10-31 — before, any
 prerequisite block holding an OR read as empty) the first alternative whose `potential` is not
-false, the others named ("or instead Citadel"); `inReach()` wants one of each group too. Checked
+false, the others named ("or instead Citadel"); `inReach()` wants one of each group too. **The hull
+line follows the shipset**: every hull tech gates on `country_uses_bio_ships` (Corvettes …
+Battleships `no`, Harbingers and Stingers `yes`; 4.5.2 `scripted_triggers/07_scripted_triggers_ships.txt`:
+`uses_ship_category = bio_ship`), which `#lib/triggers.ts` answers from `Snapshot.shipset` (the
+country's `graphical_culture`, READER 38) and the data DB's `graphical_culture.ship_kinds_json`
+(`GameData.shipKinds`; the three Biogenesis shipsets list `bio_ship`) — before, it was unknown,
+so a bio-ship empire got Corvettes … Battleships for Mega-Engineering (the user's catch,
+2026-10-31; checked after: Harbingers → Stingers). Checked
 2026-10-31 on Roaming Korinth (nomad): Mega-Engineering → the power, hull and arkship lines and
 seven tier gates, Arkship Mastery chosen over Citadel. They go with the tech: removing it removes
 them. **Group order follows the game's rules** (`arrange()`'s `constrain`, Kahn's algorithm

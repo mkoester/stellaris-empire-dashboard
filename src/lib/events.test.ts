@@ -75,6 +75,7 @@ const data: GameData = {
 	perks: {},
 	perkTrees: {},
 	perkRules: {},
+	shipKinds: {},
 	traditionPrereqs: {},
 	flagColors: {},
 	ethicAxes: {},

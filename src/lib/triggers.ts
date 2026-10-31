@@ -50,6 +50,8 @@ export type Facts = {
 	globalFlags?: string[] | null;
 	galcomFormed?: boolean | null;
 	galcomYears?: number | null; // whole years since the Galactic Community formed
+	// `uses_ship_category`: the ship kinds our shipset builds (`bio_ship` for Biogenesis)
+	shipKinds?: string[] | null;
 	galcomMember?: boolean | null;
 };
 
@@ -130,7 +132,10 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 		case 'is_subject':
 			return yes(f.subject ?? null);
 		case 'exists':
-			return value === 'overlord' ? (f.subject ?? null) : null;
+			// `this` is the country itself (`country_uses_bio_ships`: exists = this)
+			return value === 'overlord' ? (f.subject ?? null) : value === 'this' ? true : null;
+		case 'uses_ship_category':
+			return f.shipKinds ? f.shipKinds.includes(value) : null;
 		case 'is_at_war':
 			return yes(f.atWar);
 		case 'is_gestalt':

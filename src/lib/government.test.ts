@@ -285,3 +285,18 @@ describe('launchDates', () => {
 		).toEqual({ launched: '2201.12.01', effectUntil: '2211.12.01', availableAgain: '2231.12.01' });
 	});
 });
+
+describe('facts: ship kinds', () => {
+	it("reads the shipset's ship kinds; unknown without a shipset or a known one", () => {
+		const shipKinds = { biogenesis_02: ['bio_ship', 'tiyanki'], mammalian_01: ['default_ship'] };
+		const of = (shipset: string | null) =>
+			facts(
+				upgrade({ kind: 'save', campaign: 'c', date: '2200.01.01', shipset }),
+				{},
+				{ shipKinds }
+			).shipKinds;
+		expect(of('biogenesis_02')).toEqual(['bio_ship', 'tiyanki']);
+		expect(of(null)).toBeNull();
+		expect(of('modded_01')).toBeNull();
+	});
+});

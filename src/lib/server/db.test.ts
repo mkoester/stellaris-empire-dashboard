@@ -131,6 +131,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	wanderlust: null,
 	entryEvents: null,
 	founderClass: null,
+	shipset: null,
 	speciesRights: null,
 	timelineId: null,
 	previousTimelineId: null,
