@@ -9,7 +9,9 @@ version's `CHANGELOG.md` section.
 
 1. **Extractor first**: the zips bundle `stellaris-data-extraction` at the tag `package.json`
    pins (`extractorVersion`), and a release build refuses any other. If the extractor changed,
-   release it, then set `extractorVersion` to its new tag.
+   release it, then set `extractorVersion` to its new tag. For a `vX.Y.Z` the workflow runs that
+   tag's `scripts/release-check` and fails on a stale dump or one from a game beta (prereleases
+   skip it); tags before v0.1.6 have no such script, so pin a newer one.
 2. On `develop`, everything committed: in `CHANGELOG.md`, turn `Unreleased` into
    `## [X.Y.Z] - <date>` (own commit) — the release notes come from that section.
 3. `git checkout main && git merge --no-ff develop -m "Release vX.Y.Z (merge develop)"`, then

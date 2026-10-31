@@ -58,6 +58,13 @@ jobs:
           path: stellaris-data-extraction
           fetch-tags: true # package.mjs checks the pinned tag is HEAD's
 
+      # A regular release pins a regular extractor release, and that one's dump must be its own
+      # code's output from the public game — not stale, not a beta's (extraction's RELEASE.md).
+      - name: Check the extractor's dump is fresh and from the public game
+        if: env.PRERELEASE != '1'
+        working-directory: stellaris-data-extraction
+        run: scripts/release-check
+
       - uses: pnpm/action-setup@v6
         with:
           version: 12
