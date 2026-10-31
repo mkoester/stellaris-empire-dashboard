@@ -4,6 +4,7 @@ import { getDb, getExplanations, getGameData } from './app.ts';
 import { headId, history, nodes } from './db.ts';
 import { pick } from './explain.ts';
 import { dismissed } from './campaigns.ts';
+import { idles, withIdleShips } from '#lib/idle.ts';
 import { display } from './settings.ts';
 import { empireColors } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
@@ -28,6 +29,8 @@ export function branch(url: URL) {
 	// Rates need time to have passed: the latest save before the last one's date (a manual save
 	// right after the autosave of the same day would give none).
 	const previous = saves.findLast((s) => last !== undefined && s.date < last.date) ?? null;
+	// what sits idle, each since its idle spell began, without the dismissed (#lib/idle.ts)
+	const idle = idles(saves, getGameData().leaderCap, dismissed(db, campaign));
 	// Jobs worked, per colony and summed over the empire, at the latest full save, with what each
 	// job produces and uses (the budget's per-job sources; a planet gets its pops share).
 	const info = getGameData().jobs;
@@ -55,7 +58,8 @@ export function branch(url: URL) {
 		milestones: milestones(snaps, getGameData()),
 		upcoming: last
 			? [
-					...upcoming(last, previous, getGameData(), saves.slice(0, -1)),
+					...withIdleShips(upcoming(last, previous, getGameData(), saves.slice(0, -1)), idle.ships),
+					...idle.rows,
 					...expiries(last, getGameData(), title, display().hiddenTimers),
 					...timedOut(saves, getGameData(), title, dismissed(db, campaign)),
 					...rolls(last)

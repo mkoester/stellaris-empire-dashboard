@@ -12,6 +12,37 @@ import type { CivilianShip, Route, ShipOrder, Snapshot } from './types.ts';
 //   seen 176.4 a month before completion.
 // The rate is measured between the two latest saves for the same order, so speed bonuses count.
 
+// Ship sizes by their in-game names (localisation, 4.5.3: main_1_l_english.yml `science`,
+// `constructor`, `colonizer`, stations; nomads_1_l_english.yml:2023/2043 the nomads' two). A
+// Logistic Ship shares `shipclass_constructor` with the Construction Ship, so only its design's
+// size tells them apart.
+const SIZE_NAMES: Record<string, string> = {
+	science: 'Science Ship',
+	constructor: 'Construction Ship',
+	colonizer: 'Colony Ship',
+	nomads_constructor: 'Logistic Ship',
+	nomads_engineer_vessel: 'Logistics Vessel',
+	mining_station: 'Mining Station',
+	research_station: 'Research Station',
+	starbase_outpost: 'Outpost'
+};
+// a fleet's class (`shipclass_` stripped), for ships read before their size was
+const CLASS_NAMES: Record<string, string> = {
+	science_ship: 'Science Ship',
+	constructor: 'Construction Ship',
+	colonizer: 'Colony Ship'
+};
+
+/** A ship's name as the game shows its size; else its class's, else the key made readable. */
+export function shipName(size: string | null | undefined, kind?: string): string {
+	if (size && SIZE_NAMES[size]) return SIZE_NAMES[size];
+	if (kind && CLASS_NAMES[kind]) return CLASS_NAMES[kind];
+	return pretty(size || kind || 'ship');
+}
+
+/** A civilian ship's kind as the game names it. */
+export const shipLabel = (s: Pick<CivilianShip, 'size' | 'kind'>) => shipName(s.size, s.kind);
+
 const SURVEY_DAYS = 30;
 const BUILD_TOTAL = 100;
 // SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS (common/defines, 4.5.2): 9 levels above the anomaly … 9 below
@@ -81,7 +112,7 @@ export function monthsLeft(
  */
 export function idleState(ship: CivilianShip): { text: string; act: boolean } {
 	const p = ship.parked;
-	const kind = ship.kind.replaceAll('_', ' ');
+	const kind = shipLabel(ship);
 	// automation picks its next task itself
 	if (ship.automation) return { text: `${kind} automated, between tasks`, act: false };
 	if (!p) return { text: `${kind} idle`, act: true };

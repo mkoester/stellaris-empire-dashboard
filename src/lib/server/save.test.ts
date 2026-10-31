@@ -1188,6 +1188,7 @@ describe('empire overview', () => {
 				power: 176.625,
 				route: {
 					at: 'Sol',
+					systemId: 380, // where it is, for the map (READER 38)
 					moving: true,
 					stops: [{ system: 'Sirius', jumps: 1, unexplored: true }]
 				}
@@ -1336,6 +1337,21 @@ describe('stations', () => {
 				arkship: false
 			}
 		]);
+	});
+
+	it("places a station no system lists (an arkship's) where its station ship's fleet is", () => {
+		// starbase 42 left out of Alpha Centauri's list: its station ship 900 is in fleet 77, at 52
+		const moving = {
+			...raw,
+			systems: { ...raw.systems, '52': { ...raw.systems['52'], starbases: [] } },
+			starbases: { ...raw.starbases, '42': { ...raw.starbases['42'], station: 900 } },
+			ships: { '900': { fleet: 77 } },
+			fleets: { '77': { movement_manager: { coordinate: { origin: 52 } } } }
+		};
+		expect(stations(moving).find((x) => x.id === 42)).toMatchObject({
+			system: 'Alpha Centauri',
+			systemId: 52
+		});
 	});
 
 	it('lists own mega shipyards, with a ships queue located at them if there is one', () => {

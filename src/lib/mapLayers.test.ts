@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { contactDone, firstSeen, mapMarkers, parseMapFilter, tracked } from './mapLayers.ts';
+import {
+	contactDone,
+	firstSeen,
+	mapMarkers,
+	ownOnMap,
+	parseMapFilter,
+	tracked
+} from './mapLayers.ts';
 import type { GalaxySystem, Snapshot } from './types.ts';
 
 const sys = (id: number, s: Partial<GalaxySystem> = {}): GalaxySystem => ({
@@ -330,6 +337,44 @@ describe('found and done', () => {
 
 describe('parseMapFilter', () => {
 	it('keeps known layers only', () => {
-		expect(parseMapFilter({ hidden: ['ruins', 'nonsense'] })).toEqual({ hidden: ['ruins'] });
+		expect(parseMapFilter({ hidden: ['ruins', 'nonsense'] })).toEqual({
+			hidden: ['ruins'],
+			ships: 'off'
+		});
+	});
+
+	it('keeps a known ships choice, else none', () => {
+		expect(parseMapFilter({ ships: 'fleets' }).ships).toBe('fleets');
+		expect(parseMapFilter({ ships: 'boats' }).ships).toBe('off');
+	});
+});
+
+describe('ownOnMap', () => {
+	const route = (systemId?: number) => ({ at: 'x', moving: false, stops: [], systemId });
+	const snap = {
+		situations: [{ type: 'situation_nomad_economy' }],
+		stations: [
+			{ systemId: 1, level: 'waystation_1' },
+			{ systemId: 2, level: 'military_arkship_1' },
+			{ systemId: null, level: 'waystation_2' }
+		],
+		orbitalStations: [{ systemId: 3, planetId: 9, deposits: [] }],
+		fleets: [{ name: '1st Fleet', ships: 3, power: 10, route: route(4) }],
+		civilianShips: [
+			{ name: 'Ark', kind: 'constructor', size: 'nomads_constructor', route: route(5) },
+			{ name: 'Old', kind: 'science_ship', route: route() }
+		]
+	} as unknown as Snapshot;
+
+	it("gives a nomad's waystations, every station's system and the ships where they are", () => {
+		const o = ownOnMap(snap);
+		expect(o.nomad).toBe(true);
+		expect(o.waystations).toEqual([1]);
+		expect(o.stations).toEqual([1, 2, 3]);
+		// a ship read before READER 38 has no system: left out
+		expect(o.ships).toEqual([
+			{ systemId: 4, kind: 'fleet', name: '1st Fleet' },
+			{ systemId: 5, kind: 'civilian', name: 'Ark (Logistic Ship)' }
+		]);
 	});
 });

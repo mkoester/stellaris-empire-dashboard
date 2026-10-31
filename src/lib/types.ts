@@ -83,6 +83,7 @@ export type Fleet = {
  */
 export type Route = {
 	at: string;
+	systemId?: number; // the system it is in (`coordinate.origin`); absent before READER 38
 	moving: boolean;
 	stops: { system: string; jumps: number | null; unexplored: boolean }[];
 };
@@ -101,7 +102,8 @@ export type ShipOrder = {
 export type CivilianShip = {
 	fleetId: number;
 	name: string;
-	kind: string; // science_ship, constructor, colonizer, …
+	kind: string; // science_ship, constructor, colonizer, … (the fleet's class)
+	size?: string; // the first ship's size: nomads_constructor, constructor, … (READER 38)
 	stance: string | null; // fleet_stance: evasive, passive, aggressive (null: the game's default)
 	automation: string[] | null; // automated: the enabled settings (survey, mining stations, …); null: manual
 	leader: string | null;

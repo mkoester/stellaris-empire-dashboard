@@ -8,6 +8,7 @@
 	import DistrictName from '#lib/DistrictName.svelte';
 	import ColonyStabilityRoom from '#lib/ColonyStabilityRoom.svelte';
 	import ColonyWellbeing from '#lib/ColonyWellbeing.svelte';
+	import LuxuryGoods from '#lib/LuxuryGoods.svelte';
 	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
 	import PlanetInfo from '#lib/panels/PlanetInfo.svelte';
@@ -128,6 +129,7 @@
 	<!-- beside it while the colony is at the stability cap: what is spent there for nothing -->
 	<div class="grid items-start gap-x-4 lg:grid-cols-2">
 		<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
+		<LuxuryGoods what={data.luxuries} until={data.luxuriesUntil} />
 		{#if data.colony.stability >= data.wellbeing.maxStability}
 			<ColonyStabilityRoom
 				colony={data.colony}

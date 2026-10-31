@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	dlcRows,
+	loadOrder,
 	modRows,
 	parseModDescriptor,
 	supports,
@@ -93,6 +94,23 @@ describe('modRows', () => {
 			['A', true, false],
 			['B', true, null]
 		]);
+	});
+
+	it("numbers mods by the launcher's load order, disabled ones none", () => {
+		const a = parseModDescriptor('name="A"', 'ugc_1.mod')!;
+		const b = parseModDescriptor('name="B"', 'ugc_2.mod')!;
+		const c = parseModDescriptor('name="C"', 'local.mod')!;
+		// dlc_load.json as the launcher writes it (2026-10-31)
+		const order = loadOrder(
+			'{"enabled_mods":["mod/ugc_2.mod","mod/ugc_1.mod"],"disabled_dlcs":[]}'
+		);
+		expect(order).toEqual(['ugc_2.mod', 'ugc_1.mod']);
+		expect(modRows([a, b, c], null, null, order).map((r) => [r.name, r.order])).toEqual([
+			['A', 2],
+			['B', 1],
+			['C', null]
+		]);
+		expect(loadOrder('not json')).toEqual([]);
 	});
 });
 

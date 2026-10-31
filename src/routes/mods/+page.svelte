@@ -10,7 +10,7 @@
 
 	let activeOnly = $state(true);
 	let tag = $state('');
-	let sort = $state({ column: 'name', desc: false });
+	let sort = $state({ column: 'order', desc: false });
 
 	const tags = $derived([...new Set(data.rows.flatMap((r) => r.tags))].sort());
 	const shown = $derived(
@@ -20,6 +20,12 @@
 	const yesNo = (v: boolean | null) => (v === null ? null : v ? 1 : 0);
 
 	const columns: Column<ModRow>[] = [
+		{
+			id: 'order',
+			label: '#',
+			value: (r) => r.order,
+			title: "the launcher's load order as of the last game start (dlc_load.json); later mods win"
+		},
 		{ id: 'name', label: 'Mod', value: (r) => r.name, cell: name },
 		{ id: 'version', label: 'Version', value: (r) => r.version },
 		{
@@ -100,7 +106,9 @@
 	{#if data.seenAt}{count} active in the save of {data.seenAt}{data.gameVersion
 			? ` (${data.gameVersion})`
 			: ''}.{:else}No save read since the mod list was added; it shows after the next one.{/if}
-	Installed mods come from the launcher's descriptors in the Stellaris user folder.
+	Installed mods come from the launcher's descriptors in the Stellaris user folder; # is the load order
+	the launcher wrote when it last started the game (a change in the launcher since shows after the next
+	start).
 </p>
 
 <div class="mb-4 flex flex-wrap items-center gap-4 text-sm">

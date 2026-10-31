@@ -268,6 +268,14 @@ later end, or the player dismisses it (✕ → `POST /api/upcoming { dismiss }`,
 game 2026-10-25: Find Applications run out on a reloaded 2202.07.01, ✕, a month on unused — gone
 (`~/Pictures/Screenshots/screenshot_2026-10-25_21-05-23`); used again on the left branch, its row
 went by itself. Distribute Luxury Goods on Earth and Unity: two rows.
+**Idle stays too** (`#lib/idle.ts`, the user's ask 2026-10-31: "prevent anything being idle unless
+I decide it should be idle right now"): a research field without a tech, no agenda in
+preparation, a colony queue or a shipyard (arkship's included) with nothing in it, a leader
+without a post, an empty council seat, free leader slots (`leaderLimits`, ≈) — rows of kind `idle`,
+⚠, ✕ — and the idle civilian ships' own rows get ✕ (`withIdleShips()`). The dismiss id ends with
+the first save of the idle spell, walked back along the branch's saves: busy again, then idle,
+is a new row. 2206.10.08 (Roaming Korinth): 2 official and 2 commander slots free, the arkship's
+shipyard, one idle science ship.
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
@@ -330,7 +338,11 @@ country only `seen_bypass_types`), and exploring one is a fleet's jump through i
 `common/bypass/00_bypasses.txt`, `on_pre_explore`), which visits the far end; one end visited is
 not enough (2207.03.10: Phiroza visited, Eye of Bal not — no link). `wormholePairs` (spoiler) shows
 every pair (`wormholeLinks()` stores them all), both ends. Fit
-buttons: capital, my empire, explored, the page's own, everything; a per-viewer `sectors` checkbox
+buttons: capital, my empire (a nomad's: **my waystations**, starbase level `waystation_*`;
+disabled without one), explored, the page's own, everything; the map and systems tabs pass `own`
+(`ownOnMap()` in `#lib/mapLayers.ts`), which adds "my stations and ships" and our ships as a
+marker per system (`Route.systemId`, READER 38) — all, fleets or civilian, the profile's
+`mapFilter.ships`, shared by both tabs (the user's ask 2026-10-31); a per-viewer `sectors` checkbox
 splits our territory by sector (`GalaxySystem.sector`, the colonies tab's `sectorColors`). Profile switches: `unknownStars`
 adds every other star, faint, named "Unknown" and without lanes, but not the special systems off
 the main hyperlane network (`mainNetwork()`; 2207.03.10: Kleeia `distar_sealed_1_2` and Ultima
@@ -801,6 +813,17 @@ counts, a gestalt's `no_happiness` ones instead); its other modifiers are the si
 unconditional modifiers — living standards' happiness, most job variants and leader traits are
 triggered and missing; 2205.07 listed Prosperous Unification, the capital building and Medical
 Workers.
+**Distribute Luxury Goods** (`#lib/luxuries.ts`, `LuxuryGoods.svelte` on the colony page; the user's
+ask 2026-10-31): `decision_planet_luxuries_boost` costs 100 Consumer Goods per started 1000 pops
+(8500–9999: 900, at most 1000; 4.5.3 `common/decisions/00_resource_decisions.txt`), then
+`planet_luxuries_boost` for 3600 days — `planet_amenities_mult` +25 %. The what-if runs the chain
+above: +25 % of today's amenities (≈: other amenity multipliers make it less) → happiness, taken
+as approval → stability (× `stabilityMult`, from the uncapped value with the mod) → job output,
+on today's job output scaled back by stability's share (`jobOutput()` from the job rows' flows),
+× 120 months. **Stability raises output, not upkeep** (the game's job tooltip 2026-10-31,
+`screenshot_2026-10-31_18-16-28`: physicists' "High Stability +30 %" under Produces, upkeep 5.16
+without it); job efficiency (`screenshot_…18-16-11`: +72 % → 344 of 200 workforce) is extra
+workforce and scales both. Not offered to gestalts, on a Nanotech World or while it runs.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
@@ -1050,7 +1073,11 @@ DLCs**: Utopia, Synthetic Dawn and Humanoids are gameplay DLCs no script checks 
 `version` where the descriptor has none, read-only) completes the descriptors; at each start
 `noteModVersions` notes every mod whose version, supported version or update time changed in
 the `mod_version` table, with the head's game date — the mods tab's "Updates", since
-2026-10-18 (many mods name no version: their update shows as a new update time). The DLC tab
+2026-10-18 (many mods name no version: their update shows as a new update time). **Load order**
+(`#`, the default sort): `<user dir>/dlc_load.json`'s `enabled_mods`, read per request — the
+launcher writes it from the active playset's order when it starts the game (2026-10-31: the same
+order as `launcher-v2.sqlite` `playsets_mods.position`), so a change in the launcher shows after
+the next game start. The save's `meta.mods` is alphabetical, no source of the order. The DLC tab
 opens per category.
 
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
@@ -1380,7 +1407,9 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   `country.sectors.owned` → `sectors.<id> = { name systems type }`.
 - Starbases: `starbase_mgr.starbases.<id> = { level modules buildings build_queue
 shipyard_build_queue station }` — **no owner field**; the country's are those whose own `build_queue` it owns — the queue's
-  `location.id` is the station ship, not the starbase (both 0 for Sol, which hid an outpost bug). System via `galactic_object.<id>.starbases`. Ship queue items name only a design
+  `location.id` is the station ship, not the starbase (both 0 for Sol, which hid an outpost bug). System via `galactic_object.<id>.starbases`;
+  an arkship's starbase is in no system's list — it is where its `station` ship's `fleet` is
+  (`movement_manager.coordinate.origin`; Roaming Korinth 2206.10.08: system 80). Ship queue items name only a design
   (`ship_design.<id>.{name, growth_stages[0].ship_size}`). Capital ships (titan, colossus,
   juggernaut) need a citadel with `capital_yards`, an arkship's `arkship_capital_shipyard`, or a
   finished Mega Shipyard, plus the tech (`*_possible_construction` in

@@ -1,7 +1,13 @@
 <script lang="ts">
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import { followGame } from '#lib/live.ts';
-	import { LAYER_INFO, MAP_LAYERS, type MapFilter, type MapLayer } from '#lib/mapLayers.ts';
+	import {
+		LAYER_INFO,
+		MAP_LAYERS,
+		type MapFilter,
+		type MapLayer,
+		type MapShips
+	} from '#lib/mapLayers.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import { monthStarts } from '#lib/series.ts';
 	import { putSettings } from '#lib/settings.ts';
@@ -16,6 +22,7 @@
 	let filter: MapFilter = $derived(data.filter);
 	const toggle = (l: MapLayer) => {
 		filter = {
+			...filter,
 			hidden: filter.hidden.includes(l)
 				? filter.hidden.filter((x) => x !== l)
 				: [...filter.hidden, l]
@@ -23,6 +30,10 @@
 		void putSettings({ mapFilter: filter });
 	};
 	const on = (l: MapLayer) => !filter.hidden.includes(l);
+	const setShips = (ships: MapShips) => {
+		filter = { ...filter, ships };
+		void putSettings({ mapFilter: filter });
+	};
 
 	let hovered: number | null = $state(null);
 	let selected: number | null = $state(null);
@@ -204,6 +215,9 @@
 				}
 			]}
 			heightKey="galaxy-map-height"
+			own={data.own}
+			ships={filter.ships}
+			onShips={setShips}
 			label="Galaxy map"
 			bind:hovered
 			bind:selected

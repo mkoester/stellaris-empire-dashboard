@@ -8,6 +8,7 @@
 	import { gameYear } from '#lib/series.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import { putSettings } from '#lib/settings.ts';
+	import type { MapFilter, MapShips } from '#lib/mapLayers.ts';
 	import type { Column } from '#lib/sort.ts';
 	import {
 		breakEven,
@@ -28,6 +29,12 @@
 	const save = (v: SystemView) => {
 		view = v;
 		void putSettings({ systemView: v });
+	};
+	// which of our ships the map draws: the map tab's setting, shared
+	let mapFilter: MapFilter = $derived(data.mapFilter);
+	const setShips = (ships: MapShips) => {
+		mapFilter = { ...mapFilter, ships };
+		void putSettings({ mapFilter });
 	};
 	let hovered: number | null = $state(null);
 	const getSelected = () => view.selected;
@@ -259,6 +266,9 @@
 			heightKey="systems-map-height"
 			label="systems"
 			territories={data.territories}
+			own={data.own}
+			ships={mapFilter.ships}
+			onShips={setShips}
 			bind:hovered
 			bind:selected={getSelected, setSelected}
 		/>

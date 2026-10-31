@@ -8,6 +8,7 @@ import { openJobs } from '#lib/jobs.ts';
 import { colonyDaySeries, colonySeries, xExtent } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
 import { uncappedStability, wellbeingRules } from '#lib/wellbeing.ts';
+import { jobOutput, LUXURY_MODIFIER, luxuryWhatIf } from '#lib/luxuries.ts';
 import { heldOf, wellbeingLevers } from '#lib/wellbeingLevers.ts';
 
 const pct = (v: number | null) => (v === null ? null : Math.round(v * 1000) / 10);
@@ -73,6 +74,17 @@ export function load({ url, params }) {
 		gestalt,
 		uncapped: colony ? uncapped(colony) : null,
 		levers,
+		// "Distribute Luxury Goods": what enacting it now would bring (#lib/luxuries.ts), or until when it runs
+		luxuries: colony
+			? luxuryWhatIf(
+					colony,
+					jobOutput(b.jobs[planetId] ?? []),
+					uncapped(colony),
+					gestalt,
+					wellbeing
+				)
+			: null,
+		luxuriesUntil: colony?.planet?.modifiers.find((m) => m.key === LUXURY_MODIFIER)?.until ?? null,
 		classNames: Object.fromEntries(
 			Object.entries(getGameData().planetClasses).map(([k, v]) => [k, v.name])
 		),

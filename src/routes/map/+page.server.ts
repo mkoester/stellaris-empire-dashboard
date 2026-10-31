@@ -1,5 +1,12 @@
 import { error } from '@sveltejs/kit';
-import { anomalyKey, contactDone, firstSeen, mapMarkers, tracked } from '#lib/mapLayers.ts';
+import {
+	anomalyKey,
+	contactDone,
+	firstSeen,
+	mapMarkers,
+	ownOnMap,
+	tracked
+} from '#lib/mapLayers.ts';
 import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
@@ -47,6 +54,8 @@ export function load({ url }) {
 		...rest,
 		seenAt: s?.date ?? null,
 		filter: mapFilter(),
+		// our stations and ships, for the fit buttons and the ships drawn
+		own: ownOnMap(b.latest),
 		wanderlust,
 		systems: mapView(g, { ...reveal(), wanderlust: allTargets }, contactSites).map((x) => ({
 			...x,

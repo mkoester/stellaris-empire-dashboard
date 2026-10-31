@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fmt } from '../format.ts';
-	import { idleState, orderLabel } from '../ships.ts';
+	import { idleState, orderLabel, shipLabel } from '../ships.ts';
 	import SortTable from '../SortTable.svelte';
 	import type { Column } from '../sort.ts';
 	import type { CivilianShip } from '../types.ts';
@@ -48,7 +48,7 @@
 </script>
 
 {#snippet ship(s: CivilianShip)}<span class="whitespace-nowrap"
-		>{s.name} <span class="text-gray-500">{s.kind.replaceAll('_', ' ')}</span></span
+		>{s.name} <span class="text-gray-500">{shipLabel(s)}</span></span
 	>
 	<div class="text-xs text-gray-500">
 		{[s.stance, s.automation ? `automated: ${s.automation.join(', ') || 'nothing set'}` : 'manual']

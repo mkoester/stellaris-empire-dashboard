@@ -29,6 +29,7 @@ import { traitBudget } from '#lib/species.ts';
 import { techTiers } from '#lib/techTiers.ts';
 import { adoptedTrees } from '#lib/traditions.ts';
 import { orderTotal } from '#lib/ships.ts';
+import { leaderLimits } from '#lib/leaders.ts';
 import {
 	agendaSeries,
 	fieldSeries,
@@ -78,6 +79,8 @@ export function empireData(url: URL) {
 				s.order ? orderTotal(s.order, s, data.anomalyLevels) : null
 			])
 		),
+		// each class's leader limit: base plus what the held sources add (#lib/leaders.ts)
+		leaderLimits: leaderLimits(latest, data.leaderCap),
 		trees: adoptedTrees(latest.traditions ?? [], data),
 		perks: (latest.ascensionPerks ?? []).map((key) => ({
 			key,

@@ -1,4 +1,6 @@
 import { pretty } from './format.ts';
+import { NOMAD_ECONOMY } from './nomad.ts';
+import { shipLabel } from './ships.ts';
 import type { SeenStation } from './territories.ts';
 import { shipsetName } from './territories.ts';
 import type {
@@ -51,17 +53,61 @@ export const LAYER_INFO: Record<MapLayer, { label: string; symbol: string; color
 	systemEvents: { label: 'system entry events', symbol: '!', color: '#c64fb5' }
 };
 
-export type MapFilter = { hidden: MapLayer[] };
-export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [] };
+// our own ships on the map and systems tabs: none, all, military fleets or civilian ships
+export const MAP_SHIPS = ['off', 'all', 'fleets', 'civilian'] as const;
+export type MapShips = (typeof MAP_SHIPS)[number];
+
+export type MapFilter = { hidden: MapLayer[]; ships: MapShips };
+export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], ships: 'off' };
 
 export function parseMapFilter(v: unknown): MapFilter {
 	const o = (v && typeof v === 'object' ? v : {}) as Partial<MapFilter>;
 	return {
 		hidden: Array.isArray(o.hidden)
 			? MAP_LAYERS.filter((l) => (o.hidden as unknown[]).includes(l))
-			: []
+			: [],
+		ships: MAP_SHIPS.find((s) => s === o.ships) ?? 'off'
 	};
 }
+
+/** One of our ships or fleets where it is: `fleet` military, `civilian` the rest. */
+export type MapShip = { systemId: number; kind: 'fleet' | 'civilian'; name: string };
+
+/**
+ * What the map and systems tabs fit and draw of our own (system ids): a nomad's waystations
+ * (starbase level `waystation_*`, instead of "my empire"), every system with a station of ours
+ * (starbases, outposts, waystations, the arkship's, mining and research stations), and our ships
+ * where they are (`Route.systemId`, READER 38 — none in older snapshots).
+ */
+export function ownOnMap(s: Snapshot) {
+	const ships: MapShip[] = [
+		...(s.fleets ?? []).map((f) => ({
+			id: f.route.systemId,
+			kind: 'fleet' as const,
+			name: f.name
+		})),
+		...(s.civilianShips ?? []).map((c) => ({
+			id: c.route.systemId,
+			kind: 'civilian' as const,
+			name: `${c.name} (${shipLabel(c)})`
+		}))
+	].flatMap(({ id, kind, name }) => (id == null ? [] : [{ systemId: id, kind, name }]));
+	const ids = (xs: (number | null | undefined)[]) => [
+		...new Set(xs.filter((x): x is number => x != null))
+	];
+	return {
+		nomad: s.situations?.some((x) => x.type === NOMAD_ECONOMY) ?? false,
+		waystations: ids(
+			(s.stations ?? []).filter((x) => /^waystation/.test(x.level)).map((x) => x.systemId)
+		),
+		stations: ids([
+			...(s.stations ?? []).map((x) => x.systemId),
+			...(s.orbitalStations ?? []).map((x) => x.systemId)
+		]),
+		ships
+	};
+}
+export type OwnOnMap = ReturnType<typeof ownOnMap>;
 
 /**
  * One thing on the map: a layer, the system it is in, what it is; for what is worked on, whether it

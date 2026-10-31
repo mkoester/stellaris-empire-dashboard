@@ -371,7 +371,7 @@ describe('upcoming civilian ships', () => {
 		} as Partial<Snapshot>);
 		const rows = upcoming(now, prev, data).filter((e) => e.kind === 'ship');
 		expect(rows.map((e) => [e.what, e.date, e.queuedAfter, e.act])).toEqual([
-			['colonizer idle', '2202.05.01', undefined, true],
+			['Colony Ship idle', '2202.05.01', undefined, true],
 			['anomaly Proxima Centauri b', '2202.07.30', 6, false] // (180 − 73.2) / 36 a month
 		]);
 	});

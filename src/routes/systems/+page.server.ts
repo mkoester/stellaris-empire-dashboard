@@ -10,7 +10,8 @@ import {
 	type SystemPoint,
 	type SystemSpend
 } from '#lib/systems.ts';
-import { display, systemView } from '#lib/server/settings.ts';
+import { display, mapFilter, systemView } from '#lib/server/settings.ts';
+import { ownOnMap } from '#lib/mapLayers.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
@@ -86,6 +87,9 @@ export function load({ url }) {
 		hasStations: latest?.orbitalStations !== null && latest?.orbitalStations !== undefined,
 		hasBudget: latest?.budget !== null && latest?.budget !== undefined,
 		view: systemView(),
+		// our stations and ships for the map, and which ships it draws (the map tab's setting)
+		own: ownOnMap(b.latest),
+		mapFilter: mapFilter(),
 		// research, unity … at what they cost us: a system that makes only those can break even
 		values: valuesOf(snaps),
 		rows,

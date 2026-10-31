@@ -6,8 +6,10 @@ import {
 	monthsLeft,
 	orderLabel,
 	orderRate,
-	orderTotal
+	orderTotal,
+	shipName
 } from './ships.ts';
+import { pretty } from './format.ts';
 import type { CivilianShip, Snapshot } from './types.ts';
 
 // UNE 3: Grissom's anomaly at Xigar V a, 2207.01.01 and 2207.02.01 (done before 2207.03.01)
@@ -129,7 +131,7 @@ describe('idle colony ships', () => {
 
 	it('asks to move a colony ship sitting at home with nothing to settle', () => {
 		expect(idleState(colonizer(at(true, false)))).toEqual({
-			text: 'colonizer idle at Alpha Centauri',
+			text: 'Colony Ship idle at Alpha Centauri',
 			act: true
 		});
 	});
@@ -144,7 +146,10 @@ describe('automated ships', () => {
 			queue: [],
 			automation: ['mining stations', 'research stations']
 		};
-		expect(idleState(jordan)).toEqual({ text: 'constructor automated, between tasks', act: false });
+		expect(idleState(jordan)).toEqual({
+			text: 'Construction Ship automated, between tasks',
+			act: false
+		});
 	});
 });
 
@@ -170,5 +175,15 @@ describe('estimates without a rate', () => {
 			}) as unknown as CivilianShip;
 		expect(estimateMonthsLeft(ship('survey_planet', 12), {}, 10)).toBeCloseTo(0.6); // 18 days
 		expect(estimateMonthsLeft(ship('move', null), {}, 10)).toBeCloseTo(4 / 3); // 40 days
+	});
+});
+
+describe('shipName', () => {
+	it('names a ship by its size as the game does, the class only when the size is unknown', () => {
+		expect(shipName('nomads_constructor', 'constructor')).toBe('Logistic Ship');
+		expect(shipName('constructor', 'constructor')).toBe('Construction Ship');
+		expect(shipName(undefined, 'constructor')).toBe('Construction Ship');
+		expect(shipName(undefined, 'science_ship')).toBe('Science Ship');
+		expect(shipName('corvette')).toBe(pretty('corvette'));
 	});
 });

@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { modRows, versionChanges } from '#lib/addons.ts';
-import { getDb, getMods } from '#lib/server/app.ts';
+import { getDb, getLoadOrder, getMods } from '#lib/server/app.ts';
 import { modVersions } from '#lib/server/db.ts';
 import { branch } from '#lib/server/branch.ts';
 
@@ -15,7 +15,7 @@ export function load({ url }) {
 		...rest,
 		seenAt: last?.date ?? null,
 		gameVersion: last?.gameVersion ?? null,
-		rows: modRows(getMods(), last?.mods ?? null, last?.gameVersion ?? null),
+		rows: modRows(getMods(), last?.mods ?? null, last?.gameVersion ?? null, getLoadOrder()),
 		changes: rest.milestones.filter((m) => m.kind === 'mod'),
 		updates: versionChanges(modVersions(getDb()))
 	};
