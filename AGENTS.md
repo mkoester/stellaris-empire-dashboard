@@ -187,8 +187,10 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
 calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — delete it after.
 
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
-dev server ingests saves and moves the head). On the Linux game machine it lives in
-`~/.local/share/stellaris-empire-dashboard/`, on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
+dev server ingests saves and moves the head). On the Linux game machine the one in use is
+`~/.local/share/stellaris-empire-dashboard-test/` (every campaign, the nomad Roaming Korinth
+included, 2026-10-31) — `~/.local/share/stellaris-empire-dashboard/` is stale since 2026-10-18
+(UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
