@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstSeen, mapMarkers, parseMapFilter } from './mapLayers.ts';
+import { contactDone, firstSeen, mapMarkers, parseMapFilter, tracked } from './mapLayers.ts';
 import type { GalaxySystem, Snapshot } from './types.ts';
 
 const sys = (id: number, s: Partial<GalaxySystem> = {}): GalaxySystem => ({
@@ -164,6 +164,166 @@ describe('first seen', () => {
 			['anomalies', 2, '2205.03.01'],
 			['digSites', 4, '2205.03.01'],
 			['wormholes', null, '2205.03.01']
+		]);
+	});
+});
+
+describe('found and done', () => {
+	const contact = (id: number, countryId: number, status: string) => ({
+		id,
+		countryId,
+		name: `C${id}`,
+		systemId: 1,
+		leaderId: null,
+		leaderName: null,
+		date: '2204.01.01',
+		daysLeft: null,
+		difficulty: 2,
+		clues: 0,
+		stage: 'x',
+		status
+	});
+
+	it('tracks what the saves list: gone or done from the first save showing it, open again if back', () => {
+		const t = tracked(
+			[
+				{ date: '2205.01.01', list: null }, // an older reader: tells nothing
+				{
+					date: '2205.02.01',
+					list: [
+						{ k: 1, s: 'open' },
+						{ k: 2, s: 'open' }
+					]
+				},
+				{
+					date: '2205.03.01',
+					list: [
+						{ k: 2, s: 'done' },
+						{ k: 3, s: 'open' }
+					]
+				},
+				{
+					date: '2205.04.01',
+					list: [
+						{ k: 2, s: 'done' },
+						{ k: 3, s: 'open' }
+					]
+				},
+				{ date: '2205.05.01', list: null },
+				{
+					date: '2205.06.01',
+					list: [
+						{ k: 2, s: 'done' },
+						{ k: 4, s: 'open' }
+					]
+				}
+			],
+			(x) => x.k,
+			(x) => x.s === 'done'
+		);
+		expect(t.map((x) => [x.k, x.doneAt])).toEqual([
+			[1, '2205.03.01'], // gone: resolved
+			[2, '2205.03.01'], // listed done, dated by the first save so
+			[3, '2205.06.01'],
+			[4, null]
+		]);
+		// a reload's branch can bring a thing back
+		const back = tracked(
+			[
+				{ date: 'a', list: [{ k: 1 }] },
+				{ date: 'b', list: [] },
+				{ date: 'c', list: [{ k: 1 }] }
+			],
+			(x) => x.k
+		);
+		expect(back[0].doneAt).toBeNull();
+	});
+
+	it('moves resolved anomalies, finished contacts and their stations, and counted targets to done', () => {
+		const m = mapMarkers({
+			...none,
+			galaxy: [sys(1, { wanderlust: ['enclave'] }), sys(2)],
+			contacts: [
+				{ ...contact(1, 5, 'finished'), doneAt: '2205.03.01' },
+				{ ...contact(2, 6, 'aborted'), doneAt: null },
+				contact(3, 7, 'in_progress')
+			],
+			seen: [
+				{ systemId: 1, ownerId: 5, shipset: 'mammalian_01', first: 'x', last: 'x' },
+				{ systemId: 2, ownerId: 6, shipset: 'avian_01', first: 'x', last: 'x' }, // aborted: still unnamed
+				{ systemId: 2, ownerId: 9, shipset: null, first: 'x', last: 'x' }
+			],
+			anomalies: [
+				{ planetId: 1, planet: 'P1', systemId: 1, category: 'a', doneAt: '2205.04.01' },
+				{ planetId: 2, planet: 'P2', systemId: 1, category: 'a' }
+			],
+			digSites: [
+				{
+					id: 7,
+					type: 'site',
+					planetId: 9,
+					systemId: 2,
+					clues: 0,
+					difficulty: 4,
+					daysLeft: null,
+					excavating: false,
+					doneAt: '2205.05.01'
+				}
+			],
+			projects: [{ id: 3, key: 'p', name: 'P', planetId: 1, systemId: 1, doneAt: null }],
+			wanderlust: {
+				progress: {
+					categories: [],
+					visits: [{ systemId: 1, system: 'S1', date: '2205.02.11', categories: ['enclave'] }],
+					complete: false
+				},
+				all: false
+			}
+		});
+		expect(m.map((x) => [x.layer, x.label, x.done, x.doneAt ?? null])).toEqual([
+			['contacts', 'C1', true, '2205.03.01'],
+			['contacts', 'C2', true, null],
+			['contacts', 'C3', false, null],
+			['stations', 'Mammalian station', true, '2205.03.01'],
+			['stations', 'Avian station', false, null],
+			['stations', 'unknown station', false, null],
+			['anomalies', 'a', true, '2205.04.01'],
+			['anomalies', 'a', false, null],
+			['digSites', 'site', true, '2205.05.01'],
+			['projects', 'P', false, null],
+			['wanderlust', 'Enclave Systems', true, '2205.02.11']
+		]);
+		expect(m.find((x) => x.label === 'C1')?.progress).toBe('finished');
+		expect(m.find((x) => x.layer === 'digSites')?.progress).toBe('excavated');
+		expect(contactDone({ status: 'in_progress' })).toBe(false);
+	});
+
+	it('an entry popup is done where its structure has a row; a ruin once its system is claimed', () => {
+		// Acamar: the Abandoned Gateway popup and the ruined gateway; Bir: a guardian, nothing else
+		const entry = (systemId: number, title: string) => ({
+			systemId,
+			system: `S${systemId}`,
+			events: [{ id: 'x', title }],
+			detail: 'on first entry'
+		});
+		const m = mapMarkers({
+			...none,
+			galaxy: [
+				sys(1, { megastructures: ['gateway_ruined'] }),
+				sys(2),
+				sys(3, { megastructures: ['ring_world_ruined'] }),
+				sys(4, { megastructures: ['ring_world_ruined'], ownerId: 8 }),
+				sys(5, { megastructures: ['dyson_sphere_permanently_ruined'], owned: true })
+			],
+			entries: [entry(1, 'Abandoned Gateway'), entry(2, 'Crystalline Asteroids')]
+		});
+		expect(m.map((x) => [x.layer, x.systemId, x.done])).toEqual([
+			['systemEvents', 1, true],
+			['systemEvents', 2, false],
+			['gateways', 1, false], // a gateway stays: it can be used
+			['ruins', 3, false],
+			['ruins', 4, true],
+			['ruins', 5, true]
 		]);
 	});
 });

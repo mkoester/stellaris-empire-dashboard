@@ -51,12 +51,22 @@
 
 	type Marker = (typeof data.markers)[number];
 	const markers = $derived(data.markers.filter((m) => on(m.layer)));
-	const count = (l: MapLayer) =>
-		l === 'borders' ? data.territories.length : data.markers.filter((m) => m.layer === l).length;
+	// what is still to do, and what is no longer (resolved, excavated, met, …): the latter in a
+	// folded table, on the map only while it is unfolded — per viewer, not stored
+	const open = $derived(markers.filter((m) => !m.done));
+	const done = $derived(markers.filter((m) => m.done));
+	let showDone = $state(false);
+	const drawn = $derived(showDone ? markers : open);
+	const count = (l: MapLayer) => {
+		if (l === 'borders') return String(data.territories.length);
+		const all = data.markers.filter((m) => m.layer === l);
+		const finished = all.filter((m) => m.done).length;
+		return finished ? `${all.length - finished} (+${finished} done)` : String(all.length);
+	};
 	const byId = $derived(new Map(data.systems.map((s) => [s.id, s])));
 	// several markers in one system: side by side
 	const bySystem = $derived(
-		markers.reduce(
+		drawn.reduce(
 			(m, x) => m.set(x.systemId, [...(m.get(x.systemId) ?? []), x]),
 			new Map<number, Marker[]>()
 		)
@@ -65,7 +75,7 @@
 		Object.fromEntries(
 			[...bySystem].map(([id, list]) => [
 				id,
-				list.map((m) => `${m.label} (${m.detail})`).join('; ')
+				list.map((m) => `${m.label} (${m.detail}${m.done ? ', done' : ''})`).join('; ')
 			])
 		)
 	);
@@ -104,6 +114,16 @@
 			title: 'an envoy on the contact, an excavation running; – where the save does not tell'
 		},
 		{ id: 'progress', label: 'Progress', value: (r) => r.progress ?? null }
+	];
+	const doneColumns: Column<Marker>[] = [
+		...columns.filter((c) => c.id !== 'ongoing' && c.id !== 'age'),
+		{
+			id: 'doneAt',
+			label: 'Done',
+			value: (r) => r.doneAt ?? null,
+			title:
+				'the first save showing it done: gone from the save, a contact finished, a target counted; – where the history does not tell (a claimed ruin, a popup its structure’s row stands for)'
+		}
 	];
 </script>
 
@@ -180,7 +200,7 @@
 			focus={[
 				{
 					label: 'markers',
-					points: markers.flatMap((m) => byId.get(m.systemId) ?? [])
+					points: drawn.flatMap((m) => byId.get(m.systemId) ?? [])
 				}
 			]}
 			heightKey="galaxy-map-height"
@@ -199,6 +219,7 @@
 								class="pointer-events-none text-[13px] font-bold"
 								x={p.x + 6 + i * 11}
 								y={p.y - 5}
+								opacity={m.done ? 0.4 : 1}
 								fill={LAYER_INFO[m.layer].color}>{LAYER_INFO[m.layer].symbol}</text
 							>
 						{/each}
@@ -208,16 +229,41 @@
 		</GalaxyMap>
 	</Panel>
 
-	<Panel title="Found" note="Hover or click a row to find it on the map.">
-		{#if markers.length}
+	<Panel
+		title="Found"
+		note="What is still to do. Hover or click a row to find it on the map; what is done moves below."
+	>
+		{#if open.length}
 			<SortTable
-				rows={markers}
+				rows={open}
 				{columns}
 				key={(r) => r.id}
 				link={(r) => r.systemId}
 				bind:hovered
 				bind:selected
 			/>
-		{:else}<p class="text-sm text-gray-500">Nothing in the layers shown.</p>{/if}
+		{:else}<p class="text-sm text-gray-500">Nothing open in the layers shown.</p>{/if}
 	</Panel>
+
+	<details bind:open={showDone}>
+		<summary class="cursor-pointer text-xl font-semibold"
+			>Found &amp; done <span class="text-base font-normal text-gray-500">{done.length}</span
+			></summary
+		>
+		<p class="my-2 text-sm text-gray-500">
+			Resolved anomalies, excavated dig sites, finished first contacts and the stations of empires
+			met, finished special projects, counted Wanderlust targets, claimed ruins, and entry popups
+			whose structure has its own row. Shown on the map (faded) while this is open.
+		</p>
+		{#if done.length}
+			<SortTable
+				rows={done}
+				columns={doneColumns}
+				key={(r) => r.id}
+				link={(r) => r.systemId}
+				bind:hovered
+				bind:selected
+			/>
+		{:else}<p class="text-sm text-gray-500">Nothing done yet in the layers shown.</p>{/if}
+	</details>
 </div>

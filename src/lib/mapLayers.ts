@@ -77,7 +77,50 @@ export type MapMarker = {
 	progress?: string | null;
 	difficulty?: number | null; // first contacts, dig sites; anomalies their category's level
 	seen?: Seen | null; // when the empire first saw it, as far as the history tells
+	// no longer to be done: resolved, excavated, met, counted, claimed — or told by another marker
+	done: boolean;
+	doneAt?: string | null; // the first save showing it done, where the history tells
 };
+
+/** A thing as the branch's saves list it: its latest reading, and the first save showing it done. */
+export type Tracked<T> = T & { doneAt: string | null };
+
+/**
+ * Every item the branch's saves ever listed, at its latest reading. `doneAt`: the first save,
+ * since its last reappearance, that no longer lists it or whose reading `isDone` — an anomaly
+ * once researched and a special project once finished leave the save's lists; a first contact
+ * stays, `finished` or `aborted`. Saves without the field (null) tell nothing. Pure.
+ */
+export function tracked<T, K>(
+	history: { date: string; list: T[] | null | undefined }[],
+	key: (t: T) => K,
+	isDone: (t: T) => boolean = () => false
+): Tracked<T>[] {
+	const out = new Map<K, Tracked<T>>();
+	for (const h of history) {
+		if (!h.list) continue;
+		const now = new Set<K>();
+		for (const t of h.list) {
+			const k = key(t);
+			now.add(k);
+			const prev = out.get(k);
+			const done = isDone(t) ? (prev?.doneAt ?? h.date) : null;
+			out.set(k, { ...t, doneAt: done });
+		}
+		for (const [k, t] of out) if (!now.has(k) && t.doneAt === null) t.doneAt = h.date;
+	}
+	return [...out.values()];
+}
+
+/** Whether an item counts as done: listed done, or gone from the latest save. */
+const isTrackedDone = (t: { doneAt?: string | null }) => (t.doneAt ?? null) !== null;
+
+/** A first contact is done once finished or aborted. */
+export const contactDone = (c: Pick<FirstContact, 'status'>) => c.status !== 'in_progress';
+
+// what a system entry popup is told by, when the system has one of these: the Abandoned Gateway
+// popup by the gateway's own marker
+const TELLS_ENTRY: MapLayer[] = ['gateways', 'megastructures', 'ruins'];
 
 /** A first sighting: a save's date; `by` — at the history's first reading, so then or earlier. */
 export type Seen = { date: string; by: boolean };
@@ -129,10 +172,11 @@ const structure = (t: string) =>
 /** Every marker of the discovered galaxy (`galaxy` holds only what the map may show). */
 export function mapMarkers(p: {
 	galaxy: GalaxySystem[];
-	contacts: FirstContact[];
-	anomalies: AnomalyInfo[];
-	digSites: DigSite[];
-	projects: (ProjectInfo & { name: string })[];
+	// along the branch (`tracked()`): a `doneAt` marks it done; without one, open
+	contacts: (FirstContact & { doneAt?: string | null })[];
+	anomalies: (AnomalyInfo & { doneAt?: string | null })[];
+	digSites: (DigSite & { doneAt?: string | null })[];
+	projects: (ProjectInfo & { name: string; doneAt?: string | null })[];
 	anomalyNames: Record<string, string>;
 	seen: SeenStation[];
 	// the Wanderlust perk's progress, null without it; `all`: every target, not only the visited
@@ -144,25 +188,39 @@ export function mapMarkers(p: {
 }): MapMarker[] {
 	const visited = (id: number) => p.firstSeen?.systems.get(id) ?? null;
 	const shown = new Set(p.galaxy.map((s) => s.id));
+	// a station is done once the first contact with its owner is finished (the user's call: an
+	// aborted one leaves it unnamed)
+	const met = new Map(
+		p.contacts.filter((c) => c.status === 'finished').map((c) => [c.countryId, c.doneAt ?? null])
+	);
+	const done = (t: { doneAt?: string | null }) => ({
+		done: isTrackedDone(t),
+		doneAt: t.doneAt ?? null
+	});
 	const out: MapMarker[] = [
-		...p.contacts
-			.filter((c) => c.status === 'in_progress')
-			.map((c) => ({
-				layer: 'contacts' as const,
-				systemId: c.systemId,
-				label: c.name,
-				detail: 'first contact',
-				difficulty: c.difficulty,
-				seen: { date: c.date, by: false }, // the save's own date of discovery
-				ongoing: c.leaderId !== null, // an envoy on it
-				progress: `${pretty(c.stage)}, ${c.clues} clues${days(c.daysLeft)}`
-			})),
+		...p.contacts.map((c) => ({
+			layer: 'contacts' as const,
+			systemId: c.systemId,
+			label: c.name,
+			detail: 'first contact',
+			difficulty: c.difficulty,
+			seen: { date: c.date, by: false }, // the save's own date of discovery
+			...(isTrackedDone(c) || contactDone(c)
+				? { done: true, doneAt: c.doneAt ?? null, progress: pretty(c.status) }
+				: {
+						done: false,
+						ongoing: c.leaderId !== null, // an envoy on it
+						progress: `${pretty(c.stage)}, ${c.clues} clues${days(c.daysLeft)}`
+					})
+		})),
 		...p.seen.map((s) => ({
 			layer: 'stations' as const,
 			systemId: s.systemId,
 			label: `${shipsetName(s.shipset)} station`,
 			detail: `seen ${s.first === s.last ? s.first : `${s.first} – ${s.last}`}`,
-			seen: { date: s.first, by: false }
+			seen: { date: s.first, by: false },
+			done: met.has(s.ownerId),
+			doneAt: met.get(s.ownerId) ?? null
 		})),
 		...p.anomalies.map((a) => ({
 			layer: 'anomalies' as const,
@@ -170,7 +228,8 @@ export function mapMarkers(p: {
 			label: p.anomalyNames[a.category] ?? pretty(a.category),
 			detail: `anomaly at ${a.planet}`,
 			difficulty: p.anomalyLevels?.[a.category] ?? null,
-			seen: p.firstSeen?.anomalies.get(anomalyKey(a)) ?? null
+			seen: p.firstSeen?.anomalies.get(anomalyKey(a)) ?? null,
+			...done(a)
 		})),
 		...p.digSites.flatMap((d) =>
 			d.systemId === null
@@ -183,8 +242,13 @@ export function mapMarkers(p: {
 							detail: 'dig site',
 							difficulty: d.difficulty,
 							seen: p.firstSeen?.digSites.get(d.id) ?? null,
-							ongoing: d.excavating,
-							progress: `${d.clues} clues${d.excavating ? days(d.daysLeft) : ''}`
+							...(isTrackedDone(d)
+								? { ...done(d), progress: 'excavated' }
+								: {
+										done: false,
+										ongoing: d.excavating,
+										progress: `${d.clues} clues${d.excavating ? days(d.daysLeft) : ''}`
+									})
 						}
 					]
 		),
@@ -193,7 +257,8 @@ export function mapMarkers(p: {
 			systemId: e.systemId,
 			label: entryTitles(e),
 			detail: e.detail,
-			seen: e.seen ?? null
+			seen: e.seen ?? null,
+			done: false // until a structure's marker in its system tells it (below)
 		})),
 		...p.projects.flatMap((s) =>
 			s.systemId === null
@@ -203,7 +268,8 @@ export function mapMarkers(p: {
 							layer: 'projects' as const,
 							systemId: s.systemId,
 							label: s.name,
-							detail: 'special project'
+							detail: 'special project',
+							...done(s)
 						}
 					]
 		)
@@ -216,7 +282,8 @@ export function mapMarkers(p: {
 					systemId: s.id,
 					label: pretty(t),
 					detail: 'bypass',
-					seen: visited(s.id)
+					seen: visited(s.id),
+					done: false
 				});
 		// a gateway or L-gate is a megastructure too (built or ruined); the bypass alone if not
 		const gates = s.megastructures.filter(isGate);
@@ -228,7 +295,8 @@ export function mapMarkers(p: {
 				systemId: s.id,
 				label: structure(t),
 				detail: 'bypass',
-				seen: visited(s.id) // null for an L-Gate the spoiler shows
+				seen: visited(s.id), // null for an L-Gate the spoiler shows
+				done: false
 			});
 		for (const t of s.megastructures.filter((x) => !isGate(x)))
 			out.push({
@@ -236,7 +304,10 @@ export function mapMarkers(p: {
 				systemId: s.id,
 				label: structure(t),
 				detail: 'megastructure',
-				seen: visited(s.id)
+				seen: visited(s.id),
+				// a ruin is done once an empire claims its system (none of the structure's own
+				// owner is stored)
+				done: isRuin(t) && (s.owned || s.ownerId !== null)
 			});
 	}
 	// a Wanderlust target where we have been (we saw what it holds), or any with the spoiler
@@ -250,8 +321,12 @@ export function mapMarkers(p: {
 					systemId: s.id,
 					label: s.wanderlust.map(wanderlustName).join(', '),
 					detail: 'Wanderlust: explore with an arkship',
-					progress: when ? `counted ${when}` : 'not yet by an arkship'
+					progress: when ? `counted ${when}` : 'not yet by an arkship',
+					done: Boolean(when),
+					doneAt: when || null
 				});
 			}
+	const told = new Set(out.filter((m) => TELLS_ENTRY.includes(m.layer)).map((m) => m.systemId));
+	for (const m of out) if (m.layer === 'systemEvents' && told.has(m.systemId)) m.done = true;
 	return out.filter((m) => shown.has(m.systemId));
 }

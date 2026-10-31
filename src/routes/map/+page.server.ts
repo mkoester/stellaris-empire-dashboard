@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { firstSeen, mapMarkers } from '#lib/mapLayers.ts';
+import { anomalyKey, contactDone, firstSeen, mapMarkers, tracked } from '#lib/mapLayers.ts';
 import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
@@ -31,6 +31,18 @@ export function load({ url }) {
 		snaps.map((x) => ({ entries: x.entryEvents, flags: x.countryFlags }))
 	);
 	const entriesStart = snaps.findIndex((x) => x.entryEvents);
+	// everything the branch's saves listed, the resolved with the save that first showed it so
+	const saves = snaps.filter((x) => x.kind === 'save');
+	const along = <T, K>(
+		list: (x: (typeof saves)[number]) => T[] | null | undefined,
+		key: (t: T) => K,
+		isDone?: (t: T) => boolean
+	) =>
+		tracked(
+			saves.map((x) => ({ date: x.date, list: list(x) })),
+			key,
+			isDone
+		);
 	return {
 		...rest,
 		seenAt: s?.date ?? null,
@@ -58,10 +70,20 @@ export function load({ url }) {
 				seen: { date: snaps[e.at].date, by: e.at === entriesStart },
 				detail: entryDetail(data.entryEvents.find((x) => x.id === e.events[0]?.id)?.description)
 			})),
-			contacts: s?.firstContacts ?? [],
-			anomalies: s?.anomalies ?? [],
-			digSites: s?.digSites ?? [],
-			projects: (s?.specialProjects ?? []).map((p) => ({
+			contacts: along(
+				(x) => x.firstContacts,
+				(c) => c.id,
+				contactDone
+			),
+			anomalies: along((x) => x.anomalies, anomalyKey),
+			digSites: along(
+				(x) => x.digSites,
+				(d) => d.id
+			),
+			projects: along(
+				(x) => x.specialProjects,
+				(p) => p.id
+			).map((p) => ({
 				...p,
 				name: data.projects[p.key]?.name ?? p.key
 			})),
@@ -70,7 +92,7 @@ export function load({ url }) {
 			),
 			seen: mergeSightings(snaps),
 			// when the saves first show each thing, and how hard an anomaly is (its category's level)
-			firstSeen: firstSeen(snaps.filter((x) => x.kind === 'save')),
+			firstSeen: firstSeen(saves),
 			anomalyLevels: Object.fromEntries(
 				Object.entries(data.anomalyCategories).map(([k, v]) => [k, v.level])
 			)
