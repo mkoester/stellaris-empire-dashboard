@@ -131,8 +131,10 @@ a commit tagged `v<version>` counts as a release, since CI builds from the detac
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
 which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
 creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. A
-`vX.Y.Z-beta.N` tag on `open-beta` (the branch for a running open beta) does the same as a GitHub
-prerelease, its notes the `Unreleased` section (`RELEASE.md`, "Beta build"). The Windows zip
+`vX.Y.Z-rc.N` tag on `develop` (a release candidate, "X.Y.Z rc-N") and a `vX.Y.Z-beta.N` tag on
+`open-beta` (the branch for a running open beta, "X.Y.Z vN (for Open Beta <openBeta>)", from
+`package.json`'s `openBeta`) do the same as GitHub prereleases, their notes the `Unreleased`
+section (`RELEASE.md`, "Three kinds of build"). The Windows zip
 ran on a real Windows machine (2026-10-25, the user); Wine cannot start in the sandbox
 (`wineserver` needs a writable `/tmp`).
 
