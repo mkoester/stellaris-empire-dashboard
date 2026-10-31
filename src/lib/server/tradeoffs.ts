@@ -233,7 +233,7 @@ function presets(
 	};
 	const research = upcoming.filter((e) => e.kind === 'research' && e.ref?.startsWith('tech:'));
 	for (const e of research) push(e.what, Math.round(e.months), 'research queue', e.ref!);
-	const f = facts(save, data.scriptedTriggers);
+	const f = facts(save, data.scriptedTriggers, { shipKinds: data.shipKinds });
 	const reach = inReach(save.progress?.researched ?? [], data.techs, data.techRequirements, (p) =>
 		evaluate(p, f)
 	);

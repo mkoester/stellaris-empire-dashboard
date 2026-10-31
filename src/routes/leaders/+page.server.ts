@@ -29,6 +29,7 @@ export function load({ url }) {
 	// what the save tells for the traits' conditions (gestalt, nomadic …)
 	const f = s
 		? facts(s, data.scriptedTriggers, {
+				shipKinds: data.shipKinds,
 				electionTypes: data.electionTypes,
 				archetypes: data.speciesArchetypes,
 				slavery: data.speciesRights.flatMap((k) =>

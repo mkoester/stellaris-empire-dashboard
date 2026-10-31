@@ -139,7 +139,11 @@ function blockerOptions(save: Snapshot, staffed: (jobs: Record<string, number>) 
 /** Edicts we could enact now: what their output modifiers add to what we yield today. */
 function edictOptions(save: Snapshot, flows: GroupFlows): ProduceOption[] {
 	const data = getGameData();
-	return edictRows(data.edicts, save, facts(save, data.scriptedTriggers))
+	return edictRows(
+		data.edicts,
+		save,
+		facts(save, data.scriptedTriggers, { shipKinds: data.shipKinds })
+	)
 		.filter((e) => !e.active && e.possible !== false && e.unlocked)
 		.flatMap((e): ProduceOption[] => {
 			const output = changeGain(changesOf(e.name, 0, data.edictModifiers[e.key] ?? {}), flows);

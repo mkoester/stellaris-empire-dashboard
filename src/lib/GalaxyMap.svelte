@@ -31,7 +31,8 @@
 		layer,
 		territories = [],
 		hovered = $bindable(null),
-		selected = $bindable()
+		selected = $bindable(),
+		onsystemmenu
 	}: {
 		systems: System[];
 		fill?: Record<number, string>; // system id → colour, instead of the own/other tint
@@ -44,6 +45,8 @@
 		territories?: Territory[];
 		hovered?: number | null;
 		selected?: number | null;
+		// a right-click on a system (the nearest within 8px), with the pointer's place in the window
+		onsystemmenu?: (systemId: number, at: { x: number; y: number }) => void;
 	} = $props();
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 
@@ -157,15 +160,14 @@
 	};
 	let drag: Point | null = $state(null);
 	let start: Point | null = null; // where the pointer went down: a click moves less than 4px
+	// the left button pans and picks; the others (a right-click's menu) leave the view alone
 	const down = (e: PointerEvent) => {
+		if (e.button !== 0) return;
 		(e.currentTarget as Element).setPointerCapture(e.pointerId);
 		drag = start = { x: e.clientX, y: e.clientY };
 	};
-	const up = (e: PointerEvent) => {
-		drag = null;
-		if (selected === undefined || !start) return;
-		if (Math.hypot(e.clientX - start.x, e.clientY - start.y) >= 4) return;
-		// the system nearest the pointer, within the 8px hover target
+	// the system nearest the pointer, within the 8px hover target
+	const nearest = (e: MouseEvent) => {
 		const r = (e.currentTarget as Element).getBoundingClientRect();
 		const p = { x: e.clientX - r.left, y: e.clientY - r.top };
 		let best: { id: number; d: number } | null = null;
@@ -174,7 +176,21 @@
 			const d = Math.hypot(q.x - p.x, q.y - p.y);
 			if (d <= 8 && (!best || d < best.d)) best = { id: s.id, d };
 		}
-		if (best) selected = best.id === selected ? null : best.id;
+		return best?.id ?? null;
+	};
+	const up = (e: PointerEvent) => {
+		drag = null;
+		if (e.button !== 0 || selected === undefined || !start) return;
+		if (Math.hypot(e.clientX - start.x, e.clientY - start.y) >= 4) return;
+		const best = nearest(e);
+		if (best !== null) selected = best === selected ? null : best;
+	};
+	const menu = (e: MouseEvent) => {
+		if (!onsystemmenu) return;
+		const id = nearest(e);
+		if (id === null) return;
+		e.preventDefault();
+		onsystemmenu(id, { x: e.clientX, y: e.clientY });
 	};
 	const move = (e: PointerEvent) => {
 		if (!drag) return;
@@ -230,6 +246,7 @@
 			onpointerdown={down}
 			onpointermove={move}
 			onpointerup={up}
+			oncontextmenu={menu}
 			onpointercancel={() => (drag = null)}
 		>
 			{#each [...territoryOutlines] as [key, rs] (key)}

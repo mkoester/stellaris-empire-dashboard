@@ -189,7 +189,10 @@ trigger in 4.5.3's `triggers.log`; `num_unemployed` and `free_jobs` are there), 
 out empty, `SDASH|2|2205.10.02|event|colony-jobs|Peshnab the Faithful|||` once a month, with
 "Unknown property `sdash_fj`" for the colony's variables in the log text. The dashboard rejects
 those lines (malformed, per line), so nothing is stored. Don't upload 0.9.0+ to the stores before
-this check passes.
+this check passes. **Fix (unverified):** `num_sapient_pops` is a save field, not a trigger; the mod
+now exports `pop_amount` (vanilla's `trigger:pop_amount`). Why `sdash_fj` and `sdash_un` came out
+empty too is not known — the next session's `colony-jobs` lines and `error.log` tell whether that
+fix was enough. `pop_amount` may count non-sapient pops the save's `num_sapient_pops` leaves out.
 
 **Unverified.** The mod logs a colony's `free_jobs`, `num_unemployed` and `num_sapient_pops` on
 each day one changes; the dashboard reads unemployed as civilians and pops − unemployed as
@@ -256,6 +259,13 @@ and what a tech finishing mid-month does with its overflow — plain monthly aut
 campaign suffice, no cheats.
 
 - **Send:** nothing; read from the next autosaves (`tech_status.stored_techpoints` vs. progress).
+
+### 25. A root 404 during the first start — release smoke test (2026-10-31)
+
+Smoke-testing the v0.1.6 Linux zip on an empty data folder, `/` answered 404 once, seconds after
+answering 200, while the backlog of other campaigns was being read; the log showed nothing. Not
+reproduced: 116 later requests, including a second empty data folder polled every second through
+the backlog, were all 200. If a player reports a blank first page, start here.
 
 ## C. Not in the game
 

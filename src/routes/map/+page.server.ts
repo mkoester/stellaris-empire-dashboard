@@ -7,6 +7,7 @@ import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display, mapFilter } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
+import { plannedSystems } from '#lib/server/planner.ts';
 
 // The galaxy as the empire has discovered it: borders, first contacts, stations seen, anomalies,
 // dig sites, special projects, wormholes, gateways, megastructures and their ruins — each a layer
@@ -74,6 +75,16 @@ export function load({ url }) {
 			anomalyLevels: Object.fromEntries(
 				Object.entries(data.anomalyCategories).map(([k, v]) => [k, v.level])
 			)
-		}).map((m, id) => ({ ...m, id }))
+		})
+			.concat(
+				// the planner's goals at this node, one marker per system
+				Object.entries(plannedSystems(snaps, b.tip)).map(([id, goals]) => ({
+					layer: 'planned' as const,
+					systemId: Number(id),
+					label: goals.join('; '),
+					detail: `${goals.length} goal${goals.length === 1 ? '' : 's'} in the planner`
+				}))
+			)
+			.map((m, id) => ({ ...m, id }))
 	};
 }

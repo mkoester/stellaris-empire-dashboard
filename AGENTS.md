@@ -80,10 +80,12 @@ against `gameDir` — `data/stellaris-<rawVersion>_<build>-<hash of the DLC fold
 open beta shares its `rawVersion` with the release), so a game update, a beta build, a new DLC or a
 dashboard with a newer extractor (new tables) extracts again (~5 s), older files stay. The footer
 shows the data DB's own `meta.game_version`. The packaged launcher names the extractor and
-its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`). **During development the extractor's
-`__version__` stays the same across changes**, so a running dashboard keeps its old data file:
-delete `data/stellaris-<key>.sqlite` (the app data folder) after an extractor change, or the new
-tables and values never arrive — silently.
+its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`). **The key holds the extractor's
+`__version__` and a hash of its code** (`extractorVersion()`: the script and `extractor/*.py`) —
+during development the version stays the same across changes, and a dashboard kept serving data
+from older extractor code, silently (2026-10-31: Mega-Engineering's prerequisites, fixed in the
+extractor, never reached a dashboard with `STELLARIS_EXTRACTOR`); now any code change extracts
+once more (~5 s), a release's players only when its code changes.
 
 ## Packaging and releases
 
@@ -179,7 +181,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   machine's DB: five campaigns, ids 1…303 → each 1…n without gaps (Roaming Korinth 287–303 →
   1–17), `dashboard.v15.sqlite` left beside it. Tests building an older DB use the base tables
   alone (`openDb(file, [])`) and insert nodes as 0.1.0 did. The server log names nodes the same
-  way (`nodeLabel()`: "new node #17 of roamingkorinth_…").
+  way (`nodeLabel()`: "new node #17 of roamingkorinth_…"). 17 — `plan_event`, the planner's log
+  of changes (below). Checked 2026-10-31 on a copy of this machine's DB (`dashboard.v16.sqlite`
+  left beside it). `deleteCampaign` drops a campaign's plan rows before its nodes (foreign key).
 
 `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`; vitest swallows its
 `console.log` dump unless run with `--silent=false`. Its assertions fit our 4.5.2 campaign (a
@@ -291,7 +295,8 @@ badges a timed modifier `agenda` (`agenda_*`), `situation` (`*_stage_<n>`) or el
 `modifiers.ts` is **copied from the planner's `src/lib/civics.ts`** — keep the two in step. The
 popup itself is plain CSS: the planner's needs Skeleton UI.
 
-**Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `colonies`
+**Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `planner`
+(`/planner`, see "Planner tab"), `colonies`
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
 `map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
@@ -479,6 +484,131 @@ duration); edicts their effects, in the table. Factions are on the ethics tab (b
 seats (3 at 2207.03.10, all held). The agenda being prepared shows progress / cost (at empire size),
 percentage and months; every other open one "~N months if picked next" — the measured rate and
 size factor of the current agenda, started from 0. Same-status agendas sort alphabetically.
+
+**Planner tab** (`/planner`, the user's ask 2026-10-31: "plan certain things — adding, removing,
+reordering, history, automatically marked as done, a warning if no longer possible"; pure
+`#lib/planner/` — `replay.ts`, `kinds.ts`, `ops.ts`, `status.ts` —, server `server/planner.ts`,
+`POST /api/plan`): goals for the playthrough, stored as a **log of changes** (`plan_event`,
+migration 17: add, edit, remove, order, park, unpark, check, uncheck), each tagged with the node
+the page showed. **The plan at a node is the replay of the changes along its path** (`planAt()`),
+so a reload's branch has its own plan from the branch point on (the user's call), and a branch
+point moved on `/timeline` carries the plan along. The client sends the node it shows
+(`planAction(data.tip, …)`), never the head, so an autosave or reload between page load and click
+cannot move a change to another branch; changing the plan at an old node reaches every later
+branch below it (the page says how many). Goals of other branches missing here (by id, or by
+kind and target — `goalKey()`, free-text goals by their text) are offered to copy; one not
+possible here is copied **parked** ("a potential step to plan again", the user's ask). Each goal
+is **want or avoid**; an avoided goal that comes true shows "happened" in red. **Status**
+(`check()`): done, under way, open, no longer possible (blocked), unknown — against the branch's
+latest full save and the campaign's galaxy as the viewer may see it (`campaignGalaxy()`, spoilers
+respected); "since" walks back over the saves (`holdsSince()`, "by" where a save cannot tell —
+the galaxy is the campaign's latest reading, so galaxy-only checks stop there). Anomalies, dig
+sites and situations count done once seen and gone (`seenAlong()`; the save cannot tell finished
+from lost). Phase 1 kinds (`KINDS`): survey, anomaly, dig site, Wanderlust category and arkship
+visit, outpost, colony (planet, habitat, ring segment), starbase level/module/building, districts
+(blocked under the cap with blockers cleared), building, megastructure (blocked by
+`MEGA_RULES`' `candidates()`), tech (blocked by `potential`), tradition (a tree by its `adopt`),
+perk, focus card, situation approach and end, first contact (aborted = blocked), civic/authority/
+ethic (blocked by `civicAuthority`), government type, free text (ticked by hand). **Nomads**
+(`nomadic()`: running `situation_nomad_economy`; the user's asks 2026-10-31) claim no systems:
+`unavailable()` drops outposts from the add form, the suggestions and the map menu (an existing
+outpost goal shows blocked) and offers instead **waystations** (4.5.3
+`megastructures/30_nomad_waystation.txt`: nomads only, one per system, an unowned system fully
+surveyed, an owned one intel on its owner's deposits; done = a station of ours whose level starts
+`waystation` — `starbase_level_waystation_<n>`, spelling as `stations()` strips it, **not yet seen
+in a save**) and **arkships** per type (civilian, science, military — `<type>_arkship_megastructure`
+in `megastructures/29_nomad_arkships.txt`; counted from `Snapshot.ships` sizes
+`<type>_arkship_tier_<n>`, any tier; a settled empire gets neither). **Goals the save implies**
+(`autoGoals()`, passed to `planAt()` as seeds with stable ids `auto-tr-<key>` / `auto-ap-<key>`):
+every tradition of each adopted tree — taken ones show done with their date and land in the
+history's "reached" list, the rest are the tree's remaining picks — and every perk taken; they
+can be ordered, noted and removed (a removal sticks), and give way to the same goal added by hand.
+**Popups** (`explanations()`): the game data's for techs, traditions, perks, buildings and
+civics; a Wanderlust category its reward, the static modifier `<category>_modifier` (4.5.3
+`missions/01_missions_nomads.txt`); focus cards built here (`focuscard:`: requirement, progress
+per category and that category's next reward); an outpost or waystation goal what the system
+would bring (`systemInfo()`, `#lib/planner/systemInfo.ts`: station deposits summed per resource —
+for a waystation with the module collecting it, from `collected_system_resources` in
+`starbase_modules/00_waystation_modules.txt` —, a pre-FTL civilisation to observe, colonizable
+planets, unsurveyed bodies, anomalies, structures, passages). **Deposits only on surveyed bodies**
+unless `surveyAll`: the galaxy as shown (`surveyView()`) hides an unsurveyed body's anomaly but
+not its deposits, which the game hides — whether other tabs show them too is not checked.
+**What a planned tech needs** (`techNeeds()`, `#lib/planner/needs.ts`, the user's ask: "adding
+Mega-Engineering should add all direct and indirect requirements"): `planFor()` replays the plan,
+then seeds, for every wanted tech not parked, each unresearched prerequisite recursively and each
+unmet **tier gate** (kind `tech_tier`: 6 techs of the tier below in that area, as `techTiers()`),
+ids `auto-tech-<key>` / `auto-tier-<area>-<tier>`, noted "needed for …"; of an `OR` group
+(data DB `technology_requirement.prerequisites_any_json`, extractor 2026-10-31 — before, any
+prerequisite block holding an OR read as empty) the first alternative whose `potential` is not
+false, the others named ("or instead Citadel"); `inReach()` wants one of each group too. **The hull
+line follows the shipset**: every hull tech gates on `country_uses_bio_ships` (Corvettes …
+Battleships `no`, Harbingers and Stingers `yes`; 4.5.2 `scripted_triggers/07_scripted_triggers_ships.txt`:
+`uses_ship_category = bio_ship`), which `#lib/triggers.ts` answers from `Snapshot.shipset` (the
+country's `graphical_culture`, READER 38) and the data DB's `graphical_culture.ship_kinds_json`
+(`GameData.shipKinds`; the three Biogenesis shipsets list `bio_ship`) — before, it was unknown,
+so a bio-ship empire got Corvettes … Battleships for Mega-Engineering (the user's catch,
+2026-10-31; checked after: Harbingers → Stingers). Checked
+2026-10-31 on Roaming Korinth (nomad): Mega-Engineering → the power, hull and arkship lines and
+seven tier gates, Arkship Mastery chosen over Citadel. They go with the tech: removing it removes
+them. **Group order follows the game's rules** (`arrange()`'s `constrain`, Kahn's algorithm
+keeping the plan's order wherever the rules leave a choice): traditions (`orderTraditions()`)
+taken ones first as picked (the save's `traditions` is pick order), each after its tree's
+adoption and the picks it needs (data DB `tradition_prereq`, `GameData.traditionPrereqs`), a
+finisher after its tree's other picks; research (`orderResearch()`) a tech after the planned
+techs it needs and the tier gates below it, a gate after the one below and after the planned techs
+of its own tier and area (they count towards it); of the goals free to go next the lowest tier goes
+first (a gate of tier k as k + ½), so each goes as early as it can ("Fusion Power before 6 Physics
+techs of tier 1", the user's ask) and the plan's order decides within a tier. **Badges**
+(`badgeOf()`, `areaOf()`): a tech's and tier gate's tier (T1…) and research area in the game's
+colours (`<area>_research`), a tradition's place — adopt, pick, finisher (the community's word;
+the game says "… Traditions Finished") —, perk; the research group filters by area (per viewer,
+none on = all, suggestions too); the history shows them with the goal's group, its reorderings
+behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
+(`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, none that
+another goal or the save implies): OK removes them with it (they are derived, so nothing is
+stored), Cancel keeps them as goals of their own (an add each). **Focus** (the user's ask 2026-10-31: "split this — tasks give points to one of three areas; the
+rewards per area as entries of their own"): a **task** (`focus_card`) carries its area and points
+as a badge in the area's colour (`tintOf()`: `focus-<area>`; "all +10" for core cards), its popup
+each area's progress to the tier it unlocks; a **reward** (`focus_reward`, one per
+`<area>_rewards_<n>`) is named as the game's Empire Progression panel names it ("Conquest tier
+4: Improved Weaver Development" — the option this empire gets: `country_uses_bio_ships` picks
+Destroyers or Weavers), done once the area's current reward is past it, under way while current
+("20 / 40 points"), else the points still to go: a reward costs its points and the rest carries
+over (the saves 2026-10-31: Planetforgers exploration 30 → tier 2 at 0, UNE development 0 →
+tier 2 at 40). Suggested: each area's next four tiers; the group keeps an area's tiers in order
+(`orderFocus()`); its popup is the tech's. Checked against the game's panels on Roaming Korinth
+(nomad, bio ships: Conquest tiers 1–4, Harbingers at 7, Stingers at 9; the five tasks on offer
+with their areas and points) and a new campaign's Exploration tiers (screenshots
+`~/Pictures/Screenshots/screenshot_2026-10-31_22-38-29`, `-40-29`). **Perks** (`GameData.perkRules`,
+data DB `ascension_perk.potential_json|possible_json`): `potential` false is blocked; `possible`
+false stays open with a warning — The Flesh is Weak's `num_ascension_perks > 1` reads "⚠ needs 2
+ascension perks taken first (1 now)" (`perksNeeded()`; `#lib/triggers.ts` now answers
+`num_ascension_perks` and `num_tradition_categories`). A planned adoption brings
+its whole tree, a planned pick its adoption and the picks it needs (`autoGoals(…, wanted)`). On
+the page one change runs at a time (`busy`): the user's ▲▼ clicks 5–20 ms apart each moved from
+the same old order (~40 orders in seconds, 2026-10-31); ▲▼ pass the next goal shown, as done
+goals keep their place folded away below. **Traditions** are labelled with their tree ("Statecraft: Amongst Peers", "… (adopt)",
+"… (finished)"), perks carry a badge; a planned or taken perk that a tree's adoption names
+(`GameData.perkTrees`: `has_ascension_perk` in the adopt tradition's `possible`) suggests that
+tree first ("Cybernetics (adopt) · opened by The Flesh is Weak"). Nomads settle no planets either
+(`unavailable()`: outposts and colonies; the layout's `plan.unavailable` hides those "+ goal"
+buttons on other tabs). Potential goals start folded, per group, their "+ want" and "⊘" (avoid)
+buttons at the left of each row, the row lit on hover. **Later phases** (not built): diplomacy (befriend,
+rivals, pacts wanted or avoided), GalCom and federation (federation tables not loaded, none seen
+in a save), market prices and trade deals, leaders, Shroud, jobs and resource priorities, orbital
+rings (their `Station.level` not yet seen in a save), espionage (nothing in the save or the data
+DB). **Other
+tabs**: `AddGoal.svelte` ("+ goal", ✓ once planned, from the layout's `plan.keys`) on the tech
+offers, traditions and perks, the colony page (districts up to their cap, queued buildings),
+expansion candidates, megastructure rows and the situations tab's first contacts, anomalies and
+dig sites; the map's right-click (`GalaxyMap` `onsystemmenu`, left button only for pan and pick;
+`ContextMenu.svelte`; `GET /api/plan?node=&system=` → `systemGoals()`) and its `planned` layer.
+The tab bar's badge counts blocked wanted goals and avoided ones that happened (`planSummary()`,
+cached by tip and plan). Reordering is native drag and drop plus ▲▼ buttons; groups fold per
+viewer (localStorage). Checked 2026-10-31 on a DB copy (Roaming Korinth, head #387 and branch
+leaf 363): goals stayed on their branch, each offered on the other, a bad body 400, a node of
+another campaign 409, every touched tab 200. Drag, the right-click menu and the buttons need a
+browser — not seen yet.
 
 **Trade-offs tab** (`/tradeoffs`, behind the profile's `tradeoffs` switch in ⚙ — exploratory, the
 user's ask 2026-10-22: "when to spend scarce resources on what"; `#lib/tradeoffs.ts` pure,
@@ -941,7 +1071,12 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   one after. A reward is `add_research_option` — "permanent until researched" (4.5.2
   `logs/script_documentation/effects.log`): no research, no progress. Several options are an
   if/else on the empire, not a choice; the one ours is evaluated (`is_diplomatic` …) and the
-  ⓘ popup says why. Categories in the game's colours (`focus-*` in `colors.ts`).
+  ⓘ popup says why. Categories in the game's colours (`focus-*` in `colors.ts`). ▸ on a category
+  unfolds every tier (`FocusRewardRow.tiers`, the game's Empire Progression panel; the user's ask
+  2026-10-31): unlocked, current with its progress, or its cost and the points still to go (a
+  tier costs its points, the rest carries over), each with "+ goal". Checked against the panel
+  (Roaming Korinth, nomad with bio ships: all ten Conquest tiers; Exploration tier 5 Planetary
+  Engineering for nomads, Terrestrial Sculpting otherwise — `is_nomadic` in the reward).
 - **traditions**: the active effects in two tables, traditions and perks (`totalEffects()`,
   `EffectTotals.svelte`, shared with the Government panel; text-only effects listed apart), every
   adopted tree in full with each tradition's effects (not yet active ones grey), the other trees,
@@ -1162,6 +1297,10 @@ shows format 2.
   inside a scripted effect are written `\\[...]` (vanilla `99_advanced_documentation.txt`). The
   resource list equals `common/strategic_resources/00_strategic_resources.txt` (26 keys) — re-diff
   on game updates.
+- **A save field's name is not a trigger**: every trigger the mod exports must appear in
+  `triggers.log` or in vanilla script (`trigger:<name>`). 0.9.0 exported `num_sapient_pops` (a
+  save field); the game only says so in `error.log` (`cannot find: num_sapient_pops`), and the
+  log line prints the variable empty. Grep `error.log` for `sdash_` after each mod change.
 
 It changes the checksum: no achievements while enabled. **Publishing** (Steam Workshop and Paradox
 Mods, through the launcher): `mod/PUBLISHING.md` — store copy, thumbnail source, published IDs.
@@ -1182,7 +1321,15 @@ which also matches the Bash command's own shell and ends it (exit 143).
 
 - **`pnpm install` / `pnpm add` must run outside the sandbox** (`! pnpm install`): pnpm 12 fails to
   take its store lock (`pnpm-store-operation-locks: Operation not permitted`) even with the store in
-  `$TMPDIR`. Tests, check, build and dev don't touch the store and work sandboxed.
+  `$TMPDIR`. Tests, check, build and dev don't touch the store and work sandboxed. On Linux
+  (2026-10-31) `pnpm update` was denied by permission: hand it over the same way. **But on Linux
+  the same day a `pnpm check` ran pnpm's own install first (pnpm 12.3.4, 29 packages missing from
+  `node_modules`) and it succeeded sandboxed**, the lockfile unchanged — so the lock failure may be
+  the Mac's alone; a frozen-lockfile install on Linux is worth one sandboxed try before handing
+  it over.
+- **After `pnpm update`/`install`, run `node_modules/.bin/prettier --write pnpm-lock.yaml`**: the
+  lockfile is kept in Prettier's format (`pnpm lint` checks it), pnpm writes its own, and the diff
+  balloons (2026-10-31: 2028 lines → 552 after the reformat).
 - **Node 24 is not first on PATH** (MacPorts' `node` is 22, pulled in by the `pnpm` port). Prefix
   commands with `fnm exec --using=24 --`.
 - Starting the dev server needs `sandbox.network.allowLocalBinding` (set in the workspace

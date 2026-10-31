@@ -101,3 +101,34 @@ group('describe', () => {
 		expect(describe({ leaf: 'num_rivals', cmp: '>', value: '1' })).toBe('num rivals > 1');
 	});
 });
+
+group('perk and tree counts', () => {
+	it('answers num_ascension_perks and num_tradition_categories from the save', () => {
+		const f: Facts = {
+			...facts,
+			perks: ['ap_a'],
+			traditions: ['tr_x_adopt', 'tr_x_1', 'tr_y_adopt']
+		};
+		expect(evaluate({ leaf: 'num_ascension_perks', cmp: '>', value: '1' }, f)).toBe(false);
+		expect(
+			evaluate({ leaf: 'num_ascension_perks', cmp: '>', value: '1' }, { ...f, perks: ['a', 'b'] })
+		).toBe(true);
+		expect(evaluate({ leaf: 'num_tradition_categories', cmp: '<', value: '7' }, f)).toBe(true);
+	});
+});
+
+group('ship kinds', () => {
+	// country_uses_bio_ships (4.5.2 scripted_triggers/07_scripted_triggers_ships.txt)
+	const bio: Trigger = {
+		op: 'and',
+		args: [
+			{ leaf: 'exists', value: 'this' },
+			{ leaf: 'uses_ship_category', value: 'bio_ship' }
+		]
+	};
+	it('answers uses_ship_category from the shipset, unknown without it', () => {
+		expect(evaluate(bio, { ...facts, shipKinds: ['bio_ship', 'tiyanki'] })).toBe(true);
+		expect(evaluate(bio, { ...facts, shipKinds: ['default_ship'] })).toBe(false);
+		expect(evaluate(bio, { ...facts, shipKinds: null })).toBeNull();
+	});
+});

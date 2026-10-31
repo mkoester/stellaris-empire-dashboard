@@ -10,6 +10,7 @@
 	import ColonyWellbeing from '#lib/ColonyWellbeing.svelte';
 	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
+	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import PlanetInfo from '#lib/panels/PlanetInfo.svelte';
 	import { automationRows } from '#lib/automation.ts';
 	import { net } from '#lib/flows.ts';
@@ -117,6 +118,12 @@
 						<td class="p-1 text-gray-500">{pretty(item.kind)}</td>
 						<td class="p-1 text-right">{fmt(item.progress)} / {fmt(item.needed)}</td>
 						<td class="p-1 text-right">{done[i] ?? ''}</td>
+						<td class="p-1"
+							>{#if item.kind === 'building'}<AddGoal
+									kind="building"
+									target={{ planet: data.colony.planetId, building: item.name }}
+								/>{/if}</td
+						>
 					</tr>
 				{/each}
 			</tbody>
@@ -218,6 +225,21 @@
 		/>
 		<Districts districts={data.colony.districtList} names={data.names} colors={data.colors} />
 	</div>
+	{#if data.details?.caps.types.some((t) => t.cap !== null && t.built < t.cap)}
+		<p class="mt-2 text-sm">
+			<span class="text-gray-500">Plan districts up to their cap:</span>
+			{#each data.details.caps.types.filter((t) => t.cap !== null && t.built < t.cap) as t, i (t.district)}{i
+					? ' · '
+					: ''}<DistrictName
+					name={nameOf(data.details.names, t.district)}
+					color={data.details.colors[t.district]}
+				/>
+				{t.built} → {t.cap}<AddGoal
+					kind="district"
+					target={{ planet: data.colony.planetId, district: t.district, count: t.cap! }}
+				/>{/each}
+		</p>
+	{/if}
 
 	<h2 class="mt-6 mb-2 text-xl font-semibold">Jobs</h2>
 	<Jobs rows={data.jobRows} explain={data.explain} />

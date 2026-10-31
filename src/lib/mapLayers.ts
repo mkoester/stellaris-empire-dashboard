@@ -29,7 +29,8 @@ export const MAP_LAYERS = [
 	'megastructures',
 	'ruins',
 	'wanderlust',
-	'systemEvents'
+	'systemEvents',
+	'planned'
 ] as const;
 export type MapLayer = (typeof MAP_LAYERS)[number];
 
@@ -48,7 +49,9 @@ export const LAYER_INFO: Record<MapLayer, { label: string; symbol: string; color
 	ruins: { label: 'abandoned structures', symbol: '✧', color: '#8c6d1f' },
 	wanderlust: { label: 'Wanderlust targets', symbol: '⚑', color: '#1baf7a' },
 	// the events tab's colour for them (colors.ts `system-event`)
-	systemEvents: { label: 'system entry events', symbol: '!', color: '#c64fb5' }
+	systemEvents: { label: 'system entry events', symbol: '!', color: '#c64fb5' },
+	// the planner's goals tied to a system (#lib/planner/kinds.ts)
+	planned: { label: 'planned goals', symbol: '◆', color: '#0e8fd0' }
 };
 
 export type MapFilter = { hidden: MapLayer[] };

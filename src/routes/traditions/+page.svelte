@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import Effects from '#lib/Effects.svelte';
 	import EffectTotals from '#lib/EffectTotals.svelte';
 	import InfoPopup from '#lib/InfoPopup.svelte';
@@ -62,7 +63,10 @@
 							><InfoPopup explanation={data.explain[`tradition:${x.key}`]}>{x.name}</InfoPopup></b
 						>{#if ROLE[x.role]}<span class="text-xs text-gray-500">
 								· when {ROLE[x.role]}</span
-							>{/if}{x.active ? ' ✓' : ''}
+							>{/if}{x.active ? ' ✓' : ''}{#if !x.active}<AddGoal
+								kind="tradition"
+								target={{ tradition: x.key }}
+							/>{/if}
 						<div><Effects explanation={data.explain[`tradition:${x.key}`]} /></div>
 					</li>
 				{/each}
@@ -73,7 +77,13 @@
 	{/each}
 
 	<Panel title="Other trees" note="Not adopted yet.">
-		<p class="text-sm">{data.otherTrees.map((t) => t.name).join(' · ')}</p>
+		<p class="text-sm">
+			{#each data.otherTrees as t, i (t.key)}{i ? ' · ' : ''}{t.name}{#if t.adopt}<AddGoal
+						kind="tradition"
+						target={{ tradition: t.adopt }}
+						title="plan to adopt this tree"
+					/>{/if}{/each}
+		</p>
 	</Panel>
 
 	<Panel
@@ -87,7 +97,7 @@
 			<div class="mt-2 text-gray-500">
 				{#each open as p, i (p.key)}{i ? ' · ' : ''}<InfoPopup
 						explanation={data.explain[`perk:${p.key}`]}>{p.name}</InfoPopup
-					>{/each}
+					><AddGoal kind="perk" target={{ perk: p.key }} />{/each}
 			</div>
 		</div>
 	</Panel>

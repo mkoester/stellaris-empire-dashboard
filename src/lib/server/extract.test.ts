@@ -21,11 +21,18 @@ describe('dataKey', () => {
 });
 
 describe('extractorVersion', () => {
-	it('reads __version__ beside the script; null when there is none', () => {
+	it('reads __version__ beside the script, with a hash of its code; null when there is none', () => {
 		const dir = mkdtempSync(join(tmpdir(), 'extractor-'));
 		mkdirSync(join(dir, 'extractor'));
 		writeFileSync(join(dir, 'extractor', '__init__.py'), '"""doc"""\n\n__version__ = \'0.2.0\'\n');
-		expect(extractorVersion(join(dir, 'stellaris-extract.py'))).toBe('0.2.0');
+		writeFileSync(join(dir, 'extractor', 'tech.py'), 'a = 1\n');
+		const script = join(dir, 'stellaris-extract.py');
+		const first = extractorVersion(script);
+		expect(first).toMatch(/^0\.2\.0\+[0-9a-f]{8}$/);
+		expect(extractorVersion(script)).toBe(first);
+		// a code change under the same version is another extractor: its data is extracted again
+		writeFileSync(join(dir, 'extractor', 'tech.py'), 'a = 2\n');
+		expect(extractorVersion(script)).not.toBe(first);
 		expect(extractorVersion(join(tmpdir(), 'nowhere', 'x.py'))).toBeNull();
 	});
 });

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 	import { colorOf } from '#lib/colors.ts';
@@ -97,7 +98,7 @@
 									>{t.tier !== null ? ` T${t.tier}` : ''}{t.progress !== null
 										? ` ${Math.round(t.progress)}${t.cost ? `/${t.cost} (${Math.round((100 * t.progress) / t.cost)} %)` : ''}`
 										: ''}</span
-								>{/each}
+								>{#if !t.researching}<AddGoal kind="tech" target={{ tech: t.key }} />{/if}{/each}
 						</td>
 					</tr>
 				{/each}

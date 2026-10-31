@@ -202,3 +202,35 @@ export async function dismissUpcoming(id: string) {
 	});
 	if (!r.ok) throw new Error(`dismiss failed: ${r.status} ${await r.text()}`);
 }
+
+/**
+ * Changes the plan at the node the page shows (`/api/plan`, #lib/planner/ops.ts): the node is
+ * sent, not taken from the URL, so a reload in game meanwhile cannot move the change to another
+ * branch.
+ */
+export async function planAction(
+	node: number,
+	changes: { goal: string; op: string; data?: Record<string, unknown> }[]
+) {
+	const r = await fetch(api('/api/plan'), {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify({ node, changes })
+	});
+	if (!r.ok) throw new Error(`changing the plan failed: ${r.status} ${await r.text()}`);
+}
+
+/** The goals that fit a system at a node, for the map's right-click menu. */
+export async function systemGoals(
+	node: number,
+	system: number
+): Promise<
+	{ kind: string; target: Record<string, string | number>; label: string; why?: string }[]
+> {
+	const r = await fetch(`/api/plan?node=${node}&system=${system}`);
+	if (!r.ok) throw new Error(`loading goals failed: ${r.status} ${await r.text()}`);
+	return ((await r.json()) as { goals: [] }).goals;
+}
+
+/** A new goal's id. */
+export const newGoalId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 16);

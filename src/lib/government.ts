@@ -13,6 +13,7 @@ export function facts(
 		electionTypes?: Record<string, string>;
 		slavery?: string[];
 		archetypes?: Record<string, string>; // species class → archetype (data DB species_class)
+		shipKinds?: Record<string, string[]>; // shipset → ship kinds (data DB graphical_culture)
 	} = {}
 ): Facts {
 	const electionTypes = data.electionTypes ?? {};
@@ -20,7 +21,10 @@ export function facts(
 	const archetype =
 		s.founderClass && data.archetypes ? (data.archetypes[s.founderClass] ?? null) : null;
 	const gestalt = authority === 'auth_hive_mind' || authority === 'auth_machine_intelligence';
+	const kinds = s.shipset ? data.shipKinds?.[s.shipset] : undefined;
 	return {
+		// unknown before READER 38, or without the extractor's graphical_culture table
+		shipKinds: kinds && kinds.length ? kinds : null,
 		countryType: s.countryType,
 		government: s.government ?? [],
 		origin: s.origin,

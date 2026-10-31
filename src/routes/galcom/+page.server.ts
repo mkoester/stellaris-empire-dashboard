@@ -62,7 +62,7 @@ export function load({ url }) {
 			? proposable(
 					data.resolutions,
 					galcom,
-					facts(save, data.scriptedTriggers),
+					facts(save, data.scriptedTriggers, { shipKinds: data.shipKinds }),
 					save.date,
 					costMult
 				)

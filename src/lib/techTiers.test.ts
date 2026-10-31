@@ -45,4 +45,11 @@ describe('inReach', () => {
 		// p1_5 missing: tier 2 closed (5 of 6), p2_needs also lacks its prerequisite
 		expect(inReach(done.slice(0, 5), techs, req, possible)).toEqual(['p1_5', 'p1_unknown']);
 	});
+
+	it('needs one tech of each OR group', () => {
+		const done = ['p1_0', 'p1_1', 'p1_2', 'p1_3', 'p1_4', 'p1_5'];
+		const either = { ...req, p2_open: { ...none, anyOf: [['p1_gestalt', 'p1_unknown']] } };
+		expect(inReach(done, techs, either, possible)).not.toContain('p2_open');
+		expect(inReach([...done, 'p1_unknown'], techs, either, possible)).toContain('p2_open');
+	});
 });

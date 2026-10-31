@@ -37,7 +37,12 @@ export function load({ url }) {
 		trees,
 		otherTrees: Object.entries(data.traditionTrees)
 			.filter(([key]) => !taken.has(key))
-			.map(([key, t]) => ({ key, name: t.name })),
+			.map(([key, t]) => ({
+				key,
+				name: t.name,
+				// adopting it is its `adopt` tradition: the planner's goal for the tree
+				adopt: t.traditions.find((x) => x.role === 'adopt')?.key ?? null
+			})),
 		perks: Object.entries(data.perks).map(([key, name]) => ({
 			key,
 			name,

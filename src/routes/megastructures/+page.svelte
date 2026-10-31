@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import { followGame } from '#lib/live.ts';
 	import { RANGES, scoreFill, type Candidate, type MegaView } from '#lib/megastructures.ts';
@@ -44,7 +45,7 @@
 	let sort = $derived({ column: 'score', desc: !(k.lowerIsBetter ?? false) });
 
 	const columns: Column<Candidate>[] = $derived([
-		{ id: 'name', label: 'System', value: (r) => r.name },
+		{ id: 'name', label: 'System', value: (r) => r.name, cell: systemCell },
 		{
 			id: 'owner',
 			label: 'Owner',
@@ -83,6 +84,10 @@
 	]);
 </script>
 
+{#snippet systemCell(r: Candidate)}{r.name}{#if r.ok !== false}<AddGoal
+			kind="megastructure"
+			target={{ system: r.systemId, structure: k.kind }}
+		/>{/if}{/snippet}
 {#snippet score(r: Candidate)}{r.ok === null ? '?' : (r.score ?? (r.ok ? '✓' : '–'))}{/snippet}
 {#snippet detail(r: Candidate)}
 	<span class={r.ok ? '' : 'text-gray-500'}>{r.ok ? r.detail : r.why.join(', ')}</span
