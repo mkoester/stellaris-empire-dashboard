@@ -261,7 +261,7 @@
 			{/each}
 			<button class={tab(false)} onclick={addTab} title="add a tab of your own">+</button>
 			<a
-				class="ml-auto {tab(path === '/settings')}"
+				class={tab(path === '/settings')}
 				href={node ? resolve(`/settings?node=${node}`) : resolve('/settings')}
 				title="config: profiles and display">⚙ {data.profile.name}</a
 			>
@@ -297,15 +297,13 @@
 					title="the game version and build the game data was read from (an open beta shares its version with the release, not its build)"
 					>game {data.gameVersion.replace(/^\D*/, '')}</span
 				>{/if}
+			<!-- the dates alone on the right, also when they wrap onto a line of their own -->
+			{#if data.dates}<span
+					class="ml-auto pb-1 text-[11px] text-gray-400"
+					title="the game being played: its latest save the dashboard read, and its latest data — a save, the companion mod's month or its daily tick (without the mod, saves only)"
+					>last save {data.dates.save ?? '—'} · last data {lastData ?? '—'}</span
+				>{/if}
 		</nav>
-		{#if data.dates}
-			<p
-				class="-mt-3 mb-2 text-right text-[11px] text-gray-400"
-				title="the game being played: its latest save the dashboard read, and its latest data — a save, the companion mod's month or its daily tick (without the mod, saves only)"
-			>
-				last save {data.dates.save ?? '—'} · last data {lastData ?? '—'}
-			</p>
-		{/if}
 		{#if page.data.xExtent}<TimeWindow extent={page.data.xExtent as [number, number]} />{/if}
 		{#if loaded}
 			<p
