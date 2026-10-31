@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Planner tab, right after `all`: goals for your playthrough — systems to survey, outposts,
+  colonies (planets, habitats, ring segments), starbase upgrades, modules and buildings, districts
+  and buildings per colony, megastructures, techs, traditions, ascension perks, focus cards,
+  anomalies, dig sites, situations, first contacts, Wanderlust categories (and systems your
+  arkship should stay out of), civics, ethics and government types, plus free-text goals. Add,
+  remove, reorder (drag or ▲▼), park, note; every change is kept in a history. Each goal is
+  checked against your latest save: done goals tick themselves off with their date, one that is
+  no longer possible is flagged (and counted on the tab), and a goal you want to avoid turns red
+  once it happens. The plan follows your save graph: loading an older save starts a branch with
+  its own plan, and goals from other branches can be copied over.
+- "+ goal" buttons on the tech, traditions, colony, expansion, megastructures and situations tabs;
+  a right-click on a system on the map lists the goals that fit it, and the map's new "planned
+  goals" layer shows where your goals are.
+
 ## [0.1.6] - 2026-10-31
 
 ### Changed

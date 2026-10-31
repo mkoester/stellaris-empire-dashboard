@@ -28,9 +28,10 @@ import {
 	viewedCampaign
 } from '#lib/server/settings.ts';
 import { campaignTips } from '#lib/timeline.ts';
+import { planSummary } from '#lib/server/planner.ts';
 import type { ChartEvents, CustomTab } from '#lib/settings.ts';
 
-export function load() {
+export function load({ url }) {
 	// /setup runs before there is a DB: the layout then shows no tab bar
 	if (status() !== 'running')
 		return {
@@ -47,7 +48,8 @@ export function load() {
 			feed: null,
 			head: null,
 			gameVersion: null,
-			dates: null
+			dates: null,
+			plan: { keys: [] as string[], alerts: 0 }
 		};
 	const db = getDb();
 	const { id, name } = activeProfile(db);
@@ -82,6 +84,12 @@ export function load() {
 		})(),
 		// the save being played, so a page pinned to it keeps following the game
 		head: headId(db),
+		// the planner's goals at the node shown (for "+ goal" buttons) and how many need attention
+		plan: (() => {
+			const requested = Number(url.searchParams.get('node'));
+			const shown = nodes(db).some((n) => n.id === requested) ? requested : headId(db);
+			return planSummary(shown);
+		})(),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
 		// the game being played: its latest save, and its latest data (a save, month or daily tick)

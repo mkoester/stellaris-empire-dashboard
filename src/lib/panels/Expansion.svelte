@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import { untrack } from 'svelte';
 	import {
 		blockersOf,
@@ -311,7 +312,7 @@
 						onclick={() => (open = open === p.planetId ? null : p.planetId)}
 						title="details"
 					>
-						<td class="p-1">{p.name}</td>
+						<td class="p-1">{p.name}<AddGoal kind="colony" target={{ planet: p.planetId }} /></td>
 						<td class="p-1 whitespace-nowrap" style:color={colorOf(`climate-${p.climate}`)}>
 							{p.className}
 						</td>

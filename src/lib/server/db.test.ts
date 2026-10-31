@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import type { Snapshot } from '#lib/types.ts';
 import { askGone, goneToAsk, keepCampaign } from './campaigns.ts';
 import {
+	addPlanEvents,
 	campaignName,
 	deleteCampaign,
 	galaxyOf,
@@ -18,6 +19,7 @@ import {
 	loadedNode,
 	nodes,
 	openDb,
+	planEvents,
 	readFiles,
 	record,
 	refresh,
@@ -325,6 +327,19 @@ describe('migrations', () => {
 	// the real steps, then a test step after them
 	const steps = [...MIGRATIONS, addColumn];
 
+	it('17 adds the plan table to a version-16 DB, after a copy', () => {
+		const file = tmpDb();
+		const v16 = openDb(file, MIGRATIONS.slice(0, 1));
+		oldNode(v16, '2200.01.01', 'a');
+		expect(version(v16)).toBe(16);
+		v16.close();
+		const db = openDb(file, MIGRATIONS.slice(0, 2));
+		expect(version(db)).toBe(17);
+		expect(existsSync(file.replace('.sqlite', '.v16.sqlite'))).toBe(true);
+		addPlanEvents(db, 'c', nodes(db)[0].id, [{ goal: 'g', op: 'remove', data: {} }]);
+		expect(planEvents(db, 'c')).toHaveLength(1);
+	});
+
 	it('builds a new DB at the current version', () => {
 		const db = openDb(':memory:');
 		expect(version(db)).toBe(VERSION);
@@ -514,6 +529,54 @@ describe('deleteCampaign', () => {
 		expect(galaxyOf(db, 'o')).toBeNull();
 		expect(db.prepare('SELECT count(*) AS n FROM snapshot').get()).toEqual({ n: 1 });
 		expect(headId(db)).toBeNull(); // the head was there
+	});
+
+	it("forgets the campaign's plan too", () => {
+		const db = openDb(':memory:');
+		const c = record(db, snap('2200.01.01', 'a'), 's').nodeId;
+		const o = record(db, { ...snap('2300.01.01', 'x'), campaign: 'o' }, 's').nodeId;
+		const goal = { kind: 'free', target: {}, polarity: 'want', title: 'x' };
+		addPlanEvents(db, 'c', c, [{ goal: 'g1', op: 'add', data: goal }]);
+		addPlanEvents(db, 'o', o, [{ goal: 'g2', op: 'add', data: goal }]);
+		deleteCampaign(db, 'o');
+		expect(planEvents(db, 'o')).toEqual([]);
+		expect(planEvents(db, 'c').map((e) => e.goal)).toEqual(['g1']);
+	});
+});
+
+describe('plan events', () => {
+	it('are stored in the order made, with their node, and read back', () => {
+		const db = openDb(':memory:');
+		const n = record(db, snap('2200.01.01', 'a'), 's').nodeId;
+		const ids = addPlanEvents(
+			db,
+			'c',
+			n,
+			[
+				{ goal: 'g', op: 'add', data: { kind: 'tech', target: { tech: 't' }, polarity: 'want' } },
+				{ goal: 'group:research', op: 'order', data: { ids: ['g'] } }
+			],
+			'2026-10-31T10:00:00.000Z'
+		);
+		expect(ids).toHaveLength(2);
+		expect(planEvents(db, 'c')).toEqual([
+			{
+				id: ids[0],
+				nodeId: n,
+				at: '2026-10-31T10:00:00.000Z',
+				goal: 'g',
+				op: 'add',
+				data: { kind: 'tech', target: { tech: 't' }, polarity: 'want' }
+			},
+			{
+				id: ids[1],
+				nodeId: n,
+				at: '2026-10-31T10:00:00.000Z',
+				goal: 'group:research',
+				op: 'order',
+				data: { ids: ['g'] }
+			}
+		]);
 	});
 });
 

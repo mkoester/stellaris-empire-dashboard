@@ -5,6 +5,7 @@
 	import EmpireName from '#lib/EmpireName.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
+	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import type { ContactRow, SituationRow } from '#lib/situations.ts';
 	import type { SeenRow } from '#lib/territories.ts';
 	import SortTable from '#lib/SortTable.svelte';
@@ -99,7 +100,7 @@
 	type Project = (typeof data.projects)[number];
 	type Dig = (typeof data.digSites)[number];
 	const anomalyColumns: Column<Anomaly>[] = [
-		{ id: 'name', label: 'Anomaly', value: (a) => a.name, cell: bold },
+		{ id: 'name', label: 'Anomaly', value: (a) => a.name, cell: anomalyName },
 		{ id: 'where', label: 'Where', value: (a) => `${a.planet}, ${a.system}` },
 		{ id: 'level', label: 'Level', value: (a) => a.level ?? null, right: true },
 		{
@@ -144,7 +145,14 @@
 </script>
 
 {#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{/snippet}
-{#snippet digName(d: Dig)}<b>{pretty(d.type.replace(/^site_/, ''))}</b>{/snippet}
+{#snippet anomalyName(a: Anomaly)}<b>{a.name}</b><AddGoal
+		kind="anomaly"
+		target={{ planet: a.planetId }}
+	/>{/snippet}
+{#snippet digName(d: Dig)}<b>{pretty(d.type.replace(/^site_/, ''))}</b><AddGoal
+		kind="digsite"
+		target={{ planet: d.planetId }}
+	/>{/snippet}
 {#snippet anomalyOutcomes(a: Anomaly)}<span class="text-gray-500"
 		>{@render outcomes(a.outcomes)}</span
 	>{/snippet}
@@ -159,7 +167,10 @@
 {#snippet contactName(r: ContactRow)}
 	<EmpireName name={r.name} />{#if r.country && r.communications}<span class="text-gray-500">
 			· <EmpireName name={r.country.name} bold={false} /></span
-		>{/if}
+		>{/if}{#if r.status === 'in_progress'}<AddGoal
+			kind="contact"
+			target={{ country: r.countryId }}
+		/>{/if}
 {/snippet}
 {#snippet difficulty(r: ContactRow)}<span style:color={hard(r.difficulty)}>{r.difficulty}</span
 	>{/snippet}

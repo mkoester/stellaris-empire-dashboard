@@ -179,7 +179,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   machine's DB: five campaigns, ids 1…303 → each 1…n without gaps (Roaming Korinth 287–303 →
   1–17), `dashboard.v15.sqlite` left beside it. Tests building an older DB use the base tables
   alone (`openDb(file, [])`) and insert nodes as 0.1.0 did. The server log names nodes the same
-  way (`nodeLabel()`: "new node #17 of roamingkorinth_…").
+  way (`nodeLabel()`: "new node #17 of roamingkorinth_…"). 17 — `plan_event`, the planner's log
+  of changes (below). Checked 2026-10-31 on a copy of this machine's DB (`dashboard.v16.sqlite`
+  left beside it). `deleteCampaign` drops a campaign's plan rows before its nodes (foreign key).
 
 `STELLARIS_TEST_SAVE=<.sav>` enables the real-save test in `save.test.ts`; vitest swallows its
 `console.log` dump unless run with `--silent=false`. Its assertions fit our 4.5.2 campaign (a
@@ -291,7 +293,8 @@ badges a timed modifier `agenda` (`agenda_*`), `situation` (`*_stage_<n>`) or el
 `modifiers.ts` is **copied from the planner's `src/lib/civics.ts`** — keep the two in step. The
 popup itself is plain CSS: the planner's needs Skeleton UI.
 
-**Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `colonies`
+**Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `planner`
+(`/planner`, see "Planner tab"), `colonies`
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
 `map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
@@ -479,6 +482,47 @@ duration); edicts their effects, in the table. Factions are on the ethics tab (b
 seats (3 at 2207.03.10, all held). The agenda being prepared shows progress / cost (at empire size),
 percentage and months; every other open one "~N months if picked next" — the measured rate and
 size factor of the current agenda, started from 0. Same-status agendas sort alphabetically.
+
+**Planner tab** (`/planner`, the user's ask 2026-10-31: "plan certain things — adding, removing,
+reordering, history, automatically marked as done, a warning if no longer possible"; pure
+`#lib/planner/` — `replay.ts`, `kinds.ts`, `ops.ts`, `status.ts` —, server `server/planner.ts`,
+`POST /api/plan`): goals for the playthrough, stored as a **log of changes** (`plan_event`,
+migration 17: add, edit, remove, order, park, unpark, check, uncheck), each tagged with the node
+the page showed. **The plan at a node is the replay of the changes along its path** (`planAt()`),
+so a reload's branch has its own plan from the branch point on (the user's call), and a branch
+point moved on `/timeline` carries the plan along. The client sends the node it shows
+(`planAction(data.tip, …)`), never the head, so an autosave or reload between page load and click
+cannot move a change to another branch; changing the plan at an old node reaches every later
+branch below it (the page says how many). Goals of other branches missing here (by id, or by
+kind and target — `goalKey()`, free-text goals by their text) are offered to copy; one not
+possible here is copied **parked** ("a potential step to plan again", the user's ask). Each goal
+is **want or avoid**; an avoided goal that comes true shows "happened" in red. **Status**
+(`check()`): done, under way, open, no longer possible (blocked), unknown — against the branch's
+latest full save and the campaign's galaxy as the viewer may see it (`campaignGalaxy()`, spoilers
+respected); "since" walks back over the saves (`holdsSince()`, "by" where a save cannot tell —
+the galaxy is the campaign's latest reading, so galaxy-only checks stop there). Anomalies, dig
+sites and situations count done once seen and gone (`seenAlong()`; the save cannot tell finished
+from lost). Phase 1 kinds (`KINDS`): survey, anomaly, dig site, Wanderlust category and arkship
+visit, outpost, colony (planet, habitat, ring segment), starbase level/module/building, districts
+(blocked under the cap with blockers cleared), building, megastructure (blocked by
+`MEGA_RULES`' `candidates()`), tech (blocked by `potential`), tradition (a tree by its `adopt`),
+perk, focus card, situation approach and end, first contact (aborted = blocked), civic/authority/
+ethic (blocked by `civicAuthority`), government type, free text (ticked by hand). **Later
+phases** (not built): diplomacy (befriend, rivals, pacts wanted or avoided), GalCom and
+federation (federation tables not loaded, none seen in a save), market prices and trade deals,
+leaders, Shroud, jobs and resource priorities, nomad waystations and orbital rings (their
+`Station.level` not yet seen in a save), espionage (nothing in the save or the data DB). **Other
+tabs**: `AddGoal.svelte` ("+ goal", ✓ once planned, from the layout's `plan.keys`) on the tech
+offers, traditions and perks, the colony page (districts up to their cap, queued buildings),
+expansion candidates, megastructure rows and the situations tab's first contacts, anomalies and
+dig sites; the map's right-click (`GalaxyMap` `onsystemmenu`, left button only for pan and pick;
+`ContextMenu.svelte`; `GET /api/plan?node=&system=` → `systemGoals()`) and its `planned` layer.
+The tab bar's badge counts blocked wanted goals and avoided ones that happened (`planSummary()`,
+cached by tip and plan). Reordering is native drag and drop plus ▲▼ buttons; groups fold per
+viewer (localStorage). Checked 2026-10-31 on a DB copy (Roaming Korinth, head #387 and branch
+leaf 363): goals stayed on their branch, each offered on the other, a bad body 400, a node of
+another campaign 409, every touched tab 200. Drag, the right-click menu and the buttons need a
+browser — not seen yet.
 
 **Trade-offs tab** (`/tradeoffs`, behind the profile's `tradeoffs` switch in ⚙ — exploratory, the
 user's ask 2026-10-22: "when to spend scarce resources on what"; `#lib/tradeoffs.ts` pure,
