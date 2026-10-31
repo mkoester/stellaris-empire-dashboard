@@ -1194,7 +1194,12 @@ wait for its output; pick nodes by date from the copy's `node` table.
 
 On Linux (2026-10-17) Node 24 is first on PATH — no `fnm` prefix — and check, test, lint and a
 dev server on a DB copy all ran sandboxed. Kill that server by `$!`, not `pkill -f <pattern>`,
-which also matches the Bash command's own shell and ends it (exit 143).
+which also matches the Bash command's own shell and ends it (exit 143). **Start
+`node_modules/.bin/vite dev --strictPort`, not `pnpm dev`**: `$!` of `pnpm dev` is pnpm, and
+killing it leaves Vite holding the port — the next start in the same command failed "Port 5199
+is already in use" and a check of it read nothing (2026-10-31). For checks that extract, set
+`XDG_DATA_HOME=$TMPDIR/xdg` with `STELLARIS_GAME_DIR` + `STELLARIS_EXTRACTOR`, so the real data
+folder stays untouched; count `extracting game data` lines in the log per start.
 
 - **`pnpm install` / `pnpm add` must run outside the sandbox** (`! pnpm install`): pnpm 12 fails to
   take its store lock (`pnpm-store-operation-locks: Operation not permitted`) even with the store in
