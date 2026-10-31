@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, sep } from 'node:path';
 import { gameBuild, gameVersion } from './locate.ts';
 
 // The game data (names, costs, modifiers) comes from stellaris-data-extraction, run on this
@@ -18,8 +18,9 @@ export function extractorFromEnv(env: Record<string, string | undefined>): Extra
 
 /**
  * `v4.5.2` (with its build, `v4.5.3_7793`: an open beta and its release share the version) plus a
- * short hash of the installed DLC folders and the extractor's version: a new DLC is new data too,
- * and a dashboard update may need tables an older extractor did not write.
+ * short hash of the installed DLC folders and the extractor (`extractorIdentity()`: its version and
+ * sources): a new DLC is new data too, and a changed extractor may write tables or values the old
+ * file lacks.
  */
 export function dataKey(version: string, dlcs: string[], extractor: string | null = null): string {
 	const hash = createHash('sha256')
@@ -37,6 +38,38 @@ export function extractorVersion(script: string): string | null {
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * The extractor as the cache key sees it: its `__version__` plus a hash of its sources (the script
+ * and every `.py` under `extractor/`), so a changed extractor extracts again — during development
+ * its version stays the same across changes. Null if there is no `extractor/` beside the script.
+ */
+export function extractorIdentity(script: string): string | null {
+	const version = extractorVersion(script);
+	const pkg = join(dirname(script), 'extractor');
+	let files: string[];
+	try {
+		files = readdirSync(pkg, { recursive: true, encoding: 'utf8' })
+			.filter((f) => f.endsWith('.py'))
+			.sort();
+	} catch {
+		return null;
+	}
+	const hash = createHash('sha256');
+	for (const [name, file] of [
+		['<script>', script],
+		...files.map((f) => [f.split(sep).join('/'), join(pkg, f)])
+	]) {
+		hash.update(`${name}\0`);
+		try {
+			hash.update(readFileSync(file));
+		} catch {
+			// unreadable: its name alone
+		}
+		hash.update('\0');
+	}
+	return `${version ?? '?'}+${hash.digest('hex').slice(0, 12)}`;
 }
 
 export const dataDbFile = (appDir: string, key: string) =>
@@ -61,7 +94,7 @@ export async function ensureDataDb(
 	}
 	const file = dataDbFile(
 		appDir,
-		dataKey(version, dlcs, extractor && extractorVersion(extractor.script))
+		dataKey(version, dlcs, extractor && extractorIdentity(extractor.script))
 	);
 	if (existsSync(file)) return file;
 	if (!extractor)

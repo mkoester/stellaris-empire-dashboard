@@ -2,7 +2,13 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { dataKey, ensureDataDb, extractorFromEnv, extractorVersion } from './extract.ts';
+import {
+	dataKey,
+	ensureDataDb,
+	extractorFromEnv,
+	extractorIdentity,
+	extractorVersion
+} from './extract.ts';
 
 describe('dataKey', () => {
 	it('changes with the version and the DLC set, not their order', () => {
@@ -27,6 +33,29 @@ describe('extractorVersion', () => {
 		writeFileSync(join(dir, 'extractor', '__init__.py'), '"""doc"""\n\n__version__ = \'0.2.0\'\n');
 		expect(extractorVersion(join(dir, 'stellaris-extract.py'))).toBe('0.2.0');
 		expect(extractorVersion(join(tmpdir(), 'nowhere', 'x.py'))).toBeNull();
+	});
+});
+
+describe('extractorIdentity', () => {
+	it('follows the sources, so a changed extractor extracts again at the same version', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'extractor-'));
+		const script = join(dir, 'stellaris-extract.py');
+		writeFileSync(script, 'import extractor\n');
+		mkdirSync(join(dir, 'extractor', 'parse'), { recursive: true });
+		writeFileSync(join(dir, 'extractor', '__init__.py'), "__version__ = '0.2.0'\n");
+		writeFileSync(join(dir, 'extractor', 'parse', 'civics.py'), 'A = 1\n');
+		writeFileSync(join(dir, 'extractor', 'notes.txt'), 'not a source');
+		const a = extractorIdentity(script);
+		expect(a).toMatch(/^0\.2\.0\+[0-9a-f]{12}$/);
+		expect(extractorIdentity(script)).toBe(a);
+		writeFileSync(join(dir, 'extractor', 'notes.txt'), 'changed, still not a source');
+		expect(extractorIdentity(script)).toBe(a);
+		writeFileSync(join(dir, 'extractor', 'parse', 'civics.py'), 'A = 2\n');
+		const b = extractorIdentity(script);
+		expect(b).not.toBe(a);
+		writeFileSync(script, 'import extractor  # changed\n');
+		expect(extractorIdentity(script)).not.toBe(b);
+		expect(extractorIdentity(join(tmpdir(), 'nowhere', 'x.py'))).toBeNull();
 	});
 });
 
