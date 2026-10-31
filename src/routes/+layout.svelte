@@ -204,6 +204,16 @@
 		await invalidateAll();
 	}
 
+	// This very page — its route, params and other query parameters — pinned to a node, or
+	// unpinned: the arguments for resolve(), as the lint wants each goto() resolved.
+	const here = (n: number | null) => {
+		const query = new URLSearchParams(page.url.search);
+		if (n === null) query.delete('node');
+		else query.set('node', String(n));
+		const q = query.size ? `?${query}` : '';
+		return [`${page.route.id ?? '/'}${q}`, page.params] as Parameters<typeof resolve>;
+	};
+
 	// A save loaded in game: the dashboard follows it with the next save or month; until then the
 	// player may look at it at once, on the same tab — or wave the question away.
 	// A page pinned (`?node=`) to the save being played — the head, or the save just loaded — goes
@@ -212,9 +222,7 @@
 		() => invalidateAll(),
 		async () => {
 			if (node === null || ![data.head, data.loaded?.node].includes(Number(node))) return;
-			// the same page, unpinned (?node is its only query)
-			const here = [page.route.id ?? '/', page.params] as Parameters<typeof resolve>;
-			await goto(resolve(...here), { invalidateAll: true });
+			await goto(resolve(...here(null)), { invalidateAll: true }); // the same page, unpinned
 		}
 	);
 	// the last save and the last data of the game being played; a daily tick heard after the page
@@ -230,10 +238,8 @@
 			? data.loaded
 			: null
 	);
-	async function showLoaded(n: number) {
-		const same = tabsAt(String(n)).find((t) => t.active && t.name !== 'colony');
-		await goto(same?.href ?? resolve(`/?node=${n}`));
-	}
+	// the same page at the loaded save — every page, a colony's and a custom tab's included
+	const showLoaded = (n: number) => goto(resolve(...here(n)));
 
 	async function setTheme(theme: Theme) {
 		applyTheme(theme);

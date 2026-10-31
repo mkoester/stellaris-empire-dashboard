@@ -71,6 +71,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- "Show it now" (a save loaded in game) stays on the page you are on — a colony, a custom tab,
+  settings, the timeline — with its other query parameters; it took some pages back to `all`.
+  Going back to following the game keeps them too.
+
 - Fleets named from the game's name lists show their name ("Maelstrom Fleet"), not their key
   ("NECROID1 FLEET MaelstromFleet"); armies too. Needs extractor 0.1.5.
 - Research due dates (Upcoming, tech tab) ignored the difficulty: the galaxy setting
