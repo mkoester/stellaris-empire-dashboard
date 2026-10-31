@@ -1208,6 +1208,10 @@ shows format 2.
   inside a scripted effect are written `\\[...]` (vanilla `99_advanced_documentation.txt`). The
   resource list equals `common/strategic_resources/00_strategic_resources.txt` (26 keys) — re-diff
   on game updates.
+- **A save field's name is not a trigger**: every trigger the mod exports must appear in
+  `triggers.log` or in vanilla script (`trigger:<name>`). 0.9.0 exported `num_sapient_pops` (a
+  save field); the game only says so in `error.log` (`cannot find: num_sapient_pops`), and the
+  log line prints the variable empty. Grep `error.log` for `sdash_` after each mod change.
 
 It changes the checksum: no achievements while enabled. **Publishing** (Steam Workshop and Paradox
 Mods, through the launcher): `mod/PUBLISHING.md` — store copy, thumbnail source, published IDs.
