@@ -78,4 +78,22 @@ export function leaderRoles(
 	return { roles, self: traits(['self']) };
 }
 
-export const LEADER_CLASSES = ['official', 'commander', 'scientist'] as const;
+// the classes in the order the leaders tab lists them, and a level's ties
+export const LEADER_CLASSES = ['official', 'scientist', 'commander'] as const;
+
+/** The leaders tab's order: the ruler first, then by level (highest first), ties by class, name. */
+export function leaderOrder(
+	a: { ruler?: boolean; level?: number; class: string; name?: string },
+	b: { ruler?: boolean; level?: number; class: string; name?: string }
+): number {
+	const rank = (c: string) => {
+		const i = (LEADER_CLASSES as readonly string[]).indexOf(c);
+		return i < 0 ? LEADER_CLASSES.length : i;
+	};
+	return (
+		Number(b.ruler ?? false) - Number(a.ruler ?? false) ||
+		(b.level ?? 0) - (a.level ?? 0) ||
+		rank(a.class) - rank(b.class) ||
+		(a.name ?? '').localeCompare(b.name ?? '')
+	);
+}

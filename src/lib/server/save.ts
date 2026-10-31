@@ -2450,11 +2450,15 @@ export function displayName(name: Raw): string {
 			.filter(Boolean)
 			.join(' ');
 	}
-	return key
-		.replace(/^(SPEC|NAME|PRESCRIPTED)_/, '')
-		.replace(/^[A-Z0-9]+_(SHIP|CHR)_/, '') // name lists: HUMAN1_SHIP_Byzantium, HUMAN1_CHR_Gabriela
-		.replace(/_(planet|system|star)$/, '')
-		.replaceAll('_', ' ');
+	return (
+		key
+			.replace(/^(SPEC|NAME|PRESCRIPTED)_/, '')
+			// name lists: HUMAN1_SHIP_Byzantium, HUMAN1_CHR_Gabriela, NECROID1_FLEET_Vanguard; one whose
+			// text differs from its tail ("Maelstrom Fleet") is a prescripted name (extractor 0.1.5+)
+			.replace(/^[A-Z0-9]+_(SHIP|CHR|FLEET|ARMY)_/, '')
+			.replace(/_(planet|system|star)$/, '')
+			.replaceAll('_', ' ')
+	);
 }
 
 function resources(obj: Raw): Resources {

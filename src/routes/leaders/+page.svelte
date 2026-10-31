@@ -2,7 +2,7 @@
 	import { colorOf } from '#lib/colors.ts';
 	import { pretty } from '#lib/format.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
-	import { LEADER_CLASSES, type Bonus } from '#lib/leaders.ts';
+	import { LEADER_CLASSES, leaderOrder, type Bonus } from '#lib/leaders.ts';
 	import { followGame } from '#lib/live.ts';
 	import { formatModifierValue, modifierColor, modifierLabel } from '#lib/modifiers.ts';
 	import SortTable from '#lib/SortTable.svelte';
@@ -12,10 +12,12 @@
 	let { data } = $props();
 	followGame(() => data.isHead);
 
-	// per viewer, not stored: which classes both tables show (envoys apart, as before)
-	let classes = $state<string[]>([...LEADER_CLASSES]);
+	// per viewer, not stored: which classes both tables show — none picked: all three (envoys
+	// apart, behind their own switch)
+	let classes = $state<string[]>([]);
 	let envoys = $state(false);
-	const shown = (cls: string) => (cls === 'envoy' ? envoys : classes.includes(cls));
+	const shown = (cls: string) =>
+		cls === 'envoy' ? envoys : classes.length === 0 || classes.includes(cls);
 	const toggle = (c: string) =>
 		(classes = classes.includes(c) ? classes.filter((x) => x !== c) : [...classes, c]);
 	const count = (c: string) =>
@@ -23,8 +25,9 @@
 		data.pool.filter((l) => l.class === c).length;
 
 	type Leader = (typeof data.leaders)[number];
-	const rows = $derived(data.leaders.filter((l) => shown(l.class)));
-	const poolRows = $derived(data.pool.filter((l) => shown(l.class)));
+	// the ruler first, then by level, ties officials, scientists, commanders; a header re-sorts
+	const rows = $derived(data.leaders.filter((l) => shown(l.class)).sort(leaderOrder));
+	const poolRows = $derived(data.pool.filter((l) => shown(l.class)).sort(leaderOrder));
 
 	const roleLabel = (r: Leader['roles'][number]) =>
 		`${r.kind}${r.name ? `: ${r.name}` : ''}${r.level !== null ? ` (${r.level})` : ''}`;
@@ -119,6 +122,7 @@
 
 {#if data.leaders.length}
 	<div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+		<span class="text-gray-500" title="none ticked: all three">only</span>
 		{#each LEADER_CLASSES as c (c)}
 			<label class="flex items-center gap-1"
 				><input type="checkbox" checked={classes.includes(c)} onchange={() => toggle(c)} />
@@ -133,13 +137,18 @@
 			<span class="text-gray-500">{count('envoy')}</span></label
 		>
 	</div>
-	<SortTable {rows} {columns} key={(r) => r.id} />
+	<SortTable {rows} {columns} key={(r) => r.id} sort={{ column: '', desc: false }} />
 
 	<h2 class="mt-6 mb-2 text-lg font-semibold">Recruitable</h2>
 	{#if !data.poolKnown}
 		<p class="text-sm text-amber-600">Not read from this save yet; it fills after the next one.</p>
 	{:else if poolRows.length}
-		<SortTable rows={poolRows} columns={poolColumns} key={(r) => r.id} />
+		<SortTable
+			rows={poolRows}
+			columns={poolColumns}
+			key={(r) => r.id}
+			sort={{ column: '', desc: false }}
+		/>
 	{:else}
 		<p class="text-sm text-gray-500">None of the classes shown.</p>
 	{/if}

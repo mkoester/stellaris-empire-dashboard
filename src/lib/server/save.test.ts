@@ -1292,6 +1292,9 @@ describe('helpers', () => {
 
 	it('displayName resolves templates and strips key decoration', () => {
 		expect(displayName({ key: 'NAME_Bunker' })).toBe('Bunker');
+		// name-list fleets and armies like ships: the key's tail where no prescripted name says more
+		expect(displayName({ key: 'NECROID1_FLEET_Vanguard' })).toBe('Vanguard');
+		expect(displayName({ key: 'NECROID1_ARMY_Legion' })).toBe('Legion');
 		expect(
 			displayName({
 				key: '%ADJECTIVE%',

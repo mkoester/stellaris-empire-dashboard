@@ -21,8 +21,9 @@ All notable changes to this project are documented here. The format follows
 - Leaders tab: what each leader holds — the rule, a council seat, a colony, a fleet or the science
   ship it leads, several at once — with the level it acts at there (a councilor with the
   country's councilor bonus), and what each role gives now (a seat's modifiers at that level, the
-  traits' in that role, and what they do to the leader itself); filters for officials,
-  commanders and scientists; and the recruitable leaders in a table of their own, with their age.
+  traits' in that role, and what they do to the leader itself); the ruler first, then by level
+  (ties: officials, scientists, commanders); a filter to show only some classes; and the
+  recruitable leaders in a table of their own, with their age.
 - The game's difficulty in the tab bar, before the dates: "Admiral (6/7)".
 - Wanderlust (the nomads' perk): the events tab and the charts mark each system an arkship
   counts, a category done and all of them; the map gets a Wanderlust layer — the target systems
@@ -34,6 +35,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Fleets named from the game's name lists show their name ("Maelstrom Fleet"), not their key
+  ("NECROID1 FLEET MaelstromFleet"); armies too. Needs extractor 0.1.5.
 - Research due dates (Upcoming, tech tab) ignored the difficulty: the galaxy setting
   "Difficulty Adjusted Technology Costs" raises tech costs by the difficulty and the tier — 1875
   for a 1500 tier-1 tech on Admiral, where the dashboard said 1575 and so months too early.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { leaderRoles } from './leaders.ts';
+import { leaderOrder, leaderRoles } from './leaders.ts';
 import type { Explanation, LeaderInfo, Modifier } from './types.ts';
 
 const mod = (key: string, value: number): Modifier => ({
@@ -92,5 +92,19 @@ describe('leaderRoles', () => {
 
 	it('holds nothing when idle', () => {
 		expect(leaderRoles(leader({}), undefined, explain).roles).toEqual([]);
+	});
+});
+
+describe('leaderOrder', () => {
+	it('puts the ruler first, then the highest level, ties officials, scientists, commanders', () => {
+		const ls = [
+			{ name: 'C', class: 'commander', level: 2 },
+			{ name: 'S', class: 'scientist', level: 2 },
+			{ name: 'Lo', class: 'official', level: 1 },
+			{ name: 'R', class: 'official', level: 1, ruler: true },
+			{ name: 'O', class: 'official', level: 2 },
+			{ name: 'Hi', class: 'commander', level: 3 }
+		];
+		expect(ls.sort(leaderOrder).map((l) => l.name)).toEqual(['R', 'Hi', 'O', 'S', 'C', 'Lo']);
 	});
 });
