@@ -42,6 +42,7 @@ const data: GameData = {
 	councilPositions: {},
 	depositCategories: {},
 	prescriptedNames: {},
+	entryEvents: [],
 	scriptedTriggers: {},
 	speciesRights: [],
 	councilorSkill: {},

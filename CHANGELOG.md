@@ -8,6 +8,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- System entry events: the popups entering a system shows — guardians (Bir's "Crystalline
+  Asteroids"), ruined megastructures, abandoned gateways, Helito's "Missing Orbitals", … — on the
+  map (layer "system entry events") and the events tab ("Bir: Crystalline Asteroids"), matched by
+  the system's star flags; a popup that shows once per empire (the first abandoned gateway) only
+  where it did. With **companion mod 0.10.0** dated to the day of entry. Saves still on disk are
+  read again once.
+- Companion mod 0.10.0: each first entry of our ships into a system (a log line older dashboards
+  skip).
 - Colony page, while a colony sits at the stability cap of 100: a panel beside "Amenities,
   happiness and stability" with how far above the cap the game's sum is, how much approval and
   how many amenities could go before stability drops below 100, and what holds each up on the

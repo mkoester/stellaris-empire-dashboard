@@ -44,6 +44,7 @@ const COLORS: Record<string, string> = {
 	leader: '#6b7280',
 	'leader-pool': '#9ca3af', // the leaders' grey, lighter
 	wanderlust: '#1baf7a', // exploring: the special projects' green
+	'system-event': '#c64fb5', // a find on first entry: the wormholes' magenta
 	ruler: '#8c6d1f',
 	government: '#d64a9b',
 	policy: '#a3a830',

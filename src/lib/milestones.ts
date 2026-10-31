@@ -1,6 +1,7 @@
 import { sideSummary } from './deals.ts';
 import { nameOf, pretty } from './format.ts';
 import { addGameDays, gameYear } from './series.ts';
+import { entryLabel, firstEntries } from './systemEvents.ts';
 import { wanderlustName } from './wanderlust.ts';
 import type {
 	Colony,
@@ -40,6 +41,7 @@ export const KINDS = [
 	{ kind: 'leader', label: 'leaders' },
 	{ kind: 'leader-pool', label: 'recruitable leaders refreshed' },
 	{ kind: 'wanderlust', label: 'Wanderlust: systems explored by an arkship' },
+	{ kind: 'system-event', label: 'system entry events (guardians, ruins, …)' },
 	{ kind: 'ruler', label: 'ruler' },
 	{ kind: 'government', label: 'government: civics, ethics, authority, type, origin' },
 	{ kind: 'policy', label: 'policies' },
@@ -331,6 +333,19 @@ const DETECTORS = [
 			return [{ kind: 'leader-pool' as const, label: 'recruitable leaders refreshed', on }];
 		}
 	),
+	// a system entered whose star flags fire an entry popup (#lib/systemEvents.ts): "Bir:
+	// Crystalline Asteroids", at the save that first lists it — the mod's line dates it exactly
+	(snaps: Snapshot[]) => {
+		const readings = snaps.map((s) => ({ entries: s.entryEvents, flags: s.countryFlags }));
+		// the first reading is the history's start: what it lists happened before
+		const start = readings.findIndex((r) => r.entries);
+		return firstEntries(readings)
+			.filter((e) => e.at !== start)
+			.map((e) => ({
+				s: snaps[e.at],
+				found: [{ kind: 'system-event', label: entryLabel(e) }] as Found[]
+			}));
+	},
 	// an arkship counting a system (#lib/wanderlust.ts): each on its day, where the save names it;
 	// a counter's rise the visits do not explain, at the save; a category, then all of them, done
 	field(
@@ -429,7 +444,9 @@ const DETECTORS = [
  * A mod event as the milestone it re-dates: its kind, the text a diffed label of that kind must
  * contain to be the same event, and the label to show when no save shows it.
  */
-function fromLog(e: LogEvent): { kind: EventKind; match: string | null; label: string } | null {
+function fromLog(
+	e: LogEvent
+): { kind: EventKind; match: string | null; label: string; alone?: false } | null {
 	const [a, b, c, d, system] = e.fields;
 	switch (e.kind) {
 		case 'colony':
@@ -452,6 +469,9 @@ function fromLog(e: LogEvent): { kind: EventKind; match: string | null; label: s
 				match: null, // no save diff to match
 				label: `battle at ${system}: ${a} (${b}) beat ${c} (${d})`
 			};
+		// every first entry is logged, most fire nothing: it only dates a system's entry event
+		case 'system-entered':
+			return { kind: 'system-event', match: `${a}: `, label: a, alone: false };
 		default: // spending, shown on the resources tab
 			return null;
 	}
@@ -489,6 +509,7 @@ export function milestones(snaps: Snapshot[], names: Names): Milestone[] {
 				)
 				.sort((p, q) => p.x - q.x)[0];
 			if (same) taken.add(same);
+			else if (found.alone === false) return [];
 			return [{ ...(same ?? { kind, label }), date: e.date, x: gameYear(e.date) }];
 		});
 	return [...diffed.filter((m) => !taken.has(m)), ...logged].sort((a, b) => a.x - b.x);

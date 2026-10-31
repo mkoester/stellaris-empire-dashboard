@@ -9,6 +9,7 @@ import type {
 	ProjectInfo,
 	Wanderlust
 } from './types.ts';
+import { entryTitles, type SystemEntry } from './systemEvents.ts';
 import { counted, wanderlustName } from './wanderlust.ts';
 
 // What the map tab draws on top of the galaxy — what the empire has discovered — each layer a
@@ -26,7 +27,8 @@ export const MAP_LAYERS = [
 	'gateways',
 	'megastructures',
 	'ruins',
-	'wanderlust'
+	'wanderlust',
+	'systemEvents'
 ] as const;
 export type MapLayer = (typeof MAP_LAYERS)[number];
 
@@ -43,7 +45,9 @@ export const LAYER_INFO: Record<MapLayer, { label: string; symbol: string; color
 	gateways: { label: 'gateways, L-gates', symbol: '◈', color: '#3bb2c2' },
 	megastructures: { label: 'megastructures', symbol: '✦', color: '#d9a521' },
 	ruins: { label: 'abandoned structures', symbol: '✧', color: '#8c6d1f' },
-	wanderlust: { label: 'Wanderlust targets', symbol: '⚑', color: '#1baf7a' }
+	wanderlust: { label: 'Wanderlust targets', symbol: '⚑', color: '#1baf7a' },
+	// the events tab's colour for them (colors.ts `system-event`)
+	systemEvents: { label: 'system entry events', symbol: '!', color: '#c64fb5' }
 };
 
 export type MapFilter = { hidden: MapLayer[] };
@@ -91,6 +95,8 @@ export function mapMarkers(p: {
 	seen: SeenStation[];
 	// the Wanderlust perk's progress, null without it; `all`: every target, not only the visited
 	wanderlust?: { progress: Wanderlust; all: boolean } | null;
+	// systems we entered whose flags fire an entry popup, with its text's start (#lib/systemEvents.ts)
+	entries?: (SystemEntry & { detail: string })[];
 }): MapMarker[] {
 	const shown = new Set(p.galaxy.map((s) => s.id));
 	const out: MapMarker[] = [
@@ -130,6 +136,12 @@ export function mapMarkers(p: {
 						}
 					]
 		),
+		...(p.entries ?? []).map((e) => ({
+			layer: 'systemEvents' as const,
+			systemId: e.systemId,
+			label: entryTitles(e),
+			detail: e.detail
+		})),
 		...p.projects.flatMap((s) =>
 			s.systemId === null
 				? []

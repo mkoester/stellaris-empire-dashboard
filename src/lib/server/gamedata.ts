@@ -426,6 +426,27 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, trigger_json FROM scripted_trigger'
 				).map((r) => [r.key, parseTrigger(r.trigger_json)])
 			),
+			entryEvents: rows<{
+				event_id: string;
+				title: string | null;
+				description: string | null;
+				star_flags_json: string;
+				any_star_flags_json: string | null;
+				not_star_flags_json: string | null;
+				once_flag: string | null;
+			}>(
+				`SELECT event_id, title, description, star_flags_json, any_star_flags_json,
+				        not_star_flags_json, once_flag
+				 FROM system_entry_event ORDER BY sort_order`
+			).map((r) => ({
+				id: r.event_id,
+				title: r.title ?? r.event_id,
+				description: r.description,
+				flags: JSON.parse(r.star_flags_json) as string[],
+				anyFlags: r.any_star_flags_json ? (JSON.parse(r.any_star_flags_json) as string[]) : [],
+				notFlags: r.not_star_flags_json ? (JSON.parse(r.not_star_flags_json) as string[]) : [],
+				onceFlag: r.once_flag
+			})),
 			prescriptedNames: Object.fromEntries(
 				rows<{ key: string; text: string }>('SELECT key, text FROM prescripted_name').map((r) => [
 					r.key,

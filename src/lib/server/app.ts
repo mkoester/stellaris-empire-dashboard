@@ -19,7 +19,7 @@ import { trackedMods } from '#lib/addons.ts';
 import type { GameData, ModInfo, Tick } from '#lib/types.ts';
 import { tailLog, toLogSnapshot, type FeedFormat } from './feed.ts';
 import { loadDataVersion, loadGameData } from './gamedata.ts';
-import { READER, setPrescriptedNames } from './save.ts';
+import { READER, setEntryEvents, setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
 import { ensureDataDb, extractorFromEnv } from './extract.ts';
 import { loadModDescriptors } from './mods.ts';
@@ -216,6 +216,7 @@ async function run() {
 	state.gameData = loadGameData(dataDb);
 	state.dataVersion = loadDataVersion(dataDb);
 	setPrescriptedNames(state.gameData.prescriptedNames);
+	setEntryEvents(state.gameData.entryEvents);
 	state.explanations = loadExplanations(dataDb);
 	state.mods = loadModDescriptors(saveDir);
 	mkdirSync(dirname(dbFile), { recursive: true });

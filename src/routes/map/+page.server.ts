@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { mapMarkers } from '#lib/mapLayers.ts';
+import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -47,6 +48,13 @@ export function load({ url }) {
 				).values()
 			],
 			wanderlust: wanderlust && { progress: wanderlust, all: allTargets },
+			// entry popups (#lib/systemEvents.ts): the start of the first one's text
+			entries: firstEntries(
+				snaps.map((x) => ({ entries: x.entryEvents, flags: x.countryFlags }))
+			).map((e) => ({
+				...e,
+				detail: entryDetail(data.entryEvents.find((x) => x.id === e.events[0]?.id)?.description)
+			})),
 			contacts: s?.firstContacts ?? [],
 			anomalies: s?.anomalies ?? [],
 			digSites: s?.digSites ?? [],

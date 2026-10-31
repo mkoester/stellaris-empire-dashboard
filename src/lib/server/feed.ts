@@ -69,7 +69,8 @@ const EVENT_FIELDS: Record<LogEvent['kind'], number> = {
 	decision: 1, // colony
 	'leader-hired': 1, // leader
 	'colonization-started': 1, // planet
-	'megastructure-started': 1 // system
+	'megastructure-started': 1, // system
+	'system-entered': 1 // mod 0.10.0: the system a ship of ours entered first
 };
 
 /**
@@ -325,6 +326,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		leaderList: null,
 		leaderPool: null,
 		wanderlust: null,
+		entryEvents: null,
 		founderClass: null,
 		speciesRights: null
 	};

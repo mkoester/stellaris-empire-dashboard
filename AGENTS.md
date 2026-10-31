@@ -828,6 +828,29 @@ migration, growth), the trade tab's valuation of energy and minerals for us, and
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
+**System entry events** (the user's ask 2026-10-31: Bir's "Crystalline Asteroids" popup "on the
+map and on the events tab"; `#lib/systemEvents.ts` pure, data DB `system_entry_event`): the popups
+entering a system fires — the events of `on_entering_system_first_time`, `on_entering_system` and
+`on_entering_system_fleet` that test star flags on the system (73 in 4.5.3: guardians, ruined
+megastructures, gateways, Helito's "Missing Orbitals" on `on_entering_system_fleet`, …). The save
+keeps star flags from galaxy generation (`galactic_object.<id>.flags`), so `systemEntries()`
+(`save.ts`, the events set at start by `setEntryEvents()`) lists the systems we entered
+(`visited_objects` and our own) whose flags match one — all of its flags, one of its `OR` flags,
+none forbidden (`entryEventsFor()`) — as `Snapshot.entryEvents` (READER 37). **A once-per-empire
+popup** (`once_flag`: the trigger wants a country flag unset, the event sets it — apoc.1
+`encountered_first_gateway`) counts only at a system first listed while that flag turned from
+unset (at the last save that listed entries) to set (`firstEntries()`); several such systems in one
+interval are each "one of N". Checked 2026-10-31 on a copy of this machine's DB (Roaming Korinth,
+2206.10): of four abandoned gateways the L-Gate at Urakhannon's Maw (2204.01.01, `apoc.3`) and
+Acamar (2205.07.21) — Achernar and Elissa came after the flag; Bir (2205.09.18) and Helito
+(2206.03.28) as the user saw them. The events tab's kind `system-event` ("Bir: Crystalline
+Asteroids"; not at the history's first save) and the map's layer "system entry events" (each
+system at its first reading — the popup's own outcome may set a flag that no longer matches, as
+Helito's `solarpunk_system_revealed`). **Likely, not certain**: the events' other conditions (a
+ruined gateway in the system, global flags) are not checked. Companion mod 0.10.0 logs each first
+entry (`system-entered`), which only re-dates a matching milestone to the day (`fromLog()`, `alone:
+false`) — most first entries fire nothing.
+
 **Time window** (the user's ask 2026-10-28): every history chart (`Chart` with `extent`, the
 history's first and last save from `xExtent()`) shows one shared window
 (`#lib/timeWindow.svelte.ts`, session-only by the user's call — a reload starts at the default):
@@ -1070,6 +1093,9 @@ shows format 2.
   `screenshot_2026-10-31_09-25-00`, `-09`): `sdash_stab_add=33.35` = the tooltip's lines but
   approval (10 + 5.6 + 17.7); the page's 110.9 = the tooltip's sum with approval unrounded (95.8 %
   → +27.5, shown "+27").
+- **First entry into a system** (0.10.0): `on_entering_system_first_time` (scope: ship, From =
+  the system) logs `event|system-entered|<system>` for a human owner's ship; the line only dates a
+  system entry event (see "System entry events"), never stands alone.
 - **Colony jobs and pops, by day** (0.9.0): inside the daily tick, before `tick-end`, every
   colony's `free_jobs`, `num_unemployed` and `num_sapient_pops` (triggers, colony scope) go to
   `sdash_fj|un|pp`, and only when one differs from the last logged (`sdash_*_log`) a line

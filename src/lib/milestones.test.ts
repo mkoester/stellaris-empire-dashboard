@@ -332,6 +332,30 @@ describe("milestones from the companion mod's events", () => {
 		expect(labels(snaps)).toEqual(['2200.01.17 colony established: Mars']);
 	});
 
+	it('dates a system entry event by the mod’s first entry, and shows no entry without one', () => {
+		const bir = {
+			systemId: 61,
+			system: 'Bir',
+			events: [{ id: 'leviathans.3202', title: 'Crystalline Asteroids' }]
+		};
+		const snaps = [
+			save('2205.09.01', { entryEvents: [] }),
+			save('2205.10.01', {
+				entryEvents: [bir],
+				logEvents: [
+					ev('2205.09.20', 'system-entered', 'Bir'),
+					ev('2205.09.22', 'system-entered', 'Phiroza') // fires nothing
+				]
+			}),
+			save('2205.11.01', { entryEvents: [bir] })
+		];
+		expect(labels(snaps)).toEqual(['2205.09.20 Bir: Crystalline Asteroids']);
+		// without the mod: at the save that first lists it; none before the history knew of them
+		expect(labels([save('2205.08.01'), ...snaps.map((x) => ({ ...x, logEvents: [] }))])).toEqual([
+			'2205.10.01 Bir: Crystalline Asteroids'
+		]);
+	});
+
 	it('keeps an event no save shows, and battles, which only the mod reports', () => {
 		const snaps = [
 			save('2200.01.01'),

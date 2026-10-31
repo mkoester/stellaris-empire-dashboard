@@ -51,6 +51,7 @@ import type {
 } from '#lib/types.ts';
 import { MARKET_RESOURCES } from '#lib/market.ts';
 import { addGameDays, START_YEAR } from '#lib/series.ts';
+import { entryEventsFor, type EntryEvent, type SystemEntry } from '#lib/systemEvents.ts';
 import { WANDERLUST, wanderlustCategories } from '#lib/wanderlust.ts';
 import { readZipEntry } from './zip.ts';
 import {
@@ -275,7 +276,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '36'; // 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '37'; // 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -425,6 +426,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		leaderList: leaderList(raw),
 		leaderPool: leaderPool(raw),
 		wanderlust: wanderlust(raw),
+		entryEvents: systemEntries(raw),
 		founderClass: strOrNull(raw.speciesDb[String(raw.country?.founder_species_ref)]?.class),
 		speciesRights: speciesRights(raw.country),
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
@@ -2427,6 +2429,48 @@ let prescripted: Record<string, string> = {};
 export const setPrescriptedNames = (names: Record<string, string>) => {
 	prescripted = names;
 };
+
+// The popups a first entry into a system fires (data DB `system_entry_event`), set at start.
+let entryEvents: EntryEvent[] = [];
+export const setEntryEvents = (events: EntryEvent[]) => {
+	entryEvents = events;
+};
+
+/**
+ * The systems we entered (`visited_objects`, and our own) whose star flags fire an entry event —
+ * the save keeps the flags on `galactic_object.<id>.flags` from galaxy generation (Bir:
+ * `guardians_hive_system`). null before the game data is set.
+ */
+export function systemEntries(
+	raw: Pick<
+		RawSave,
+		'country' | 'countryId' | 'construction' | 'deposits' | 'shipDesigns' | 'starbases' | 'systems'
+	>,
+	events: EntryEvent[] = entryEvents
+): SystemEntry[] | null {
+	if (!events.length) return null;
+	const entered = new Set([...list(raw.country?.visited_objects), ...ownSystems(raw)]);
+	return [...entered]
+		.sort((a, b) => a - b)
+		.flatMap((id) => {
+			const s = raw.systems[String(id)];
+			if (!s || typeof s !== 'object') return [];
+			const found = entryEventsFor(Object.keys(s.flags ?? {}), events);
+			return found.length
+				? [
+						{
+							systemId: id,
+							system: displayName(s.name),
+							events: found.map(({ id, title, onceFlag }) => ({
+								id,
+								title,
+								...(onceFlag && { once: onceFlag })
+							}))
+						}
+					]
+				: [];
+		});
+}
 
 export function displayName(name: Raw): string {
 	const key = String(name?.key ?? name ?? '');

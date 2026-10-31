@@ -483,3 +483,21 @@ country_event = {
 		log = "SDASH|2|[GetDate]|event|megastructure-started|[From.GetName]"
 	}
 }
+
+# 0.10.0: a ship of ours entered a system for the first time — the moment the game shows that
+# system's entry popup, if any (Bir: "Crystalline Asteroids"). Every first entry is logged; the
+# dashboard knows from the system's star flags which ones fire a popup and dates those by it.
+# Scope = Ship, From = System, FromFrom = Country
+ship_event = {
+	id = sdash.29
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no } # as vanilla's entry events test it (graygoo.160, leviathans.3202)
+	}
+
+	immediate = {
+		log = "SDASH|2|[GetDate]|event|system-entered|[From.GetName]"
+	}
+}

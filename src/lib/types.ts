@@ -1,4 +1,5 @@
 import type { AttractionRule, AttractionSource } from './ethicSources.ts';
+import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
@@ -439,6 +440,9 @@ export type Snapshot = {
 	leaderPool: PoolLeader[] | null;
 	// the Wanderlust perk's progress (#lib/wanderlust.ts); null without it, or before READER 31
 	wanderlust: Wanderlust | null;
+	// the systems we entered (visited or own) whose star flags fire an entry event (#lib/systemEvents.ts);
+	// READER 37
+	entryEvents: SystemEntry[] | null;
 	founderClass: string | null; // its founder species' class (`NECROID`); since READER 35
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
@@ -453,7 +457,7 @@ export type Snapshot = {
 };
 
 export type MilestoneLogKind =
-	'colony' | 'war-started' | 'war-ended' | 'leader-died' | 'ruler' | 'combat';
+	'colony' | 'war-started' | 'war-ended' | 'leader-died' | 'ruler' | 'combat' | 'system-entered'; // mod 0.10.0: a ship's first entry into a system
 /** Spending the budget does not book (mod 0.3.0): what and where, not the item or its cost. */
 export type SpendLogKind =
 	| 'district-queued'
@@ -1090,6 +1094,7 @@ export type GameData = {
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
 	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1
+	entryEvents: EntryEvent[]; // the popups a first entry into a system fires (system_entry_event)
 	scriptedTriggers: Record<string, Trigger | null>; // parameter-free scripted triggers, normalised
 	// species rights per kind, in the game's order, each with its options
 	speciesRights: {

@@ -53,6 +53,7 @@ import {
 	tradeDeals,
 	wars,
 	wanderlust,
+	systemEntries,
 	leaderPool,
 	type RawSave
 } from './save.ts';
@@ -569,6 +570,51 @@ describe('colonyGrowth', () => {
 			})
 		).toEqual({ net: 18, by: { immigration: 18 }, byStratum: { worker: 18 } });
 		expect(colonyGrowth(undefined)).toBeNull();
+	});
+});
+
+describe('systemEntries', () => {
+	// Bir (2205.09.18): the Asteroid Hive guardian's star flags, set at galaxy generation
+	const hive = {
+		id: 'leviathans.3202',
+		title: 'Crystalline Asteroids',
+		description: null,
+		flags: ['guardians_hive_system'],
+		anyFlags: [],
+		notFlags: ['hivers_defeated'],
+		onceFlag: null
+	};
+	const raw = (visited: number[]) =>
+		({
+			countryId: 0,
+			country: { visited_objects: visited },
+			systems: {
+				'61': {
+					name: { key: 'Bir' },
+					flags: { guardians_hive_system: 62808000, guardian: 62808000 }
+				},
+				'62': {
+					name: { key: 'Elsewhere' },
+					flags: { guardians_hive_system: 1, hivers_defeated: 2 }
+				},
+				'63': { name: { key: 'Quiet' } }
+			},
+			starbases: {},
+			construction: undefined,
+			deposits: {},
+			shipDesigns: {}
+		}) as unknown as Parameters<typeof systemEntries>[0];
+
+	it('lists the systems we entered whose flags fire an entry event', () => {
+		expect(systemEntries(raw([61, 62, 63]), [hive])).toEqual([
+			{
+				systemId: 61,
+				system: 'Bir',
+				events: [{ id: 'leviathans.3202', title: 'Crystalline Asteroids' }]
+			}
+		]);
+		expect(systemEntries(raw([63]), [hive])).toEqual([]); // not entered: no spoiler
+		expect(systemEntries(raw([61]), [])).toBeNull(); // no game data: unknown
 	});
 });
 

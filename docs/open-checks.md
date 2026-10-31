@@ -195,6 +195,17 @@ dashboard leaves out under crime automation (`openJobs()`), which would show as 
 - **Send:** the screenshots with their dates, the save. Check: the `colony-jobs` lines in
   `logs/game.log` against the game's numbers, and the Pops chart's tick days against the saves'.
 
+### 24. System entry events — map and events tab, companion mod 0.10.0 (from 2026-10-31)
+
+**Partly checked**: Bir and Helito as the user saw them (2026-10-31); the four abandoned gateways
+reduced to two by their once-flags (Urakhannon's Maw's L-Gate, Acamar) — not asked whether those
+two showed the popup. Unverified: the mod's `system-entered` line (`[From.GetName]` in a
+ship_event's scope), and the matches' other conditions (a match is "likely").
+
+- **Do:** with the mod at 0.10.0, enter a new system (any) and one with a popup.
+- **Send:** the date and the popup's title; `logs/game.log`'s `system-entered` lines. Check: the
+  events tab dates the popup's system to that day, and a system without a popup shows nothing.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
