@@ -102,24 +102,25 @@ lines change, the suspected cause.
 
 Settled 2026-10-30 (throwaway nomad game, 2200.05.01, screenshots
 `~/Pictures/Screenshots/screenshot_2026-10-30_20-09-12` … `20-09-53`; `AGENTS.md` → Ethics tab).
-Open: the empire-wide factors from rules the save cannot answer — egalitarian ×3 = ×2.5 known ×
-1.2, xenophile and spiritualist ×2.2 = ×2 × 1.1 — most likely "From Council"
-(`value:count_councilors_with_ethic`, a script value).
-
-- **Do:** hover the ethic icon with ALT ("the attraction modifiers' sources") for egalitarian and
-  xenophile.
-- **Send:** the screenshots and the date.
+**Settled 2026-10-31 on the 4.5.3 open beta** (Roaming Korinth 2204.08.01, save; dashboard's
+ethics tab): the rules now add onto 1, and what the save cannot tell is the council —
+`value:count_councilors_with_ethic` = 0.1 (`@council_ethic_attraction`) per ruler or councilor with
+the ethic. Egalitarian ×2.45 = 2.25 known + 0.2 (two councilors), xenophile ×2.1 = 2 + 0.1 (one),
+spiritualist ×2.1 = 2 + 0.1 (the ruler): every remainder exact, so "From Relations" was 0. The
+4.5.2 numbers (×3 = ×2.5 × 1.2, ×2.2 = ×2 × 1.1) fit the same count as a factor. The game's
+tooltip (`screenshot_2026-10-31_01-49-58` … `01-50-08`) shows pop attraction, not these factors.
+Open (an idea): compute the council rule from the save's leaders, which would leave no rule open.
 
 ### 17. Amenities, happiness and stability — colony page (from 2026-10-30)
 
 Settled 2026-10-30 (Roaming Korinth 2203.02.01, screenshots
 `~/Pictures/Screenshots/screenshot_2026-10-30_22-12-11` … `22-13-38`): approval → stability and
 stability → job output are linear (+28.5 at 97.5 %, +28.88 % at 98.143); the amenities' +20 % cap.
-Open: amenities between the ends — the ark had 2.57× its need, past the cap.
-
-- **Do:** hover the amenities of a colony with amenities between 25 % and 200 % of its need (the
-  "Citizen Pop Happiness" line, or the penalty below 100 %).
-- **Send:** the screenshot and the date.
+**Settled 2026-10-31 (4.5.3 open beta, 2204.08.20, `screenshot_2026-10-31_01-49-08`):** amenities
+between the ends are linear too — 9659 provided for 6020 needed (1.604×) gives "Citizen Pop
+Happiness +12.0 %"; linear predicts +12.09 % (a curve would be far off: squared, +7.3 %). The
+save (2204.08.01) holds 9655.6 / 6020 / 3635.6 free against the tooltip's 9659 / 6020 / 3639 nineteen
+days later.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
