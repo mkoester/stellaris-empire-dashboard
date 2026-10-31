@@ -14,6 +14,9 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   `@sveltejs/kit/hooks`. The typed `resolve()` wants the query written out —
   ``node ? resolve(`/map?node=${node}`) : resolve('/map')``, not ``resolve(`/map${q}`)`` with `q`
   maybe empty.
+- **Every `goto()` takes a `resolve()`** — the lint's `svelte/no-navigation-without-resolve`
+  refuses a plain string; for "this page with another query" pass `resolve(...args)` with the
+  route id plus query and `page.params` (`here()` in `+layout.svelte`).
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
   (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14.
 
@@ -801,7 +804,8 @@ from `holdings()` of the latest save), and how to change it (`changeOf()`: now �
 building, designation, leader, agenda, promote/suppress; slowly — tradition, perk, reform; not —
 events, origin, deposits). Filters (per viewer): what applies or can be changed (default), what
 applies, everything. Not covered: job modifiers (bureaucrats, enforcers, telepaths add governing
-attraction on their planet) — the data DB has no job modifier table.
+attraction on their planet) — the data DB's `job_modifier` holds a job's unconditional modifiers
+only (the colony page's levers use them), most of these are triggered.
 
 **Nomads: Operational Reserves** (`#lib/nomad.ts` pure; throwaway nomad game
 `roamingkorinth_1232667372`, 2026-10-30, screenshot `2026_10_30_1`): a nomadic empire has no
@@ -1056,6 +1060,11 @@ does not. So `feed.ts` reads the formats in `FEED_FORMATS` and **skips any other
 mod's, or one newer than the build) instead of failing; the layout then names the format and which
 side to update (`unsupportedFeed()`, until a month is read). Released 0.1.1 still threw per line
 on format 3: **upload a mod with a new format only after the dashboard reading it is released.**
+**New mod data goes in an `event|<kind>|…` line** (0.9.0's `colony-jobs`, 0.10.0's
+`system-entered`): `parseLine` returns null for an unknown event kind, so older dashboards skip it
+without a format bump — a new head of its own (`tick-colony|…`) falls through to the resource
+parse and throws per line there. Values the save can carry go into variables instead (`sdash_nc`,
+`sdash_stab_*`), with no line at all.
 Drop an old format by raising `FEED_FORMATS.min`, never by erroring.
 
 Hidden events write `game.log` lines for human players, `SDASH|2|<date>|…` (format 2 since mod
