@@ -31,6 +31,8 @@ All notable changes to this project are documented here. The format follows
   construction ship as "Construction Ship". Saves still on disk are read again once.
 - A nomad's arkship no longer shows an idle shipyard it does not have, and is placed on the map
   where it is.
+- Mods tab: a mod installed twice — a local copy and its Workshop subscription — is active only
+  where the launcher loaded it, not both.
 
 ## [0.1.6] - 2026-10-31
 

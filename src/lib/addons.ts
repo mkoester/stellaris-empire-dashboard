@@ -66,7 +66,10 @@ export function loadOrder(json: string): string[] {
 
 /**
  * Every installed mod (descriptor) with whether the save has it active and whether it claims to
- * support `gameVersion`; an active mod without a descriptor is listed by name.
+ * support `gameVersion`; an active mod without a descriptor is listed by name. The save names
+ * mods only, so of two descriptors with one name — a local copy registered next to its Workshop
+ * subscription (`link-mod.sh`) — the one in the launcher's load order is the active one, the other
+ * not.
  */
 export function modRows(
 	descriptors: ModInfo[],
@@ -76,6 +79,8 @@ export function modRows(
 ): ModRow[] {
 	const place = new Map(order.map((f, i) => [f, i + 1]));
 	const known = new Set(descriptors.map((m) => m.name));
+	// names the launcher loaded from a particular descriptor
+	const loaded = new Set(descriptors.filter((m) => m.file && place.has(m.file)).map((m) => m.name));
 	const missing = (active ?? []).filter((n) => !known.has(n));
 	return [
 		...descriptors,
@@ -91,7 +96,9 @@ export function modRows(
 		}))
 	].map((m) => ({
 		...m,
-		active: active ? active.includes(m.name) : null,
+		active: active
+			? active.includes(m.name) && !(loaded.has(m.name) && !(m.file && place.has(m.file)))
+			: null,
 		supported: supports(m.supportedVersion, gameVersion),
 		order: (m.file && place.get(m.file)) || null
 	}));

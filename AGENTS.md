@@ -1066,7 +1066,7 @@ first save read since 2026-10-18. The DLC catalogue is the data DB's `dlc` table
 `dlc_info.txt`, category from the installed DLCs' descriptors, Steam release dates). Installed
 mods are the launcher's descriptors, `<user dir>/mod/*.mod`, the user dir being
 `STELLARIS_SAVE_DIR`'s parent (`server/mods.ts`, read at start); `supports()` compares their
-`supported_version` (`v4.5.*`) with the save's version. A dev copy registered next to its workshop version (`link-mod.sh`) has the same name and id: rows are keyed by descriptor file, marked "local", and left out of the version notes (`trackedMods()`) — keyed by name and id they once broke the tab (a duplicate key, client-side only). 2207.03.10: 28 DLCs, 17 mods. **Merged
+`supported_version` (`v4.5.*`) with the save's version. A dev copy registered next to its workshop version (`link-mod.sh`) has the same name and id: rows are keyed by descriptor file, marked "local", and left out of the version notes (`trackedMods()`) — and of the two, only the one in the load order is active (the save names mods only; 2026-10-31 both showed active, the Workshop subscription in no playset) — keyed by name and id they once broke the tab (a duplicate key, client-side only). 2207.03.10: 28 DLCs, 17 mods. **Merged
 DLCs**: Utopia, Synthetic Dawn and Humanoids are gameplay DLCs no script checks for (data DB
 `dlc.host_checks` 0) and saves leave them out of `required_dlcs` though installed — shown as
 "base game". **Mod updates**: the launcher's `launcher-v2.sqlite` (`mods.timeUpdated`, seconds;

@@ -114,6 +114,23 @@ describe('modRows', () => {
 		]);
 		expect(loadOrder('not json')).toEqual([]);
 	});
+
+	it('of a local copy and its Workshop twin, takes the one the launcher loaded as active', () => {
+		// 2026-10-31: dashboard_feed.mod in the playset, ugc_3826360023.mod only subscribed
+		const local = parseModDescriptor('name="Empire Dashboard Feed"', 'dashboard_feed.mod')!;
+		const workshop = parseModDescriptor('name="Empire Dashboard Feed"', 'ugc_3826360023.mod')!;
+		const rows = modRows([local, workshop], ['Empire Dashboard Feed'], null, [
+			'dashboard_feed.mod'
+		]);
+		expect(rows.map((r) => [r.file, r.active, r.order])).toEqual([
+			['dashboard_feed.mod', true, 1],
+			['ugc_3826360023.mod', false, null]
+		]);
+		// without a load order both stay active: the save cannot tell them apart
+		expect(
+			modRows([local, workshop], ['Empire Dashboard Feed'], null).map((r) => r.active)
+		).toEqual([true, true]);
+	});
 });
 
 describe('withLauncher', () => {
