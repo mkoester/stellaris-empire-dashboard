@@ -507,11 +507,35 @@ visit, outpost, colony (planet, habitat, ring segment), starbase level/module/bu
 (blocked under the cap with blockers cleared), building, megastructure (blocked by
 `MEGA_RULES`' `candidates()`), tech (blocked by `potential`), tradition (a tree by its `adopt`),
 perk, focus card, situation approach and end, first contact (aborted = blocked), civic/authority/
-ethic (blocked by `civicAuthority`), government type, free text (ticked by hand). **Later
-phases** (not built): diplomacy (befriend, rivals, pacts wanted or avoided), GalCom and
-federation (federation tables not loaded, none seen in a save), market prices and trade deals,
-leaders, Shroud, jobs and resource priorities, nomad waystations and orbital rings (their
-`Station.level` not yet seen in a save), espionage (nothing in the save or the data DB). **Other
+ethic (blocked by `civicAuthority`), government type, free text (ticked by hand). **Nomads**
+(`nomadic()`: running `situation_nomad_economy`; the user's asks 2026-10-31) claim no systems:
+`unavailable()` drops outposts from the add form, the suggestions and the map menu (an existing
+outpost goal shows blocked) and offers instead **waystations** (4.5.3
+`megastructures/30_nomad_waystation.txt`: nomads only, one per system, an unowned system fully
+surveyed, an owned one intel on its owner's deposits; done = a station of ours whose level starts
+`waystation` — `starbase_level_waystation_<n>`, spelling as `stations()` strips it, **not yet seen
+in a save**) and **arkships** per type (civilian, science, military — `<type>_arkship_megastructure`
+in `megastructures/29_nomad_arkships.txt`; counted from `Snapshot.ships` sizes
+`<type>_arkship_tier_<n>`, any tier; a settled empire gets neither). **Goals the save implies**
+(`autoGoals()`, passed to `planAt()` as seeds with stable ids `auto-tr-<key>` / `auto-ap-<key>`):
+every tradition of each adopted tree — taken ones show done with their date and land in the
+history's "reached" list, the rest are the tree's remaining picks — and every perk taken; they
+can be ordered, noted and removed (a removal sticks), and give way to the same goal added by hand.
+**Popups** (`explanations()`): the game data's for techs, traditions, perks, buildings and
+civics; a Wanderlust category its reward, the static modifier `<category>_modifier` (4.5.3
+`missions/01_missions_nomads.txt`); focus cards built here (`focuscard:`: requirement, progress
+per category and that category's next reward); an outpost or waystation goal what the system
+would bring (`systemInfo()`, `#lib/planner/systemInfo.ts`: station deposits summed per resource —
+for a waystation with the module collecting it, from `collected_system_resources` in
+`starbase_modules/00_waystation_modules.txt` —, a pre-FTL civilisation to observe, colonizable
+planets, unsurveyed bodies, anomalies, structures, passages). **Deposits only on surveyed bodies**
+unless `surveyAll`: the galaxy as shown (`surveyView()`) hides an unsurveyed body's anomaly but
+not its deposits, which the game hides — whether other tabs show them too is not checked.
+Potential goals start folded, per group. **Later phases** (not built): diplomacy (befriend,
+rivals, pacts wanted or avoided), GalCom and federation (federation tables not loaded, none seen
+in a save), market prices and trade deals, leaders, Shroud, jobs and resource priorities, orbital
+rings (their `Station.level` not yet seen in a save), espionage (nothing in the save or the data
+DB). **Other
 tabs**: `AddGoal.svelte` ("+ goal", ✓ once planned, from the layout's `plan.keys`) on the tech
 offers, traditions and perks, the colony page (districts up to their cap, queued buildings),
 expansion candidates, megastructure rows and the situations tab's first contacts, anomalies and

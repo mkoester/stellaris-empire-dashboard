@@ -6,6 +6,9 @@ import {
 	type Kind as MegaKind
 } from '#lib/megastructures.ts';
 import {
+	ARKSHIPS,
+	arkships,
+	autoGoals,
 	check,
 	GROUPS,
 	groupOf,
@@ -15,7 +18,8 @@ import {
 	traditionName,
 	type LabelCtx,
 	type PlanCtx,
-	type State
+	type State,
+	unavailable
 } from '#lib/planner/kinds.ts';
 import {
 	arrange,
@@ -30,6 +34,7 @@ import {
 	type Target
 } from '#lib/planner/replay.ts';
 import { holdsSince, seenAlong, type Since } from '#lib/planner/status.ts';
+import { systemInfo } from '#lib/planner/systemInfo.ts';
 import { discovered, jumpsFromBorder } from '#lib/situations.ts';
 import { inReach } from '#lib/techTiers.ts';
 import { evaluate } from '#lib/triggers.ts';
@@ -39,6 +44,7 @@ import { getDb, getExplanations, getGameData } from './app.ts';
 import { headId, history, nodes, planEvents } from './db.ts';
 import { pick } from './explain.ts';
 import { campaignGalaxy } from './mapSystems.ts';
+import { display } from './settings.ts';
 import { colonyDetails } from './planets.ts';
 
 // The planner tab's data (#lib/planner/*): the plan at the node shown, each goal checked against
@@ -57,7 +63,13 @@ export type GoalRow = Omit<Goal, 'added'> & {
 	added: { nodeId: number; at: string; date: string | null };
 };
 export type Option = { value: string | number; label: string };
-export type Suggestion = { kind: string; target: Target; label: string; why?: string };
+export type Suggestion = {
+	kind: string;
+	target: Target;
+	label: string;
+	why?: string;
+	ref?: string | null; // a popup with its effects
+};
 export type HistoryRow = {
 	id: number;
 	at: string;
@@ -233,13 +245,61 @@ function describe(e: PlanEvent, goals: Map<string, { label: string }>): HistoryR
 	}
 }
 
+/**
+ * The popups the rows need: the game data's (techs, traditions, perks, buildings, static modifiers
+ * — a Wanderlust category's reward), and focus cards, explained here from the data DB: what the
+ * card asks, the focus progress it gives, and each category's next reward.
+ */
+function explanations(refs: string[], c: Ctx | null): Record<string, Explanation> {
+	const out = pick(getExplanations(), refs) as Record<string, Explanation>;
+	const focus = getGameData().focus;
+	const techs = getGameData().techs;
+	for (const ref of refs) {
+		const place = /^(outpost|waystation):(\d+)$/.exec(ref);
+		if (place) {
+			out[ref] = systemInfo(
+				c?.ctx.galaxy?.find((x) => x.id === Number(place[2])),
+				place[1] as 'outpost' | 'waystation',
+				getGameData(),
+				c?.ctx.latest.countries ?? [],
+				display().surveyAll
+			);
+			continue;
+		}
+		if (!ref.startsWith('focuscard:')) continue;
+		const card = focus.cards[ref.slice('focuscard:'.length)];
+		if (!card) continue;
+		const next = (category: string) => {
+			const key = c?.ctx.latest.focus?.rewards.find((r) => r.category === category)?.current;
+			const reward = key ? focus.rewards[key] : undefined;
+			return reward
+				? ` — next reward${reward.cost !== null ? ` at ${reward.cost}` : ''}: ${reward.options.map((o) => techs[o.tech]?.name ?? o.tech).join(' or ')}`
+				: '';
+		};
+		out[ref] = {
+			title: card.name,
+			description: card.hint,
+			modifiers: [],
+			text: card.requirement,
+			facts: [
+				...(card.tier !== null ? [`tier ${card.tier}`] : []),
+				...card.gives.map(
+					(g) =>
+						`+${g.amount} ${focus.categories[g.category] ?? g.category} progress${next(g.category)}`
+				)
+			]
+		};
+	}
+	return out;
+}
+
 /** Everything the planner tab shows for the branch ending at `tip`. */
 export function plannerPage(snaps: Snapshot[], tip: number) {
 	const c = planCtx(snaps);
 	const campaign = snaps.at(-1)?.campaign ?? '';
 	const events = planEvents(getDb(), campaign);
 	const { path, dates, below } = pathOf(tip);
-	const plan = planAt(events, path);
+	const plan = planAt(events, path, c ? autoGoals(c.ctx.latest, getGameData()) : []);
 	const groups = arrange(plan, groupOf);
 	const others = c ? otherBranches(events, branchesOf(campaign, tip), plan) : [];
 	const toRow = (g: Goal) => (c ? row(g, c, dates) : null);
@@ -257,10 +317,12 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 			labels.set(e.goal, { label: label(d.kind, d.target ?? {}, d.title ?? '', c.names) });
 		}
 	const all = [...Object.values(rows).flat(), ...parkedRows];
+	const suggested = c ? suggestions(c, plan) : [];
+	const otherRows = c ? others.map((g) => ({ ...row(g, c, dates), tips: g.tips })) : [];
 	return {
 		groups: GROUPS.map((g) => ({ ...g, goals: rows[g.id] })),
 		parked: parkedRows,
-		others: c ? others.map((g) => ({ ...row(g, c, dates), tips: g.tips })) : [],
+		others: otherRows,
 		history: plan.history
 			.map((e) => ({
 				id: e.id,
@@ -276,19 +338,21 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 		doneAt: all
 			.filter((r) => r.since)
 			.map((r) => ({ goal: r.id, label: r.label, ...r.since!, avoid: r.polarity === 'avoid' })),
-		suggestions: c ? suggestions(c, plan) : [],
+		suggestions: suggested,
 		options: c ? fieldOptions(c) : {},
-		kinds: Object.entries(KINDS).map(([id, k]) => ({
-			id,
-			group: k.group,
-			name: k.name,
-			fields: k.fields,
-			manual: k.manual ?? false
-		})),
-		explain: pick(
-			getExplanations(),
-			all.map((r) => r.ref).filter((r) => r !== null)
-		) as Record<string, Explanation>,
+		kinds: Object.entries(KINDS)
+			.filter(([id]) => !c || !unavailable(c.ctx.latest).includes(id))
+			.map(([id, k]) => ({
+				id,
+				group: k.group,
+				name: k.name,
+				fields: k.fields,
+				manual: k.manual ?? false
+			})),
+		explain: explanations(
+			[...all, ...otherRows, ...suggested].map((r) => r.ref ?? null).filter((r) => r !== null),
+			c
+		),
 		laterBranches: below,
 		isHead: tip === headId(getDb()),
 		seenAt: c?.ctx.latest.date ?? null
@@ -333,6 +397,7 @@ function fieldOptions(c: Ctx): Record<string, Option[]> {
 		modules: keyed(d.costs.module, (k) => d.names[k] ?? k),
 		starbaseBuildings: keyed(d.costs.starbaseBuilding, (k) => d.names[k] ?? k),
 		level: STATION_LEVELS.map((l) => ({ value: l, label: l })),
+		type: Object.entries(ARKSHIPS).map(([value, label]) => ({ value, label })),
 		structure: MEGA_KINDS.map((k) => ({ value: k, label: MEGA_RULES[k].name })),
 		situation: keyed(d.situationTypes, (k) => d.situationTypes[k].name),
 		approach: by(
@@ -363,13 +428,21 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 	const { ctx, names } = c;
 	const have = new Set([...plan.goals.values()].map((g) => goalKey(g.kind, g.target, g.title)));
 	const out: Suggestion[] = [];
+	const off = unavailable(ctx.latest);
 	const add = (kind: string, list: { target: Target; why?: string }[]) => {
+		if (off.includes(kind)) return;
 		let n = 0;
 		for (const x of list) {
 			if (n >= LIMIT) break;
 			if (have.has(goalKey(kind, x.target))) continue;
 			if (check(kind, x.target, false, ctx).state === 'done') continue;
-			out.push({ kind, target: x.target, label: label(kind, x.target, '', names), why: x.why });
+			out.push({
+				kind,
+				target: x.target,
+				label: label(kind, x.target, '', names),
+				why: x.why,
+				ref: KINDS[kind]?.ref?.(x.target) ?? null
+			});
 			n++;
 		}
 	};
@@ -406,6 +479,32 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 		(ctx.galaxy ?? [])
 			.filter((s) => s.visited && !s.owned && s.ownerId === null)
 			.map((s) => ({ target: { system: s.id } }))
+	);
+	add(
+		'waystation',
+		(ctx.galaxy ?? [])
+			.filter((x) => x.bodies && !ctx.latest.stations?.some((st) => st.systemId === x.id))
+			.map((x) => ({
+				x,
+				n: x.bodies!.reduce(
+					(a, b) =>
+						a +
+						(display().surveyAll || b.surveyed !== false ? b.deposits : []).filter((dep) =>
+							/^orbital_/.test(getGameData().depositCategories[dep] ?? '')
+						).length,
+					0
+				)
+			}))
+			.filter((e) => e.n > 0)
+			.sort((a, b) => b.n - a.n)
+			.map((e) => ({ target: { system: e.x.id }, why: `${e.n} deposit${e.n === 1 ? '' : 's'}` }))
+	);
+	add(
+		'arkship',
+		Object.keys(ARKSHIPS).map((type) => {
+			const have = arkships(l, type);
+			return { target: { type, count: have + 1 }, why: `${have} now` };
+		})
 	);
 	add(
 		'colony',
@@ -506,7 +605,10 @@ export function systemGoals(snaps: Snapshot[], systemId: number): Suggestion[] {
 	const out: { kind: string; target: Target; why?: string }[] = [];
 	if (s?.bodies?.some((b) => !b.star && !b.surveyed))
 		out.push({ kind: 'survey', target: { system: systemId } });
-	if (!s?.owned) out.push({ kind: 'outpost', target: { system: systemId } });
+	if (!s?.owned && !unavailable(ctx.latest).includes('outpost'))
+		out.push({ kind: 'outpost', target: { system: systemId } });
+	if (!unavailable(ctx.latest).includes('waystation'))
+		out.push({ kind: 'waystation', target: { system: systemId } });
 	for (const b of s?.bodies ?? []) {
 		if (b.star) continue;
 		const colony = ctx.latest.colonies.some((col) => col.planetId === b.id);
@@ -560,11 +662,11 @@ export function planSummary(tip: number | null): { keys: string[]; alerts: numbe
 	const events = planEvents(db, node.campaign);
 	const key = `${tip}:${events.at(-1)?.id ?? 0}:${events.length}`;
 	if (memo?.key === key) return memo.value;
-	const plan = planAt(events, pathOf(tip).path);
+	const c = planCtx(history(db, tip));
+	const plan = planAt(events, pathOf(tip).path, c ? autoGoals(c.ctx.latest, getGameData()) : []);
 	const goals = [...plan.goals.values()];
 	let alerts = 0;
-	if (goals.length) {
-		const c = planCtx(history(db, tip));
+	{
 		if (c)
 			for (const g of goals) {
 				if (g.parked) continue;

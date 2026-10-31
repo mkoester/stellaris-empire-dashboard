@@ -2,7 +2,7 @@ import { colonyActiveBuildings } from '#lib/buildings.ts';
 import { MEGA_RULES } from '#lib/megastructures.ts';
 import { counted, wanderlustName } from '#lib/wanderlust.ts';
 import type { GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
-import type { Target } from './replay.ts';
+import type { AutoGoal, Target } from './replay.ts';
 
 // The planner's goal kinds: what each is about (its target), how it is named, and how the latest
 // save answers it — done, in progress, open, no longer possible (blocked) or unknown. Every check
@@ -161,6 +161,8 @@ export const KINDS: Record<string, Kind> = {
 		name: 'Wanderlust category',
 		fields: ['category'],
 		label: (t) => `Wanderlust: ${wanderlustName(s(t, 'category'))}`,
+		// its reward: `<category>_modifier`, for good (4.5.3 missions/01_missions_nomads.txt)
+		ref: (t) => `modifier:${s(t, 'category')}_modifier`,
 		check: (t, c) => {
 			const w = c.latest.wanderlust;
 			if (!w) return { state: 'unknown', why: 'no Wanderlust perk' };
@@ -187,14 +189,59 @@ export const KINDS: Record<string, Kind> = {
 		name: 'build an outpost',
 		fields: ['system'],
 		label: (t, c) => `Outpost in ${c.system(n(t, 'system'))}`,
+		ref: (t) => `outpost:${n(t, 'system')}`,
 		system: (t) => n(t, 'system'),
 		check: (t, c) => {
+			if (nomadic(c.latest))
+				return { state: 'blocked', why: 'a nomadic empire builds no outposts' };
 			// ours by the branch's own save; the galaxy (the campaign's latest reading) for the rest
 			if (c.latest.knownSystems?.some((k) => k.id === n(t, 'system') && k.owned))
 				return { state: 'done' };
 			const x = sys(c, n(t, 'system'));
 			if (!x) return { state: 'unknown' };
 			return lost(c, x.id) ?? { state: 'open' };
+		}
+	},
+	waystation: {
+		group: 'expansion',
+		name: 'build a waystation (nomads)',
+		fields: ['system'],
+		label: (t, c) => `Waystation in ${c.system(n(t, 'system'))}`,
+		ref: (t) => `waystation:${n(t, 'system')}`,
+		system: (t) => n(t, 'system'),
+		// 4.5.3 megastructures/30_nomad_waystation.txt: nomads only, one waystation per system;
+		// an unowned system surveyed, an owned one needs intel on its owner's deposits
+		check: (t, c) => {
+			const st = stationIn(c, n(t, 'system'));
+			if (st?.level.startsWith('waystation'))
+				return { state: 'done', why: st.level.replace('_', ' ') };
+			if (!nomadic(c.latest)) return { state: 'blocked', why: 'only nomads build waystations' };
+			const x = sys(c, n(t, 'system'));
+			if (!x?.bodies) return { state: 'unknown', why: 'not visited yet' };
+			if (x.megastructures.some((m) => m.startsWith('waystation')))
+				return { state: 'progress', why: 'being built' };
+			if (x.ownerId !== null && !ours(c, x.ownerId))
+				return { state: 'open', why: "needs intel on the owner's deposits" };
+			const left = x.bodies.filter((b) => !b.star && !b.surveyed).length;
+			return left
+				? { state: 'open', why: `survey it first (${left} bodies left)` }
+				: { state: 'open' };
+		}
+	},
+	arkship: {
+		group: 'expansion',
+		name: 'arkships of a type (nomads)',
+		fields: ['type', 'count'],
+		label: (t) => `${n(t, 'count')} × ${ARKSHIPS[s(t, 'type')] ?? pretty(s(t, 'type'))}`,
+		// built as `<type>_arkship_megastructure` (4.5.3 megastructures/29_nomad_arkships.txt),
+		// counted by ship size, any tier (`<type>_arkship_tier_<n>`)
+		check: (t, c) => {
+			if (!nomadic(c.latest)) return { state: 'blocked', why: 'only nomads build arkships' };
+			if (c.latest.ships === null) return { state: 'unknown' };
+			const have = arkships(c.latest, s(t, 'type'));
+			return have >= n(t, 'count')
+				? { state: 'done' }
+				: { state: 'open', why: `${have} of ${n(t, 'count')}` };
 		}
 	},
 	colony: {
@@ -369,6 +416,7 @@ export const KINDS: Record<string, Kind> = {
 		name: 'focus card',
 		fields: ['card'],
 		label: (t, c) => c.data.focus.cards[s(t, 'card')]?.name ?? pretty(s(t, 'card')),
+		ref: (t) => `focuscard:${s(t, 'card')}`,
 		check: (t, c) => {
 			const card = c.latest.focus?.cards.find((x) => x.key === s(t, 'card'));
 			if (!c.latest.focus) return { state: 'unknown' };
@@ -537,3 +585,52 @@ const SOURCE: Record<string, string> = {
 	'government_type.key': 'govtype'
 };
 export const sourceOf = (kind: string, field: string) => SOURCE[`${kind}.${field}`] ?? field;
+
+/**
+ * A nomadic empire: running the nomad economy situation (the origin misses most nomads, see
+ * AGENTS.md "Trade tab"). It claims no systems: no outposts, waystations instead.
+ */
+export const nomadic = (s: Snapshot) =>
+	(s.situations ?? []).some((x) => x.type === 'situation_nomad_economy');
+
+/** Kinds that cannot apply to this empire at all, left out of the add form and the suggestions. */
+export const unavailable = (s: Snapshot): string[] =>
+	nomadic(s) ? ['outpost'] : ['waystation', 'arkship'];
+
+/** The arkship types, as the game names them (localisation `<type>_arkship_class` + "Arkship"). */
+export const ARKSHIPS: Record<string, string> = {
+	civilian: 'Civilian Arkship',
+	science: 'Scientific Arkship',
+	military: 'Military Arkship'
+};
+export const arkships = (s: Snapshot, type: string) =>
+	(s.ships ?? [])
+		.filter((x) => x.size.startsWith(`${type}_arkship`))
+		.reduce((a, x) => a + x.count, 0);
+
+/**
+ * What the save implies: every tradition of each adopted tree (adoption, picks and finisher —
+ * those taken show as done, with their date, the rest as open goals) and every perk taken.
+ */
+export function autoGoals(s: Snapshot, data: Pick<GameData, 'traditionTrees'>): AutoGoal[] {
+	const taken = new Set(s.traditions ?? []);
+	const trees = Object.values(data.traditionTrees).filter((t) =>
+		t.traditions.some((x) => x.role === 'adopt' && taken.has(x.key))
+	);
+	return [
+		...trees.flatMap((t) =>
+			t.traditions.map((x) => ({
+				id: `auto-tr-${x.key}`,
+				kind: 'tradition',
+				target: { tradition: x.key },
+				polarity: 'want' as const
+			}))
+		),
+		...(s.ascensionPerks ?? []).map((k) => ({
+			id: `auto-ap-${k}`,
+			kind: 'perk',
+			target: { perk: k },
+			polarity: 'want' as const
+		}))
+	];
+}

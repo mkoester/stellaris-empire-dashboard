@@ -44,7 +44,11 @@ export type Goal = Required<GoalSpec> & {
 	checked: boolean; // ticked off by hand (goals no save can confirm)
 	from: string | null; // the goal it was copied from, on another branch
 	added: { nodeId: number; at: string };
+	auto: boolean; // picked up from the save (a tradition tree's picks, perks taken), not added
 };
+
+/** A goal the save implies (`autoGoals()`); its id is stable, so it can be ordered or removed. */
+export type AutoGoal = GoalSpec & { id: string };
 
 export type Plan = {
 	goals: Map<string, Goal>; // the goals on this branch, parked ones included, in the order added
@@ -64,10 +68,28 @@ export const goalKey = (kind: string, target: Target, title = ''): string => {
 const obj = (v: unknown): Record<string, unknown> =>
 	v !== null && typeof v === 'object' ? (v as Record<string, unknown>) : {};
 
-/** The plan at a node: the changes whose node lies on `path` (node ids, root to tip). */
-export function planAt(events: PlanEvent[], path: number[]): Plan {
+/**
+ * The plan at a node: the changes whose node lies on `path` (node ids, root to tip), over the
+ * goals the save implies (`auto`) — those stay until removed, and give way to a goal of the same
+ * kind and target the player added.
+ */
+export function planAt(events: PlanEvent[], path: number[], auto: AutoGoal[] = []): Plan {
 	const on = new Set(path);
-	const goals = new Map<string, Goal>();
+	const goals = new Map<string, Goal>(
+		auto.map((a) => [
+			a.id,
+			{
+				note: '',
+				title: '',
+				...a,
+				parked: false,
+				checked: false,
+				from: null,
+				added: { nodeId: path[0] ?? -1, at: '' },
+				auto: true
+			}
+		])
+	);
 	const orders: Record<string, string[]> = {};
 	const history: PlanEvent[] = [];
 	for (const e of [...events].sort((a, b) => a.id - b.id)) {
@@ -87,7 +109,8 @@ export function planAt(events: PlanEvent[], path: number[]): Plan {
 					parked: d.parked === true,
 					checked: false,
 					from: typeof d.from === 'string' ? d.from : null,
-					added: { nodeId: e.nodeId, at: e.at }
+					added: { nodeId: e.nodeId, at: e.at },
+					auto: false
 				});
 				break;
 			}
@@ -119,6 +142,11 @@ export function planAt(events: PlanEvent[], path: number[]): Plan {
 		}
 		history.push(e);
 	}
+	const added = new Set(
+		[...goals.values()].filter((g) => !g.auto).map((g) => goalKey(g.kind, g.target, g.title))
+	);
+	for (const g of [...goals.values()])
+		if (g.auto && added.has(goalKey(g.kind, g.target, g.title))) goals.delete(g.id);
 	return { goals, orders, history };
 }
 

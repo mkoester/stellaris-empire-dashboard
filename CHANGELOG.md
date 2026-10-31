@@ -21,6 +21,13 @@ All notable changes to this project are documented here. The format follows
 - "+ goal" buttons on the tech, traditions, colony, expansion, megastructures and situations tabs;
   a right-click on a system on the map lists the goals that fit it, and the map's new "planned
   goals" layer shows where your goals are.
+- The planner picks up what you already did: every tradition of an adopted tree (taken ones as
+  done, with their date; the rest as the tree's remaining picks) and every ascension perk taken.
+- Nomads: no outposts; waystations and arkships (civilian, science, military) to plan instead.
+- Popups in the planner: what a tech, a tradition, a Wanderlust category's reward or a focus card
+  gives, and for an outpost or waystation what the system holds — station deposits (per
+  waystation module), a pre-FTL civilisation to observe, colonizable planets. Potential goals
+  start folded.
 
 ## [0.1.6] - 2026-10-31
 

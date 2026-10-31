@@ -145,3 +145,28 @@ describe('goalKey and leaves', () => {
 		).toEqual([3, 4]);
 	});
 });
+
+describe('goals the save implies', () => {
+	const auto = [
+		{ id: 'auto-tr-x', kind: 'tradition', target: { tradition: 'x' }, polarity: 'want' as const },
+		{ id: 'auto-tr-y', kind: 'tradition', target: { tradition: 'y' }, polarity: 'want' as const }
+	];
+
+	it('are in the plan until removed, and give way to the same goal added by hand', () => {
+		const p = planAt(
+			[
+				ev(1, 'auto-tr-x', 'remove'),
+				ev(1, 'mine', 'add', { kind: 'tradition', target: { tradition: 'y' }, polarity: 'want' })
+			],
+			[1],
+			auto
+		);
+		expect([...p.goals.keys()]).toEqual(['mine']);
+		expect([...planAt([], [1], auto).goals.values()].every((g) => g.auto)).toBe(true);
+	});
+
+	it('can be ordered and noted like any goal', () => {
+		const p = planAt([ev(1, 'auto-tr-y', 'edit', { note: 'first' })], [1], auto);
+		expect(p.goals.get('auto-tr-y')?.note).toBe('first');
+	});
+});

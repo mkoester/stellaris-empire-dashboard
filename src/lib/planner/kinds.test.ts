@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { upgrade } from '#lib/upgrade.ts';
 import type { Colony, GalaxySystem, Snapshot } from '#lib/types.ts';
-import { check, groupOf, label, validTarget, type LabelCtx, type PlanCtx } from './kinds.ts';
+import {
+	autoGoals,
+	check,
+	groupOf,
+	label,
+	unavailable,
+	validTarget,
+	type LabelCtx,
+	type PlanCtx
+} from './kinds.ts';
 
 const colony = (planetId: number, extra: Partial<Colony> = {}) =>
 	({
@@ -266,5 +275,113 @@ describe('labels, groups, targets', () => {
 		expect(validTarget('survey', { system: 3, extra: 1 })).toBe(false);
 		expect(validTarget('tech', { tech: '' })).toBe(false);
 		expect(validTarget('free', {})).toBe(true);
+	});
+});
+
+describe('nomads', () => {
+	const nomad = (extra: Partial<Snapshot> = {}) =>
+		save({
+			situations: [
+				{
+					id: 1,
+					type: 'situation_nomad_economy',
+					progress: 0,
+					monthly: null,
+					approach: null,
+					stage: null
+				}
+			],
+			...extra
+		});
+
+	it('build no outposts, but waystations and arkships', () => {
+		expect(state('outpost', { system: 3 }, ctx(nomad(), [system(3)]))).toBe('blocked');
+		expect(unavailable(nomad())).toEqual(['outpost']);
+		expect(unavailable(save())).toEqual(['waystation', 'arkship']);
+		expect(state('waystation', { system: 3 }, ctx(save(), [system(3)]))).toBe('blocked');
+		expect(state('arkship', { type: 'military', count: 1 }, ctx(save()))).toBe('blocked');
+	});
+
+	it('waystation: done once a waystation of ours is there; first survey an unowned system', () => {
+		const body = {
+			id: 9,
+			name: 'P',
+			class: 'pc_barren',
+			size: 5,
+			star: false,
+			moonOf: null,
+			ownerId: null,
+			colonized: false,
+			deposits: [],
+			anomaly: null,
+			dist: 1
+		};
+		const unsurveyed = [system(3, { bodies: [{ ...body, surveyed: false }] })];
+		expect(check('waystation', { system: 3 }, false, ctx(nomad(), unsurveyed))).toEqual({
+			state: 'open',
+			why: 'survey it first (1 bodies left)'
+		});
+		const built = nomad({
+			stations: [
+				{
+					id: 1,
+					system: 'S3',
+					systemId: 3,
+					level: 'waystation_1',
+					modules: [],
+					buildings: [],
+					queue: [],
+					slots: 0,
+					shipyard: null,
+					arkship: false
+				}
+			]
+		});
+		expect(state('waystation', { system: 3 }, ctx(built, unsurveyed))).toBe('done');
+	});
+
+	it('arkships: counted per type over every tier', () => {
+		const s = nomad({
+			ships: [
+				{ group: 'station', size: 'military_arkship_tier_1', count: 1 },
+				{ group: 'station', size: 'military_arkship_tier_2', count: 1 }
+			]
+		});
+		expect(state('arkship', { type: 'military', count: 2 }, ctx(s))).toBe('done');
+		expect(check('arkship', { type: 'science', count: 1 }, false, ctx(s))).toEqual({
+			state: 'open',
+			why: '0 of 1'
+		});
+	});
+});
+
+describe('autoGoals', () => {
+	it('lists every tradition of an adopted tree and each perk taken', () => {
+		const trees = {
+			traditionTrees: {
+				exp: {
+					name: 'Expansion',
+					traditions: [
+						{ key: 'tr_exp_adopt', name: 'A', role: 'adopt' },
+						{ key: 'tr_exp_1', name: 'B', role: 'normal' },
+						{ key: 'tr_exp_finish', name: 'F', role: 'finish' }
+					]
+				},
+				other: { name: 'Other', traditions: [{ key: 'tr_o_adopt', name: 'O', role: 'adopt' }] }
+			}
+		};
+		const goals = autoGoals(
+			save({ traditions: ['tr_exp_adopt'], ascensionPerks: ['ap_x'] }),
+			trees
+		);
+		expect(goals.map((g) => g.id)).toEqual([
+			'auto-tr-tr_exp_adopt',
+			'auto-tr-tr_exp_1',
+			'auto-tr-tr_exp_finish',
+			'auto-ap-ap_x'
+		]);
+		expect(
+			state('tradition', { tradition: 'tr_exp_adopt' }, ctx(save({ traditions: ['tr_exp_adopt'] })))
+		).toBe('done');
 	});
 });

@@ -34,7 +34,10 @@
 	const reorder = (group: string, ids: string[]) =>
 		change([{ goal: `group:${group}`, op: 'order', data: { ids } }]);
 	function remove(g: Row) {
-		if (confirm(`Remove "${g.label}" from the plan? (It stays in the history.)`)) op(g, 'remove');
+		const why = g.auto
+			? ' It was picked up from the save and stays away once removed.'
+			: ' (It stays in the history.)';
+		if (confirm(`Remove "${g.label}" from the plan?${why}`)) op(g, 'remove');
 	}
 
 	// --- status --------------------------------------------------------------------------------
@@ -192,7 +195,10 @@
 	<span class={r.polarity === 'avoid' ? 'text-red-700 dark:text-red-400' : ''}
 		>{#if r.polarity === 'avoid'}<span title="to avoid">⊘ </span>{/if}<InfoPopup
 			explanation={r.ref ? data.explain[r.ref] : undefined}>{r.label}</InfoPopup
-		></span
+		>{#if r.auto}<span
+				class="ml-1 rounded bg-gray-100 px-1 text-[10px] text-gray-500 dark:bg-gray-800"
+				title="picked up from the save: a tradition of an adopted tree, or a perk taken">auto</span
+			>{/if}</span
 	>
 {/snippet}
 
@@ -582,30 +588,35 @@
 
 		<Panel title="Potential goals" note="What the latest save suggests; a click adds it.">
 			{#each suggestionsBy as g (g.id)}
-				<h3 class="mt-2 font-semibold">{g.name}</h3>
-				<ul class="text-sm">
-					{#each g.list as s, i (i)}
-						<li class="flex items-center gap-2">
-							<span class="flex-1"
-								>{s.label}{#if s.why}<span class="text-xs text-gray-500">
-										· {s.why}</span
-									>{/if}</span
-							>
-							<button
-								type="button"
-								class="text-xs text-sky-600"
-								title="want it"
-								onclick={() => addGoal(s.kind, s.target, 'want')}>+ want</button
-							>
-							<button
-								type="button"
-								class="text-xs text-red-600"
-								title="avoid it"
-								onclick={() => addGoal(s.kind, s.target, 'avoid')}>+ avoid</button
-							>
-						</li>
-					{/each}
-				</ul>
+				<details class="mt-1">
+					<summary class="cursor-pointer font-semibold"
+						>{g.name}
+						<span class="text-sm font-normal text-gray-500">({g.list.length})</span></summary
+					>
+					<ul class="text-sm">
+						{#each g.list as s, i (i)}
+							<li class="flex items-center gap-2">
+								<span class="flex-1"
+									><InfoPopup explanation={s.ref ? data.explain[s.ref] : undefined}
+										>{s.label}</InfoPopup
+									>{#if s.why}<span class="text-xs text-gray-500"> · {s.why}</span>{/if}</span
+								>
+								<button
+									type="button"
+									class="text-xs text-sky-600"
+									title="want it"
+									onclick={() => addGoal(s.kind, s.target, 'want')}>+ want</button
+								>
+								<button
+									type="button"
+									class="text-xs text-red-600"
+									title="avoid it"
+									onclick={() => addGoal(s.kind, s.target, 'avoid')}>+ avoid</button
+								>
+							</li>
+						{/each}
+					</ul>
+				</details>
 			{:else}
 				<p class="text-sm text-gray-500">Nothing to suggest from the latest save.</p>
 			{/each}
