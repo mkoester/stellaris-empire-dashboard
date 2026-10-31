@@ -26,3 +26,19 @@ version's `CHANGELOG.md` section.
 6. Publish (by hand): `git push origin main develop`, then `git push origin vX.Y.Z` — the workflow
    does the rest (Actions tab). A failed run leaves no release: fix, move the tag only if it was
    never published (`git tag -f`, `git push -f origin vX.Y.Z`), or release the next patch.
+
+## Beta build (a game's open beta)
+
+For players on Steam's `stellaris_test` branch, when the dashboard needs a change before the game
+patch is out. A **prerelease** from `develop`: no merge into `main`, no `CHANGELOG` heading — the
+release notes are its `Unreleased` section.
+
+1. **Extractor first**, as above: it reads the beta and the current release alike, so it gets a
+   normal release; pin its tag in `extractorVersion` on `develop`.
+2. On `develop`, everything committed: `git tag vX.Y.Z-beta.N` (X.Y.Z = `package.json`'s version,
+   N counting from 1). The zips are named `…-X.Y.Z-beta.N-…` and a beta build refuses an
+   unpinned extractor just like a release.
+3. Publish (by hand): `git push origin develop`, then `git push origin vX.Y.Z-beta.N`. The workflow
+   checks the tag is on `develop`, and marks the GitHub release a prerelease (not "Latest").
+4. When the game patch goes live: the normal release above. No version bump is needed after a
+   beta tag.
