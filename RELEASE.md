@@ -39,6 +39,10 @@ Each is a tag the workflow builds and publishes; the title is the release's name
 | `develop`   | `vX.Y.Z-rc.N`   | Stellaris Empire Dashboard X.Y.Z rc-N (prerelease)    | `## [Unreleased]` |
 | `open-beta` | `vX.Y.Z-beta.N` | Stellaris Empire Dashboard X.Y.Z vN (for Open Beta B) | `## [Unreleased]` |
 
+Every release's notes open with the game it was built for (`scripts/game-version.sh`): a beta
+build's `openBeta`, else the bundled extractor's `sql/stellaris.sql` `meta.game_version` ("Built for
+Stellaris Cygnus v4.5.2 (9776).").
+
 X.Y.Z is always `package.json`'s version, N counts from 1 per X.Y.Z, B is `package.json`'s
 `openBeta` (the game's beta version, e.g. `4.5.3`; set on `open-beta` only — a beta tag without it
 fails). The workflow refuses a tag that is not on its branch or does not match the version. Every

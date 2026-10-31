@@ -40,6 +40,7 @@ jobs:
               branch=open-beta; expected="v$version-beta.$n"
               beta=$(node -p "require('./package.json').openBeta ?? ''")
               [ -n "$beta" ] || { echo "::error::a beta build needs package.json's openBeta (the game's beta version, e.g. 4.5.3)"; exit 1; }
+              echo "OPEN_BETA=$beta" >> "$GITHUB_ENV"
               title="$title v$n (for Open Beta $beta)" ;;
             *) branch=main; expected="v$version" ;;
           esac
@@ -92,5 +93,9 @@ jobs:
           section=$([ -n "$PRERELEASE" ] && echo Unreleased || echo "${GITHUB_REF_NAME#v}")
           awk -v v="$section" '/^## \[/ { on = index($0, "## [" v "]") == 1; next } on' CHANGELOG.md > notes.md
           [ -s notes.md ] || { echo "::error::no '## [$section]' section in CHANGELOG.md"; exit 1; }
+          # the game it was built for: a beta's from package.json, else the bundled extractor's dump
+          # (release-check holds that one to the public game's data)
+          game=$(scripts/game-version.sh ../stellaris-data-extraction/sql/stellaris.sql "$OPEN_BETA")
+          { printf '**Built for %s.**\n\n' "$game"; cat notes.md; } > release-notes.md
           gh release create "$GITHUB_REF_NAME" dist/*.zip --verify-tag ${PRERELEASE:+--prerelease} \
-            --title "$TITLE" --notes-file notes.md
+            --title "$TITLE" --notes-file release-notes.md
