@@ -152,7 +152,10 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   start reads only saves that are new or changed (`save_file`: path, `mtime:size`, reader). Saves
   still on disk that an older reader (or an older data DB) read are read again. A re-read replaces
   the stored reading and leaves the head alone (`refresh()` in `db.ts`). Forget the bump and the
-  new field stays at its `upgrade()` default until the save changes.
+  new field stays at its `upgrade()` default until the save changes. **Two branches bump it
+  independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
+  "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
+  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40.
 - **A start reads one campaign, the rest follows in the background** (`watch.ts`): before the
   dashboard is up, only the head campaign's saves to read (new, changed, or of an older reader) —
   with an empty DB the campaign of the newest save. The other campaigns wait in a backlog that
