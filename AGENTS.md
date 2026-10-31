@@ -1322,7 +1322,11 @@ which also matches the Bash command's own shell and ends it (exit 143).
 - **`pnpm install` / `pnpm add` must run outside the sandbox** (`! pnpm install`): pnpm 12 fails to
   take its store lock (`pnpm-store-operation-locks: Operation not permitted`) even with the store in
   `$TMPDIR`. Tests, check, build and dev don't touch the store and work sandboxed. On Linux
-  (2026-10-31) `pnpm update` was denied by permission: hand it over the same way.
+  (2026-10-31) `pnpm update` was denied by permission: hand it over the same way. **But on Linux
+  the same day a `pnpm check` ran pnpm's own install first (pnpm 12.3.4, 29 packages missing from
+  `node_modules`) and it succeeded sandboxed**, the lockfile unchanged — so the lock failure may be
+  the Mac's alone; a frozen-lockfile install on Linux is worth one sandboxed try before handing
+  it over.
 - **After `pnpm update`/`install`, run `node_modules/.bin/prettier --write pnpm-lock.yaml`**: the
   lockfile is kept in Prettier's format (`pnpm lint` checks it), pnpm writes its own, and the diff
   balloons (2026-10-31: 2028 lines → 552 after the reformat).
