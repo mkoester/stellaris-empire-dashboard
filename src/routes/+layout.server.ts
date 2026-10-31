@@ -1,5 +1,6 @@
 import {
 	campaignsOnDisk,
+	dataVersion,
 	getDb,
 	pendingLoad,
 	refreshCampaign,
@@ -35,7 +36,8 @@ export function load() {
 			tradeoffs: false,
 			loaded: null,
 			feed: null,
-			head: null
+			head: null,
+			gameVersion: null
 		};
 	const db = getDb();
 	const { id, name } = activeProfile(db);
@@ -69,6 +71,8 @@ export function load() {
 			return f && { ...f, ...FEED_FORMATS };
 		})(),
 		// the save being played, so a page pinned to it keeps following the game
-		head: headId(db)
+		head: headId(db),
+		// the game build the data is from: an open beta shares its version with the release
+		gameVersion: dataVersion()
 	};
 }

@@ -209,11 +209,22 @@ export const isUserDir = (dir: string) =>
 	isDir(join(dir, 'save games')) || existsSync(join(dir, 'settings.txt'));
 
 /** The game version a install folder names (`"v4.5.2"`), from its `launcher-settings.json`. */
-export function gameVersion(dir: string): string | null {
+export const gameVersion = (dir: string) => launcherSetting(dir, 'rawVersion');
+
+/**
+ * The game's build (`"7793"`), from `launcher-settings.json`'s `version` (`Cygnus v4.5.3 (7793)`):
+ * an open beta and the release after it share their `rawVersion`, not their build.
+ */
+export const gameBuild = (dir: string) => buildOf(launcherSetting(dir, 'version'));
+
+/** The build in a version string (`Cygnus v4.5.3 (7793)` → `7793`), null without one. Pure. */
+export const buildOf = (version: string | null) => /\((\d+)\)\s*$/.exec(version ?? '')?.[1] ?? null;
+
+function launcherSetting(dir: string, key: string): string | null {
 	const text = readText(join(dir, 'launcher-settings.json'));
 	if (text === null) return null;
 	try {
-		const v = JSON.parse(text).rawVersion;
+		const v = JSON.parse(text)[key];
 		return typeof v === 'string' ? v : null;
 	} catch {
 		return null;

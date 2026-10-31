@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Stellaris open betas: the game data is extracted per game **build**, not per version — an open
+  beta (4.5.3, build 7793) and the release after it share their version, and the release would
+  have kept the beta's data. Every player's dashboard extracts once more after this update (~5 s).
+- The footer names the game version and build the game data was read from (`game 4.5.3 (7793)`).
+
+### Fixed
+
+- Ethics tab, an ethic's own rules: 4.5.3 adds most of them onto a base of 1 instead of
+  multiplying (`+1` for the ethic itself, `−0.25` for a democracy); they show as such, and the
+  known part of the empire-wide factor adds them in the game's order. Needs extractor 0.1.5.
+
 ## [0.1.4] - 2026-10-31
 
 ### Added

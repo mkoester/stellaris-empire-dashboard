@@ -18,7 +18,7 @@ import {
 import { trackedMods } from '#lib/addons.ts';
 import type { GameData, ModInfo, Tick } from '#lib/types.ts';
 import { tailLog, toLogSnapshot, type FeedFormat } from './feed.ts';
-import { loadGameData } from './gamedata.ts';
+import { loadDataVersion, loadGameData } from './gamedata.ts';
 import { READER, setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
 import { ensureDataDb, extractorFromEnv } from './extract.ts';
@@ -43,6 +43,8 @@ type State = {
 	error?: string;
 	db?: Db;
 	gameData?: GameData;
+	/** the game version and build the game data was extracted from */
+	dataVersion?: string | null;
 	explanations?: Explanations;
 	mods?: ModInfo[];
 	watcher?: Watcher;
@@ -63,6 +65,9 @@ export function getExplanations(): Explanations {
 	if (!state.explanations) throw new Error('dashboard not started');
 	return state.explanations;
 }
+
+/** The game version and build the game data comes from (`Cygnus v4.5.3 (7793)`), null if unknown. */
+export const dataVersion = () => state.dataVersion ?? null;
 
 export function getGameData(): GameData {
 	if (!state.gameData) throw new Error('dashboard not started');
@@ -195,6 +200,7 @@ async function run() {
 	const dataDb =
 		paths.dataDb ?? (await ensureDataDb(paths.gameDir!, appDir(), extractorFromEnv(process.env)));
 	state.gameData = loadGameData(dataDb);
+	state.dataVersion = loadDataVersion(dataDb);
 	setPrescriptedNames(state.gameData.prescriptedNames);
 	state.explanations = loadExplanations(dataDb);
 	state.mods = loadModDescriptors(saveDir);

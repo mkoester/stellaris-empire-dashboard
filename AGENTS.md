@@ -72,9 +72,11 @@ path when they are wrong. A machine moved from Proton to the native build keeps 
 (`scripts/stellaris-native.sh`); ranking by newest save picks the one in play.
 
 **Game data** (`server/extract.ts`): without `STELLARIS_DATA_DB` the extractor runs at start
-against `gameDir` — `data/stellaris-<rawVersion>-<hash of the DLC folders and the extractor's
-`**version**`>.sqlite`, so a game update, a new DLC or a dashboard with a newer extractor (new
-tables) extracts again (~5 s), older files stay. The packaged launcher names the extractor and
+against `gameDir` — `data/stellaris-<rawVersion>_<build>-<hash of the DLC folders and the extractor's
+`**version**`>.sqlite` (`v4.5.3_7793-…`; the build from `launcher-settings.json`'s `version`, as an
+open beta shares its `rawVersion` with the release), so a game update, a beta build, a new DLC or a
+dashboard with a newer extractor (new tables) extracts again (~5 s), older files stay. The footer
+shows the data DB's own `meta.game_version`. The packaged launcher names the extractor and
 its Python (`STELLARIS_EXTRACTOR`, `STELLARIS_PYTHON`).
 
 ## Packaging and releases
@@ -122,7 +124,9 @@ The version in the header and the zip names is `scripts/version.mjs` (decorated 
 a commit tagged `v<version>` counts as a release, since CI builds from the detached tag).
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
 which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
-creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. The Windows zip
+creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. A
+`vX.Y.Z-beta.N` tag on `develop` (a game's open beta) does the same as a GitHub prerelease, its
+notes the `Unreleased` section (`RELEASE.md`, "Beta build"). The Windows zip
 ran on a real Windows machine (2026-10-25, the user); Wine cannot start in the sandbox
 (`wineserver` needs a writable `/tmp`).
 

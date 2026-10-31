@@ -6,6 +6,20 @@ import type { ActionKind, CapEffect, Costs, GameData } from '#lib/types.ts';
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
 
+/** The game version the data DB was extracted from (`Cygnus v4.5.3 (7793)`), null if it has none. */
+export function loadDataVersion(file: string): string | null {
+	const db = new DatabaseSync(file, { readOnly: true });
+	try {
+		const row = db.prepare("SELECT value FROM meta WHERE key = 'game_version'").get() as
+			{ value: string } | undefined;
+		return row?.value ?? null;
+	} catch {
+		return null; // no meta table
+	} finally {
+		db.close();
+	}
+}
+
 export function loadGameData(file: string): GameData {
 	const db = new DatabaseSync(file, { readOnly: true });
 	try {
@@ -491,12 +505,15 @@ export function loadGameData(file: string): GameData {
 				factor: number | null;
 				factor_text: string | null;
 				trigger_json: string | null;
+				op?: 'factor' | 'add' | null; // extractor 0.1.5+
 			}>(
-				'SELECT ethic_key, kind, description, factor, factor_text, trigger_json FROM ethic_attraction ORDER BY ethic_key, sort_order'
+				// `*`: a data DB from an older extractor has no `op` (its rules are all factors)
+				'SELECT * FROM ethic_attraction ORDER BY ethic_key, sort_order'
 			).reduce<GameData['ethicRules']>((out, r) => {
 				(out[r.ethic_key] ??= []).push({
 					kind: r.kind,
 					description: r.description,
+					op: r.op ?? null,
 					factor: r.factor,
 					factorText: r.factor_text,
 					trigger: parseTrigger(r.trigger_json)

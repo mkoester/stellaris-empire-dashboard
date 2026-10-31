@@ -285,6 +285,11 @@
 			<span class="pb-1 text-[11px] text-gray-400" title="dashboard version"
 				>v{__APP_VERSION__}</span
 			>
+			{#if data.gameVersion}<span
+					class="pb-1 text-[11px] text-gray-400"
+					title="the game version and build the game data was read from (an open beta shares its version with the release, not its build)"
+					>game {data.gameVersion.replace(/^\D*/, '')}</span
+				>{/if}
 		</nav>
 		{#if page.data.xExtent}<TimeWindow extent={page.data.xExtent as [number, number]} />{/if}
 		{#if loaded}

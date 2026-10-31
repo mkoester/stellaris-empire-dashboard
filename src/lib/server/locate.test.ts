@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+	buildOf,
 	discover,
 	expandEnv,
 	folderKey,
@@ -35,6 +36,15 @@ const VDF = `"libraryfolders"
 		"label"		"games"
 	}
 }`;
+
+describe('buildOf', () => {
+	it("reads the build from launcher-settings.json's version", () => {
+		expect(buildOf('Cygnus v4.5.3 (7793)')).toBe('7793'); // the 4.5.3 open beta, 2026-10-31
+		expect(buildOf('Cygnus v4.5.2 (9776)')).toBe('9776');
+		expect(buildOf('Cygnus v4.5.2')).toBeNull();
+		expect(buildOf(null)).toBeNull();
+	});
+});
 
 describe('parseVdf', () => {
 	it('reads nested blocks and lists the libraries', () => {

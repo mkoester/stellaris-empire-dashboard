@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { gameVersion } from './locate.ts';
+import { gameBuild, gameVersion } from './locate.ts';
 
 // The game data (names, costs, modifiers) comes from stellaris-data-extraction, run on this
 // machine against the player's own install — once per game version and set of DLCs, ~5 s.
@@ -17,8 +17,9 @@ export function extractorFromEnv(env: Record<string, string | undefined>): Extra
 }
 
 /**
- * `v4.5.2` plus a short hash of the installed DLC folders and the extractor's version: a new DLC
- * is new data too, and a dashboard update may need tables an older extractor did not write.
+ * `v4.5.2` (with its build, `v4.5.3_7793`: an open beta and its release share the version) plus a
+ * short hash of the installed DLC folders and the extractor's version: a new DLC is new data too,
+ * and a dashboard update may need tables an older extractor did not write.
  */
 export function dataKey(version: string, dlcs: string[], extractor: string | null = null): string {
 	const hash = createHash('sha256')
@@ -48,8 +49,10 @@ export async function ensureDataDb(
 	extractor: Extractor | null,
 	log: (line: string) => void = console.log
 ): Promise<string> {
-	const version = gameVersion(gameDir);
-	if (!version) throw new Error(`no launcher-settings.json with a game version in ${gameDir}`);
+	const raw = gameVersion(gameDir);
+	if (!raw) throw new Error(`no launcher-settings.json with a game version in ${gameDir}`);
+	const build = gameBuild(gameDir);
+	const version = build ? `${raw}_${build}` : raw;
 	let dlcs: string[] = [];
 	try {
 		dlcs = readdirSync(join(gameDir, 'dlc'));
