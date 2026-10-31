@@ -316,6 +316,34 @@ describe('attraction sources', () => {
 		expect(countryFactor(rules)).toEqual({ known: 1, open: 1, additive: true });
 	});
 
+	it('counts the ruler and councilors with the ethic for "From Council" (4.5.3)', () => {
+		const council = {
+			kind: 'country' as const,
+			description: 'From Council',
+			op: 'add' as const,
+			factor: 0,
+			factorText: null,
+			per: { leaf: 'council_leader_ethic', value: 'ethic_egalitarian' },
+			perValue: 0.1,
+			trigger: null
+		};
+		// Roaming Korinth 2204.08.01: two egalitarian councilors → +0.2, as the save's 2.45 − 2.25
+		const f = {
+			councilEthics: [
+				'ethic_spiritualist',
+				'ethic_egalitarian',
+				'ethic_xenophile',
+				'ethic_egalitarian'
+			]
+		} as unknown as Facts;
+		const [row] = ruleRows([council], f);
+		expect(row.factor).toBeCloseTo(0.2);
+		expect(countryFactor([row])).toEqual({ known: 1.2, open: 0, additive: true });
+		// leaders read before their ethics were: the save cannot tell
+		const [unknown] = ruleRows([council], { councilEthics: null } as unknown as Facts);
+		expect(countryFactor([unknown])).toEqual({ known: 1, open: 1, additive: true });
+	});
+
 	it('lists our ethics first, then the others, the governing ethics and the shift speed', () => {
 		const order = [
 			'ethic_fanatic_authoritarian',

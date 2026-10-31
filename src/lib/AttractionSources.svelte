@@ -173,6 +173,7 @@
 	>{/snippet}
 {#snippet ruleEffect(r: RuleRow)}{#if r.kind === 'country'}<b
 			class={(r.factor ?? 1) < (r.op === 'add' ? 0 : 1) ? 'text-red-600' : ''}
+			title={r.per ? `${r.perValue} per ruler or councilor with the ethic` : undefined}
 			>{r.op === 'add'
 				? r.factor !== null
 					? plus(r.factor)

@@ -12,12 +12,20 @@ All notable changes to this project are documented here. The format follows
   beta (4.5.3, build 7793) and the release after it share their version, and the release would
   have kept the beta's data. Every player's dashboard extracts once more after this update (~5 s).
 - The footer names the game version and build the game data was read from (`game 4.5.3 (7793)`).
+- Under the tabs, right: the game's **last save** and **last data** — a save, the companion
+  mod's month or its daily tick, whichever came last — so it shows whether the dashboard keeps up.
+- Ethics tab: "From Council" counts the ruler and councilors with the ethic from the save
+  (+0.1 each), so the empire-wide factor is known in full where it was "+0.2 from 4 rules the
+  save cannot tell".
 
 ### Fixed
 
 - Ethics tab, an ethic's own rules: 4.5.3 adds most of them onto a base of 1 instead of
   multiplying (`+1` for the ethic itself, `−0.25` for a democracy); they show as such, and the
   known part of the empire-wide factor adds them in the game's order. Needs extractor 0.1.5.
+- A nomad's Operational Reserves in the Stockpile charts dropped to 0 on each day of the
+  companion mod's tick (it logs energy and minerals, not the reserves); those days are a gap the
+  line bridges now — as is any resource a tick does not log.
 
 ## [0.1.4] - 2026-10-31
 

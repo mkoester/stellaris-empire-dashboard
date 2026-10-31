@@ -506,6 +506,8 @@ export function loadGameData(file: string): GameData {
 				factor_text: string | null;
 				trigger_json: string | null;
 				op?: 'factor' | 'add' | null; // extractor 0.1.5+
+				per_json?: string | null;
+				per_value?: number | null;
 			}>(
 				// `*`: a data DB from an older extractor has no `op` (its rules are all factors)
 				'SELECT * FROM ethic_attraction ORDER BY ethic_key, sort_order'
@@ -514,6 +516,8 @@ export function loadGameData(file: string): GameData {
 					kind: r.kind,
 					description: r.description,
 					op: r.op ?? null,
+					per: parseTrigger(r.per_json ?? null),
+					perValue: r.per_value ?? null,
 					factor: r.factor,
 					factorText: r.factor_text,
 					trigger: parseTrigger(r.trigger_json)

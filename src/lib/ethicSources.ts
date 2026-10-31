@@ -47,8 +47,12 @@ export type AttractionRule = {
 	description: string | null;
 	// 'country': × the number (4.5.2's rules; also a data DB older than the column), or + it (4.5.3)
 	op?: 'factor' | 'add' | null;
-	factor: number | null; // 'country': the number
+	factor: number | null; // 'country': the number (with `per`, its base)
 	factorText: string | null; // 'country': a script value the save cannot answer
+	// 'country': + `perValue` for each leader `per` counts (the ruler and councilors with the
+	// ethic, 4.5.3's "From Council"); extractor 0.1.5+
+	per?: Trigger | null;
+	perValue?: number | null;
 	trigger: Trigger | null;
 };
 
@@ -422,12 +426,30 @@ export function unlockOf(
 
 export type RuleRow = AttractionRule & { applies: boolean | null };
 
-/** An ethic's own rules, each evaluated against the empire (a pop-scope condition stays null). */
+/** How many leaders a rule's `per` counts; null when the save cannot tell or it counts others. */
+function perCount(per: Trigger, f: Facts): number | null {
+	if (!('leaf' in per) || per.leaf !== 'council_leader_ethic' || !f.councilEthics) return null;
+	return f.councilEthics.filter((e) => e === per.value).length;
+}
+
+/**
+ * An ethic's own rules, each evaluated against the empire (a pop-scope condition stays null); a
+ * rule that counts leaders gets its number from the save (unknown: null, like a script value).
+ */
 export function ruleRows(rules: AttractionRule[], f: Facts): RuleRow[] {
-	return rules.map((r) => ({
-		...r,
-		applies: r.kind === 'country' && r.factorText !== null ? null : evaluate(r.trigger, f)
-	}));
+	return rules.map((r) => {
+		const n = r.per ? perCount(r.per, f) : null;
+		const factor = r.per
+			? n === null || r.factor === null
+				? null
+				: r.factor + (r.perValue ?? 0) * n
+			: r.factor;
+		return {
+			...r,
+			factor,
+			applies: r.kind === 'country' && r.factorText !== null ? null : evaluate(r.trigger, f)
+		};
+	});
 }
 
 /**

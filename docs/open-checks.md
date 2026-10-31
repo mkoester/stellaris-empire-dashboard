@@ -109,7 +109,8 @@ the ethic. Egalitarian ×2.45 = 2.25 known + 0.2 (two councilors), xenophile ×2
 spiritualist ×2.1 = 2 + 0.1 (the ruler): every remainder exact, so "From Relations" was 0. The
 4.5.2 numbers (×3 = ×2.5 × 1.2, ×2.2 = ×2 × 1.1) fit the same count as a factor. The game's
 tooltip (`screenshot_2026-10-31_01-49-58` … `01-50-08`) shows pop attraction, not these factors.
-Open (an idea): compute the council rule from the save's leaders, which would leave no rule open.
+Done 2026-10-31: the dashboard counts the council rule from the save's leaders (extractor
+`ethic_attraction.per_json`); the three ethics read ×2.45 / ×2.1 / ×2.1, known in full.
 
 ### 17. Amenities, happiness and stability — colony page (from 2026-10-30)
 
