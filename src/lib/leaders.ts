@@ -1,4 +1,45 @@
+import { describe, evaluate, type Facts, type Trigger } from './triggers.ts';
 import type { Explanation, GameData, LeaderInfo, Modifier, Snapshot } from './types.ts';
+
+const GESTALT = ['auth_hive_mind', 'auth_machine_intelligence'];
+
+/**
+ * A trait modifier's condition (THIS the leader) with what the leader and the save tell put in:
+ * `is_ruler`, `is_councilor`, `leader_class`, and the paragon checks of the empire's kind
+ * (`trait_is_gestalt_check` …, 4.5.3 common/scripted_triggers/03_scripted_triggers_paragon.txt:
+ * `owner? = { is_gestalt = yes }`, which a save cannot answer as a scope). Others stay as they are.
+ */
+function forLeader(t: Trigger, l: LeaderInfo, f: Facts | null): Trigger {
+	if (!('leaf' in t)) return { ...t, args: t.args.map((a) => forLeader(a, l, f)) };
+	const is = (v: boolean | null) =>
+		v === null ? t : { leaf: 'always', value: v === (t.value === 'yes') ? 'yes' : 'no' };
+	const gov = f?.government ?? null;
+	const has = (keys: string[]) => (gov ? gov.some((k) => keys.includes(k)) : null);
+	switch (t.leaf) {
+		case 'is_ruler':
+			return is(l.ruler);
+		case 'is_councilor':
+			return is(l.council || l.ruler);
+		case 'is_immortal':
+			return is(l.immortal ?? null);
+		case 'exists':
+			// the leader's empire (`exists = owner`): ours
+			return t.value === 'owner' ? { leaf: 'always', value: 'yes' } : t;
+		case 'leader_class':
+			return { leaf: 'always', value: l.class === t.value ? 'yes' : 'no' };
+		case 'is_gestalt':
+		case 'trait_is_gestalt_check':
+			return is(has(GESTALT));
+		case 'trait_is_machine_check':
+			return is(has(['auth_machine_intelligence']));
+		case 'trait_is_hive_check':
+			return is(has(['auth_hive_mind']));
+		case 'trait_is_nomad_check':
+			return is(f?.nomadic ?? null);
+		default:
+			return t;
+	}
+}
 
 // What a leader holds and what that gives, for the leaders tab. A leader's traits act by scope (the
 // game's trait documentation, `ltrait-<scope>:<trait>`): `councilor` on the council, `planet` and
@@ -15,7 +56,8 @@ export type HeldSeat = {
 	effects: { now: Modifier }[];
 };
 
-export type Bonus = { source: string; modifiers: Modifier[] };
+// `wasted`: the role holds it but it does not apply (a governor away from its home), `note` why
+export type Bonus = { source: string; modifiers: Modifier[]; wasted?: boolean; note?: string };
 
 /**
  * A role: the rule, a seat, a colony, a fleet …; `level` the one the leader acts at there;
@@ -57,6 +99,8 @@ const CLASS_ROLES: Record<string, string[]> = {
  */
 export const CLASS_SKILL: Record<string, Record<string, [string, string][]>> = {
 	official: {
+		galcom: [['', 'delegate:galcom']],
+		federation: [['', 'delegate:federation']],
 		governor: [
 			['planet', 'skill_official_planet_governor'],
 			['sector', 'skill_official_sector_governor'],
@@ -82,6 +126,28 @@ export const CLASS_SKILL: Record<string, Record<string, [string, string][]>> = {
 	}
 };
 
+// The delegates' effects per level: the engine's, in the files only as tooltip text
+// (`skill_official_delegate_tt`, localisation/english/modifiers_1_l_english.yml, 4.5.3).
+const DELEGATE: Record<string, Modifier[]> = {
+	'delegate:galcom': [
+		{ key: 'diplo_weight_mult', value: 0.1, label: 'Diplomatic Weight', positiveIsGood: true }
+	],
+	'delegate:federation': [
+		{
+			key: 'federation_cohesion_add',
+			value: 1,
+			label: 'Monthly Federation Cohesion',
+			positiveIsGood: true
+		}
+	]
+};
+
+/** A class's effects per skill level from one `CLASS_SKILL` source. */
+export const skillModifiers = (key: string, explain: Record<string, Explanation>): Modifier[] =>
+	DELEGATE[key] ?? explain[`modifier:${key}`]?.modifiers ?? [];
+
+const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /** A role's kind by where the leader is assigned (`LeaderInfo.assigned`): a ship's fleet … */
 const assignedKind = (l: Pick<LeaderInfo, 'class' | 'assigned'>) => {
 	const kind = l.assigned!.kind;
@@ -99,26 +165,50 @@ export function leaderRoles(
 	l: LeaderInfo,
 	seat: HeldSeat | undefined,
 	explain: Record<string, Explanation>,
-	councilBonus = 0
-): { roles: Role[]; self: Bonus[] } {
+	councilBonus = 0,
+	facts: Facts | null = null
+): { roles: Role[]; self: Bonus[]; homeBonuses: Bonus[] } {
 	const own = l.level + (l.bonus ?? 0);
-	// the class's effects in a role, at a level
-	const skill = (kind: string, level: number | null): Bonus[] =>
-		(CLASS_SKILL[l.class]?.[kind] ?? []).flatMap(([where, key]) => {
-			const per = explain[`modifier:${key}`]?.modifiers ?? [];
+	// the class's effects in a role, at a level; a governor's home-planet one only governing its home
+	const skill = (kind: string, level: number | null, active: boolean): Bonus[] =>
+		(CLASS_SKILL[l.class]?.[kind] ?? []).flatMap(([where, key]): Bonus[] => {
+			const per = skillModifiers(key, explain);
 			if (!per.length) return [];
 			const at = level ?? 1;
-			return [
-				{
-					source: `${l.class} × ${at}${where ? `: ${where}` : ''}`,
-					modifiers: per.map((m) => ({ ...m, value: m.value * at }))
-				}
-			];
+			const bonus = {
+				source: `${capitalised(l.class)} × ${at}${where ? `: ${where}` : ''}`,
+				modifiers: per.map((m) => ({ ...m, value: m.value * at }))
+			};
+			if (where !== 'home planet') return [bonus];
+			const home = l.home ?? 'its home';
+			if (!active) return [{ ...bonus, note: `governing its home, ${home}` }];
+			return l.governsHome === false
+				? [
+						{
+							...bonus,
+							wasted: true,
+							note: `wasted: governs ${l.governs ?? 'a colony'}, not its home ${home}`
+						}
+					]
+				: [bonus];
 		});
+	// a trait's modifiers in these scopes whose condition holds — or the save cannot tell (noted)
 	const traits = (scopes: string[]): Bonus[] =>
 		l.traits.flatMap((t) => {
-			const modifiers = scopes.flatMap((sc) => explain[`ltrait-${sc}:${t}`]?.modifiers ?? []);
-			return modifiers.length ? [{ source: explain[`ltrait:${t}`]?.title ?? t, modifiers }] : [];
+			const open: string[] = [];
+			const modifiers = scopes
+				.flatMap((sc) => explain[`ltrait-${sc}:${t}`]?.modifiers ?? [])
+				.filter((m) => {
+					if (!m.when) return true;
+					const holds = evaluate(forLeader(m.when, l, facts), facts ?? ({} as Facts));
+					if (holds === null) open.push(describe(m.when));
+					return holds !== false;
+				})
+				.map(({ when: _, ...m }) => m);
+			if (!modifiers.length) return [];
+			const source = explain[`ltrait:${t}`]?.title ?? t;
+			const note = [...new Set(open)].join('; ');
+			return [note ? { source, modifiers, note: `may apply, if ${note}` } : { source, modifiers }];
 		});
 	const held: Role[] = [];
 	if (seat)
@@ -129,7 +219,12 @@ export function leaderRoles(
 			active: true,
 			bonuses: [
 				...(seat.effects.length
-					? [{ source: seat.name, modifiers: seat.effects.map((e) => e.now) }]
+					? [
+							{
+								source: `${seat.name} × ${seat.council ?? '?'}`,
+								modifiers: seat.effects.map((e) => e.now)
+							}
+						]
 					: []),
 				...traits(ROLE_SCOPES.council)
 			]
@@ -140,7 +235,7 @@ export function leaderRoles(
 			name: l.governs ?? null,
 			level: own,
 			active: true,
-			bonuses: [...skill('governor', own), ...traits(ROLE_SCOPES.governor)]
+			bonuses: [...skill('governor', own, true), ...traits(ROLE_SCOPES.governor)]
 		});
 	if (l.assigned) {
 		const kind = assignedKind(l);
@@ -149,7 +244,7 @@ export function leaderRoles(
 			name: l.assigned.name,
 			level: own,
 			active: true,
-			bonuses: [...skill(kind, own), ...traits(ROLE_SCOPES[kind] ?? ['modifier'])]
+			bonuses: [...skill(kind, own, true), ...traits(ROLE_SCOPES[kind] ?? ['modifier'])]
 		});
 	}
 	// the ruler holds the council's first seat
@@ -162,13 +257,17 @@ export function leaderRoles(
 			name: null,
 			level: kind === 'council' ? own + councilBonus : own,
 			active: false,
-			bonuses: [...skill(kind, own), ...traits(ROLE_SCOPES[kind])]
+			bonuses: [...skill(kind, own, false), ...traits(ROLE_SCOPES[kind])]
 		}));
 	const order = (r: Role) => {
 		const i = (CLASS_ROLES[l.class] ?? []).indexOf(r.kind === 'ruler' ? 'council' : r.kind);
 		return i < 0 ? -1 : i;
 	};
-	return { roles: [...held, ...could].sort((a, b) => order(a) - order(b)), self: traits(['self']) };
+	return {
+		roles: [...held, ...could].sort((a, b) => order(a) - order(b)),
+		self: traits(['self']),
+		homeBonuses: traits(['background_planet']) // on its home colony, whatever it does
+	};
 }
 
 const BASE_LEADER_CAP = 3; // `@base_leader_cap`, common/leader_classes/00_base_classes.txt (4.5.3)

@@ -1239,6 +1239,9 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   campaigns fits); the defines' comment (200 475 825 1250) is stale. Class limits are not in the
   save: base 3 + `country_<class>_cap_add` / `country_leader_cap_add` of what is held
   (#lib/leaders.ts leaderLimits; docs/open-checks.md 20).
+- A leader's home: `background_planet = { type=planet|ship reference }` (4.5.3; the same form as a
+  colony's `carrier`), so "governs its home" is the colony's carrier equal to it. An immortal
+  leader is read as `immortal=yes` — **spelling assumed**, none seen in a 4.5.3 save.
 - Tech costs: × (1 + `TECH_COST_DIFFICULTY_SCALE_MULT` × step × difficulty rank × tier) —
   `galaxy.difficulty`, `galaxy.technology_difficulty_scale`; Normal = 2, cadet 1, admiral 5
   measured (#lib/events.ts techCostFactor), the other steps assumed (docs/open-checks.md 19).

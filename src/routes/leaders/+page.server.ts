@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { councilorBonus, councilSeats } from '#lib/government.ts';
-import { CLASS_SKILL, leaderLimits, leaderRoles } from '#lib/leaders.ts';
+import { councilorBonus, councilSeats, facts } from '#lib/government.ts';
+import { CLASS_SKILL, leaderLimits, leaderRoles, skillModifiers } from '#lib/leaders.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -15,6 +15,15 @@ export function load({ url }) {
 	const explanations = getExplanations();
 	const data = getGameData();
 	const seats = s ? councilSeats(s, data, explanations) : [];
+	// what the save tells for the traits' conditions (gestalt, nomadic …)
+	const f = s
+		? facts(s, data.scriptedTriggers, {
+				electionTypes: data.electionTypes,
+				slavery: data.speciesRights.flatMap((k) =>
+					k.options.filter((o) => o.isSlavery).map((o) => o.key)
+				)
+			})
+		: null;
 	// the country's councilor bonus: what a leader not seated would act at on the council
 	const councilBonus = s
 		? councilorBonus(s, data.councilorSkill).reduce((n, b) => n + b.value, 0)
@@ -25,7 +34,8 @@ export function load({ url }) {
 			l,
 			seats.find((x) => x.leaderId === l.id),
 			explanations,
-			councilBonus
+			councilBonus,
+			f
 		)
 	}));
 	const pool = s?.leaderPool ?? [];
@@ -41,7 +51,7 @@ export function load({ url }) {
 			roles: Object.entries(roles).flatMap(([role, parts]) =>
 				parts.map(([where, key]) => ({
 					role: where ? `${role}: ${where}` : role,
-					modifiers: explanations[`modifier:${key}`]?.modifiers ?? []
+					modifiers: skillModifiers(key, explanations)
 				}))
 			)
 		})),

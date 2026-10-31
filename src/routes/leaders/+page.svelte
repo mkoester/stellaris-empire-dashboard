@@ -95,11 +95,15 @@
 {/snippet}
 {#snippet bonusList(list: Bonus[])}
 	{#each list as b, i (i)}<div class="text-xs">
-			{#each b.modifiers as m, j (j)}{j ? ', ' : ''}<span class={modifierColor(m)}
-					>{formatModifierValue(m)}</span
-				>
-				{modifierLabel(m)}{/each}
-			<span class="text-gray-500">({b.source})</span>
+			<span class={b.wasted ? 'line-through opacity-60' : ''}
+				>{#each b.modifiers as m, j (j)}{j ? ', ' : ''}<span class={modifierColor(m)}
+						>{formatModifierValue(m)}</span
+					>
+					{modifierLabel(m)}{/each}
+				<span class="text-gray-500">({b.source})</span></span
+			>{#if b.note}<span class={b.wasted ? 'ml-1 text-amber-600' : 'ml-1 text-gray-500'}
+					>— {b.note}</span
+				>{/if}
 		</div>{/each}
 {/snippet}
 {#snippet bonuses(r: Leader)}
@@ -117,6 +121,10 @@
 						: 'no trait effect known there'}
 				</div>{/if}
 		</div>{/each}
+	{#if r.homeBonuses.length}<div class="mb-1">
+			<div class="text-xs font-semibold">home colony{r.home ? ` (${r.home})` : ''}</div>
+			{@render bonusList(r.homeBonuses)}
+		</div>{/if}
 	{#if r.self.length}<div>
 			<div class="text-xs font-semibold">itself</div>
 			{@render bonusList(r.self)}

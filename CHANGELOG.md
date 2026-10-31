@@ -27,6 +27,12 @@ All notable changes to this project are documented here. The format follows
   delegate); the ruler first, then by level (ties: officials, scientists, commanders); per class
   how many are hired of its (soft) limit, and a filter to show only some classes; and the
   recruitable leaders in a table of their own, with their age and how many of each class.
+- Leaders tab: the traits' conditional effects (Righteous's −25 crime as governor, the
+  Expertise traits' research with Technocracy …), each where its condition holds — by the leader
+  (ruler, class) and the empire (gestalt, nomadic, civics); one the save cannot answer is shown
+  as "may apply". What a trait does on the leader's home colony, whatever its role. A governor's
+  home-planet bonus applies only on its home: elsewhere it is marked wasted. Seats' and classes'
+  effects name the level they are at, "(Ruler × 3)"; officials' delegate effects per level.
 - Leaders tab: what each class gives per skill level in each role (the game's "Per Level"
   tooltip: as governor of a planet, a sector, its home planet; commanding a fleet or an army; on
   a science ship), in a table and in each leader's roles at its level — commanders and scientists

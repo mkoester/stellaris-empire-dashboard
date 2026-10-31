@@ -275,7 +275,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '33'; // 33: leaders' experience (32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '34'; // 34: leaders' home colony (33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -514,11 +514,26 @@ function leaderInfos(raw: LeaderRaw) {
 	const { planets, colonies, ships } = raw;
 	const places = planets && colonies && ships ? colonyPlaces({ planets, colonies, ships }) : null;
 	const governs = new Map<number, string | null>();
+	const governsPlace = new Map<number, number>(); // leader → its colony's place (colonyPlaces' id)
 	for (const c of list(raw.country?.controlled_colonies)) {
 		const leader = numOrNull(raw.colonies?.[String(c)]?.governor);
 		const place = places?.get(Number(c));
 		if (leader !== null) governs.set(leader, place ? displayName(place[1].name) : null);
+		if (leader !== null && place) governsPlace.set(leader, place[0]);
 	}
+	// a leader's home, `background_planet = { type=planet|ship reference }` (4.5.3; a number: a
+	// planet), as colonyPlaces' id — a ship's −1 − its id — and its name
+	const home = (l: Raw): { place: number; name: string | null } | null => {
+		const b = l.background_planet;
+		const type = typeof b === 'number' ? 'planet' : strOrNull(b?.type);
+		const ref = typeof b === 'number' ? b : numOrNull(b?.reference);
+		if (ref === null || (type !== 'planet' && type !== 'ship')) return null;
+		const at = type === 'planet' ? raw.planets?.[String(ref)] : raw.ships?.[String(ref)];
+		return {
+			place: type === 'planet' ? ref : -1 - ref,
+			name: at && typeof at === 'object' ? displayName(at.name) : null
+		};
+	};
 	const seated = new Set(
 		list(raw.country?.government?.council_positions).map((id) =>
 			numOrNull(raw.councilPositions[String(id)]?.leader)
@@ -545,6 +560,8 @@ function leaderInfos(raw: LeaderRaw) {
 			level: num(l.level),
 			bonus: num(l.bonus_skill_level),
 			experience: numOrNull(l.experience),
+			// `immortal=yes` assumed (no immortal leader seen in a 4.5.3 save yet), else mortal
+			immortal: l.immortal === 'yes' || l.immortal === true,
 			age: leaderAge(l, raw.date),
 			traits: items(l.traits).map(String),
 			job: strOrNull(l.job),
@@ -554,6 +571,8 @@ function leaderInfos(raw: LeaderRaw) {
 			ethic: strOrNull(l.ethic),
 			governor: governs.has(id),
 			governs: governs.get(id) ?? null,
+			home: home(l)?.name ?? null,
+			governsHome: governsPlace.has(id) ? governsPlace.get(id) === home(l)?.place : null,
 			assigned: assigned(l.location)
 		};
 	};

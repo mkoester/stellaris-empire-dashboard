@@ -501,6 +501,7 @@ export type LeaderInfo = {
 	bonus?: number; // its own extra levels (`bonus_skill_level`); since READER 32
 	// towards its next level, from 0 at each level-up (the overflow kept); envoys have none; READER 33
 	experience?: number | null;
+	immortal?: boolean; // `leaders.<id>.immortal` (spelling assumed); READER 34
 	age: number | null;
 	traits: string[];
 	job: string | null;
@@ -510,6 +511,8 @@ export type LeaderInfo = {
 	ethic?: string | null; // `leaders.<id>.ethic`; since READER 26
 	governor?: boolean; // governs one of our colonies; since READER 26
 	governs?: string | null; // … that colony's name; since READER 32
+	home?: string | null; // its home colony's name (`background_planet`); since READER 34
+	governsHome?: boolean | null; // a governor: whether of its home (its home bonus); READER 34
 	// where else it is assigned: a fleet (a commander's, or the science ship a scientist leads), an
 	// army; since READER 32
 	assigned?: { kind: string; name: string | null } | null;
@@ -1167,6 +1170,7 @@ export type Modifier = {
 	value: number;
 	label: string | null;
 	positiveIsGood: boolean;
+	when?: Trigger | null; // a leader trait's triggered one: its condition (THIS the leader)
 };
 
 /** What a popup explains about a game object: from the extraction's descriptions and modifiers. */

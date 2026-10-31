@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { leaderLimits, leaderOrder, leaderRoles } from './leaders.ts';
+import type { Facts } from './triggers.ts';
 import type { Explanation, LeaderInfo, Modifier, Snapshot } from './types.ts';
 
 const mod = (key: string, value: number): Modifier => ({
@@ -59,7 +60,7 @@ describe('leaderRoles', () => {
 			['science ship', 'Voyager', 4]
 		]);
 		expect(roles[0].bonuses.map((b) => [b.source, b.modifiers.map((m) => m.key)])).toEqual([
-			['Science Officer', ['science_ship_survey_speed']],
+			['Science Officer × 5', ['science_ship_survey_speed']],
 			['Curator', ['country_research_mult']]
 		]);
 		// on a ship only what applies where it is assigned, not the governor's planet modifier
@@ -106,7 +107,80 @@ describe('leaderRoles', () => {
 		);
 		const fleet = roles.find((r) => r.kind === 'fleet')!;
 		expect(fleet.bonuses).toEqual([
-			{ source: 'commander × 4', modifiers: [mod('ship_fire_rate_mult', 0.12)] }
+			{ source: 'Commander × 4', modifiers: [mod('ship_fire_rate_mult', 0.12)] }
+		]);
+	});
+
+	it("gives a governor's home-planet bonus only on its home, else marks it wasted", () => {
+		const home = {
+			'modifier:skill_official_background_planet_governor': ex([mod('planet_amenities_add', 200)])
+		};
+		const homeBonus = (l: Partial<LeaderInfo>) =>
+			leaderRoles(
+				leader({ class: 'official', home: 'Peshnab the Faithful', ...l }),
+				undefined,
+				home
+			)
+				.roles.find((r) => r.kind === 'governor')!
+				.bonuses.find((b) => b.source.endsWith('home planet'))!;
+		// Clyda Alford governs the arkship she is from (Roaming Korinth 2204.12)
+		expect(
+			homeBonus({ governor: true, governs: 'Peshnab the Faithful', governsHome: true })
+		).toEqual({
+			source: 'Official × 4: home planet',
+			modifiers: [mod('planet_amenities_add', 800)]
+		});
+		expect(homeBonus({ governor: true, governs: 'Gozam III', governsHome: false })).toMatchObject({
+			wasted: true,
+			note: 'wasted: governs Gozam III, not its home Peshnab the Faithful'
+		});
+		expect(homeBonus({}).note).toBe('governing its home, Peshnab the Faithful');
+	});
+
+	it("gives an official's delegate effects per level, the engine's", () => {
+		const roles = leaderRoles(leader({ class: 'official' }), undefined, {}).roles;
+		expect(roles.find((r) => r.kind === 'galcom')!.bonuses).toEqual([
+			{
+				source: 'Official × 4',
+				modifiers: [
+					{ key: 'diplo_weight_mult', value: 0.4, label: 'Diplomatic Weight', positiveIsGood: true }
+				]
+			}
+		]);
+	});
+
+	it("applies a trait's triggered modifiers by what the leader and the save tell", () => {
+		// Righteous (4.5.3): crime by the empire's kind; one by class; one the save cannot answer
+		const when = (leaf: string, value: string) => ({ leaf, value });
+		const righteous = {
+			'ltrait:leader_trait_righteous': ex([], 'Righteous'),
+			'ltrait-planet:leader_trait_righteous': ex([
+				{ ...mod('planet_crime_add', -25), when: when('trait_is_gestalt_check', 'no') },
+				{
+					...mod('planet_crime_no_happiness_add', -25),
+					when: when('trait_is_gestalt_check', 'yes')
+				},
+				{ ...mod('planet_stability_add', 1), when: when('leader_class', 'commander') },
+				{ ...mod('planet_amenities_add', 5), when: when('owner', 'scope') }
+			])
+		};
+		const governor = (government: string[]) =>
+			leaderRoles(
+				leader({ class: 'official', traits: ['leader_trait_righteous'], governor: true }),
+				undefined,
+				righteous,
+				0,
+				{ government } as unknown as Facts
+			).roles.find((r) => r.kind === 'governor')!.bonuses[0];
+		const individualist = governor(['ethic_egalitarian']);
+		expect(individualist.modifiers.map((m) => m.key)).toEqual([
+			'planet_crime_add',
+			'planet_amenities_add'
+		]);
+		expect(individualist.note).toBe('may apply, if owner (…)');
+		expect(governor(['auth_hive_mind']).modifiers.map((m) => m.key)).toEqual([
+			'planet_crime_no_happiness_add',
+			'planet_amenities_add'
 		]);
 	});
 
