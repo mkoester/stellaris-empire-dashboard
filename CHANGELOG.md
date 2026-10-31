@@ -20,7 +20,8 @@ All notable changes to this project are documented here. The format follows
 - Colony page: what "Distribute Luxury Goods" would bring if enacted now — its Consumer Goods,
   then amenities → happiness → stability → job output, a month and over its 10 years (≈); job
   upkeep stays the same. While it runs, until when.
-- Mods tab: the launcher's load order (`#`, the default sort), as of the last game start.
+- Mods tab: the launcher's load order (`#`, the default sort), as of the last game start, and each
+  mod's age since its last workshop update.
 
 ### Fixed
 
@@ -28,6 +29,8 @@ All notable changes to this project are documented here. The format follows
   Colonial Centralization, traditions, civics, …), not always 3.
 - Ships are named as in game: a nomad's "Logistic Ship" no longer shows as a constructor, the
   construction ship as "Construction Ship". Saves still on disk are read again once.
+- A nomad's arkship no longer shows an idle shipyard it does not have, and is placed on the map
+  where it is.
 
 ## [0.1.6] - 2026-10-31
 

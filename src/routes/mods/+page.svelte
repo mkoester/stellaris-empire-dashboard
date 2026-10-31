@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ModRow } from '#lib/addons.ts';
+	import { ageLabel, type ModRow } from '#lib/addons.ts';
 	import EventList from '#lib/EventList.svelte';
 	import { followGame } from '#lib/live.ts';
 	import SortTable from '#lib/SortTable.svelte';
@@ -19,7 +19,8 @@
 	const count = $derived(data.rows.filter((r) => r.active).length);
 	const yesNo = (v: boolean | null) => (v === null ? null : v ? 1 : 0);
 
-	const columns: Column<ModRow>[] = [
+	type Row = ModRow & { age: number | null };
+	const columns: Column<Row>[] = [
 		{
 			id: 'order',
 			label: '#',
@@ -41,6 +42,14 @@
 			label: 'Updated',
 			value: (r) => r.updated?.slice(0, 10) ?? null,
 			title: "the workshop's last update (from the launcher)"
+		},
+		{
+			id: 'age',
+			label: 'Age',
+			value: (r) => r.age,
+			cell: age,
+			right: true,
+			title: 'since the last workshop update, today'
 		},
 		{
 			id: 'active',
@@ -95,6 +104,7 @@
 			⚠</span
 		>{/if}
 {/snippet}
+{#snippet age(r: Row)}{r.age === null ? '' : ageLabel(r.age)}{/snippet}
 {#snippet active(r: ModRow)}{r.active === null ? '?' : r.active ? '✓' : '–'}{/snippet}
 
 <header class="mb-4 flex items-start gap-4">

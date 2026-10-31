@@ -41,6 +41,17 @@ export type ModRow = ModInfo & {
 	order: number | null; // place in the launcher's load order (1 = first), null: not enabled there
 };
 
+/** Days from an ISO time to `now` (ms); null when unknown. */
+export const ageDays = (iso: string | null, now: number): number | null =>
+	iso === null ? null : Math.max(0, Math.floor((now - Date.parse(iso)) / 86_400_000));
+
+/** An age in days, short: "5 d", "3 mo", "2.5 y". */
+export function ageLabel(days: number): string {
+	if (days < 60) return `${days} d`;
+	if (days < 730) return `${Math.round(days / 30.44)} mo`;
+	return `${Math.round(days / 36.525) / 10} y`;
+}
+
 /** `dlc_load.json`'s `enabled_mods` as descriptor file names (`mod/ugc_1.mod` → `ugc_1.mod`). */
 export function loadOrder(json: string): string[] {
 	try {

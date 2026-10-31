@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+	ageDays,
+	ageLabel,
 	dlcRows,
 	loadOrder,
 	modRows,
@@ -156,6 +158,23 @@ describe('versionChanges', () => {
 		expect(changes.map((c) => [c.name, c.from.version, c.to.version, c.to.seenAt])).toEqual([
 			['A', '1.0', '1.1', '2026-10-20T10:00'],
 			['B', null, null, '2026-10-19T10:00']
+		]);
+	});
+});
+
+describe('mod age', () => {
+	it('counts whole days since the update and shortens them', () => {
+		const now = Date.parse('2026-10-31T12:00:00Z');
+		expect(ageDays('2026-10-30T13:00:00Z', now)).toBe(0);
+		expect(ageDays('2026-10-01T12:00:00Z', now)).toBe(30);
+		expect(ageDays(null, now)).toBeNull();
+		expect([5, 59, 60, 400, 729, 913].map(ageLabel)).toEqual([
+			'5 d',
+			'59 d',
+			'2 mo',
+			'13 mo',
+			'24 mo',
+			'2.5 y'
 		]);
 	});
 });

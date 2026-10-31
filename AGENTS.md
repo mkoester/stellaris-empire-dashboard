@@ -1077,7 +1077,8 @@ the `mod_version` table, with the head's game date — the mods tab's "Updates",
 (`#`, the default sort): `<user dir>/dlc_load.json`'s `enabled_mods`, read per request — the
 launcher writes it from the active playset's order when it starts the game (2026-10-31: the same
 order as `launcher-v2.sqlite` `playsets_mods.position`), so a change in the launcher shows after
-the next game start. The save's `meta.mods` is alphabetical, no source of the order. The DLC tab
+the next game start. **Age**: days since the workshop's update (`ageDays()`, real time at the
+request). The save's `meta.mods` is alphabetical, no source of the order. The DLC tab
 opens per category.
 
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
@@ -1408,8 +1409,12 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
 - Starbases: `starbase_mgr.starbases.<id> = { level modules buildings build_queue
 shipyard_build_queue station }` — **no owner field**; the country's are those whose own `build_queue` it owns — the queue's
   `location.id` is the station ship, not the starbase (both 0 for Sol, which hid an outpost bug). System via `galactic_object.<id>.starbases`;
-  an arkship's starbase is in no system's list — it is where its `station` ship's `fleet` is
-  (`movement_manager.coordinate.origin`; Roaming Korinth 2206.10.08: system 80). Ship queue items name only a design
+  an arkship's starbase is in no system's list — it travels. It is where its `station` ship is:
+  `ships.<id>.coordinate.origin`, else the ship's fleet's `movement_manager.coordinate.origin`. An
+  arkship is a fleet of its own (`ships = { <the arkship> }`, `ship_class=shipclass_starbase`,
+  `properties = { station=yes mobile=yes … }`), not an escort's — both agreed for all four arkships
+  of Roaming Korinth 2206.10.08 (ours at system 80). Its `shipyard_build_queue=4294967295` is none
+  (it builds through its colony's `combined` queue): no shipyard then, READER 39. Ship queue items name only a design
   (`ship_design.<id>.{name, growth_stages[0].ship_size}`). Capital ships (titan, colossus,
   juggernaut) need a citadel with `capital_yards`, an arkship's `arkship_capital_shipyard`, or a
   finished Mega Shipyard, plus the tech (`*_possible_construction` in

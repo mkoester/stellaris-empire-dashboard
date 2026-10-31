@@ -1339,19 +1339,33 @@ describe('stations', () => {
 		]);
 	});
 
-	it("places a station no system lists (an arkship's) where its station ship's fleet is", () => {
-		// starbase 42 left out of Alpha Centauri's list: its station ship 900 is in fleet 77, at 52
-		const moving = {
+	it("places a station no system lists (an arkship's) where its station ship is", () => {
+		// starbase 42 left out of Alpha Centauri's list: its station ship 900 says where it is
+		const moving = (ship: Record<string, unknown>) => ({
 			...raw,
 			systems: { ...raw.systems, '52': { ...raw.systems['52'], starbases: [] } },
 			starbases: { ...raw.starbases, '42': { ...raw.starbases['42'], station: 900 } },
-			ships: { '900': { fleet: 77 } },
+			ships: { '900': ship },
 			fleets: { '77': { movement_manager: { coordinate: { origin: 52 } } } }
-		};
-		expect(stations(moving).find((x) => x.id === 42)).toMatchObject({
+		});
+		const at = (ship: Record<string, unknown>) => stations(moving(ship)).find((x) => x.id === 42);
+		// its own coordinate (as the save has it: Roaming Korinth's arkship), else its fleet's
+		expect(at({ fleet: 99, coordinate: { x: 67.3, y: -124.4, origin: 52 } })).toMatchObject({
 			system: 'Alpha Centauri',
 			systemId: 52
 		});
+		expect(at({ fleet: 77 })).toMatchObject({ systemId: 52 });
+	});
+
+	it('gives no shipyard where the shipyard queue is none (4294967295)', () => {
+		const ark = {
+			...raw,
+			starbases: {
+				...raw.starbases,
+				'0': { ...raw.starbases['0'], shipyard_build_queue: 4294967295 }
+			}
+		};
+		expect(stations(ark).find((x) => x.id === 0)?.shipyard).toBeNull();
 	});
 
 	it('lists own mega shipyards, with a ships queue located at them if there is one', () => {
