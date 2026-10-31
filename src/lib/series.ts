@@ -110,7 +110,11 @@ export function resourceSeries(
  */
 export function stockpileSeries(history: Snapshot[]): Series {
 	return pointSeries(
-		stockpilePoints(history).map((p) => ({ date: p.date, values: withoutResearch(p.stockpile) }))
+		stockpilePoints(history).map((p) => ({
+			date: p.date,
+			values: withoutResearch(p.stockpile),
+			partial: p.snap === null
+		}))
 	);
 }
 
@@ -135,7 +139,8 @@ export function resourcePanelSeries(history: Snapshot[], key: string): Series {
 	return {
 		x: points.map((p) => gameYear(p.date)),
 		lines: {
-			stockpile: points.map((p) => p.stockpile[key] ?? 0),
+			// a tick without the resource did not log it (a nomad's reserves): a gap, not 0
+			stockpile: points.map((p) => p.stockpile[key] ?? (p.snap ? 0 : null)),
 			'per month': points.map((p) => (p.snap ? (p.snap.balance[key] ?? 0) : null))
 		}
 	};
@@ -189,12 +194,18 @@ export function resourceKeys(history: Snapshot[]): string[] {
 	return stripOrder(history.flatMap((s) => [...moved(s.stockpile), ...moved(s.balance)]));
 }
 
-function pointSeries(points: { date: string; values: Resources | null }[]): Series {
+/** One line per key; a key a point lacks is 0 — a gap where the point is `partial` (a tick's). */
+function pointSeries(
+	points: { date: string; values: Resources | null; partial?: boolean }[]
+): Series {
 	const keys = [...new Set(points.flatMap((p) => Object.keys(p.values ?? {})))].sort();
 	return {
 		x: points.map((p) => gameYear(p.date)),
 		lines: Object.fromEntries(
-			keys.map((k) => [k, points.map((p) => (p.values === null ? null : (p.values[k] ?? 0)))])
+			keys.map((k) => [
+				k,
+				points.map((p) => (p.values === null ? null : (p.values[k] ?? (p.partial ? null : 0))))
+			])
 		)
 	};
 }

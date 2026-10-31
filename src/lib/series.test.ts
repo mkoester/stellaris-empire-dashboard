@@ -182,6 +182,23 @@ describe('stockpileSeries', () => {
 			lines: { energy: [1, 7, 2] }
 		});
 	});
+	it("leaves a gap where a tick did not log a resource (a nomad's reserves), not 0", () => {
+		// the reserves come from saves only; withReserves drops the tick's energy and minerals
+		const jan = {
+			date: '2200.01.01',
+			stockpile: { operational_reserves: 14000, alloys: 1 },
+			ticks: null
+		} as unknown as Snapshot;
+		const feb = {
+			date: '2200.02.01',
+			stockpile: { operational_reserves: 14100, alloys: 3 },
+			ticks: [{ date: '2200.01.16', stockpile: { alloys: 2 } }]
+		} as unknown as Snapshot;
+		expect(stockpileSeries([jan, feb]).lines).toEqual({
+			alloys: [1, 2, 3],
+			operational_reserves: [14000, null, 14100]
+		});
+	});
 });
 
 describe('resourcePanelSeries', () => {
@@ -200,7 +217,7 @@ describe('resourcePanelSeries', () => {
 		} as unknown as Snapshot;
 		expect(resourcePanelSeries([jan, feb], 'energy')).toEqual({
 			x: [2200, 2200 + 15 / 360, 2200 + 1 / 12],
-			lines: { stockpile: [1, 0, 2], 'per month': [5, null, 0] }
+			lines: { stockpile: [1, null, 2], 'per month': [5, null, 0] }
 		});
 	});
 });
