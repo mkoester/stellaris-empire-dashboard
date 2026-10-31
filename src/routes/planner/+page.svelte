@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
+	import { colorOf } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import { GROUPS, sourceOf } from '#lib/planner/kinds.ts';
+	import { AREAS } from '#lib/techTiers.ts';
 	import { moved, type Polarity, type Target } from '#lib/planner/replay.ts';
 	import { newGoalId, planAction } from '#lib/settings.ts';
 
@@ -40,12 +42,67 @@
 		change([{ goal: g.id, op: o, data: d }]);
 	const reorder = (group: string, ids: string[]) =>
 		change([{ goal: `group:${group}`, op: 'order', data: { ids } }]);
+	// Removing a goal takes along the automatic goals only it brought (a tech's requirements, a
+	// planned adoption's tree) — asked: kept, they become goals of their own.
 	function remove(g: Row) {
 		const why = g.auto
 			? ' It was picked up from the save and stays away once removed.'
 			: ' (It stays in the history.)';
-		if (confirm(`Remove "${g.label}" from the plan?${why}`)) op(g, 'remove');
+		if (!confirm(`Remove "${g.label}" from the plan?${why}`)) return;
+		const all = [...data.groups.flatMap((x) => x.goals), ...data.parked];
+		const deps = (g.dependents ?? [])
+			.map((id) => all.find((x) => x.id === id))
+			.filter((x) => x !== undefined && !finished(x));
+		const changes: { goal: string; op: string; data?: Record<string, unknown> }[] = [
+			{ goal: g.id, op: 'remove' }
+		];
+		if (
+			deps.length &&
+			!confirm(
+				`"${g.label}" brought ${deps.length} goal${deps.length === 1 ? '' : 's'} nothing else needs:\n` +
+					deps
+						.slice(0, 15)
+						.map((d) => `• ${d!.label}`)
+						.join('\n') +
+					(deps.length > 15 ? `\n… and ${deps.length - 15} more` : '') +
+					'\n\nOK: remove them too.\nCancel: keep them as goals of their own.'
+			)
+		)
+			changes.push(
+				...deps.map((d) => ({
+					goal: newGoalId(),
+					op: 'add',
+					data: {
+						kind: d!.kind,
+						target: d!.target,
+						polarity: d!.polarity,
+						...(d!.note ? { note: d!.note } : {})
+					}
+				}))
+			);
+		change(changes);
 	}
+
+	// research areas shown (per viewer); none picked: all
+	const AREA_KEY = 'planner:areas';
+	let areas = $state<string[]>([]);
+	$effect(() => {
+		try {
+			areas = JSON.parse(localStorage.getItem(AREA_KEY) ?? '[]');
+		} catch {
+			areas = [];
+		}
+	});
+	function toggleArea(a: string) {
+		areas = areas.includes(a) ? areas.filter((x) => x !== a) : [...areas, a];
+		try {
+			localStorage.setItem(AREA_KEY, JSON.stringify(areas));
+		} catch {
+			/* storage blocked: the filter lasts for the page */
+		}
+	}
+	const inArea = (r: { area?: string | null }) =>
+		!areas.length || !r.area || areas.includes(r.area);
 
 	// --- status --------------------------------------------------------------------------------
 	const chip = (r: { state: string; polarity: string }) => {
@@ -191,10 +248,13 @@
 	const suggestionsBy = $derived(
 		GROUPS.map((g) => ({
 			...g,
-			list: data.suggestions.filter((s) => data.kinds.find((k) => k.id === s.kind)?.group === g.id)
+			list: data.suggestions.filter(
+				(s) => data.kinds.find((k) => k.id === s.kind)?.group === g.id && inArea(s)
+			)
 		})).filter((g) => g.list.length)
 	);
 	let historyGoal = $state<string | null>(null);
+	let showOrders = $state(false); // reordering clutters the history: hidden unless asked for
 	const sinceText = (s: { date: string; exact: boolean } | null) =>
 		s ? `${s.exact ? 'since' : 'by'} ${s.date}` : '';
 </script>
@@ -206,18 +266,40 @@
 	{#if r.since}<span class="text-xs text-gray-500">{sinceText(r.since)}</span>{/if}
 {/snippet}
 
+{#snippet badges(r: { kind: string; badge?: string | null; area?: string | null; auto?: boolean })}
+	{#if r.area}<span
+			class="ml-1 rounded border px-1 text-[10px]"
+			style:color={colorOf(`${r.area}_research`)}
+			style:border-color={colorOf(`${r.area}_research`)}
+			title="research area">{r.area}</span
+		>{/if}{#if r.badge}<span
+			class="ml-1 rounded px-1 text-[10px] {r.kind === 'perk'
+				? 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200'
+				: r.kind === 'tradition'
+					? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+					: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}"
+			title={r.kind === 'perk'
+				? 'ascension perk'
+				: r.kind === 'tradition'
+					? 'its place in the tree: adopt (opens it), a pick, the finisher (all picks taken)'
+					: 'tech tier'}>{r.badge}</span
+		>{/if}{#if r.auto}<span
+			class="ml-1 rounded bg-gray-100 px-1 text-[10px] text-gray-500 dark:bg-gray-800"
+			title="added by itself: a tradition of an adopted or planned tree, a perk taken, or what a planned tech needs"
+			>auto</span
+		>{/if}
+{/snippet}
+
+{#snippet group(name: string | null)}{#if name}<span
+			class="mr-1 rounded bg-sky-50 px-1 text-[10px] text-sky-800 dark:bg-sky-950 dark:text-sky-200"
+			title="planner group">{name}</span
+		>{/if}{/snippet}
+
 {#snippet name(r: Row)}
 	<span class={r.polarity === 'avoid' ? 'text-red-700 dark:text-red-400' : ''}
 		>{#if r.polarity === 'avoid'}<span title="to avoid">⊘ </span>{/if}<InfoPopup
 			explanation={r.ref ? data.explain[r.ref] : undefined}>{r.label}</InfoPopup
-		>{#if r.kind === 'perk'}<span
-				class="ml-1 rounded bg-violet-100 px-1 text-[10px] text-violet-800 dark:bg-violet-900 dark:text-violet-200"
-				title="ascension perk">perk</span
-			>{/if}{#if r.auto}<span
-				class="ml-1 rounded bg-gray-100 px-1 text-[10px] text-gray-500 dark:bg-gray-800"
-				title="added by itself: a tradition of an adopted tree, a perk taken, or what a planned tech needs"
-				>auto</span
-			>{/if}</span
+		>{@render badges(r)}</span
 	>
 {/snippet}
 
@@ -387,8 +469,8 @@
 		<Panel title="Plan">
 			{#each data.groups as g (g.id)}
 				{@const ids = g.goals.map((r) => r.id)}
-				{@const open = g.goals.filter((r) => !finished(r))}
-				{@const done = g.goals.filter(finished)}
+				{@const open = g.goals.filter((r) => !finished(r) && inArea(r))}
+				{@const done = g.goals.filter((r) => finished(r) && inArea(r))}
 				{#if g.goals.length}
 					<section class="mb-3">
 						<button
@@ -401,6 +483,26 @@
 								>{open.length} open{done.length ? `, ${done.length} done` : ''}</span
 							>
 						</button>
+						{#if g.id === 'research' && !folded.includes(g.id)}
+							<div class="mb-1 ml-6 flex items-center gap-1 text-xs">
+								<span class="text-gray-500">show only:</span>
+								{#each AREAS as a (a)}
+									<button
+										type="button"
+										class="rounded border px-1.5"
+										style:color={colorOf(`${a}_research`)}
+										style:border-color={colorOf(`${a}_research`)}
+										style:font-weight={areas.includes(a) ? '700' : '400'}
+										style:background={areas.includes(a)
+											? 'color-mix(in srgb, currentColor 15%, transparent)'
+											: ''}
+										aria-pressed={areas.includes(a)}
+										onclick={() => toggleArea(a)}>{a}</button
+									>
+								{/each}
+								{#if areas.length}<span class="text-gray-500">(none on: all)</span>{/if}
+							</div>
+						{/if}
 						{#if !folded.includes(g.id)}
 							<ul class="ml-6 text-sm">
 								{#each open as r (r.id)}{@render goalRow(
@@ -540,20 +642,27 @@
 			title="History"
 			note="Changes to the plan along this branch, newest first, and what the saves showed reached."
 		>
-			{#if historyGoal}
-				<button type="button" class="mb-2 text-xs text-sky-600" onclick={() => (historyGoal = null)}
-					>show every goal</button
-				>
-			{/if}
+			<div class="mb-2 flex items-center gap-3 text-xs">
+				<label><input type="checkbox" bind:checked={showOrders} /> show reordering</label>
+				{#if historyGoal}
+					<button type="button" class="text-sky-600" onclick={() => (historyGoal = null)}
+						>show every goal</button
+					>
+				{/if}
+			</div>
 			<div class="grid gap-4 md:grid-cols-2">
 				<ul class="text-xs">
 					{#each data.history
-						.filter((h) => !historyGoal || h.goal === historyGoal)
+						.filter((h) => (showOrders || h.op !== 'order') && (!historyGoal || h.goal === historyGoal))
 						.slice(0, 200) as h (h.id)}
 						<li class="py-0.5">
 							<span class="text-gray-500 tabular-nums">{h.date ?? '?'}</span>
 							<b>{h.op}</b>
-							{h.label}{h.detail ? ` — ${h.detail}` : ''}
+							{@render group(h.group)}{h.label}{#if h.kind}{@render badges({
+									kind: h.kind,
+									badge: h.badge,
+									area: h.area
+								})}{/if}{h.detail ? ` — ${h.detail}` : ''}
 							<span class="text-gray-400">({new Date(h.at).toLocaleString()})</span>
 						</li>
 					{:else}
@@ -569,7 +678,7 @@
 							<b class={d.avoid ? 'text-red-600' : 'text-green-700 dark:text-green-400'}
 								>{d.avoid ? 'happened' : 'reached'}</b
 							>
-							{d.label}
+							{@render group(d.group)}{d.label}{@render badges(d)}
 						</li>
 					{:else}
 						<li class="text-gray-500">Nothing reached yet.</li>
@@ -657,7 +766,9 @@
 								<span class="flex-1"
 									><InfoPopup explanation={s.ref ? data.explain[s.ref] : undefined}
 										>{s.label}</InfoPopup
-									>{#if s.why}<span class="text-xs text-gray-500"> · {s.why}</span>{/if}</span
+									>{@render badges(s)}{#if s.why}<span class="text-xs text-gray-500">
+											· {s.why}</span
+										>{/if}</span
 								>
 							</li>
 						{/each}

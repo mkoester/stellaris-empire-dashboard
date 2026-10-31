@@ -42,6 +42,16 @@ All notable changes to this project are documented here. The format follows
 - Planning a tradition tree's adoption plans the whole tree; planning one pick plans the adoption
   and the picks it needs.
 
+- Planner badges: a tech's tier and research area (in the game's colours, with a filter per area),
+  a tradition's place in its tree (adopt, pick, finisher), perks — in the plan, the suggestions and
+  the history, which hides reorderings unless you ask for them.
+- Research goals go as early as they can: tier by tier, a tech before the tier gate it counts
+  towards.
+- Removing a goal asks whether the requirements it brought, and nothing else needs, go too — or
+  stay as goals of their own.
+- A perk whose conditions do not hold yet can still be planned, with a warning (The Flesh is
+  Weak: two perks taken first).
+
 ### Fixed
 
 - Fast clicks on ▲▼ in the planner could scramble a group's order; one change now runs at a time,

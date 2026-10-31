@@ -1067,6 +1067,8 @@ export type GameData = {
 		{ name: string; traditions: { key: string; name: string; role: string }[] }
 	>;
 	perks: Record<string, string>; // ascension perk names
+	// who can ever take a perk (`potential`) and what taking it needs (`possible`), normalised
+	perkRules: Record<string, { potential: Trigger | null; possible: Trigger | null }>;
 	// perk → the tradition trees its adoption asks for (`has_ascension_perk` in the tree's adopt
 	// tradition's `possible`, e.g. The Flesh is Weak → Cybernetics)
 	perkTrees: Record<string, string[]>;

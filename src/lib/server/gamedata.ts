@@ -535,6 +535,14 @@ export function loadGameData(file: string): GameData {
 					"SELECT category_key, possible_json FROM tradition WHERE role = 'adopt'"
 				)
 			),
+			perkRules: Object.fromEntries(
+				rows<{ key: string; potential_json: string | null; possible_json: string | null }>(
+					'SELECT key, potential_json, possible_json FROM ascension_perk'
+				).map((r) => [
+					r.key,
+					{ potential: parseTrigger(r.potential_json), possible: parseTrigger(r.possible_json) }
+				])
+			),
 			perks: Object.fromEntries(
 				rows<{ key: string; name: string | null }>('SELECT key, name FROM ascension_perk').map(
 					(r) => [r.key, r.name ?? r.key]

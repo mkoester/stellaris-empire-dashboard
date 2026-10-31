@@ -3,6 +3,7 @@ import { MEGA_RULES } from '#lib/megastructures.ts';
 import { counted, wanderlustName } from '#lib/wanderlust.ts';
 import type { GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
 import type { AutoGoal, Target } from './replay.ts';
+import type { Trigger } from '#lib/triggers.ts';
 
 // The planner's goal kinds: what each is about (its target), how it is named, and how the latest
 // save answers it — done, in progress, open, no longer possible (blocked) or unknown. Every check
@@ -47,6 +48,7 @@ export type PlanCtx = {
 		| 'anomalyCategories'
 		| 'civicAuthority'
 		| 'perkTrees'
+		| 'perkRules'
 	>;
 	possible: (t: GameData['techRequirements'][string]['potential']) => boolean | null;
 	reach: string[]; // techs within reach (`inReach`)
@@ -429,12 +431,27 @@ export const KINDS: Record<string, Kind> = {
 		fields: ['perk'],
 		label: (t, c) => c.data.perks[s(t, 'perk')] ?? pretty(s(t, 'perk')),
 		ref: (t) => `perk:${s(t, 'perk')}`,
-		check: (t, c) =>
-			c.latest.ascensionPerks === null
-				? { state: 'unknown' }
-				: c.latest.ascensionPerks.includes(s(t, 'perk'))
-					? { state: 'done' }
-					: { state: 'open' }
+		// planning one whose conditions do not hold yet is allowed, with a warning (the user's
+		// ask: The Flesh is Weak needs two perks taken first — `num_ascension_perks > 1`)
+		check: (t, c) => {
+			const taken = c.latest.ascensionPerks;
+			if (taken === null) return { state: 'unknown' };
+			if (taken.includes(s(t, 'perk'))) return { state: 'done' };
+			const rules = c.data.perkRules?.[s(t, 'perk')];
+			if (rules && c.possible(rules.potential) === false)
+				return { state: 'blocked', why: 'not possible for this empire' };
+			if (rules && c.possible(rules.possible) === false) {
+				const need = perksNeeded(rules.possible);
+				return {
+					state: 'open',
+					why:
+						need !== null && taken.length < need
+							? `⚠ needs ${need} ascension perks taken first (${taken.length} now)`
+							: '⚠ its conditions do not hold yet'
+				};
+			}
+			return { state: 'open' };
+		}
 	},
 	focus_card: {
 		group: 'focus',
@@ -732,9 +749,12 @@ export function orderTraditions<G extends { kind: string; target: Target }>(
 }
 
 /**
- * The research group in an order research allows: a tech after the planned techs it needs (its
- * prerequisites and `OR` alternatives) and after the tier gates below its tier in its area, a
- * gate after the gate below it; free choices keep the plan's order. Pure.
+ * The research group in an order research allows, each goal as early as it can be (the user's
+ * ask: "Fusion Power (tier 1) before 6 Physics techs of tier 1"): a tech after the planned techs it
+ * needs (prerequisites and `OR` alternatives) and the tier gates below its tier in its area; a gate
+ * after the gate below it and after the planned techs of its own tier and area, which count
+ * towards it. Of the goals free to go next the lowest tier goes first (a gate of tier k counts as
+ * k + ½), the plan's order deciding within a tier. Pure.
  */
 export function orderResearch<G extends { kind: string; target: Target }>(
 	list: G[],
@@ -747,8 +767,17 @@ export function orderResearch<G extends { kind: string; target: Target }>(
 				? `tier:${g.target.area}:${g.target.tier}`
 				: null;
 	const present = new Set(list.map(id).filter((x) => x !== null));
+	const tierOf = (g: G) => (g.kind === 'tech' ? data.techs[String(g.target.tech)] : undefined);
 	const before = (g: G): string[] => {
-		if (g.kind === 'tech_tier') return [`tier:${g.target.area}:${Number(g.target.tier) - 1}`];
+		if (g.kind === 'tech_tier')
+			return [
+				`tier:${g.target.area}:${Number(g.target.tier) - 1}`,
+				...list
+					.filter(
+						(x) => tierOf(x)?.area === g.target.area && tierOf(x)?.tier === Number(g.target.tier)
+					)
+					.map((x) => id(x)!)
+			];
 		if (g.kind !== 'tech') return [];
 		const key = String(g.target.tech);
 		const r = data.techRequirements[key];
@@ -759,20 +788,75 @@ export function orderResearch<G extends { kind: string; target: Target }>(
 			.map((p) => `tech:${p}`)
 			.concat(gates);
 	};
-	return kahn(list, (g) => before(g).filter((x) => present.has(x)), id);
+	const level = (g: G) =>
+		g.kind === 'tech_tier' ? Number(g.target.tier) + 0.5 : (tierOf(g)?.tier ?? Infinity);
+	return kahn(list, (g) => before(g).filter((x) => present.has(x)), id, level);
 }
 
-/** Kahn's algorithm, always taking the earliest item of `list` whose `before` are placed. */
-function kahn<G>(list: G[], before: (g: G) => string[], id: (g: G) => string | null): G[] {
+/** A tech's or tier gate's research area (physics, society, engineering), else null. */
+export function areaOf(kind: string, target: Target, data: Pick<GameData, 'techs'>): string | null {
+	if (kind === 'tech') return data.techs[String(target.tech)]?.area ?? null;
+	if (kind === 'tech_tier') return String(target.area);
+	return null;
+}
+
+/** The badge a goal's row carries: a tech's tier, a tradition's place in its tree, a perk. */
+export function badgeOf(
+	kind: string,
+	target: Target,
+	data: Pick<GameData, 'techs' | 'traditionTrees'>
+): string | null {
+	if (kind === 'tech') {
+		const tier = data.techs[String(target.tech)]?.tier;
+		return tier != null ? `T${tier}` : null;
+	}
+	if (kind === 'tech_tier') return `T${target.tier}`;
+	if (kind === 'perk') return 'perk';
+	if (kind === 'tradition')
+		for (const t of Object.values(data.traditionTrees)) {
+			const x = t.traditions.find((y) => y.key === target.tradition);
+			if (x) return x.role === 'adopt' ? 'adopt' : x.role === 'finish' ? 'finisher' : 'pick';
+		}
+	return null;
+}
+
+/**
+ * Kahn's algorithm: of the items whose `before` are placed, the lowest `level` goes next, the
+ * earliest in `list` among equals.
+ */
+function kahn<G>(
+	list: G[],
+	before: (g: G) => string[],
+	id: (g: G) => string | null,
+	level: (g: G) => number = () => 0
+): G[] {
 	const queue = [...list];
 	const out: G[] = [];
 	const placed = new Set<string>();
 	while (queue.length) {
-		const at = queue.findIndex((g) => before(g).every((p) => placed.has(p)));
+		let at = -1;
+		queue.forEach((g, i) => {
+			if (before(g).every((p) => placed.has(p)) && (at < 0 || level(g) < level(queue[at]))) at = i;
+		});
 		const [g] = queue.splice(at < 0 ? 0 : at, 1); // a cycle: take the first
 		out.push(g);
 		const k = id(g);
 		if (k !== null) placed.add(k);
 	}
 	return out;
+}
+
+/** How many perks a perk's `possible` asks to be taken first (`num_ascension_perks > n`), if it does. */
+export function perksNeeded(t: Trigger | null): number | null {
+	if (t === null) return null;
+	if ('leaf' in t) {
+		if (t.leaf !== 'num_ascension_perks') return null;
+		const v = Number(t.value);
+		return t.cmp === '>' ? v + 1 : t.cmp === '>=' || t.cmp === undefined ? v : null;
+	}
+	for (const a of t.args) {
+		const n = perksNeeded(a);
+		if (n !== null) return n;
+	}
+	return null;
 }

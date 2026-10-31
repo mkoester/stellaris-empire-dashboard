@@ -4,6 +4,8 @@ import type { Colony, GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
 import type { Target } from './replay.ts';
 import {
 	autoGoals,
+	perksNeeded,
+	badgeOf,
 	orderResearch,
 	orderTraditions,
 	traditionName,
@@ -499,7 +501,7 @@ describe('tradition labels and tier gates', () => {
 });
 
 describe('orderResearch', () => {
-	it('puts a tech after the planned techs and tier gates it needs, gates in order', () => {
+	it('puts each goal as early as it can go: techs of a tier before its gate, a tech after what it needs', () => {
 		const techs = {
 			mega: { name: 'M', cost: 1, area: 'engineering', tier: 3 },
 			pre: { name: 'P', cost: 1, area: 'engineering', tier: 1 },
@@ -525,11 +527,81 @@ describe('orderResearch', () => {
 			techRequirements
 		});
 		expect(out.map((g) => g.target.tech ?? `tier ${g.target.tier}`)).toEqual([
-			'tier 1',
-			'tier 2',
 			'alt',
 			'pre',
+			'tier 1',
+			'tier 2',
 			'mega'
 		]);
+	});
+});
+
+describe('badgeOf', () => {
+	it('gives techs and gates their tier, traditions their place in the tree, perks a mark', () => {
+		const data = {
+			techs: { t: { name: 'T', cost: 1, area: 'physics', tier: 2 } },
+			traditionTrees: {
+				x: {
+					name: 'X',
+					traditions: [
+						{ key: 'a', name: 'A', role: 'adopt' },
+						{ key: 'b', name: 'B', role: 'normal' },
+						{ key: 'f', name: 'F', role: 'finish' }
+					]
+				}
+			}
+		} as unknown as GameData;
+		expect(badgeOf('tech', { tech: 't' }, data)).toBe('T2');
+		expect(badgeOf('tech_tier', { area: 'physics', tier: 3, count: 6 }, data)).toBe('T3');
+		expect(['a', 'b', 'f'].map((k) => badgeOf('tradition', { tradition: k }, data))).toEqual([
+			'adopt',
+			'pick',
+			'finisher'
+		]);
+		expect(badgeOf('perk', { perk: 'p' }, data)).toBe('perk');
+		expect(badgeOf('outpost', { system: 1 }, data)).toBeNull();
+	});
+});
+
+describe('perks', () => {
+	const possible = {
+		op: 'and',
+		args: [
+			{
+				op: 'or',
+				args: [
+					{ leaf: 'num_ascension_perks', cmp: '>', value: '1' },
+					{ leaf: 'has_origin', value: 'origin_cybernetic_creed' }
+				]
+			}
+		]
+	} as const;
+	const rules = {
+		ap_flesh: { potential: null, possible },
+		ap_robot: { potential: { leaf: 'never', value: 'yes' }, possible: null }
+	};
+	const c = (perks: string[]) =>
+		ctx(save({ ascensionPerks: perks }), [], {
+			data: { ...data, perkRules: rules } as unknown as PlanCtx['data'],
+			possible: (t) =>
+				t === null
+					? true
+					: 'leaf' in t && t.leaf === 'never'
+						? false
+						: 'op' in t
+							? perks.length > 1
+							: true
+		});
+
+	it('may be planned before its conditions hold, with a warning', () => {
+		expect(check('perk', { perk: 'ap_flesh' }, false, c(['ap_a']))).toEqual({
+			state: 'open',
+			why: '⚠ needs 2 ascension perks taken first (1 now)'
+		});
+		expect(check('perk', { perk: 'ap_flesh' }, false, c(['ap_a', 'ap_b']))).toEqual({
+			state: 'open'
+		});
+		expect(state('perk', { perk: 'ap_robot' }, c([]))).toBe('blocked');
+		expect(perksNeeded(possible as never)).toBe(2);
 	});
 });

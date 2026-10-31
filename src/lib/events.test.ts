@@ -74,6 +74,7 @@ const data: GameData = {
 	traditionTrees: {},
 	perks: {},
 	perkTrees: {},
+	perkRules: {},
 	traditionPrereqs: {},
 	flagColors: {},
 	ethicAxes: {},

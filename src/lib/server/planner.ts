@@ -8,7 +8,9 @@ import {
 import {
 	ARKSHIPS,
 	arkships,
+	areaOf,
 	autoGoals,
+	badgeOf,
 	check,
 	orderResearch,
 	orderTraditions,
@@ -63,6 +65,9 @@ export type GoalRow = Omit<Goal, 'added'> & {
 	why: string | null;
 	since: Since | null;
 	manual: boolean;
+	badge: string | null; // a tech's tier, a tradition's place in its tree, a perk
+	area: string | null; // a tech's research area
+	dependents: string[]; // the automatic goals only this one brings (removed with it, if wished)
 	added: { nodeId: number; at: string; date: string | null };
 };
 export type Option = { value: string | number; label: string };
@@ -72,6 +77,8 @@ export type Suggestion = {
 	label: string;
 	why?: string;
 	ref?: string | null; // a popup with its effects
+	badge?: string | null;
+	area?: string | null;
 };
 export type HistoryRow = {
 	id: number;
@@ -81,6 +88,10 @@ export type HistoryRow = {
 	goal: string;
 	label: string;
 	detail: string;
+	kind: string | null; // what it is about, for its badges
+	badge: string | null;
+	area: string | null;
+	group: string | null;
 };
 
 type Ctx = { ctx: PlanCtx; names: LabelCtx; saves: Snapshot[] };
@@ -172,6 +183,9 @@ function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
 		why: st.why ?? null,
 		since,
 		manual: k?.manual ?? false,
+		badge: badgeOf(g.kind, g.target, getGameData()),
+		area: areaOf(g.kind, g.target, getGameData()),
+		dependents: [],
 		added: { ...g.added, date: dates.get(g.added.nodeId) ?? null }
 	};
 }
@@ -301,28 +315,60 @@ function explanations(refs: string[], c: Ctx | null): Record<string, Explanation
  * perks taken (`autoGoals`), then what each planned tech still needs (`techNeeds`).
  */
 function planFor(events: PlanEvent[], path: number[], c: Ctx | null): Plan {
-	if (!c) return planAt(events, path);
+	return planWithNeeds(events, path, c).plan;
+}
+
+/**
+ * `planFor` and, per goal the player added, the automatic goals only it brings — what removing it
+ * takes along (the user's ask: "ask whether their requirements should be removed too"); none that
+ * another goal or the save implies.
+ */
+function planWithNeeds(
+	events: PlanEvent[],
+	path: number[],
+	c: Ctx | null
+): { plan: Plan; dependents: Record<string, string[]> } {
+	if (!c) return { plan: planAt(events, path), dependents: {} };
 	const data = getGameData();
-	const first = planAt(events, path, autoGoals(c.ctx.latest, data));
+	const saved = autoGoals(c.ctx.latest, data);
+	const first = planAt(events, path, saved);
+	const researched = c.ctx.latest.progress?.researched ?? [];
+	const wantedOf = (kind: string) =>
+		[...first.goals.values()].filter(
+			(g) => g.kind === kind && !g.parked && g.polarity === 'want' && (kind === 'tech' || !g.auto)
+		);
+	const techsNeeded = (techs: string[]) =>
+		techNeeds(techs, researched, data.techs, data.techRequirements, c.ctx.possible);
 	// a planned adoption brings its tree, a planned pick its adoption and the picks it needs
 	const auto = autoGoals(
 		c.ctx.latest,
 		data,
-		[...first.goals.values()]
-			.filter((g) => g.kind === 'tradition' && !g.auto && !g.parked && g.polarity === 'want')
-			.map((g) => String(g.target.tradition))
+		wantedOf('tradition').map((g) => String(g.target.tradition))
 	);
-	const wanted = [...first.goals.values()]
-		.filter((g) => g.kind === 'tech' && !g.parked && g.polarity === 'want')
-		.map((g) => String(g.target.tech));
-	const needs = techNeeds(
-		wanted,
-		c.ctx.latest.progress?.researched ?? [],
-		data.techs,
-		data.techRequirements,
-		c.ctx.possible
+	const needs = techsNeeded(wantedOf('tech').map((g) => String(g.target.tech)));
+	const plan = planAt(events, path, [...auto, ...needs]);
+	// what each added goal brings by itself
+	const fromSave = new Set(saved.map((g) => g.id));
+	const brings = [...wantedOf('tech'), ...wantedOf('tradition')]
+		.filter((g) => !g.auto)
+		.map((g): [string, Set<string>] => [
+			g.id,
+			new Set(
+				(g.kind === 'tech'
+					? techsNeeded([String(g.target.tech)])
+					: autoGoals(c.ctx.latest, data, [String(g.target.tradition)])
+				)
+					.map((x) => x.id)
+					.filter((id) => !fromSave.has(id) && plan.goals.get(id)?.auto)
+			)
+		]);
+	const dependents = Object.fromEntries(
+		brings.map(([id, set]) => [
+			id,
+			[...set].filter((x) => !brings.some(([other, s2]) => other !== id && s2.has(x)))
+		])
 	);
-	return planAt(events, path, [...auto, ...needs]);
+	return { plan, dependents };
 }
 
 /** Everything the planner tab shows for the branch ending at `tip`. */
@@ -331,7 +377,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 	const campaign = snaps.at(-1)?.campaign ?? '';
 	const events = planEvents(getDb(), campaign);
 	const { path, dates, below } = pathOf(tip);
-	const plan = planFor(events, path, c);
+	const { plan, dependents } = planWithNeeds(events, path, c);
 	const picked = c?.ctx.latest.traditions ?? [];
 	const groups = arrange(plan, groupOf, (group, list) =>
 		group === 'traditions'
@@ -341,7 +387,8 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				: list
 	);
 	const others = c ? otherBranches(events, branchesOf(campaign, tip), plan) : [];
-	const toRow = (g: Goal) => (c ? row(g, c, dates) : null);
+	const toRow = (g: Goal) =>
+		c ? { ...row(g, c, dates), dependents: dependents[g.id] ?? [] } : null;
 	const rows = Object.fromEntries(
 		GROUPS.map((g) => [g.id, (groups[g.id] ?? []).map(toRow).filter((r) => r !== null)])
 	) as Record<string, GoalRow[]>;
@@ -349,11 +396,35 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 		.map(toRow)
 		.filter((r) => r !== null);
 	// labels for the history, from every goal ever added on this branch
-	const labels = new Map<string, { label: string }>();
+	// what each history entry is about, for its label and badges: every goal ever added on this
+	// branch, and the automatic ones (they have no add of their own)
+	type About = {
+		label: string;
+		kind: string;
+		badge: string | null;
+		area: string | null;
+		group: string;
+	};
+	const labels = new Map<string, About>();
+	const about = (kind: string, target: Target, title: string): About | null =>
+		c
+			? {
+					label: label(kind, target, title, c.names),
+					kind,
+					badge: badgeOf(kind, target, getGameData()),
+					area: areaOf(kind, target, getGameData()),
+					group: GROUPS.find((g) => g.id === groupOf(kind))?.name ?? ''
+				}
+			: null;
+	for (const g of plan.goals.values()) {
+		const a = about(g.kind, g.target, g.title);
+		if (a) labels.set(g.id, a);
+	}
 	for (const e of plan.history)
-		if (e.op === 'add' && c) {
+		if (e.op === 'add' && !labels.has(e.goal)) {
 			const d = e.data as { kind: string; target: Target; title?: string };
-			labels.set(e.goal, { label: label(d.kind, d.target ?? {}, d.title ?? '', c.names) });
+			const a = about(d.kind, d.target ?? {}, d.title ?? '');
+			if (a) labels.set(e.goal, a);
 		}
 	const all = [...Object.values(rows).flat(), ...parkedRows];
 	const suggested = c ? suggestions(c, plan) : [];
@@ -370,13 +441,27 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				op: e.op,
 				goal: e.goal,
 				label: labels.get(e.goal)?.label ?? (e.op === 'order' ? 'order' : e.goal),
-				detail: describe(e, labels)
+				detail: describe(e, labels),
+				kind: labels.get(e.goal)?.kind ?? null,
+				badge: labels.get(e.goal)?.badge ?? null,
+				area: labels.get(e.goal)?.area ?? null,
+				group:
+					labels.get(e.goal)?.group ?? GROUPS.find((g) => `group:${g.id}` === e.goal)?.name ?? null
 			}))
 			.reverse(),
 		// done moments derived from the saves, for the history
 		doneAt: all
 			.filter((r) => r.since)
-			.map((r) => ({ goal: r.id, label: r.label, ...r.since!, avoid: r.polarity === 'avoid' })),
+			.map((r) => ({
+				goal: r.id,
+				label: r.label,
+				...r.since!,
+				avoid: r.polarity === 'avoid',
+				kind: r.kind,
+				badge: r.badge,
+				area: r.area,
+				group: GROUPS.find((g) => g.id === r.group)?.name ?? null
+			})),
 		suggestions: suggested,
 		options: c ? fieldOptions(c) : {},
 		kinds: Object.entries(KINDS)
@@ -481,7 +566,9 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 				target: x.target,
 				label: label(kind, x.target, '', names),
 				why: x.why,
-				ref: KINDS[kind]?.ref?.(x.target) ?? null
+				ref: KINDS[kind]?.ref?.(x.target) ?? null,
+				badge: badgeOf(kind, x.target, getGameData()),
+				area: areaOf(kind, x.target, getGameData())
 			});
 			n++;
 		}

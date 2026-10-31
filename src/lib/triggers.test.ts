@@ -101,3 +101,18 @@ group('describe', () => {
 		expect(describe({ leaf: 'num_rivals', cmp: '>', value: '1' })).toBe('num rivals > 1');
 	});
 });
+
+group('perk and tree counts', () => {
+	it('answers num_ascension_perks and num_tradition_categories from the save', () => {
+		const f: Facts = {
+			...facts,
+			perks: ['ap_a'],
+			traditions: ['tr_x_adopt', 'tr_x_1', 'tr_y_adopt']
+		};
+		expect(evaluate({ leaf: 'num_ascension_perks', cmp: '>', value: '1' }, f)).toBe(false);
+		expect(
+			evaluate({ leaf: 'num_ascension_perks', cmp: '>', value: '1' }, { ...f, perks: ['a', 'b'] })
+		).toBe(true);
+		expect(evaluate({ leaf: 'num_tradition_categories', cmp: '<', value: '7' }, f)).toBe(true);
+	});
+});

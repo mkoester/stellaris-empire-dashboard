@@ -199,7 +199,14 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 
 /** A numeric condition (`num_x > 2`), where the save gives the number; else unknown. */
 function compare(name: string, cmp: string, value: number, f: Facts): boolean | null {
-	const n = name === 'is_years_since_community_formation' ? (f.galcomYears ?? null) : null;
+	const n =
+		name === 'is_years_since_community_formation'
+			? (f.galcomYears ?? null)
+			: name === 'num_ascension_perks'
+				? f.perks.length
+				: name === 'num_tradition_categories'
+					? f.traditions.filter((t) => t.endsWith('_adopt')).length
+					: null;
 	if (n === null || Number.isNaN(value)) return null;
 	switch (cmp) {
 		case '>':

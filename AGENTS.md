@@ -548,7 +548,22 @@ keeping the plan's order wherever the rules leave a choice): traditions (`orderT
 taken ones first as picked (the save's `traditions` is pick order), each after its tree's
 adoption and the picks it needs (data DB `tradition_prereq`, `GameData.traditionPrereqs`), a
 finisher after its tree's other picks; research (`orderResearch()`) a tech after the planned
-techs it needs and the tier gates below it, a gate after the one below. A planned adoption brings
+techs it needs and the tier gates below it, a gate after the one below and after the planned techs
+of its own tier and area (they count towards it); of the goals free to go next the lowest tier goes
+first (a gate of tier k as k + ½), so each goes as early as it can ("Fusion Power before 6 Physics
+techs of tier 1", the user's ask) and the plan's order decides within a tier. **Badges**
+(`badgeOf()`, `areaOf()`): a tech's and tier gate's tier (T1…) and research area in the game's
+colours (`<area>_research`), a tradition's place — adopt, pick, finisher (the community's word;
+the game says "… Traditions Finished") —, perk; the research group filters by area (per viewer,
+none on = all, suggestions too); the history shows them with the goal's group, its reorderings
+behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
+(`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, none that
+another goal or the save implies): OK removes them with it (they are derived, so nothing is
+stored), Cancel keeps them as goals of their own (an add each). **Perks** (`GameData.perkRules`,
+data DB `ascension_perk.potential_json|possible_json`): `potential` false is blocked; `possible`
+false stays open with a warning — The Flesh is Weak's `num_ascension_perks > 1` reads "⚠ needs 2
+ascension perks taken first (1 now)" (`perksNeeded()`; `#lib/triggers.ts` now answers
+`num_ascension_perks` and `num_tradition_categories`). A planned adoption brings
 its whole tree, a planned pick its adoption and the picks it needs (`autoGoals(…, wanted)`). On
 the page one change runs at a time (`busy`): the user's ▲▼ clicks 5–20 ms apart each moved from
 the same old order (~40 orders in seconds, 2026-10-31); ▲▼ pass the next goal shown, as done
