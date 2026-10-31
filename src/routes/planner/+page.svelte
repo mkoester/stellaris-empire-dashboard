@@ -266,23 +266,38 @@
 	{#if r.since}<span class="text-xs text-gray-500">{sinceText(r.since)}</span>{/if}
 {/snippet}
 
-{#snippet badges(r: { kind: string; badge?: string | null; area?: string | null; auto?: boolean })}
+{#snippet badges(r: {
+	kind: string;
+	badge?: string | null;
+	area?: string | null;
+	tint?: string | null;
+	auto?: boolean;
+})}
+	{@const focus = r.kind.startsWith('focus_')}
 	{#if r.area}<span
 			class="ml-1 rounded border px-1 text-[10px]"
 			style:color={colorOf(`${r.area}_research`)}
 			style:border-color={colorOf(`${r.area}_research`)}
 			title="research area">{r.area}</span
 		>{/if}{#if r.badge}<span
-			class="ml-1 rounded px-1 text-[10px] {r.kind === 'perk'
-				? 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200'
-				: r.kind === 'tradition'
-					? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
-					: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}"
+			class="ml-1 rounded px-1 text-[10px] {focus
+				? 'border'
+				: r.kind === 'perk'
+					? 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200'
+					: r.kind === 'tradition'
+						? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+						: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}"
+			style:color={focus && r.tint ? colorOf(r.tint) : null}
+			style:border-color={focus && r.tint ? colorOf(r.tint) : null}
 			title={r.kind === 'perk'
 				? 'ascension perk'
 				: r.kind === 'tradition'
 					? 'its place in the tree: adopt (opens it), a pick, the finisher (all picks taken)'
-					: 'tech tier'}>{r.badge}</span
+					: r.kind === 'focus_card'
+						? 'the focus area it gives points to, and how many (all: every area)'
+						: r.kind === 'focus_reward'
+							? 'the focus area whose points unlock it'
+							: 'tech tier'}>{r.badge}</span
 		>{/if}{#if r.auto}<span
 			class="ml-1 rounded bg-gray-100 px-1 text-[10px] text-gray-500 dark:bg-gray-800"
 			title="added by itself: a tradition of an adopted or planned tree, a perk taken, or what a planned tech needs"
@@ -661,7 +676,8 @@
 							{@render group(h.group)}{h.label}{#if h.kind}{@render badges({
 									kind: h.kind,
 									badge: h.badge,
-									area: h.area
+									area: h.area,
+									tint: h.tint
 								})}{/if}{h.detail ? ` — ${h.detail}` : ''}
 							<span class="text-gray-400">({new Date(h.at).toLocaleString()})</span>
 						</li>

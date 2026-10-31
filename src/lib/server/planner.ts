@@ -12,7 +12,11 @@ import {
 	autoGoals,
 	badgeOf,
 	check,
+	orderFocus,
+	rewardIndex,
+	rewardLabel,
 	orderResearch,
+	tintOf,
 	orderTraditions,
 	GROUPS,
 	groupOf,
@@ -67,6 +71,7 @@ export type GoalRow = Omit<Goal, 'added'> & {
 	manual: boolean;
 	badge: string | null; // a tech's tier, a tradition's place in its tree, a perk
 	area: string | null; // a tech's research area
+	tint: string | null; // the badge's colour, a colors.ts key (research or focus area)
 	dependents: string[]; // the automatic goals only this one brings (removed with it, if wished)
 	added: { nodeId: number; at: string; date: string | null };
 };
@@ -79,6 +84,7 @@ export type Suggestion = {
 	ref?: string | null; // a popup with its effects
 	badge?: string | null;
 	area?: string | null;
+	tint?: string | null;
 };
 export type HistoryRow = {
 	id: number;
@@ -91,6 +97,7 @@ export type HistoryRow = {
 	kind: string | null; // what it is about, for its badges
 	badge: string | null;
 	area: string | null;
+	tint: string | null;
 	group: string | null;
 };
 
@@ -146,6 +153,7 @@ export function planCtx(snaps: Snapshot[]): Ctx | null {
 	]);
 	const names: LabelCtx = {
 		data,
+		possible,
 		system: (id) => systemNames.get(id) ?? `system ${id}`,
 		planet: (id) =>
 			latest.colonies.find((c) => c.planetId === id)?.name ??
@@ -185,6 +193,7 @@ function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
 		manual: k?.manual ?? false,
 		badge: badgeOf(g.kind, g.target, getGameData()),
 		area: areaOf(g.kind, g.target, getGameData()),
+		tint: tintOf(g.kind, g.target, getGameData()),
 		dependents: [],
 		added: { ...g.added, date: dates.get(g.added.nodeId) ?? null }
 	};
@@ -270,7 +279,6 @@ function describe(e: PlanEvent, goals: Map<string, { label: string }>): HistoryR
 function explanations(refs: string[], c: Ctx | null): Record<string, Explanation> {
 	const out = pick(getExplanations(), refs) as Record<string, Explanation>;
 	const focus = getGameData().focus;
-	const techs = getGameData().techs;
 	for (const ref of refs) {
 		const place = /^(outpost|waystation):(\d+)$/.exec(ref);
 		if (place) {
@@ -283,15 +291,35 @@ function explanations(refs: string[], c: Ctx | null): Record<string, Explanation
 			);
 			continue;
 		}
+		if (ref.startsWith('focusreward:') && c) {
+			const key = ref.slice('focusreward:'.length);
+			const r = focus.rewards[key];
+			if (!r) continue;
+			// the research option it gives this empire, explained as the tech tab explains it
+			const ours = r.options.filter((o) => c.ctx.possible(o.when) !== false);
+			const techExplained =
+				ours.length === 1 ? getExplanations()[`tech:${ours[0].tech}`] : undefined;
+			out[ref] = {
+				title: rewardLabel(key, c.names),
+				description: techExplained?.description ?? null,
+				modifiers: techExplained?.modifiers ?? [],
+				text: 'A research option that stays among your choices until researched.',
+				facts: [
+					...(r.cost !== null ? [`costs ${r.cost} focus points in its area`] : []),
+					...(techExplained?.facts ?? [])
+				]
+			};
+			continue;
+		}
 		if (!ref.startsWith('focuscard:')) continue;
 		const card = focus.cards[ref.slice('focuscard:'.length)];
 		if (!card) continue;
+		// the area's tier being worked towards, as the game's panel: "20 / 40 to Tier 1 …"
 		const next = (category: string) => {
-			const key = c?.ctx.latest.focus?.rewards.find((r) => r.category === category)?.current;
-			const reward = key ? focus.rewards[key] : undefined;
-			return reward
-				? ` — next reward${reward.cost !== null ? ` at ${reward.cost}` : ''}: ${reward.options.map((o) => techs[o.tech]?.name ?? o.tech).join(' or ')}`
-				: '';
+			const now = c?.ctx.latest.focus?.rewards.find((r) => r.category === category);
+			if (!now || !c || !focus.rewards[now.current]) return '';
+			const cost = focus.rewards[now.current].cost;
+			return ` — ${Math.round(now.progress)}${cost !== null ? ` / ${cost}` : ''} to ${rewardLabel(now.current, c.names)}`;
 		};
 		out[ref] = {
 			title: card.name,
@@ -302,7 +330,7 @@ function explanations(refs: string[], c: Ctx | null): Record<string, Explanation
 				...(card.tier !== null ? [`tier ${card.tier}`] : []),
 				...card.gives.map(
 					(g) =>
-						`+${g.amount} ${focus.categories[g.category] ?? g.category} progress${next(g.category)}`
+						`+${g.amount} ${focus.categories[g.category] ?? g.category} points${next(g.category)}`
 				)
 			]
 		};
@@ -384,7 +412,9 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 			? orderTraditions(list, getGameData(), picked)
 			: group === 'research'
 				? orderResearch(list, getGameData())
-				: list
+				: group === 'focus'
+					? orderFocus(list)
+					: list
 	);
 	const others = c ? otherBranches(events, branchesOf(campaign, tip), plan) : [];
 	const toRow = (g: Goal) =>
@@ -403,6 +433,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 		kind: string;
 		badge: string | null;
 		area: string | null;
+		tint: string | null;
 		group: string;
 	};
 	const labels = new Map<string, About>();
@@ -413,6 +444,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 					kind,
 					badge: badgeOf(kind, target, getGameData()),
 					area: areaOf(kind, target, getGameData()),
+					tint: tintOf(kind, target, getGameData()),
 					group: GROUPS.find((g) => g.id === groupOf(kind))?.name ?? ''
 				}
 			: null;
@@ -445,6 +477,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				kind: labels.get(e.goal)?.kind ?? null,
 				badge: labels.get(e.goal)?.badge ?? null,
 				area: labels.get(e.goal)?.area ?? null,
+				tint: labels.get(e.goal)?.tint ?? null,
 				group:
 					labels.get(e.goal)?.group ?? GROUPS.find((g) => `group:${g.id}` === e.goal)?.name ?? null
 			}))
@@ -460,6 +493,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				kind: r.kind,
 				badge: r.badge,
 				area: r.area,
+				tint: r.tint,
 				group: GROUPS.find((g) => g.id === r.group)?.name ?? null
 			})),
 		suggestions: suggested,
@@ -533,6 +567,13 @@ function fieldOptions(c: Ctx): Record<string, Option[]> {
 		country: by([...countries].map((id) => ({ value: id, label: names.country(id) }))),
 		category: WANDERLUST.map((w) => ({ value: w.key, label: w.name })),
 		card: keyed(d.focus.cards, (k) => d.focus.cards[k].name),
+		reward: Object.keys(d.focus.rewards)
+			.sort(
+				(a, b) =>
+					(d.focus.rewards[a].category ?? '').localeCompare(d.focus.rewards[b].category ?? '') ||
+					rewardIndex(a) - rewardIndex(b)
+			)
+			.map((k) => ({ value: k, label: rewardLabel(k, names) })),
 		key: keyed(
 			Object.fromEntries(
 				Object.entries(d.identityNames).filter(([k]) => /^(civic|auth|ethic)_/.test(k))
@@ -568,7 +609,8 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 				why: x.why,
 				ref: KINDS[kind]?.ref?.(x.target) ?? null,
 				badge: badgeOf(kind, x.target, getGameData()),
-				area: areaOf(kind, x.target, getGameData())
+				area: areaOf(kind, x.target, getGameData()),
+				tint: tintOf(kind, x.target, getGameData())
 			});
 			n++;
 		}
@@ -718,6 +760,21 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 		Object.keys(d.perks)
 			.filter((k) => !(l.ascensionPerks ?? []).includes(k))
 			.map((k) => ({ target: { perk: k } }))
+	);
+	// each area's next rewards, from the one being worked towards
+	add(
+		'focus_reward',
+		(l.focus?.rewards ?? []).flatMap((now) =>
+			Object.keys(d.focus.rewards)
+				.filter(
+					(k) =>
+						d.focus.rewards[k].category === now.category &&
+						rewardIndex(k) >= rewardIndex(now.current)
+				)
+				.sort((a, b) => rewardIndex(a) - rewardIndex(b))
+				.slice(0, 4)
+				.map((k) => ({ target: { reward: k } }))
+		)
 	);
 	add(
 		'focus_card',

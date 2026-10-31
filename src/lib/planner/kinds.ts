@@ -76,6 +76,7 @@ type Kind = {
 /** What naming a target needs; the server fills it, the page reuses it. */
 export type LabelCtx = {
 	data: PlanCtx['data'];
+	possible?: PlanCtx['possible']; // picks a focus reward's option for this empire
 	system: (id: number) => string;
 	planet: (id: number) => string;
 	country: (id: number) => string;
@@ -453,9 +454,37 @@ export const KINDS: Record<string, Kind> = {
 			return { state: 'open' };
 		}
 	},
+	focus_reward: {
+		group: 'focus',
+		name: "focus reward (an area's research option)",
+		fields: ['reward'],
+		label: (t, c) => rewardLabel(s(t, 'reward'), c),
+		ref: (t) => `focusreward:${s(t, 'reward')}`,
+		// rewards come in order per area (`<area>_rewards_<n>`); the save names the one being
+		// worked towards and its progress (`country.focus.reward.rewards`)
+		check: (t, c) => {
+			const key = s(t, 'reward');
+			const r = c.data.focus.rewards[key];
+			if (!r || !c.latest.focus) return { state: 'unknown' };
+			const now = c.latest.focus.rewards.find((x) => x.category === r.category);
+			if (!now) return { state: 'unknown', why: 'its area is not in the save' };
+			const at = rewardIndex(key);
+			const cur = rewardIndex(now.current);
+			if (at < cur) return { state: 'done' };
+			const cost = (k: string) => c.data.focus.rewards[k]?.cost ?? 0;
+			if (at === cur)
+				return { state: 'progress', why: `${Math.round(now.progress)} / ${cost(key)} points` };
+			// a reward costs its points and the rest carries over (seen in the saves 2026-10-31:
+			// Planetforgers exploration 30 → reward 2 at 0 (+10, cost 40); UNE development 0 → reward 2
+			// at 40): what the current still needs, then each one up to this
+			let left = cost(now.current) - now.progress;
+			for (let i = cur + 1; i <= at; i++) left += cost(key.replace(/_\d+$/, `_${i}`));
+			return { state: 'open', why: `${Math.round(left)} more points` };
+		}
+	},
 	focus_card: {
 		group: 'focus',
-		name: 'focus card',
+		name: 'focus task (card)',
 		fields: ['card'],
 		label: (t, c) => c.data.focus.cards[s(t, 'card')]?.name ?? pretty(s(t, 'card')),
 		ref: (t) => `focuscard:${s(t, 'card')}`,
@@ -793,6 +822,22 @@ export function orderResearch<G extends { kind: string; target: Target }>(
 	return kahn(list, (g) => before(g).filter((x) => present.has(x)), id, level);
 }
 
+/** The focus group: an area's rewards in their order (one comes only after the one before). */
+export function orderFocus<G extends { kind: string; target: Target }>(list: G[]): G[] {
+	const id = (g: G) => (g.kind === 'focus_reward' ? String(g.target.reward) : null);
+	const present = new Set(list.map(id).filter((x) => x !== null));
+	return kahn(
+		list,
+		(g) => {
+			const k = id(g);
+			if (k === null) return [];
+			const prev = k.replace(/_(\d+)$/, (_, n) => `_${Number(n) - 1}`);
+			return present.has(prev) ? [prev] : [];
+		},
+		id
+	);
+}
+
 /** A tech's or tier gate's research area (physics, society, engineering), else null. */
 export function areaOf(kind: string, target: Target, data: Pick<GameData, 'techs'>): string | null {
 	if (kind === 'tech') return data.techs[String(target.tech)]?.area ?? null;
@@ -800,11 +845,33 @@ export function areaOf(kind: string, target: Target, data: Pick<GameData, 'techs
 	return null;
 }
 
+/**
+ * The colour a goal's badge takes (a `colors.ts` key): a research area's, a focus area's
+ * (`focus-<area>`; a card giving to all three none).
+ */
+export function tintOf(
+	kind: string,
+	target: Target,
+	data: Pick<GameData, 'techs'> & Partial<Pick<GameData, 'focus'>>
+): string | null {
+	const area = areaOf(kind, target, data);
+	if (area) return `${area}_research`;
+	if (kind === 'focus_card') {
+		const card = data.focus?.cards[String(target.card)];
+		return card && card.gives.length === 1 ? `focus-${card.gives[0].category}` : null;
+	}
+	if (kind === 'focus_reward') {
+		const r = data.focus?.rewards[String(target.reward)];
+		return r?.category ? `focus-${r.category}` : null;
+	}
+	return null;
+}
+
 /** The badge a goal's row carries: a tech's tier, a tradition's place in its tree, a perk. */
 export function badgeOf(
 	kind: string,
 	target: Target,
-	data: Pick<GameData, 'techs' | 'traditionTrees'>
+	data: Pick<GameData, 'techs' | 'traditionTrees'> & Partial<Pick<GameData, 'focus'>>
 ): string | null {
 	if (kind === 'tech') {
 		const tier = data.techs[String(target.tech)]?.tier;
@@ -812,6 +879,16 @@ export function badgeOf(
 	}
 	if (kind === 'tech_tier') return `T${target.tier}`;
 	if (kind === 'perk') return 'perk';
+	if (kind === 'focus_card') {
+		const card = data.focus?.cards[String(target.card)];
+		if (!card) return null;
+		const areas = card.gives.length > 1 ? 'all' : (card.gives[0]?.category ?? card.category ?? '');
+		return `${areas} +${card.gives[0]?.amount ?? 0}`;
+	}
+	if (kind === 'focus_reward') {
+		const r = data.focus?.rewards[String(target.reward)];
+		return r ? `${r.category} reward` : null;
+	}
 	if (kind === 'tradition')
 		for (const t of Object.values(data.traditionTrees)) {
 			const x = t.traditions.find((y) => y.key === target.tradition);
@@ -859,4 +936,21 @@ export function perksNeeded(t: Trigger | null): number | null {
 		if (n !== null) return n;
 	}
 	return null;
+}
+
+/** `development_rewards_3` → 3. */
+export const rewardIndex = (key: string) => Number(/_(\d+)$/.exec(key)?.[1] ?? NaN);
+
+/**
+ * A focus reward's name: its area and number, and the research option it gives this empire (of
+ * an if/else on the empire the one that holds — `country_uses_bio_ships`: Battleships or Stingers).
+ */
+export function rewardLabel(key: string, c: LabelCtx): string {
+	const r = c.data.focus.rewards[key];
+	if (!r) return pretty(key);
+	const area = c.data.focus.categories[r.category ?? ''] ?? r.category ?? '';
+	const ours = r.options.filter((o) => (c.possible?.(o.when) ?? null) !== false);
+	const techs = (ours.length ? ours : r.options).map((o) => c.data.techs[o.tech]?.name ?? o.tech);
+	// the game's Empire Progression panel: "Tier 4 Improved Weaver Development"
+	return `${area} tier ${rewardIndex(key)}: ${techs.join(' or ')}`;
 }

@@ -566,7 +566,20 @@ none on = all, suggestions too); the history shows them with the goal's group, i
 behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
 (`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, none that
 another goal or the save implies): OK removes them with it (they are derived, so nothing is
-stored), Cancel keeps them as goals of their own (an add each). **Perks** (`GameData.perkRules`,
+stored), Cancel keeps them as goals of their own (an add each). **Focus** (the user's ask 2026-10-31: "split this — tasks give points to one of three areas; the
+rewards per area as entries of their own"): a **task** (`focus_card`) carries its area and points
+as a badge in the area's colour (`tintOf()`: `focus-<area>`; "all +10" for core cards), its popup
+each area's progress to the tier it unlocks; a **reward** (`focus_reward`, one per
+`<area>_rewards_<n>`) is named as the game's Empire Progression panel names it ("Conquest tier
+4: Improved Weaver Development" — the option this empire gets: `country_uses_bio_ships` picks
+Destroyers or Weavers), done once the area's current reward is past it, under way while current
+("20 / 40 points"), else the points still to go: a reward costs its points and the rest carries
+over (the saves 2026-10-31: Planetforgers exploration 30 → tier 2 at 0, UNE development 0 →
+tier 2 at 40). Suggested: each area's next four tiers; the group keeps an area's tiers in order
+(`orderFocus()`); its popup is the tech's. Checked against the game's panels on Roaming Korinth
+(nomad, bio ships: Conquest tiers 1–4, Harbingers at 7, Stingers at 9; the five tasks on offer
+with their areas and points) and a new campaign's Exploration tiers (screenshots
+`~/Pictures/Screenshots/screenshot_2026-10-31_22-38-29`, `-40-29`). **Perks** (`GameData.perkRules`,
 data DB `ascension_perk.potential_json|possible_json`): `potential` false is blocked; `possible`
 false stays open with a warning — The Flesh is Weak's `num_ascension_perks > 1` reads "⚠ needs 2
 ascension perks taken first (1 now)" (`perksNeeded()`; `#lib/triggers.ts` now answers

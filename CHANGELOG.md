@@ -52,6 +52,10 @@ All notable changes to this project are documented here. The format follows
 - A perk whose conditions do not hold yet can still be planned, with a warning (The Flesh is
   Weak: two perks taken first).
 
+- Focus in the planner: tasks show the area they give points to and how many; the rewards are
+  goals of their own, one per Empire Progression tier ("Conquest tier 4: Improved Weaver
+  Development"), with the points still needed and each area's next tiers suggested.
+
 ### Fixed
 
 - A bio-ship empire (Biogenesis shipsets) was planned the classic hulls — Corvettes up to

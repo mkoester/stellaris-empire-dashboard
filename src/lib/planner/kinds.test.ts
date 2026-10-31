@@ -4,6 +4,9 @@ import type { Colony, GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
 import type { Target } from './replay.ts';
 import {
 	autoGoals,
+	orderFocus,
+	rewardLabel,
+	tintOf,
 	perksNeeded,
 	badgeOf,
 	orderResearch,
@@ -603,5 +606,113 @@ describe('perks', () => {
 		});
 		expect(state('perk', { perk: 'ap_robot' }, c([]))).toBe('blocked');
 		expect(perksNeeded(possible as never)).toBe(2);
+	});
+});
+
+describe('focus rewards', () => {
+	const focus = {
+		categories: { development: 'Development' },
+		cards: {
+			card_x: {
+				category: 'development',
+				tier: 1,
+				name: 'X',
+				hint: null,
+				requirement: null,
+				gives: [{ category: 'development', amount: 10 }]
+			}
+		},
+		rewards: {
+			development_rewards_1: {
+				category: 'development',
+				cost: 40,
+				options: [{ tech: 'tech_a', when: null }]
+			},
+			development_rewards_2: {
+				category: 'development',
+				cost: 60,
+				options: [{ tech: 'tech_a', when: null }]
+			},
+			development_rewards_3: {
+				category: 'development',
+				cost: 80,
+				options: [
+					{ tech: 'tech_battleships', when: { leaf: 'bio', value: 'no' } },
+					{ tech: 'tech_stingers', when: { leaf: 'bio', value: 'yes' } }
+				]
+			}
+		}
+	};
+	const fdata = {
+		...data,
+		focus,
+		techs: {
+			tech_a: { name: 'A' },
+			tech_battleships: { name: 'Battleships' },
+			tech_stingers: { name: 'Stingers' }
+		}
+	} as unknown as PlanCtx['data'];
+	const at = (current: string, progress: number) =>
+		ctx(
+			save({
+				focus: {
+					priority: null,
+					cards: [],
+					rewards: [{ category: 'development', current, progress }]
+				}
+			}),
+			[],
+			{ data: fdata }
+		);
+
+	it('is done once its area moved past it, under way while current, else the points still to go', () => {
+		expect(
+			state('focus_reward', { reward: 'development_rewards_1' }, at('development_rewards_2', 25))
+		).toBe('done');
+		expect(
+			check(
+				'focus_reward',
+				{ reward: 'development_rewards_2' },
+				false,
+				at('development_rewards_2', 25)
+			)
+		).toEqual({ state: 'progress', why: '25 / 60 points' });
+		expect(
+			check(
+				'focus_reward',
+				{ reward: 'development_rewards_3' },
+				false,
+				at('development_rewards_2', 25)
+			)
+		).toEqual({ state: 'open', why: '115 more points' });
+	});
+
+	it('is named by the option this empire gets', () => {
+		const names = {
+			data: fdata,
+			system: String,
+			planet: String,
+			country: String,
+			possible: (t: unknown) => (t ? (t as { value: string }).value === 'yes' : true)
+		} as unknown as LabelCtx;
+		expect(rewardLabel('development_rewards_3', names)).toBe('Development tier 3: Stingers');
+	});
+
+	it('badges: the area and points of a task, the area of a reward; rewards in order', () => {
+		expect(badgeOf('focus_card', { card: 'card_x' }, fdata as unknown as GameData)).toBe(
+			'development +10'
+		);
+		expect(
+			tintOf('focus_reward', { reward: 'development_rewards_2' }, fdata as unknown as GameData)
+		).toBe('focus-development');
+		const r = (n: number) => ({
+			kind: 'focus_reward',
+			target: { reward: `development_rewards_${n}` } as Target
+		});
+		expect(orderFocus([r(3), r(1), r(2)]).map((g) => g.target.reward)).toEqual([
+			'development_rewards_1',
+			'development_rewards_2',
+			'development_rewards_3'
+		]);
 	});
 });
