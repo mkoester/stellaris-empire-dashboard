@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.5] - 2026-10-31
 
 ### Added
 
@@ -33,7 +33,6 @@ All notable changes to this project are documented here. The format follows
   changes (an event line older dashboards skip).
 - Companion mod 0.8.0: each colony's flat stability and stability multiplier, stored in the save
   every month (no new log line). Saves still on disk are read again once.
-
 - Stellaris open betas: the game data is extracted per game **build**, not per version — an open
   beta (4.5.3, build 7793) and the release after it share their version, and the release would
   have kept the beta's data. Every player's dashboard extracts once more after this update (~5 s).
@@ -86,7 +85,6 @@ All notable changes to this project are documented here. The format follows
 - "Show it now" (a save loaded in game) stays on the page you are on — a colony, a custom tab,
   settings, the timeline — with its other query parameters; it took some pages back to `all`.
   Going back to following the game keeps them too.
-
 - Fleets named from the game's name lists show their name ("Maelstrom Fleet"), not their key
   ("NECROID1 FLEET MaelstromFleet"); armies too. Needs extractor 0.1.5.
 - Research due dates (Upcoming, tech tab) ignored the difficulty: the galaxy setting
