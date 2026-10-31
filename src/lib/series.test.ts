@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	agendaSeries,
+	colonyDaySeries,
 	colonySeries,
 	gameMonth,
 	gameYear,
@@ -127,6 +128,43 @@ describe('colonySeries', () => {
 			{ date: '2200.03.01', colonies: [] }
 		] as unknown as Snapshot[];
 		expect(colonySeries(h, 7, { pops: (c) => c.pops }).lines).toEqual({ pops: [null, 100, null] });
+	});
+});
+
+describe('colonyDaySeries', () => {
+	it('adds the days the mod logged a change between the saves', () => {
+		const ark = { planetId: -1, name: 'Ark', pops: 5689, employed: 5689, civilians: 0 };
+		const day = (pops: number, unemployed: number, openJobs: number) => ({
+			Ark: { pops, unemployed, openJobs }
+		});
+		const h = [
+			{ date: '2205.10.01', colonies: [ark] },
+			{
+				date: '2205.11.01',
+				colonies: [{ ...ark, pops: 5701, employed: 5650, civilians: 51 }],
+				ticks: [
+					{ date: '2205.10.01', stockpile: {}, colonies: day(1, 1, 1) }, // the save's own day
+					{ date: '2205.10.12', stockpile: {}, colonies: day(5701, 0, 391) },
+					{ date: '2205.10.15', stockpile: {} },
+					{ date: '2205.10.20', stockpile: {}, colonies: { Other: day(1, 1, 1).Ark } },
+					{ date: '2205.10.21', stockpile: {}, colonies: day(5701, 51, 240) }
+				]
+			},
+			{ date: '2205.12.01', colonies: [] } // a month only the log saw
+		] as unknown as Snapshot[];
+		const r = colonyDaySeries(h, -1, 'Ark', (c) => ({
+			pops: c.pops,
+			employed: c.employed,
+			civilians: c.civilians,
+			open: 7
+		}));
+		expect(r.x.length).toBe(5);
+		expect(r.lines).toEqual({
+			pops: [5689, 5701, 5701, 5701, null],
+			employed: [5689, 5701, 5650, 5650, null],
+			civilians: [0, 0, 51, 51, null],
+			'open jobs': [7, 391, 240, 7, null]
+		});
 	});
 });
 

@@ -1695,7 +1695,8 @@ function playerColonies(raw: RawSave): Colony[] {
 			amenitiesUsage: numOrNull(c.amenities_usage),
 			crime: numOrNull(c.crime),
 			// companion mod 0.8.0: the flat stability and its multiplier the game caps at 100 —
-			// the colony's own variables, else (not seen yet) its planet's
+			// stored on the colony's carrier (the arkship's ship block, 2205.10.01; a planet's
+			// assumed), the colony's own variables read too
 			stabilityAdd: numOrNull((c.variables ?? planet?.variables)?.sdash_stab_add),
 			stabilityMult: numOrNull((c.variables ?? planet?.variables)?.sdash_stab_mult),
 			ascensionTier: num(c.ascension_tier),

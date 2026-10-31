@@ -170,6 +170,29 @@ country_event = {
 		log = "SDASH|3|[GetDate]|[This.sdash_run]|tick|feral_insight|[This.sdash_s_feral_insight]"
 		sdash_export_stockpile = { RES = entropy_crystals }
 		log = "SDASH|3|[GetDate]|[This.sdash_run]|tick|entropy_crystals|[This.sdash_s_entropy_crystals]"
+		# 0.9.0: each colony's open jobs, unemployed pops and pops — logged only when one changed
+		# since its last line (a building finished mid-month, pops taking its jobs over the next
+		# days). An event line, so a dashboard that does not know the kind skips it; before
+		# tick-end, so feed.ts files it with the day. Triggers from 4.5.3 triggers.log (colony
+		# scope); the last logged values stay in sdash_*_log.
+		every_controlled_colony = {
+			export_trigger_value_to_variable = { trigger = free_jobs variable = sdash_fj }
+			export_trigger_value_to_variable = { trigger = num_unemployed variable = sdash_un }
+			export_trigger_value_to_variable = { trigger = num_sapient_pops variable = sdash_pp }
+			if = {
+				limit = {
+					OR = {
+						NOT = { check_variable = { which = sdash_fj value = sdash_fj_log } }
+						NOT = { check_variable = { which = sdash_un value = sdash_un_log } }
+						NOT = { check_variable = { which = sdash_pp value = sdash_pp_log } }
+					}
+				}
+				log = "SDASH|2|[GetDate]|event|colony-jobs|[This.GetName]|[This.sdash_fj]|[This.sdash_un]|[This.sdash_pp]"
+				set_variable = { which = sdash_fj_log value = sdash_fj }
+				set_variable = { which = sdash_un_log value = sdash_un }
+				set_variable = { which = sdash_pp_log value = sdash_pp }
+			}
+		}
 		log = "SDASH|3|[GetDate]|[This.sdash_run]|tick-end"
 		country_event = { id = sdash.2 days = 1 }
 	}

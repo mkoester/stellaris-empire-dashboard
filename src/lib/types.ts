@@ -489,7 +489,18 @@ export type Wanderlust = {
 export type PoolLeader = Pick<LeaderInfo, 'id' | 'class'> &
 	Partial<Omit<LeaderInfo, 'id' | 'class'>> & { added: string | null };
 
-export type Tick = { date: string; stockpile: Resources };
+export type Tick = {
+	date: string;
+	stockpile: Resources;
+	// companion mod 0.9.0: the colonies whose jobs or pops changed that day, by colony name
+	colonies?: Record<string, ColonyDay>;
+};
+
+/**
+ * A colony's day from the mod (0.9.0): the game's `free_jobs`, `num_unemployed` and
+ * `num_sapient_pops` triggers. Unemployed read as the civilians, employed as pops − unemployed.
+ */
+export type ColonyDay = { openJobs: number; unemployed: number; pops: number };
 
 /** `country.focus` with its cards (top-level `focus_cards`). */
 export type EmpireFocus = {

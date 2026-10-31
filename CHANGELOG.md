@@ -14,6 +14,11 @@ All notable changes to this project are documented here. The format follows
   colony and empire-wide — how to change it and what else giving it up costs. The Stability chart
   draws "over 100" on its right axis. How far above the cap needs **companion mod 0.8.0** (the
   game saves stability capped); without it the panel gives the rates.
+- Colony page: with **companion mod 0.9.0** the Pops chart shows employed, civilians and open
+  jobs on each day they changed, not only at the monthly save — a building finished mid-month and
+  its jobs filling up — and its title the latest day while the game runs.
+- Companion mod 0.9.0: a colony's open jobs, unemployed pops and pops, logged on the day one
+  changes (an event line older dashboards skip).
 - Companion mod 0.8.0: each colony's flat stability and stability multiplier, stored in the save
   every month (no new log line). Saves still on disk are read again once.
 

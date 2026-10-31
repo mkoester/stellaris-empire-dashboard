@@ -5,7 +5,7 @@ import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
-import { colonySeries, xExtent } from '#lib/series.ts';
+import { colonyDaySeries, colonySeries, xExtent } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
 import { uncappedStability, wellbeingRules } from '#lib/wellbeing.ts';
 import { heldOf, wellbeingLevers } from '#lib/wellbeingLevers.ts';
@@ -82,13 +82,14 @@ export function load({ url, params }) {
 		]),
 		xExtent: xExtent(snaps),
 		charts: {
-			pops: colonySeries(snaps, planetId, {
-				pops: (c) => c.pops,
-				employed: (c) => c.employed,
-				civilians: (c) => c.civilians,
+			// the saves' months, and between them the days the mod logged a change (0.9.0)
+			pops: colonyDaySeries(snaps, planetId, named ? colonyAt(named)!.name : '', (c) => ({
+				pops: c.pops,
+				employed: c.employed,
+				civilians: c.civilians,
 				// enforcer posts left to crime automation do not count, as in the colony table
-				'open jobs': (c) => openJobs(c).open
-			}),
+				open: openJobs(c).open
+			})),
 			// above the cap: how far, once the mod has read the colony (the right axis)
 			stability: colonySeries(snaps, planetId, {
 				stability: (c) => c.stability,

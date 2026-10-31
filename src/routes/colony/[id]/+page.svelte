@@ -14,7 +14,8 @@
 	import { automationRows } from '#lib/automation.ts';
 	import { net } from '#lib/flows.ts';
 	import { fmt, nameOf, pretty } from '#lib/format.ts';
-	import { followBranch, followGame } from '#lib/live.ts';
+	import { followBranch, followGame, followTicks } from '#lib/live.ts';
+	import type { ColonyDay } from '#lib/types.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -30,6 +31,15 @@
 			{ replace: true, reset: false }
 		);
 	});
+
+	// The companion mod's day (0.9.0): this colony's jobs and pops when they change mid-month —
+	// the latest, while the page shows the head; the Pops chart has the days once the month is in.
+	let today = $state<{ date: string; day: ColonyDay } | null>(null);
+	followTicks((t) => {
+		const day = t.colonies?.[data.name];
+		if (day) today = { date: t.date, day };
+	});
+	const live = $derived(data.isHead && today && today.date > data.latest.date ? today : null);
 
 	// Due dates of this planet's queue, from the shared upcoming list (same order as the queue).
 	const done = $derived(
@@ -144,7 +154,9 @@
 			</div>
 		{/if}
 		<Chart
-			title="Pops"
+			title={live
+				? `Pops — ${live.date}: ${fmt(live.day.pops - live.day.unemployed)} employed, ${fmt(live.day.unemployed)} civilians, ${fmt(live.day.openJobs)} open jobs`
+				: 'Pops'}
 			series={data.charts.pops}
 			extent={data.xExtent}
 			events={planetEvents}

@@ -1064,9 +1064,23 @@ shows format 2.
 - **Colony stability** (0.8.0): no log line — each month `every_controlled_colony` (arkships
   included) exports `planet_stability_add` and `planet_stability_mult`
   (`export_modifier_to_variable`, colony scope per 4.5.3 effects.log) into the colony's
-  `sdash_stab_add` / `sdash_stab_mult`. Read as `Colony.stabilityAdd|Mult` (READER 36) from
-  `colony.<id>.variables`, else the planet's — **where they land is not yet seen**
-  (`docs/open-checks.md` 22).
+  `sdash_stab_add` / `sdash_stab_mult`. They land on the colony's **carrier** — the arkship's
+  `ships.<id>.variables` (2205.10.01), a planet colony's planet assumed, not seen yet — and are
+  read as `Colony.stabilityAdd|Mult` (READER 36). **Checked 2205.10.01** (screenshots
+  `screenshot_2026-10-31_09-25-00`, `-09`): `sdash_stab_add=33.35` = the tooltip's lines but
+  approval (10 + 5.6 + 17.7); the page's 110.9 = the tooltip's sum with approval unrounded (95.8 %
+  → +27.5, shown "+27").
+- **Colony jobs and pops, by day** (0.9.0): inside the daily tick, before `tick-end`, every
+  colony's `free_jobs`, `num_unemployed` and `num_sapient_pops` (triggers, colony scope) go to
+  `sdash_fj|un|pp`, and only when one differs from the last logged (`sdash_*_log`) a line
+  `SDASH|2|<date>|event|colony-jobs|<colony>|<open jobs>|<unemployed>|<pops>` — an event line, so
+  a dashboard without the kind skips it. `feed.ts` files it with its day (`Tick.colonies`, by
+  colony name), so it reaches the page live (the colony page's Pops chart title: "Pops —
+  <date>: … employed, … civilians, … open jobs") and is stored with the month; the Pops chart
+  draws those days between the saves (`colonyDaySeries()`). **Assumed until checked**
+  (`docs/open-checks.md` 23): unemployed = the civilians, employed = pops − unemployed, and
+  `free_jobs` the same count as the save's open jobs. Checked 2026-10-31 on a DB copy with a
+  replayed line: the `tick` server event carries it.
 - **The daily tick**: 4.5.2 has no sub-monthly on_action, so `sdash.2` re-fires itself with
   `days = 1`. The stockpile moves within a month (spending, the market, rewards, deals); income
   does not, so the tick logs stockpiles only. Pending events are saved with the game, so the chain

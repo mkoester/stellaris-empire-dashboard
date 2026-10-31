@@ -170,21 +170,30 @@ game's leader tooltip ("Skill Level: (2+1)/10") does. One sample only, both lead
 
 ### 22. Stability above the cap — colony page, companion mod 0.8.0 (from 2026-10-31)
 
-**Unverified.** Mod 0.8.0 exports each colony's `planet_stability_add` and `planet_stability_mult`
-into its variables `sdash_stab_add` / `sdash_stab_mult` every month; the dashboard adds base 50
-and approval's share (`uncappedStability()`). Assumed: the flat sum holds every tooltip line but
-approval's, the multiplier scales the whole sum, and the variables land in the save's `colony.<id>
-.variables` (else its planet's). Reference (2205.06.01, screenshot
-`~/Pictures/Screenshots/screenshot_2026-10-31_08-50-48.png`): the arkship's tooltip, base 50 +
-Economic 10.0 + Capital Arkship 5.6 + Pop Jobs 17.0 + approval 95 % +27 = 109.6, i.e. a flat sum
-of 32.6.
+**Partly checked 2205.10.01** (screenshots `screenshot_2026-10-31_09-25-00`, `-09`): the mod's
+`sdash_stab_add` (33.35) is the tooltip's lines but approval (10 + 5.6 + 17.7), and base + flat +
+approval's share is the tooltip's sum (110.9; the game shows approval rounded, +27). Stored on
+the colony's carrier — the arkship's ship block. Still open:
 
-- **Do:** start the game with the mod at 0.8.0 (a game restart picks up the linked copy), play
-  past the next 1st, hover the arkship's stability.
-- **Send:** the screenshot and the date. Check: the save's `sdash_stab_add` = the tooltip's lines
-  but approval (32.6 above if nothing moved), and the colony page's "before the cap" = the
-  tooltip's sum. A sum off by approval's share means the flat sum includes it; off by a factor,
-  the multiplier applies per line.
+- **A planet colony**: whether its variables land on the planet (`planets.planet.<id>.variables`,
+  which `save.ts` reads). **Do:** once there is one, find `sdash_stab_add` in a save.
+- **A stability multiplier** (`planet_stability_mult`, 0 so far): assumed to scale the whole sum.
+  **Do:** when one applies (an edict, a situation stage), hover the stability of a colony at the
+  cap. **Send:** the screenshot and the date.
+
+### 23. Colony jobs by day — colony page, companion mod 0.9.0 (from 2026-10-31)
+
+**Unverified.** The mod logs a colony's `free_jobs`, `num_unemployed` and `num_sapient_pops` on
+each day one changes; the dashboard reads unemployed as civilians and pops − unemployed as
+employed. Assumed: those triggers count what the save's `civilian`, `employable_pops` and open
+positions (`max_workforce − workforce`) count — `free_jobs` may include the enforcer posts the
+dashboard leaves out under crime automation (`openJobs()`), which would show as a jump at each save.
+
+- **Do:** with the mod at 0.9.0, queue a building with jobs on the arkship; on the day it finishes
+  and the few days after, hover the colony's jobs and pops in the game; a manual save on one of
+  those days.
+- **Send:** the screenshots with their dates, the save. Check: the `colony-jobs` lines in
+  `logs/game.log` against the game's numbers, and the Pops chart's tick days against the saves'.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
