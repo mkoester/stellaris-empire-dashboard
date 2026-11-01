@@ -5,7 +5,7 @@ import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
-import { colonyDaySeries, colonySeries, xExtent } from '#lib/series.ts';
+import { colonyDaySeries, colonyPopSeries, colonySeries, xExtent } from '#lib/series.ts';
 import type { Colony } from '#lib/types.ts';
 import { uncappedStability, wellbeingRules } from '#lib/wellbeing.ts';
 import { jobOutput, LUXURY_MODIFIER, luxuryWhatIf } from '#lib/luxuries.ts';
@@ -102,6 +102,8 @@ export function load({ url, params }) {
 				// enforcer posts left to crime automation do not count, as in the colony table
 				open: openJobs(c).open
 			})),
+			// as the all tab's Pops chart: pops and their monthly change by cause
+			popChange: colonyPopSeries(snaps, planetId),
 			// above the cap: how far, once the mod has read the colony (the right axis)
 			stability: colonySeries(snaps, planetId, {
 				stability: (c) => c.stability,

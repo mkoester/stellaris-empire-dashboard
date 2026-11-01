@@ -22,7 +22,11 @@ version's `CHANGELOG.md` section.
    (`… is on no tag` while it is on `develop`): check out `vX.Y.Z` in
    `../stellaris-data-extraction` for the build, back to `develop` after. To skip `/setup` (e.g. driving it with `curl`),
    write `<temp>/stellaris-empire-dashboard/config.json` = `{"gameDir": …, "userDir": …}` first and
-   start with `BROWSER=true`; the launcher prints its URL (checked 2026-10-31 for v0.1.4). The Windows zip on a Windows machine, the Mac zip for its architecture on a Mac (copy a few
+   start with `BROWSER=true`; the launcher prints its URL (checked 2026-10-31 for v0.1.4).
+   **Before tagging for real** (v0.1.8, 2026-11-01): clone both repos into `$TMPDIR`, commit the
+   pending changelog/pin there and make the tags in the clones only; give the dashboard clone a
+   **copy** of `node_modules` (`cp -a`, 168 MB) — a symlinked one makes the build's pnpm want to
+   reinstall (`ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`). The Windows zip on a Windows machine, the Mac zip for its architecture on a Mac (copy a few
    saves over; the game need not run there), when the launcher or packaging changed.
 5. `git checkout develop`, bump the patch in `package.json`, commit `chore: version bump (vX.Y.Z+1)`.
 6. Publish (by hand): `git push origin main develop`, then `git push origin vX.Y.Z` — the workflow
@@ -81,7 +85,10 @@ its `Unreleased` section.
    beta installed: `git archive vX.Y.Z | tar -x -C $TMPDIR/ext` from the extractor, then
    `python3 stellaris-extract.py <game dir> --out $TMPDIR/ext/b.sql --sqlite $TMPDIR/ext/b.sqlite`
    there (not `python3 -I`, which drops the script's folder from the path: `No module named
-'extractor'`), and read its `meta.game_version` and the civic and origin counts.
+'extractor'`), and read its `meta.game_version` and the civic and origin counts. Then extract the same beta
+   files with the extractor the last beta build pinned and compare the two SQLite files table by
+   table — tables and columns gone, row counts, NULLs per column: a change must be a gain
+   (v0.1.10 against v0.1.7 on 4.5.3 build 7793, 2026-11-01: one table more, ~40 names filled).
 2. On `open-beta`, once per beta: `"openBeta": "4.5.3"` in `package.json` (the game's beta
    version, as the release title shows it), committed.
 3. On `open-beta`, everything committed: `git tag vX.Y.Z-beta.N` (X.Y.Z = `package.json`'s

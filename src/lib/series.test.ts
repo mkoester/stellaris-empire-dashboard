@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
 	agendaSeries,
 	colonyDaySeries,
+	colonyPopSeries,
 	colonySeries,
 	gameMonth,
 	gameYear,
 	monthStarts,
+	popCause,
 	popSeries,
 	researchSeries,
 	resourceKeys,
@@ -20,7 +22,7 @@ import {
 	xExtent,
 	zoomWindow
 } from './series.ts';
-import type { Snapshot } from './types.ts';
+import type { Colony, Snapshot } from './types.ts';
 
 const s = (date: string, stockpile: Record<string, number>) =>
 	({ date, stockpile }) as unknown as Snapshot;
@@ -44,8 +46,52 @@ describe('series with mod-feed months', () => {
 	it('leaves gaps, not zeros, where a source does not report a value', () => {
 		const save = { date: '2200.01.01', pops: 10, income: { energy: 3 } } as unknown as Snapshot;
 		const log = { date: '2200.02.01', pops: null, income: null } as unknown as Snapshot;
-		expect(popSeries([save, log]).lines.pops).toEqual([10, null]);
+		expect(
+			popSeries([
+				{ ...save, colonies: [] },
+				{ ...log, colonies: [] }
+			]).lines.pops
+		).toEqual([10, null]);
 		expect(resourceSeries([save, log], (x) => x.income).lines.energy).toEqual([3, null]);
+	});
+});
+
+describe('pops and their monthly change', () => {
+	const colony = (planetId: number, pops: number, by: Record<string, number> | null) =>
+		({ planetId, pops, growth: by && { net: 0, by, byStratum: {} } }) as unknown as Colony;
+	const snap = (date: string, pops: number | null, colonies: Colony[]) =>
+		({ date, pops, colonies }) as unknown as Snapshot;
+	const history = [
+		snap('2200.01.01', 300, [
+			colony(1, 200, { growth: 3, emigration: -5, promotion: 0, species: 2 }),
+			colony(2, 100, { growth: 1, immigration: 7, colonization: 4 }) // 2 refugees
+		]),
+		snap('2200.02.01', null, []), // a mod-feed month
+		snap('2200.03.01', 320, [colony(1, 205, { growth: 2 }), colony(2, 115, null)])
+	];
+
+	it('sums the causes over the colonies, migration between them cancelling out', () => {
+		expect(popSeries(history).lines).toEqual({
+			pops: [300, null, 320],
+			'growth /mo': [4, null, 2],
+			'migration /mo': [2, null, 0],
+			'other /mo': [4, null, 0]
+		});
+	});
+
+	it('follows one colony, a gap where it is not ours; no line for a cause that never moved', () => {
+		expect(colonyPopSeries(history, 1).lines).toEqual({
+			pops: [200, null, 205],
+			'growth /mo': [3, null, 2],
+			'migration /mo': [-5, null, 0]
+		});
+	});
+
+	it('leaves out the causes that only regroup pops', () => {
+		expect(popCause('promotion')).toBeNull();
+		expect(popCause('ethics')).toBeNull();
+		expect(popCause('resettle')).toBe('migration');
+		expect(popCause('decline')).toBe('other');
 	});
 });
 

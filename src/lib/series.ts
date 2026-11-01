@@ -228,7 +228,76 @@ export const scalarSeries = (
 	pick: (s: Snapshot) => number | null
 ): Series => fieldSeries(history, { [label]: pick });
 
-export const popSeries = (history: Snapshot[]) => scalarSeries(history, 'pops', (s) => s.pops);
+// The save's monthly change in pops by cause (`GROWTH_CAT_…`, `Colony.growth.by`), grouped for
+// the Pops charts. Stratum, species, ethos and faction changes and group merges only move pops
+// between groups, so they are left out; refugees arrive as immigration. Migration between our own
+// colonies cancels out in the empire's sum, which leaves what came from or went to other empires.
+const POP_CAUSE: Record<string, string> = {
+	growth: 'growth',
+	assembly: 'assembly',
+	immigration: 'migration',
+	emigration: 'migration',
+	migration: 'migration',
+	resettle: 'migration'
+};
+const REGROUPING = new Set([
+	'promotion',
+	'collapse',
+	'species',
+	'species_mod',
+	'ethics',
+	'faction'
+]);
+const POP_GROUPS = ['growth', 'assembly', 'migration', 'other'];
+
+/** A `GROWTH_CAT_…` cause → its line on the Pops charts; null for one that only regroups pops. */
+export const popCause = (cause: string): string | null =>
+	REGROUPING.has(cause) ? null : (POP_CAUSE[cause] ?? 'other');
+
+/** The labels of the Pops charts' monthly change, drawn against the right axis. */
+export const POP_CHANGE_LINES = POP_GROUPS.map((g) => `${g} /mo`);
+
+/**
+ * Pops (left axis) and last month's change by cause (right axis), summed over the colonies `of`
+ * picks; null from `of` (not our colony then) or no colony with growth data (a mod-feed month)
+ * is a gap. A cause that never changed anything gets no line.
+ */
+function popChangeSeries(
+	history: Snapshot[],
+	of: (s: Snapshot) => { pops: number | null; colonies: Colony[] } | null
+): Series {
+	const picked = history.map(of);
+	const changes = picked.map((p) => {
+		const known = (p?.colonies ?? []).filter((c) => c.growth);
+		if (!known.length) return null;
+		const sum: Record<string, number> = {};
+		for (const c of known)
+			for (const [cause, v] of Object.entries(c.growth!.by)) {
+				const g = popCause(cause);
+				if (g) sum[g] = (sum[g] ?? 0) + v;
+			}
+		return sum;
+	});
+	const lines = POP_GROUPS.filter((g) => changes.some((ch) => ch?.[g])).map((g) => [
+		`${g} /mo`,
+		changes.map((ch) => (ch === null ? null : (ch[g] ?? 0)))
+	]);
+	return {
+		x: history.map((s) => gameYear(s.date)),
+		lines: { pops: picked.map((p) => p?.pops ?? null), ...Object.fromEntries(lines) }
+	};
+}
+
+/** The empire's Pops chart: its pops and their monthly change over all colonies. */
+export const popSeries = (history: Snapshot[]) =>
+	popChangeSeries(history, (s) => ({ pops: s.pops, colonies: s.colonies }));
+
+/** One colony's Pops chart, as the empire's. */
+export const colonyPopSeries = (history: Snapshot[], planetId: number) =>
+	popChangeSeries(history, (s) => {
+		const c = s.colonies.find((c) => c.planetId === planetId);
+		return c ? { pops: c.pops, colonies: [c] } : null;
+	});
 
 const RESEARCH = ['physics_research', 'society_research', 'engineering_research'];
 

@@ -19,6 +19,10 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   route id plus query and `page.params` (`here()` in `+layout.svelte`). It flags an external link
   with a dynamic `href={url}` too, but not one that starts with a literal scheme: store the address
   without it and write `href="https://{host}"` (the about tab).
+- **Svelte 5 trims whitespace at the start and end of an element**, so a Prettier-wrapped
+  `<span …>⏎ by {x}</span>` renders "by" glued to what precedes it (the about tab's credits,
+  2026-11-01). The lint refuses `{' '}` (`svelte/no-useless-mustaches`): put the space in an
+  expression, ``<span>{` by ${x}`}</span>``.
 - **A `{#snippet}` written directly inside a component's children becomes that component's prop**
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
@@ -1445,7 +1449,7 @@ shows format 2.
   `sdash_fj|un|pp`, and only when one differs from the last logged (`sdash_*_log`) a line
   `SDASH|2|<date>|event|colony-jobs|<colony>|<open jobs>|<unemployed>|<pops>` — an event line, so
   a dashboard without the kind skips it. `feed.ts` files it with its day (`Tick.colonies`, by
-  colony name), so it reaches the page live (the colony page's Pops chart title: "Pops —
+  colony name), so it reaches the page live (the colony page's Pops (jobs) chart title: "Pops (jobs) —
   <date>: … employed, … civilians, … open jobs") and is stored with the month; the Pops chart
   draws those days between the saves (`colonyDaySeries()`). **Broken in game (2026-10-31):**
   `num_sapient_pops` is no trigger, and the lines come out empty (`docs/open-checks.md` 23). Mod

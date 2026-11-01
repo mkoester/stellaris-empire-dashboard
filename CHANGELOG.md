@@ -11,6 +11,12 @@ All notable changes to this project are documented here. The format follows
 - A build for the Stellaris 4.5.3 open beta (Steam's `stellaris_test` branch): what 0.1.8 does,
   with the extractor v0.1.10, which reads 4.5.3's game files. The game data it extracts is kept
   per game build, so a beta and the release after it never share one.
+- Pops charts show last month's change on a second axis: growth, assembly, migration (refugees
+  arrive as immigration) and other causes. On the all tab migration between your own colonies
+  cancels out, which leaves what came from or went to other empires.
+- Growth tab: the Pops chart below the projection.
+- Colony tab: a Pops chart for the colony, with its monthly change, after Stability; the chart of
+  employed pops, civilians and open jobs is now "Pops (jobs)".
 
 ## [0.1.8] - 2026-11-01
 

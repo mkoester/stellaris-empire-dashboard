@@ -15,6 +15,7 @@
 	import PlanetInfo from '#lib/panels/PlanetInfo.svelte';
 	import { automationRows } from '#lib/automation.ts';
 	import { net } from '#lib/flows.ts';
+	import { POP_CHANGE_LINES } from '#lib/series.ts';
 	import { fmt, nameOf, pretty } from '#lib/format.ts';
 	import { followBranch, followGame, followTicks } from '#lib/live.ts';
 	import type { ColonyDay } from '#lib/types.ts';
@@ -164,8 +165,8 @@
 		{/if}
 		<Chart
 			title={live
-				? `Pops — ${live.date}: ${fmt(live.day.pops - live.day.unemployed)} employed, ${fmt(live.day.unemployed)} civilians, ${fmt(live.day.openJobs)} open jobs`
-				: 'Pops'}
+				? `Pops (jobs) — ${live.date}: ${fmt(live.day.pops - live.day.unemployed)} employed, ${fmt(live.day.unemployed)} civilians, ${fmt(live.day.openJobs)} open jobs`
+				: 'Pops (jobs)'}
 			series={data.charts.pops}
 			extent={data.xExtent}
 			events={planetEvents}
@@ -180,6 +181,15 @@
 			scope="colony"
 			right={['over 100']}
 			rightFloor={10}
+		/>
+		<Chart
+			title="Pops"
+			series={data.charts.popChange}
+			extent={data.xExtent}
+			events={planetEvents}
+			scope="colony"
+			right={POP_CHANGE_LINES}
+			rightFloor={5}
 		/>
 		<Chart
 			title="Pops per month: growth and migration"
