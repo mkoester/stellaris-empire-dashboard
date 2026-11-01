@@ -13,6 +13,10 @@
 			what: 'the rings and quadrants on the galaxy maps'
 		},
 		{
+			name: 'Ideal System Locator (formerly Arc Furnace System Locator +)',
+			what: 'large portions of the megastructures tab'
+		},
+		{
 			name: 'In-Game Settings View',
 			what: 'showing the galaxy settings the game was created with (galaxy tab)'
 		},

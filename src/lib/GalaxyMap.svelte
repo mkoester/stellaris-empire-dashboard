@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { page } from '$app/state';
-	import { autoRings, ringRadii, sectors as sectorLines } from './quadrants.ts';
+	import { autoRings, crossReach, ringRadii, sectors as sectorLines } from './quadrants.ts';
 	import { claimRadius, outlines, REACH, type Site } from './borders.ts';
 	import {
 		fit,
@@ -82,6 +82,7 @@
 		arkships?: Arkship[];
 	} = $props();
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
+	const uid = $props.id(); // several maps on a page: their gradients' ids
 
 	// Rings and sectors around the core (#lib/quadrants.ts): the profile's choice and the
 	// campaign's radii come with the layout's data, so every map draws them alike.
@@ -440,7 +441,21 @@
 						{#if quadrants && cross}
 							{@const c = at({ x: 0, y: 0 })}
 							{@const [r0, r1] = [quadrants.inner * v.k, quadrants.outer * v.k]}
+							{@const r2 = r1 + crossReach(quadrants.outer) * v.k}
 							<g class="pointer-events-none text-gray-500" aria-hidden="true">
+								<!-- the cross reaches past the outer ring, fading out -->
+								<defs>
+									<radialGradient
+										id="{uid}-cross"
+										gradientUnits="userSpaceOnUse"
+										cx={c.x}
+										cy={c.y}
+										r={r2}
+									>
+										<stop offset={r1 / r2} stop-color="currentColor" />
+										<stop offset="1" stop-color="currentColor" stop-opacity="0" />
+									</radialGradient>
+								</defs>
 								{#each radii as r (r)}
 									<circle
 										cx={c.x}
@@ -457,9 +472,9 @@
 									<line
 										x1={c.x + d.x * r0}
 										y1={c.y + d.y * r0}
-										x2={c.x + d.x * r1}
-										y2={c.y + d.y * r1}
-										stroke="currentColor"
+										x2={c.x + d.x * r2}
+										y2={c.y + d.y * r2}
+										stroke="url(#{uid}-cross)"
 										stroke-opacity="0.13"
 										stroke-width="6"
 									/>

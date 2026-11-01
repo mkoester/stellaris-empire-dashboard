@@ -11,15 +11,16 @@ All notable changes to this project are documented here. The format follows
 - Maps: rings around the galactic core — just inside the innermost system, just outside the
   outermost, and evenly spaced ones between (by galaxy size, or how many you pick) — and a cross
   dividing the galaxy into 4, 8 or 16 sectors named by compass direction (NE, SE, SW, NW, or turned
-  by half a sector: N, E, S, W). On by default; ⚙ → "Map rings and quadrants". Inspired by the mod
-  Quadrant Fixed.
+  by half a sector: N, E, S, W), reaching a little past the galaxy and fading out. On by default
+  (a large galaxy: 2 rings between); ⚙ → "Map rings and quadrants". Inspired by the mod Quadrant
+  Fixed.
 - Galaxy tab: the settings the galaxy was created with, grouped as on the game's setup screen.
   Inspired by the mod In-Game Settings View. Saves still on disk are read again once.
 - A tab with nothing to show yet has its name dimmed, and its tooltip says why (migration, trade
   deals, galcom, shroud, diplomacy, situations). It stays a link.
 - History tab: the galaxy's known history since 2200 — a map of who held which system at the
   month picked, and the events up to it (colonies, systems claimed or taken, communications,
-  guardians slain, wars). You know your own history, all of an empire's once you talk to it — back
+  guardians slain, wars), the events beside the map with "wide + table". You know your own history, all of an empire's once you talk to it — back
   to the start —, whoever held a system you have been to, and guardians' falls. A cheat in ⚙ shows
   everything. Saves still on disk are read again once.
 - Subjects tab: your subject agreements, the branch offices and holdings you own or that sit on

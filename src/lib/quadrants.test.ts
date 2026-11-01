@@ -26,7 +26,7 @@ describe('galaxyRadii', () => {
 
 describe('rings', () => {
 	it('a large galaxy (113 … 470) gets 3 between; a small band at least 1', () => {
-		expect(autoRings(104, 480)).toBe(3);
+		expect(autoRings(104, 480)).toBe(2); // a large galaxy
 		expect(autoRings(50, 120)).toBe(1);
 	});
 	it('are equidistant from inner to outer', () => {

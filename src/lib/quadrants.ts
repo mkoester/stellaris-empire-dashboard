@@ -47,9 +47,12 @@ export function galaxyRadii(points: Point[]): { inner: number; outer: number } |
 	return { inner: Math.max(0, min - pad), outer: max + pad };
 }
 
-/** Rings between by default: about one per 100 galaxy units of the band (a large galaxy: 3). */
+/** Rings between by default: about one per 130 galaxy units of the band (a large galaxy: 2). */
 export const autoRings = (inner: number, outer: number) =>
-	Math.max(1, Math.round((outer - inner) / 100) - 1);
+	Math.max(1, Math.round((outer - inner) / 130) - 1);
+
+/** How far the cross reaches past the outer ring, fading out on the way. */
+export const crossReach = (outer: number) => outer * 0.12;
 
 /** Every ring's radius, inner to outer, with `between` equidistant ones in the band. */
 export function ringRadii(inner: number, outer: number, between: number): number[] {
