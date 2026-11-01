@@ -199,7 +199,10 @@ loc in colony scope cannot reach them (its promotions are Owner, System, Sector,
 values match the save: `pop_amount` 5814 = `num_sapient_pops`, no civilians, and `free_jobs` 286 =
 the farmers' open workforce — the enforcers' 100 open are **not** in it (so it agrees with
 `openJobs()` under crime automation, and the unit is workforce). Fixed by logging inside
-`carrier = { }`; **not yet seen in a log.** Lines fired on 3 of 52 days (only on a change).
+`carrier = { }` — **seen 2026-11-01**: `SDASH|2|2207.02.02|event|colony-jobs|Peshnab the
+Faithful|279|0|5821` (7 more pops, 7 fewer open workforce than the save's 286 / 5814 at 02.01),
+no `sdash` error. Lines fire only on a change (3 of 52 days before; none 2207.01.10–02.01, the
+values unchanged). Still open below: the numbers against the game's own tooltips.
 
 **Earlier fix:** `num_sapient_pops` is a save field, not a trigger; the mod
 now exports `pop_amount` (vanilla's `trigger:pop_amount`). Why `sdash_fj` and `sdash_un` came out
