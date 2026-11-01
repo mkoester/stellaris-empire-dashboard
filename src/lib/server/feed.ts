@@ -330,6 +330,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		entryEvents: null,
 		founderClass: null,
 		shipset: null,
+		galaxySetup: null,
 		speciesRights: null
 	};
 }

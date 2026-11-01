@@ -1,4 +1,5 @@
 import { bypassLinks, distances, graph, type Graph } from '#lib/galaxyGraph.ts';
+import { readSetup } from '#lib/galaxySetup.ts';
 import { Jomini } from 'jomini';
 import type {
 	Arkship,
@@ -110,7 +111,7 @@ export type RawSave = {
 	archSites: Record<string, Raw>; // archaeological_sites.sites
 	focusCards: Record<string, Raw>; // top-level focus_cards
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
-	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`; `difficulty`, `technology_difficulty_scale`
+	galaxy: Raw; // the galaxy setup block: cost sliders `technology`, `traditions`, `difficulty`, every other setting
 	leaders: Record<string, Raw>;
 	monthlyTrades: Raw; // market.monthly_trades: every country's standing orders
 	market: Raw; // market: price fluctuations, galactic and internal
@@ -258,12 +259,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			bypasses: q.at('/bypasses') ?? {},
 			naturalWormholes: q.at('/natural_wormholes') ?? {},
 			globalFlags: q.at('/flags') ?? {},
-			galaxy: {
-				technology: q.at('/galaxy/technology'),
-				traditions: q.at('/galaxy/traditions'),
-				difficulty: q.at('/galaxy/difficulty'),
-				technology_difficulty_scale: q.at('/galaxy/technology_difficulty_scale')
-			},
+			// the whole setup block: the cost sliders here, every setting for the galaxy tab
+			galaxy: q.at('/galaxy') ?? {},
 			councilPositions: q.at('/council_positions/council_positions') ?? {},
 			countries,
 			fleetOwner,
@@ -277,7 +274,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '41'; // 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '42'; // 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -431,6 +428,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		entryEvents: systemEntries(raw),
 		founderClass: strOrNull(raw.speciesDb[String(raw.country?.founder_species_ref)]?.class),
 		shipset: strOrNull(raw.country?.graphical_culture),
+		galaxySetup: readSetup(raw.galaxy),
 		speciesRights: speciesRights(raw.country),
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),

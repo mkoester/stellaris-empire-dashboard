@@ -7,6 +7,7 @@ import type { MapFilter } from './mapLayers.ts';
 import type { MegaView } from './megastructures.ts';
 import type { SystemView } from './systems.ts';
 import type { ProduceView } from './produce.ts';
+import type { QuadrantView } from './quadrants.ts';
 import type { Display } from './profiles.ts';
 import { KIND_IDS, type EventKind } from './milestones.ts';
 
@@ -158,6 +159,7 @@ export async function putSettings(patch: {
 	systemView?: SystemView;
 	produceView?: ProduceView;
 	mapFilter?: MapFilter;
+	quadrants?: QuadrantView;
 	display?: Display;
 }) {
 	const r = await fetch(api('/api/settings'), {

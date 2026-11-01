@@ -331,9 +331,14 @@ left, net per month right (`resourcePanelSeries()`) — and the latest save's mo
 what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
 `trade-offs` (only with its switch, below) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `ethics`, `situations`, `shroud` (patrons and attunement), `focus`,
-`traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `megastructures` (all below), `mods` and
-`dlc` (last; see
-"DLCs and mods" below); tabs keep `?node=`. **Every list is a `SortTable.svelte`** (the user's ask
+`traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `megastructures` (all below), `galaxy` (the galaxy setup, below), `mods`,
+`dlc` (see "DLCs and mods" below) and `about` (last: thanks to the mods, projects and libraries the
+dashboard learned from — **a feature inspired by a mod gets its line there**); tabs keep `?node=`.
+**A tab with nothing to show yet is dimmed** (the user's ask 2026-11-01; `#lib/tabData.ts` pure,
+`emptyTabsAt()` per tip in the layout): migration, trade deals, galcom, shroud, diplomacy and
+situations, each while no snapshot of the branch holds its data — its title says why, it stays a
+link. A tab whose field no snapshot knows (an older reader's null) is unknown, never dimmed; a new
+check goes into `CHECKS`. **Every list is a `SortTable.svelte`** (the user's ask
 2026-10-23: "make all tables sortable"; columns as `Column<T>` from `#lib/sort.ts`; `sort={{
 column: '', desc: false }}` keeps the given order — the game's, a queue's — until a header is
 clicked; `rowClass`/`rowStyle` set a row apart, `below` adds a details line under each row). Left
@@ -535,6 +540,29 @@ while a nomad cannot settle, its title naming what is missing; still a link. **F
 is named "settle"** (the user's call 2026-11-01: settling is no expansion), the route stays
 `/expansion` (`settleTab()` in the layout, per tip). A settled empire's tab is "expansion", never
 dimmed.
+
+**Galaxy tab** (`/galaxy`, `#lib/galaxySetup.ts` pure; the user's ask 2026-11-01, after the mod
+In-Game Settings View): the save's whole `galaxy` block (`Snapshot.galaxySetup`, READER 42; the
+cost sliders and difficulty read from it as before), grouped as the setup screen's categories
+(4.5.x `common/gamesetup_settings/gamesetup_settings.txt`: Gameplay, Galaxy, Empires, Precursors,
+Game Length, DLC), keys we do not know under "Other". The save's keys differ from the setup
+screen's tokens (`template` = galaxy_size, `shape`, `habitability` = colonizable_planet_odds,
+`primitive` = primitive_odds, `logistic_ceiling_v2`); labels are the localisation's where it has
+one (`NUM_HYPERLANES` "Hyperlane Density"), else ours — the dashboard is English only. Disabled
+precursors are named from the data DB's `precursor` (empty without the table). Years are after
+2200 (`mid_game_start=100` → 2300). Not yet compared with the game's own setup screen.
+
+**Map rings and quadrants** (`#lib/quadrants.ts` pure, `server/quadrants.ts`; the user's ask
+2026-11-01, after the mod Quadrant Fixed): every `GalaxyMap` draws them from the layout's
+`quadrants` (`page.data`, so no page passes them) — the profile's `quadrants` setting (⚙: on by
+default, rings between by galaxy size — about one per 100 units of the band — or 0–10, 4/8/16
+sectors, the cross turned by half a sector) and the campaign's radii. **The core is the galaxy's
+origin**: the innermost system of Roaming Korinth's large galaxy sat at 113 from it, the save's
+`galaxy.core_radius` 112.5. Inner ring 2 % of the outer radius inside the innermost system, outer
+2 % outside the outermost — of the systems on the main hyperlane network, not the L-Cluster
+(`mainNetwork()`; 2207.02.01: 104 → 480, the two systems at 488 and 524 off the network left
+out). Every star is shown from the start, so the radii reveal nothing. Directions are the map's as
+drawn (north up, x mirrored: `bearing()`). Drawn only in a browser — not seen yet.
 
 **Milestones** (`#lib/milestones.ts`, pure): the campaign's bigger events — systems, colonies
 (colonization started / established / gained / lost), districts built and buildings done per

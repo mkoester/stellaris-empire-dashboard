@@ -2,6 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { ROW_LINES, type Display, type RowLine } from '#lib/profiles.ts';
+	import { MAX_RINGS, SECTOR_COUNTS, type QuadrantView, type SectorCount } from '#lib/quadrants.ts';
 	import { campaignAction, profileAction, putSettings } from '#lib/settings.ts';
 
 	let { data } = $props();
@@ -100,6 +101,10 @@
 
 	let failure = $state('');
 	// every change reloads the page data (and the layout's tab bar, which shows the profile)
+	// every map's rings and sectors, stored whole
+	const setQuadrants = (patch: Partial<QuadrantView>) =>
+		act(() => putSettings({ quadrants: { ...data.quadrants, ...patch } }));
+
 	const act = async (f: () => Promise<unknown>) => {
 		failure = '';
 		try {
@@ -243,6 +248,54 @@
 				{#if note}<span class="text-gray-500">({note})</span>{/if}</label
 			>
 		{/each}
+	</section>
+	<section>
+		<h2 class="mb-1 text-xl font-semibold">Map rings and quadrants</h2>
+		<p class="mb-1 text-gray-500">
+			Rings around the galactic core — one just inside the innermost system, one just outside the
+			outermost (special systems such as the L-Cluster may lie beyond it) — and a cross dividing the
+			galaxy into sectors, on every map.
+		</p>
+		<label class="block"
+			><input
+				type="checkbox"
+				checked={data.quadrants.on}
+				onchange={(e) => setQuadrants({ on: e.currentTarget.checked })}
+			/> show them</label
+		>
+		<label class="mt-2 block"
+			>rings in between
+			<select
+				class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+				value={data.quadrants.rings === null ? 'auto' : String(data.quadrants.rings)}
+				onchange={(e) =>
+					setQuadrants({
+						rings: e.currentTarget.value === 'auto' ? null : Number(e.currentTarget.value)
+					})}
+			>
+				<option value="auto">by galaxy size</option>
+				{#each Array.from({ length: MAX_RINGS + 1 }, (_, i) => i) as n (n)}<option value={String(n)}
+						>{n}</option
+					>{/each}
+			</select></label
+		>
+		<label class="mt-2 block"
+			>sectors
+			<select
+				class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+				value={String(data.quadrants.sectors)}
+				onchange={(e) => setQuadrants({ sectors: Number(e.currentTarget.value) as SectorCount })}
+			>
+				{#each SECTOR_COUNTS as n (n)}<option value={String(n)}>{n}</option>{/each}
+			</select></label
+		>
+		<label class="mt-2 block"
+			><input
+				type="checkbox"
+				checked={data.quadrants.rotated}
+				onchange={(e) => setQuadrants({ rotated: e.currentTarget.checked })}
+			/> cross turned by half a sector (4 sectors: N, E, S, W instead of NE, SE, SW, NW)</label
+		>
 	</section>
 	<section>
 		<h2 class="mb-1 text-xl font-semibold">Games</h2>

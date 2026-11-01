@@ -8,6 +8,16 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Maps: rings around the galactic core — just inside the innermost system, just outside the
+  outermost, and evenly spaced ones between (by galaxy size, or how many you pick) — and a cross
+  dividing the galaxy into 4, 8 or 16 sectors named by compass direction (NE, SE, SW, NW, or turned
+  by half a sector: N, E, S, W). On by default; ⚙ → "Map rings and quadrants". Inspired by the mod
+  Quadrant Fixed.
+- Galaxy tab: the settings the galaxy was created with, grouped as on the game's setup screen.
+  Inspired by the mod In-Game Settings View. Saves still on disk are read again once.
+- A tab with nothing to show yet has its name dimmed, and its tooltip says why (migration, trade
+  deals, galcom, shroud, diplomacy, situations). It stays a link.
+- About tab: thanks to the mods, projects and libraries this dashboard learned from or builds on.
 - Wide maps: every galaxy map has a `width` switch — `wide` uses the browser window's full
   width, `wide + table` puts the map's table beside it (map tab: Found; systems; megastructures;
   first contacts). One choice for all maps, remembered in this browser.

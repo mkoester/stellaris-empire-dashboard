@@ -3,6 +3,7 @@ import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
+import type { GalaxySetup } from './galaxySetup.ts';
 import type { AiWeight } from './votes.ts';
 
 export type Resources = Record<string, number>;
@@ -465,6 +466,7 @@ export type Snapshot = {
 	// its shipset (`graphical_culture`): which ship kinds it builds (`GameData.shipKinds`) —
 	// `biogenesis_02` builds bio ships, and researches their hulls; since READER 40
 	shipset: string | null;
+	galaxySetup: GalaxySetup | null; // the settings the galaxy was created with; since READER 42
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
@@ -1088,6 +1090,7 @@ export type GameData = {
 		{ name: string; traditions: { key: string; name: string; role: string }[] }
 	>;
 	perks: Record<string, string>; // ascension perk names
+	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
 	// shipset → the ship kinds it builds (data DB `graphical_culture`): `uses_ship_category`
 	shipKinds: Record<string, string[]>;
 	// who can ever take a perk (`potential`) and what taking it needs (`possible`), normalised

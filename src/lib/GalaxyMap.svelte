@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
+	import { page } from '$app/state';
+	import { autoRings, ringRadii, sectors as sectorLines } from './quadrants.ts';
 	import { claimRadius, outlines, REACH, type Site } from './borders.ts';
 	import {
 		fit,
@@ -80,6 +82,27 @@
 		arkships?: Arkship[];
 	} = $props();
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
+
+	// Rings and sectors around the core (#lib/quadrants.ts): the profile's choice and the
+	// campaign's radii come with the layout's data, so every map draws them alike.
+	const quadrants = $derived(page.data.quadrants?.view.on ? page.data.quadrants : null);
+	const radii = $derived(
+		quadrants
+			? ringRadii(
+					quadrants.inner,
+					quadrants.outer,
+					quadrants.view.rings ?? autoRings(quadrants.inner, quadrants.outer)
+				)
+			: []
+	);
+	const cross = $derived(
+		quadrants ? sectorLines(quadrants.view.sectors, quadrants.view.rotated) : null
+	);
+	// a bearing (clockwise from north) as a screen direction: north is up
+	const dir = (deg: number) => ({
+		x: Math.sin((deg * Math.PI) / 180),
+		y: -Math.cos((deg * Math.PI) / 180)
+	});
 
 	// our territory split into its sectors: a per-viewer switch, off by default
 	let sectors = $state(false);
@@ -414,6 +437,47 @@
 						oncontextmenu={menu}
 						onpointercancel={() => (drag = null)}
 					>
+						{#if quadrants && cross}
+							{@const c = at({ x: 0, y: 0 })}
+							{@const [r0, r1] = [quadrants.inner * v.k, quadrants.outer * v.k]}
+							<g class="pointer-events-none text-gray-500" aria-hidden="true">
+								{#each radii as r (r)}
+									<circle
+										cx={c.x}
+										cy={c.y}
+										r={r * v.k}
+										fill="none"
+										stroke="currentColor"
+										stroke-opacity="0.13"
+										stroke-width="6"
+									/>
+								{/each}
+								{#each cross.lines.flatMap((b) => [b, b + 180]) as b (b)}
+									{@const d = dir(b)}
+									<line
+										x1={c.x + d.x * r0}
+										y1={c.y + d.y * r0}
+										x2={c.x + d.x * r1}
+										y2={c.y + d.y * r1}
+										stroke="currentColor"
+										stroke-opacity="0.13"
+										stroke-width="6"
+									/>
+								{/each}
+								{#each cross.middles as m (m.deg)}
+									{@const d = dir(m.deg)}
+									<text
+										x={c.x + d.x * (r1 + 14)}
+										y={c.y + d.y * (r1 + 14)}
+										fill="currentColor"
+										fill-opacity="0.6"
+										font-size="12"
+										text-anchor="middle"
+										dominant-baseline="middle">{m.name}</text
+									>
+								{/each}
+							</g>
+						{/if}
 						{#each [...territoryOutlines] as [key, rs] (key)}
 							{@const t = territoryOf.get(key)!}
 							<path

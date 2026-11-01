@@ -104,6 +104,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	entryEvents: null,
 	founderClass: null,
 	shipset: null,
+	galaxySetup: null,
 	speciesRights: null,
 	timelineId: null,
 	previousTimelineId: null,

@@ -7,6 +7,7 @@ import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
 import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
+import { DEFAULT_QUADRANT_VIEW, parseQuadrantView, type QuadrantView } from './quadrants.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
 // Profiles: named sets of viewer settings — one per playstyle or play-through. Everything but the
@@ -73,6 +74,7 @@ export type ProfileSettings = {
 	systemView: SystemView;
 	produceView: ProduceView;
 	mapFilter: MapFilter;
+	quadrants: QuadrantView; // every map's rings and sectors
 	display: Display;
 };
 export type ProfileInfo = { id: string; name: string };
@@ -88,6 +90,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	megastructureView: DEFAULT_MEGA_VIEW,
 	systemView: DEFAULT_SYSTEM_VIEW,
 	produceView: DEFAULT_PRODUCE_VIEW,
+	quadrants: DEFAULT_QUADRANT_VIEW,
 	mapFilter: DEFAULT_MAP_FILTER,
 	display: DEFAULT_DISPLAY
 };
@@ -137,6 +140,7 @@ export function parseSettings(v: unknown): ProfileSettings {
 		systemView: parseSystemView(o.systemView),
 		produceView: parseProduceView(o.produceView),
 		mapFilter: parseMapFilter(o.mapFilter),
+		quadrants: parseQuadrantView(o.quadrants),
 		display: parseDisplay(o.display)
 	};
 }

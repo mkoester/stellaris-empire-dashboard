@@ -166,6 +166,11 @@
 			active: path === '/megastructures'
 		},
 		{
+			name: 'galaxy',
+			href: node ? resolve(`/galaxy?node=${node}`) : resolve('/galaxy'),
+			active: path === '/galaxy'
+		},
+		{
 			name: 'mods',
 			href: node ? resolve(`/mods?node=${node}`) : resolve('/mods'),
 			active: path === '/mods'
@@ -174,6 +179,11 @@
 			name: 'dlc',
 			href: node ? resolve(`/dlc?node=${node}`) : resolve('/dlc'),
 			active: path === '/dlc'
+		},
+		{
+			name: 'about',
+			href: node ? resolve(`/about?node=${node}`) : resolve('/about'),
+			active: path === '/about'
 		}
 	];
 	const fixed = $derived(tabsAt(node));
@@ -269,11 +279,11 @@
 			{/each}
 			{#each fixed as t (t.name)}
 				{@const settle = t.name === 'expansion' && data.settle.nomad}
-				{@const dim = settle && data.settle.blocked}
-				<a
-					class="{tab(t.active)} {dim ? 'opacity-50' : ''}"
-					href={t.href}
-					title={dim ? `not yet usable in game: settling needs ${data.settle.blocked}` : undefined}
+				{@const dim =
+					settle && data.settle.blocked
+						? `not yet usable in game: settling needs ${data.settle.blocked}`
+						: data.empty[t.name] && `nothing to show yet: ${data.empty[t.name]}`}
+				<a class="{tab(t.active)} {dim ? 'opacity-50' : ''}" href={t.href} title={dim || undefined}
 					>{settle ? 'settle' : t.name}{#if t.name === 'planner' && data.plan.alerts}<span
 							class="ml-1 rounded bg-red-600 px-1 text-[11px] font-semibold text-white"
 							title="goals no longer possible, or avoided ones that happened"

@@ -23,6 +23,7 @@ import {
 	activeProfile,
 	chartEvents,
 	display,
+	quadrantView,
 	tabs,
 	theme,
 	viewedCampaign
@@ -30,6 +31,9 @@ import {
 import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
 import { settleTab } from '#lib/server/settle.ts';
+import { emptyTabsAt } from '#lib/server/tabData.ts';
+import { galaxyRings } from '#lib/server/quadrants.ts';
+import type { QuadrantView } from '#lib/quadrants.ts';
 import type { ChartEvents, CustomTab } from '#lib/settings.ts';
 
 export function load({ url }) {
@@ -51,7 +55,9 @@ export function load({ url }) {
 			gameVersion: null,
 			dates: null,
 			plan: { keys: [] as string[], alerts: 0, unavailable: [] as string[] },
-			settle: { nomad: false, blocked: null as string | null }
+			settle: { nomad: false, blocked: null as string | null },
+			empty: {} as Record<string, string>,
+			quadrants: null as { view: QuadrantView; inner: number; outer: number } | null
 		};
 	const db = getDb();
 	// the node the page shows: `?node=` when it exists, else the head
@@ -95,6 +101,13 @@ export function load({ url }) {
 		plan: planSummary(shownNode()),
 		// a nomad's expansion tab is "settle", dimmed (naming what is missing) until it can
 		settle: settleTab(shownNode()),
+		// tabs with nothing to show yet along the branch: dimmed, their title saying why
+		empty: emptyTabsAt(shownNode()),
+		// every map's rings and sectors (GalaxyMap reads them from the page data)
+		quadrants: (() => {
+			const r = galaxyRings(campaign);
+			return r && { view: quadrantView(), ...r };
+		})(),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
 		// the game being played: its latest save, and its latest data (a save, month or daily tick)

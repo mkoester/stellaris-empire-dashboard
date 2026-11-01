@@ -73,6 +73,7 @@ const data: GameData = {
 	blockerInfo: {},
 	traditionTrees: {},
 	perks: {},
+	precursors: {},
 	perkTrees: {},
 	perkRules: {},
 	shipKinds: {},
