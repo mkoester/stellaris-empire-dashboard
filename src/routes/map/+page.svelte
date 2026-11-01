@@ -187,30 +187,6 @@
 	</datalist>
 </div>
 
-<div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-	{#each MAP_LAYERS as l (l)}
-		<label class="flex items-center gap-1"
-			><input type="checkbox" checked={on(l)} onchange={() => toggle(l)} />
-			<span style:color={LAYER_INFO[l].color}>{LAYER_INFO[l].symbol}</span>
-			{LAYER_INFO[l].label} <span class="text-gray-500">{count(l)}</span></label
-		>
-	{/each}
-</div>
-
-{#if data.wanderlust && on('wanderlust')}
-	<p
-		class="mb-3 text-sm"
-		title="the arkship counts a target system once, on entering it; the game asks for 80 % of each category's systems"
-	>
-		<span style:color={LAYER_INFO.wanderlust.color}>{LAYER_INFO.wanderlust.symbol}</span>
-		Wanderlust{#if data.wanderlust.complete}: every category explored{:else}:
-			{#each data.wanderlust.categories as c, i (c.key)}{i ? ' · ' : ''}<span
-					class={c.done ? 'text-green-700 dark:text-green-500' : ''}
-					>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ''}</span
-				>{/each}{/if}
-	</p>
-{/if}
-
 <div class="flex flex-col gap-6">
 	<Panel
 		title="Discovered galaxy"
@@ -233,6 +209,31 @@
 			bind:this={map}
 			onsystemmenu={systemMenu}
 		>
+			{#snippet legend()}
+				<div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+					{#each MAP_LAYERS as l (l)}
+						<label class="flex items-center gap-1"
+							><input type="checkbox" checked={on(l)} onchange={() => toggle(l)} />
+							<span style:color={LAYER_INFO[l].color}>{LAYER_INFO[l].symbol}</span>
+							{LAYER_INFO[l].label} <span class="text-gray-500">{count(l)}</span></label
+						>
+					{/each}
+				</div>
+
+				{#if data.wanderlust && on('wanderlust')}
+					<p
+						class="mb-3 text-sm"
+						title="the arkship counts a target system once, on entering it; the game asks for 80 % of each category's systems"
+					>
+						<span style:color={LAYER_INFO.wanderlust.color}>{LAYER_INFO.wanderlust.symbol}</span>
+						Wanderlust{#if data.wanderlust.complete}: every category explored{:else}:
+							{#each data.wanderlust.categories as c, i (c.key)}{i ? ' · ' : ''}<span
+									class={c.done ? 'text-green-700 dark:text-green-500' : ''}
+									>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ''}</span
+								>{/each}{/if}
+					</p>
+				{/if}
+			{/snippet}
 			{#snippet layer(at)}
 				{#each [...bySystem] as [id, list] (id)}
 					{@const s = byId.get(id)}

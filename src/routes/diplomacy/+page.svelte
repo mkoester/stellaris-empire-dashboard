@@ -476,7 +476,8 @@
 		</div>
 	</div>
 
-	<Panel title="Relations graph">
+	<!-- beside the map when the viewer picks "wide + legend", above the graph otherwise -->
+	{#snippet relationsLegend()}
 		<div class="mb-3 flex flex-col gap-1 text-xs">
 			<div class="flex flex-wrap items-center gap-1">
 				<span class="w-16 text-gray-500">relations</span>
@@ -549,6 +550,10 @@
 				>
 			</div>
 		</div>
+	{/snippet}
+
+	<Panel title="Relations graph">
+		{#if view.layout !== 'map'}{@render relationsLegend()}{/if}
 		{#if view.layout === 'map'}
 			<GalaxyMap
 				systems={data.systems}
@@ -560,6 +565,7 @@
 					}
 				]}
 				heightKey="diplomacy-map-height"
+				legend={relationsLegend}
 				label="Relations on the galaxy map"
 				bind:selected={
 					() => (focus === null ? null : (data.capitals[focus] ?? null)),

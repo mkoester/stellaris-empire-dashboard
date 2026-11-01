@@ -1,7 +1,17 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
 	import { claimRadius, outlines, REACH, type Site } from './borders.ts';
-	import { fit, pan, toScreen, zoomAt, type Point, type View } from './mapView.ts';
+	import {
+		fit,
+		MAP_WIDTH_KEY,
+		pan,
+		parseMapWidth,
+		toScreen,
+		zoomAt,
+		type MapWidth,
+		type Point,
+		type View
+	} from './mapView.ts';
 	import type { Territory } from './territories.ts';
 
 	// A galaxy map in screen pixels: hyperlanes and systems (own ones tinted, or filled by `fill`),
@@ -10,6 +20,7 @@
 	// (bindable) is the system under the pointer, here or in a table beside: it gets a ring. Binding
 	// `selected` makes a click (not a drag) pick the system under the pointer, again to unpick; the
 	// picked one keeps a ring of its own. `territories` are drawn as empire borders (#lib/borders.ts).
+	// `legend` is the page's legend: above the map, or beside it when the viewer picks "wide + legend".
 	type System = Point & {
 		id: number;
 		name: string;
@@ -29,6 +40,7 @@
 		heightKey,
 		label = 'Galaxy map',
 		layer,
+		legend,
 		territories = [],
 		hovered = $bindable(null),
 		selected = $bindable(),
@@ -42,6 +54,7 @@
 		heightKey: string; // localStorage key for the height
 		label?: string;
 		layer?: Snippet<[(p: Point) => Point, number]>; // transform, scale (px per galaxy unit)
+		legend?: Snippet;
 		territories?: Territory[];
 		hovered?: number | null;
 		selected?: number | null;
@@ -106,12 +119,32 @@
 	let outer = $state(0);
 	let w = $state(0);
 	let h = $state(0);
+	// The width is one choice for every map, per viewer: in the page, the browser's full width
+	// (`vw`, the window without its scrollbar), or that with the legend beside the map.
+	let width: MapWidth = $state('normal');
+	let vw = $state(0);
+	const full = $derived(width !== 'normal' && vw > 0);
+	const setWidth = (m: MapWidth) => {
+		width = m;
+		try {
+			localStorage.setItem(MAP_WIDTH_KEY, m);
+		} catch {
+			/* storage unavailable */
+		}
+	};
 	onMount(() => {
 		try {
 			height = Math.max(200, Number(localStorage.getItem(heightKey)) || height);
+			width = parseMapWidth(localStorage.getItem(MAP_WIDTH_KEY));
 		} catch {
 			/* storage unavailable: default */
 		}
+		const html = document.documentElement;
+		const measure = () => (vw = html.clientWidth);
+		measure();
+		const ro = new ResizeObserver(measure);
+		ro.observe(html);
+		return () => ro.disconnect();
 	});
 	$effect(() => {
 		if (outer === 0 || outer === height) return;
@@ -200,173 +233,215 @@
 
 	const button =
 		'rounded border border-gray-300 px-2 py-0.5 disabled:opacity-40 dark:border-gray-700';
+	const widths: [MapWidth, string, string][] = [
+		['normal', 'normal', 'the map in the page'],
+		['wide', 'wide', 'the map across the whole window'],
+		['side', 'wide + legend', 'across the whole window, the legend beside the map']
+	];
 </script>
 
-<div class="mb-2 flex flex-wrap items-center gap-2 text-sm">
-	<button class={button} disabled={!capital} onclick={() => capital && toCapital(capital)}
-		>capital</button
-	>
-	<span class="ml-2 text-gray-500">fit</span>
-	<button class={button} disabled={!empire.length} onclick={() => (view = fit(empire, size))}
-		>my empire</button
-	>
-	<button class={button} disabled={!explored.length} onclick={() => (view = fit(explored, size))}
-		>explored</button
-	>
-	{#each focus as f (f.label)}
-		<button class={button} disabled={!f.points.length} onclick={() => (view = fit(f.points, size))}
-			>{f.label}</button
-		>
-	{/each}
-	<button class={button} onclick={() => (view = null)}>everything</button>
-	<span class="ml-2 text-gray-500">zoom</span>
-	<button class={button} onclick={() => zoomBy(1.5)} aria-label="zoom in">+</button>
-	<button class={button} onclick={() => zoomBy(1 / 1.5)} aria-label="zoom out">−</button>
-	{#if hasSectors}
-		<label class="ml-2 flex items-center gap-1"
-			><input type="checkbox" bind:checked={sectors} /> sectors</label
-		>
+{#snippet swatches()}
+	{#if shown.length}
+		<div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
+			{#each shown as t (t.key)}
+				<span class="flex items-center gap-1"
+					><span
+						class="inline-block h-2.5 w-2.5 rounded-sm border"
+						style:background={t.color}
+						style:border-style={t.guess ? 'dashed' : 'solid'}
+					></span>{t.label}</span
+				>
+			{/each}
+		</div>
 	{/if}
-</div>
+{/snippet}
+
+<!-- full width: centred on the window, as `main` is (mx-auto), whatever its max width -->
 <div
-	class="w-full resize-y overflow-hidden rounded border border-gray-200 dark:border-gray-800"
-	style="height: {height}px; min-height: 200px"
-	bind:clientWidth={w}
-	bind:clientHeight={h}
-	bind:offsetHeight={outer}
+	class={full ? 'px-4' : ''}
+	style={full ? `width: ${vw}px; margin-inline: calc(50% - ${vw / 2}px)` : ''}
 >
-	{#if w > 0 && h > 0}
-		<svg
-			width={w}
-			height={h}
-			class="block touch-none select-none {drag ? 'cursor-grabbing' : 'cursor-grab'}"
-			role="img"
-			aria-label={label}
-			{@attach wheel}
-			onpointerdown={down}
-			onpointermove={move}
-			onpointerup={up}
-			oncontextmenu={menu}
-			onpointercancel={() => (drag = null)}
+	{#if width !== 'side'}{@render legend?.()}{/if}
+
+	<div class="mb-2 flex flex-wrap items-center gap-2 text-sm">
+		<button class={button} disabled={!capital} onclick={() => capital && toCapital(capital)}
+			>capital</button
 		>
-			{#each [...territoryOutlines] as [key, rs] (key)}
-				{@const t = territoryOf.get(key)!}
-				<path
-					class="pointer-events-none"
-					d={rings(rs)}
-					fill={t.color}
-					fill-opacity="0.16"
-					fill-rule="evenodd"
-					stroke={t.color}
-					stroke-width="1.5"
-					stroke-linejoin="round"
-					stroke-dasharray={t.guess ? '4 3' : undefined}
-				/>
-			{/each}
-			{#each systems as s (s.id)}
-				{#each new Set(s.lanes) as to (to)}
-					{@const o = byId.get(to)}
-					{#if o}
-						<line
-							x1={at(s).x}
-							y1={at(s).y}
-							x2={at(o).x}
-							y2={at(o).y}
-							class="stroke-gray-300 dark:stroke-gray-700"
-							stroke-width="1"
-						/>
-					{/if}
-				{/each}
-			{/each}
-			{#each wormholes as [a, b, via] (`${via}:${a.id}-${b.id}`)}
-				<path
-					class="pointer-events-none {via === 'wormhole'
-						? 'stroke-fuchsia-500'
-						: 'stroke-cyan-500'}"
-					d={arc(a, b)}
-					fill="none"
-					stroke-width="1.5"
-					stroke-dasharray="5 4"><title>{via} {a.name} – {b.name}</title></path
-				>
-			{/each}
-			{#each systems as s (s.id)}
-				<!-- a wider invisible target, so a 3px system is easy to point at -->
-				<circle
-					role="presentation"
-					cx={at(s).x}
-					cy={at(s).y}
-					r="8"
-					fill="transparent"
-					onpointerenter={() => (hovered = s.id)}
-					onpointerleave={() => (hovered = null)}
-					><title
-						>{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{titles[s.id]
-							? ` — ${titles[s.id]}`
-							: ''}</title
-					></circle
-				>
-				<circle
-					cx={at(s).x}
-					cy={at(s).y}
-					r={fill[s.id] ? 4 : s.known === false ? 2 : 3}
-					opacity={s.known === false && !fill[s.id] ? 0.5 : 1}
-					fill={fill[s.id]}
-					class="pointer-events-none {fill[s.id]
-						? 'stroke-white dark:stroke-gray-900'
-						: s.owned
-							? 'fill-blue-200 stroke-blue-400'
-							: 'fill-gray-200 stroke-gray-400'}"
-					stroke-width="1"
-				/>
-			{/each}
-			{@render layer?.(at, v.k)}
-			{#if selected !== undefined && selected !== null && byId.get(selected)}
-				{@const p = at(byId.get(selected)!)}
-				<circle
-					class="pointer-events-none stroke-sky-500"
-					cx={p.x}
-					cy={p.y}
-					r="14"
-					fill="none"
-					stroke-width="3"
-				/>
-				{#if selected !== hovered}
-					<text
-						class="pointer-events-none fill-current text-xs font-semibold"
-						x={p.x + 16}
-						y={p.y - 12}>{byId.get(selected)!.name}</text
-					>
-				{/if}
-			{/if}
-			{#if hovered !== null && byId.get(hovered)}
-				{@const p = at(byId.get(hovered)!)}
-				<circle
-					class="pointer-events-none stroke-amber-500"
-					cx={p.x}
-					cy={p.y}
-					r="11"
-					fill="none"
-					stroke-width="3"
-				/>
-				<text
-					class="pointer-events-none fill-current text-xs font-semibold"
-					x={p.x + 14}
-					y={p.y - 10}>{byId.get(hovered)!.name}</text
-				>
-			{/if}
-		</svg>
-	{/if}
-</div>
-{#if shown.length}
-	<div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
-		{#each shown as t (t.key)}
-			<span class="flex items-center gap-1"
-				><span
-					class="inline-block h-2.5 w-2.5 rounded-sm border"
-					style:background={t.color}
-					style:border-style={t.guess ? 'dashed' : 'solid'}
-				></span>{t.label}</span
+		<span class="ml-2 text-gray-500">fit</span>
+		<button class={button} disabled={!empire.length} onclick={() => (view = fit(empire, size))}
+			>my empire</button
+		>
+		<button class={button} disabled={!explored.length} onclick={() => (view = fit(explored, size))}
+			>explored</button
+		>
+		{#each focus as f (f.label)}
+			<button
+				class={button}
+				disabled={!f.points.length}
+				onclick={() => (view = fit(f.points, size))}>{f.label}</button
+			>
+		{/each}
+		<button class={button} onclick={() => (view = null)}>everything</button>
+		<span class="ml-2 text-gray-500">zoom</span>
+		<button class={button} onclick={() => zoomBy(1.5)} aria-label="zoom in">+</button>
+		<button class={button} onclick={() => zoomBy(1 / 1.5)} aria-label="zoom out">−</button>
+		{#if hasSectors}
+			<label class="ml-2 flex items-center gap-1"
+				><input type="checkbox" bind:checked={sectors} /> sectors</label
+			>
+		{/if}
+		<span class="ml-2 text-gray-500">width</span>
+		{#each widths as [m, text, title] (m)}
+			<button
+				class="{button} {width === m ? 'bg-gray-200 dark:bg-gray-800' : ''}"
+				aria-pressed={width === m}
+				{title}
+				onclick={() => setWidth(m)}>{text}</button
 			>
 		{/each}
 	</div>
-{/if}
+	<div
+		class={width === 'side'
+			? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,24rem)] lg:items-start'
+			: ''}
+	>
+		<div class="min-w-0">
+			<div
+				class="w-full resize-y overflow-hidden rounded border border-gray-200 dark:border-gray-800"
+				style="height: {height}px; min-height: 200px"
+				bind:clientWidth={w}
+				bind:clientHeight={h}
+				bind:offsetHeight={outer}
+			>
+				{#if w > 0 && h > 0}
+					<svg
+						width={w}
+						height={h}
+						class="block touch-none select-none {drag ? 'cursor-grabbing' : 'cursor-grab'}"
+						role="img"
+						aria-label={label}
+						{@attach wheel}
+						onpointerdown={down}
+						onpointermove={move}
+						onpointerup={up}
+						oncontextmenu={menu}
+						onpointercancel={() => (drag = null)}
+					>
+						{#each [...territoryOutlines] as [key, rs] (key)}
+							{@const t = territoryOf.get(key)!}
+							<path
+								class="pointer-events-none"
+								d={rings(rs)}
+								fill={t.color}
+								fill-opacity="0.16"
+								fill-rule="evenodd"
+								stroke={t.color}
+								stroke-width="1.5"
+								stroke-linejoin="round"
+								stroke-dasharray={t.guess ? '4 3' : undefined}
+							/>
+						{/each}
+						{#each systems as s (s.id)}
+							{#each new Set(s.lanes) as to (to)}
+								{@const o = byId.get(to)}
+								{#if o}
+									<line
+										x1={at(s).x}
+										y1={at(s).y}
+										x2={at(o).x}
+										y2={at(o).y}
+										class="stroke-gray-300 dark:stroke-gray-700"
+										stroke-width="1"
+									/>
+								{/if}
+							{/each}
+						{/each}
+						{#each wormholes as [a, b, via] (`${via}:${a.id}-${b.id}`)}
+							<path
+								class="pointer-events-none {via === 'wormhole'
+									? 'stroke-fuchsia-500'
+									: 'stroke-cyan-500'}"
+								d={arc(a, b)}
+								fill="none"
+								stroke-width="1.5"
+								stroke-dasharray="5 4"><title>{via} {a.name} – {b.name}</title></path
+							>
+						{/each}
+						{#each systems as s (s.id)}
+							<!-- a wider invisible target, so a 3px system is easy to point at -->
+							<circle
+								role="presentation"
+								cx={at(s).x}
+								cy={at(s).y}
+								r="8"
+								fill="transparent"
+								onpointerenter={() => (hovered = s.id)}
+								onpointerleave={() => (hovered = null)}
+								><title
+									>{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{titles[s.id]
+										? ` — ${titles[s.id]}`
+										: ''}</title
+								></circle
+							>
+							<circle
+								cx={at(s).x}
+								cy={at(s).y}
+								r={fill[s.id] ? 4 : s.known === false ? 2 : 3}
+								opacity={s.known === false && !fill[s.id] ? 0.5 : 1}
+								fill={fill[s.id]}
+								class="pointer-events-none {fill[s.id]
+									? 'stroke-white dark:stroke-gray-900'
+									: s.owned
+										? 'fill-blue-200 stroke-blue-400'
+										: 'fill-gray-200 stroke-gray-400'}"
+								stroke-width="1"
+							/>
+						{/each}
+						{@render layer?.(at, v.k)}
+						{#if selected !== undefined && selected !== null && byId.get(selected)}
+							{@const p = at(byId.get(selected)!)}
+							<circle
+								class="pointer-events-none stroke-sky-500"
+								cx={p.x}
+								cy={p.y}
+								r="14"
+								fill="none"
+								stroke-width="3"
+							/>
+							{#if selected !== hovered}
+								<text
+									class="pointer-events-none fill-current text-xs font-semibold"
+									x={p.x + 16}
+									y={p.y - 12}>{byId.get(selected)!.name}</text
+								>
+							{/if}
+						{/if}
+						{#if hovered !== null && byId.get(hovered)}
+							{@const p = at(byId.get(hovered)!)}
+							<circle
+								class="pointer-events-none stroke-amber-500"
+								cx={p.x}
+								cy={p.y}
+								r="11"
+								fill="none"
+								stroke-width="3"
+							/>
+							<text
+								class="pointer-events-none fill-current text-xs font-semibold"
+								x={p.x + 14}
+								y={p.y - 10}>{byId.get(hovered)!.name}</text
+							>
+						{/if}
+					</svg>
+				{/if}
+			</div>
+			{#if width !== 'side'}{@render swatches()}{/if}
+		</div>
+		{#if width === 'side'}
+			<aside class="overflow-y-auto text-sm lg:max-h-(--side-h)" style:--side-h="{outer}px">
+				{@render legend?.()}
+				{@render swatches()}
+			</aside>
+		{/if}
+	</div>
+</div>

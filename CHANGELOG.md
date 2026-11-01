@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Wide maps: every galaxy map has a `width` switch — `wide` uses the browser window's full
+  width, `wide + legend` puts the page's legend (map layers, diplomacy's relations legend, empire
+  borders) beside the map. One choice for all maps, remembered in this browser.
+
 ### Fixed
 
 - Companion mod 0.10.1: a colony's daily jobs and pops lines are no longer empty (0.9.0–0.10.0
