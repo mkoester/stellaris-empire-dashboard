@@ -82,10 +82,16 @@ describe('bearing and sectorOf', () => {
 });
 
 describe('parseQuadrantView', () => {
-	it('defaults: on, rings by galaxy size, 4 sectors, not rotated', () => {
+	it('defaults: on, rings by galaxy size, 8 sectors, rotated (N, NE, E …)', () => {
 		expect(parseQuadrantView(undefined)).toEqual({
 			on: true,
 			rings: null,
+			sectors: 8,
+			rotated: true
+		});
+	});
+	it('keeps a stored "not rotated"', () => {
+		expect(parseQuadrantView({ sectors: 4, rotated: false })).toMatchObject({
 			sectors: 4,
 			rotated: false
 		});
@@ -97,7 +103,7 @@ describe('parseQuadrantView', () => {
 			sectors: 16,
 			rotated: true
 		});
-		expect(parseQuadrantView({ rings: -1, sectors: 6 })).toMatchObject({ rings: null, sectors: 4 });
+		expect(parseQuadrantView({ rings: -1, sectors: 6 })).toMatchObject({ rings: null, sectors: 8 });
 		expect(parseQuadrantView({ rings: 1.5 }).rings).toBeNull();
 	});
 });

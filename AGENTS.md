@@ -600,7 +600,8 @@ arkship colonies (nomads') are not in the reading, which reads planets.
 2026-11-01, after the mod Quadrant Fixed): every `GalaxyMap` draws them from the layout's
 `quadrants` (`page.data`, so no page passes them) — the profile's `quadrants` setting (⚙: on by
 default, rings between by galaxy size — about one per 100 units of the band — or 0–10, 4/8/16
-sectors, the cross turned by half a sector) and the campaign's radii. **The core is the galaxy's
+sectors, the cross turned by half a sector — default 8, turned: N, NE, E …, the user's call
+2026-11-01) and the campaign's radii. **The core is the galaxy's
 origin**: the innermost system of Roaming Korinth's large galaxy sat at 113 from it, the save's
 `galaxy.core_radius` 112.5. Inner ring 2 % of the outer radius inside the innermost system, outer
 2 % outside the outermost — of the systems on the main hyperlane network, not the L-Cluster

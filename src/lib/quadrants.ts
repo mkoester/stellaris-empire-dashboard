@@ -17,8 +17,8 @@ export type QuadrantView = {
 export const DEFAULT_QUADRANT_VIEW: QuadrantView = {
 	on: true,
 	rings: null,
-	sectors: 4,
-	rotated: false
+	sectors: 8,
+	rotated: true
 };
 export const MAX_RINGS = 10;
 
@@ -33,8 +33,10 @@ export function parseQuadrantView(v: unknown): QuadrantView {
 			o.rings <= MAX_RINGS
 				? o.rings
 				: null,
-		sectors: SECTOR_COUNTS.includes(o.sectors as SectorCount) ? (o.sectors as SectorCount) : 4,
-		rotated: o.rotated === true
+		sectors: SECTOR_COUNTS.includes(o.sectors as SectorCount)
+			? (o.sectors as SectorCount)
+			: DEFAULT_QUADRANT_VIEW.sectors,
+		rotated: typeof o.rotated === 'boolean' ? o.rotated : DEFAULT_QUADRANT_VIEW.rotated
 	};
 }
 

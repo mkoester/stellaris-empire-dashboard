@@ -12,7 +12,7 @@ All notable changes to this project are documented here. The format follows
   outermost, and evenly spaced ones between (by galaxy size, or how many you pick) — and a cross
   dividing the galaxy into 4, 8 or 16 sectors named by compass direction (NE, SE, SW, NW, or turned
   by half a sector: N, E, S, W), reaching a little past the galaxy and fading out. On by default
-  (a large galaxy: 2 rings between); ⚙ → "Map rings and quadrants". Inspired by the mod Quadrant
+  (a large galaxy: 2 rings between; 8 sectors, N, NE, E …); ⚙ → "Map rings and quadrants". Inspired by the mod Quadrant
   Fixed.
 - Galaxy tab: the settings the galaxy was created with, grouped as on the game's setup screen.
   Inspired by the mod In-Game Settings View. Saves still on disk are read again once.
