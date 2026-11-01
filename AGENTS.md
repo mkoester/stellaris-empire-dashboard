@@ -623,7 +623,10 @@ they follow the save graph and cover all history for fields already stored. A fi
 only between saves that both have it (null = unknown; an empty colony list too), and an event is
 dated to the first save showing it. New kind: `KINDS` + a detector + a colour in `colors.ts`. Each
 chart has an "events" picker (`EventPicker.svelte`); choices are stored per `<scope>:<title>`
-(`empire:`/`colony:` — stored `planet:` keys are renamed on read; `log` for the Events panel) in the `chartEvents` setting, merged on PUT.
+(`empire:`/`colony:` — stored `planet:` keys are renamed on read; `log` for the Events panel) in the `chartEvents` setting, merged on PUT. **To challenge** (the user, 2026-11-01): keying by
+title moves a viewer's picks when a chart is renamed or a new chart takes an old title — the
+colony page's `Pops` became `Pops (jobs)`, so its picks went to the new `Pops` chart — and a title
+that changes with live data (`Pops (jobs) — <date>: …`) keys a different entry while it shows.
 
 **Council** (government tab): the ruler's seat (`councilor_ruler_<authority>`; not in the save's
 seat list, `possible = { always = no }`) and the seats held, each with what it gives **at the
