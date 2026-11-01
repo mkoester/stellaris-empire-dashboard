@@ -268,12 +268,13 @@
 				<a class={tab(path === `/tab/${t.id}`)} href={tabHref(t.id)}>{t.name}</a>
 			{/each}
 			{#each fixed as t (t.name)}
-				{@const dim = t.name === 'expansion' && data.settleBlocked}
+				{@const settle = t.name === 'expansion' && data.settle.nomad}
+				{@const dim = settle && data.settle.blocked}
 				<a
 					class="{tab(t.active)} {dim ? 'opacity-50' : ''}"
 					href={t.href}
-					title={dim ? `not yet usable in game: settling needs ${data.settleBlocked}` : undefined}
-					>{t.name}{#if t.name === 'planner' && data.plan.alerts}<span
+					title={dim ? `not yet usable in game: settling needs ${data.settle.blocked}` : undefined}
+					>{settle ? 'settle' : t.name}{#if t.name === 'planner' && data.plan.alerts}<span
 							class="ml-1 rounded bg-red-600 px-1 text-[11px] font-semibold text-white"
 							title="goals no longer possible, or avoided ones that happened"
 							>⚠ {data.plan.alerts}</span

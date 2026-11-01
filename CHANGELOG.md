@@ -29,8 +29,8 @@ All notable changes to this project are documented here. The format follows
 - Expansion tab for nomads: **Settle down** — what settling still needs (Adaptability or
   Versatility finished, origin quests), where an arkship could settle (habitability now and with
   Arkship Remains, jumps from your arkships) and what each of the game's outcomes would do with
-  your numbers. Until settling is possible the tab's name is dimmed. A settled empire gets an
-  **Embark** checklist instead.
+  your numbers. For a nomad the tab is called "settle", dimmed until settling is possible. A
+  settled empire gets an **Embark** checklist instead.
 
 ### Fixed
 

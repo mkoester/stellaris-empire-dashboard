@@ -531,8 +531,10 @@ nomad the targets (`settleTargets()`: today's habitability, ≈ with Arkship Rem
 count on every colonizable class, `docs/open-checks.md` 26 —, deposits on the system's other
 bodies ≈, jumps from the nearest and the capital arkship) and the outcomes with our numbers
 (`settleOutcome()`, assuming the capital arkship settles). **The tab's name is dimmed**
-(`settleBlocked()` in the layout, per tip) while a nomad cannot settle, its title naming what is
-missing; still a link. A settled empire's tab is never dimmed.
+while a nomad cannot settle, its title naming what is missing; still a link. **For a nomad the tab
+is named "settle"** (the user's call 2026-11-01: settling is no expansion), the route stays
+`/expansion` (`settleTab()` in the layout, per tip). A settled empire's tab is "expansion", never
+dimmed.
 
 **Milestones** (`#lib/milestones.ts`, pure): the campaign's bigger events — systems, colonies
 (colonization started / established / gained / lost), districts built and buildings done per

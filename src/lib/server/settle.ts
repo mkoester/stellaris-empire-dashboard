@@ -28,24 +28,28 @@ export function settleState(snaps: Snapshot[]) {
 		: { mode: 'embark' as const, requirements: embarkRequirements(s, trees, names) };
 }
 
-let memo: { tip: number; blocked: string | null } | null = null;
+type SettleTab = { nomad: boolean; blocked: string | null };
+let memo: { tip: number; tab: SettleTab } | null = null;
 
 /**
- * For the tab bar: what keeps a nomad at `tip` from settling — the expansion tab is dimmed then,
- * still usable —, null when it can (or might: unknown counts as met) or the empire is settled.
- * Kept per tip: the layout asks on every page.
+ * For the tab bar, at `tip`: whether the empire is nomadic — its expansion tab is "settle" then —
+ * and what keeps it from settling (the tab is dimmed, still usable), null when it can (or might:
+ * unknown counts as met). Kept per tip: the layout asks on every page.
  */
-export function settleBlocked(tip: number | null): string | null {
-	if (tip === null) return null;
-	if (memo?.tip === tip) return memo.blocked;
+export function settleTab(tip: number | null): SettleTab {
+	if (tip === null) return { nomad: false, blocked: null };
+	if (memo?.tip === tip) return memo.tab;
 	const st = settleState(history(getDb(), tip));
-	const blocked =
-		st?.mode === 'settle' && allMet(st.requirements) === false
-			? st.requirements
-					.filter((r) => r.met === false)
-					.map((r) => r.label)
-					.join(', ')
-			: null;
-	memo = { tip, blocked };
-	return blocked;
+	const tab = {
+		nomad: st?.mode === 'settle',
+		blocked:
+			st?.mode === 'settle' && allMet(st.requirements) === false
+				? st.requirements
+						.filter((r) => r.met === false)
+						.map((r) => r.label)
+						.join(', ')
+				: null
+	};
+	memo = { tip, tab };
+	return tab;
 }
