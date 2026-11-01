@@ -43,6 +43,13 @@ First uploaded 2026-10-24 (0.5.0). `remote_file_id` (Steam) is in `descriptor.mo
 id only in the launcher's DB (`mods.remotePdxId`). **A first Workshop upload is Hidden**: set the
 visibility to Public on the item's page (Owner Controls) — the launcher does not.
 
+**0.10.1, 2026-11-01 08:40 UTC, from `develop`** — an exception to "upload from `main`" (the user's
+call: `develop` differed from `main` only in the mod and docs, not worth a dashboard release);
+`main` catches up at the next release. Replaces 0.10.0 (2026-10-31), whose `colony-jobs` lines
+were empty and colony event failed on arkships. Paradox Mods: version 4 (`latestUpdate` in
+`https://api.paradox-interactive.com/mods?modId=164724&os=Linux`, which also lists each version).
+**The upload strips `descriptor.mod`'s final newline**: harmless, restore it or commit it.
+
 ## Store description — Steam Workshop (BBCode)
 
 ```bbcode
