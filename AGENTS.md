@@ -16,7 +16,9 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   maybe empty.
 - **Every `goto()` takes a `resolve()`** — the lint's `svelte/no-navigation-without-resolve`
   refuses a plain string; for "this page with another query" pass `resolve(...args)` with the
-  route id plus query and `page.params` (`here()` in `+layout.svelte`).
+  route id plus query and `page.params` (`here()` in `+layout.svelte`). It flags an external link
+  with a dynamic `href={url}` too, but not one that starts with a literal scheme: store the address
+  without it and write `href="https://{host}"` (the about tab).
 - **A `{#snippet}` written directly inside a component's children becomes that component's prop**
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
@@ -1578,7 +1580,12 @@ an `every_situation = { limit = … }` form did not).
 **For a shape not yet seen in our saves** (wars, trade deals, galactic market): the other parser,
 eliasdoehne/stellaris-dashboard (`stellarisdashboard/parsing/timeline.py`), reads many; a 4.0.1
 save at 2312 lives in chennin/stellaris-dashboard-test-saves (galactic market and GalCom, but
-still no trade deal). Download into `$TMPDIR`, never into the repo.
+still no trade deal). Download into `$TMPDIR`, never into the repo. **To find where a save keeps
+something**, grepping the raw `gamestate` is not enough: the names are not what you expect (a
+branch office is `externally_owned_buildings`, not `branch_office*`). Parse it with jomini
+(`parseText(…, q => q.json())` in a throwaway `.mjs` in the repo, so `jomini` resolves; deleted
+after) and walk the JSON for keys or values — that found it in minutes where a hand-written
+parser of the text did not.
 
 A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `gamestate` at 2200).
 
