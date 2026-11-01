@@ -46,6 +46,10 @@ STELLARIS_DATA_DB=<workspace>/stellaris-data-extraction/sqlite/stellaris.sqlite 
 pnpm dev --host 127.0.0.1
 ```
 
+On Linux, `../scripts/dashboard.sh` (`--beta`, `--feature <f>`, `--help`) sets all of it for the
+develop, open-beta or a feature checkout, with `STELLARIS_EXTRACTOR` instead of `STELLARIS_DATA_DB`,
+and links the companion mod from that checkout.
+
 `STELLARIS_DATA_DB` is the extraction's SQLite, read once at start for tech/agenda names and base
 costs and the cost defines — regenerate it after a game update (`../stellaris-data-extraction/AGENTS.md`).
 `STELLARIS_GAME_LOG` is opt-in for a dev run: set it when the companion mod is enabled. A player's
@@ -152,7 +156,10 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   start reads only saves that are new or changed (`save_file`: path, `mtime:size`, reader). Saves
   still on disk that an older reader (or an older data DB) read are read again. A re-read replaces
   the stored reading and leaves the head alone (`refresh()` in `db.ts`). Forget the bump and the
-  new field stays at its `upgrade()` default until the save changes.
+  new field stays at its `upgrade()` default until the save changes. **Two branches bump it
+  independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
+  "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
+  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40.
 - **A start reads one campaign, the rest follows in the background** (`watch.ts`): before the
   dashboard is up, only the head campaign's saves to read (new, changed, or of an older reader) —
   with an empty DB the campaign of the newest save. The other campaigns wait in a backlog that
@@ -1352,7 +1359,9 @@ It changes the checksum: no achievements while enabled. **Publishing** (Steam Wo
 Mods, through the launcher): `mod/PUBLISHING.md` — store copy, thumbnail source, published IDs.
 Register it on Linux with
 `scripts/link-mod.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace
-root, launcher closed).
+root, launcher closed). The link points at one checkout: the game runs that checkout's mod, so a
+worktree's mod change reaches the game only once relinked — `../scripts/dashboard.sh` relinks to
+the checkout it runs at every start.
 
 ### Sandbox notes (Claude Code on the Mac)
 

@@ -33,6 +33,8 @@ All notable changes to this project are documented here. The format follows
   where it is.
 - Mods tab: a mod installed twice — a local copy and its Workshop subscription — is active only
   where the launcher loaded it, not both.
+- Companion mod 0.10.1: a colony's daily jobs and pops lines are no longer empty (0.9.0–0.10.0
+  read `num_sapient_pops`, which is no trigger; now `pop_amount`).
 
 ## [0.1.7] - 2026-10-31
 
