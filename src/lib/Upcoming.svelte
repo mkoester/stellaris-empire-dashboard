@@ -80,14 +80,18 @@
 		>{/if}{#if e.dismiss}&nbsp;<button
 			type="button"
 			class="opacity-60 hover:opacity-100"
-			title="dismiss — it shows again once it has been used and runs out again"
+			title={e.kind === 'cooldown'
+				? 'dismiss — it shows again once it has been used and runs out again'
+				: 'dismiss — it shows again once it has been busy and sits idle again'}
 			onclick={() => dismiss(e.dismiss!)}>✕</button
 		>{/if}{/snippet}
 {#snippet kind(e: Row)}<span class="whitespace-nowrap opacity-75"
 		>{#if e.act}<span
 				title={e.kind === 'cooldown'
 					? 'available again then — the game does not announce it'
-					: 'the build slot runs idle then — the game sends no notification'}>⚠</span
+					: e.kind === 'idle'
+						? 'idle since then — until busy again or dismissed'
+						: 'the build slot runs idle then — the game sends no notification'}>⚠</span
 			>{/if}
 		{e.sub ?? e.kind}</span
 	>{/snippet}

@@ -23,7 +23,7 @@ export function facts(
 	const gestalt = authority === 'auth_hive_mind' || authority === 'auth_machine_intelligence';
 	const kinds = s.shipset ? data.shipKinds?.[s.shipset] : undefined;
 	return {
-		// unknown before READER 38, or without the extractor's graphical_culture table
+		// unknown before READER 40, or without the extractor's graphical_culture table
 		shipKinds: kinds && kinds.length ? kinds : null,
 		countryType: s.countryType,
 		government: s.government ?? [],

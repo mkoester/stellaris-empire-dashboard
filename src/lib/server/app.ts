@@ -22,7 +22,7 @@ import { loadDataVersion, loadGameData } from './gamedata.ts';
 import { READER, setEntryEvents, setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
 import { ensureDataDb, extractorFromEnv } from './extract.ts';
-import { loadModDescriptors } from './mods.ts';
+import { loadModDescriptors, readLoadOrder } from './mods.ts';
 import { watchSaves, type Watcher } from './watch.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
@@ -47,6 +47,7 @@ type State = {
 	dataVersion?: string | null;
 	explanations?: Explanations;
 	mods?: ModInfo[];
+	userDir?: string; // the Stellaris user folder: the save folder's parent
 	watcher?: Watcher;
 	/** stops following game.log */
 	stopTail?: () => void;
@@ -81,6 +82,11 @@ export function getGameData(): GameData {
 export function getMods(): ModInfo[] {
 	if (!state.mods) throw new Error('dashboard not started');
 	return state.mods;
+}
+
+/** The launcher's load order as of the last game start (`dlc_load.json`), read on each call. */
+export function getLoadOrder(): string[] {
+	return state.userDir ? readLoadOrder(state.userDir) : [];
 }
 
 export function getDb(): Db {
@@ -219,6 +225,7 @@ async function run() {
 	setEntryEvents(state.gameData.entryEvents);
 	state.explanations = loadExplanations(dataDb);
 	state.mods = loadModDescriptors(saveDir);
+	state.userDir = dirname(saveDir);
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));
 

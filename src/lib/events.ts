@@ -14,7 +14,8 @@ import {
 	measuredDaysPerJump,
 	monthsLeft,
 	orderLabel,
-	orderRate
+	orderRate,
+	shipLabel
 } from './ships.ts';
 import type { Progress, QueueItem, Snapshot } from './types.ts';
 
@@ -46,6 +47,7 @@ export type Upcoming = {
 		| 'cooldown' // something may be done again
 		| 'expires' // a timed effect ends
 		| 'roll' // an envoy's or excavation's next roll
+		| 'idle' // something sits idle until busy again or dismissed (#lib/idle.ts)
 		| 'fleet'; // a military fleet arrives
 	what: string;
 	detail: string;
@@ -61,7 +63,7 @@ export type Upcoming = {
 	queuedAfter?: number; // construction: items still waiting when this one is done
 	fleetId?: number; // civilian ship rows
 	sub?: string; // what to show as the kind, where finer than `kind` (ships: the ship type)
-	dismiss?: string; // a cooldown that has run out: the id to dismiss it by (`timedOut()`)
+	dismiss?: string; // a cooldown run out or something idle: the id to dismiss it by (`timedOut()`, `idles()`)
 };
 
 // The galaxy setting "Difficulty Adjusted Technology Costs" (`technology_difficulty_scale`): "how
@@ -395,10 +397,10 @@ export function upcoming(
 			date: fromDays(toDays(latest.date) + days),
 			months: days / 30,
 			kind: 'ship',
-			sub: s.kind.replaceAll('_', ' '),
+			sub: shipLabel(s),
 			what: s.order ? orderLabel(s.order) : idleState(s).text,
 			tint: 'ship',
-			detail: `${s.name} · ${s.kind.replaceAll('_', ' ')}`,
+			detail: `${s.name} · ${shipLabel(s)}`,
 			exact: s.order === null && !estimated,
 			// an idle ship has no queue to count; whether it needs the player depends on where it waits
 			act: s.automation ? false : s.order ? s.queue.length === 0 : idleState(s).act,

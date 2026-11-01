@@ -83,6 +83,7 @@ export type Fleet = {
  */
 export type Route = {
 	at: string;
+	systemId?: number; // the system it is in (`coordinate.origin`); absent before READER 38
 	moving: boolean;
 	stops: { system: string; jumps: number | null; unexplored: boolean }[];
 };
@@ -101,7 +102,8 @@ export type ShipOrder = {
 export type CivilianShip = {
 	fleetId: number;
 	name: string;
-	kind: string; // science_ship, constructor, colonizer, …
+	kind: string; // science_ship, constructor, colonizer, … (the fleet's class)
+	size?: string; // the first ship's size: nomads_constructor, constructor, … (READER 38)
 	stance: string | null; // fleet_stance: evasive, passive, aggressive (null: the game's default)
 	automation: string[] | null; // automated: the enabled settings (survey, mining stations, …); null: manual
 	leader: string | null;
@@ -445,7 +447,7 @@ export type Snapshot = {
 	entryEvents: SystemEntry[] | null;
 	founderClass: string | null; // its founder species' class (`NECROID`); since READER 35
 	// its shipset (`graphical_culture`): which ship kinds it builds (`GameData.shipKinds`) —
-	// `biogenesis_02` builds bio ships, and researches their hulls; since READER 38
+	// `biogenesis_02` builds bio ships, and researches their hulls; since READER 40
 	shipset: string | null;
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;

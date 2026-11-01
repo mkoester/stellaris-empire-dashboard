@@ -201,8 +201,10 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
 calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — delete it after.
 
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
-dev server ingests saves and moves the head). On the Linux game machine it lives in
-`~/.local/share/stellaris-empire-dashboard/`, on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
+dev server ingests saves and moves the head). On the Linux game machine the one in use is
+`~/.local/share/stellaris-empire-dashboard-test/` (every campaign, the nomad Roaming Korinth
+included, 2026-10-31) — `~/.local/share/stellaris-empire-dashboard/` is stale since 2026-10-18
+(UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
@@ -282,6 +284,15 @@ later end, or the player dismisses it (✕ → `POST /api/upcoming { dismiss }`,
 game 2026-10-25: Find Applications run out on a reloaded 2202.07.01, ✕, a month on unused — gone
 (`~/Pictures/Screenshots/screenshot_2026-10-25_21-05-23`); used again on the left branch, its row
 went by itself. Distribute Luxury Goods on Earth and Unity: two rows.
+**Idle stays too** (`#lib/idle.ts`, the user's ask 2026-10-31: "prevent anything being idle unless
+I decide it should be idle right now"): a research field without a tech, no agenda in
+preparation, a colony queue or a shipyard with nothing in it (an arkship has no queue of its own for ships:
+it builds them through its colony's shared one, so its colony's row covers it — READER 39), a leader
+without a post, an empty council seat, free leader slots (`leaderLimits`, ≈) — rows of kind `idle`,
+⚠, ✕ — and the idle civilian ships' own rows get ✕ (`withIdleShips()`). The dismiss id ends with
+the first save of the idle spell, walked back along the branch's saves: busy again, then idle,
+is a new row. 2206.10.08 (Roaming Korinth): 2 official and 2 commander slots free, the arkship's
+shipyard (before READER 39: since then the arkship's colony row), one idle science ship.
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
@@ -345,7 +356,11 @@ country only `seen_bypass_types`), and exploring one is a fleet's jump through i
 `common/bypass/00_bypasses.txt`, `on_pre_explore`), which visits the far end; one end visited is
 not enough (2207.03.10: Phiroza visited, Eye of Bal not — no link). `wormholePairs` (spoiler) shows
 every pair (`wormholeLinks()` stores them all), both ends. Fit
-buttons: capital, my empire, explored, the page's own, everything; a per-viewer `sectors` checkbox
+buttons: capital, my empire (a nomad's: **my waystations**, starbase level `waystation_*`;
+disabled without one), explored, the page's own, everything; the map and systems tabs pass `own`
+(`ownOnMap()` in `#lib/mapLayers.ts`), which adds "my stations and ships" and our ships as a
+marker per system (`Route.systemId`, READER 38) — all, fleets or civilian, the profile's
+`mapFilter.ships`, shared by both tabs (the user's ask 2026-10-31); a per-viewer `sectors` checkbox
 splits our territory by sector (`GalaxySystem.sector`, the colonies tab's `sectorColors`). Profile switches: `unknownStars`
 adds every other star, faint, named "Unknown" and without lanes, but not the special systems off
 the main hyperlane network (`mainNetwork()`; 2207.03.10: Kleeia `distar_sealed_1_2` and Ultima
@@ -396,7 +411,16 @@ anomaly its category's `level`), when it was **seen** and its **age** in months 
 the first save listing it, a wormhole, gateway, L-Gate or megastructure the first save listing its
 system in `knownSystems` (`firstSeen()` in `#lib/mapLayers.ts`), an entry event its first reading;
 "≤" where that is the first save showing the field at all (then or earlier), none for what a
-spoiler shows unvisited. Say
+spoiler shows unvisited. **Found & done** (the user's ask 2026-10-31): what is no longer to do moves from "Found" to
+a folded table below it, and onto the map (faded) only while that is unfolded — per viewer, not
+stored. Done (`MapMarker.done`, `tracked()` over the branch's saves, `doneAt` the first save
+showing it): an anomaly or special project gone from the save's list (resolved; seen on the
+Planetforgers' history, where both lists shrink), a dig site gone (**assumed** — no site has been
+excavated to its end in our saves yet), a first contact `finished` or `aborted` (they stay listed),
+a station seen once the contact with its owner is `finished` (the user's call: aborted leaves it
+unnamed), a Wanderlust target counted, a ruin in a system someone owns ("claimed"; the structure's
+own owner is not stored), an entry popup in a system whose gateway, megastructure or ruin has its
+own row (the Abandoned Gateway). Wormholes, gateways, L-Gates and megastructures stay open. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
@@ -564,7 +588,7 @@ false, the others named ("or instead Citadel"); `inReach()` wants one of each gr
 line follows the shipset**: every hull tech gates on `country_uses_bio_ships` (Corvettes …
 Battleships `no`, Harbingers and Stingers `yes`; 4.5.2 `scripted_triggers/07_scripted_triggers_ships.txt`:
 `uses_ship_category = bio_ship`), which `#lib/triggers.ts` answers from `Snapshot.shipset` (the
-country's `graphical_culture`, READER 38) and the data DB's `graphical_culture.ship_kinds_json`
+country's `graphical_culture`, READER 40) and the data DB's `graphical_culture.ship_kinds_json`
 (`GameData.shipKinds`; the three Biogenesis shipsets list `bio_ship`) — before, it was unknown,
 so a bio-ship empire got Corvettes … Battleships for Mega-Engineering (the user's catch,
 2026-10-31; checked after: Harbingers → Stingers). Checked
@@ -942,6 +966,17 @@ counts, a gestalt's `no_happiness` ones instead); its other modifiers are the si
 unconditional modifiers — living standards' happiness, most job variants and leader traits are
 triggered and missing; 2205.07 listed Prosperous Unification, the capital building and Medical
 Workers.
+**Distribute Luxury Goods** (`#lib/luxuries.ts`, `LuxuryGoods.svelte` on the colony page; the user's
+ask 2026-10-31): `decision_planet_luxuries_boost` costs 100 Consumer Goods per started 1000 pops
+(8500–9999: 900, at most 1000; 4.5.3 `common/decisions/00_resource_decisions.txt`), then
+`planet_luxuries_boost` for 3600 days — `planet_amenities_mult` +25 %. The what-if runs the chain
+above: +25 % of today's amenities (≈: other amenity multipliers make it less) → happiness, taken
+as approval → stability (× `stabilityMult`, from the uncapped value with the mod) → job output,
+on today's job output scaled back by stability's share (`jobOutput()` from the job rows' flows),
+× 120 months. **Stability raises output, not upkeep** (the game's job tooltip 2026-10-31,
+`screenshot_2026-10-31_18-16-28`: physicists' "High Stability +30 %" under Produces, upkeep 5.16
+without it); job efficiency (`screenshot_…18-16-11`: +72 % → 344 of 200 workforce) is extra
+workforce and scales both. Not offered to gestalts, on a Nanotech World or while it runs.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
@@ -1108,7 +1143,14 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   field's tech researched meanwhile), research tiers, everything researched.
 - **leaders**: `Snapshot.leaderList`, traits explained by `ltrait:<key>` (data DB `leader_trait`,
   each modifier labelled with its scope); class colours (`class-*` in `colors.ts`, envoys ours);
-  envoys behind a switch, off by default.
+  envoys behind a switch, off by default. **Leader modifiers from the empire** (the user's ask
+  2026-10-31: "other sources of leader properties apart from their traits, e.g. experience gain";
+  `#lib/leaderSources.ts`): every held source (`empireHeld()`, shared with the colony levers)
+  whose popup carries a leader modifier (`isLeaderModifier()`: experience, skill, lifespan, limits
+  and pool, upkeep and cost, council, envoys), summed per modifier. Traditions' and perks'
+  triggered modifiers now carry their condition (`Modifier.when` from
+  `tradition_modifier.potential_json`) and are weighed against the save — ap_wanderlust's second
+  −10 % upkeep only once a category is completed; "?" where the save cannot tell.
 - **species**: traits with their effects in a grid (the climate preference, one line per planet
   class, a row of its own; more picks wrap into more rows), trait budget, rights. System names
   from random-name lists that are localisation keys (`VOIDWORM_SYSTEM_12` = Papqaqtet) resolve
@@ -1182,14 +1224,19 @@ first save read since 2026-10-18. The DLC catalogue is the data DB's `dlc` table
 `dlc_info.txt`, category from the installed DLCs' descriptors, Steam release dates). Installed
 mods are the launcher's descriptors, `<user dir>/mod/*.mod`, the user dir being
 `STELLARIS_SAVE_DIR`'s parent (`server/mods.ts`, read at start); `supports()` compares their
-`supported_version` (`v4.5.*`) with the save's version. A dev copy registered next to its workshop version (`link-mod.sh`) has the same name and id: rows are keyed by descriptor file, marked "local", and left out of the version notes (`trackedMods()`) — keyed by name and id they once broke the tab (a duplicate key, client-side only). 2207.03.10: 28 DLCs, 17 mods. **Merged
+`supported_version` (`v4.5.*`) with the save's version. A dev copy registered next to its workshop version (`link-mod.sh`) has the same name and id: rows are keyed by descriptor file, marked "local", and left out of the version notes (`trackedMods()`) — and of the two, only the one in the load order is active (the save names mods only; 2026-10-31 both showed active, the Workshop subscription in no playset) — keyed by name and id they once broke the tab (a duplicate key, client-side only). 2207.03.10: 28 DLCs, 17 mods. **Merged
 DLCs**: Utopia, Synthetic Dawn and Humanoids are gameplay DLCs no script checks for (data DB
 `dlc.host_checks` 0) and saves leave them out of `required_dlcs` though installed — shown as
 "base game". **Mod updates**: the launcher's `launcher-v2.sqlite` (`mods.timeUpdated`, seconds;
 `version` where the descriptor has none, read-only) completes the descriptors; at each start
 `noteModVersions` notes every mod whose version, supported version or update time changed in
 the `mod_version` table, with the head's game date — the mods tab's "Updates", since
-2026-10-18 (many mods name no version: their update shows as a new update time). The DLC tab
+2026-10-18 (many mods name no version: their update shows as a new update time). **Load order**
+(`#`, the default sort): `<user dir>/dlc_load.json`'s `enabled_mods`, read per request — the
+launcher writes it from the active playset's order when it starts the game (2026-10-31: the same
+order as `launcher-v2.sqlite` `playsets_mods.position`), so a change in the launcher shows after
+the next game start. **Age**: days since the workshop's update (`ageDays()`, real time at the
+request). The save's `meta.mods` is alphabetical, no source of the order. The DLC tab
 opens per category.
 
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
@@ -1346,7 +1393,12 @@ wait for its output; pick nodes by date from the copy's `node` table.
 
 On Linux (2026-10-17) Node 24 is first on PATH — no `fnm` prefix — and check, test, lint and a
 dev server on a DB copy all ran sandboxed. Kill that server by `$!`, not `pkill -f <pattern>`,
-which also matches the Bash command's own shell and ends it (exit 143).
+which also matches the Bash command's own shell and ends it (exit 143). **Start
+`node_modules/.bin/vite dev --strictPort`, not `pnpm dev`**: `$!` of `pnpm dev` is pnpm, and
+killing it leaves Vite holding the port — the next start in the same command failed "Port 5199
+is already in use" and a check of it read nothing (2026-10-31). For checks that extract, set
+`XDG_DATA_HOME=$TMPDIR/xdg` with `STELLARIS_GAME_DIR` + `STELLARIS_EXTRACTOR`, so the real data
+folder stays untouched; count `extracting game data` lines in the log per start.
 
 - **`pnpm install` / `pnpm add` must run outside the sandbox** (`! pnpm install`): pnpm 12 fails to
   take its store lock (`pnpm-store-operation-locks: Operation not permitted`) even with the store in
@@ -1531,7 +1583,13 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   `country.sectors.owned` → `sectors.<id> = { name systems type }`.
 - Starbases: `starbase_mgr.starbases.<id> = { level modules buildings build_queue
 shipyard_build_queue station }` — **no owner field**; the country's are those whose own `build_queue` it owns — the queue's
-  `location.id` is the station ship, not the starbase (both 0 for Sol, which hid an outpost bug). System via `galactic_object.<id>.starbases`. Ship queue items name only a design
+  `location.id` is the station ship, not the starbase (both 0 for Sol, which hid an outpost bug). System via `galactic_object.<id>.starbases`;
+  an arkship's starbase is in no system's list — it travels. It is where its `station` ship is:
+  `ships.<id>.coordinate.origin`, else the ship's fleet's `movement_manager.coordinate.origin`. An
+  arkship is a fleet of its own (`ships = { <the arkship> }`, `ship_class=shipclass_starbase`,
+  `properties = { station=yes mobile=yes … }`), not an escort's — both agreed for all four arkships
+  of Roaming Korinth 2206.10.08 (ours at system 80). Its `shipyard_build_queue=4294967295` is none
+  (it builds through its colony's `combined` queue): no shipyard then, READER 39. Ship queue items name only a design
   (`ship_design.<id>.{name, growth_stages[0].ship_size}`). Capital ships (titan, colossus,
   juggernaut) need a citadel with `capital_yards`, an arkship's `arkship_capital_shipyard`, or a
   finished Mega Shipyard, plus the tech (`*_possible_construction` in

@@ -13,6 +13,7 @@
 		type View
 	} from './mapView.ts';
 	import type { Territory } from './territories.ts';
+	import { MAP_SHIPS, type MapShips, type OwnOnMap } from './mapLayers.ts';
 
 	// A galaxy map in screen pixels: hyperlanes and systems (own ones tinted, or filled by `fill`),
 	// with drag to pan, the wheel to zoom and the bottom edge to resize. What a page draws on top is
@@ -20,6 +21,8 @@
 	// (bindable) is the system under the pointer, here or in a table beside: it gets a ring. Binding
 	// `selected` makes a click (not a drag) pick the system under the pointer, again to unpick; the
 	// picked one keeps a ring of its own. `territories` are drawn as empire borders (#lib/borders.ts).
+	// `own` (map and systems tabs) adds a nomad's "my waystations" in place of "my empire", the fit
+	// "my stations and ships" and our ships drawn per system, which `ships` picks (`onShips` stores it).
 	// `beside` is the page's table of what the map shows: the page draws it below the map, and hands
 	// it over to go beside the map when the viewer picks "wide + table" (`width`, bindable, tells it
 	// which; without `beside` that choice is drawn as plain wide).
@@ -47,7 +50,10 @@
 		territories = [],
 		hovered = $bindable(null),
 		selected = $bindable(),
-		onsystemmenu
+		onsystemmenu,
+		own,
+		ships = 'off',
+		onShips
 	}: {
 		systems: System[];
 		fill?: Record<number, string>; // system id → colour, instead of the own/other tint
@@ -64,6 +70,9 @@
 		selected?: number | null;
 		// a right-click on a system (the nearest within 8px), with the pointer's place in the window
 		onsystemmenu?: (systemId: number, at: { x: number; y: number }) => void;
+		own?: OwnOnMap;
+		ships?: MapShips;
+		onShips?: (v: MapShips) => void;
 	} = $props();
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 
@@ -181,7 +190,24 @@
 	const at = (p: Point) => toScreen(v, size, p);
 
 	const capital = $derived(systems.find((s) => s.capital));
-	const empire = $derived(systems.filter((s) => s.owned));
+	const points = (ids: number[]) => ids.flatMap((id) => byId.get(id) ?? []);
+	// a nomad's home is its waystations; everyone else's the systems it owns
+	const home = $derived(
+		own?.nomad
+			? { label: 'my waystations', points: points(own.waystations) }
+			: { label: 'my empire', points: systems.filter((s) => s.owned) }
+	);
+	const stationsAndShips = $derived(
+		own ? points([...own.stations, ...own.ships.map((x) => x.systemId)]) : []
+	);
+	// our ships per system, as the viewer picked
+	const shipsAt = $derived.by(() => {
+		const at = new Map<number, string[]>();
+		for (const x of own?.ships ?? [])
+			if (ships === 'all' || (ships === 'fleets') === (x.kind === 'fleet'))
+				at.set(x.systemId, [...(at.get(x.systemId) ?? []), x.name]);
+		return ships === 'off' ? new Map<number, string[]>() : at;
+	});
 	const explored = $derived(systems.filter((s) => s.known !== false));
 	// at least close enough to tell the capital's neighbours apart (~100px between systems)
 	const toCapital = (c: Point) => (view = { cx: c.x, cy: c.y, k: Math.max(v.k, 5) });
@@ -286,9 +312,18 @@
 			>capital</button
 		>
 		<span class="ml-2 text-gray-500">fit</span>
-		<button class={button} disabled={!empire.length} onclick={() => (view = fit(empire, size))}
-			>my empire</button
+		<button
+			class={button}
+			disabled={!home.points.length}
+			onclick={() => (view = fit(home.points, size))}>{home.label}</button
 		>
+		{#if own}
+			<button
+				class={button}
+				disabled={!stationsAndShips.length}
+				onclick={() => (view = fit(stationsAndShips, size))}>my stations and ships</button
+			>
+		{/if}
 		<button class={button} disabled={!explored.length} onclick={() => (view = fit(explored, size))}
 			>explored</button
 		>
@@ -303,6 +338,18 @@
 		<span class="ml-2 text-gray-500">zoom</span>
 		<button class={button} onclick={() => zoomBy(1.5)} aria-label="zoom in">+</button>
 		<button class={button} onclick={() => zoomBy(1 / 1.5)} aria-label="zoom out">−</button>
+		{#if own}
+			<label class="ml-2 flex items-center gap-1"
+				>ships
+				<select
+					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+					value={ships}
+					onchange={(e) => onShips?.((e.currentTarget as HTMLSelectElement).value as MapShips)}
+				>
+					{#each MAP_SHIPS as o (o)}<option value={o}>{o}</option>{/each}
+				</select>
+			</label>
+		{/if}
 		{#if hasSectors}
 			<label class="ml-2 flex items-center gap-1"
 				><input type="checkbox" bind:checked={sectors} /> sectors</label
@@ -411,6 +458,23 @@
 										: 'fill-gray-200 stroke-gray-400'}"
 								stroke-width="1"
 							/>
+						{/each}
+						{#each [...shipsAt] as [id, names] (id)}
+							{@const s = byId.get(id)}
+							{#if s}
+								{@const p = at(s)}
+								<g class="fill-emerald-600 dark:fill-emerald-400"
+									><title>{names.join('\n')}</title><path
+										d="M{p.x - 4},{p.y + 9}l4,-7l4,7z"
+										class="stroke-white dark:stroke-gray-900"
+										stroke-width="0.75"
+									/>{#if names.length > 1}<text
+											class="text-[10px] font-semibold"
+											x={p.x + 5}
+											y={p.y + 10}>{names.length}</text
+										>{/if}</g
+								>
+							{/if}
 						{/each}
 						{@render layer?.(at, v.k)}
 						{#if selected !== undefined && selected !== null && byId.get(selected)}

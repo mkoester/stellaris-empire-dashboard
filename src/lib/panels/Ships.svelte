@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { fmt, pretty } from '../format.ts';
+	import { fmt } from '../format.ts';
+	import { shipName } from '../ships.ts';
 	import type { Fleet, ShipCount } from '../types.ts';
 	import Panel from './Panel.svelte';
 
@@ -26,7 +27,7 @@
 		{#if of.length}
 			<div class="mt-1 text-gray-500">{g}</div>
 			{#each of as s (s.size)}
-				<div>{pretty(s.size)} <b>{s.count}</b></div>
+				<div>{shipName(s.size)} <b>{s.count}</b></div>
 			{/each}
 		{/if}
 	{/each}

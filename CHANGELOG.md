@@ -11,9 +11,29 @@ All notable changes to this project are documented here. The format follows
 - Wide maps: every galaxy map has a `width` switch — `wide` uses the browser window's full
   width, `wide + table` puts the map's table beside it (map tab: Found; systems; megastructures;
   first contacts). One choice for all maps, remembered in this browser.
+- Upcoming: what sits idle stays listed until it is busy again or dismissed (✕) — a research
+  field without a tech, no council agenda in preparation, a colony or shipyard with nothing in its
+  queue, a leader without a post, an empty council seat, free leader slots, idle civilian ships.
+  Dismissing hides that idle spell only; idling again later shows it again.
+- Map and systems tabs: our ships on the map (all, fleets or civilian; stored in the profile), a
+  fit "my stations and ships", and for nomads "my waystations" in place of "my empire".
+- Colony page: what "Distribute Luxury Goods" would bring if enacted now — its Consumer Goods,
+  then amenities → happiness → stability → job output, a month and over its 10 years (≈); job
+  upkeep stays the same. While it runs, until when.
+- Mods tab: the launcher's load order (`#`, the default sort), as of the last game start, and each
+  mod's age since its last workshop update.
 
 ### Fixed
 
+- The all tab's Leaders panel shows each class's limit with what raises it (techs such as
+  Colonial Centralization, traditions, civics, …), not always 3.
+- Ships are named as in game: a nomad's "Logistic Ship" no longer shows as a constructor, the
+  construction ship as "Construction Ship". Saves still on disk are read again once.
+- A nomad's arkship is no longer listed as an idle shipyard of its own beside its colony: it
+  builds ships through the colony's shared build queue, so the colony's entry covers both. It is
+  also placed on the map where it is.
+- Mods tab: a mod installed twice — a local copy and its Workshop subscription — is active only
+  where the launcher loaded it, not both.
 - Companion mod 0.10.1: a colony's daily jobs and pops lines are no longer empty (0.9.0–0.10.0
   read `num_sapient_pops`, which is no trigger; now `pop_amount`).
 - Companion mod 0.10.1: a new colony is logged for a nomad arkship too (since 0.2.0 the event

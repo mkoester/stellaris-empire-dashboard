@@ -276,7 +276,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '38'; // 38: our shipset; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '40'; // 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -977,6 +977,11 @@ export function civilianShips(
 		const current = auto
 			? (Object.entries(auto.sub_order ?? {})[0] as [string, Raw] | undefined)
 			: top;
+		const design =
+			raw.shipDesigns[
+				String(raw.ships[String(first(list(f.ships)))]?.ship_design_implementation?.design)
+			];
+		const size = first(design?.growth_stages)?.ship_size;
 		const queued = Object.entries(f.order ?? {}).flatMap(([k, v]) =>
 			items(v).map((x) => [k, x] as [string, Raw])
 		);
@@ -985,6 +990,7 @@ export function civilianShips(
 				fleetId: Number(o.fleet),
 				name: displayName(f.name),
 				kind: cls.replace(/^shipclass_/, ''),
+				...(typeof size === 'string' ? { size } : {}),
 				stance: typeof f.fleet_stance === 'string' ? f.fleet_stance : null,
 				automation: auto
 					? Object.entries(auto)
@@ -1166,12 +1172,25 @@ export function stations(
 	raw: Pick<
 		RawSave,
 		'countryId' | 'construction' | 'deposits' | 'shipDesigns' | 'starbases' | 'systems'
-	>
+	> &
+		Partial<Pick<RawSave, 'ships' | 'fleets'>>
 ): Station[] {
 	const systemOf = new Map<number, { id: number; name: string }>();
 	for (const [id, sys] of Object.entries(raw.systems))
 		for (const sb of list(sys?.starbases))
 			systemOf.set(sb, { id: Number(id), name: displayName(sys.name) });
+	// A station no system lists — an arkship's: it travels — is where its station ship is: the
+	// ship's own `coordinate.origin`, else its fleet's (an arkship is a fleet of its own,
+	// `ship_class=shipclass_starbase`, `mobile=yes`; both agreed for all four arkships of Roaming
+	// Korinth 2206.10.08).
+	const shipSystem = (sb: Raw) => {
+		const ship = raw.ships?.[String(sb?.station)];
+		const id =
+			ship?.coordinate?.origin ??
+			raw.fleets?.[String(ship?.fleet)]?.movement_manager?.coordinate?.origin;
+		const sys = id === undefined ? undefined : raw.systems[String(id)];
+		return sys ? { id: Number(id), name: displayName(sys.name) } : undefined;
+	};
 	// A starbase is the country's when its own build queue is: the queue's `location.id` is the
 	// starbase's station ship, not the starbase (both 0 for Sol, which hid it; outposts differ).
 	const queues = raw.construction?.queue_mgr?.queues ?? {};
@@ -1183,18 +1202,20 @@ export function stations(
 		const sb = raw.starbases[String(id)];
 		if (!sb || typeof sb !== 'object') return [];
 		const modules = Object.values(sb.modules ?? {}).map(String);
+		const where = systemOf.get(id) ?? shipSystem(sb);
 		return [
 			{
 				id,
-				system: systemOf.get(id)?.name ?? '',
-				systemId: systemOf.get(id)?.id ?? null,
+				system: where?.name ?? '',
+				systemId: where?.id ?? null,
 				level: String(sb.level ?? '').replace(/^starbase_level_/, ''),
 				modules,
 				buildings: Object.values(sb.buildings ?? {}).map(String),
 				queue: sb.build_queue !== undefined ? buildQueue(raw, Number(sb.build_queue)) : [],
 				slots: queueSlots(raw, sb.build_queue),
 				shipyard:
-					sb.shipyard_build_queue !== undefined &&
+					// 4294967295: none (the arkship of Roaming Korinth builds through its colony's queue)
+					queues[String(sb.shipyard_build_queue)] !== undefined &&
 					(modules.includes('shipyard') || modules.some((m) => m.startsWith('arkship')))
 						? {
 								queue: buildQueue(raw, Number(sb.shipyard_build_queue)),
@@ -1280,6 +1301,7 @@ export function route(raw: Pick<RawSave, 'planets' | 'systems' | 'country'>, f: 
 	});
 	return {
 		at: displayName(raw.systems[String(here)]?.name),
+		...(here !== undefined && raw.systems[String(here)] ? { systemId: Number(here) } : {}),
 		moving: f?.movement_manager?.state !== undefined && f.movement_manager.state !== 'move_idle',
 		stops
 	};
