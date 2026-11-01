@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { K_MAX, fit, pan, toGalaxy, toScreen, zoomAt } from './mapView.ts';
+import { K_MAX, fit, pan, parseMapWidth, toGalaxy, toScreen, zoomAt } from './mapView.ts';
 
 const size = { w: 800, h: 400 };
 // 2207.03 save: Sol, Alpha Centauri (west of Sol in game), Sirius (east)
@@ -54,5 +54,12 @@ describe('mapView', () => {
 		const after = toScreen(pan(v, 30, -10), size, sol);
 		expect(after.x - before.x).toBeCloseTo(30);
 		expect(after.y - before.y).toBeCloseTo(-10);
+	});
+
+	it('reads a stored map width, anything unknown as normal', () => {
+		expect(parseMapWidth('wide')).toBe('wide');
+		expect(parseMapWidth('side')).toBe('side');
+		expect(parseMapWidth(null)).toBe('normal');
+		expect(parseMapWidth('huge')).toBe('normal');
 	});
 });

@@ -10,6 +10,7 @@ export function load() {
 		profiles: profiles(db),
 		active: active.id,
 		display: active.settings.display,
+		quadrants: active.settings.quadrants,
 		campaign: viewedCampaign(db),
 		campaigns: campaignsOf(db),
 		games: campaignRows(db, campaignsOnDisk())

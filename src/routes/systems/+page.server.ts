@@ -14,7 +14,13 @@ import { display, mapFilter, systemView } from '#lib/server/settings.ts';
 import { ownOnMap } from '#lib/mapLayers.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
+import {
+	arkshipsOf,
+	campaignGalaxy,
+	capitalId,
+	reveal,
+	territoriesOf
+} from '#lib/server/mapSystems.ts';
 import { valuesOf } from '#lib/server/unitCosts.ts';
 
 /** One variant of a system's money: without or with its colonies. */
@@ -31,6 +37,7 @@ export function load({ url }) {
 	const galaxy = discovered(g?.systems ?? [], { whole, stars });
 	const beyond = jumpsFromBorder(galaxy);
 	const game = getGameData();
+	const capital = capitalId(snaps);
 	const data: SystemData = {
 		costs: game.costs,
 		depositCategory: game.depositCategory,
@@ -95,6 +102,7 @@ export function load({ url }) {
 		rows,
 		names: game.names,
 		territories: territoriesOf(snaps),
-		systems: mapView(g?.systems ?? [], reveal())
+		arkships: arkshipsOf(snaps),
+		systems: mapView(g?.systems ?? [], reveal()).map((x) => ({ ...x, capital: x.id === capital }))
 	};
 }

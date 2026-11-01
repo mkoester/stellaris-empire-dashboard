@@ -47,3 +47,11 @@ export const pan = (v: View, dx: number, dy: number): View => ({
 	cx: v.cx + dx / v.k,
 	cy: v.cy - dy / v.k
 });
+
+/** How wide a map is drawn: in the page, the browser's full width, or that with the legend beside. */
+export const MAP_WIDTHS = ['normal', 'wide', 'side'] as const;
+export type MapWidth = (typeof MAP_WIDTHS)[number];
+/** One localStorage key for every map: switching one switches them all (per browser). */
+export const MAP_WIDTH_KEY = 'galaxy-map-width';
+export const parseMapWidth = (stored: string | null): MapWidth =>
+	MAP_WIDTHS.find((m) => m === stored) ?? 'normal';

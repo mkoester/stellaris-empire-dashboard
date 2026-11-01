@@ -558,6 +558,16 @@ export function loadGameData(file: string): GameData {
 					(r) => [r.key, r.name ?? r.key]
 				)
 			),
+			// an older data DB may lack the table: unnamed then
+			precursors: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'precursor'"
+			).length
+				? Object.fromEntries(
+						rows<{ key: string; name: string | null }>('SELECT key, name FROM precursor').map(
+							(r) => [r.key, r.name ?? r.key]
+						)
+					)
+				: {},
 			flagColors: Object.fromEntries(
 				rows<{ key: string; r: number; g: number; b: number }>(
 					'SELECT key, r, g, b FROM flag_color'

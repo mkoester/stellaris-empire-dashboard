@@ -37,6 +37,11 @@
 			active: path === '/map'
 		},
 		{
+			name: 'history',
+			href: node ? resolve(`/history?node=${node}`) : resolve('/history'),
+			active: path === '/history'
+		},
+		{
 			name: 'migration',
 			href: node ? resolve(`/migration?node=${node}`) : resolve('/migration'),
 			active: path === '/migration'
@@ -161,9 +166,19 @@
 			active: path === '/diplomacy'
 		},
 		{
+			name: 'subjects',
+			href: node ? resolve(`/subjects?node=${node}`) : resolve('/subjects'),
+			active: path === '/subjects'
+		},
+		{
 			name: 'megastructures',
 			href: node ? resolve(`/megastructures?node=${node}`) : resolve('/megastructures'),
 			active: path === '/megastructures'
+		},
+		{
+			name: 'galaxy',
+			href: node ? resolve(`/galaxy?node=${node}`) : resolve('/galaxy'),
+			active: path === '/galaxy'
 		},
 		{
 			name: 'mods',
@@ -174,6 +189,11 @@
 			name: 'dlc',
 			href: node ? resolve(`/dlc?node=${node}`) : resolve('/dlc'),
 			active: path === '/dlc'
+		},
+		{
+			name: 'about',
+			href: node ? resolve(`/about?node=${node}`) : resolve('/about'),
+			active: path === '/about'
 		}
 	];
 	const fixed = $derived(tabsAt(node));
@@ -268,8 +288,13 @@
 				<a class={tab(path === `/tab/${t.id}`)} href={tabHref(t.id)}>{t.name}</a>
 			{/each}
 			{#each fixed as t (t.name)}
-				<a class={tab(t.active)} href={t.href}
-					>{t.name}{#if t.name === 'planner' && data.plan.alerts}<span
+				{@const settle = t.name === 'expansion' && data.settle.nomad}
+				{@const dim =
+					settle && data.settle.blocked
+						? `not yet usable in game: settling needs ${data.settle.blocked}`
+						: data.empty[t.name] && `nothing to show yet: ${data.empty[t.name]}`}
+				<a class="{tab(t.active)} {dim ? 'opacity-50' : ''}" href={t.href} title={dim || undefined}
+					>{settle ? 'settle' : t.name}{#if t.name === 'planner' && data.plan.alerts}<span
 							class="ml-1 rounded bg-red-600 px-1 text-[11px] font-semibold text-white"
 							title="goals no longer possible, or avoided ones that happened"
 							>⚠ {data.plan.alerts}</span

@@ -8,6 +8,7 @@
 		type MapLayer,
 		type MapShips
 	} from '#lib/mapLayers.ts';
+	import type { MapWidth } from '#lib/mapView.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import { monthStarts } from '#lib/series.ts';
 	import ContextMenu, { type MenuItem } from '#lib/ContextMenu.svelte';
@@ -42,6 +43,7 @@
 	let hovered: number | null = $state(null);
 	let selected: number | null = $state(null);
 	let map: ReturnType<typeof GalaxyMap> | undefined = $state();
+	let width: MapWidth = $state('normal'); // "wide + table": the Found table goes beside the map
 
 	// a right-click on a system: the goals that fit it, to add to the planner (want or avoid)
 	let menu = $state<{ x: number; y: number; heading: string; items: MenuItem[] } | null>(null);
@@ -192,6 +194,46 @@
 	{LAYER_INFO[r.layer].label}
 {/snippet}
 
+{#snippet found()}
+	<Panel
+		title="Found"
+		note="What is still to do. Hover or click a row to find it on the map; what is done moves below."
+	>
+		{#if open.length}
+			<SortTable
+				rows={open}
+				{columns}
+				key={(r) => r.id}
+				link={(r) => r.systemId}
+				bind:hovered
+				bind:selected
+			/>
+		{:else}<p class="text-sm text-gray-500">Nothing open in the layers shown.</p>{/if}
+	</Panel>
+
+	<details bind:open={showDone}>
+		<summary class="cursor-pointer text-xl font-semibold"
+			>Found &amp; done <span class="text-base font-normal text-gray-500">{done.length}</span
+			></summary
+		>
+		<p class="my-2 text-sm text-gray-500">
+			Resolved anomalies, excavated dig sites, finished first contacts and the stations of empires
+			met, finished special projects, counted Wanderlust targets, claimed ruins, and entry popups
+			whose structure has its own row. Shown on the map (faded) while this is open.
+		</p>
+		{#if done.length}
+			<SortTable
+				rows={done}
+				columns={doneColumns}
+				key={(r) => r.id}
+				link={(r) => r.systemId}
+				bind:hovered
+				bind:selected
+			/>
+		{:else}<p class="text-sm text-gray-500">Nothing done yet in the layers shown.</p>{/if}
+	</details>
+{/snippet}
+
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Map</h1>
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
@@ -259,12 +301,15 @@
 			]}
 			heightKey="galaxy-map-height"
 			own={data.own}
+			arkships={data.arkships}
 			ships={filter.ships}
 			onShips={setShips}
 			label="Galaxy map"
 			bind:hovered
 			bind:selected
 			bind:this={map}
+			bind:width
+			beside={found}
 			onsystemmenu={systemMenu}
 		>
 			{#snippet layer(at)}
@@ -287,43 +332,7 @@
 		</GalaxyMap>
 	</Panel>
 
-	<Panel
-		title="Found"
-		note="What is still to do. Hover or click a row to find it on the map; what is done moves below."
-	>
-		{#if open.length}
-			<SortTable
-				rows={open}
-				{columns}
-				key={(r) => r.id}
-				link={(r) => r.systemId}
-				bind:hovered
-				bind:selected
-			/>
-		{:else}<p class="text-sm text-gray-500">Nothing open in the layers shown.</p>{/if}
-	</Panel>
-
-	<details bind:open={showDone}>
-		<summary class="cursor-pointer text-xl font-semibold"
-			>Found &amp; done <span class="text-base font-normal text-gray-500">{done.length}</span
-			></summary
-		>
-		<p class="my-2 text-sm text-gray-500">
-			Resolved anomalies, excavated dig sites, finished first contacts and the stations of empires
-			met, finished special projects, counted Wanderlust targets, claimed ruins, and entry popups
-			whose structure has its own row. Shown on the map (faded) while this is open.
-		</p>
-		{#if done.length}
-			<SortTable
-				rows={done}
-				columns={doneColumns}
-				key={(r) => r.id}
-				link={(r) => r.systemId}
-				bind:hovered
-				bind:selected
-			/>
-		{:else}<p class="text-sm text-gray-500">Nothing done yet in the layers shown.</p>{/if}
-	</details>
+	{#if width !== 'side'}{@render found()}{/if}
 </div>
 
 {#if menu}

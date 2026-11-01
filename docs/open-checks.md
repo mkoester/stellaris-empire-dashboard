@@ -232,6 +232,23 @@ ship_event's scope), and the matches' other conditions (a match is "likely").
 - **Send:** the date and the popup's title; `logs/game.log`'s `system-entered` lines. Check: the
   events tab dates the popup's system to that day, and a system without a popup shows nothing.
 
+### 26. Arkships on the maps, settling down — map, migration and expansion tabs (from 2026-11-01)
+
+Read from the Roaming Korinth saves (2207.02.01: the capital arkship Peshnab the Faithful at
+Selea, system 563), not yet seen beside the game. **Assumed**: Arkship Remains' +60 %
+environment tolerance counts on every colonizable class, also where the species' own
+habitability is 0 % (an Ark-preference species: `trait_pc_ark_preference` gives only
+`pc_ark_habitability`) — so the expansion tab's "Hab. settled" reads 60 % on every planet for
+such a species. Whether the game's expansion planner shows a settle target's habitability at all is
+unknown too.
+
+- **Do:** on Roaming Korinth, open the galaxy map at the capital arkship; then the expansion
+  planner with the arkship selected (settling needs Adaptability finished first — until then the
+  planner may hide the targets).
+- **Send:** both screenshots and the date. Check: the dashboard's arkship marker and "capital"
+  button land on the same system; the planner's habitability for a target matches "Hab. now", and
+  once settled the planet's habitability matches "Hab. settled".
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

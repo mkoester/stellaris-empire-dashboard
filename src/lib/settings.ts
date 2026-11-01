@@ -1,11 +1,13 @@
 import type { ColonyView } from './colonyTable.ts';
 import type { ContactView } from './contacts.ts';
 import type { DiplomacyView } from './diplomacy.ts';
+import type { MigrationView } from './migration.ts';
 import type { ExpansionView } from './expansion.ts';
 import type { MapFilter } from './mapLayers.ts';
 import type { MegaView } from './megastructures.ts';
 import type { SystemView } from './systems.ts';
 import type { ProduceView } from './produce.ts';
+import type { QuadrantView } from './quadrants.ts';
 import type { Display } from './profiles.ts';
 import { KIND_IDS, type EventKind } from './milestones.ts';
 
@@ -152,10 +154,12 @@ export async function putSettings(patch: {
 	expansionView?: ExpansionView;
 	contactView?: ContactView;
 	diplomacyView?: DiplomacyView;
+	migrationView?: MigrationView;
 	megastructureView?: MegaView;
 	systemView?: SystemView;
 	produceView?: ProduceView;
 	mapFilter?: MapFilter;
+	quadrants?: QuadrantView;
 	display?: Display;
 }) {
 	const r = await fetch(api('/api/settings'), {

@@ -4,9 +4,11 @@ import { parseContactView } from '#lib/contacts.ts';
 import { parseDiplomacyView } from '#lib/diplomacy.ts';
 import { parseExpansionView } from '#lib/expansion.ts';
 import { parseMapFilter } from '#lib/mapLayers.ts';
+import { parseMigrationView } from '#lib/migration.ts';
 import { parseMegaView } from '#lib/megastructures.ts';
 import { parseSystemView } from '#lib/systems.ts';
 import { parseProduceView } from '#lib/produce.ts';
+import { parseQuadrantView } from '#lib/quadrants.ts';
 import { parseDisplay } from '#lib/profiles.ts';
 import { getDb } from '#lib/server/app.ts';
 import { setSetting } from '#lib/server/db.ts';
@@ -16,7 +18,7 @@ import { parseChartEvents, parseTabs, parseTheme } from '#lib/settings.ts';
 // Stores the viewer settings a page changed. `{ theme }` is global; into the profile in use go
 // `{ tabs }` (the whole list), `{ chartEvents }` (entries merged into the stored map),
 // `{ colonyView }` (the colonies tab's mode, sort, filters and columns), `{ expansionView }`,
-// `{ contactView }`, `{ diplomacyView }`, `{ megastructureView }`, `{ systemView }`, `{ produceView }`, `{ mapFilter }` and `{ display }`.
+// `{ contactView }`, `{ diplomacyView }`, `{ migrationView }`, `{ megastructureView }`, `{ systemView }`, `{ produceView }`, `{ mapFilter }`, `{ quadrants }` and `{ display }`.
 export async function PUT({ request }) {
 	const body = await request.json().catch(() => error(400, 'not JSON'));
 	if (body?.theme !== undefined) {
@@ -42,6 +44,8 @@ export async function PUT({ request }) {
 		updateProfile(getDb(), { contactView: parseContactView(body.contactView) });
 	if (body?.diplomacyView !== undefined)
 		updateProfile(getDb(), { diplomacyView: parseDiplomacyView(body.diplomacyView) });
+	if (body?.migrationView !== undefined)
+		updateProfile(getDb(), { migrationView: parseMigrationView(body.migrationView) });
 	if (body?.megastructureView !== undefined)
 		updateProfile(getDb(), { megastructureView: parseMegaView(body.megastructureView) });
 	if (body?.systemView !== undefined)
@@ -50,6 +54,8 @@ export async function PUT({ request }) {
 		updateProfile(getDb(), { produceView: parseProduceView(body.produceView) });
 	if (body?.mapFilter !== undefined)
 		updateProfile(getDb(), { mapFilter: parseMapFilter(body.mapFilter) });
+	if (body?.quadrants !== undefined)
+		updateProfile(getDb(), { quadrants: parseQuadrantView(body.quadrants) });
 	if (body?.display !== undefined) updateProfile(getDb(), { display: parseDisplay(body.display) });
 	return json({ ok: true });
 }

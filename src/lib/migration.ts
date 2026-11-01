@@ -1,5 +1,5 @@
 import { gameYear } from './series.ts';
-import type { MigrationColony, Snapshot } from './types.ts';
+import type { Arkship, MigrationColony, Snapshot } from './types.ts';
 
 // Migration between colonies — the empire's own and foreign ones (via migration treaties). The
 // save has per-colony totals only, no source→destination pairs. Pairs are exact when there is one
@@ -148,4 +148,53 @@ export function migrationHistory(history: Snapshot[]): { x: number[]; colonies: 
 			}
 		});
 	return { x: history.map((s) => gameYear(s.date)), colonies: [...byKey.values()] };
+}
+
+/**
+ * The migration map's view, per profile: the galaxy map or our arkships on a circle, and the
+ * circle's order — clockwise from 12 o'clock: oldest first, the biggest first, or by name.
+ */
+export type ArkshipOrder = 'age' | 'size' | 'name';
+export const ARKSHIP_ORDERS: ArkshipOrder[] = ['age', 'size', 'name'];
+export type MigrationView = { layout: 'map' | 'circle'; order: ArkshipOrder };
+export const DEFAULT_MIGRATION_VIEW: MigrationView = { layout: 'map', order: 'age' };
+export function parseMigrationView(v: unknown): MigrationView {
+	const o = (v && typeof v === 'object' ? v : {}) as Partial<MigrationView>;
+	return {
+		layout: o.layout === 'circle' ? 'circle' : 'map',
+		order: ARKSHIP_ORDERS.includes(o.order as ArkshipOrder) ? (o.order as ArkshipOrder) : 'age'
+	};
+}
+
+/**
+ * When each arkship (by ship id) was first seen along the branch: the date of the first snapshot
+ * listing it. The save's `construction_date` is no age — every arkship of a 2200 start reads
+ * 2200.01.01, later ones too (Roaming Korinth 2207.02.01).
+ */
+export function arkshipFirstSeen(snaps: Pick<Snapshot, 'date' | 'arkships'>[]) {
+	const seen: Record<number, string> = {};
+	for (const s of snaps) for (const a of s.arkships ?? []) seen[a.shipId] ??= s.date;
+	return seen;
+}
+
+/**
+ * Our arkships in the circle's order: by age (first seen, then ship id — ids grow with each new
+ * ship), by size (tier, then planet size, the biggest first) or by name.
+ */
+export function arkshipOrder(
+	arks: Arkship[],
+	order: ArkshipOrder,
+	firstSeen: Record<number, string> = {}
+): Arkship[] {
+	const byName = (a: Arkship, b: Arkship) => a.name.localeCompare(b.name);
+	const byAge = (a: Arkship, b: Arkship) =>
+		(firstSeen[a.shipId] ?? '\uffff').localeCompare(firstSeen[b.shipId] ?? '\uffff') ||
+		a.shipId - b.shipId;
+	const cmp =
+		order === 'name'
+			? (a: Arkship, b: Arkship) => byName(a, b) || a.shipId - b.shipId
+			: order === 'size'
+				? (a: Arkship, b: Arkship) => b.tier - a.tier || b.planetSize - a.planetSize || byName(a, b)
+				: byAge;
+	return [...arks].sort(cmp);
 }

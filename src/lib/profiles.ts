@@ -1,11 +1,14 @@
 import { DEFAULT_VIEW, parseView, type ColonyView } from './colonyTable.ts';
 import { DEFAULT_CONTACT_VIEW, parseContactView, type ContactView } from './contacts.ts';
 import { DEFAULT_DIPLOMACY_VIEW, parseDiplomacyView, type DiplomacyView } from './diplomacy.ts';
+import { DEFAULT_MIGRATION_VIEW, parseMigrationView, type MigrationView } from './migration.ts';
 import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from './expansion.ts';
+import { anyOn } from './displaySwitches.ts';
 import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
 import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
+import { DEFAULT_QUADRANT_VIEW, parseQuadrantView, type QuadrantView } from './quadrants.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
 // Profiles: named sets of viewer settings — one per playstyle or play-through. Everything but the
@@ -18,7 +21,9 @@ export type RowLine = keyof typeof ROW_LINES;
 export type Display = {
 	colonyRowLine: RowLine;
 	expansionRowLine: RowLine;
-	habitatsAlways: boolean; // habitat sites before habitats can be built (later behind cheats)
+	showSpoilers: boolean; // ⚙ lists the spoiler switches; off, they are off (#lib/displaySwitches.ts)
+	showCheats: boolean; // likewise the cheats
+	habitatsAlways: boolean; // habitat sites before habitats can be built (cheat)
 	anomalySpoilers: boolean; // situations tab: what an anomaly can turn into
 	projectSpoilers: boolean; // situations tab: what a special project leads to
 	contactStations: boolean; // first contact map: whose station each visited system has
@@ -36,10 +41,13 @@ export type Display = {
 	tradeoffs: boolean; // the trade-offs tab: where to spend scarce resources (exploratory)
 	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, whatever our intel (cheating)
+	historyAll: boolean; // history tab: every empire's history, whatever we know (cheat)
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
 	expansionRowLine: 'medium',
+	showSpoilers: false,
+	showCheats: false,
 	habitatsAlways: false,
 	anomalySpoilers: false,
 	projectSpoilers: false,
@@ -57,7 +65,8 @@ export const DEFAULT_DISPLAY: Display = {
 	allFactionTypes: false,
 	tradeoffs: false,
 	tradeIntel: false,
-	diplomacyAll: false
+	diplomacyAll: false,
+	historyAll: false
 };
 
 export type ProfileSettings = {
@@ -67,10 +76,12 @@ export type ProfileSettings = {
 	expansionView: ExpansionView;
 	contactView: ContactView;
 	diplomacyView: DiplomacyView;
+	migrationView: MigrationView;
 	megastructureView: MegaView;
 	systemView: SystemView;
 	produceView: ProduceView;
 	mapFilter: MapFilter;
+	quadrants: QuadrantView; // every map's rings and sectors
 	display: Display;
 };
 export type ProfileInfo = { id: string; name: string };
@@ -82,9 +93,11 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	expansionView: DEFAULT_EXPANSION_VIEW,
 	contactView: DEFAULT_CONTACT_VIEW,
 	diplomacyView: DEFAULT_DIPLOMACY_VIEW,
+	migrationView: DEFAULT_MIGRATION_VIEW,
 	megastructureView: DEFAULT_MEGA_VIEW,
 	systemView: DEFAULT_SYSTEM_VIEW,
 	produceView: DEFAULT_PRODUCE_VIEW,
+	quadrants: DEFAULT_QUADRANT_VIEW,
 	mapFilter: DEFAULT_MAP_FILTER,
 	display: DEFAULT_DISPLAY
 };
@@ -98,6 +111,9 @@ export function parseDisplay(v: unknown): Display {
 	return {
 		colonyRowLine: line('colonyRowLine'),
 		expansionRowLine: line('expansionRowLine'),
+		// a profile from before the gates keeps what it had on
+		showSpoilers: typeof o.showSpoilers === 'boolean' ? o.showSpoilers : anyOn(o, 'spoiler'),
+		showCheats: typeof o.showCheats === 'boolean' ? o.showCheats : anyOn(o, 'cheat'),
 		habitatsAlways: o.habitatsAlways === true,
 		anomalySpoilers: o.anomalySpoilers === true,
 		projectSpoilers: o.projectSpoilers === true,
@@ -115,7 +131,8 @@ export function parseDisplay(v: unknown): Display {
 		allFactionTypes: o.allFactionTypes === true,
 		tradeoffs: o.tradeoffs === true,
 		tradeIntel: o.tradeIntel === true,
-		diplomacyAll: o.diplomacyAll === true
+		diplomacyAll: o.diplomacyAll === true,
+		historyAll: o.historyAll === true
 	};
 }
 
@@ -129,10 +146,12 @@ export function parseSettings(v: unknown): ProfileSettings {
 		expansionView: parseExpansionView(o.expansionView),
 		contactView: parseContactView(o.contactView),
 		diplomacyView: parseDiplomacyView(o.diplomacyView),
+		migrationView: parseMigrationView(o.migrationView),
 		megastructureView: parseMegaView(o.megastructureView),
 		systemView: parseSystemView(o.systemView),
 		produceView: parseProduceView(o.produceView),
 		mapFilter: parseMapFilter(o.mapFilter),
+		quadrants: parseQuadrantView(o.quadrants),
 		display: parseDisplay(o.display)
 	};
 }

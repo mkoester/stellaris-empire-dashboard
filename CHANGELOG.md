@@ -8,9 +8,45 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- A build for the Stellaris 4.5.3 open beta (Steam's `stellaris_test` branch): what 0.1.7 does,
-  with the extractor v0.1.7, which reads 4.5.3's game files. The game data it extracts is kept
+- A build for the Stellaris 4.5.3 open beta (Steam's `stellaris_test` branch): what 0.1.8 does,
+  with the extractor v0.1.10, which reads 4.5.3's game files. The game data it extracts is kept
   per game build, so a beta and the release after it never share one.
+
+## [0.1.8] - 2026-11-01
+
+### Changed
+
+- Bundles the extractor v0.1.10: branch offices and holdings (what they need, what they give), and
+  28 names and descriptions that were empty before, among them the Shroud's Psi Corps tradition,
+  the arkship techs and nine starbase modules.
+
+### Added
+
+- Maps: rings around the galactic core — just inside the innermost system, just outside the
+  outermost, and evenly spaced ones between (by galaxy size, or how many you pick) — and a cross
+  dividing the galaxy into 4, 8 or 16 sectors named by compass direction (NE, SE, SW, NW, or turned
+  by half a sector: N, E, S, W), reaching a little past the galaxy and fading out. On by default
+  (a large galaxy: 2 rings between; 8 sectors, N, NE, E …); ⚙ → "Map rings and quadrants". Inspired by the mod Quadrant
+  Fixed.
+- Galaxy tab: the settings the galaxy was created with, grouped as on the game's setup screen.
+  Inspired by the mod In-Game Settings View. Saves still on disk are read again once.
+- A tab with nothing to show yet has its name dimmed, and its tooltip says why (migration, trade
+  deals, galcom, shroud, diplomacy, situations). It stays a link.
+- History tab: the galaxy's known history since 2200 — a map of who held which system at the
+  month picked, and the events up to it (colonies, systems claimed or taken, communications,
+  guardians slain, wars), the events beside the map with "wide + table". You know your own history, all of an empire's once you talk to it — back
+  to the start —, whoever held a system you have been to, and guardians' falls. A cheat in ⚙ shows
+  everything. Saves still on disk are read again once.
+- Subjects tab: your subject agreements, the branch offices and holdings you own or that sit on
+  your colonies, and for a MegaCorp a branch office planner — every colony ranked by the trade an
+  office would bring per influence it costs (≈). Inspired by the mod Branch Office Expansion
+  Planner.
+- ⚙ is organised like a browser's settings: groups, a section list and a search. Spoiler and cheat
+  settings are listed only once shown, and hidden ones are off — each comes back as it was.
+- About tab: thanks to the mods, projects and libraries this dashboard learned from or builds on.
+- Wide maps: every galaxy map has a `width` switch — `wide` uses the browser window's full
+  width, `wide + table` puts the map's table beside it (map tab: Found; systems; megastructures;
+  first contacts). One choice for all maps, remembered in this browser.
 - Upcoming: what sits idle stays listed until it is busy again or dismissed (✕) — a research
   field without a tech, no council agenda in preparation, a colony or shipyard with nothing in its
   queue, a leader without a post, an empty council seat, free leader slots, idle civilian ships.
@@ -22,9 +58,21 @@ All notable changes to this project are documented here. The format follows
   upkeep stays the same. While it runs, until when.
 - Mods tab: the launcher's load order (`#`, the default sort), as of the last game start, and each
   mod's age since its last workshop update.
+- Nomads: your arkships on the map, systems and migration maps (the capital ringed), with a fit
+  "my arkships".
+- Migration: a circle view — your arkships clockwise, oldest first, by size or by name — and your
+  arkships' own migration. A nomad without migration partners now gets a map too.
+- Expansion tab for nomads: **Settle down** — what settling still needs (Adaptability or
+  Versatility finished, origin quests), where an arkship could settle (habitability now and with
+  Arkship Remains, jumps from your arkships) and what each of the game's outcomes would do with
+  your numbers. For a nomad the tab is called "settle", dimmed until settling is possible. A
+  settled empire gets an **Embark** checklist instead.
 
 ### Fixed
 
+- The maps' "capital" button went to a nomad's old home star instead of the capital arkship, and
+  was greyed out on the systems tab; distances from the capital (expansion) were off for nomads
+  the same way. Saves still on disk are read again once.
 - The all tab's Leaders panel shows each class's limit with what raises it (techs such as
   Colonial Centralization, traditions, civics, …), not always 3.
 - Ships are named as in game: a nomad's "Logistic Ship" no longer shows as a constructor, the

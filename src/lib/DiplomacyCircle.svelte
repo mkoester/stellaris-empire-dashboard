@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { chord as bend, circleSlots, placeOnCircle, slotAngle } from './circle.ts';
 	import { colorOf } from './colors.ts';
 	import { ethicMark, sortEthics } from './ethics.ts';
 	import type { EthicAxis } from './types.ts';
@@ -48,35 +49,23 @@
 	const C = $derived({ x: W / 2, y: H / 2 });
 	const byId = $derived(new Map(nodes.map((n) => [n.id, n])));
 	// slots around the circle: every empire one, a gap of one between groups
-	const slots = $derived.by(() => {
-		const out: { id: number; group: number }[] = [];
-		groups.forEach((g, gi) => {
-			const ns = g.ids.flatMap((id) => byId.get(id) ?? []);
-			// within a group: overlords before subjects, then by name
-			ns.sort(
-				(a, b) =>
-					Number(a.overlord !== null) - Number(b.overlord !== null) || a.name.localeCompare(b.name)
-			);
-			for (const n of ns) out.push({ id: n.id, group: gi });
-			if (groups.length > 1) out.push({ id: -1, group: -1 });
-		});
-		return out;
-	});
-	const angle = (i: number) => (i / slots.length) * 2 * Math.PI - Math.PI / 2;
-	const at = $derived(
-		new Map(
-			slots.flatMap((s, i) =>
-				s.id === -1
-					? []
-					: [
-							[
-								s.id,
-								{ x: C.x + R * Math.cos(angle(i)), y: C.y + R * Math.sin(angle(i)), t: angle(i) }
-							]
-						]
+	const slots = $derived(
+		circleSlots(
+			groups.map((g) =>
+				g.ids
+					.flatMap((id) => byId.get(id) ?? [])
+					// within a group: overlords before subjects, then by name
+					.sort(
+						(a, b) =>
+							Number(a.overlord !== null) - Number(b.overlord !== null) ||
+							a.name.localeCompare(b.name)
+					)
+					.map((n) => n.id)
 			)
 		)
 	);
+	const angle = (i: number) => slotAngle(i, slots.length);
+	const at = $derived(placeOnCircle(slots, C, R));
 	// an arc inside the circle along each group of two or more, named on hover where it has a name
 	const arcs = $derived(
 		groups.flatMap((g, gi) => {
@@ -96,14 +85,8 @@
 	);
 	const offsets = $derived(pairOffsets(edges));
 	const lit = $derived(focus === null ? null : neighbours(edges, focus));
-	const chord = (e: DiploEdge, off: number) => {
-		const p = at.get(e.from)!;
-		const q = at.get(e.to)!;
-		// the control point towards the centre, spread per parallel edge
-		const m = { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 };
-		const k = 0.45 + off * 0.08;
-		return `M${p.x},${p.y} Q${m.x + (C.x - m.x) * k},${m.y + (C.y - m.y) * k} ${q.x},${q.y}`;
-	};
+	// the control point towards the centre, spread per parallel edge
+	const chord = (e: DiploEdge, off: number) => bend(at.get(e.from)!, at.get(e.to)!, C, off);
 	const pick = (id: number) => (focus = focus === id ? null : id);
 	const nodeLit = (id: number) =>
 		(lit === null || lit.has(id)) && (highlight === null || highlight.nodes.has(id));

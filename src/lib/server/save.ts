@@ -1,6 +1,10 @@
 import { bypassLinks, distances, graph, type Graph } from '#lib/galaxyGraph.ts';
+import { readSetup } from '#lib/galaxySetup.ts';
 import { Jomini } from 'jomini';
 import type {
+	Arkship,
+	BranchSite,
+	ExternalBuildings,
 	BudgetSource,
 	Construction,
 	KnownSystem,
@@ -63,6 +67,7 @@ import {
 	stationsSeen,
 	firstContacts,
 	galaxy as galaxySystems,
+	historyReading,
 	knownCountries,
 	ourIntel,
 	relations,
@@ -109,7 +114,7 @@ export type RawSave = {
 	archSites: Record<string, Raw>; // archaeological_sites.sites
 	focusCards: Record<string, Raw>; // top-level focus_cards
 	endGameStart: number | null; // galaxy.end_game_start: years after the 2200.01.01 start
-	galaxy: Raw; // galaxy setup: cost sliders `technology`, `traditions`; `difficulty`, `technology_difficulty_scale`
+	galaxy: Raw; // the galaxy setup block: cost sliders `technology`, `traditions`, `difficulty`, every other setting
 	leaders: Record<string, Raw>;
 	monthlyTrades: Raw; // market.monthly_trades: every country's standing orders
 	market: Raw; // market: price fluctuations, galactic and internal
@@ -257,12 +262,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			bypasses: q.at('/bypasses') ?? {},
 			naturalWormholes: q.at('/natural_wormholes') ?? {},
 			globalFlags: q.at('/flags') ?? {},
-			galaxy: {
-				technology: q.at('/galaxy/technology'),
-				traditions: q.at('/galaxy/traditions'),
-				difficulty: q.at('/galaxy/difficulty'),
-				technology_difficulty_scale: q.at('/galaxy/technology_difficulty_scale')
-			},
+			// the whole setup block: the cost sliders here, every setting for the galaxy tab
+			galaxy: q.at('/galaxy') ?? {},
 			councilPositions: q.at('/council_positions/council_positions') ?? {},
 			countries,
 			fleetOwner,
@@ -276,7 +277,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '40'; // 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '43'; // 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -365,6 +366,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 				)
 		},
 		stations: stations(raw),
+		arkships: arkships(raw),
 		migration: migration(raw),
 		knownSystems: knownSystems(raw, ownSystems(raw)),
 		megaShipyards: megaShipyards(raw),
@@ -429,6 +431,9 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		entryEvents: systemEntries(raw),
 		founderClass: strOrNull(raw.speciesDb[String(raw.country?.founder_species_ref)]?.class),
 		shipset: strOrNull(raw.country?.graphical_culture),
+		galaxySetup: readSetup(raw.galaxy),
+		...externalBuildings(raw),
+		history: historyReading(raw),
 		speciesRights: speciesRights(raw.country),
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
@@ -1163,6 +1168,69 @@ export function shipCounts(
 const queueSlots = (raw: Pick<RawSave, 'construction'>, queueId: Raw) =>
 	num(raw.construction?.queue_mgr?.queues?.[String(queueId)]?.simultaneous) || 1;
 
+/** Where a ship is: its own `coordinate.origin`, else its fleet's (`movement_manager`). */
+export function shipSystemId(
+	raw: Partial<Pick<RawSave, 'ships' | 'fleets'>>,
+	shipId: unknown
+): number | null {
+	const ship = raw.ships?.[String(shipId)];
+	const id =
+		ship?.coordinate?.origin ??
+		raw.fleets?.[String(ship?.fleet)]?.movement_manager?.coordinate?.origin;
+	return id === undefined || id === null ? null : Number(id);
+}
+
+/**
+ * The capital's system. `country.capital` is a colony id: its carrier is a planet (that planet's
+ * system) or, for a nomad, the arkship (where the ship is). Before READER 41 it was read as a
+ * planet id, which held only where colony and planet ids happened to match (UNE's colony 0 on
+ * Sol's planet 0); Roaming Korinth's colony 0 rides ship 0, while planet 0 is its old home star.
+ */
+export function capitalSystem(
+	raw: Pick<RawSave, 'country' | 'planets'> &
+		Partial<Pick<RawSave, 'colonies' | 'ships' | 'fleets'>>
+): number | null {
+	const colonyId = raw.country?.capital;
+	if (colonyId === undefined || colonyId === null) return null;
+	const carrier = raw.colonies?.[String(colonyId)]?.carrier;
+	if (carrier?.type === 'ship') return shipSystemId(raw, carrier.reference);
+	const planet =
+		carrier?.type === 'planet'
+			? raw.planets[String(carrier.reference)]
+			: Object.values(raw.planets).find(
+					(p) => p && typeof p === 'object' && Number(p.colony) === Number(colonyId)
+				);
+	const origin = planet?.coordinate?.origin;
+	return origin === undefined ? null : Number(origin);
+}
+
+/** Our arkships: the ships that carry a colony we control, where each is now. */
+export function arkships(
+	raw: Pick<RawSave, 'country' | 'colonies' | 'ships' | 'fleets' | 'shipDesigns'>
+): Arkship[] {
+	const capital = Number(raw.country?.capital);
+	return list(raw.country?.controlled_colonies).flatMap((colonyId) => {
+		const carrier = raw.colonies?.[String(colonyId)]?.carrier;
+		if (carrier?.type !== 'ship') return [];
+		const ship = raw.ships?.[String(carrier.reference)];
+		if (!ship || typeof ship !== 'object') return [];
+		const design = raw.shipDesigns?.[String(ship.ship_design_implementation?.design)];
+		const size = String(first(design?.growth_stages)?.ship_size ?? design?.ship_size ?? '');
+		return [
+			{
+				shipId: Number(carrier.reference),
+				colonyId: Number(colonyId),
+				name: displayName(ship.name),
+				size,
+				tier: Number(/_tier_(\d+)/.exec(size)?.[1] ?? 0),
+				planetSize: num(ship.planet_size),
+				systemId: shipSystemId(raw, carrier.reference),
+				capital: Number(colonyId) === capital
+			}
+		];
+	});
+}
+
 /**
  * The country's starbases, outposts included: those whose own `build_queue` it owns (the starbase
  * itself names no owner). `build_queue` holds modules and buildings, `shipyard_build_queue` ships —
@@ -1184,12 +1252,9 @@ export function stations(
 	// `ship_class=shipclass_starbase`, `mobile=yes`; both agreed for all four arkships of Roaming
 	// Korinth 2206.10.08).
 	const shipSystem = (sb: Raw) => {
-		const ship = raw.ships?.[String(sb?.station)];
-		const id =
-			ship?.coordinate?.origin ??
-			raw.fleets?.[String(ship?.fleet)]?.movement_manager?.coordinate?.origin;
-		const sys = id === undefined ? undefined : raw.systems[String(id)];
-		return sys ? { id: Number(id), name: displayName(sys.name) } : undefined;
+		const id = shipSystemId(raw, sb?.station);
+		const sys = id === null ? undefined : raw.systems[String(id)];
+		return sys ? { id, name: displayName(sys.name) } : undefined;
 	};
 	// A starbase is the country's when its own build queue is: the queue's `location.id` is the
 	// starbase's station ship, not the starbase (both 0 for Sol, which hid it; outposts differ).
@@ -1438,7 +1503,9 @@ export function shipyardSystems(raw: Parameters<typeof stations>[0]): number[] {
 		.map(([id]) => Number(id));
 }
 
-type ReachRaw = Pick<RawSave, 'countryId' | 'country' | 'planets' | 'systems'> & Partial<GalaxyRaw>;
+type ReachRaw = Pick<RawSave, 'countryId' | 'country' | 'planets' | 'systems'> &
+	Partial<GalaxyRaw> &
+	Partial<Pick<RawSave, 'colonies' | 'ships' | 'fleets'>>;
 
 /**
  * Jumps to every system from the capital, the nearest own shipyard and the nearest own system,
@@ -1447,9 +1514,9 @@ type ReachRaw = Pick<RawSave, 'countryId' | 'country' | 'planets' | 'systems'> &
  */
 function reach(raw: ReachRaw, shipyards: number[]) {
 	const g = galaxy(raw);
-	const capitalSystem = raw.planets[String(raw.country?.capital)]?.coordinate?.origin;
+	const capital = capitalSystem(raw);
 	return {
-		fromCapital: distances(g, capitalSystem === undefined ? [] : [Number(capitalSystem)]),
+		fromCapital: distances(g, capital === null ? [] : [capital]),
 		fromShipyard: distances(g, shipyards),
 		fromBorder: distances(
 			g,
@@ -1760,7 +1827,8 @@ export function migration(
 	raw: Pick<
 		RawSave,
 		'country' | 'countryId' | 'colonies' | 'planets' | 'systems' | 'countryNames' | 'empireName'
-	>
+	> &
+		Partial<Pick<RawSave, 'ships' | 'fleets'>>
 ): MigrationColony[] {
 	const partners = migrationPartners(raw.country);
 	const out: MigrationColony[] = [];
@@ -1787,6 +1855,27 @@ export function migration(
 			emigration
 		});
 	}
+	// our arkships' colonies (READER 41): their carrier is a ship, placed where it is (a colony
+	// names no owner, so other empires' arkships are left out)
+	for (const colonyId of list(raw.country?.controlled_colonies)) {
+		const carrier = raw.colonies[String(colonyId)]?.carrier;
+		if (carrier?.type !== 'ship') continue;
+		const g = colonyGrowth(raw.colonies[String(colonyId)]?.last_month_growth_data);
+		const sys = raw.systems[String(shipSystemId(raw, carrier.reference))];
+		out.push({
+			colonyId: Number(colonyId),
+			planetId: -1 - Number(carrier.reference),
+			name: displayName(raw.ships?.[String(carrier.reference)]?.name),
+			ownerId: raw.countryId,
+			owner: raw.empireName,
+			own: true,
+			system: displayName(sys?.name),
+			x: num(sys?.coordinate?.x),
+			y: num(sys?.coordinate?.y),
+			immigration: g?.by.immigration ?? 0,
+			emigration: 0 - (g?.by.emigration ?? 0)
+		});
+	}
 	return out;
 }
 
@@ -1796,10 +1885,11 @@ export function migration(
  * listed once, on the lower id), and the capital's system marked.
  */
 export function knownSystems(
-	raw: Pick<RawSave, 'country' | 'systems' | 'planets'>,
+	raw: Pick<RawSave, 'country' | 'systems' | 'planets'> &
+		Partial<Pick<RawSave, 'colonies' | 'ships' | 'fleets'>>,
 	own: Set<number>
 ): KnownSystem[] {
-	const capital = Number(raw.planets[String(raw.country?.capital)]?.coordinate?.origin);
+	const capital = capitalSystem(raw);
 	const known = new Set([...list(raw.country?.visited_objects), ...own]);
 	return [...known].flatMap((id) => {
 		const s = raw.systems[String(id)];
@@ -2119,6 +2209,98 @@ export function subjects(
 			}
 		];
 	});
+}
+
+/**
+ * Branch offices and holdings (`colony.<id>.externally_owned_buildings`; first seen 2026-11-01 in
+ * the Planetforgers' 2214.02.01 save: an AI MegaCorp's office with Corporate Clinics on a nomad's
+ * arkship), those we hold and those on our colonies; and, for a MegaCorp, every other empire's
+ * colony with trade as a site for one (`branchSites`), jumps from our capital.
+ */
+export function externalBuildings(
+	raw: Pick<
+		RawSave,
+		| 'countryId'
+		| 'country'
+		| 'colonies'
+		| 'planets'
+		| 'ships'
+		| 'fleets'
+		| 'fleetOwner'
+		| 'buildings'
+		| 'countries'
+		| 'systems'
+	> &
+		Partial<GalaxyRaw>
+): Pick<Snapshot, 'external' | 'branchSites'> {
+	const us = raw.countryId;
+	const name = (id: number) => raw.countries[String(id)]?.name ?? `empire ${id}`;
+	const places = colonyPlaces(raw);
+	const colonyFacts = (id: string, c: Raw) => {
+		const place = places.get(Number(id));
+		if (!place) return null;
+		const [placeId, body] = place;
+		const ship = placeId < 0;
+		const ownerRaw = ship ? raw.fleetOwner[String(body?.fleet)] : body?.owner;
+		if (ownerRaw === undefined) return null;
+		const systemId = ship ? shipSystemId(raw, -1 - placeId) : body?.coordinate?.origin;
+		const trade = c?.produces?.trade;
+		return {
+			colonyId: Number(id),
+			name: displayName(body?.name) || `colony ${id}`,
+			systemId: systemId === undefined || systemId === null ? null : Number(systemId),
+			ownerId: Number(ownerRaw),
+			owner: name(Number(ownerRaw)),
+			trade: typeof trade === 'number' ? trade : null
+		};
+	};
+	const external: ExternalBuildings[] = [];
+	const offices = new Map<number, string>(); // colony → the corporation with an office there
+	const facts = new Map<string, ReturnType<typeof colonyFacts>>();
+	for (const [id, c] of Object.entries(raw.colonies ?? {})) {
+		const entries = items(c?.externally_owned_buildings);
+		if (!entries.length) continue;
+		const f = colonyFacts(id, c);
+		facts.set(id, f);
+		if (!f) continue;
+		for (const e of entries) {
+			const holderId = Number(e?.building_owner);
+			const kind = e?.owner_type === 'subject_holding' ? 'subject_holding' : 'corporate';
+			if (kind === 'corporate') offices.set(f.colonyId, name(holderId));
+			if (holderId !== us && f.ownerId !== us) continue;
+			external.push({
+				...f,
+				holderId,
+				holder: name(holderId),
+				kind,
+				buildings: list(e?.buildings)
+					.map((b) => strOrNull(raw.buildings[String(b)]?.type))
+					.filter((t): t is string => t !== null)
+			});
+		}
+	}
+	if (raw.country?.government?.authority !== 'auth_corporate')
+		return { external, branchSites: null };
+	const capital = capitalSystem(raw);
+	const jumps = capital === null ? null : distances(galaxy(raw), [capital]).jumps;
+	const branchSites: BranchSite[] = Object.entries(raw.colonies ?? {}).flatMap(([id, c]) => {
+		const f = facts.get(id) ?? colonyFacts(id, c);
+		if (!f || f.ownerId === us || !f.trade || raw.countries[String(f.ownerId)]?.type !== 'default')
+			return [];
+		return [
+			{
+				colonyId: f.colonyId,
+				name: f.name,
+				systemId: f.systemId,
+				ownerId: f.ownerId,
+				owner: f.owner,
+				trade: f.trade,
+				jumps: f.systemId === null ? null : (jumps?.get(f.systemId) ?? null),
+				office: offices.get(f.colonyId) ?? null
+			}
+		];
+	});
+	return { external, branchSites };
 }
 
 /**
