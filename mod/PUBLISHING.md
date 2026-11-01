@@ -12,9 +12,17 @@ dashboard_feed/thumbnail.png`) stay out of the upload.
 
 - [x] `version` in `descriptor.mod` bumped for every upload (and the log format, `SDASH|<n>|`,
       changed only together with `feed.ts` — see `AGENTS.md` → Companion mod).
+- [ ] **Upload from `main`'s content only**, never from `open-beta` or a feature worktree: there is
+      one item per store for every player, so a beta-only mod would reach the public game too.
+- [ ] Every open check for the version's new mod features has passed (`docs/open-checks.md`) —
+      0.10.0 went up with `num_sapient_pops` still broken (open check 23); the fix shipped as
+      0.10.1.
+- [ ] The folder holds only `descriptor.mod`, `thumbnail.png`, `common/`, `events/` — the launcher
+      uploads everything in it (0.10.0 shipped an empty `.claude/` left by a Claude Code session).
 - [x] `picture="thumbnail.png"`, 512×512 PNG, our own art (no game art).
 - [x] Launcher closed → `scripts/link-mod.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the
-      workspace root) → launcher open, the mod listed. On Linux the upload dialog may not see a
+      workspace root; the link may point at a worktree after `scripts/dashboard.sh --beta`) →
+      launcher open, the mod listed. On Linux the upload dialog may not see a
       **symlinked** mod: then copy the folder into `<user dir>/mod/` and upload that copy.
 - [x] Upload to **Steam Workshop** (description: BBCode below). The launcher writes
       `remote_file_id` into `descriptor.mod` — with the symlink into this repo, so commit it; with

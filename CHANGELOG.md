@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Companion mod 0.10.1: a colony's daily jobs and pops lines are no longer empty (0.9.0–0.10.0
+  read `num_sapient_pops`, which is no trigger; now `pop_amount`).
+
 ## [0.1.7] - 2026-10-31
 
 ### Added

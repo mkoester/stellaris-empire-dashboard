@@ -46,6 +46,10 @@ STELLARIS_DATA_DB=<workspace>/stellaris-data-extraction/sqlite/stellaris.sqlite 
 pnpm dev --host 127.0.0.1
 ```
 
+On Linux, `../scripts/dashboard.sh` (`--beta`, `--feature <f>`, `--help`) sets all of it for the
+develop, open-beta or a feature checkout, with `STELLARIS_EXTRACTOR` instead of `STELLARIS_DATA_DB`,
+and links the companion mod from that checkout.
+
 `STELLARIS_DATA_DB` is the extraction's SQLite, read once at start for tech/agenda names and base
 costs and the cost defines — regenerate it after a game update (`../stellaris-data-extraction/AGENTS.md`).
 `STELLARIS_GAME_LOG` is opt-in for a dev run: set it when the companion mod is enabled. A player's
@@ -1309,7 +1313,9 @@ It changes the checksum: no achievements while enabled. **Publishing** (Steam Wo
 Mods, through the launcher): `mod/PUBLISHING.md` — store copy, thumbnail source, published IDs.
 Register it on Linux with
 `scripts/link-mod.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace
-root, launcher closed).
+root, launcher closed). The link points at one checkout: the game runs that checkout's mod, so a
+worktree's mod change reaches the game only once relinked — `../scripts/dashboard.sh` relinks to
+the checkout it runs at every start.
 
 ### Sandbox notes (Claude Code on the Mac)
 
