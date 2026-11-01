@@ -245,8 +245,9 @@ event = {
 
 # Instant events, one line each: SDASH|2|<date>|event|<kind>|<fields…>.
 
-# Scope = planet
-planet_event = {
+# Scope = carrier: a planet, or a ship (a nomad arkship) — on_colonized's scope since 4.4; as a
+# planet_event it failed on every ship ("unsupported scope", 4.5.3 error.log 2026-10-31)
+carrier_event = {
 	id = sdash.10
 	hide_window = yes
 	is_triggered_only = yes

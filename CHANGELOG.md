@@ -10,6 +10,8 @@ All notable changes to this project are documented here. The format follows
 
 - Companion mod 0.10.1: a colony's daily jobs and pops lines are no longer empty (0.9.0–0.10.0
   read `num_sapient_pops`, which is no trigger; now `pop_amount`).
+- Companion mod 0.10.1: a new colony is logged for a nomad arkship too (since 0.2.0 the event
+  failed on every colony whose carrier is a ship).
 
 ## [0.1.7] - 2026-10-31
 
