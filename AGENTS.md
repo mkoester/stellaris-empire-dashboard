@@ -1449,7 +1449,7 @@ shows format 2.
   `sdash_fj|un|pp`, and only when one differs from the last logged (`sdash_*_log`) a line
   `SDASH|2|<date>|event|colony-jobs|<colony>|<open jobs>|<unemployed>|<pops>` — an event line, so
   a dashboard without the kind skips it. `feed.ts` files it with its day (`Tick.colonies`, by
-  colony name), so it reaches the page live (the colony page's Pops chart title: "Pops —
+  colony name), so it reaches the page live (the colony page's Pops (jobs) chart title: "Pops (jobs) —
   <date>: … employed, … civilians, … open jobs") and is stored with the month; the Pops chart
   draws those days between the saves (`colonyDaySeries()`). **Broken in game (2026-10-31):**
   `num_sapient_pops` is no trigger, and the lines come out empty (`docs/open-checks.md` 23). Mod

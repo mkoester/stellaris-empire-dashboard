@@ -37,7 +37,7 @@
 	import SpeciesPanel from './panels/Species.svelte';
 	import { colorOf } from './colors.ts';
 	import { fmt, nameOf, pretty } from './format.ts';
-	import { gameYear } from './series.ts';
+	import { gameYear, POP_CHANGE_LINES } from './series.ts';
 	import type { EmpireData } from './server/empire.ts';
 	import type { PanelId } from './settings.ts';
 
@@ -147,7 +147,12 @@
 			series: data.charts.empireSize,
 			yMin: 'actual (estimated)' in data.charts.empireSize.lines ? 0 : 50
 		},
-		'chart-pops': { title: 'Pops', series: data.charts.pops },
+		'chart-pops': {
+			title: 'Pops',
+			series: data.charts.pops,
+			right: POP_CHANGE_LINES,
+			rightFloor: 5
+		},
 		'chart-score': { title: 'Score and power', series: data.charts.score },
 		'chart-agenda': { title: 'Council agenda', series: data.charts.agenda, right: ['per month'] },
 		'chart-research': {
