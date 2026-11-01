@@ -2,26 +2,49 @@
 	import { fmt } from '../format.ts';
 	import GalaxyMap from '../GalaxyMap.svelte';
 	import type { Point } from '../mapView.ts';
-	import type { Flow } from '../migration.ts';
+	import {
+		ARKSHIP_ORDERS,
+		arkshipOrder,
+		type ArkshipOrder,
+		type Flow,
+		type MigrationView
+	} from '../migration.ts';
 	import type { Territory } from '../territories.ts';
-	import type { KnownSystem, MigrationColony } from '../types.ts';
+	import type { Arkship, KnownSystem, MigrationColony } from '../types.ts';
+	import MigrationCircle from './MigrationCircle.svelte';
 	import Panel from './Panel.svelte';
 
 	// Variant 2: the colonies at their systems' galaxy positions over the known systems and their
-	// hyperlanes (own systems tinted), arcs from sender to receiver, thickness ∝ pops/month.
+	// hyperlanes (own systems tinted), arcs from sender to receiver, thickness ∝ pops/month; our
+	// arkships marked where they are. `view` switches to the circle (`MigrationCircle`), our
+	// arkships in `view.order`; `onView` stores a change.
 	let {
 		rows,
 		flows,
 		colors,
 		systems = [],
-		territories = []
+		territories = [],
+		arkships = [],
+		firstSeen = {},
+		view = { layout: 'map', order: 'age' },
+		onView
 	}: {
 		rows: MigrationColony[];
 		flows: Flow[];
 		colors: Record<number, string>;
 		systems?: KnownSystem[];
 		territories?: Territory[];
+		arkships?: Arkship[];
+		firstSeen?: Record<number, string>;
+		view?: MigrationView;
+		onView?: (v: MigrationView) => void;
 	} = $props();
+	const ORDER_LABEL: Record<ArkshipOrder, string> = {
+		age: 'oldest → newest',
+		size: 'by size, biggest first',
+		name: 'alphabetically'
+	};
+	const button = 'rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700';
 	const colonies = $derived(rows.filter((r) => r.own));
 
 	const senders = $derived([...new Set(flows.map((f) => f.from.ownerId))]);
@@ -41,12 +64,45 @@
 	title="Map"
 	note="Colonies at their systems' map positions over the systems you know (yours tinted) and their hyperlanes; arcs from sender to receiver. Drag to pan, scroll to zoom, drag the bottom edge to resize."
 >
-	{#if rows.length === 0}
+	<div class="mb-2 flex flex-wrap items-center gap-2 text-sm">
+		{#each ['map', 'circle'] as const as l (l)}
+			<button
+				class="{button} {view.layout === l ? 'bg-gray-200 dark:bg-gray-800' : ''}"
+				aria-pressed={view.layout === l}
+				onclick={() => onView?.({ ...view, layout: l })}>{l}</button
+			>
+		{/each}
+		{#if view.layout === 'circle' && arkships.length > 1}
+			<label class="ml-2 flex items-center gap-1"
+				>arkships clockwise
+				<select
+					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+					value={view.order}
+					onchange={(e) =>
+						onView?.({
+							...view,
+							order: (e.currentTarget as HTMLSelectElement).value as ArkshipOrder
+						})}
+				>
+					{#each ARKSHIP_ORDERS as o (o)}<option value={o}>{ORDER_LABEL[o]}</option>{/each}
+				</select>
+			</label>
+		{/if}
+	</div>
+	{#if view.layout === 'circle'}
+		<MigrationCircle
+			{rows}
+			{flows}
+			{colors}
+			arkships={arkshipOrder(arkships, view.order, firstSeen)}
+		/>
+	{:else if rows.length === 0 && systems.length === 0}
 		<p class="text-gray-500">No colonies.</p>
 	{:else}
 		<GalaxyMap
 			{systems}
 			{territories}
+			{arkships}
 			extra={rows}
 			focus={[{ label: 'my colonies', points: colonies }]}
 			heightKey="migration-map-height-v2"

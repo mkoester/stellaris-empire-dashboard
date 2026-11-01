@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+	arkshipFirstSeen,
+	arkshipOrder,
+	DEFAULT_MIGRATION_VIEW,
+	parseMigrationView,
 	flows,
 	migrationFrames,
 	migrationHistory,
@@ -7,7 +11,7 @@ import {
 	CATEGORICAL,
 	OTHER
 } from './migration.ts';
-import type { MigrationColony, Snapshot } from './types.ts';
+import type { Arkship, MigrationColony, Snapshot } from './types.ts';
 
 let next = 100;
 const row = (
@@ -118,5 +122,43 @@ describe('migrationFrames', () => {
 			y: 279,
 			system: 'Sol'
 		});
+	});
+});
+
+describe('arkships on the circle', () => {
+	const ark = (shipId: number, name: string, tier: number, planetSize = 9): Arkship => ({
+		shipId,
+		colonyId: shipId + 100,
+		name,
+		size: `civilian_arkship_tier_${tier}`,
+		tier,
+		planetSize,
+		systemId: null,
+		capital: false
+	});
+	const arks = [ark(7, 'Beta', 1), ark(2, 'Alpha', 2, 6), ark(9, 'Gamma', 2, 12)];
+
+	it('orders oldest first: first seen, then ship id', () => {
+		const seen = arkshipFirstSeen([
+			{ date: '2200.01.01', arkships: [arks[0], arks[1]] },
+			{ date: '2201.01.01', arkships: null },
+			{ date: '2203.05.01', arkships: arks }
+		]);
+		expect(seen).toEqual({ 7: '2200.01.01', 2: '2200.01.01', 9: '2203.05.01' });
+		expect(arkshipOrder(arks, 'age', seen).map((a) => a.name)).toEqual(['Alpha', 'Beta', 'Gamma']);
+	});
+	it('orders by size, the biggest first: tier, then planet size', () => {
+		expect(arkshipOrder(arks, 'size').map((a) => a.name)).toEqual(['Gamma', 'Alpha', 'Beta']);
+	});
+	it('orders alphabetically', () => {
+		expect(arkshipOrder(arks, 'name').map((a) => a.name)).toEqual(['Alpha', 'Beta', 'Gamma']);
+	});
+	it('reads a stored view, defaults for anything else', () => {
+		expect(parseMigrationView({ layout: 'circle', order: 'size' })).toEqual({
+			layout: 'circle',
+			order: 'size'
+		});
+		expect(parseMigrationView({ layout: 'x', order: 'y' })).toEqual(DEFAULT_MIGRATION_VIEW);
+		expect(parseMigrationView(null)).toEqual({ layout: 'map', order: 'age' });
 	});
 });

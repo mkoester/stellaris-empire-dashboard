@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { loadGameData } from './gamedata.ts';
 import {
+	arkships,
+	capitalSystem,
 	ethics,
 	list,
 	storageMax,
@@ -640,9 +642,9 @@ describe('knownSystems', () => {
 		};
 		const r = knownSystems(
 			{
-				country: { visited_objects: [380, 52], capital: 3 },
+				country: { visited_objects: [380, 52], capital: 0 },
 				systems,
-				planets: { '3': { coordinate: { origin: 380 } } }
+				planets: { '3': { colony: 0, coordinate: { origin: 380 } } }
 			},
 			new Set([135])
 		);
@@ -650,6 +652,99 @@ describe('knownSystems', () => {
 			['Sol', false, true, []],
 			['Alpha Centauri', false, false, [380]],
 			['Sirius', true, false, [380]]
+		]);
+	});
+});
+
+describe('capitalSystem', () => {
+	// Roaming Korinth 2207.02.01: capital=0 is colony 0, carried by ship 0 at system 563, while
+	// planet 0 is the old home star at 532
+	const nomad = {
+		country: { capital: 0 },
+		planets: { '0': { coordinate: { origin: 532 } } },
+		colonies: { '0': { carrier: { type: 'ship', reference: 0 } } },
+		ships: { '0': { coordinate: { origin: 563 }, fleet: 0 } },
+		fleets: { '0': { movement_manager: { coordinate: { origin: 563 } } } }
+	};
+	it("is a nomad's capital arkship's system, not planet <capital>'s", () => {
+		expect(capitalSystem(nomad)).toBe(563);
+	});
+	it("falls back to the arkship's fleet", () => {
+		expect(capitalSystem({ ...nomad, ships: { '0': { fleet: 0 } } })).toBe(563);
+	});
+	it("is the capital colony's planet: by its carrier, else by the planet naming the colony", () => {
+		const planets = {
+			'3': { colony: 0, coordinate: { origin: 380 } },
+			'0': { coordinate: { origin: 1 } }
+		};
+		expect(
+			capitalSystem({
+				country: { capital: 0 },
+				planets,
+				colonies: { '0': { carrier: { type: 'planet', reference: 3 } } }
+			})
+		).toBe(380);
+		expect(capitalSystem({ country: { capital: 0 }, planets })).toBe(380);
+		expect(capitalSystem({ country: {}, planets })).toBeNull();
+	});
+	it("marks the arkship's system as the capital on the map", () => {
+		const systems = {
+			'532': { name: { key: 'NAME_Korinth' }, coordinate: { x: 0, y: 0 } },
+			'563': { name: { key: 'NAME_Far' }, coordinate: { x: 5, y: 5 } }
+		};
+		const r = knownSystems(
+			{ ...nomad, country: { ...nomad.country, visited_objects: [532, 563] }, systems },
+			new Set()
+		);
+		expect(r.filter((s) => s.capital).map((s) => s.id)).toEqual([563]);
+	});
+});
+
+describe('arkships', () => {
+	it('lists the ships carrying our colonies: size, tier, where, which is the capital', () => {
+		const r = arkships({
+			country: { capital: 0, controlled_colonies: [0, 5, 7] },
+			colonies: {
+				'0': { carrier: { type: 'ship', reference: 0 } },
+				'5': { carrier: { type: 'planet', reference: 40 } },
+				'7': { carrier: { type: 'ship', reference: 9 } }
+			},
+			ships: {
+				'0': {
+					name: { key: 'Peshnab' },
+					planet_size: 9,
+					coordinate: { origin: 563 },
+					ship_design_implementation: { design: 1 }
+				},
+				'9': { name: { key: 'Second' }, fleet: 4, ship_design_implementation: { design: 2 } }
+			},
+			fleets: { '4': { movement_manager: { coordinate: { origin: 80 } } } },
+			shipDesigns: {
+				'1': { growth_stages: [{ ship_size: 'military_arkship_tier_1' }] },
+				'2': { growth_stages: [{ ship_size: 'science_arkship_tier_2' }] }
+			}
+		});
+		expect(r).toEqual([
+			{
+				shipId: 0,
+				colonyId: 0,
+				name: 'Peshnab',
+				size: 'military_arkship_tier_1',
+				tier: 1,
+				planetSize: 9,
+				systemId: 563,
+				capital: true
+			},
+			{
+				shipId: 9,
+				colonyId: 7,
+				name: 'Second',
+				size: 'science_arkship_tier_2',
+				tier: 2,
+				planetSize: 0,
+				systemId: 80,
+				capital: false
+			}
 		]);
 	});
 });
@@ -705,6 +800,30 @@ describe('migration', () => {
 			['Busy', 'Tiyanki Matriarchy', 5, 0, 'Far']
 		]);
 		expect(rows[0]).toMatchObject({ own: true, x: -89, y: 72 });
+	});
+
+	it('lists our arkship colonies where the ship is', () => {
+		const rows = migration({
+			...raw,
+			country: { ...raw.country, controlled_colonies: [0, 33, 50] },
+			colonies: {
+				...raw.colonies,
+				'50': {
+					carrier: { type: 'ship', reference: 3 },
+					last_month_growth_data: growth('GROWTH_CAT_EMIGRATION', 4, -4)
+				}
+			},
+			ships: { '3': { name: { key: 'Ark' }, coordinate: { origin: 52 } } }
+		});
+		expect(rows.at(-1)).toMatchObject({
+			colonyId: 50,
+			planetId: -4,
+			name: 'Ark',
+			own: true,
+			system: 'Alpha Centauri',
+			x: -68,
+			emigration: 4
+		});
 	});
 });
 
@@ -1009,7 +1128,13 @@ describe('empire overview', () => {
 			controller: 0,
 			coordinate: { origin: 380 }
 		},
-		'3': { planet_class: 'pc_continental', owner: 0, controller: 0, coordinate: { origin: 380 } },
+		'3': {
+			planet_class: 'pc_continental',
+			colony: 0,
+			owner: 0,
+			controller: 0,
+			coordinate: { origin: 380 }
+		},
 		'5': {
 			name: { key: 'NAME_Mars' },
 			planet_class: 'pc_barren',
@@ -1034,7 +1159,7 @@ describe('empire overview', () => {
 
 	it('lists surveyed, unowned rocky planets nearest first', () => {
 		const country = {
-			capital: 3,
+			capital: 0, // a colony id: colony 0 on planet 3
 			surveyed_deposit_holders: [0, 3, 5, 9, 10].map((id) => ({ type: 0, id }))
 		};
 		// as on Earth at 2207.03.10: a blocker hiding a feature
@@ -1122,7 +1247,7 @@ describe('empire overview', () => {
 	});
 
 	it('counts jumps from the nearest shipyard', () => {
-		const country = { capital: 3, surveyed_deposit_holders: [5, 9].map((id) => ({ type: 0, id })) };
+		const country = { capital: 0, surveyed_deposit_holders: [5, 9].map((id) => ({ type: 0, id })) };
 		const r = expansion(
 			{ countryId: 0, country, planets, systems, deposits: {}, date: '2200.05.01' },
 			[7]
@@ -1188,6 +1313,7 @@ describe('empire overview', () => {
 				power: 176.625,
 				route: {
 					at: 'Sol',
+					systemId: 380, // where it is, for the map (READER 38)
 					moving: true,
 					stops: [{ system: 'Sirius', jumps: 1, unexplored: true }]
 				}
@@ -1336,6 +1462,35 @@ describe('stations', () => {
 				arkship: false
 			}
 		]);
+	});
+
+	it("places a station no system lists (an arkship's) where its station ship is", () => {
+		// starbase 42 left out of Alpha Centauri's list: its station ship 900 says where it is
+		const moving = (ship: Record<string, unknown>) => ({
+			...raw,
+			systems: { ...raw.systems, '52': { ...raw.systems['52'], starbases: [] } },
+			starbases: { ...raw.starbases, '42': { ...raw.starbases['42'], station: 900 } },
+			ships: { '900': ship },
+			fleets: { '77': { movement_manager: { coordinate: { origin: 52 } } } }
+		});
+		const at = (ship: Record<string, unknown>) => stations(moving(ship)).find((x) => x.id === 42);
+		// its own coordinate (as the save has it: Roaming Korinth's arkship), else its fleet's
+		expect(at({ fleet: 99, coordinate: { x: 67.3, y: -124.4, origin: 52 } })).toMatchObject({
+			system: 'Alpha Centauri',
+			systemId: 52
+		});
+		expect(at({ fleet: 77 })).toMatchObject({ systemId: 52 });
+	});
+
+	it('gives no shipyard where the shipyard queue is none (4294967295)', () => {
+		const ark = {
+			...raw,
+			starbases: {
+				...raw.starbases,
+				'0': { ...raw.starbases['0'], shipyard_build_queue: 4294967295 }
+			}
+		};
+		expect(stations(ark).find((x) => x.id === 0)?.shipyard).toBeNull();
 	});
 
 	it('lists own mega shipyards, with a ships queue located at them if there is one', () => {

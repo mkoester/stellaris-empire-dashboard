@@ -3,6 +3,7 @@ import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
+import type { GalaxySetup } from './galaxySetup.ts';
 import type { AiWeight } from './votes.ts';
 
 export type Resources = Record<string, number>;
@@ -83,6 +84,7 @@ export type Fleet = {
  */
 export type Route = {
 	at: string;
+	systemId?: number; // the system it is in (`coordinate.origin`); absent before READER 38
 	moving: boolean;
 	stops: { system: string; jumps: number | null; unexplored: boolean }[];
 };
@@ -101,7 +103,8 @@ export type ShipOrder = {
 export type CivilianShip = {
 	fleetId: number;
 	name: string;
-	kind: string; // science_ship, constructor, colonizer, …
+	kind: string; // science_ship, constructor, colonizer, … (the fleet's class)
+	size?: string; // the first ship's size: nomads_constructor, constructor, … (READER 38)
 	stance: string | null; // fleet_stance: evasive, passive, aggressive (null: the game's default)
 	automation: string[] | null; // automated: the enabled settings (survey, mining stations, …); null: manual
 	leader: string | null;
@@ -204,6 +207,21 @@ export type Station = {
 	slots: number;
 	shipyard: { queue: QueueItem[]; slots: number } | null; // null: no shipyard module
 	arkship: boolean;
+};
+
+/**
+ * One of our arkships, the ship that carries a colony of ours (`colony.<id>.carrier = { type=ship
+ * reference }`); `size` its design's `<type>_arkship_tier_<n>`, `systemId` where it is now.
+ */
+export type Arkship = {
+	shipId: number;
+	colonyId: number;
+	name: string;
+	size: string; // e.g. military_arkship_tier_1
+	tier: number; // 1…3, 0 when the size names none
+	planetSize: number;
+	systemId: number | null;
+	capital: boolean; // the capital colony's carrier
 };
 
 /** A Mega Shipyard; `stage` from its type (mega_shipyard_0…3, _restored). */
@@ -371,6 +389,7 @@ export type Snapshot = {
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
 	stations: Station[] | null; // starbases with their queues and shipyards
+	arkships: Arkship[] | null; // our arkships, where they are; since READER 41
 	migration: MigrationColony[] | null; // last month, per colony; own colonies always, foreign ones with any
 	knownSystems: KnownSystem[] | null; // visited or own systems, for maps
 	megaShipyards: MegaShipyard[] | null;
@@ -445,8 +464,12 @@ export type Snapshot = {
 	entryEvents: SystemEntry[] | null;
 	founderClass: string | null; // its founder species' class (`NECROID`); since READER 35
 	// its shipset (`graphical_culture`): which ship kinds it builds (`GameData.shipKinds`) —
-	// `biogenesis_02` builds bio ships, and researches their hulls; since READER 38
+	// `biogenesis_02` builds bio ships, and researches their hulls; since READER 40
 	shipset: string | null;
+	galaxySetup: GalaxySetup | null; // the settings the galaxy was created with; since READER 42
+	external: ExternalBuildings[] | null; // branch offices and holdings, ours and on our colonies; READER 43
+	branchSites: BranchSite[] | null; // a MegaCorp's: other empires' colonies with trade; READER 43
+	history: HistoryReading | null; // the whole galaxy's owners and colonies, for the history tab; READER 43
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
@@ -864,6 +887,45 @@ export type Subject = {
 	specialistExperience: number;
 	loyalty: number | null;
 };
+/**
+ * Buildings one empire owns on another's colony (`colony.<id>.externally_owned_buildings = { {
+ * building_owner owner_type buildings } }`, 4.5.x): a MegaCorp's branch office (`corporate` — the
+ * office itself, its buildings listed) or an overlord's holdings (`subject_holding`). Only those
+ * we own and those on our colonies.
+ */
+export type ExternalBuildings = {
+	colonyId: number;
+	name: string; // the colony's planet (or arkship)
+	systemId: number | null;
+	ownerId: number; // the colony's owner
+	owner: string;
+	holderId: number; // whose buildings they are
+	holder: string;
+	kind: 'corporate' | 'subject_holding';
+	buildings: string[]; // building types
+	trade: number | null; // the colony's trade a month (`produces.trade`): what an office's value follows
+};
+/**
+ * Who holds what across the galaxy at one save, true whatever we know (the history tab filters by
+ * what we know, `#lib/history.ts`). Pairs keep it small: ~800 systems' owners per save.
+ */
+export type HistoryReading = {
+	owners: [number, number][]; // system → its station's owner
+	colonies: [number, number, string | null, number][]; // planet, owner, colonize_date (null: unknown), system
+	guardians: { flag: string; countryId: number | null; date: string | null }[]; // kill flags
+	names: [number, string][]; // every country above, by id
+};
+/** A colony a MegaCorp could open a branch office on: another empire's, with its trade. */
+export type BranchSite = {
+	colonyId: number;
+	name: string;
+	systemId: number | null;
+	ownerId: number;
+	owner: string;
+	trade: number;
+	jumps: number | null; // from our capital, over hyperlanes and usable bypasses
+	office: string | null; // the corporation with an office there already
+};
 /** What one side of a trade deal hands over: resources monthly or once, and anything else. */
 export type DealSide = { monthly: Resources; once: Resources; other: string[] };
 
@@ -1070,6 +1132,7 @@ export type GameData = {
 		{ name: string; traditions: { key: string; name: string; role: string }[] }
 	>;
 	perks: Record<string, string>; // ascension perk names
+	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
 	// shipset → the ship kinds it builds (data DB `graphical_culture`): `uses_ship_category`
 	shipKinds: Record<string, string[]>;
 	// who can ever take a perk (`potential`) and what taking it needs (`possible`), normalised

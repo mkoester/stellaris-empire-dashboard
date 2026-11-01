@@ -24,6 +24,8 @@ describe('profiles', () => {
 			display: {
 				colonyRowLine: 'thick',
 				expansionRowLine: 'medium',
+				showSpoilers: false,
+				showCheats: false,
 				habitatsAlways: false,
 				anomalySpoilers: false,
 				projectSpoilers: false,
@@ -41,7 +43,8 @@ describe('profiles', () => {
 				allFactionTypes: false,
 				tradeoffs: false,
 				tradeIntel: false,
-				diplomacyAll: false
+				diplomacyAll: false,
+				historyAll: false
 			}
 		});
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('thick');
@@ -68,6 +71,8 @@ describe('profiles', () => {
 			display: {
 				colonyRowLine: 'thin',
 				expansionRowLine: 'medium',
+				showSpoilers: false,
+				showCheats: false,
 				habitatsAlways: false,
 				anomalySpoilers: false,
 				projectSpoilers: false,
@@ -85,7 +90,8 @@ describe('profiles', () => {
 				allFactionTypes: false,
 				tradeoffs: false,
 				tradeIntel: false,
-				diplomacyAll: false
+				diplomacyAll: false,
+				historyAll: false
 			}
 		});
 		const copy = profileAction(db, { action: 'create', name: 'default', copyOf: 'default' })!;

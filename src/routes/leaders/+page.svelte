@@ -76,6 +76,20 @@
 		{ id: 'species', label: 'Species', value: (r) => r.species },
 		{ id: 'traits', label: 'Traits', value: (r) => r.traits.length, cell: traits }
 	];
+	type SourceRow = (typeof data.sources)[number];
+	const sourceColumns: Column<SourceRow>[] = [
+		{ id: 'group', label: 'What', value: (r) => r.group },
+		{ id: 'mod', label: 'Modifier', value: (r) => modifierLabel(r.mod), cell: modCell },
+		{
+			id: 'total',
+			label: 'Total',
+			value: (r) => r.mod.value,
+			right: true,
+			cell: totalCell,
+			title: 'the sum of the sources listed'
+		},
+		{ id: 'sources', label: 'From', value: (r) => r.sources.length, cell: sourcesCell }
+	];
 	type Pooled = (typeof data.pool)[number];
 	const poolColumns: Column<Pooled>[] = [
 		{ id: 'name', label: 'Leader', value: (r) => r.name ?? null, cell: name },
@@ -176,6 +190,26 @@
 		>{#each data.traitRoles[`${r.class}:${t}`] ?? [] as k (k)}<RoleBadge kind={k} />{/each}{/each}
 {/snippet}
 
+{#snippet modCell(r: SourceRow)}{modifierLabel(r.mod)}{/snippet}
+{#snippet totalCell(r: SourceRow)}<span class={modifierColor(r.mod)}
+		>{formatModifierValue(r.mod)}</span
+	>{/snippet}
+{#snippet sourcesCell(r: SourceRow)}
+	{#each r.sources as x, i (x.ref)}{i ? ' · ' : ''}<span class="whitespace-nowrap"
+			><span class="text-xs text-gray-500">{x.ref.slice(0, x.ref.indexOf(':'))}</span>
+			<InfoPopup explanation={data.explain[x.ref]}
+				>{data.explain[x.ref]?.title ?? x.ref.slice(x.ref.indexOf(':') + 1)}</InfoPopup
+			>{#if r.sources.length > 1 || x.holds === null}
+				<span class={modifierColor({ ...r.mod, value: x.value })}
+					>{formatModifierValue({ ...r.mod, value: x.value * x.count })}</span
+				>{/if}{#if x.holds === null}<span
+					class="text-amber-600"
+					title="triggered: the save cannot tell whether its condition holds — not in the total"
+					>?</span
+				>{/if}</span
+		>{/each}
+{/snippet}
+
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Leaders</h1>
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
@@ -225,6 +259,22 @@
 		</div>
 	</details>
 	<SortTable {rows} {columns} key={(r) => r.id} sort={{ column: '', desc: false }} />
+
+	<h2 class="mt-6 mb-2 text-lg font-semibold">Leader modifiers from the empire</h2>
+	<p class="mb-2 text-sm text-gray-500">
+		What acts on leaders besides their own traits: traditions, perks, civics, ethics, authority,
+		origin, techs, edicts, policies, council seats, species rights and traits, timed modifiers. A
+		triggered modifier counts where its condition holds; ? where the save cannot tell (not in the
+		total). Leaders' own traits are in the table above.
+	</p>
+	{#if data.sources.length}
+		<SortTable
+			rows={data.sources}
+			columns={sourceColumns}
+			key={(r) => r.mod.key}
+			sort={{ column: '', desc: false }}
+		/>
+	{:else}<p class="text-sm text-gray-500">Nothing the empire holds acts on leaders.</p>{/if}
 
 	<h2 class="mt-6 mb-2 text-lg font-semibold">
 		Recruitable{#if data.poolKnown}<span class="ml-2 text-sm font-normal text-gray-500"

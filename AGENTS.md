@@ -16,7 +16,12 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   maybe empty.
 - **Every `goto()` takes a `resolve()`** — the lint's `svelte/no-navigation-without-resolve`
   refuses a plain string; for "this page with another query" pass `resolve(...args)` with the
-  route id plus query and `page.params` (`here()` in `+layout.svelte`).
+  route id plus query and `page.params` (`here()` in `+layout.svelte`). It flags an external link
+  with a dynamic `href={url}` too, but not one that starts with a literal scheme: store the address
+  without it and write `href="https://{host}"` (the about tab).
+- **A `{#snippet}` written directly inside a component's children becomes that component's prop**
+  (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
+  or handed to another component, goes at the template's top level.
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
   (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14.
 
@@ -31,6 +36,12 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
 - Without the companion mod a reload's branch point is a _guess_ when time goes backwards (marked,
   correctable on `/timeline`). With it (0.2.0+) the mod's `load` line names the loaded save exactly
   — see "Companion mod".
+- **Planned: no cheats in multiplayer** (the user's intent, 2026-11-01; announced in the README
+  and the about tab). Nothing in the game can tell a player runs the dashboard, so it could spoil
+  a multiplayer game: detect one and force every `cheat`-kind switch off (`effectiveDisplay()`).
+  Candidate signal, **not checked**: the save's top-level `player = { { name country } … }` — one
+  entry in single player (Roaming Korinth 2207.02.01: `name="unknown" country=0`); whether a
+  multiplayer save lists every human (and a hot-joined or dropped one) needs a multiplayer save.
 
 ## Running it
 
@@ -45,6 +56,10 @@ STELLARIS_GAME_LOG="<Stellaris user dir>/logs/game.log" \
 STELLARIS_DATA_DB=<workspace>/stellaris-data-extraction/sqlite/stellaris.sqlite \
 pnpm dev --host 127.0.0.1
 ```
+
+On Linux, `../scripts/dashboard.sh` (`--beta`, `--feature <f>`, `--help`) sets all of it for the
+develop, open-beta or a feature checkout, with `STELLARIS_EXTRACTOR` instead of `STELLARIS_DATA_DB`,
+and links the companion mod from that checkout.
 
 `STELLARIS_DATA_DB` is the extraction's SQLite, read once at start for tech/agenda names and base
 costs and the cost defines — regenerate it after a game update (`../stellaris-data-extraction/AGENTS.md`).
@@ -152,7 +167,10 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   start reads only saves that are new or changed (`save_file`: path, `mtime:size`, reader). Saves
   still on disk that an older reader (or an older data DB) read are read again. A re-read replaces
   the stored reading and leaves the head alone (`refresh()` in `db.ts`). Forget the bump and the
-  new field stays at its `upgrade()` default until the save changes.
+  new field stays at its `upgrade()` default until the save changes. **Two branches bump it
+  independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
+  "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
+  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40.
 - **A start reads one campaign, the rest follows in the background** (`watch.ts`): before the
   dashboard is up, only the head campaign's saves to read (new, changed, or of an older reader) —
   with an empty DB the campaign of the newest save. The other campaigns wait in a backlog that
@@ -191,8 +209,10 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
 calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — delete it after.
 
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
-dev server ingests saves and moves the head). On the Linux game machine it lives in
-`~/.local/share/stellaris-empire-dashboard/`, on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
+dev server ingests saves and moves the head). On the Linux game machine the one in use is
+`~/.local/share/stellaris-empire-dashboard-test/` (every campaign, the nomad Roaming Korinth
+included, 2026-10-31) — `~/.local/share/stellaris-empire-dashboard/` is stale since 2026-10-18
+(UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
@@ -272,6 +292,15 @@ later end, or the player dismisses it (✕ → `POST /api/upcoming { dismiss }`,
 game 2026-10-25: Find Applications run out on a reloaded 2202.07.01, ✕, a month on unused — gone
 (`~/Pictures/Screenshots/screenshot_2026-10-25_21-05-23`); used again on the left branch, its row
 went by itself. Distribute Luxury Goods on Earth and Unity: two rows.
+**Idle stays too** (`#lib/idle.ts`, the user's ask 2026-10-31: "prevent anything being idle unless
+I decide it should be idle right now"): a research field without a tech, no agenda in
+preparation, a colony queue or a shipyard with nothing in it (an arkship has no queue of its own for ships:
+it builds them through its colony's shared one, so its colony's row covers it — READER 39), a leader
+without a post, an empty council seat, free leader slots (`leaderLimits`, ≈) — rows of kind `idle`,
+⚠, ✕ — and the idle civilian ships' own rows get ✕ (`withIdleShips()`). The dismiss id ends with
+the first save of the idle spell, walked back along the branch's saves: busy again, then idle,
+is a new row. 2206.10.08 (Roaming Korinth): 2 official and 2 commander slots free, the arkship's
+shipyard (before READER 39: since then the arkship's colony row), one idle science ship.
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
@@ -299,7 +328,7 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/planner`, see "Planner tab"), `colonies`
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
-`map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
+`map` (`/map`, the discovered galaxy, see below), `history` (below), `migration`, `expansion`
 (`/expansion`: the Expansion panel full-size, see below), `growth` (`/growth`, see below), `jobs` (`/jobs`, see below), `trade` (`/trade`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`), `resources`
@@ -310,9 +339,14 @@ left, net per month right (`resourcePanelSeries()`) — and the latest save's mo
 what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
 `trade-offs` (only with its switch, below) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `ethics`, `situations`, `shroud` (patrons and attunement), `focus`,
-`traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `megastructures` (all below), `mods` and
-`dlc` (last; see
-"DLCs and mods" below); tabs keep `?node=`. **Every list is a `SortTable.svelte`** (the user's ask
+`traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `subjects`, `megastructures` (all below), `galaxy` (the galaxy setup, below), `mods`,
+`dlc` (see "DLCs and mods" below) and `about` (last: thanks to the mods, projects and libraries the
+dashboard learned from — **a feature inspired by a mod gets its line there**); tabs keep `?node=`.
+**A tab with nothing to show yet is dimmed** (the user's ask 2026-11-01; `#lib/tabData.ts` pure,
+`emptyTabsAt()` per tip in the layout): migration, trade deals, galcom, shroud, diplomacy,
+subjects and situations, each while no snapshot of the branch holds its data — its title says why, it stays a
+link. A tab whose field no snapshot knows (an older reader's null) is unknown, never dimmed; a new
+check goes into `CHECKS`. **Every list is a `SortTable.svelte`** (the user's ask
 2026-10-23: "make all tables sortable"; columns as `Column<T>` from `#lib/sort.ts`; `sort={{
 column: '', desc: false }}` keeps the given order — the game's, a queue's — until a header is
 clicked; `rowClass`/`rowStyle` set a row apart, `below` adds a details line under each row). Left
@@ -335,7 +369,21 @@ country only `seen_bypass_types`), and exploring one is a fleet's jump through i
 `common/bypass/00_bypasses.txt`, `on_pre_explore`), which visits the far end; one end visited is
 not enough (2207.03.10: Phiroza visited, Eye of Bal not — no link). `wormholePairs` (spoiler) shows
 every pair (`wormholeLinks()` stores them all), both ends. Fit
-buttons: capital, my empire, explored, the page's own, everything; a per-viewer `sectors` checkbox
+buttons: capital, my empire (a nomad's: **my waystations**, starbase level `waystation_*`;
+disabled without one), explored, the page's own, everything; the map and systems tabs pass `own`
+(`ownOnMap()` in `#lib/mapLayers.ts`), which adds "my stations and ships" and our ships as a
+marker per system (`Route.systemId`, READER 38) — all, fleets or civilian, the profile's
+`mapFilter.ships`, shared by both tabs (the user's ask 2026-10-31). **A nomad's arkships**
+(`Snapshot.arkships`, READER 41; `arkships()` in save.ts: the ships carrying a colony we control,
+with size, tier, planet size and system — the ship's `coordinate.origin`, else its fleet's,
+`shipSystemId()`) are drawn on the map, systems and migration maps whatever the ships filter (a
+violet hexagon above the system, the capital ringed; `GalaxyMap` `arkships`), with a fit "my
+arkships" (the user's ask 2026-11-01). **The capital button** goes to `capitalId()`
+(`server/mapSystems.ts`): the capital arkship where it is now, else `knownSystems`' capital, which
+`capitalSystem()` now finds through the capital colony's carrier — a planet's system or the
+arkship's; before READER 41 `country.capital` was read as a planet id, so a nomad's button went to
+its old home star (Roaming Korinth: planet 0, system 532, instead of the arkship at 563), and the
+systems tab had none at all. Snapshots of saves no longer on disk keep the old reading. A per-viewer `sectors` checkbox
 splits our territory by sector (`GalaxySystem.sector`, the colonies tab's `sectorColors`). Profile switches: `unknownStars`
 adds every other star, faint, named "Unknown" and without lanes, but not the special systems off
 the main hyperlane network (`mainNetwork()`; 2207.03.10: Kleeia `distar_sealed_1_2` and Ultima
@@ -369,14 +417,33 @@ stations seen, anomalies, dig sites, special projects, wormholes, gateways and L
 (`GalaxySystem.bypasses`), megastructures and their ruins (`*_ruined`) — each layer hidden by the
 profile's `mapFilter`, plus a table with what is worked on and how far (an envoy on a contact,
 an excavation running; stage, clues, days — anomalies and special projects carry no progress in
-the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). The table
+the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). **Every
+map's width** is the viewer's (`GalaxyMap`'s `width` buttons: normal, wide = the window's full width,
+wide + table = that with the page's table beside the map) — one localStorage key for all maps
+(`MAP_WIDTH_KEY`, `#lib/mapView.ts`). A page with a table of what its map shows (map: Found;
+systems; megastructures; situations: First contacts) defines it as a top-level snippet, passes it
+as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
+filters stay above the map. Without `beside` (diplomacy, migration) the third button is not offered
+and a stored `side` draws as wide. **The table beside is independent of the map's height** (the
+user's ask, 2026-11-01): it reaches the window's bottom, scrolls on its own with its header pinned,
+and sticks below the window's top while the page scrolls (`fitAside()`). Open: a cell's `InfoPopup`
+(`absolute`) at its bottom scrolls the column instead of overlapping the map. The table
 also shows each marker's **difficulty** (first contacts and dig sites as the save holds it, an
 anomaly its category's `level`), when it was **seen** and its **age** in months (the user's ask
 2026-10-31): a first contact its own `date`, a station its first sighting, an anomaly or dig site
 the first save listing it, a wormhole, gateway, L-Gate or megastructure the first save listing its
 system in `knownSystems` (`firstSeen()` in `#lib/mapLayers.ts`), an entry event its first reading;
 "≤" where that is the first save showing the field at all (then or earlier), none for what a
-spoiler shows unvisited. Say
+spoiler shows unvisited. **Found & done** (the user's ask 2026-10-31): what is no longer to do moves from "Found" to
+a folded table below it, and onto the map (faded) only while that is unfolded — per viewer, not
+stored. Done (`MapMarker.done`, `tracked()` over the branch's saves, `doneAt` the first save
+showing it): an anomaly or special project gone from the save's list (resolved; seen on the
+Planetforgers' history, where both lists shrink), a dig site gone (**assumed** — no site has been
+excavated to its end in our saves yet), a first contact `finished` or `aborted` (they stay listed),
+a station seen once the contact with its owner is `finished` (the user's call: aborted leaves it
+unnamed), a Wanderlust target counted, a ruin in a system someone owns ("claimed"; the structure's
+own owner is not stored), an entry popup in a system whose gateway, megastructure or ruin has its
+own row (the Abandoned Gateway). Wormholes, gateways, L-Gates and megastructures stay open. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
@@ -449,6 +516,98 @@ features and their district loss). Matched the game at 2207.03.10 (Alpha Centaur
 (8), generator 7 (5), mining 3 (2)) once the extraction resolved
 `@DISTRICTS_FROM_SR_DEPOSITS` (swamps and bogs: +3 farming). Its view (range, toggles, filters,
 sort, species) and both tables' row lines belong to the profile.
+
+**Settle down / Embark** (the expansion tab, above the Expansion panel; the user's ask
+2026-11-01: "help to settle down as a nomadic empire" — "the other way is possible, too";
+`#lib/settle.ts` pure, `server/settle.ts`, `panels/SettleDown.svelte`). From 4.5.2's files:
+**settling** is the arkship action `arkship_settle` (`common/scripted_actions/03_arkships.txt`,
+started from the expansion planner): the empire needs `nomad_can_settle_trigger`
+(`scripted_triggers/09_scripted_triggers_nomads.txt`, mirrored by the game rule `can_nomad_settle`)
+— Adaptability finished (Versatility for a machine intelligence) and independence; The Sacred Path
+and Heirs of the Khan never settle, Forever Cruise after its planetfall (`forever_cruise_planetfall`)
+and the Knights of the Toxic God once at the Toxic God (`visited_toxic_god_system`) or, keep
+destroyed, with the tree; a target is colonizable, in a surveyed system no one owns, not
+consecrated. 250 influence, 360 days ÷ arkship action speed, one at a time. Outcome `nomads.4705`:
+with one arkship it settles; with more, settle and scuttle the others (their pops move over, each
+returns 10 % of its cost — 1000 / 1500 / 2000 minerals and alloys by tier,
+`settlement_scuttle_arkships_effect`), keep roaming (the settling arkship a settled subject) or
+settle with the others as a nomadic subject — those two not for homicidal empires, the Knights or
+gestalts but a Progenitor Hive. Waystations become outposts, logistic ships construction ships;
+the planet keeps Arkship Remains (`arkship_parts`: +60 % environment tolerance, +2 districts).
+**Embarking** is the planet decision `decision_nomad_embarkation`
+(`decisions/15_nomads_dlc_decisions.txt`; 500 influence, 10,000 alloys, 3600 days; our other
+colonies become a subject): `can_embark_trigger` — the same trees (or `doomsday_embark_unlocked`),
+not wilderness or homicidal, no Cosmogenesis, none of ten origins, no Red Giant Expansion or Deep
+Excavation running — plus independence, not embarking already, no colony being settled. The tab
+shows a checklist (three-valued, **costs left out — the user's call: they fluctuate**), for a
+nomad the targets (`settleTargets()`: today's habitability, ≈ with Arkship Remains — assumed to
+count on every colonizable class, `docs/open-checks.md` 26 —, deposits on the system's other
+bodies ≈, jumps from the nearest and the capital arkship) and the outcomes with our numbers
+(`settleOutcome()`, assuming the capital arkship settles). **The tab's name is dimmed**
+while a nomad cannot settle, its title naming what is missing; still a link. **For a nomad the tab
+is named "settle"** (the user's call 2026-11-01: settling is no expansion), the route stays
+`/expansion` (`settleTab()` in the layout, per tip). A settled empire's tab is "expansion", never
+dimmed.
+
+**Galaxy tab** (`/galaxy`, `#lib/galaxySetup.ts` pure; the user's ask 2026-11-01, after the mod
+In-Game Settings View): the save's whole `galaxy` block (`Snapshot.galaxySetup`, READER 42; the
+cost sliders and difficulty read from it as before), grouped as the setup screen's categories
+(4.5.x `common/gamesetup_settings/gamesetup_settings.txt`: Gameplay, Galaxy, Empires, Precursors,
+Game Length, DLC), keys we do not know under "Other". The save's keys differ from the setup
+screen's tokens (`template` = galaxy_size, `shape`, `habitability` = colonizable_planet_odds,
+`primitive` = primitive_odds, `logistic_ceiling_v2`); labels are the localisation's where it has
+one (`NUM_HYPERLANES` "Hyperlane Density"), else ours — the dashboard is English only. Disabled
+precursors are named from the data DB's `precursor` (empty without the table). Years are after
+2200 (`mid_game_start=100` → 2300). Not yet compared with the game's own setup screen.
+
+**Subjects tab** (`/subjects`; the user's ask 2026-11-01: "subjects and branch offices: an
+overview"): the subject agreement cards (`SubjectCards.svelte`, shared with the contacts tab), the
+branch offices and holdings we own and those on our colonies (`Snapshot.external`, READER 43:
+`colony.<id>.externally_owned_buildings`, see "Save format facts"), and for a MegaCorp the
+**branch office planner** (`#lib/branchOffices.ts` pure; after the mod Branch Office Expansion
+Planner): every regular empire's colony with trade (`Snapshot.branchSites`, jumps from our
+capital), ranked by trade a month per 100 influence — an office's income 0.5 × the colony's trade
+(`BRANCH_OFFICE_INCOME_SCALE`), its cost 75 influence + 5 a jump, at most 1000
+(`BRANCH_OFFICE_INFLUENCE_COST_*`), +5 empire size each (4.5.2 defines). **Estimated (≈)**: the
+jumps' origin is a guess (our capital), value modifiers and the office's buildings are left out;
+the one office in our saves (an AI's on a nomad's arkship, Planetforgers 2214.02.01) booked 59.48
+trade on a colony making 112.24 — 6 % above 0.5 ×. By default only colonies an office can open on
+now: a commercial pact with the owner (`Relation.agreements`), no office there. **No save of ours
+has a MegaCorp player**: the planner and our own offices are checked by unit tests only.
+
+**History tab** (`/history`, `#lib/history.ts` pure; the user's ask 2026-11-01: "the known history
+of the galaxy since 2200", the migration tab's slider — now `FrameSlider.svelte`, both tabs): a
+map coloured by system owner at the month picked and the events up to it (colonies founded,
+systems claimed, taken or lost, communications opened, guardians slain, wars). Each save carries
+`Snapshot.history` (READER 43, ~5 KB: `historyReading()` in `server/world.ts` — every system's
+station owner, every planet colony with its `colonize_date` and system, the guardian kill flags,
+names); `knownHistory()` diffs them along the branch. **What we know is decided at the branch's
+latest save and applied to the whole past** (the user's rule): our own history, all of an empire's
+once we have communications with it, the owner of any system we have visited, guardians' falls
+(common knowledge — the flags `killed_guardian`, `horror_killed`, `killed_wraith`,
+`tiyanki_killed`, `killed_hatchling`, global `toxic_god_killed`, `guardians_zanaam_destroyed`:
+**none seen in a save yet**), wars with a side we know (public, as on the diplomacy tab); not
+others' discoveries nor battles we did not fight. Before the first save read only colonies are
+known (by `colonize_date`; before 2200 — homeworlds, pre-FTLs at "2016.05.09" — read as
+2200.01.01), and a system whose colony predates that save counts as its owner's since then. A
+change between two saves is dated "≤" the later one. The `historyAll` cheat shows everything.
+Checked 2026-11-01 on a DB copy (Roaming Korinth, 2207.02): known now us, Vivisandia Vestige and
+Skull Clan — 10 colonies, 9 claims, 2 communications; with the cheat 80 and 100. **Open:** when a
+guardian was first discovered (the user's ask) is not read — its system is not tied to the flag;
+arkship colonies (nomads') are not in the reading, which reads planets.
+
+**Map rings and quadrants** (`#lib/quadrants.ts` pure, `server/quadrants.ts`; the user's ask
+2026-11-01, after the mod Quadrant Fixed): every `GalaxyMap` draws them from the layout's
+`quadrants` (`page.data`, so no page passes them) — the profile's `quadrants` setting (⚙: on by
+default, rings between by galaxy size — about one per 100 units of the band — or 0–10, 4/8/16
+sectors, the cross turned by half a sector — default 8, turned: N, NE, E …, the user's call
+2026-11-01) and the campaign's radii. **The core is the galaxy's
+origin**: the innermost system of Roaming Korinth's large galaxy sat at 113 from it, the save's
+`galaxy.core_radius` 112.5. Inner ring 2 % of the outer radius inside the innermost system, outer
+2 % outside the outermost — of the systems on the main hyperlane network, not the L-Cluster
+(`mainNetwork()`; 2207.02.01: 104 → 480, the two systems at 488 and 524 off the network left
+out). Every star is shown from the start, so the radii reveal nothing. Directions are the map's as
+drawn (north up, x mirrored: `bearing()`). Drawn only in a browser — not seen yet.
 
 **Milestones** (`#lib/milestones.ts`, pure): the campaign's bigger events — systems, colonies
 (colonization started / established / gained / lost), districts built and buildings done per
@@ -544,7 +703,7 @@ false, the others named ("or instead Citadel"); `inReach()` wants one of each gr
 line follows the shipset**: every hull tech gates on `country_uses_bio_ships` (Corvettes …
 Battleships `no`, Harbingers and Stingers `yes`; 4.5.2 `scripted_triggers/07_scripted_triggers_ships.txt`:
 `uses_ship_category = bio_ship`), which `#lib/triggers.ts` answers from `Snapshot.shipset` (the
-country's `graphical_culture`, READER 38) and the data DB's `graphical_culture.ship_kinds_json`
+country's `graphical_culture`, READER 40) and the data DB's `graphical_culture.ship_kinds_json`
 (`GameData.shipKinds`; the three Biogenesis shipsets list `bio_ship`) — before, it was unknown,
 so a bio-ship empire got Corvettes … Battleships for Mega-Engineering (the user's catch,
 2026-10-31; checked after: Harbingers → Stingers). Checked
@@ -788,7 +947,16 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`. A new view of hidden information follows the same pattern. **The
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`. A new view of hidden information follows the same pattern.
+**⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
+pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
+`normal`, `spoiler` (what the game hides until found) or `cheat` (what it never tells a player;
+`habitatsAlways` now one) —, a left-hand section list and a search over all of it. Two gates,
+`showSpoilers` / `showCheats` (off by default; a profile from before them starts with a gate on
+when it had one of its switches on), list those kinds; **hidden also means off**:
+`display()` (`server/settings.ts`) returns `effectiveDisplay()`, the stored values kept, so
+showing a kind again brings each switch back as it was. **A new switch goes into `SWITCHES`**
+(a test checks every `Display` boolean is there once). **The
 check is the user's in-game screenshot** of the matching panel (workspace `AGENTS.md`): it caught
 the edicts (58 → the game's 5), policies, agendas and focus cards here.
 
@@ -922,6 +1090,17 @@ counts, a gestalt's `no_happiness` ones instead); its other modifiers are the si
 unconditional modifiers — living standards' happiness, most job variants and leader traits are
 triggered and missing; 2205.07 listed Prosperous Unification, the capital building and Medical
 Workers.
+**Distribute Luxury Goods** (`#lib/luxuries.ts`, `LuxuryGoods.svelte` on the colony page; the user's
+ask 2026-10-31): `decision_planet_luxuries_boost` costs 100 Consumer Goods per started 1000 pops
+(8500–9999: 900, at most 1000; 4.5.3 `common/decisions/00_resource_decisions.txt`), then
+`planet_luxuries_boost` for 3600 days — `planet_amenities_mult` +25 %. The what-if runs the chain
+above: +25 % of today's amenities (≈: other amenity multipliers make it less) → happiness, taken
+as approval → stability (× `stabilityMult`, from the uncapped value with the mod) → job output,
+on today's job output scaled back by stability's share (`jobOutput()` from the job rows' flows),
+× 120 months. **Stability raises output, not upkeep** (the game's job tooltip 2026-10-31,
+`screenshot_2026-10-31_18-16-28`: physicists' "High Stability +30 %" under Produces, upkeep 5.16
+without it); job efficiency (`screenshot_…18-16-11`: +72 % → 344 of 200 workforce) is extra
+workforce and scales both. Not offered to gestalts, on a Nanotech World or while it runs.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
@@ -966,8 +1145,8 @@ that differ from their key: `HUM1_SHIP_PeshnabtheFaithful` = "Peshnab the Faithf
 list until 2026-10-30. A save's colony carriers are `type=planet` or `type=ship` only (checked on
 Roaming Korinth 2203.02.01: 75 / 11); habitats and ringworlds are planets. Nomads get the engine's
 static modifier `nomadic_empire` (+100 % empire size from colonies and districts; see Top bar). Not yet
-nomad-aware: other places that map a colony to its planet themselves (capital, construction,
-migration, growth), the trade tab's valuation of energy and minerals for us, and whether the
+nomad-aware: other places that map a colony to its planet themselves (construction, growth; the
+capital and migration are since READER 41), the trade tab's valuation of energy and minerals for us, and whether the
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
@@ -1088,7 +1267,14 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   field's tech researched meanwhile), research tiers, everything researched.
 - **leaders**: `Snapshot.leaderList`, traits explained by `ltrait:<key>` (data DB `leader_trait`,
   each modifier labelled with its scope); class colours (`class-*` in `colors.ts`, envoys ours);
-  envoys behind a switch, off by default.
+  envoys behind a switch, off by default. **Leader modifiers from the empire** (the user's ask
+  2026-10-31: "other sources of leader properties apart from their traits, e.g. experience gain";
+  `#lib/leaderSources.ts`): every held source (`empireHeld()`, shared with the colony levers)
+  whose popup carries a leader modifier (`isLeaderModifier()`: experience, skill, lifespan, limits
+  and pool, upkeep and cost, council, envoys), summed per modifier. Traditions' and perks'
+  triggered modifiers now carry their condition (`Modifier.when` from
+  `tradition_modifier.potential_json`) and are weighed against the save — ap_wanderlust's second
+  −10 % upkeep only once a category is completed; "?" where the save cannot tell.
 - **species**: traits with their effects in a grid (the climate preference, one line per planet
   class, a row of its own; more picks wrap into more rows), trait budget, rights. System names
   from random-name lists that are localisation keys (`VOIDWORM_SYSTEM_12` = Papqaqtet) resolve
@@ -1162,14 +1348,19 @@ first save read since 2026-10-18. The DLC catalogue is the data DB's `dlc` table
 `dlc_info.txt`, category from the installed DLCs' descriptors, Steam release dates). Installed
 mods are the launcher's descriptors, `<user dir>/mod/*.mod`, the user dir being
 `STELLARIS_SAVE_DIR`'s parent (`server/mods.ts`, read at start); `supports()` compares their
-`supported_version` (`v4.5.*`) with the save's version. A dev copy registered next to its workshop version (`link-mod.sh`) has the same name and id: rows are keyed by descriptor file, marked "local", and left out of the version notes (`trackedMods()`) — keyed by name and id they once broke the tab (a duplicate key, client-side only). 2207.03.10: 28 DLCs, 17 mods. **Merged
+`supported_version` (`v4.5.*`) with the save's version. A dev copy registered next to its workshop version (`link-mod.sh`) has the same name and id: rows are keyed by descriptor file, marked "local", and left out of the version notes (`trackedMods()`) — and of the two, only the one in the load order is active (the save names mods only; 2026-10-31 both showed active, the Workshop subscription in no playset) — keyed by name and id they once broke the tab (a duplicate key, client-side only). 2207.03.10: 28 DLCs, 17 mods. **Merged
 DLCs**: Utopia, Synthetic Dawn and Humanoids are gameplay DLCs no script checks for (data DB
 `dlc.host_checks` 0) and saves leave them out of `required_dlcs` though installed — shown as
 "base game". **Mod updates**: the launcher's `launcher-v2.sqlite` (`mods.timeUpdated`, seconds;
 `version` where the descriptor has none, read-only) completes the descriptors; at each start
 `noteModVersions` notes every mod whose version, supported version or update time changed in
 the `mod_version` table, with the head's game date — the mods tab's "Updates", since
-2026-10-18 (many mods name no version: their update shows as a new update time). The DLC tab
+2026-10-18 (many mods name no version: their update shows as a new update time). **Load order**
+(`#`, the default sort): `<user dir>/dlc_load.json`'s `enabled_mods`, read per request — the
+launcher writes it from the active playset's order when it starts the game (2026-10-31: the same
+order as `launcher-v2.sqlite` `playsets_mods.position`), so a change in the launcher shows after
+the next game start. **Age**: days since the workshop's update (`ageDays()`, real time at the
+request). The save's `meta.mods` is alphabetical, no source of the order. The DLC tab
 opens per category.
 
 **Colours** (`colors.ts`) follow the game: resources and research fields after their icons, other
@@ -1258,8 +1449,10 @@ shows format 2.
   <date>: … employed, … civilians, … open jobs") and is stored with the month; the Pops chart
   draws those days between the saves (`colonyDaySeries()`). **Broken in game (2026-10-31):**
   `num_sapient_pops` is no trigger, and the lines come out empty (`docs/open-checks.md` 23). Mod
-  0.8.0–0.10.0 ran only on 4.5.3 (the Linux machine has the beta), never on 4.5.2; 0.10.0's
-  `system-entered` line has not been seen in a log yet. **Assumed until checked**
+  0.8.0–0.10.1 ran only on 4.5.3 (the Linux machine has the beta), never on 4.5.2. **A colony's
+  variables live on its carrier**, and loc in colony scope cannot read them: log them from inside
+  `carrier = { }` (0.10.1; `docs/open-checks.md` 23). The `system-entered` line was first seen
+  2026-11-01 (Baxom, Tozied, Ecio, 2206.12–2207.01). **Assumed until checked**
   (`docs/open-checks.md` 23): unemployed = the civilians, employed = pops − unemployed, and
   `free_jobs` the same count as the save's open jobs. Checked 2026-10-31 on a DB copy with a
   replayed line: the `tick` server event carries it.
@@ -1301,12 +1494,19 @@ shows format 2.
   `triggers.log` or in vanilla script (`trigger:<name>`). 0.9.0 exported `num_sapient_pops` (a
   save field); the game only says so in `error.log` (`cannot find: num_sapient_pops`), and the
   log line prints the variable empty. Grep `error.log` for `sdash_` after each mod change.
+- **An event's type must match its on_action's scope** (the comment above each on_action in
+  vanilla `common/on_actions/00_on_actions.txt`): `on_colonized` is `Scope = Carrier` (since 4.4),
+  so `sdash.10` is a `carrier_event` — as a `planet_event` it failed on every arkship colony from
+  0.2.0 to 0.10.0 (`error.log`: "attempted to execute an event on an unsupported scope", no
+  `sdash_` in the line — grep `Event: sdash` too).
 
 It changes the checksum: no achievements while enabled. **Publishing** (Steam Workshop and Paradox
 Mods, through the launcher): `mod/PUBLISHING.md` — store copy, thumbnail source, published IDs.
 Register it on Linux with
 `scripts/link-mod.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace
-root, launcher closed).
+root, launcher closed). The link points at one checkout: the game runs that checkout's mod, so a
+worktree's mod change reaches the game only once relinked — `../scripts/dashboard.sh` relinks to
+the checkout it runs at every start.
 
 ### Sandbox notes (Claude Code on the Mac)
 
@@ -1317,7 +1517,12 @@ wait for its output; pick nodes by date from the copy's `node` table.
 
 On Linux (2026-10-17) Node 24 is first on PATH — no `fnm` prefix — and check, test, lint and a
 dev server on a DB copy all ran sandboxed. Kill that server by `$!`, not `pkill -f <pattern>`,
-which also matches the Bash command's own shell and ends it (exit 143).
+which also matches the Bash command's own shell and ends it (exit 143). **Start
+`node_modules/.bin/vite dev --strictPort`, not `pnpm dev`**: `$!` of `pnpm dev` is pnpm, and
+killing it leaves Vite holding the port — the next start in the same command failed "Port 5199
+is already in use" and a check of it read nothing (2026-10-31). For checks that extract, set
+`XDG_DATA_HOME=$TMPDIR/xdg` with `STELLARIS_GAME_DIR` + `STELLARIS_EXTRACTOR`, so the real data
+folder stays untouched; count `extracting game data` lines in the log per start.
 
 - **`pnpm install` / `pnpm add` must run outside the sandbox** (`! pnpm install`): pnpm 12 fails to
   take its store lock (`pnpm-store-operation-locks: Operation not permitted`) even with the store in
@@ -1382,7 +1587,12 @@ an `every_situation = { limit = … }` form did not).
 **For a shape not yet seen in our saves** (wars, trade deals, galactic market): the other parser,
 eliasdoehne/stellaris-dashboard (`stellarisdashboard/parsing/timeline.py`), reads many; a 4.0.1
 save at 2312 lives in chennin/stellaris-dashboard-test-saves (galactic market and GalCom, but
-still no trade deal). Download into `$TMPDIR`, never into the repo.
+still no trade deal). Download into `$TMPDIR`, never into the repo. **To find where a save keeps
+something**, grepping the raw `gamestate` is not enough: the names are not what you expect (a
+branch office is `externally_owned_buildings`, not `branch_office*`). Parse it with jomini
+(`parseText(…, q => q.json())` in a throwaway `.mjs` in the repo, so `jomini` resolves; deleted
+after) and walk the JSON for keys or values — that found it in minutes where a hand-written
+parser of the text did not.
 
 A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `gamestate` at 2200).
 
@@ -1502,7 +1712,13 @@ happiness }`. **`happiness` is left out at 100 %**: every group of ours at 2201.
   `country.sectors.owned` → `sectors.<id> = { name systems type }`.
 - Starbases: `starbase_mgr.starbases.<id> = { level modules buildings build_queue
 shipyard_build_queue station }` — **no owner field**; the country's are those whose own `build_queue` it owns — the queue's
-  `location.id` is the station ship, not the starbase (both 0 for Sol, which hid an outpost bug). System via `galactic_object.<id>.starbases`. Ship queue items name only a design
+  `location.id` is the station ship, not the starbase (both 0 for Sol, which hid an outpost bug). System via `galactic_object.<id>.starbases`;
+  an arkship's starbase is in no system's list — it travels. It is where its `station` ship is:
+  `ships.<id>.coordinate.origin`, else the ship's fleet's `movement_manager.coordinate.origin`. An
+  arkship is a fleet of its own (`ships = { <the arkship> }`, `ship_class=shipclass_starbase`,
+  `properties = { station=yes mobile=yes … }`), not an escort's — both agreed for all four arkships
+  of Roaming Korinth 2206.10.08 (ours at system 80). Its `shipyard_build_queue=4294967295` is none
+  (it builds through its colony's `combined` queue): no shipyard then, READER 39. Ship queue items name only a design
   (`ship_design.<id>.{name, growth_stages[0].ship_size}`). Capital ships (titan, colossus,
   juggernaut) need a citadel with `capital_yards`, an arkship's `arkship_capital_shipyard`, or a
   finished Mega Shipyard, plus the tech (`*_possible_construction` in
@@ -1568,6 +1784,13 @@ defender_war_goal attacker_war_exhaustion defender_war_exhaustion }` (exhaustion
   (their 4); losses and victory follow the roles. An ended war leaves `<id>=none`;
   `truce` and `dead_war` stayed empty after a won subjugation war. Names: `war_vs_adjectives` =
   "$1$ - $2$ $3$". Shown on the contacts tab (`wars()` in save.ts).
+- Branch offices and holdings (4.5.x, first seen 2026-11-01): `colony.<id>.externally_owned_buildings
+= { { building_owner=<country> owner_type=corporate|subject_holding buildings = { <ids> } } }`,
+  the ids into top-level `buildings`, and `externally_owned_build_queues = { { key=<country>
+value=<queue> } }`. No planet or colony field says "branch office" by name (a jomini dump of
+  the Planetforgers' save had none); the office's owner keeps `flags.first_branch_office` and
+  `variables.branch_offices_established`, its budget `planet_branch_offices` (the trade) and
+  `planet_branch_office_buildings`.
 - Subjects: top-level `agreements.agreements.<id> = { owner target active_status date_added
 term_data = { agreement_preset discrete_terms = { { key value } } resource_terms
 can_subject_* … } subject_specialization = { level experience } }`, owner = the overlord; the
@@ -1580,7 +1803,8 @@ can_subject_* … } subject_specialization = { level experience } }`, owner = th
 stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included (20 there);
   `stale_intel` was empty everywhere, so staleness is ours (`diplomacyView()`). The floors from
   pacts are defines (`INTEL_FROM_*`), already in the value. **`country.capital` is a colony id**
-  (ours `capital=0` = colony 0 on planet 3), as a construction item's planet.
+  (ours `capital=0` = colony 0 on planet 3), as a construction item's planet — its place is the
+  colony's `carrier` (`capitalSystem()`; a nomad's: the arkship, READER 41).
 - Galactic Community (2026-10-19): `galactic_community = { members = { <ids> } proposed = {
 <resolution ids> } voting = <id> emissaries days election community_formed focus … }`,
   `resolution.<id> = { type country supporters = { <ids> } opponents }` (the voted one also
@@ -2048,6 +2272,15 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   only for saves read since 2026-10-17; older ones' saves are gone.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
+  The map has a **circle** mode (the user's ask 2026-11-01; the profile's `migrationView`: layout
+  and order, `MigrationCircle.svelte`, geometry shared with the diplomacy circle in `#lib/circle.ts`):
+  our arkships clockwise from 12 o'clock — oldest first (`arkshipFirstSeen()`: the first save
+  listing the ship, then ship id; the save's `construction_date` reads 2200.01.01 for every
+  arkship, later ones too), by size (tier, then planet size) or by name (`arkshipOrder()`) —, every
+  other migrating colony in a group after a gap. **Our arkship colonies migrate too** (`migration()`
+  rows since READER 41, placed where the ship is): before, the rows came from planets only, and a
+  nomad without a treaty partner got "No colonies." and no map. Other empires' arkship colonies
+  stay out — a colony names no owner.
 - **Next, the user's plan:** a configurable main dashboard (custom tabs pick empire panels now;
   the migration and planet panels are not pickable yet).
 - **The daily tick on the 1st, before or after the payout?** `unbooked()` takes the payout off

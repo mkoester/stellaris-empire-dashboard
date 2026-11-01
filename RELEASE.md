@@ -77,7 +77,11 @@ its `Unreleased` section.
 1. **Extractor first**: a beta tag on its `open-beta` (its `RELEASE.md`), unless the beta needs no
    extractor change; pin that tag in `extractorVersion` on `open-beta`. No change = the released
    extractor already reads the beta: v0.1.7-beta.1 (4.5.3, 2026-10-31) pinned v0.1.6, whose
-   4.5.3 fixes had gone in through `develop`.
+   4.5.3 fixes had gone in through `develop`; v0.1.8-beta.1 pinned v0.1.7. To check, with the
+   beta installed: `git archive vX.Y.Z | tar -x -C $TMPDIR/ext` from the extractor, then
+   `python3 stellaris-extract.py <game dir> --out $TMPDIR/ext/b.sql --sqlite $TMPDIR/ext/b.sqlite`
+   there (not `python3 -I`, which drops the script's folder from the path: `No module named
+'extractor'`), and read its `meta.game_version` and the civic and origin counts.
 2. On `open-beta`, once per beta: `"openBeta": "4.5.3"` in `package.json` (the game's beta
    version, as the release title shows it), committed.
 3. On `open-beta`, everything committed: `git tag vX.Y.Z-beta.N` (X.Y.Z = `package.json`'s

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
+	import type { MapWidth } from '#lib/mapView.ts';
 	import { followGame } from '#lib/live.ts';
 	import { RANGES, scoreFill, type Candidate, type MegaView } from '#lib/megastructures.ts';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -9,6 +10,7 @@
 	import type { Column } from '#lib/sort.ts';
 
 	let { data } = $props();
+	let width: MapWidth = $state('normal'); // "wide + table": the table goes beside the map
 	followGame(() => data.isHead);
 
 	// the view is the profile's: changed here, stored at once
@@ -83,6 +85,18 @@
 		}
 	]);
 </script>
+
+{#snippet table()}
+	<SortTable
+		{rows}
+		{columns}
+		key={(r) => r.systemId}
+		bind:sort
+		link={(r) => r.systemId}
+		bind:hovered
+		bind:selected={getSelected, setSelected}
+	/>
+{/snippet}
 
 {#snippet systemCell(r: Candidate)}{r.name}{#if r.ok !== false}<AddGoal
 			kind="megastructure"
@@ -167,18 +181,12 @@
 			territories={data.territories}
 			bind:hovered
 			bind:selected={getSelected, setSelected}
+			bind:width
+			beside={table}
 		/>
 		<p class="mt-1 mb-3 text-xs text-gray-500">
 			Darker blue: better score among the systems shown.
 		</p>
-		<SortTable
-			{rows}
-			{columns}
-			key={(r) => r.systemId}
-			bind:sort
-			link={(r) => r.systemId}
-			bind:hovered
-			bind:selected={getSelected, setSelected}
-		/>
+		{#if width !== 'side'}{@render table()}{/if}
 	</Panel>
 </div>

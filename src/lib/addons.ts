@@ -35,18 +35,52 @@ export function dlcRows(catalogue: Dlc[], active: string[] | null): DlcRow[] {
 	];
 }
 
-export type ModRow = ModInfo & { active: boolean | null; supported: boolean | null };
+export type ModRow = ModInfo & {
+	active: boolean | null;
+	supported: boolean | null;
+	order: number | null; // place in the launcher's load order (1 = first), null: not enabled there
+};
+
+/** Days from an ISO time to `now` (ms); null when unknown. */
+export const ageDays = (iso: string | null, now: number): number | null =>
+	iso === null ? null : Math.max(0, Math.floor((now - Date.parse(iso)) / 86_400_000));
+
+/** An age in days, short: "5 d", "3 mo", "2.5 y". */
+export function ageLabel(days: number): string {
+	if (days < 60) return `${days} d`;
+	if (days < 730) return `${Math.round(days / 30.44)} mo`;
+	return `${Math.round(days / 36.525) / 10} y`;
+}
+
+/** `dlc_load.json`'s `enabled_mods` as descriptor file names (`mod/ugc_1.mod` → `ugc_1.mod`). */
+export function loadOrder(json: string): string[] {
+	try {
+		const mods = JSON.parse(json)?.enabled_mods;
+		return Array.isArray(mods)
+			? mods.filter((m) => typeof m === 'string').map((m: string) => m.replace(/^mod\//, ''))
+			: [];
+	} catch {
+		return [];
+	}
+}
 
 /**
  * Every installed mod (descriptor) with whether the save has it active and whether it claims to
- * support `gameVersion`; an active mod without a descriptor is listed by name.
+ * support `gameVersion`; an active mod without a descriptor is listed by name. The save names
+ * mods only, so of two descriptors with one name — a local copy registered next to its Workshop
+ * subscription (`link-mod.sh`) — the one in the launcher's load order is the active one, the other
+ * not.
  */
 export function modRows(
 	descriptors: ModInfo[],
 	active: string[] | null,
-	gameVersion: string | null
+	gameVersion: string | null,
+	order: string[] = []
 ): ModRow[] {
+	const place = new Map(order.map((f, i) => [f, i + 1]));
 	const known = new Set(descriptors.map((m) => m.name));
+	// names the launcher loaded from a particular descriptor
+	const loaded = new Set(descriptors.filter((m) => m.file && place.has(m.file)).map((m) => m.name));
 	const missing = (active ?? []).filter((n) => !known.has(n));
 	return [
 		...descriptors,
@@ -62,8 +96,11 @@ export function modRows(
 		}))
 	].map((m) => ({
 		...m,
-		active: active ? active.includes(m.name) : null,
-		supported: supports(m.supportedVersion, gameVersion)
+		active: active
+			? active.includes(m.name) && !(loaded.has(m.name) && !(m.file && place.has(m.file)))
+			: null,
+		supported: supports(m.supportedVersion, gameVersion),
+		order: (m.file && place.get(m.file)) || null
 	}));
 }
 

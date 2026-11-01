@@ -2,12 +2,14 @@
 	import Chart from '#lib/Chart.svelte';
 	import { fmt, nameOf, pretty } from '#lib/format.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
+	import type { MapWidth } from '#lib/mapView.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import ResourceChips from '#lib/ResourceChips.svelte';
 	import { gameYear } from '#lib/series.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import { putSettings } from '#lib/settings.ts';
+	import type { MapFilter, MapShips } from '#lib/mapLayers.ts';
 	import type { Column } from '#lib/sort.ts';
 	import {
 		breakEven,
@@ -21,6 +23,7 @@
 	import { valueOf } from '#lib/value.ts';
 
 	let { data } = $props();
+	let width: MapWidth = $state('normal'); // "wide + table": the table goes beside the map
 	followGame(() => data.isHead);
 
 	// the view is the profile's: changed here, stored at once
@@ -28,6 +31,12 @@
 	const save = (v: SystemView) => {
 		view = v;
 		void putSettings({ systemView: v });
+	};
+	// which of our ships the map draws: the map tab's setting, shared
+	let mapFilter: MapFilter = $derived(data.mapFilter);
+	const setShips = (ships: MapShips) => {
+		mapFilter = { ...mapFilter, ships };
+		void putSettings({ mapFilter });
 	};
 	let hovered: number | null = $state(null);
 	const getSelected = () => view.selected;
@@ -174,6 +183,26 @@
 	});
 </script>
 
+{#snippet table()}
+	<SortTable
+		{rows}
+		columns={columns.map((c) =>
+			c.id === 'invested'
+				? { ...c, cell: investedCell }
+				: c.id === 'earned'
+					? { ...c, cell: earnedCell }
+					: c.id === 'net'
+						? { ...c, cell: netCell }
+						: c
+		)}
+		key={(r) => r.systemId}
+		bind:sort
+		link={(r) => r.systemId}
+		bind:hovered
+		bind:selected={getSelected, setSelected}
+	/>
+{/snippet}
+
 {#snippet starbase(r: Row)}
 	{#if r.level}{pretty(r.level)}<span class="text-gray-500"
 			>{r.modules.length + r.buildings.length
@@ -259,26 +288,16 @@
 			heightKey="systems-map-height"
 			label="systems"
 			territories={data.territories}
+			own={data.own}
+			arkships={data.arkships}
+			ships={mapFilter.ships}
+			onShips={setShips}
 			bind:hovered
 			bind:selected={getSelected, setSelected}
+			bind:width
+			beside={table}
 		/>
-		<SortTable
-			{rows}
-			columns={columns.map((c) =>
-				c.id === 'invested'
-					? { ...c, cell: investedCell }
-					: c.id === 'earned'
-						? { ...c, cell: earnedCell }
-						: c.id === 'net'
-							? { ...c, cell: netCell }
-							: c
-			)}
-			key={(r) => r.systemId}
-			bind:sort
-			link={(r) => r.systemId}
-			bind:hovered
-			bind:selected={getSelected, setSelected}
-		/>
+		{#if width !== 'side'}{@render table()}{/if}
 	</Panel>
 
 	{#if selected}

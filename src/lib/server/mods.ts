@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { parseModDescriptor, withLauncher, type LauncherMod } from '#lib/addons.ts';
+import { loadOrder, parseModDescriptor, withLauncher, type LauncherMod } from '#lib/addons.ts';
 import type { ModInfo } from '#lib/types.ts';
 
 /**
@@ -24,6 +24,19 @@ export function loadModDescriptors(saveDir: string): ModInfo[] {
 		.map((f) => parseModDescriptor(readFileSync(join(dir, f), 'utf8'), f))
 		.filter((m) => m !== null);
 	return withLauncher(descriptors, launcherMods(join(userDir, 'launcher-v2.sqlite')));
+}
+
+/**
+ * The enabled mods in the order the game loads them: `<user dir>/dlc_load.json`, which the
+ * launcher writes from the active playset's order when it starts the game (checked 2026-10-31:
+ * the same order as `playsets_mods.position`). None when missing or unreadable.
+ */
+export function readLoadOrder(userDir: string): string[] {
+	try {
+		return loadOrder(readFileSync(join(userDir, 'dlc_load.json'), 'utf8'));
+	} catch {
+		return [];
+	}
 }
 
 /** The launcher's workshop mods, read-only; none if its DB is missing or unreadable. */

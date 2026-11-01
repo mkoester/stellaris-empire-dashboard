@@ -16,10 +16,22 @@ export function mapSystems(snaps: Snapshot[]): (KnownSystem & { known?: boolean 
 	const known = snaps.findLast((s) => s.knownSystems)?.knownSystems ?? [];
 	const last = snaps.at(-1);
 	const g = last ? campaignGalaxy(last.campaign) : null;
-	if (!g) return known;
-	const capital = known.find((k) => k.capital)?.id;
+	const capital = capitalId(snaps);
+	if (!g) return known.map((s) => ({ ...s, capital: s.id === capital }));
 	return mapView(g.systems, reveal()).map((s) => ({ ...s, capital: s.id === capital }));
 }
+
+/**
+ * The capital's system for the maps' "capital" button: a nomad's capital arkship where it is now
+ * (`Snapshot.arkships`, READER 41), else the system `knownSystems` marks.
+ */
+export function capitalId(snaps: Snapshot[]): number | undefined {
+	const ark = snaps.findLast((s) => s.arkships)?.arkships?.find((a) => a.capital)?.systemId;
+	return ark ?? snaps.findLast((x) => x.knownSystems)?.knownSystems?.find((k) => k.capital)?.id;
+}
+
+/** Our arkships, as the latest save that read them holds them (none for a settled empire). */
+export const arkshipsOf = (snaps: Snapshot[]) => snaps.findLast((s) => s.arkships)?.arkships ?? [];
 
 /**
  * The campaign's galaxy as the viewer may see it: bodies of the systems visited, or of all with

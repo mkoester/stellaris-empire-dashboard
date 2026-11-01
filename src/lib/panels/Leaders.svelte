@@ -1,15 +1,17 @@
 <script lang="ts">
 	import Panel from './Panel.svelte';
 
-	// Base capacity per class: @base_leader_cap = 3 (common/leader_classes, 4.5.2). Techs and
-	// civics raise it (country_<class>_cap_add); the save does not hold the result.
-	const BASE_CAP = 3;
-
+	// Each class's limit from `leaderLimits()` (#lib/leaders.ts): the base 3 plus the
+	// `country_<class>_cap_add` of what the save shows held; the save does not hold the result.
 	let {
 		leaders,
+		limits,
 		idle = []
-	}: { leaders: Record<string, number>; idle?: { id: number; class: string; name: string }[] } =
-		$props();
+	}: {
+		leaders: Record<string, number>;
+		limits: Record<string, number>;
+		idle?: { id: number; class: string; name: string }[];
+	} = $props();
 	const hired = $derived(
 		Object.entries(leaders)
 			.filter(([c]) => c !== 'envoy')
@@ -19,8 +21,12 @@
 
 <Panel title="Leaders">
 	{#each hired as [cls, n] (cls)}
-		<div title="base capacity {BASE_CAP}; modifiers not included">
-			{cls} <b class={n > BASE_CAP ? 'text-red-600' : ''}>{n} / {BASE_CAP}</b>
+		{@const cap = limits[cls]}
+		<div
+			title="limit {cap ??
+				'?'}: base 3 plus traditions, perks, civics, techs, edicts and modifiers; council traits, subject perks and conditional sources not counted"
+		>
+			{cls} <b class={cap !== undefined && n > cap ? 'text-red-600' : ''}>{n} / {cap ?? '?'}</b>
 		</div>
 	{/each}
 	{#each idle as l (l.id)}

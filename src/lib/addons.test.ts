@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+	ageDays,
+	ageLabel,
 	dlcRows,
+	loadOrder,
 	modRows,
 	parseModDescriptor,
 	supports,
@@ -94,6 +97,40 @@ describe('modRows', () => {
 			['B', true, null]
 		]);
 	});
+
+	it("numbers mods by the launcher's load order, disabled ones none", () => {
+		const a = parseModDescriptor('name="A"', 'ugc_1.mod')!;
+		const b = parseModDescriptor('name="B"', 'ugc_2.mod')!;
+		const c = parseModDescriptor('name="C"', 'local.mod')!;
+		// dlc_load.json as the launcher writes it (2026-10-31)
+		const order = loadOrder(
+			'{"enabled_mods":["mod/ugc_2.mod","mod/ugc_1.mod"],"disabled_dlcs":[]}'
+		);
+		expect(order).toEqual(['ugc_2.mod', 'ugc_1.mod']);
+		expect(modRows([a, b, c], null, null, order).map((r) => [r.name, r.order])).toEqual([
+			['A', 2],
+			['B', 1],
+			['C', null]
+		]);
+		expect(loadOrder('not json')).toEqual([]);
+	});
+
+	it('of a local copy and its Workshop twin, takes the one the launcher loaded as active', () => {
+		// 2026-10-31: dashboard_feed.mod in the playset, ugc_3826360023.mod only subscribed
+		const local = parseModDescriptor('name="Empire Dashboard Feed"', 'dashboard_feed.mod')!;
+		const workshop = parseModDescriptor('name="Empire Dashboard Feed"', 'ugc_3826360023.mod')!;
+		const rows = modRows([local, workshop], ['Empire Dashboard Feed'], null, [
+			'dashboard_feed.mod'
+		]);
+		expect(rows.map((r) => [r.file, r.active, r.order])).toEqual([
+			['dashboard_feed.mod', true, 1],
+			['ugc_3826360023.mod', false, null]
+		]);
+		// without a load order both stay active: the save cannot tell them apart
+		expect(
+			modRows([local, workshop], ['Empire Dashboard Feed'], null).map((r) => r.active)
+		).toEqual([true, true]);
+	});
 });
 
 describe('withLauncher', () => {
@@ -138,6 +175,23 @@ describe('versionChanges', () => {
 		expect(changes.map((c) => [c.name, c.from.version, c.to.version, c.to.seenAt])).toEqual([
 			['A', '1.0', '1.1', '2026-10-20T10:00'],
 			['B', null, null, '2026-10-19T10:00']
+		]);
+	});
+});
+
+describe('mod age', () => {
+	it('counts whole days since the update and shortens them', () => {
+		const now = Date.parse('2026-10-31T12:00:00Z');
+		expect(ageDays('2026-10-30T13:00:00Z', now)).toBe(0);
+		expect(ageDays('2026-10-01T12:00:00Z', now)).toBe(30);
+		expect(ageDays(null, now)).toBeNull();
+		expect([5, 59, 60, 400, 729, 913].map(ageLabel)).toEqual([
+			'5 d',
+			'59 d',
+			'2 mo',
+			'13 mo',
+			'24 mo',
+			'2.5 y'
 		]);
 	});
 });

@@ -1,10 +1,23 @@
 import { error } from '@sveltejs/kit';
-import { firstSeen, mapMarkers } from '#lib/mapLayers.ts';
+import {
+	anomalyKey,
+	contactDone,
+	firstSeen,
+	mapMarkers,
+	ownOnMap,
+	tracked
+} from '#lib/mapLayers.ts';
 import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
+import {
+	arkshipsOf,
+	campaignGalaxy,
+	capitalId,
+	reveal,
+	territoriesOf
+} from '#lib/server/mapSystems.ts';
 import { display, mapFilter } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
 import { plannedSystems } from '#lib/server/planner.ts';
@@ -20,7 +33,7 @@ export function load({ url }) {
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const g = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const contactSites = (s?.firstContacts ?? []).map((c) => c.systemId);
-	const capital = snaps.findLast((x) => x.knownSystems)?.knownSystems?.find((k) => k.capital)?.id;
+	const capital = capitalId(snaps);
 	// Wanderlust's targets once we have the perk; every one, revealed, with the spoiler
 	const wanderlust = snaps.findLast((x) => x.wanderlust)?.wanderlust ?? null;
 	const allTargets = wanderlust !== null && display().wanderlustAll;
@@ -32,10 +45,25 @@ export function load({ url }) {
 		snaps.map((x) => ({ entries: x.entryEvents, flags: x.countryFlags }))
 	);
 	const entriesStart = snaps.findIndex((x) => x.entryEvents);
+	// everything the branch's saves listed, the resolved with the save that first showed it so
+	const saves = snaps.filter((x) => x.kind === 'save');
+	const along = <T, K>(
+		list: (x: (typeof saves)[number]) => T[] | null | undefined,
+		key: (t: T) => K,
+		isDone?: (t: T) => boolean
+	) =>
+		tracked(
+			saves.map((x) => ({ date: x.date, list: list(x) })),
+			key,
+			isDone
+		);
 	return {
 		...rest,
 		seenAt: s?.date ?? null,
 		filter: mapFilter(),
+		// our stations and ships, for the fit buttons and the ships drawn
+		own: ownOnMap(b.latest),
+		arkships: arkshipsOf(snaps),
 		wanderlust,
 		systems: mapView(g, { ...reveal(), wanderlust: allTargets }, contactSites).map((x) => ({
 			...x,
@@ -59,10 +87,20 @@ export function load({ url }) {
 				seen: { date: snaps[e.at].date, by: e.at === entriesStart },
 				detail: entryDetail(data.entryEvents.find((x) => x.id === e.events[0]?.id)?.description)
 			})),
-			contacts: s?.firstContacts ?? [],
-			anomalies: s?.anomalies ?? [],
-			digSites: s?.digSites ?? [],
-			projects: (s?.specialProjects ?? []).map((p) => ({
+			contacts: along(
+				(x) => x.firstContacts,
+				(c) => c.id,
+				contactDone
+			),
+			anomalies: along((x) => x.anomalies, anomalyKey),
+			digSites: along(
+				(x) => x.digSites,
+				(d) => d.id
+			),
+			projects: along(
+				(x) => x.specialProjects,
+				(p) => p.id
+			).map((p) => ({
 				...p,
 				name: data.projects[p.key]?.name ?? p.key
 			})),
@@ -71,7 +109,7 @@ export function load({ url }) {
 			),
 			seen: mergeSightings(snaps),
 			// when the saves first show each thing, and how hard an anomaly is (its category's level)
-			firstSeen: firstSeen(snaps.filter((x) => x.kind === 'save')),
+			firstSeen: firstSeen(saves),
 			anomalyLevels: Object.fromEntries(
 				Object.entries(data.anomalyCategories).map(([k, v]) => [k, v.level])
 			)
@@ -82,7 +120,8 @@ export function load({ url }) {
 					layer: 'planned' as const,
 					systemId: Number(id),
 					label: goals.join('; '),
-					detail: `${goals.length} goal${goals.length === 1 ? '' : 's'} in the planner`
+					detail: `${goals.length} goal${goals.length === 1 ? '' : 's'} in the planner`,
+					done: false // goals still to do: they never fold away as found & done
 				}))
 			)
 			.map((m, id) => ({ ...m, id }))

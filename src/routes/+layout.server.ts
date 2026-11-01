@@ -23,12 +23,17 @@ import {
 	activeProfile,
 	chartEvents,
 	display,
+	quadrantView,
 	tabs,
 	theme,
 	viewedCampaign
 } from '#lib/server/settings.ts';
 import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
+import { settleTab } from '#lib/server/settle.ts';
+import { emptyTabsAt } from '#lib/server/tabData.ts';
+import { galaxyRings } from '#lib/server/quadrants.ts';
+import type { QuadrantView } from '#lib/quadrants.ts';
 import type { ChartEvents, CustomTab } from '#lib/settings.ts';
 
 export function load({ url }) {
@@ -49,9 +54,17 @@ export function load({ url }) {
 			head: null,
 			gameVersion: null,
 			dates: null,
-			plan: { keys: [] as string[], alerts: 0, unavailable: [] as string[] }
+			plan: { keys: [] as string[], alerts: 0, unavailable: [] as string[] },
+			settle: { nomad: false, blocked: null as string | null },
+			empty: {} as Record<string, string>,
+			quadrants: null as { view: QuadrantView; inner: number; outer: number } | null
 		};
 	const db = getDb();
+	// the node the page shows: `?node=` when it exists, else the head
+	const shownNode = () => {
+		const requested = Number(url.searchParams.get('node'));
+		return nodes(db).some((n) => n.id === requested) ? requested : headId(db);
+	};
 	const { id, name } = activeProfile(db);
 	// the campaigns to switch between, each named after its empire
 	const campaigns = campaignTips(nodes(db), headId(db)).map((c) => ({
@@ -85,10 +98,15 @@ export function load({ url }) {
 		// the save being played, so a page pinned to it keeps following the game
 		head: headId(db),
 		// the planner's goals at the node shown (for "+ goal" buttons) and how many need attention
-		plan: (() => {
-			const requested = Number(url.searchParams.get('node'));
-			const shown = nodes(db).some((n) => n.id === requested) ? requested : headId(db);
-			return planSummary(shown);
+		plan: planSummary(shownNode()),
+		// a nomad's expansion tab is "settle", dimmed (naming what is missing) until it can
+		settle: settleTab(shownNode()),
+		// tabs with nothing to show yet along the branch: dimmed, their title saying why
+		empty: emptyTabsAt(shownNode()),
+		// every map's rings and sectors (GalaxyMap reads them from the page data)
+		quadrants: (() => {
+			const r = galaxyRings(campaign);
+			return r && { view: quadrantView(), ...r };
 		})(),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),

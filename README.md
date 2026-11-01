@@ -6,6 +6,33 @@ stockpiles, income), colonies and their pros and cons, expansion candidates, res
 traditions with due dates, the galaxy map you have discovered, and more. Loading an older save
 starts a new branch instead of overwriting your history.
 
+## Why I built it
+
+- **A space empire without a BI tool?** The game starts in the year 2200, yet whoever runs a
+  space empire or a megacorporation there has less information at hand than a company today gets
+  from its business intelligence tools. That always felt wrong to me.
+- **Overview.** The game spreads its state over many panels; I wanted it in one place, next to
+  the game.
+- **I am a bit of a min-maxer**, and the game's own tools kept limiting me.
+- **Some things a player should simply know.** Which ships and stations I have seen in a system,
+  for example — remembering what you saw is not cheating.
+- **Learning how the game works.** Some systems are abstract or act only indirectly — the focus
+  system, or the chain amenities → happiness → stability → job output. They deserve to be explained
+  and shown, not guessed at.
+- **A timelapse.** I always liked looking back over the whole game at the end of a Civilization
+  match.
+
+## A word of caution
+
+Some of what the dashboard shows makes the game easier, and for some players that may take away
+the fun. Everything the game hides until you find it (spoilers) or never tells a player at all
+(cheats) is off by default and labelled as such in ⚙ — turn it on only if you want it.
+
+**Multiplayer:** nothing in the game can tell that a player is running the dashboard, so it could
+spoil a multiplayer game for everyone else. I intend to work on this — the plan is to detect
+multiplayer games and switch off every cheat there. Until then: please don't use it against other
+people.
+
 ## For players
 
 1. Download the zip for your system from the
@@ -29,6 +56,18 @@ It only reads the game's files and your saves, stores its history in your user p
 `~/.local/share/stellaris-empire-dashboard`) and sends nothing anywhere. It is not code-signed:
 Windows may warn that the app is unrecognised ("More info" → "Run anyway"), macOS refuses it the
 first time (System Settings → Privacy & Security → "Open Anyway"). More in the zip's `README.txt`.
+
+### Known limitations
+
+- **It sees the game only as often as it saves.** Monthly autosaves give the smoothest history;
+  anything that happens between two saves (a fleet passing through a system) is missed unless the
+  companion mod logs it.
+- **Reloading an older save without the companion mod**: where the new branch starts is a guess
+  (marked, and correctable on the timeline page).
+- **Multiplayer is not detected yet** (above).
+- **Game versions 4.3–4.5.** Numbers are checked against the game's own screens, but not all of
+  them yet, and mostly on Linux; the Windows and macOS zips have been run, with less mileage.
+- **English game texts only.**
 
 Planning an empire before you play? The
 [Stellaris Empire Planner](https://stellaris-empire-planner.mirkokoester.de/) is the companion web

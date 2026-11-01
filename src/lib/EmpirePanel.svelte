@@ -23,6 +23,7 @@
 	import Expansion from './panels/Expansion.svelte';
 	import Government from './panels/Government.svelte';
 	import Leaders from './panels/Leaders.svelte';
+	import { shipLabel } from './ships.ts';
 	import Migration from './panels/Migration.svelte';
 	import FleetMovement from './panels/FleetMovement.svelte';
 	import Traditions from './panels/Traditions.svelte';
@@ -279,7 +280,11 @@
 {:else if id === 'score'}
 	{#if data.latest.score}<Score score={data.latest.score} />{/if}
 {:else if id === 'leaders'}
-	<Leaders leaders={data.latest.leaders ?? {}} idle={data.latest.idleLeaders ?? []} />
+	<Leaders
+		leaders={data.latest.leaders ?? {}}
+		limits={data.leaderLimits}
+		idle={data.latest.idleLeaders ?? []}
+	/>
 {:else if id === 'ships'}
 	<Ships
 		ships={data.latest.ships ?? []}
@@ -314,7 +319,7 @@
 			})),
 			...(data.latest.civilianShips ?? []).map((s) => ({
 				name: s.name,
-				kind: s.kind.replaceAll('_', ' '),
+				kind: shipLabel(s),
 				route: s.route
 			}))
 		]}

@@ -1,6 +1,7 @@
 import { kindOf, type ContactKind } from '#lib/contacts.ts';
 import { wanderlustCategories } from '#lib/wanderlust.ts';
 import type { Bypass } from '#lib/galaxyGraph.ts';
+import { addGameDays } from '#lib/series.ts';
 import type {
 	AnomalyInfo,
 	Body,
@@ -13,7 +14,8 @@ import type {
 	ProjectInfo,
 	Relation,
 	SituationInfo,
-	StationSighting
+	StationSighting,
+	HistoryReading
 } from '#lib/types.ts';
 import {
 	displayName,
@@ -501,4 +503,71 @@ export function claims(
 			];
 		})
 	);
+}
+
+const FLAG_HOURS_2200 = 62808000; // a flag's value is the hour it was set, +24 a day
+const flagDate = (v: Raw): string | null => {
+	const h = typeof v === 'number' ? v : typeof v?.flag_date === 'number' ? v.flag_date : null;
+	return h === null || h < FLAG_HOURS_2200
+		? null
+		: addGameDays('2200.01.01', Math.floor((h - FLAG_HOURS_2200) / 24));
+};
+
+/**
+ * The flags the game sets when a guardian falls (4.5.2): on the victor `killed_guardian`
+ * (`events/faction_events.txt`, any `is_guardian_country`), `horror_killed`, `killed_wraith`,
+ * `tiyanki_killed`, `killed_hatchling`; global `toxic_god_killed`, `guardians_zanaam_destroyed`.
+ * None seen in a save yet.
+ */
+export const GUARDIAN_COUNTRY_FLAGS = [
+	'killed_guardian',
+	'horror_killed',
+	'killed_wraith',
+	'tiyanki_killed',
+	'killed_hatchling'
+];
+export const GUARDIAN_GLOBAL_FLAGS = ['toxic_god_killed', 'guardians_zanaam_destroyed'];
+
+/**
+ * Who holds what across the whole galaxy at this save, for the history tab — true whatever we
+ * know (the tab decides what to show, `#lib/history.ts`): every system's station owner, every
+ * planet colony's owner with its `colonize_date` (before 2200 — homeworlds, pre-FTLs — read as
+ * 2200.01.01), the guardian kill flags, and the names of everyone in it.
+ */
+export function historyReading(
+	raw: Pick<
+		RawSave,
+		'systems' | 'starbases' | 'ships' | 'fleetOwner' | 'planets' | 'countryBlocks' | 'globalFlags'
+	>
+): HistoryReading {
+	const owners: [number, number][] = [];
+	for (const [id, s] of Object.entries(raw.systems)) {
+		const o = stationOwner(raw, s);
+		if (o !== null) owners.push([Number(id), o]);
+	}
+	const colonies: HistoryReading['colonies'] = [];
+	for (const [id, p] of Object.entries(raw.planets)) {
+		if (!p || typeof p !== 'object' || p.colony === undefined || p.owner === undefined) continue;
+		const d = strOrNull(p.colonize_date);
+		colonies.push([
+			Number(id),
+			Number(p.owner),
+			d === null ? null : d < '2200' ? '2200.01.01' : d,
+			Number(p.coordinate?.origin ?? -1)
+		]);
+	}
+	const guardians: HistoryReading['guardians'] = [];
+	for (const [id, c] of Object.entries(raw.countryBlocks))
+		for (const flag of GUARDIAN_COUNTRY_FLAGS)
+			if (c?.flags?.[flag] !== undefined)
+				guardians.push({ flag, countryId: Number(id), date: flagDate(c.flags[flag]) });
+	for (const flag of GUARDIAN_GLOBAL_FLAGS)
+		if (raw.globalFlags?.[flag] !== undefined)
+			guardians.push({ flag, countryId: null, date: flagDate(raw.globalFlags[flag]) });
+	const ids = new Set([...owners.map(([, o]) => o), ...colonies.map(([, o]) => o)]);
+	const names: [number, string][] = [...ids].map((id) => [
+		id,
+		displayName(raw.countryBlocks[String(id)]?.name) || `empire ${id}`
+	]);
+	return { owners, colonies, guardians, names };
 }

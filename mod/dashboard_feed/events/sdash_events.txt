@@ -189,7 +189,12 @@ country_event = {
 						NOT = { check_variable = { which = sdash_pp value = sdash_pp_log } }
 					}
 				}
-				log = "SDASH|2|[GetDate]|event|colony-jobs|[This.GetName]|[This.sdash_fj]|[This.sdash_un]|[This.sdash_pp]"
+				# A colony's variables live on its carrier (the arkship's ship, 2207.01.10), and loc in
+				# colony scope cannot reach them ("Unknown property `sdash_fj`", 0.10.0 and 0.10.1-pre:
+				# every line empty) — so log from the carrier, whose name is the colony's.
+				carrier = {
+					log = "SDASH|2|[GetDate]|event|colony-jobs|[This.GetName]|[This.sdash_fj]|[This.sdash_un]|[This.sdash_pp]"
+				}
 				set_variable = { which = sdash_fj_log value = sdash_fj }
 				set_variable = { which = sdash_un_log value = sdash_un }
 				set_variable = { which = sdash_pp_log value = sdash_pp }
@@ -245,8 +250,9 @@ event = {
 
 # Instant events, one line each: SDASH|2|<date>|event|<kind>|<fields…>.
 
-# Scope = planet
-planet_event = {
+# Scope = carrier: a planet, or a ship (a nomad arkship) — on_colonized's scope since 4.4; as a
+# planet_event it failed on every ship ("unsupported scope", 4.5.3 error.log 2026-10-31)
+carrier_event = {
 	id = sdash.10
 	hide_window = yes
 	is_triggered_only = yes

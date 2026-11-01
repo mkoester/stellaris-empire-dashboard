@@ -12,9 +12,17 @@ dashboard_feed/thumbnail.png`) stay out of the upload.
 
 - [x] `version` in `descriptor.mod` bumped for every upload (and the log format, `SDASH|<n>|`,
       changed only together with `feed.ts` — see `AGENTS.md` → Companion mod).
+- [ ] **Upload from `main`'s content only**, never from `open-beta` or a feature worktree: there is
+      one item per store for every player, so a beta-only mod would reach the public game too.
+- [ ] Every open check for the version's new mod features has passed (`docs/open-checks.md`) —
+      0.10.0 went up with `num_sapient_pops` still broken (open check 23); the fix shipped as
+      0.10.1.
+- [ ] The folder holds only `descriptor.mod`, `thumbnail.png`, `common/`, `events/` (`ls -A`) — the launcher
+      uploads everything in it (0.10.0 shipped an empty `.claude/` left by a Claude Code session).
 - [x] `picture="thumbnail.png"`, 512×512 PNG, our own art (no game art).
 - [x] Launcher closed → `scripts/link-mod.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the
-      workspace root) → launcher open, the mod listed. On Linux the upload dialog may not see a
+      workspace root; the link may point at a worktree after `scripts/dashboard.sh --beta`) →
+      launcher open, the mod listed. On Linux the upload dialog may not see a
       **symlinked** mod: then copy the folder into `<user dir>/mod/` and upload that copy.
 - [x] Upload to **Steam Workshop** (description: BBCode below). The launcher writes
       `remote_file_id` into `descriptor.mod` — with the symlink into this repo, so commit it; with
@@ -34,6 +42,13 @@ dashboard_feed/thumbnail.png`) stay out of the upload.
 First uploaded 2026-10-24 (0.5.0). `remote_file_id` (Steam) is in `descriptor.mod`; the Paradox
 id only in the launcher's DB (`mods.remotePdxId`). **A first Workshop upload is Hidden**: set the
 visibility to Public on the item's page (Owner Controls) — the launcher does not.
+
+**0.10.1, 2026-11-01 08:40 UTC, from `develop`** — an exception to "upload from `main`" (the user's
+call: `develop` differed from `main` only in the mod and docs, not worth a dashboard release);
+`main` catches up at the next release. Replaces 0.10.0 (2026-10-31), whose `colony-jobs` lines
+were empty and colony event failed on arkships. Paradox Mods: version 4 (`latestUpdate` in
+`https://api.paradox-interactive.com/mods?modId=164724&os=Linux`, which also lists each version).
+**The upload strips `descriptor.mod`'s final newline**: harmless, restore it or commit it.
 
 ## Store description — Steam Workshop (BBCode)
 
