@@ -189,7 +189,19 @@ trigger in 4.5.3's `triggers.log`; `num_unemployed` and `free_jobs` are there), 
 out empty, `SDASH|2|2205.10.02|event|colony-jobs|Peshnab the Faithful|||` once a month, with
 "Unknown property `sdash_fj`" for the colony's variables in the log text. The dashboard rejects
 those lines (malformed, per line), so nothing is stored. Don't upload 0.9.0+ to the stores before
-this check passes. **Fix (unverified):** `num_sapient_pops` is a save field, not a trigger; the mod
+this check passes.
+
+**2026-11-01, 0.10.1 before its last fix** (Roaming Korinth, 4.5.3, 2206.11.18 → 2207.01.10, save
+`2207.01.10.sav`): no `cannot find` any more, but the lines still came out `|||` with "Unknown
+property `sdash_fj`" — **the export works, the log line read the wrong scope**: the variables sit
+on the colony's carrier (`ships.0.variables`: `sdash_fj=286`, `sdash_un=0`, `sdash_pp=5814`), and
+loc in colony scope cannot reach them (its promotions are Owner, System, Sector, Planet, Ship). The
+values match the save: `pop_amount` 5814 = `num_sapient_pops`, no civilians, and `free_jobs` 286 =
+the farmers' open workforce — the enforcers' 100 open are **not** in it (so it agrees with
+`openJobs()` under crime automation, and the unit is workforce). Fixed by logging inside
+`carrier = { }`; **not yet seen in a log.** Lines fired on 3 of 52 days (only on a change).
+
+**Earlier fix:** `num_sapient_pops` is a save field, not a trigger; the mod
 now exports `pop_amount` (vanilla's `trigger:pop_amount`). Why `sdash_fj` and `sdash_un` came out
 empty too is not known — the next session's `colony-jobs` lines and `error.log` tell whether that
 fix was enough. `pop_amount` may count non-sapient pops the save's `num_sapient_pops` leaves out.

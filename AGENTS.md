@@ -1265,8 +1265,10 @@ shows format 2.
   <date>: … employed, … civilians, … open jobs") and is stored with the month; the Pops chart
   draws those days between the saves (`colonyDaySeries()`). **Broken in game (2026-10-31):**
   `num_sapient_pops` is no trigger, and the lines come out empty (`docs/open-checks.md` 23). Mod
-  0.8.0–0.10.0 ran only on 4.5.3 (the Linux machine has the beta), never on 4.5.2; 0.10.0's
-  `system-entered` line has not been seen in a log yet. **Assumed until checked**
+  0.8.0–0.10.1 ran only on 4.5.3 (the Linux machine has the beta), never on 4.5.2. **A colony's
+  variables live on its carrier**, and loc in colony scope cannot read them: log them from inside
+  `carrier = { }` (0.10.1; `docs/open-checks.md` 23). The `system-entered` line was first seen
+  2026-11-01 (Baxom, Tozied, Ecio, 2206.12–2207.01). **Assumed until checked**
   (`docs/open-checks.md` 23): unemployed = the civilians, employed = pops − unemployed, and
   `free_jobs` the same count as the save's open jobs. Checked 2026-10-31 on a DB copy with a
   replayed line: the `tick` server event carries it.
