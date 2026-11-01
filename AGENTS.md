@@ -1310,6 +1310,11 @@ shows format 2.
   `triggers.log` or in vanilla script (`trigger:<name>`). 0.9.0 exported `num_sapient_pops` (a
   save field); the game only says so in `error.log` (`cannot find: num_sapient_pops`), and the
   log line prints the variable empty. Grep `error.log` for `sdash_` after each mod change.
+- **An event's type must match its on_action's scope** (the comment above each on_action in
+  vanilla `common/on_actions/00_on_actions.txt`): `on_colonized` is `Scope = Carrier` (since 4.4),
+  so `sdash.10` is a `carrier_event` — as a `planet_event` it failed on every arkship colony from
+  0.2.0 to 0.10.0 (`error.log`: "attempted to execute an event on an unsupported scope", no
+  `sdash_` in the line — grep `Event: sdash` too).
 
 It changes the checksum: no achievements while enabled. **Publishing** (Steam Workshop and Paradox
 Mods, through the launcher): `mod/PUBLISHING.md` — store copy, thumbnail source, published IDs.
