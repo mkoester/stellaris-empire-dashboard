@@ -36,6 +36,12 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
 - Without the companion mod a reload's branch point is a _guess_ when time goes backwards (marked,
   correctable on `/timeline`). With it (0.2.0+) the mod's `load` line names the loaded save exactly
   — see "Companion mod".
+- **Planned: no cheats in multiplayer** (the user's intent, 2026-11-01; announced in the README
+  and the about tab). Nothing in the game can tell a player runs the dashboard, so it could spoil
+  a multiplayer game: detect one and force every `cheat`-kind switch off (`effectiveDisplay()`).
+  Candidate signal, **not checked**: the save's top-level `player = { { name country } … }` — one
+  entry in single player (Roaming Korinth 2207.02.01: `name="unknown" country=0`); whether a
+  multiplayer save lists every human (and a hot-joined or dropped one) needs a multiplayer save.
 
 ## Running it
 

@@ -72,6 +72,51 @@
 
 <div class="max-w-3xl space-y-6">
 	<h1 class="text-xl font-semibold">About</h1>
+
+	<section class="space-y-2 text-sm">
+		<h2 class="font-semibold">Why this exists</h2>
+		<p>
+			The game starts in the year 2200, yet whoever runs a space empire or a megacorporation there
+			has less information at hand than a company today gets from its business intelligence tools. I
+			wanted more overview than the game's panels give, and as a bit of a min-maxer its own tools
+			kept limiting me. Some things a player should simply know — which ships and stations I have
+			seen in a system is memory, not cheating. Some systems are abstract or act only indirectly
+			(the focus system, amenities → happiness → stability → job output) and deserve to be explained
+			and shown. And I always liked the timelapse at the end of a Civilization match.
+		</p>
+		<p>
+			Some of what the dashboard shows makes the game easier, and that may take the fun away for
+			some players. What the game hides until found (spoilers) or never tells a player (cheats) is
+			off by default and labelled in ⚙.
+		</p>
+		<p>
+			<span class="font-medium">Multiplayer:</span> nothing in the game can tell that a player runs the
+			dashboard, so it could spoil a multiplayer game for everyone else. I intend to detect multiplayer
+			games and switch off every cheat there; until then, please don't use it against other people.
+		</p>
+	</section>
+
+	<section class="space-y-2 text-sm">
+		<h2 class="font-semibold">Known limitations</h2>
+		<ul class="list-disc space-y-1 pl-5">
+			<li>
+				It sees the game only as often as it saves: monthly autosaves give the smoothest history,
+				and what happens between two saves is missed unless the companion mod logs it.
+			</li>
+			<li>
+				Without the companion mod, where a reloaded save's branch starts is a guess (marked, and
+				correctable on the timeline).
+			</li>
+			<li>Multiplayer is not detected yet.</li>
+			<li>
+				Game versions 4.3–4.5; numbers are checked against the game's own screens, not all of them
+				yet, and mostly on Linux.
+			</li>
+			<li>English game texts only.</li>
+		</ul>
+	</section>
+
+	<h2 class="font-semibold">Thanks</h2>
 	<p class="text-sm text-gray-500">
 		Thanks to everyone whose work this dashboard learned from or builds on — and to the Stellaris
 		modding community, whose notes made sense of what the game files leave unsaid.
@@ -89,9 +134,7 @@
 								rel="noreferrer"
 								target="_blank">{c.name}</a
 							>{:else}<span class="font-medium">{c.name}</span>{/if}{#if c.by}<span
-								class="text-gray-500"
-							>
-								by {c.by}</span
+								class="text-gray-500">{` by ${c.by}`}</span
 							>{/if} — {c.what}
 					</li>
 				{/each}
