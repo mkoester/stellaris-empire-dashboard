@@ -301,6 +301,7 @@
 			]}
 			heightKey="galaxy-map-height"
 			own={data.own}
+			arkships={data.arkships}
 			ships={filter.ships}
 			onShips={setShips}
 			label="Galaxy map"

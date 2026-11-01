@@ -278,6 +278,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		sectors: null,
 		expansion: null,
 		stations: null,
+		arkships: null,
 		migration: null,
 		knownSystems: null,
 		megaShipyards: null,

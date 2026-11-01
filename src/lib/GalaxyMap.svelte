@@ -14,6 +14,7 @@
 	} from './mapView.ts';
 	import type { Territory } from './territories.ts';
 	import { MAP_SHIPS, type MapShips, type OwnOnMap } from './mapLayers.ts';
+	import type { Arkship } from './types.ts';
 
 	// A galaxy map in screen pixels: hyperlanes and systems (own ones tinted, or filled by `fill`),
 	// with drag to pan, the wheel to zoom and the bottom edge to resize. What a page draws on top is
@@ -23,6 +24,8 @@
 	// picked one keeps a ring of its own. `territories` are drawn as empire borders (#lib/borders.ts).
 	// `own` (map and systems tabs) adds a nomad's "my waystations" in place of "my empire", the fit
 	// "my stations and ships" and our ships drawn per system, which `ships` picks (`onShips` stores it).
+	// `arkships` (a nomad's) are drawn always, as a hexagon above their system, the capital ringed,
+	// with a fit "my arkships".
 	// `beside` is the page's table of what the map shows: the page draws it below the map, and hands
 	// it over to go beside the map when the viewer picks "wide + table" (`width`, bindable, tells it
 	// which; without `beside` that choice is drawn as plain wide).
@@ -53,7 +56,8 @@
 		onsystemmenu,
 		own,
 		ships = 'off',
-		onShips
+		onShips,
+		arkships = []
 	}: {
 		systems: System[];
 		fill?: Record<number, string>; // system id → colour, instead of the own/other tint
@@ -73,6 +77,7 @@
 		own?: OwnOnMap;
 		ships?: MapShips;
 		onShips?: (v: MapShips) => void;
+		arkships?: Arkship[];
 	} = $props();
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 
@@ -208,6 +213,19 @@
 				at.set(x.systemId, [...(at.get(x.systemId) ?? []), x.name]);
 		return ships === 'off' ? new Map<number, string[]>() : at;
 	});
+	// our arkships per system
+	const arksAt = $derived.by(() => {
+		const at = new Map<number, Arkship[]>();
+		for (const a of arkships)
+			if (a.systemId !== null) at.set(a.systemId, [...(at.get(a.systemId) ?? []), a]);
+		return at;
+	});
+	const arkPoints = $derived(points([...arksAt.keys()]));
+	const hexagon = (x: number, y: number, r: number) =>
+		Array.from({ length: 6 }, (_, i) => {
+			const t = (Math.PI / 3) * i - Math.PI / 2;
+			return `${i ? 'L' : 'M'}${(x + r * Math.cos(t)).toFixed(1)},${(y + r * Math.sin(t)).toFixed(1)}`;
+		}).join('') + 'Z';
 	const explored = $derived(systems.filter((s) => s.known !== false));
 	// at least close enough to tell the capital's neighbours apart (~100px between systems)
 	const toCapital = (c: Point) => (view = { cx: c.x, cy: c.y, k: Math.max(v.k, 5) });
@@ -317,6 +335,13 @@
 			disabled={!home.points.length}
 			onclick={() => (view = fit(home.points, size))}>{home.label}</button
 		>
+		{#if arkships.length}
+			<button
+				class={button}
+				disabled={!arkPoints.length}
+				onclick={() => (view = fit(arkPoints, size))}>my arkships</button
+			>
+		{/if}
 		{#if own}
 			<button
 				class={button}
@@ -472,6 +497,34 @@
 											class="text-[10px] font-semibold"
 											x={p.x + 5}
 											y={p.y + 10}>{names.length}</text
+										>{/if}</g
+								>
+							{/if}
+						{/each}
+						{#each [...arksAt] as [id, arks] (id)}
+							{@const s = byId.get(id)}
+							{#if s}
+								{@const p = at(s)}
+								<g class="pointer-events-none fill-violet-600 dark:fill-violet-400"
+									><title
+										>{arks
+											.map((a) => `${a.name}${a.capital ? ' (capital)' : ''}`)
+											.join('\n')}</title
+									>{#if arks.some((a) => a.capital)}<circle
+											cx={p.x}
+											cy={p.y - 10}
+											r="8.5"
+											fill="none"
+											class="stroke-violet-600 dark:stroke-violet-400"
+											stroke-width="1.5"
+										/>{/if}<path
+										d={hexagon(p.x, p.y - 10, 6)}
+										class="stroke-white dark:stroke-gray-900"
+										stroke-width="1"
+									/>{#if arks.length > 1}<text
+											class="text-[10px] font-semibold"
+											x={p.x + 9}
+											y={p.y - 7}>{arks.length}</text
 										>{/if}</g
 								>
 							{/if}

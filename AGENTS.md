@@ -360,7 +360,17 @@ buttons: capital, my empire (a nomad's: **my waystations**, starbase level `ways
 disabled without one), explored, the page's own, everything; the map and systems tabs pass `own`
 (`ownOnMap()` in `#lib/mapLayers.ts`), which adds "my stations and ships" and our ships as a
 marker per system (`Route.systemId`, READER 38) — all, fleets or civilian, the profile's
-`mapFilter.ships`, shared by both tabs (the user's ask 2026-10-31); a per-viewer `sectors` checkbox
+`mapFilter.ships`, shared by both tabs (the user's ask 2026-10-31). **A nomad's arkships**
+(`Snapshot.arkships`, READER 41; `arkships()` in save.ts: the ships carrying a colony we control,
+with size, tier, planet size and system — the ship's `coordinate.origin`, else its fleet's,
+`shipSystemId()`) are drawn on the map, systems and migration maps whatever the ships filter (a
+violet hexagon above the system, the capital ringed; `GalaxyMap` `arkships`), with a fit "my
+arkships" (the user's ask 2026-11-01). **The capital button** goes to `capitalId()`
+(`server/mapSystems.ts`): the capital arkship where it is now, else `knownSystems`' capital, which
+`capitalSystem()` now finds through the capital colony's carrier — a planet's system or the
+arkship's; before READER 41 `country.capital` was read as a planet id, so a nomad's button went to
+its old home star (Roaming Korinth: planet 0, system 532, instead of the arkship at 563), and the
+systems tab had none at all. Snapshots of saves no longer on disk keep the old reading. A per-viewer `sectors` checkbox
 splits our territory by sector (`GalaxySystem.sector`, the colonies tab's `sectorColors`). Profile switches: `unknownStars`
 adds every other star, faint, named "Unknown" and without lanes, but not the special systems off
 the main hyperlane network (`mainNetwork()`; 2207.03.10: Kleeia `distar_sealed_1_2` and Ultima
@@ -493,6 +503,36 @@ features and their district loss). Matched the game at 2207.03.10 (Alpha Centaur
 (8), generator 7 (5), mining 3 (2)) once the extraction resolved
 `@DISTRICTS_FROM_SR_DEPOSITS` (swamps and bogs: +3 farming). Its view (range, toggles, filters,
 sort, species) and both tables' row lines belong to the profile.
+
+**Settle down / Embark** (the expansion tab, above the Expansion panel; the user's ask
+2026-11-01: "help to settle down as a nomadic empire" — "the other way is possible, too";
+`#lib/settle.ts` pure, `server/settle.ts`, `panels/SettleDown.svelte`). From 4.5.2's files:
+**settling** is the arkship action `arkship_settle` (`common/scripted_actions/03_arkships.txt`,
+started from the expansion planner): the empire needs `nomad_can_settle_trigger`
+(`scripted_triggers/09_scripted_triggers_nomads.txt`, mirrored by the game rule `can_nomad_settle`)
+— Adaptability finished (Versatility for a machine intelligence) and independence; The Sacred Path
+and Heirs of the Khan never settle, Forever Cruise after its planetfall (`forever_cruise_planetfall`)
+and the Knights of the Toxic God once at the Toxic God (`visited_toxic_god_system`) or, keep
+destroyed, with the tree; a target is colonizable, in a surveyed system no one owns, not
+consecrated. 250 influence, 360 days ÷ arkship action speed, one at a time. Outcome `nomads.4705`:
+with one arkship it settles; with more, settle and scuttle the others (their pops move over, each
+returns 10 % of its cost — 1000 / 1500 / 2000 minerals and alloys by tier,
+`settlement_scuttle_arkships_effect`), keep roaming (the settling arkship a settled subject) or
+settle with the others as a nomadic subject — those two not for homicidal empires, the Knights or
+gestalts but a Progenitor Hive. Waystations become outposts, logistic ships construction ships;
+the planet keeps Arkship Remains (`arkship_parts`: +60 % environment tolerance, +2 districts).
+**Embarking** is the planet decision `decision_nomad_embarkation`
+(`decisions/15_nomads_dlc_decisions.txt`; 500 influence, 10,000 alloys, 3600 days; our other
+colonies become a subject): `can_embark_trigger` — the same trees (or `doomsday_embark_unlocked`),
+not wilderness or homicidal, no Cosmogenesis, none of ten origins, no Red Giant Expansion or Deep
+Excavation running — plus independence, not embarking already, no colony being settled. The tab
+shows a checklist (three-valued, **costs left out — the user's call: they fluctuate**), for a
+nomad the targets (`settleTargets()`: today's habitability, ≈ with Arkship Remains — assumed to
+count on every colonizable class, `docs/open-checks.md` 26 —, deposits on the system's other
+bodies ≈, jumps from the nearest and the capital arkship) and the outcomes with our numbers
+(`settleOutcome()`, assuming the capital arkship settles). **The tab's name is dimmed**
+(`settleBlocked()` in the layout, per tip) while a nomad cannot settle, its title naming what is
+missing; still a link. A settled empire's tab is never dimmed.
 
 **Milestones** (`#lib/milestones.ts`, pure): the campaign's bigger events — systems, colonies
 (colonization started / established / gained / lost), districts built and buildings done per
@@ -1021,8 +1061,8 @@ that differ from their key: `HUM1_SHIP_PeshnabtheFaithful` = "Peshnab the Faithf
 list until 2026-10-30. A save's colony carriers are `type=planet` or `type=ship` only (checked on
 Roaming Korinth 2203.02.01: 75 / 11); habitats and ringworlds are planets. Nomads get the engine's
 static modifier `nomadic_empire` (+100 % empire size from colonies and districts; see Top bar). Not yet
-nomad-aware: other places that map a colony to its planet themselves (capital, construction,
-migration, growth), the trade tab's valuation of energy and minerals for us, and whether the
+nomad-aware: other places that map a colony to its planet themselves (construction, growth; the
+capital and migration are since READER 41), the trade tab's valuation of energy and minerals for us, and whether the
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
@@ -1667,7 +1707,8 @@ can_subject_* … } subject_specialization = { level experience } }`, owner = th
 stale_intel = { } } } } }` — one entry per contact, pre-FTL and fauna included (20 there);
   `stale_intel` was empty everywhere, so staleness is ours (`diplomacyView()`). The floors from
   pacts are defines (`INTEL_FROM_*`), already in the value. **`country.capital` is a colony id**
-  (ours `capital=0` = colony 0 on planet 3), as a construction item's planet.
+  (ours `capital=0` = colony 0 on planet 3), as a construction item's planet — its place is the
+  colony's `carrier` (`capitalSystem()`; a nomad's: the arkship, READER 41).
 - Galactic Community (2026-10-19): `galactic_community = { members = { <ids> } proposed = {
 <resolution ids> } voting = <id> emissaries days election community_formed focus … }`,
   `resolution.<id> = { type country supporters = { <ids> } opponents }` (the voted one also
@@ -2135,6 +2176,15 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   only for saves read since 2026-10-17; older ones' saves are gone.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
+  The map has a **circle** mode (the user's ask 2026-11-01; the profile's `migrationView`: layout
+  and order, `MigrationCircle.svelte`, geometry shared with the diplomacy circle in `#lib/circle.ts`):
+  our arkships clockwise from 12 o'clock — oldest first (`arkshipFirstSeen()`: the first save
+  listing the ship, then ship id; the save's `construction_date` reads 2200.01.01 for every
+  arkship, later ones too), by size (tier, then planet size) or by name (`arkshipOrder()`) —, every
+  other migrating colony in a group after a gap. **Our arkship colonies migrate too** (`migration()`
+  rows since READER 41, placed where the ship is): before, the rows came from planets only, and a
+  nomad without a treaty partner got "No colonies." and no map. Other empires' arkship colonies
+  stay out — a colony names no owner.
 - **Next, the user's plan:** a configurable main dashboard (custom tabs pick empire panels now;
   the migration and planet panels are not pickable yet).
 - **The daily tick on the 1st, before or after the payout?** `unbooked()` takes the payout off

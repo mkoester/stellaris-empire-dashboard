@@ -1,6 +1,7 @@
 import { DEFAULT_VIEW, parseView, type ColonyView } from './colonyTable.ts';
 import { DEFAULT_CONTACT_VIEW, parseContactView, type ContactView } from './contacts.ts';
 import { DEFAULT_DIPLOMACY_VIEW, parseDiplomacyView, type DiplomacyView } from './diplomacy.ts';
+import { DEFAULT_MIGRATION_VIEW, parseMigrationView, type MigrationView } from './migration.ts';
 import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from './expansion.ts';
 import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
@@ -67,6 +68,7 @@ export type ProfileSettings = {
 	expansionView: ExpansionView;
 	contactView: ContactView;
 	diplomacyView: DiplomacyView;
+	migrationView: MigrationView;
 	megastructureView: MegaView;
 	systemView: SystemView;
 	produceView: ProduceView;
@@ -82,6 +84,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	expansionView: DEFAULT_EXPANSION_VIEW,
 	contactView: DEFAULT_CONTACT_VIEW,
 	diplomacyView: DEFAULT_DIPLOMACY_VIEW,
+	migrationView: DEFAULT_MIGRATION_VIEW,
 	megastructureView: DEFAULT_MEGA_VIEW,
 	systemView: DEFAULT_SYSTEM_VIEW,
 	produceView: DEFAULT_PRODUCE_VIEW,
@@ -129,6 +132,7 @@ export function parseSettings(v: unknown): ProfileSettings {
 		expansionView: parseExpansionView(o.expansionView),
 		contactView: parseContactView(o.contactView),
 		diplomacyView: parseDiplomacyView(o.diplomacyView),
+		migrationView: parseMigrationView(o.migrationView),
 		megastructureView: parseMegaView(o.megastructureView),
 		systemView: parseSystemView(o.systemView),
 		produceView: parseProduceView(o.produceView),

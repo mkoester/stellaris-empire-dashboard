@@ -22,9 +22,21 @@ All notable changes to this project are documented here. The format follows
   upkeep stays the same. While it runs, until when.
 - Mods tab: the launcher's load order (`#`, the default sort), as of the last game start, and each
   mod's age since its last workshop update.
+- Nomads: your arkships on the map, systems and migration maps (the capital ringed), with a fit
+  "my arkships".
+- Migration: a circle view — your arkships clockwise, oldest first, by size or by name — and your
+  arkships' own migration. A nomad without migration partners now gets a map too.
+- Expansion tab for nomads: **Settle down** — what settling still needs (Adaptability or
+  Versatility finished, origin quests), where an arkship could settle (habitability now and with
+  Arkship Remains, jumps from your arkships) and what each of the game's outcomes would do with
+  your numbers. Until settling is possible the tab's name is dimmed. A settled empire gets an
+  **Embark** checklist instead.
 
 ### Fixed
 
+- The maps' "capital" button went to a nomad's old home star instead of the capital arkship, and
+  was greyed out on the systems tab; distances from the capital (expansion) were off for nomads
+  the same way. Saves still on disk are read again once.
 - The all tab's Leaders panel shows each class's limit with what raises it (techs such as
   Colonial Centralization, traditions, civics, …), not always 3.
 - Ships are named as in game: a nomad's "Logistic Ship" no longer shows as a constructor, the

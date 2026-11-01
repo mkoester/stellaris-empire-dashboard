@@ -11,7 +11,13 @@ import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
+import {
+	arkshipsOf,
+	campaignGalaxy,
+	capitalId,
+	reveal,
+	territoriesOf
+} from '#lib/server/mapSystems.ts';
 import { display, mapFilter } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
 import { plannedSystems } from '#lib/server/planner.ts';
@@ -27,7 +33,7 @@ export function load({ url }) {
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const g = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const contactSites = (s?.firstContacts ?? []).map((c) => c.systemId);
-	const capital = snaps.findLast((x) => x.knownSystems)?.knownSystems?.find((k) => k.capital)?.id;
+	const capital = capitalId(snaps);
 	// Wanderlust's targets once we have the perk; every one, revealed, with the spoiler
 	const wanderlust = snaps.findLast((x) => x.wanderlust)?.wanderlust ?? null;
 	const allTargets = wanderlust !== null && display().wanderlustAll;
@@ -57,6 +63,7 @@ export function load({ url }) {
 		filter: mapFilter(),
 		// our stations and ships, for the fit buttons and the ships drawn
 		own: ownOnMap(b.latest),
+		arkships: arkshipsOf(snaps),
 		wanderlust,
 		systems: mapView(g, { ...reveal(), wanderlust: allTargets }, contactSites).map((x) => ({
 			...x,

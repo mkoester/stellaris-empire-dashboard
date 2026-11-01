@@ -208,6 +208,21 @@ export type Station = {
 	arkship: boolean;
 };
 
+/**
+ * One of our arkships, the ship that carries a colony of ours (`colony.<id>.carrier = { type=ship
+ * reference }`); `size` its design's `<type>_arkship_tier_<n>`, `systemId` where it is now.
+ */
+export type Arkship = {
+	shipId: number;
+	colonyId: number;
+	name: string;
+	size: string; // e.g. military_arkship_tier_1
+	tier: number; // 1…3, 0 when the size names none
+	planetSize: number;
+	systemId: number | null;
+	capital: boolean; // the capital colony's carrier
+};
+
 /** A Mega Shipyard; `stage` from its type (mega_shipyard_0…3, _restored). */
 export type MegaShipyard = {
 	id: number;
@@ -373,6 +388,7 @@ export type Snapshot = {
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
 	stations: Station[] | null; // starbases with their queues and shipyards
+	arkships: Arkship[] | null; // our arkships, where they are; since READER 41
 	migration: MigrationColony[] | null; // last month, per colony; own colonies always, foreign ones with any
 	knownSystems: KnownSystem[] | null; // visited or own systems, for maps
 	megaShipyards: MegaShipyard[] | null;

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { followGame } from '#lib/live.ts';
-	import { flows, ownerColors } from '#lib/migration.ts';
+	import { flows, ownerColors, type MigrationView } from '#lib/migration.ts';
+	import { putSettings } from '#lib/settings.ts';
 	import MigrationBars from '#lib/panels/MigrationBars.svelte';
 	import MigrationHeatmap from '#lib/panels/MigrationHeatmap.svelte';
 	import MigrationMap from '#lib/panels/MigrationMap.svelte';
@@ -19,6 +20,11 @@
 	const monthFlows = $derived(flows(rows));
 	const colors = $derived(ownerColors(rows));
 	const estimated = $derived(monthFlows.some((f) => f.estimated));
+	let view: MigrationView = $derived(data.view);
+	const setView = (v: MigrationView) => {
+		view = v;
+		void putSettings({ migrationView: v });
+	};
 </script>
 
 <header class="mb-4 flex items-start gap-4">
@@ -66,6 +72,10 @@
 			{colors}
 			systems={data.systems}
 			territories={data.territories}
+			arkships={data.arkships}
+			firstSeen={data.firstSeen}
+			{view}
+			onView={setView}
 		/>
 	</section>
 </div>

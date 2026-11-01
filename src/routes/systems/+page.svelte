@@ -289,6 +289,7 @@
 			label="systems"
 			territories={data.territories}
 			own={data.own}
+			arkships={data.arkships}
 			ships={mapFilter.ships}
 			onShips={setShips}
 			bind:hovered

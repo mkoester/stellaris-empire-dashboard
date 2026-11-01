@@ -29,6 +29,7 @@ import {
 } from '#lib/server/settings.ts';
 import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
+import { settleBlocked } from '#lib/server/settle.ts';
 import type { ChartEvents, CustomTab } from '#lib/settings.ts';
 
 export function load({ url }) {
@@ -49,9 +50,15 @@ export function load({ url }) {
 			head: null,
 			gameVersion: null,
 			dates: null,
-			plan: { keys: [] as string[], alerts: 0, unavailable: [] as string[] }
+			plan: { keys: [] as string[], alerts: 0, unavailable: [] as string[] },
+			settleBlocked: null as string | null
 		};
 	const db = getDb();
+	// the node the page shows: `?node=` when it exists, else the head
+	const shownNode = () => {
+		const requested = Number(url.searchParams.get('node'));
+		return nodes(db).some((n) => n.id === requested) ? requested : headId(db);
+	};
 	const { id, name } = activeProfile(db);
 	// the campaigns to switch between, each named after its empire
 	const campaigns = campaignTips(nodes(db), headId(db)).map((c) => ({
@@ -85,11 +92,9 @@ export function load({ url }) {
 		// the save being played, so a page pinned to it keeps following the game
 		head: headId(db),
 		// the planner's goals at the node shown (for "+ goal" buttons) and how many need attention
-		plan: (() => {
-			const requested = Number(url.searchParams.get('node'));
-			const shown = nodes(db).some((n) => n.id === requested) ? requested : headId(db);
-			return planSummary(shown);
-		})(),
+		plan: planSummary(shownNode()),
+		// a nomad that cannot settle yet: the expansion tab is dimmed, naming what is missing
+		settleBlocked: settleBlocked(shownNode()),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
 		// the game being played: its latest save, and its latest data (a save, month or daily tick)
