@@ -882,6 +882,16 @@ cap, overcrowded (growth stops at 1.15 × housing, `OVERCROWDING_NO_GROWTH_THRES
 habitability, not growing. Still to come once capacity is fitted: what +1 district, a cleared
 blocker, a medical building or an edict would gain, and the colonies ranked by it.
 
+**Pops charts** (all, growth and colony tabs; `popSeries()` / `colonyPopSeries()` in
+`#lib/series.ts`, the user's ask 2026-11-01): pops on the left axis, last month's change on the
+right, from `Colony.growth.by` (`current_month_growth_details`) grouped by `popCause()`: growth,
+assembly, migration (immigration, emigration, migration, resettlement), other; stratum, species,
+ethos and faction changes and group merges are left out (they move pops between groups). The game
+has **no refugee category** (4.5.x `GROWTH_CAT_*` localisation): refugees arrive as immigration.
+Causes seen in this machine's DB (2026-11-01): growth, assembly, colonization, decline, emigration,
+immigration, other, promotion (always 0). Empire-wide, migration between our own colonies cancels
+out; a cause that never moved gets no line. The colony tab's jobs chart is `Pops (jobs)`.
+
 **Growth projection** (`#lib/growthProjection.ts` pure, `GrowthProjection.svelte` on the growth tab
 and each colony page, rows from `server/growth.ts`; the user's ask 2026-10-24): 10 to 200 years
 (the pick remembered per viewer), per colony and summed, biological and mechanical apart — they follow different rules. Biological:
