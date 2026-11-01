@@ -9,8 +9,8 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - Wide maps: every galaxy map has a `width` switch — `wide` uses the browser window's full
-  width, `wide + legend` puts the page's legend (map layers, diplomacy's relations legend, empire
-  borders) beside the map. One choice for all maps, remembered in this browser.
+  width, `wide + table` puts the map's table beside it (map tab: Found; systems; megastructures;
+  first contacts). One choice for all maps, remembered in this browser.
 
 ### Fixed
 

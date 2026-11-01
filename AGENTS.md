@@ -378,9 +378,12 @@ profile's `mapFilter`, plus a table with what is worked on and how far (an envoy
 an excavation running; stage, clues, days — anomalies and special projects carry no progress in
 the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). **Every
 map's width** is the viewer's (`GalaxyMap`'s `width` buttons: normal, wide = the window's full width,
-wide + legend = that with the page's `legend` snippet and the border swatches beside the map) — one
-localStorage key for all maps (`MAP_WIDTH_KEY`, `#lib/mapView.ts`). A `legend` snippet must sit
-outside any other component's children, or it becomes that component's prop. The table
+wide + table = that with the page's table beside the map) — one localStorage key for all maps
+(`MAP_WIDTH_KEY`, `#lib/mapView.ts`). A page with a table of what its map shows (map: Found;
+systems; megastructures; situations: First contacts) defines it as a top-level snippet, passes it
+as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
+filters stay above the map. Without `beside` (diplomacy, migration) the third button is not offered
+and a stored `side` draws as wide. The table
 also shows each marker's **difficulty** (first contacts and dig sites as the save holds it, an
 anomaly its category's `level`), when it was **seen** and its **age** in months (the user's ask
 2026-10-31): a first contact its own `date`, a station its first sighting, an anomaly or dig site

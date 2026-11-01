@@ -20,7 +20,9 @@
 	// (bindable) is the system under the pointer, here or in a table beside: it gets a ring. Binding
 	// `selected` makes a click (not a drag) pick the system under the pointer, again to unpick; the
 	// picked one keeps a ring of its own. `territories` are drawn as empire borders (#lib/borders.ts).
-	// `legend` is the page's legend: above the map, or beside it when the viewer picks "wide + legend".
+	// `beside` is the page's table of what the map shows: the page draws it below the map, and hands
+	// it over to go beside the map when the viewer picks "wide + table" (`width`, bindable, tells it
+	// which; without `beside` that choice is drawn as plain wide).
 	type System = Point & {
 		id: number;
 		name: string;
@@ -40,7 +42,8 @@
 		heightKey,
 		label = 'Galaxy map',
 		layer,
-		legend,
+		beside,
+		width = $bindable('normal'),
 		territories = [],
 		hovered = $bindable(null),
 		selected = $bindable(),
@@ -54,7 +57,8 @@
 		heightKey: string; // localStorage key for the height
 		label?: string;
 		layer?: Snippet<[(p: Point) => Point, number]>; // transform, scale (px per galaxy unit)
-		legend?: Snippet;
+		beside?: Snippet;
+		width?: MapWidth;
 		territories?: Territory[];
 		hovered?: number | null;
 		selected?: number | null;
@@ -120,10 +124,23 @@
 	let w = $state(0);
 	let h = $state(0);
 	// The width is one choice for every map, per viewer: in the page, the browser's full width
-	// (`vw`, the window without its scrollbar), or that with the legend beside the map.
-	let width: MapWidth = $state('normal');
+	// (`vw`, the window without its scrollbar), or that with the page's table beside the map.
 	let vw = $state(0);
 	const full = $derived(width !== 'normal' && vw > 0);
+	const side = $derived(width === 'side' && beside !== undefined);
+	// The table beside reaches the window's bottom, whatever the map's height, and scrolls on its
+	// own; it sticks below the window's top edge once the page scrolls past it. Its table's header
+	// stays in sight while it scrolls (the `[&_thead_th]` classes).
+	const GAP = 16;
+	let aside: HTMLElement | undefined = $state();
+	let asideH = $state(0);
+	const fitAside = () => {
+		if (aside)
+			asideH = Math.max(200, innerHeight - Math.max(aside.getBoundingClientRect().top, GAP) - GAP);
+	};
+	$effect(() => {
+		if (side && aside) fitAside();
+	});
 	const setWidth = (m: MapWidth) => {
 		width = m;
 		try {
@@ -236,9 +253,12 @@
 	const widths: [MapWidth, string, string][] = [
 		['normal', 'normal', 'the map in the page'],
 		['wide', 'wide', 'the map across the whole window'],
-		['side', 'wide + legend', 'across the whole window, the legend beside the map']
+		['side', 'wide + table', 'across the whole window, the table beside the map']
 	];
+	const offered = $derived(beside ? widths : widths.filter(([m]) => m !== 'side'));
 </script>
+
+<svelte:window onscroll={fitAside} onresize={fitAside} />
 
 {#snippet swatches()}
 	{#if shown.length}
@@ -261,8 +281,6 @@
 	class={full ? 'px-4' : ''}
 	style={full ? `width: ${vw}px; margin-inline: calc(50% - ${vw / 2}px)` : ''}
 >
-	{#if width !== 'side'}{@render legend?.()}{/if}
-
 	<div class="mb-2 flex flex-wrap items-center gap-2 text-sm">
 		<button class={button} disabled={!capital} onclick={() => capital && toCapital(capital)}
 			>capital</button
@@ -291,20 +309,17 @@
 			>
 		{/if}
 		<span class="ml-2 text-gray-500">width</span>
-		{#each widths as [m, text, title] (m)}
+		{#each offered as [m, text, title] (m)}
+			{@const active = width === m || (m === 'wide' && width === 'side' && !side)}
 			<button
-				class="{button} {width === m ? 'bg-gray-200 dark:bg-gray-800' : ''}"
-				aria-pressed={width === m}
+				class="{button} {active ? 'bg-gray-200 dark:bg-gray-800' : ''}"
+				aria-pressed={active}
 				{title}
 				onclick={() => setWidth(m)}>{text}</button
 			>
 		{/each}
 	</div>
-	<div
-		class={width === 'side'
-			? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,24rem)] lg:items-start'
-			: ''}
-	>
+	<div class={side ? 'grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start' : ''}>
 		<div class="min-w-0">
 			<div
 				class="w-full resize-y overflow-hidden rounded border border-gray-200 dark:border-gray-800"
@@ -435,12 +450,15 @@
 					</svg>
 				{/if}
 			</div>
-			{#if width !== 'side'}{@render swatches()}{/if}
+			{@render swatches()}
 		</div>
-		{#if width === 'side'}
-			<aside class="overflow-y-auto text-sm lg:max-h-(--side-h)" style:--side-h="{outer}px">
-				{@render legend?.()}
-				{@render swatches()}
+		{#if side}
+			<aside
+				class="overflow-auto lg:sticky lg:top-4 lg:h-(--side-h) [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-white dark:[&_thead_th]:bg-gray-950"
+				style:--side-h="{asideH}px"
+				bind:this={aside}
+			>
+				{@render beside?.()}
 			</aside>
 		{/if}
 	</div>

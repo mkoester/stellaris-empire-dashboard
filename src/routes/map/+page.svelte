@@ -2,6 +2,7 @@
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import { followGame } from '#lib/live.ts';
 	import { LAYER_INFO, MAP_LAYERS, type MapFilter, type MapLayer } from '#lib/mapLayers.ts';
+	import type { MapWidth } from '#lib/mapView.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import { monthStarts } from '#lib/series.ts';
 	import ContextMenu, { type MenuItem } from '#lib/ContextMenu.svelte';
@@ -31,6 +32,7 @@
 	let hovered: number | null = $state(null);
 	let selected: number | null = $state(null);
 	let map: ReturnType<typeof GalaxyMap> | undefined = $state();
+	let width: MapWidth = $state('normal'); // "wide + table": the Found table goes beside the map
 
 	// a right-click on a system: the goals that fit it, to add to the planner (want or avoid)
 	let menu = $state<{ x: number; y: number; heading: string; items: MenuItem[] } | null>(null);
@@ -161,6 +163,21 @@
 	{LAYER_INFO[r.layer].label}
 {/snippet}
 
+{#snippet found()}
+	<Panel title="Found" note="Hover or click a row to find it on the map.">
+		{#if markers.length}
+			<SortTable
+				rows={markers}
+				{columns}
+				key={(r) => r.id}
+				link={(r) => r.systemId}
+				bind:hovered
+				bind:selected
+			/>
+		{:else}<p class="text-sm text-gray-500">Nothing in the layers shown.</p>{/if}
+	</Panel>
+{/snippet}
+
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Map</h1>
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
@@ -187,6 +204,30 @@
 	</datalist>
 </div>
 
+<div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+	{#each MAP_LAYERS as l (l)}
+		<label class="flex items-center gap-1"
+			><input type="checkbox" checked={on(l)} onchange={() => toggle(l)} />
+			<span style:color={LAYER_INFO[l].color}>{LAYER_INFO[l].symbol}</span>
+			{LAYER_INFO[l].label} <span class="text-gray-500">{count(l)}</span></label
+		>
+	{/each}
+</div>
+
+{#if data.wanderlust && on('wanderlust')}
+	<p
+		class="mb-3 text-sm"
+		title="the arkship counts a target system once, on entering it; the game asks for 80 % of each category's systems"
+	>
+		<span style:color={LAYER_INFO.wanderlust.color}>{LAYER_INFO.wanderlust.symbol}</span>
+		Wanderlust{#if data.wanderlust.complete}: every category explored{:else}:
+			{#each data.wanderlust.categories as c, i (c.key)}{i ? ' · ' : ''}<span
+					class={c.done ? 'text-green-700 dark:text-green-500' : ''}
+					>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ''}</span
+				>{/each}{/if}
+	</p>
+{/if}
+
 <div class="flex flex-col gap-6">
 	<Panel
 		title="Discovered galaxy"
@@ -207,33 +248,10 @@
 			bind:hovered
 			bind:selected
 			bind:this={map}
+			bind:width
+			beside={found}
 			onsystemmenu={systemMenu}
 		>
-			{#snippet legend()}
-				<div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-					{#each MAP_LAYERS as l (l)}
-						<label class="flex items-center gap-1"
-							><input type="checkbox" checked={on(l)} onchange={() => toggle(l)} />
-							<span style:color={LAYER_INFO[l].color}>{LAYER_INFO[l].symbol}</span>
-							{LAYER_INFO[l].label} <span class="text-gray-500">{count(l)}</span></label
-						>
-					{/each}
-				</div>
-
-				{#if data.wanderlust && on('wanderlust')}
-					<p
-						class="mb-3 text-sm"
-						title="the arkship counts a target system once, on entering it; the game asks for 80 % of each category's systems"
-					>
-						<span style:color={LAYER_INFO.wanderlust.color}>{LAYER_INFO.wanderlust.symbol}</span>
-						Wanderlust{#if data.wanderlust.complete}: every category explored{:else}:
-							{#each data.wanderlust.categories as c, i (c.key)}{i ? ' · ' : ''}<span
-									class={c.done ? 'text-green-700 dark:text-green-500' : ''}
-									>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ''}</span
-								>{/each}{/if}
-					</p>
-				{/if}
-			{/snippet}
 			{#snippet layer(at)}
 				{#each [...bySystem] as [id, list] (id)}
 					{@const s = byId.get(id)}
@@ -253,18 +271,7 @@
 		</GalaxyMap>
 	</Panel>
 
-	<Panel title="Found" note="Hover or click a row to find it on the map.">
-		{#if markers.length}
-			<SortTable
-				rows={markers}
-				{columns}
-				key={(r) => r.id}
-				link={(r) => r.systemId}
-				bind:hovered
-				bind:selected
-			/>
-		{:else}<p class="text-sm text-gray-500">Nothing in the layers shown.</p>{/if}
-	</Panel>
+	{#if width !== 'side'}{@render found()}{/if}
 </div>
 
 {#if menu}

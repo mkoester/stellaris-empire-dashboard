@@ -2,6 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { pretty } from '#lib/format.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
+	import type { MapWidth } from '#lib/mapView.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -13,6 +14,7 @@
 	import type { Outcome } from '#lib/types.ts';
 
 	let { data } = $props();
+	let width: MapWidth = $state('normal'); // "wide + table": the contacts table goes beside the map
 	followGame(() => data.isHead);
 
 	let showDone = $state(false);
@@ -144,6 +146,25 @@
 	];
 </script>
 
+{#snippet contactTable()}
+	<Panel
+		title="First contacts"
+		note="Envoy ✉: someone is working on it. Jumps from our border along hyperlanes (bypasses not counted). Stages are the game's internal names."
+	>
+		<label class="mb-2 flex items-center gap-1 text-sm"
+			><input type="checkbox" bind:checked={showDone} /> also finished and aborted</label
+		>
+		<SortTable
+			rows={contacts}
+			columns={contactColumns}
+			key={(r) => r.id}
+			bind:sort={contactSort}
+			link={(r) => r.systemId}
+			bind:hovered
+		/>
+	</Panel>
+{/snippet}
+
 {#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{/snippet}
 {#snippet anomalyName(a: Anomaly)}<b>{a.name}</b><AddGoal
 		kind="anomaly"
@@ -199,22 +220,7 @@
 {/if}
 
 <div class="flex flex-col gap-8">
-	<Panel
-		title="First contacts"
-		note="Envoy ✉: someone is working on it. Jumps from our border along hyperlanes (bypasses not counted). Stages are the game's internal names."
-	>
-		<label class="mb-2 flex items-center gap-1 text-sm"
-			><input type="checkbox" bind:checked={showDone} /> also finished and aborted</label
-		>
-		<SortTable
-			rows={contacts}
-			columns={contactColumns}
-			key={(r) => r.id}
-			bind:sort={contactSort}
-			link={(r) => r.systemId}
-			bind:hovered
-		/>
-	</Panel>
+	{#if width !== 'side'}{@render contactTable()}{/if}
 
 	<Panel
 		title="First contact map"
@@ -229,6 +235,8 @@
 			{titles}
 			focus={[{ label: 'contacts', points: open.flatMap((c) => byId.get(c.systemId) ?? []) }]}
 			heightKey="first-contact-map-height"
+			bind:width
+			beside={contactTable}
 			label="First contact map"
 			territories={data.territories}
 			bind:hovered
