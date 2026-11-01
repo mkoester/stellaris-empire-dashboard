@@ -23,7 +23,7 @@ on_single_player_save_game_load = {
 	}
 }
 
-# Scope = planet
+# Scope = carrier (a planet or a ship, since 4.4)
 on_colonized = {
 	events = {
 		sdash.10
