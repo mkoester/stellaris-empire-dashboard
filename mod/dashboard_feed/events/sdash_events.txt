@@ -189,7 +189,12 @@ country_event = {
 						NOT = { check_variable = { which = sdash_pp value = sdash_pp_log } }
 					}
 				}
-				log = "SDASH|2|[GetDate]|event|colony-jobs|[This.GetName]|[This.sdash_fj]|[This.sdash_un]|[This.sdash_pp]"
+				# A colony's variables live on its carrier (the arkship's ship, 2207.01.10), and loc in
+				# colony scope cannot reach them ("Unknown property `sdash_fj`", 0.10.0 and 0.10.1-pre:
+				# every line empty) — so log from the carrier, whose name is the colony's.
+				carrier = {
+					log = "SDASH|2|[GetDate]|event|colony-jobs|[This.GetName]|[This.sdash_fj]|[This.sdash_un]|[This.sdash_pp]"
+				}
 				set_variable = { which = sdash_fj_log value = sdash_fj }
 				set_variable = { which = sdash_un_log value = sdash_un }
 				set_variable = { which = sdash_pp_log value = sdash_pp }
