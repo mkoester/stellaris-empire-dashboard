@@ -283,12 +283,13 @@ game 2026-10-25: Find Applications run out on a reloaded 2202.07.01, ✕, a mont
 went by itself. Distribute Luxury Goods on Earth and Unity: two rows.
 **Idle stays too** (`#lib/idle.ts`, the user's ask 2026-10-31: "prevent anything being idle unless
 I decide it should be idle right now"): a research field without a tech, no agenda in
-preparation, a colony queue or a shipyard (arkship's included) with nothing in it, a leader
+preparation, a colony queue or a shipyard with nothing in it (an arkship has no queue of its own for ships:
+it builds them through its colony's shared one, so its colony's row covers it — READER 39), a leader
 without a post, an empty council seat, free leader slots (`leaderLimits`, ≈) — rows of kind `idle`,
 ⚠, ✕ — and the idle civilian ships' own rows get ✕ (`withIdleShips()`). The dismiss id ends with
 the first save of the idle spell, walked back along the branch's saves: busy again, then idle,
 is a new row. 2206.10.08 (Roaming Korinth): 2 official and 2 commander slots free, the arkship's
-shipyard, one idle science ship.
+shipyard (before READER 39: since then the arkship's colony row), one idle science ship.
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;

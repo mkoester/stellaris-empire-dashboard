@@ -29,8 +29,9 @@ All notable changes to this project are documented here. The format follows
   Colonial Centralization, traditions, civics, …), not always 3.
 - Ships are named as in game: a nomad's "Logistic Ship" no longer shows as a constructor, the
   construction ship as "Construction Ship". Saves still on disk are read again once.
-- A nomad's arkship no longer shows an idle shipyard it does not have, and is placed on the map
-  where it is.
+- A nomad's arkship is no longer listed as an idle shipyard of its own beside its colony: it
+  builds ships through the colony's shared build queue, so the colony's entry covers both. It is
+  also placed on the map where it is.
 - Mods tab: a mod installed twice — a local copy and its Workshop subscription — is active only
   where the launcher loaded it, not both.
 - Companion mod 0.10.1: a colony's daily jobs and pops lines are no longer empty (0.9.0–0.10.0
