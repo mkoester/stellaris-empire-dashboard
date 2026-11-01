@@ -18,7 +18,7 @@
 		},
 		{
 			name: 'Branch Office Expansion Planner',
-			what: 'the idea of planning a MegaCorp’s branch offices (planned)'
+			what: 'the branch office planner on the subjects tab'
 		}
 	];
 

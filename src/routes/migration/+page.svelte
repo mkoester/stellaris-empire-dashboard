@@ -1,4 +1,5 @@
 <script lang="ts">
+	import FrameSlider from '#lib/FrameSlider.svelte';
 	import { followGame } from '#lib/live.ts';
 	import { flows, ownerColors, type MigrationView } from '#lib/migration.ts';
 	import { putSettings } from '#lib/settings.ts';
@@ -47,24 +48,11 @@
 
 	<!-- one month at a time: the slider drives the flow diagram and the map below it -->
 	<section class="flex flex-col gap-6">
-		{#if data.frames.length}
-			<div class="flex max-w-3xl items-center gap-3 text-sm">
-				<span class="text-gray-500">month</span>
-				<input
-					type="range"
-					min="0"
-					max={last}
-					value={at}
-					oninput={(e) => (picked = Number(e.currentTarget.value))}
-					class="flex-1"
-					aria-label="month shown by the flow diagram and the map"
-				/>
-				<b class="tabular-nums">{frame.date.slice(0, 7)}</b>
-				{#if at !== last}
-					<button class="underline" onclick={() => (picked = null)}>latest</button>
-				{/if}
-			</div>
-		{/if}
+		<FrameSlider
+			dates={data.frames.map((f) => f.date)}
+			bind:picked
+			label="month shown by the flow diagram and the map"
+		/>
 		<MigrationSankey flows={monthFlows} {colors} />
 		<MigrationMap
 			{rows}

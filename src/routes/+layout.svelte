@@ -37,6 +37,11 @@
 			active: path === '/map'
 		},
 		{
+			name: 'history',
+			href: node ? resolve(`/history?node=${node}`) : resolve('/history'),
+			active: path === '/history'
+		},
+		{
 			name: 'migration',
 			href: node ? resolve(`/migration?node=${node}`) : resolve('/migration'),
 			active: path === '/migration'
@@ -159,6 +164,11 @@
 			name: 'diplomacy',
 			href: node ? resolve(`/diplomacy?node=${node}`) : resolve('/diplomacy'),
 			active: path === '/diplomacy'
+		},
+		{
+			name: 'subjects',
+			href: node ? resolve(`/subjects?node=${node}`) : resolve('/subjects'),
+			active: path === '/subjects'
 		},
 		{
 			name: 'megastructures',

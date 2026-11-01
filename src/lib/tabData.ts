@@ -10,6 +10,8 @@ type Fields = Pick<
 	| 'shroud'
 	| 'relations'
 	| 'subjects'
+	| 'external'
+	| 'branchSites'
 	| 'situations'
 	| 'firstContacts'
 	| 'anomalies'
@@ -58,6 +60,12 @@ const CHECKS: {
 		why: 'no contact with another empire yet',
 		known: (s) => s.relations !== null && s.relations !== undefined,
 		has: (s) => (s.relations ?? []).some((r) => r.contact)
+	},
+	{
+		tab: 'subjects',
+		why: 'no subject agreement, branch office or holding yet',
+		known: (s) => s.external !== null && s.external !== undefined,
+		has: (s) => (s.subjects ?? []).length > 0 || (s.external ?? []).length > 0 || !!s.branchSites
 	},
 	{
 		tab: 'situations',

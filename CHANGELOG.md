@@ -17,6 +17,17 @@ All notable changes to this project are documented here. The format follows
   Inspired by the mod In-Game Settings View. Saves still on disk are read again once.
 - A tab with nothing to show yet has its name dimmed, and its tooltip says why (migration, trade
   deals, galcom, shroud, diplomacy, situations). It stays a link.
+- History tab: the galaxy's known history since 2200 — a map of who held which system at the
+  month picked, and the events up to it (colonies, systems claimed or taken, communications,
+  guardians slain, wars). You know your own history, all of an empire's once you talk to it — back
+  to the start —, whoever held a system you have been to, and guardians' falls. A cheat in ⚙ shows
+  everything. Saves still on disk are read again once.
+- Subjects tab: your subject agreements, the branch offices and holdings you own or that sit on
+  your colonies, and for a MegaCorp a branch office planner — every colony ranked by the trade an
+  office would bring per influence it costs (≈). Inspired by the mod Branch Office Expansion
+  Planner.
+- ⚙ is organised like a browser's settings: groups, a section list and a search. Spoiler and cheat
+  settings are listed only once shown, and hidden ones are off — each comes back as it was.
 - About tab: thanks to the mods, projects and libraries this dashboard learned from or builds on.
 - Wide maps: every galaxy map has a `width` switch — `wide` uses the browser window's full
   width, `wide + table` puts the map's table beside it (map tab: Found; systems; megastructures;

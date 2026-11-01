@@ -11,6 +11,8 @@ const blank = (over: Partial<Snapshot> = {}) =>
 		shroud: null,
 		relations: [],
 		subjects: [],
+		external: [],
+		branchSites: null,
 		situations: [],
 		firstContacts: [],
 		anomalies: [],
@@ -27,6 +29,7 @@ describe('emptyTabs', () => {
 			'migration',
 			'shroud',
 			'situations',
+			'subjects',
 			'trade deals'
 		]);
 	});

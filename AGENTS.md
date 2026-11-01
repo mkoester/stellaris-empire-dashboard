@@ -320,7 +320,7 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 (`/planner`, see "Planner tab"), `colonies`
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
 `/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
-`map` (`/map`, the discovered galaxy, see below), `migration`, `expansion`
+`map` (`/map`, the discovered galaxy, see below), `history` (below), `migration`, `expansion`
 (`/expansion`: the Expansion panel full-size, see below), `growth` (`/growth`, see below), `jobs` (`/jobs`, see below), `trade` (`/trade`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`), `resources`
@@ -331,12 +331,12 @@ left, net per month right (`resourcePanelSeries()`) — and the latest save's mo
 what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
 `trade-offs` (only with its switch, below) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `ethics`, `situations`, `shroud` (patrons and attunement), `focus`,
-`traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `megastructures` (all below), `galaxy` (the galaxy setup, below), `mods`,
+`traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `subjects`, `megastructures` (all below), `galaxy` (the galaxy setup, below), `mods`,
 `dlc` (see "DLCs and mods" below) and `about` (last: thanks to the mods, projects and libraries the
 dashboard learned from — **a feature inspired by a mod gets its line there**); tabs keep `?node=`.
 **A tab with nothing to show yet is dimmed** (the user's ask 2026-11-01; `#lib/tabData.ts` pure,
-`emptyTabsAt()` per tip in the layout): migration, trade deals, galcom, shroud, diplomacy and
-situations, each while no snapshot of the branch holds its data — its title says why, it stays a
+`emptyTabsAt()` per tip in the layout): migration, trade deals, galcom, shroud, diplomacy,
+subjects and situations, each while no snapshot of the branch holds its data — its title says why, it stays a
 link. A tab whose field no snapshot knows (an older reader's null) is unknown, never dimmed; a new
 check goes into `CHECKS`. **Every list is a `SortTable.svelte`** (the user's ask
 2026-10-23: "make all tables sortable"; columns as `Column<T>` from `#lib/sort.ts`; `sort={{
@@ -551,6 +551,42 @@ screen's tokens (`template` = galaxy_size, `shape`, `habitability` = colonizable
 one (`NUM_HYPERLANES` "Hyperlane Density"), else ours — the dashboard is English only. Disabled
 precursors are named from the data DB's `precursor` (empty without the table). Years are after
 2200 (`mid_game_start=100` → 2300). Not yet compared with the game's own setup screen.
+
+**Subjects tab** (`/subjects`; the user's ask 2026-11-01: "subjects and branch offices: an
+overview"): the subject agreement cards (`SubjectCards.svelte`, shared with the contacts tab), the
+branch offices and holdings we own and those on our colonies (`Snapshot.external`, READER 43:
+`colony.<id>.externally_owned_buildings`, see "Save format facts"), and for a MegaCorp the
+**branch office planner** (`#lib/branchOffices.ts` pure; after the mod Branch Office Expansion
+Planner): every regular empire's colony with trade (`Snapshot.branchSites`, jumps from our
+capital), ranked by trade a month per 100 influence — an office's income 0.5 × the colony's trade
+(`BRANCH_OFFICE_INCOME_SCALE`), its cost 75 influence + 5 a jump, at most 1000
+(`BRANCH_OFFICE_INFLUENCE_COST_*`), +5 empire size each (4.5.2 defines). **Estimated (≈)**: the
+jumps' origin is a guess (our capital), value modifiers and the office's buildings are left out;
+the one office in our saves (an AI's on a nomad's arkship, Planetforgers 2214.02.01) booked 59.48
+trade on a colony making 112.24 — 6 % above 0.5 ×. By default only colonies an office can open on
+now: a commercial pact with the owner (`Relation.agreements`), no office there. **No save of ours
+has a MegaCorp player**: the planner and our own offices are checked by unit tests only.
+
+**History tab** (`/history`, `#lib/history.ts` pure; the user's ask 2026-11-01: "the known history
+of the galaxy since 2200", the migration tab's slider — now `FrameSlider.svelte`, both tabs): a
+map coloured by system owner at the month picked and the events up to it (colonies founded,
+systems claimed, taken or lost, communications opened, guardians slain, wars). Each save carries
+`Snapshot.history` (READER 43, ~5 KB: `historyReading()` in `server/world.ts` — every system's
+station owner, every planet colony with its `colonize_date` and system, the guardian kill flags,
+names); `knownHistory()` diffs them along the branch. **What we know is decided at the branch's
+latest save and applied to the whole past** (the user's rule): our own history, all of an empire's
+once we have communications with it, the owner of any system we have visited, guardians' falls
+(common knowledge — the flags `killed_guardian`, `horror_killed`, `killed_wraith`,
+`tiyanki_killed`, `killed_hatchling`, global `toxic_god_killed`, `guardians_zanaam_destroyed`:
+**none seen in a save yet**), wars with a side we know (public, as on the diplomacy tab); not
+others' discoveries nor battles we did not fight. Before the first save read only colonies are
+known (by `colonize_date`; before 2200 — homeworlds, pre-FTLs at "2016.05.09" — read as
+2200.01.01), and a system whose colony predates that save counts as its owner's since then. A
+change between two saves is dated "≤" the later one. The `historyAll` cheat shows everything.
+Checked 2026-11-01 on a DB copy (Roaming Korinth, 2207.02): known now us, Vivisandia Vestige and
+Skull Clan — 10 colonies, 9 claims, 2 communications; with the cheat 80 and 100. **Open:** when a
+guardian was first discovered (the user's ask) is not read — its system is not tied to the flag;
+arkship colonies (nomads') are not in the reading, which reads planets.
 
 **Map rings and quadrants** (`#lib/quadrants.ts` pure, `server/quadrants.ts`; the user's ask
 2026-11-01, after the mod Quadrant Fixed): every `GalaxyMap` draws them from the layout's
@@ -902,7 +938,16 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`. A new view of hidden information follows the same pattern. **The
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`. A new view of hidden information follows the same pattern.
+**⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
+pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
+`normal`, `spoiler` (what the game hides until found) or `cheat` (what it never tells a player;
+`habitatsAlways` now one) —, a left-hand section list and a search over all of it. Two gates,
+`showSpoilers` / `showCheats` (off by default; a profile from before them starts with a gate on
+when it had one of its switches on), list those kinds; **hidden also means off**:
+`display()` (`server/settings.ts`) returns `effectiveDisplay()`, the stored values kept, so
+showing a kind again brings each switch back as it was. **A new switch goes into `SWITCHES`**
+(a test checks every `Display` boolean is there once). **The
 check is the user's in-game screenshot** of the matching panel (workspace `AGENTS.md`): it caught
 the edicts (58 → the game's 5), policies, agendas and focus cards here.
 
@@ -1725,6 +1770,13 @@ defender_war_goal attacker_war_exhaustion defender_war_exhaustion }` (exhaustion
   (their 4); losses and victory follow the roles. An ended war leaves `<id>=none`;
   `truce` and `dead_war` stayed empty after a won subjugation war. Names: `war_vs_adjectives` =
   "$1$ - $2$ $3$". Shown on the contacts tab (`wars()` in save.ts).
+- Branch offices and holdings (4.5.x, first seen 2026-11-01): `colony.<id>.externally_owned_buildings
+= { { building_owner=<country> owner_type=corporate|subject_holding buildings = { <ids> } } }`,
+  the ids into top-level `buildings`, and `externally_owned_build_queues = { { key=<country>
+value=<queue> } }`. No planet or colony field says "branch office" by name (a jomini dump of
+  the Planetforgers' save had none); the office's owner keeps `flags.first_branch_office` and
+  `variables.branch_offices_established`, its budget `planet_branch_offices` (the trade) and
+  `planet_branch_office_buildings`.
 - Subjects: top-level `agreements.agreements.<id> = { owner target active_status date_added
 term_data = { agreement_preset discrete_terms = { { key value } } resource_terms
 can_subject_* … } subject_specialization = { level experience } }`, owner = the overlord; the

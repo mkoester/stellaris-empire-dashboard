@@ -13,6 +13,7 @@
 	} from '#lib/contacts.ts';
 	import { nameOf, pretty } from '#lib/format.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
+	import SubjectCards from '#lib/SubjectCards.svelte';
 	import type { Battle, Claim, Combat } from '#lib/types.ts';
 	import { followGame } from '#lib/live.ts';
 	import { putSettings } from '#lib/settings.ts';
@@ -83,9 +84,6 @@
 		...view.columns.map((c) => ALL[c])
 	]);
 	const goalName = (k: string) => pretty(k.replace(/^wg_/, ''));
-	const presetName = (k: string) => pretty(k.replace(/^preset_/, ''));
-	// "subject_can_not_be_integrated" → "can not be integrated"
-	const termValue = (v: string) => pretty(v.replace(/^subject_(is_|does_|gets_)?/, ''));
 	const percent = (v: number | null) => (v === null ? '?' : `${Math.round(v * 100)} %`);
 
 	const battleColumns: Column<Battle & { i: number }>[] = [
@@ -222,42 +220,7 @@
 
 {#if data.subjects?.length}
 	<h2 class="mb-2 text-xl font-semibold">Subjects</h2>
-	<div class="mb-6 flex flex-col gap-3">
-		{#each data.subjects as s (s.countryId)}
-			<section class="rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
-				<div class="mb-1 flex flex-wrap items-baseline gap-x-4">
-					<span class="text-base"><EmpireName name={s.name} /></span>
-					<span
-						>{s.weAreOverlord ? 'our subject' : 'our overlord'}: {data.diploNames[s.preset] ??
-							presetName(s.preset)}</span
-					>
-					<span class="text-gray-500 tabular-nums">since {s.since ?? '?'}</span>
-					{#if s.loyalty !== null}<span class="tabular-nums"
-							>loyalty <b class={s.loyalty < 0 ? 'text-red-600' : 'text-green-600'}>{s.loyalty}</b
-							></span
-						>{/if}
-					{#if s.specialistLevel > 0}<span
-							>specialist level {s.specialistLevel} ({s.specialistExperience} XP)</span
-						>{/if}
-				</div>
-				<div class="text-gray-500">
-					{Object.entries(s.terms)
-						// terms the game hides have no name: left out, as in its agreements screen
-						.filter(([k]) => data.diploNames[k])
-						.map(([k, v]) => `${data.diploNames[k]}: ${data.diploNames[v] ?? termValue(v)}`)
-						.join(' · ')}
-				</div>
-				{#if Object.values(s.subsidies).some((v) => v !== 0)}
-					<div>
-						subsidies: {Object.entries(s.subsidies)
-							.filter(([, v]) => v !== 0)
-							.map(([k, v]) => `${pretty(k.replace(/^resource_subsidies_/, ''))} ${v}`)
-							.join(', ')}
-					</div>
-				{/if}
-			</section>
-		{/each}
-	</div>
+	<SubjectCards subjects={data.subjects} diploNames={data.diploNames} />
 {/if}
 
 <h2 class="mb-2 text-xl font-semibold">Relations</h2>

@@ -3,6 +3,8 @@ import { readSetup } from '#lib/galaxySetup.ts';
 import { Jomini } from 'jomini';
 import type {
 	Arkship,
+	BranchSite,
+	ExternalBuildings,
 	BudgetSource,
 	Construction,
 	KnownSystem,
@@ -65,6 +67,7 @@ import {
 	stationsSeen,
 	firstContacts,
 	galaxy as galaxySystems,
+	historyReading,
 	knownCountries,
 	ourIntel,
 	relations,
@@ -274,7 +277,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '42'; // 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '43'; // 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -429,6 +432,8 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		founderClass: strOrNull(raw.speciesDb[String(raw.country?.founder_species_ref)]?.class),
 		shipset: strOrNull(raw.country?.graphical_culture),
 		galaxySetup: readSetup(raw.galaxy),
+		...externalBuildings(raw),
+		history: historyReading(raw),
 		speciesRights: speciesRights(raw.country),
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
@@ -2204,6 +2209,98 @@ export function subjects(
 			}
 		];
 	});
+}
+
+/**
+ * Branch offices and holdings (`colony.<id>.externally_owned_buildings`; first seen 2026-11-01 in
+ * the Planetforgers' 2214.02.01 save: an AI MegaCorp's office with Corporate Clinics on a nomad's
+ * arkship), those we hold and those on our colonies; and, for a MegaCorp, every other empire's
+ * colony with trade as a site for one (`branchSites`), jumps from our capital.
+ */
+export function externalBuildings(
+	raw: Pick<
+		RawSave,
+		| 'countryId'
+		| 'country'
+		| 'colonies'
+		| 'planets'
+		| 'ships'
+		| 'fleets'
+		| 'fleetOwner'
+		| 'buildings'
+		| 'countries'
+		| 'systems'
+	> &
+		Partial<GalaxyRaw>
+): Pick<Snapshot, 'external' | 'branchSites'> {
+	const us = raw.countryId;
+	const name = (id: number) => raw.countries[String(id)]?.name ?? `empire ${id}`;
+	const places = colonyPlaces(raw);
+	const colonyFacts = (id: string, c: Raw) => {
+		const place = places.get(Number(id));
+		if (!place) return null;
+		const [placeId, body] = place;
+		const ship = placeId < 0;
+		const ownerRaw = ship ? raw.fleetOwner[String(body?.fleet)] : body?.owner;
+		if (ownerRaw === undefined) return null;
+		const systemId = ship ? shipSystemId(raw, -1 - placeId) : body?.coordinate?.origin;
+		const trade = c?.produces?.trade;
+		return {
+			colonyId: Number(id),
+			name: displayName(body?.name) || `colony ${id}`,
+			systemId: systemId === undefined || systemId === null ? null : Number(systemId),
+			ownerId: Number(ownerRaw),
+			owner: name(Number(ownerRaw)),
+			trade: typeof trade === 'number' ? trade : null
+		};
+	};
+	const external: ExternalBuildings[] = [];
+	const offices = new Map<number, string>(); // colony → the corporation with an office there
+	const facts = new Map<string, ReturnType<typeof colonyFacts>>();
+	for (const [id, c] of Object.entries(raw.colonies ?? {})) {
+		const entries = items(c?.externally_owned_buildings);
+		if (!entries.length) continue;
+		const f = colonyFacts(id, c);
+		facts.set(id, f);
+		if (!f) continue;
+		for (const e of entries) {
+			const holderId = Number(e?.building_owner);
+			const kind = e?.owner_type === 'subject_holding' ? 'subject_holding' : 'corporate';
+			if (kind === 'corporate') offices.set(f.colonyId, name(holderId));
+			if (holderId !== us && f.ownerId !== us) continue;
+			external.push({
+				...f,
+				holderId,
+				holder: name(holderId),
+				kind,
+				buildings: list(e?.buildings)
+					.map((b) => strOrNull(raw.buildings[String(b)]?.type))
+					.filter((t): t is string => t !== null)
+			});
+		}
+	}
+	if (raw.country?.government?.authority !== 'auth_corporate')
+		return { external, branchSites: null };
+	const capital = capitalSystem(raw);
+	const jumps = capital === null ? null : distances(galaxy(raw), [capital]).jumps;
+	const branchSites: BranchSite[] = Object.entries(raw.colonies ?? {}).flatMap(([id, c]) => {
+		const f = facts.get(id) ?? colonyFacts(id, c);
+		if (!f || f.ownerId === us || !f.trade || raw.countries[String(f.ownerId)]?.type !== 'default')
+			return [];
+		return [
+			{
+				colonyId: f.colonyId,
+				name: f.name,
+				systemId: f.systemId,
+				ownerId: f.ownerId,
+				owner: f.owner,
+				trade: f.trade,
+				jumps: f.systemId === null ? null : (jumps?.get(f.systemId) ?? null),
+				office: offices.get(f.colonyId) ?? null
+			}
+		];
+	});
+	return { external, branchSites };
 }
 
 /**

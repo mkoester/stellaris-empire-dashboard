@@ -1,93 +1,33 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { listed, SWITCH_GROUPS, SWITCHES } from '#lib/displaySwitches.ts';
 	import { ROW_LINES, type Display, type RowLine } from '#lib/profiles.ts';
 	import { MAX_RINGS, SECTOR_COUNTS, type QuadrantView, type SectorCount } from '#lib/quadrants.ts';
 	import { campaignAction, profileAction, putSettings } from '#lib/settings.ts';
 
 	let { data } = $props();
 
-	// on/off display options: key, label, note
-	const SWITCHES: [
-		Exclude<keyof Display, 'colonyRowLine' | 'expansionRowLine'>,
-		string,
-		string?
-	][] = [
-		[
-			'tradeoffs',
-			'Trade-offs tab: stations, districts or buildings first — payback and a simulation',
-			'exploratory: estimates from your budget, with knobs for upcoming techs and traditions'
-		],
-		[
-			'diplomacyAll',
-			'Diplomacy: every empire and every relation between them, whatever our intel shows',
-			'cheating — the game shows what your intel on each empire reveals'
-		],
-		[
-			'tradeIntel',
-			'Trade: other empires’ stockpiles and income, and what they would trade at what rate',
-			'cheating — the game shows neither; estimated until calibrated (docs/trade-calibration.md)'
-		],
-		[
-			'habitatsAlways',
-			'Expansion: show habitat sites even before habitats can be built',
-			'later behind an “enable cheats” switch'
-		],
-		[
-			'showLocked',
-			'Government: show locked agendas, edicts and policies too',
-			'the game lists only what you can pick'
-		],
-		[
-			'factionTypes',
-			'Ethics: faction types of your ethics, with their demands, before any has formed',
-			'cheating'
-		],
-		['allFactionTypes', 'Ethics: also the faction types of ethics you do not hold', 'cheating'],
-		['anomalySpoilers', 'Situations: show what an anomaly can lead to', 'spoilers'],
-		['projectSpoilers', 'Situations: show what a special project leads to', 'spoilers'],
-		[
-			'hiddenTimers',
-			'Upcoming: show the timers of events in progress (when an event chain continues)',
-			'spoilers'
-		],
-		[
-			'unknownStars',
-			'Maps: show the undiscovered systems too, without their hyperlanes',
-			'the game shows every star from the start'
-		],
-		['wormholeLinks', 'Maps: show where explored wormholes lead (both ends visited)'],
-		[
-			'wormholePairs',
-			'Maps: show every wormhole pair and its connection, explored or not',
-			'spoilers'
-		],
-		[
-			'lgates',
-			'Maps: show every L-Gate, the L-Cluster and all their connections',
-			'spoilers — until the gates open the L-Cluster does not exist yet: shown where it is predicted to spawn'
-		],
-		[
-			'wanderlustAll',
-			'Map: every Wanderlust target, not only the systems you have visited',
-			'spoilers — the save flags them all; the game names none'
-		],
-		[
-			'surveyAll',
-			'Treat every system as fully surveyed: bodies, deposits, anomalies, expansion and habitat sites',
-			'spoilers'
-		],
-		[
-			'wholeGalaxy',
-			'Maps and megastructure sites: every system with its name and hyperlanes',
-			'spoilers'
-		],
-		[
-			'contactStations',
-			'Maps: colour visited systems by their station’s owner, named, before communications',
-			'spoilers — the save knows them before you have communications'
-		]
-	];
+	// the display switches by group, filtered by the search; spoilers and cheats only when shown
+	let query = $state('');
+	const groups = $derived(
+		SWITCH_GROUPS.map((g) => ({
+			title: g,
+			items: SWITCHES.filter((s) => s.group === g && listed(s, data.display, query))
+		})).filter((g) => g.items.length)
+	);
+	const setDisplay = (patch: Partial<Display>) =>
+		act(() => putSettings({ display: { ...data.display, ...patch } }));
+	const KIND_LABEL = { spoiler: 'spoiler', cheat: 'cheat', normal: '' } as const;
+	// the left-hand list: every section, the display groups among them
+	const NAV = [
+		['profiles', 'Profiles'],
+		['reveal', 'Spoilers and cheats'],
+		['display', 'Display'],
+		['quadrants', 'Map rings and quadrants'],
+		['games', 'Games'],
+		['folders', 'Folders']
+	] as const;
 
 	// Deleting a game's history; the saves still on disk are not read in again.
 	const deleteGame = (g: { campaign: string; name: string; onDisk: boolean }) => {
@@ -125,206 +65,266 @@
 	let newName = $state('');
 </script>
 
-<div class="flex max-w-3xl flex-col gap-8 text-sm">
-	<section>
-		<h2 class="mb-1 text-xl font-semibold">Profiles</h2>
-		<p class="mb-3 text-gray-500">
-			A profile keeps your tabs, chart events, the colonies view and the display options — one per
-			playstyle or play-through. The theme is shared. Picking one while a campaign runs makes it
-			that campaign's: its saves bring it back.
-			{#if data.campaign}Current campaign: <b>{data.campaign}</b>.{/if}
-		</p>
-		<table class="mb-3 text-left">
-			<tbody>
-				{#each data.profiles as p (p.id)}
-					<tr class="border-b border-gray-200 dark:border-gray-800">
-						<td class="p-1">
-							<input
-								type="radio"
-								name="profile"
-								checked={p.id === data.active}
-								onchange={() => act(() => profileAction({ action: 'select', id: p.id }))}
-								aria-label="use {p.name}"
-							/>
-						</td>
-						<td class="p-1">
-							<input
-								class="w-48 rounded border border-transparent bg-transparent px-1 hover:border-gray-300 dark:hover:border-gray-700 {p.id ===
-								data.active
-									? 'font-semibold'
-									: ''}"
-								value={p.name}
-								onchange={(e) => rename(p.id, e.currentTarget.value, p.name)}
-								aria-label="name"
-							/>
-						</td>
-						<td class="p-1 text-gray-500">{(data.campaigns[p.id] ?? []).join(', ')}</td>
-						<td class="p-1 whitespace-nowrap">
-							<button
-								class="underline"
-								onclick={() =>
-									act(() => profileAction({ action: 'create', name: p.name, copyOf: p.id }))}
-								>duplicate</button
-							>
-							·
-							<a class="underline" href={resolve('/api/profiles/[id]', { id: p.id })} download
-								>export</a
-							>
-							{#if data.profiles.length > 1}
-								·
+<div class="flex gap-8 text-sm">
+	<nav class="sticky top-4 hidden w-48 shrink-0 self-start md:block" aria-label="settings sections">
+		<input
+			class="mb-3 w-full rounded border border-gray-300 bg-transparent px-2 py-1 dark:border-gray-700"
+			type="search"
+			placeholder="search settings …"
+			bind:value={query}
+		/>
+		<ul class="space-y-1">
+			{#each NAV as [id, label] (id)}
+				<li><a class="text-gray-500 hover:text-current" href="#{id}">{label}</a></li>
+				{#if id === 'display'}
+					{#each groups as g (g.title)}
+						<li class="pl-3">
+							<a class="text-gray-500 hover:text-current" href="#display-{g.title}">{g.title}</a>
+						</li>
+					{/each}
+				{/if}
+			{/each}
+		</ul>
+	</nav>
+	<div class="flex max-w-3xl min-w-0 flex-col gap-8">
+		<input
+			class="w-full rounded border border-gray-300 bg-transparent px-2 py-1 md:hidden dark:border-gray-700"
+			type="search"
+			placeholder="search settings …"
+			bind:value={query}
+		/>
+		<section id="profiles" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Profiles</h2>
+			<p class="mb-3 text-gray-500">
+				A profile keeps your tabs, chart events, the colonies view and the display options — one per
+				playstyle or play-through. The theme is shared. Picking one while a campaign runs makes it
+				that campaign's: its saves bring it back.
+				{#if data.campaign}Current campaign: <b>{data.campaign}</b>.{/if}
+			</p>
+			<table class="mb-3 text-left">
+				<tbody>
+					{#each data.profiles as p (p.id)}
+						<tr class="border-b border-gray-200 dark:border-gray-800">
+							<td class="p-1">
+								<input
+									type="radio"
+									name="profile"
+									checked={p.id === data.active}
+									onchange={() => act(() => profileAction({ action: 'select', id: p.id }))}
+									aria-label="use {p.name}"
+								/>
+							</td>
+							<td class="p-1">
+								<input
+									class="w-48 rounded border border-transparent bg-transparent px-1 hover:border-gray-300 dark:hover:border-gray-700 {p.id ===
+									data.active
+										? 'font-semibold'
+										: ''}"
+									value={p.name}
+									onchange={(e) => rename(p.id, e.currentTarget.value, p.name)}
+									aria-label="name"
+								/>
+							</td>
+							<td class="p-1 text-gray-500">{(data.campaigns[p.id] ?? []).join(', ')}</td>
+							<td class="p-1 whitespace-nowrap">
 								<button
-									class="text-red-600 underline"
+									class="underline"
 									onclick={() =>
-										confirm(`Delete profile “${p.name}”?`) &&
-										act(() => profileAction({ action: 'delete', id: p.id }))}>delete</button
+										act(() => profileAction({ action: 'create', name: p.name, copyOf: p.id }))}
+									>duplicate</button
 								>
-							{/if}
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-		<div class="flex flex-wrap items-center gap-4">
-			<form
-				class="flex gap-1"
-				onsubmit={(e) => {
-					e.preventDefault();
-					act(() => profileAction({ action: 'create', name: newName })).then(() => (newName = ''));
-				}}
-			>
-				<input
-					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
-					placeholder="new profile …"
-					bind:value={newName}
-				/>
-				<button
-					class="rounded border border-gray-300 px-2 dark:border-gray-700"
-					disabled={!newName.trim()}>add</button
+								·
+								<a class="underline" href={resolve('/api/profiles/[id]', { id: p.id })} download
+									>export</a
+								>
+								{#if data.profiles.length > 1}
+									·
+									<button
+										class="text-red-600 underline"
+										onclick={() =>
+											confirm(`Delete profile “${p.name}”?`) &&
+											act(() => profileAction({ action: 'delete', id: p.id }))}>delete</button
+									>
+								{/if}
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+			<div class="flex flex-wrap items-center gap-4">
+				<form
+					class="flex gap-1"
+					onsubmit={(e) => {
+						e.preventDefault();
+						act(() => profileAction({ action: 'create', name: newName })).then(
+							() => (newName = '')
+						);
+					}}
 				>
-			</form>
-			<label class="cursor-pointer underline"
-				>import …<input
-					class="hidden"
-					type="file"
-					accept=".json,application/json"
-					multiple
-					onchange={(e) => importFiles(e.currentTarget.files)}
-				/></label
-			>
-		</div>
-		{#if failure}<p class="mt-2 text-red-600">{failure}</p>{/if}
-	</section>
+					<input
+						class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+						placeholder="new profile …"
+						bind:value={newName}
+					/>
+					<button
+						class="rounded border border-gray-300 px-2 dark:border-gray-700"
+						disabled={!newName.trim()}>add</button
+					>
+				</form>
+				<label class="cursor-pointer underline"
+					>import …<input
+						class="hidden"
+						type="file"
+						accept=".json,application/json"
+						multiple
+						onchange={(e) => importFiles(e.currentTarget.files)}
+					/></label
+				>
+			</div>
+			{#if failure}<p class="mt-2 text-red-600">{failure}</p>{/if}
+		</section>
 
-	<section>
-		<h2 class="mb-1 text-xl font-semibold">Display</h2>
-		{#each [['colonyRowLine', 'Colonies tab, line between colonies'], ['expansionRowLine', 'Expansion, line between planets']] as const as [key, label] (key)}
+		<section id="reveal" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Spoilers and cheats</h2>
+			<p class="mb-1 text-gray-500">
+				The tabs show what the game's own screens show. <b>Spoilers</b> reveal what the game hides
+				until you find it; <b>cheats</b> what it never tells a player. Hidden, their switches are off
+				— each comes back as it was when shown again.
+			</p>
 			<label class="block"
-				>{label}
+				><input
+					type="checkbox"
+					checked={data.display.showSpoilers}
+					onchange={(e) => setDisplay({ showSpoilers: e.currentTarget.checked })}
+				/> show the spoiler settings</label
+			>
+			<label class="mt-1 block"
+				><input
+					type="checkbox"
+					checked={data.display.showCheats}
+					onchange={(e) => setDisplay({ showCheats: e.currentTarget.checked })}
+				/> show the cheat settings</label
+			>
+		</section>
+		<section id="display" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Display</h2>
+			{#each [['colonyRowLine', 'Colonies tab, line between colonies'], ['expansionRowLine', 'Expansion, line between planets']] as const as [key, label] (key)}
+				<label class="block"
+					>{label}
+					<select
+						class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+						value={data.display[key]}
+						onchange={(e) =>
+							act(() =>
+								putSettings({
+									display: { ...data.display, [key]: e.currentTarget.value as RowLine }
+								})
+							)}
+					>
+						{#each Object.keys(ROW_LINES) as l (l)}<option value={l}>{l}</option>{/each}
+					</select></label
+				>
+			{/each}
+			{#each groups as g (g.title)}
+				<h3 id="display-{g.title}" class="mt-4 scroll-mt-4 font-semibold">{g.title}</h3>
+				{#each g.items as s (s.key)}
+					<label class="mt-1 block"
+						><input
+							type="checkbox"
+							checked={data.display[s.key]}
+							onchange={(e) => setDisplay({ [s.key]: e.currentTarget.checked })}
+						/>
+						{s.label}
+						{#if s.kind !== 'normal'}<span
+								class="rounded px-1 text-[11px] {s.kind === 'cheat'
+									? 'bg-red-500/15 text-red-600'
+									: 'bg-amber-500/15 text-amber-600'}">{KIND_LABEL[s.kind]}</span
+							>{/if}
+						{#if s.note}<span class="text-gray-500">({s.note})</span>{/if}</label
+					>
+				{/each}
+			{:else}
+				<p class="mt-2 text-gray-500">No display setting matches “{query}”.</p>
+			{/each}
+		</section>
+		<section id="quadrants" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Map rings and quadrants</h2>
+			<p class="mb-1 text-gray-500">
+				Rings around the galactic core — one just inside the innermost system, one just outside the
+				outermost (special systems such as the L-Cluster may lie beyond it) — and a cross dividing
+				the galaxy into sectors, on every map.
+			</p>
+			<label class="block"
+				><input
+					type="checkbox"
+					checked={data.quadrants.on}
+					onchange={(e) => setQuadrants({ on: e.currentTarget.checked })}
+				/> show them</label
+			>
+			<label class="mt-2 block"
+				>rings in between
 				<select
 					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
-					value={data.display[key]}
+					value={data.quadrants.rings === null ? 'auto' : String(data.quadrants.rings)}
 					onchange={(e) =>
-						act(() =>
-							putSettings({
-								display: { ...data.display, [key]: e.currentTarget.value as RowLine }
-							})
-						)}
+						setQuadrants({
+							rings: e.currentTarget.value === 'auto' ? null : Number(e.currentTarget.value)
+						})}
 				>
-					{#each Object.keys(ROW_LINES) as l (l)}<option value={l}>{l}</option>{/each}
+					<option value="auto">by galaxy size</option>
+					{#each Array.from({ length: MAX_RINGS + 1 }, (_, i) => i) as n (n)}<option
+							value={String(n)}>{n}</option
+						>{/each}
 				</select></label
 			>
-		{/each}
-		{#each SWITCHES as [key, label, note] (key)}
+			<label class="mt-2 block"
+				>sectors
+				<select
+					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+					value={String(data.quadrants.sectors)}
+					onchange={(e) => setQuadrants({ sectors: Number(e.currentTarget.value) as SectorCount })}
+				>
+					{#each SECTOR_COUNTS as n (n)}<option value={String(n)}>{n}</option>{/each}
+				</select></label
+			>
 			<label class="mt-2 block"
 				><input
 					type="checkbox"
-					checked={data.display[key]}
-					onchange={(e) =>
-						act(() =>
-							putSettings({ display: { ...data.display, [key]: e.currentTarget.checked } })
-						)}
-				/>
-				{label}
-				{#if note}<span class="text-gray-500">({note})</span>{/if}</label
+					checked={data.quadrants.rotated}
+					onchange={(e) => setQuadrants({ rotated: e.currentTarget.checked })}
+				/> cross turned by half a sector (4 sectors: N, E, S, W instead of NE, SE, SW, NW)</label
 			>
-		{/each}
-	</section>
-	<section>
-		<h2 class="mb-1 text-xl font-semibold">Map rings and quadrants</h2>
-		<p class="mb-1 text-gray-500">
-			Rings around the galactic core — one just inside the innermost system, one just outside the
-			outermost (special systems such as the L-Cluster may lie beyond it) — and a cross dividing the
-			galaxy into sectors, on every map.
-		</p>
-		<label class="block"
-			><input
-				type="checkbox"
-				checked={data.quadrants.on}
-				onchange={(e) => setQuadrants({ on: e.currentTarget.checked })}
-			/> show them</label
-		>
-		<label class="mt-2 block"
-			>rings in between
-			<select
-				class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
-				value={data.quadrants.rings === null ? 'auto' : String(data.quadrants.rings)}
-				onchange={(e) =>
-					setQuadrants({
-						rings: e.currentTarget.value === 'auto' ? null : Number(e.currentTarget.value)
-					})}
-			>
-				<option value="auto">by galaxy size</option>
-				{#each Array.from({ length: MAX_RINGS + 1 }, (_, i) => i) as n (n)}<option value={String(n)}
-						>{n}</option
-					>{/each}
-			</select></label
-		>
-		<label class="mt-2 block"
-			>sectors
-			<select
-				class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
-				value={String(data.quadrants.sectors)}
-				onchange={(e) => setQuadrants({ sectors: Number(e.currentTarget.value) as SectorCount })}
-			>
-				{#each SECTOR_COUNTS as n (n)}<option value={String(n)}>{n}</option>{/each}
-			</select></label
-		>
-		<label class="mt-2 block"
-			><input
-				type="checkbox"
-				checked={data.quadrants.rotated}
-				onchange={(e) => setQuadrants({ rotated: e.currentTarget.checked })}
-			/> cross turned by half a sector (4 sectors: N, E, S, W instead of NE, SE, SW, NW)</label
-		>
-	</section>
-	<section>
-		<h2 class="mb-1 text-xl font-semibold">Games</h2>
-		<p class="mb-1 text-gray-500">
-			The history kept for each game. It is the only copy of what the game's autosaves no longer
-			hold.
-		</p>
-		<table class="text-left">
-			<tbody>
-				{#each data.games as g (g.campaign)}
-					<tr class="border-b border-gray-200 dark:border-gray-800">
-						<td class="p-1">{g.name || g.campaign}</td>
-						<td class="p-1 text-gray-500">{g.date}</td>
-						<td class="p-1 text-gray-500">{g.nodes} states</td>
-						<td class="p-1 text-gray-500">{g.onDisk ? 'saves on disk' : 'no saves on disk'}</td>
-						<td class="p-1">
-							<button class="text-red-600 underline" onclick={() => deleteGame(g)}>delete</button>
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</section>
-	<section>
-		<h2 class="mb-1 text-xl font-semibold">Folders</h2>
-		<p class="text-gray-500">
-			The game install and the folder with your saves: <a class="underline" href={resolve('/setup')}
-				>change them</a
-			>.
-		</p>
-	</section>
+		</section>
+		<section id="games" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Games</h2>
+			<p class="mb-1 text-gray-500">
+				The history kept for each game. It is the only copy of what the game's autosaves no longer
+				hold.
+			</p>
+			<table class="text-left">
+				<tbody>
+					{#each data.games as g (g.campaign)}
+						<tr class="border-b border-gray-200 dark:border-gray-800">
+							<td class="p-1">{g.name || g.campaign}</td>
+							<td class="p-1 text-gray-500">{g.date}</td>
+							<td class="p-1 text-gray-500">{g.nodes} states</td>
+							<td class="p-1 text-gray-500">{g.onDisk ? 'saves on disk' : 'no saves on disk'}</td>
+							<td class="p-1">
+								<button class="text-red-600 underline" onclick={() => deleteGame(g)}>delete</button>
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</section>
+		<section id="folders" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Folders</h2>
+			<p class="text-gray-500">
+				The game install and the folder with your saves: <a
+					class="underline"
+					href={resolve('/setup')}>change them</a
+				>.
+			</p>
+		</section>
+	</div>
 </div>

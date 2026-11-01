@@ -467,6 +467,9 @@ export type Snapshot = {
 	// `biogenesis_02` builds bio ships, and researches their hulls; since READER 40
 	shipset: string | null;
 	galaxySetup: GalaxySetup | null; // the settings the galaxy was created with; since READER 42
+	external: ExternalBuildings[] | null; // branch offices and holdings, ours and on our colonies; READER 43
+	branchSites: BranchSite[] | null; // a MegaCorp's: other empires' colonies with trade; READER 43
+	history: HistoryReading | null; // the whole galaxy's owners and colonies, for the history tab; READER 43
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
@@ -883,6 +886,45 @@ export type Subject = {
 	specialistLevel: number;
 	specialistExperience: number;
 	loyalty: number | null;
+};
+/**
+ * Buildings one empire owns on another's colony (`colony.<id>.externally_owned_buildings = { {
+ * building_owner owner_type buildings } }`, 4.5.x): a MegaCorp's branch office (`corporate` — the
+ * office itself, its buildings listed) or an overlord's holdings (`subject_holding`). Only those
+ * we own and those on our colonies.
+ */
+export type ExternalBuildings = {
+	colonyId: number;
+	name: string; // the colony's planet (or arkship)
+	systemId: number | null;
+	ownerId: number; // the colony's owner
+	owner: string;
+	holderId: number; // whose buildings they are
+	holder: string;
+	kind: 'corporate' | 'subject_holding';
+	buildings: string[]; // building types
+	trade: number | null; // the colony's trade a month (`produces.trade`): what an office's value follows
+};
+/**
+ * Who holds what across the galaxy at one save, true whatever we know (the history tab filters by
+ * what we know, `#lib/history.ts`). Pairs keep it small: ~800 systems' owners per save.
+ */
+export type HistoryReading = {
+	owners: [number, number][]; // system → its station's owner
+	colonies: [number, number, string | null, number][]; // planet, owner, colonize_date (null: unknown), system
+	guardians: { flag: string; countryId: number | null; date: string | null }[]; // kill flags
+	names: [number, string][]; // every country above, by id
+};
+/** A colony a MegaCorp could open a branch office on: another empire's, with its trade. */
+export type BranchSite = {
+	colonyId: number;
+	name: string;
+	systemId: number | null;
+	ownerId: number;
+	owner: string;
+	trade: number;
+	jumps: number | null; // from our capital, over hyperlanes and usable bypasses
+	office: string | null; // the corporation with an office there already
 };
 /** What one side of a trade deal hands over: resources monthly or once, and anything else. */
 export type DealSide = { monthly: Resources; once: Resources; other: string[] };
