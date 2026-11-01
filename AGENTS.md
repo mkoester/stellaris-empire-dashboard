@@ -17,6 +17,9 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
 - **Every `goto()` takes a `resolve()`** — the lint's `svelte/no-navigation-without-resolve`
   refuses a plain string; for "this page with another query" pass `resolve(...args)` with the
   route id plus query and `page.params` (`here()` in `+layout.svelte`).
+- **A `{#snippet}` written directly inside a component's children becomes that component's prop**
+  (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
+  or handed to another component, goes at the template's top level.
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
   (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14.
 
@@ -383,7 +386,10 @@ wide + table = that with the page's table beside the map) — one localStorage k
 systems; megastructures; situations: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
 filters stay above the map. Without `beside` (diplomacy, migration) the third button is not offered
-and a stored `side` draws as wide. The table
+and a stored `side` draws as wide. **The table beside is independent of the map's height** (the
+user's ask, 2026-11-01): it reaches the window's bottom, scrolls on its own with its header pinned,
+and sticks below the window's top while the page scrolls (`fitAside()`). Open: a cell's `InfoPopup`
+(`absolute`) at its bottom scrolls the column instead of overlapping the map. The table
 also shows each marker's **difficulty** (first contacts and dig sites as the save holds it, an
 anomaly its category's `level`), when it was **seen** and its **age** in months (the user's ask
 2026-10-31): a first contact its own `date`, a station its first sighting, an anomaly or dig site
