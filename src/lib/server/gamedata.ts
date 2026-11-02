@@ -558,6 +558,35 @@ export function loadGameData(file: string): GameData {
 					(r) => [r.key, r.name ?? r.key]
 				)
 			),
+			// planet decisions (extractor 2026-11-02; an older data DB has none): the what-ifs
+			planetDecisions: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'decision'"
+			).length
+				? rows<{
+						key: string;
+						name: string | null;
+						cost_json: string | null;
+						potential_json: string | null;
+						allow_json: string | null;
+						adds_json: string | null;
+						removes_json: string | null;
+					}>(
+						'SELECT key, name, cost_json, potential_json, allow_json, adds_json, removes_json FROM decision ORDER BY sort_order'
+					).map((r) => ({
+						key: r.key,
+						name: r.name ?? r.key,
+						costs: (
+							JSON.parse(r.cost_json ?? '[]') as { when: unknown; cost: Record<string, number> }[]
+						).map((t) => ({
+							when: t.when ? parseTrigger(JSON.stringify(t.when)) : null,
+							cost: t.cost
+						})),
+						potential: parseTrigger(r.potential_json),
+						allow: parseTrigger(r.allow_json),
+						adds: JSON.parse(r.adds_json ?? '[]'),
+						removes: JSON.parse(r.removes_json ?? '[]')
+					}))
+				: [],
 			// an older data DB may lack the table: unnamed then
 			precursors: rows<{ name: string }>(
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'precursor'"
@@ -745,18 +774,27 @@ export function loadGameData(file: string): GameData {
 					ai_wants: number | null;
 					max: number | null;
 					tradable: number;
-				}>('SELECT key, name, ai_weight, ai_wants, max, tradable FROM strategic_resource').map(
-					(r) => [
-						r.key,
-						{
-							name: r.name ?? r.key,
-							aiWeight: r.ai_weight,
-							aiWants: r.ai_wants,
-							max: r.max,
-							tradable: r.tradable === 1
-						}
-					]
-				)
+					deficit_trade: number | null;
+				}>(
+					// the deficit fee since extractor 2026-11-02; an older data DB has none (null)
+					`SELECT key, name, ai_weight, ai_wants, max, tradable, ${
+						rows<{ name: string }>('PRAGMA table_info(strategic_resource)').some(
+							(c) => c.name === 'deficit_trade'
+						)
+							? 'deficit_trade'
+							: 'NULL AS deficit_trade'
+					} FROM strategic_resource`
+				).map((r) => [
+					r.key,
+					{
+						name: r.name ?? r.key,
+						aiWeight: r.ai_weight,
+						aiWants: r.ai_wants,
+						max: r.max,
+						tradable: r.tradable === 1,
+						deficitTrade: r.deficit_trade
+					}
+				])
 			),
 			personalities: Object.fromEntries(
 				rows<{ key: string; name: string | null; trade_willingness: number | null }>(
@@ -788,6 +826,20 @@ export function loadGameData(file: string): GameData {
 					`SELECT owner_key AS key, modifier_key AS name, modifier_value AS amount
 					   FROM tradition_modifier
 					  WHERE potential_json IS NULL AND owner_key IN (SELECT key FROM edict)`
+				)
+			),
+			// what a policy option and a designation change while held (unconditional; the what-ifs)
+			policyModifiers: byKey(
+				rows(
+					`SELECT owner_key AS key, modifier_key AS name, modifier_value AS amount
+					   FROM tradition_modifier
+					  WHERE potential_json IS NULL AND owner_key IN (SELECT key FROM policy_option)`
+				)
+			),
+			designationModifiers: byKey(
+				rows(
+					`SELECT colony_type_key AS key, modifier AS name, value AS amount
+					   FROM colony_type_modifier`
 				)
 			),
 			// what techs and traditions change in costs, upkeep and output (the trade-offs tab)

@@ -24,7 +24,8 @@ export const SWITCH_GROUPS = [
 	'Expansion',
 	'Government and ethics',
 	'Situations',
-	'Diplomacy and trade'
+	'Diplomacy and trade',
+	'What-ifs'
 ] as const;
 
 export const SWITCHES: Switch[] = [
@@ -154,6 +155,15 @@ export const SWITCHES: Switch[] = [
 		kind: 'cheat',
 		label: 'Trade: other empires’ stockpiles and income, and what they would trade at what rate',
 		note: 'the game shows neither; estimated until calibrated (docs/trade-calibration.md)'
+	},
+	{
+		key: 'whatIfs',
+		group: 'What-ifs',
+		kind: 'spoiler',
+		label:
+			'What-ifs: ≈ what an edict, a policy, a designation or a planet decision would do if taken now',
+		note: 'the game shows a choice’s modifiers, not what they come to; Distribute Luxury Goods’ estimate is one of them',
+		tags: 'estimate edicts policies designation decisions luxury goods'
 	}
 ];
 

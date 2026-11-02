@@ -1003,12 +1003,18 @@ export type GameData = {
 			aiWants: number | null;
 			max: number | null;
 			tradable: boolean;
+			// trade a month per unit a colony is short of it (`deficit_trade_conversion_mult`);
+			// absent from a data DB before extractor 2026-11-02
+			deficitTrade?: number | null;
 		}
 	>;
 	personalities: Record<string, { name: string; willingness: number | null }>;
 	attitudes: Record<string, { name: string; trade: boolean }>;
 	opinionModifiers: Record<string, { name: string; max: number | null; decay: number | null }>; // per level: outpost, starport …
 	edictModifiers: Record<string, Record<string, number>>; // edict → modifier → value
+	policyModifiers: Record<string, Record<string, number>>; // policy option → modifier → value
+	planetDecisions: import('./planetDecisions.ts').PlanetDecision[]; // data DB `decision`, [] before it
+	designationModifiers: Record<string, Record<string, number>>; // colony type → modifier → value
 	// what researching a tech needs: prerequisites, who can get it (`potential`), rarity
 	techRequirements: Record<
 		string,

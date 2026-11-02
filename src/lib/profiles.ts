@@ -43,6 +43,7 @@ export type Display = {
 	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, whatever our intel (cheating)
 	historyAll: boolean; // history tab: every empire's history, whatever we know (cheat)
+	whatIfs: boolean; // ≈ what an edict, policy, designation or planet decision would do now (spoiler)
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
@@ -65,6 +66,7 @@ export const DEFAULT_DISPLAY: Display = {
 	factionTypes: false,
 	allFactionTypes: false,
 	tradeoffs: false,
+	whatIfs: false,
 	tradeIntel: false,
 	diplomacyAll: false,
 	historyAll: false
@@ -118,6 +120,7 @@ export function parseDisplay(v: unknown): Display {
 		showSpoilers: typeof o.showSpoilers === 'boolean' ? o.showSpoilers : anyOn(o, 'spoiler'),
 		showCheats: typeof o.showCheats === 'boolean' ? o.showCheats : anyOn(o, 'cheat'),
 		habitatsAlways: o.habitatsAlways === true,
+		whatIfs: o.whatIfs === true,
 		anomalySpoilers: o.anomalySpoilers === true,
 		projectSpoilers: o.projectSpoilers === true,
 		contactStations: o.contactStations === true,

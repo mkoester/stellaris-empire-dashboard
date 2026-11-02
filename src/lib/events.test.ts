@@ -101,6 +101,9 @@ const data: GameData = {
 	attitudes: {},
 	opinionModifiers: {},
 	edictModifiers: {},
+	policyModifiers: {},
+	planetDecisions: [],
+	designationModifiers: {},
 	techRequirements: {},
 	defines: {
 		EMPIRE_SIZE_BASE: 100,

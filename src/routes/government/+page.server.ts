@@ -13,6 +13,8 @@ import { branch } from '#lib/server/branch.ts';
 import { identity } from '#lib/server/empire.ts';
 import { pick } from '#lib/server/explain.ts';
 import { display } from '#lib/server/settings.ts';
+import { whatIfInputs, whatIfOf } from '#lib/server/whatIfs.ts';
+import { swapModifiers, type WhatIf } from '#lib/whatIf.ts';
 
 // The game's government screen: identity, council and agendas, policies, edicts (factions: the
 // ethics tab), read against the branch's latest save that has the government fields.
@@ -31,7 +33,7 @@ export function load({ url }) {
 			k.options.filter((o) => o.isSlavery).map((o) => o.key)
 		)
 	});
-	const { showLocked } = display();
+	const { showLocked, whatIfs: showWhatIfs } = display();
 	const policies = policyRows(data.policies, s.policies ?? {}, f, showLocked);
 	// the measured agenda rate (progress/month) and the empire-size factor on costs, from the
 	// agenda being prepared: an estimate for every other one, if picked next and started from 0
@@ -55,8 +57,33 @@ export function load({ url }) {
 		seats.map((r) => r.key),
 		f
 	).map((p) => ({ ...p, classes: data.councilPositions[p.key]?.classes ?? [] }));
+	// ≈ what enacting an edict (cancelling an active one) or switching a policy would do now
+	const whatIfs: Record<string, WhatIf> = {};
+	const inputs = showWhatIfs ? whatIfInputs(b) : null;
+	if (inputs) {
+		for (const e of edicts) {
+			const mods = data.edictModifiers[e.key];
+			const w = whatIfOf(
+				e.active ? Object.fromEntries(Object.entries(mods ?? {}).map(([k, v]) => [k, -v])) : mods,
+				inputs
+			);
+			if (w) whatIfs[`edict:${e.key}`] = w;
+		}
+		for (const p of policies)
+			for (const o of p.options.filter((o) => !o.selected)) {
+				const w = whatIfOf(
+					swapModifiers(
+						p.selected ? data.policyModifiers[p.selected] : undefined,
+						data.policyModifiers[o.key]
+					),
+					inputs
+				);
+				if (w) whatIfs[`policy:${o.key}`] = w;
+			}
+	}
 	return {
 		...rest,
+		whatIfs: inputs ? whatIfs : null,
 		seenAt: s.date,
 		showLocked,
 		complete: s.council !== null, // read since the government tab exists

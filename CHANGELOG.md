@@ -18,6 +18,16 @@ All notable changes to this project are documented here. The format follows
   it: the game turns a fractional rate into a chance of one more pop, so a single month jumps by
   up to one. ⚙ → Pops charts sets the months: 3 before and 2 after by default, up to 6 each way.
   The game's first day counts as no month booked yet, no longer as a drop to zero.
+- What colony deficits cost: a colony that uses more of a resource than it makes is supplied by
+  the rest of the empire, and the game charges trade for it (energy, minerals and food 0.125 a
+  unit, consumer goods 0.25, alloys 0.5; the capital's shortfall less the empire's base income).
+  The colonies tab has a "Deficit" column and the empire's total against what the budget booked;
+  each colony page a "Supplied from elsewhere" panel that weighs the fee against making it there
+  instead — building, upkeep and what the workers make now, less what it would make.
+- What-ifs (⚙ → What-ifs, a spoiler, off by default): what an edict would do if enacted now (or
+  an active one if cancelled), what switching a policy would do, and on each colony page what
+  another designation or a planet decision would do — output a month and stability, with what the
+  estimate does not count named. Distribute Luxury Goods' estimate is now behind the same switch.
 - Growth tab: the Pops chart below the projection.
 - Colony tab: a Pops chart for the colony, with its monthly change, after Stability; the chart of
   employed pops, civilians and open jobs is now "Pops (jobs)".

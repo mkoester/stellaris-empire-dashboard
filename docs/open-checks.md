@@ -266,6 +266,21 @@ on our subject Lolehndra, so the war colour comes from wars alone).
   0, and whose record it is in; full window fills the browser, the table beside scrolls on its own
   and Esc goes back.
 
+### 28. Deficit fee and what-ifs — colonies, colony and government tabs (from 2026-11-02)
+
+The fee rule (MattMills/stellarstellaris-win, inferred there) fits our saves within 4.4 % (the
+budget's `planet_resource_deficit` against the sum), but no colony's own share has been seen in
+game, and the what-ifs (⚙ What-ifs, a spoiler) are estimates never compared with a change made.
+**Assumed**: the capital is the colony whose shortfall `country_base` covers; an output modifier
+adds its share of today's output (an upper bound); a designation's candidates are those of its own
+kind.
+
+- **Do:** with the switch on, note one edict's "≈ if enacted now" and one colony's designation
+  what-if; enact the edict (or switch the designation), let a month pass, then the budget's
+  Planetary Deficit line (hover) and the resource's income tooltip.
+- **Send:** the screenshots before and after, and the date. Check: the colonies tab's deficit
+  total against the budget line; the month's change against the estimate.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

@@ -3,7 +3,8 @@ import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
-import { popWindow } from '#lib/server/settings.ts';
+import { display, popWindow } from '#lib/server/settings.ts';
+import { colonyWhatIfs } from '#lib/server/whatIfs.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
 import { colonyDaySeries, colonyPopSeries, colonySeries, xExtent } from '#lib/series.ts';
@@ -11,6 +12,7 @@ import type { Colony } from '#lib/types.ts';
 import { uncappedStability, wellbeingRules } from '#lib/wellbeing.ts';
 import { jobOutput, LUXURY_MODIFIER, luxuryWhatIf } from '#lib/luxuries.ts';
 import { heldOf, wellbeingLevers } from '#lib/wellbeingLevers.ts';
+import { colonyLogistics } from '#lib/server/logistics.ts';
 
 const pct = (v: number | null) => (v === null ? null : Math.round(v * 1000) / 10);
 
@@ -43,6 +45,7 @@ export function load({ url, params }) {
 			wellbeing
 		);
 	const colony = colonyAt(b.latest) ?? null;
+	const { whatIfs } = display();
 	const save = b.snaps.findLast((s) => s.kind === 'save') ?? null;
 	// what could go to lower happiness or amenities, from the latest save (#lib/wellbeingLevers.ts)
 	const saved = save && colonyAt(save);
@@ -70,21 +73,26 @@ export function load({ url, params }) {
 			save
 		),
 		jobRows: b.jobs[planetId] ?? [],
+		// what its deficits cost and whether making it here would be cheaper (#lib/colonyLogistics.ts)
+		logistics: colony ? colonyLogistics(b, colony) : null,
 		// what amenities, happiness and stability do (#lib/wellbeing.ts)
 		wellbeing,
 		gestalt,
 		uncapped: colony ? uncapped(colony) : null,
 		levers,
 		// "Distribute Luxury Goods": what enacting it now would bring (#lib/luxuries.ts), or until when it runs
-		luxuries: colony
-			? luxuryWhatIf(
-					colony,
-					jobOutput(b.jobs[planetId] ?? []),
-					uncapped(colony),
-					gestalt,
-					wellbeing
-				)
-			: null,
+		// the what-ifs (⚙, a spoiler): designations and planet decisions on this colony
+		whatIfs: colony && whatIfs ? colonyWhatIfs(b, colony) : null,
+		luxuries:
+			colony && whatIfs
+				? luxuryWhatIf(
+						colony,
+						jobOutput(b.jobs[planetId] ?? []),
+						uncapped(colony),
+						gestalt,
+						wellbeing
+					)
+				: null,
 		luxuriesUntil: colony?.planet?.modifiers.find((m) => m.key === LUXURY_MODIFIER)?.until ?? null,
 		classNames: Object.fromEntries(
 			Object.entries(getGameData().planetClasses).map(([k, v]) => [k, v.name])

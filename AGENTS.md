@@ -1003,7 +1003,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`. A new view of hidden information follows the same pattern.
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`. A new view of hidden information follows the same pattern.
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
 `normal`, `spoiler` (what the game hides until found) or `cheat` (what it never tells a player;
@@ -1146,6 +1146,25 @@ counts, a gestalt's `no_happiness` ones instead); its other modifiers are the si
 unconditional modifiers — living standards' happiness, most job variants and leader traits are
 triggered and missing; 2205.07 listed Prosperous Unification, the capital building and Medical
 Workers.
+**Colony deficits** (`#lib/colonyLogistics.ts` pure, `server/logistics.ts`, `ColonyLogistics.svelte`
+on the colony page, the colonies tab's `logistics` column; the user's ask 2026-11-02: "what deficit is
+costing me per colony, so I can see whether specialising is worth it"): the budget's
+`planet_resource_deficit` (trade, empire-wide only). Rule from MattMills/stellarstellaris-win
+`docs/economy.md` ("Planetary deficits", inferred there): per colony and resource, upkeep − produces
+× the resource's `deficit_trade_conversion_mult` (data DB `strategic_resource.deficit_trade`, since
+extractor 2026-11-02; an older DB falls back to 0.125 × base price, the same numbers) × the galaxy's
+`logistics_planet_deficit_costs`; **the capital's shortfall less the country's `country_base`
+income** (`isCapital()`: `col_capital*`). Checked 2026-11-02: 15 of 17 AI empires exact
+(dashboardtest1 2210.01.01; the misses are pre-FTL colonies), ours −2.0 % (Planetforgers
+2214.02.01), +0.1 % (Roaming Korinth 2207.02.01), +4.4 % (UNE 2202.08.01), +2.4 % (UNE3
+2207.04.02); without the capital rule +29 … +67 %. The colonies tab shows the sum against what the
+budget booked (✓ within 5 %, `fitCheck()`). **Make it here instead** (`localAlternatives()`): the
+produce tab's cheapest option on the colony (districts with room, a cleared blocker's district,
+building types we have — slots unknown), as many as cover the shortfall; its net cost a month =
+(cost over the produce view's horizon + upkeep + what the moved workers make now − the unit's value)
+× all it makes, surplus included; civilians take the jobs first, a worker is worth the colony's job
+output ÷ employed (`perWorker()`). Wins when that is below the fee on the shortfall. Not counted:
+designation bonuses. Not yet compared with the game's budget tooltip.
 **Distribute Luxury Goods** (`#lib/luxuries.ts`, `LuxuryGoods.svelte` on the colony page; the user's
 ask 2026-10-31): `decision_planet_luxuries_boost` costs 100 Consumer Goods per started 1000 pops
 (8500–9999: 900, at most 1000; 4.5.3 `common/decisions/00_resource_decisions.txt`), then
@@ -1157,6 +1176,29 @@ on today's job output scaled back by stability's share (`jobOutput()` from the j
 `screenshot_2026-10-31_18-16-28`: physicists' "High Stability +30 %" under Produces, upkeep 5.16
 without it); job efficiency (`screenshot_…18-16-11`: +72 % → 344 of 200 workforce) is extra
 workforce and scales both. Not offered to gestalts, on a Nanotech World or while it runs.
+**What-ifs** (the profile's `whatIfs` switch, a **spoiler**, off by default — the user's ask
+2026-11-02: "more what-ifs like Distribute Luxury Goods, for edicts and policies, guarded by a
+setting"; it gates Distribute Luxury Goods' too; `#lib/whatIf.ts` pure, `server/whatIfs.ts`,
+`WhatIfLine.svelte`, `ColonyWhatIfs.svelte`): what a set of modifiers would do from now, ≈. Two
+paths: output modifiers as the produce tab prices edicts (`changesOf()` → `changeGain()`, a share
+of today's output, an upper bound), plus — in `whatIf.ts` only, the trade-offs tab's rules leave
+them out on purpose — `country_<res>_produces_mult` (a share of the jobs' output of it) and
+`<job>_jobs_bonus_workforce_mult` (designations; extra workforce, its upkeep not counted); and
+amenities, `pop_happiness` and `planet_stability_add` colony by colony along the Luxury Goods chain
+(`wellbeingChain()`, which `luxuryWhatIf()` now runs on). Every other key is listed "not counted"
+(most edict and policy modifiers are military, leaders, diplomacy). **Government tab**: per edict
+"if enacted now" (an active one "if cancelled now"), per policy option the switch from the selected
+one (`swapModifiers()`; data DB `tradition_modifier` of the option, `GameData.policyModifiers`).
+**Colony page**: designations of the colony's own kind (`designationCandidates()`: same district
+set, capital among capitals, gestalt ones for gestalts — the game's `potential`s are planet-scope
+triggers the save cannot answer, so ≈), each with the deficit fee's change; and every planet
+decision not ruled out (data DB `decision`, extractor 2026-11-02, `#lib/planetDecisions.ts`: the
+planet's own leaves — `has_modifier`, `has_designation`, `is_planet_class`, `is_capital`,
+`pop_amount` — answered there, the country's by `#lib/triggers.ts`, "(?)" otherwise) that adds a
+static modifier (its explanation's modifiers) or removes one the planet has, with its cost tier and
+duration. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01, UNE 2202.08.01): every page
+200; switch off → none shown, on → shown, spoilers hidden → off again. Not compared with the game
+(`docs/open-checks.md` 28).
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
