@@ -428,7 +428,12 @@ wide + table = that with the page's table beside the map) — one localStorage k
 systems; megastructures; situations: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
 filters stay above the map. Without `beside` (diplomacy, migration) the third button is not offered
-and a stored `side` draws as wide. **The table beside is independent of the map's height** (the
+and a stored `side` draws as wide. **Full window** (the user's ask 2026-11-02; `GalaxyMap`'s "⛶ full
+window" button, per viewer in localStorage `MAP_FULL_KEY`): the map lays itself over the whole
+browser window (`fixed`, `z-40` — below the context menu and popups, `z-50`), its toolbar on top,
+the swatches below, the table beside it still offered; the page behind does not scroll, Esc leaves
+it, and the height chosen for the page is not overwritten. A page's own map controls go into
+`GalaxyMap`'s `controls` snippet so they stay in reach there: the map tab's modes and layers. **The table beside is independent of the map's height** (the
 user's ask, 2026-11-01): it reaches the window's bottom, scrolls on its own with its header pinned,
 and sticks below the window's top while the page scrolls (`fitAside()`). Open: a cell's `InfoPopup`
 (`absolute`) at its bottom scrolls the column instead of overlapping the map. The table

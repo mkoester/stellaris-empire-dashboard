@@ -22,6 +22,8 @@ All notable changes to this project are documented here. The format follows
   and how fresh our intel is. A claims mode fills the systems we claim and our systems others
   claim. A mode shows only what our intel shows, as the diplomacy tab does. Empires we have no
   communications with stay grey, and a reading our intel no longer confirms is dashed.
+- Every map: "full window" lays the map over the whole browser window, with its toolbar, the map
+  tab's modes and layers, and the table beside it if you pick "wide + table". Esc goes back.
 
 ## [0.1.8] - 2026-11-01
 

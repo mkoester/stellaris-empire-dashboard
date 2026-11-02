@@ -276,38 +276,6 @@
 	</datalist>
 </div>
 
-<div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
-	<span class="text-gray-500">map mode</span>
-	{#each MAP_MODES as m (m)}
-		<button
-			class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {filter.mode === m
-				? 'bg-gray-200 dark:bg-gray-800'
-				: ''}"
-			aria-pressed={filter.mode === m}
-			title={MODE_INFO[m].note}
-			onclick={() => setMode(m)}>{MODE_INFO[m].label}</button
-		>
-	{/each}
-	{#if filter.mode !== 'empire'}
-		<span class="text-gray-500">{MODE_INFO[filter.mode].note}</span>
-	{/if}
-</div>
-{#if filter.mode !== 'empire' && filter.mode !== 'claims' && !data.modes}
-	<p class="mb-3 text-sm text-amber-600">
-		No diplomacy read yet: every empire shows grey until the next save.
-	</p>
-{/if}
-
-<div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-	{#each MAP_LAYERS as l (l)}
-		<label class="flex items-center gap-1"
-			><input type="checkbox" checked={on(l)} onchange={() => toggle(l)} />
-			<span style:color={LAYER_INFO[l].color}>{LAYER_INFO[l].symbol}</span>
-			{LAYER_INFO[l].label} <span class="text-gray-500">{count(l)}</span></label
-		>
-	{/each}
-</div>
-
 {#if data.wanderlust && on('wanderlust')}
 	<p
 		class="mb-3 text-sm"
@@ -351,6 +319,39 @@
 			beside={found}
 			onsystemmenu={systemMenu}
 		>
+			{#snippet controls()}
+				<div class="flex flex-wrap items-center gap-2 text-sm">
+					<span class="text-gray-500">map mode</span>
+					{#each MAP_MODES as m (m)}
+						<button
+							class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {filter.mode ===
+							m
+								? 'bg-gray-200 dark:bg-gray-800'
+								: ''}"
+							aria-pressed={filter.mode === m}
+							title={MODE_INFO[m].note}
+							onclick={() => setMode(m)}>{MODE_INFO[m].label}</button
+						>
+					{/each}
+					{#if filter.mode !== 'empire'}
+						<span class="text-gray-500">{MODE_INFO[filter.mode].note}</span>
+					{/if}
+				</div>
+				{#if filter.mode !== 'empire' && filter.mode !== 'claims' && !data.modes}
+					<p class="mt-1 text-sm text-amber-600">
+						No diplomacy read yet: every empire shows grey until the next save.
+					</p>
+				{/if}
+				<div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+					{#each MAP_LAYERS as l (l)}
+						<label class="flex items-center gap-1"
+							><input type="checkbox" checked={on(l)} onchange={() => toggle(l)} />
+							<span style:color={LAYER_INFO[l].color}>{LAYER_INFO[l].symbol}</span>
+							{LAYER_INFO[l].label} <span class="text-gray-500">{count(l)}</span></label
+						>
+					{/each}
+				</div>
+			{/snippet}
 			{#snippet layer(at)}
 				{#each [...bySystem] as [id, list] (id)}
 					{@const s = byId.get(id)}
