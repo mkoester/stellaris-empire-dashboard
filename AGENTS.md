@@ -1643,7 +1643,11 @@ an `every_situation = { limit = … }` form did not).
 **For a shape not yet seen in our saves** (wars, trade deals, galactic market): the other parser,
 eliasdoehne/stellaris-dashboard (`stellarisdashboard/parsing/timeline.py`), reads many; a 4.0.1
 save at 2312 lives in chennin/stellaris-dashboard-test-saves (galactic market and GalCom, but
-still no trade deal). Download into `$TMPDIR`, never into the repo. **To find where a save keeps
+still no trade deal). **What the engine does with a field** (not in any game file): MattMills/
+stellarstellaris-win, a reverse engineering of the GOG 4.5.2 build, unofficial — `docs/pops.md`
+(growth rounded at random each month, no remainder kept), `docs/ethics.md` (`pop_groups.<id>.fractions`
+= the faction-change remainder, `-1` no faction); it agreed with the saves on both (2026-11-02).
+Download into `$TMPDIR`, never into the repo. **To find where a save keeps
 something**, grepping the raw `gamestate` is not enough: the names are not what you expect (a
 branch office is `externally_owned_buildings`, not `branch_office*`). Parse it with jomini
 (`parseText(…, q => q.json())` in a throwaway `.mjs` in the repo, so `jomini` resolves; deleted
