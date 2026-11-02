@@ -3,6 +3,7 @@ import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
+import { popWindow } from '#lib/server/settings.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
 import { colonyDaySeries, colonyPopSeries, colonySeries, xExtent } from '#lib/series.ts';
@@ -103,7 +104,7 @@ export function load({ url, params }) {
 				open: openJobs(c).open
 			})),
 			// as the all tab's Pops chart: pops and their monthly change by cause
-			popChange: colonyPopSeries(snaps, planetId),
+			popChange: colonyPopSeries(snaps, planetId, popWindow()),
 			// above the cap: how far, once the mod has read the colony (the right axis)
 			stability: colonySeries(snaps, planetId, {
 				stability: (c) => c.stability,

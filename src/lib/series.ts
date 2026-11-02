@@ -1,4 +1,5 @@
 import { stripOrder } from './resourceGroups.ts';
+import type { PopWindow } from './popWindow.ts';
 import type { Spend } from './spending.ts';
 import type { Colony, Resources, Snapshot } from './types.ts';
 
@@ -284,57 +285,59 @@ const POP_GROUPS = ['growth', 'assembly', 'migration', 'other'];
 export const popCause = (cause: string): string | null =>
 	REGROUPING.has(cause) ? null : (POP_CAUSE[cause] ?? 'other');
 
-/**
- * Months the Pops charts' change is averaged over. The game books whole pops each month and turns
- * the fraction into a chance of one more (4.0 patch notes: "Fractional growth is not retained from
- * month to month"), so one month's change is the rate ± up to 1. Six months cut that to about
- * ± 0.2 and lag a real change by three months; the growth tab's mean uses the same six.
- */
-export const POP_CHANGE_MONTHS = 6;
-
-const meanLabel = (g: string) => `${g} /mo (${POP_CHANGE_MONTHS}-mo mean)`;
+const meanLabel = (g: string) => `${g} /mo (mean)`;
 /** Last month's change as the game booked it, whole pops: drawn faint behind its mean. */
 const monthLabel = (g: string) => `${g} /mo`;
 
 /** The labels of the Pops charts' monthly change, drawn against the right axis. */
 export const POP_CHANGE_LINES = POP_GROUPS.flatMap((g) => [meanLabel(g), monthLabel(g)]);
 
+/** "2203.07.01" → months since year 0, so months can be counted apart. */
+const monthIndex = (date: string) => {
+	const [y, m] = date.split('.').map(Number);
+	return y * 12 + m - 1;
+};
+
 /**
- * Each value as the mean of the last `n` months with one (itself included), a month counted once:
- * saves within one game month all report the same last month, so the newest of them stands for it.
- * A null value stays a gap and is left out of later means.
+ * Each point's value as the mean over the game months `w.back` before to `w.ahead` after its own
+ * (`#lib/popWindow.ts`), a month counted once — saves within one game month all report the same
+ * last month, so the newest of them stands for it. Null values are left out; a point gets null
+ * where `at` is false (not ours then) or no month in its window has a value.
  */
-export function rollingMonthMean(
+export function windowMean(
 	values: (number | null)[],
 	dates: string[],
-	n: number
+	w: PopWindow,
+	at: (i: number) => boolean = () => true
 ): (number | null)[] {
-	return values.map((v, i) => {
-		if (v === null) return null;
-		const byMonth = new Map<string, number>();
-		for (let j = 0; j <= i; j++) {
-			const x = values[j];
-			if (x !== null) byMonth.set(dates[j].slice(0, 7), x);
-		}
-		const last = [...byMonth.values()].slice(-n);
-		return last.reduce((a, b) => a + b, 0) / last.length;
+	const byMonth = new Map<number, number>();
+	values.forEach((v, i) => v !== null && byMonth.set(monthIndex(dates[i]), v));
+	return dates.map((d, i) => {
+		if (!at(i)) return null;
+		const m = monthIndex(d);
+		const xs = [...byMonth].filter(([k]) => k >= m - w.back && k <= m + w.ahead).map(([, v]) => v);
+		return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 	});
 }
 
+/** A save at the game's start has booked no month yet: its change is unknown, not 0. */
+export const GAME_START = '2200.01.01';
+
 /**
- * Pops (left axis) and the monthly change by cause (right axis: the mean of the last
- * `POP_CHANGE_MONTHS` months, and faint behind it each month's whole pops), summed over the colonies `of` picks; null from `of` (not our
- * colony then) or no colony with growth data (a mod-feed month) is a gap. A cause that never
- * changed anything gets no line.
+ * Pops (left axis) and the monthly change by cause (right axis: the mean over the window `w`, and
+ * faint behind it each month's whole pops), summed over the colonies `of` picks; null from `of`
+ * (not our colony then) or no colony with growth data (a mod-feed month, the game's start) is a
+ * gap in the month's line — the mean bridges it. A cause that never changed anything gets no line.
  */
 function popChangeSeries(
 	history: Snapshot[],
+	w: PopWindow,
 	of: (s: Snapshot) => { pops: number | null; colonies: Colony[] } | null
 ): Series {
 	const picked = history.map(of);
-	const changes = picked.map((p) => {
+	const changes = picked.map((p, i) => {
 		const known = (p?.colonies ?? []).filter((c) => c.growth);
-		if (!known.length) return null;
+		if (!known.length || history[i].date === GAME_START) return null;
 		const sum: Record<string, number> = {};
 		for (const c of known)
 			for (const [cause, v] of Object.entries(c.growth!.by)) {
@@ -348,7 +351,7 @@ function popChangeSeries(
 	const lines = moved.flatMap((g) => {
 		const month = changes.map((ch) => (ch === null ? null : (ch[g] ?? 0)));
 		return [
-			[meanLabel(g), rollingMonthMean(month, dates, POP_CHANGE_MONTHS)],
+			[meanLabel(g), windowMean(month, dates, w, (i) => picked[i] !== null)],
 			[monthLabel(g), month]
 		];
 	});
@@ -360,12 +363,12 @@ function popChangeSeries(
 }
 
 /** The empire's Pops chart: its pops and their monthly change over all colonies. */
-export const popSeries = (history: Snapshot[]) =>
-	popChangeSeries(history, (s) => ({ pops: s.pops, colonies: s.colonies }));
+export const popSeries = (history: Snapshot[], w: PopWindow) =>
+	popChangeSeries(history, w, (s) => ({ pops: s.pops, colonies: s.colonies }));
 
 /** One colony's Pops chart, as the empire's. */
-export const colonyPopSeries = (history: Snapshot[], planetId: number) =>
-	popChangeSeries(history, (s) => {
+export const colonyPopSeries = (history: Snapshot[], planetId: number, w: PopWindow) =>
+	popChangeSeries(history, w, (s) => {
 		const c = s.colonies.find((c) => c.planetId === planetId);
 		return c ? { pops: c.pops, colonies: [c] } : null;
 	});

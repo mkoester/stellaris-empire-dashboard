@@ -7,6 +7,7 @@ import type { MapFilter } from '#lib/mapLayers.ts';
 import type { MegaView } from '#lib/megastructures.ts';
 import type { SystemView } from '#lib/systems.ts';
 import type { ProduceView } from '#lib/produce.ts';
+import type { PopWindow } from '#lib/popWindow.ts';
 import type { QuadrantView } from '#lib/quadrants.ts';
 import { effectiveDisplay } from '#lib/displaySwitches.ts';
 import {
@@ -156,6 +157,7 @@ export const systemView = (): SystemView => settings().systemView;
 export const produceView = (): ProduceView => settings().produceView;
 export const mapFilter = (): MapFilter => settings().mapFilter;
 export const quadrantView = (): QuadrantView => settings().quadrants;
+export const popWindow = (): PopWindow => settings().popWindow;
 // as the tabs read it: hidden spoilers and cheats are off
 export const display = (): Display => effectiveDisplay(settings().display);
 // Colony charts were stored as `planet:<title>` before the rename.

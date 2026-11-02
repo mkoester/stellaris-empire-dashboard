@@ -8,6 +8,7 @@ import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
 import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
+import { DEFAULT_POP_WINDOW, parsePopWindow, type PopWindow } from './popWindow.ts';
 import { DEFAULT_QUADRANT_VIEW, parseQuadrantView, type QuadrantView } from './quadrants.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
@@ -82,6 +83,7 @@ export type ProfileSettings = {
 	produceView: ProduceView;
 	mapFilter: MapFilter;
 	quadrants: QuadrantView; // every map's rings and sectors
+	popWindow: PopWindow; // the months the Pops charts' mean takes in
 	display: Display;
 };
 export type ProfileInfo = { id: string; name: string };
@@ -98,6 +100,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	systemView: DEFAULT_SYSTEM_VIEW,
 	produceView: DEFAULT_PRODUCE_VIEW,
 	quadrants: DEFAULT_QUADRANT_VIEW,
+	popWindow: DEFAULT_POP_WINDOW,
 	mapFilter: DEFAULT_MAP_FILTER,
 	display: DEFAULT_DISPLAY
 };
@@ -152,6 +155,7 @@ export function parseSettings(v: unknown): ProfileSettings {
 		produceView: parseProduceView(o.produceView),
 		mapFilter: parseMapFilter(o.mapFilter),
 		quadrants: parseQuadrantView(o.quadrants),
+		popWindow: parsePopWindow(o.popWindow),
 		display: parseDisplay(o.display)
 	};
 }

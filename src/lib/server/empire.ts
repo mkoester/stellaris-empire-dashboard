@@ -12,7 +12,7 @@ import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
 import { expansionOf, expansionRows, habitatData, speciesChoices } from './expansion.ts';
 import { colonyBlockerHints } from './planets.ts';
-import { display, expansionView } from './settings.ts';
+import { display, expansionView, popWindow } from './settings.ts';
 import { ROW_LINES } from '#lib/profiles.ts';
 import { branch } from './branch.ts';
 import { totalEffects, type EffectKind } from '#lib/effects.ts';
@@ -148,7 +148,7 @@ export function empireData(url: URL) {
 		expansionView: expansionView(),
 		xExtent: xExtent(snaps),
 		charts: {
-			pops: popSeries(snaps),
+			pops: popSeries(snaps, popWindow()),
 			agenda: agendaSeries(snaps),
 			score: fieldSeries(snaps, {
 				score: (s) => s.score?.score ?? null,

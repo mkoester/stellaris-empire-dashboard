@@ -911,9 +911,15 @@ blocker, a medical building or an edict would gain, and the colonies ranked by i
 
 **Pops charts** (all, growth and colony tabs; `popSeries()` / `colonyPopSeries()` in
 `#lib/series.ts`, the user's ask 2026-11-01): pops on the left axis, the monthly change on the
-right as the mean of the last `POP_CHANGE_MONTHS` = 6 months (`rollingMonthMean`, saves within one
-game month counted once), each month's whole pops faint behind it (`Series.faint`: thin, dotted, the
-colour of the line before — `lineStyles()`; the user's asks 2026-11-02). **Growth is booked in whole pops, the fraction
+right as the mean over the months around each point (`windowMean`, saves within one game month
+counted once), each month's whole pops faint behind it (`Series.faint`: thin, dotted, the colour of
+the line before — `lineStyles()`). The window is the profile's `popWindow` (`#lib/popWindow.ts`,
+⚙ → Pops charts with a month strip): `back` 3 and `ahead` 2 by default, 0–6 each — ahead keeps the
+line level with its month, and a chart's last `ahead` points average fewer months and change as
+saves arrive. **The save at `GAME_START` (2200.01.01) has booked no month** (every colony's
+`growth.by` empty): its change is unknown, a gap the mean bridges — read as 0 it dragged every
+chart's start down. An empty `by` later is a real zero (UNE's Unity, 2202.07–08, pops unchanged).
+The user's asks 2026-11-02. **Growth is booked in whole pops, the fraction
 a chance of one more, and no remainder is kept or saved** (4.0 patch notes: "Fractional growth is
 not retained from month to month"; checked in saves 2026-11-02 — `pop_groups.<id>.fractions` is
 the faction-change remainder, keyed by faction id, `-1` = none), so one month is off the rate by up
