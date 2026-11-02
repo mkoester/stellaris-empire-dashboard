@@ -475,7 +475,7 @@ last 40 saves on this machine holds a storm, so its format is unknown), and ethi
 trade, wars and border-change modes. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01,
 Roaming Korinth 2207.02.01): `/map` returned 200 in every mode and each mode's colours were
 recomputed from `__data.json`. The drawing needs a browser, and the colours have not been compared
-with the game's map yet.
+with the game's map yet (`docs/open-checks.md` 27).
 
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
 panels by id (`EmpirePanel.svelte`);
