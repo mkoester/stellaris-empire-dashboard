@@ -450,6 +450,28 @@ own owner is not stored), an entry popup in a system whose gateway, megastructur
 own row (the Abandoned Gateway). Wormholes, gateways, L-Gates and megastructures stay open. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
+**Map modes** (the map tab's mode buttons, the profile's `mapFilter.mode`; `#lib/mapModes.ts`
+pure; the user's ask 2026-11-02, after 4.5.2 `common/map_modes/00_map_modes.txt`). Each mode
+recolours the territories (`recolor()`) and names after each empire why, in the swatches and on a
+system's hover. The modes: empire (default), union, diplomatic, opinion, intel, AI attitude, trust,
+threat, intel freshness, and claims, which fills systems (`claimFill()`) and leaves the borders
+alone. Union, diplomatic and attitude take the game's hsv colours (`hsv()`); diplomatic takes the
+first relation that holds in the game's order, federation › war › subject/overlord › defensive pact
+› NAP › research agreement › commercial pact › rival › closed borders › migration treaty. The
+gradients use `scaleColor()`, and opinion is clamped at ±140 as the game's bands are. The data is
+`modeData()` on the server, built from the diplomacy tab's `diplomacyView()`, so the intel model
+and its "unverified since" apply: no communications is grey, and an unverified reading is dashed.
+Intel freshness is the age of the oldest unverified reading, red at 2 years. **The save's
+`relations_manager.relation.hostile=yes` is not the game's `is_hostile`**: it sat on our subject
+Lolehndra (Planetforgers 2214.02.01), so the war colour comes from wars alone. Trust and threat
+are our relation record's (`Relation.trust|threat`); which side's view `threat` is has not been
+checked. Not built yet: neighbours (`is_neighbor_of` is engine-side), storm forecast (none of the
+last 40 saves on this machine holds a storm, so its format is unknown), and ethics, GalCom, weight,
+trade, wars and border-change modes. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01,
+Roaming Korinth 2207.02.01): `/map` returned 200 in every mode and each mode's colours were
+recomputed from `__data.json`. The drawing needs a browser, and the colours have not been compared
+with the game's map yet.
+
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
 panels by id (`EmpirePanel.svelte`);
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel

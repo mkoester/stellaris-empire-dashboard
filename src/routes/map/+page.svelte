@@ -8,6 +8,7 @@
 		type MapLayer,
 		type MapShips
 	} from '#lib/mapLayers.ts';
+	import { claimFill, MAP_MODES, MODE_INFO, recolor, type MapMode } from '#lib/mapModes.ts';
 	import type { MapWidth } from '#lib/mapView.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import { monthStarts } from '#lib/series.ts';
@@ -39,6 +40,21 @@
 		filter = { ...filter, ships };
 		void putSettings({ mapFilter: filter });
 	};
+	const setMode = (mode: MapMode) => {
+		filter = { ...filter, mode };
+		void putSettings({ mapFilter: filter });
+	};
+	// the map mode: borders recoloured by what we know of each empire, or systems filled
+	const territories = $derived(
+		on('borders') ? recolor(filter.mode, data.territories, data.modes, data.attitudes) : []
+	);
+	const claims = $derived(filter.mode === 'claims' ? claimFill(data.claims) : null);
+	// each system of a recoloured territory says why on hover
+	const why = $derived(
+		filter.mode === 'empire' || claims
+			? {}
+			: Object.fromEntries(territories.flatMap((t) => t.systems.map((id) => [id, t.label])))
+	);
 
 	let hovered: number | null = $state(null);
 	let selected: number | null = $state(null);
@@ -127,14 +143,14 @@
 			new Map<number, Marker[]>()
 		)
 	);
-	const titles = $derived(
-		Object.fromEntries(
-			[...bySystem].map(([id, list]) => [
-				id,
-				list.map((m) => `${m.label} (${m.detail}${m.done ? ', done' : ''})`).join('; ')
-			])
-		)
-	);
+	const titles = $derived.by(() => {
+		const out: Record<number, string> = { ...why, ...claims?.titles };
+		for (const [id, list] of bySystem) {
+			const text = list.map((m) => `${m.label} (${m.detail}${m.done ? ', done' : ''})`).join('; ');
+			out[id] = out[id] ? `${out[id]}; ${text}` : text;
+		}
+		return out;
+	});
 
 	const columns: Column<Marker>[] = [
 		{ id: 'layer', label: 'What', value: (r) => LAYER_INFO[r.layer].label, cell: what },
@@ -260,6 +276,28 @@
 	</datalist>
 </div>
 
+<div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
+	<span class="text-gray-500">map mode</span>
+	{#each MAP_MODES as m (m)}
+		<button
+			class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {filter.mode === m
+				? 'bg-gray-200 dark:bg-gray-800'
+				: ''}"
+			aria-pressed={filter.mode === m}
+			title={MODE_INFO[m].note}
+			onclick={() => setMode(m)}>{MODE_INFO[m].label}</button
+		>
+	{/each}
+	{#if filter.mode !== 'empire'}
+		<span class="text-gray-500">{MODE_INFO[filter.mode].note}</span>
+	{/if}
+</div>
+{#if filter.mode !== 'empire' && filter.mode !== 'claims' && !data.modes}
+	<p class="mb-3 text-sm text-amber-600">
+		No diplomacy read yet: every empire shows grey until the next save.
+	</p>
+{/if}
+
 <div class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
 	{#each MAP_LAYERS as l (l)}
 		<label class="flex items-center gap-1"
@@ -291,7 +329,8 @@
 	>
 		<GalaxyMap
 			systems={data.systems}
-			territories={on('borders') ? data.territories : []}
+			{territories}
+			fill={claims?.fill}
 			{titles}
 			focus={[
 				{

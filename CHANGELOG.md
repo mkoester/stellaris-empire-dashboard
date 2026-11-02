@@ -17,6 +17,11 @@ All notable changes to this project are documented here. The format follows
 - Growth tab: the Pops chart below the projection.
 - Colony tab: a Pops chart for the colony, with its monthly change, after Stability; the chart of
   employed pops, civilians and open jobs is now "Pops (jobs)".
+- Map tab: map modes, after the game's own. They colour the borders by union, by our diplomatic
+  relation in the game's order, by their opinion of us, intel or AI attitude, and by trust, threat
+  and how fresh our intel is. A claims mode fills the systems we claim and our systems others
+  claim. A mode shows only what our intel shows, as the diplomacy tab does. Empires we have no
+  communications with stay grey, and a reading our intel no longer confirms is dashed.
 
 ## [0.1.8] - 2026-11-01
 
