@@ -12,7 +12,37 @@ export function gameYear(date: string): number {
 	return y + (m - 1) / 12 + (d - 1) / 360;
 }
 
-export type Series = { x: number[]; lines: Record<string, (number | null)[]> };
+/** Lines named in `faint` are drawn thin and dotted in the colour of the line before them. */
+export type Series = { x: number[]; lines: Record<string, (number | null)[]>; faint?: string[] };
+
+/**
+ * How a chart draws each line: the `n`-th line of its own gets `color(label, n)` and the `n`-th
+ * dash; a faint one (`Series.faint`: the raw values behind a mean) is thin and dotted in the
+ * colour of the line before it and takes no colour or dash of its own.
+ */
+export function lineStyles(
+	s: Series,
+	color: (label: string, n: number) => string,
+	dashes: (number[] | undefined)[]
+): { label: string; stroke: string; dash?: number[]; faint: boolean }[] {
+	const styles: ReturnType<typeof lineStyles> = [];
+	let n = 0;
+	for (const label of Object.keys(s.lines)) {
+		const before = styles.at(-1);
+		if (s.faint?.includes(label) && before)
+			styles.push({ label, stroke: before.stroke, dash: [1, 3], faint: true });
+		else {
+			styles.push({
+				label,
+				stroke: color(label, n),
+				dash: dashes[n % dashes.length],
+				faint: false
+			});
+			n++;
+		}
+	}
+	return styles;
+}
 
 /** Fractional year → "2203.07" (inverse of gameYear, to the month). */
 export function gameMonth(year: number): string {
@@ -254,13 +284,48 @@ const POP_GROUPS = ['growth', 'assembly', 'migration', 'other'];
 export const popCause = (cause: string): string | null =>
 	REGROUPING.has(cause) ? null : (POP_CAUSE[cause] ?? 'other');
 
+/**
+ * Months the Pops charts' change is averaged over. The game books whole pops each month and turns
+ * the fraction into a chance of one more (4.0 patch notes: "Fractional growth is not retained from
+ * month to month"), so one month's change is the rate ± up to 1. Six months cut that to about
+ * ± 0.2 and lag a real change by three months; the growth tab's mean uses the same six.
+ */
+export const POP_CHANGE_MONTHS = 6;
+
+const meanLabel = (g: string) => `${g} /mo (${POP_CHANGE_MONTHS}-mo mean)`;
+/** Last month's change as the game booked it, whole pops: drawn faint behind its mean. */
+const monthLabel = (g: string) => `${g} /mo`;
+
 /** The labels of the Pops charts' monthly change, drawn against the right axis. */
-export const POP_CHANGE_LINES = POP_GROUPS.map((g) => `${g} /mo`);
+export const POP_CHANGE_LINES = POP_GROUPS.flatMap((g) => [meanLabel(g), monthLabel(g)]);
 
 /**
- * Pops (left axis) and last month's change by cause (right axis), summed over the colonies `of`
- * picks; null from `of` (not our colony then) or no colony with growth data (a mod-feed month)
- * is a gap. A cause that never changed anything gets no line.
+ * Each value as the mean of the last `n` months with one (itself included), a month counted once:
+ * saves within one game month all report the same last month, so the newest of them stands for it.
+ * A null value stays a gap and is left out of later means.
+ */
+export function rollingMonthMean(
+	values: (number | null)[],
+	dates: string[],
+	n: number
+): (number | null)[] {
+	return values.map((v, i) => {
+		if (v === null) return null;
+		const byMonth = new Map<string, number>();
+		for (let j = 0; j <= i; j++) {
+			const x = values[j];
+			if (x !== null) byMonth.set(dates[j].slice(0, 7), x);
+		}
+		const last = [...byMonth.values()].slice(-n);
+		return last.reduce((a, b) => a + b, 0) / last.length;
+	});
+}
+
+/**
+ * Pops (left axis) and the monthly change by cause (right axis: the mean of the last
+ * `POP_CHANGE_MONTHS` months, and faint behind it each month's whole pops), summed over the colonies `of` picks; null from `of` (not our
+ * colony then) or no colony with growth data (a mod-feed month) is a gap. A cause that never
+ * changed anything gets no line.
  */
 function popChangeSeries(
 	history: Snapshot[],
@@ -278,12 +343,18 @@ function popChangeSeries(
 			}
 		return sum;
 	});
-	const lines = POP_GROUPS.filter((g) => changes.some((ch) => ch?.[g])).map((g) => [
-		`${g} /mo`,
-		changes.map((ch) => (ch === null ? null : (ch[g] ?? 0)))
-	]);
+	const dates = history.map((s) => s.date);
+	const moved = POP_GROUPS.filter((g) => changes.some((ch) => ch?.[g]));
+	const lines = moved.flatMap((g) => {
+		const month = changes.map((ch) => (ch === null ? null : (ch[g] ?? 0)));
+		return [
+			[meanLabel(g), rollingMonthMean(month, dates, POP_CHANGE_MONTHS)],
+			[monthLabel(g), month]
+		];
+	});
 	return {
 		x: history.map((s) => gameYear(s.date)),
+		faint: moved.map(monthLabel),
 		lines: { pops: picked.map((p) => p?.pops ?? null), ...Object.fromEntries(lines) }
 	};
 }

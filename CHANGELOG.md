@@ -13,7 +13,10 @@ All notable changes to this project are documented here. The format follows
   per game build, so a beta and the release after it never share one.
 - Pops charts show last month's change on a second axis: growth, assembly, migration (refugees
   arrive as immigration) and other causes. On the all tab migration between your own colonies
-  cancels out, which leaves what came from or went to other empires.
+  cancels out, which leaves what came from or went to other empires. Each is drawn as the mean of
+  the last six months, with the month itself (whole pops, as the game books them) faint behind
+  it: the game turns a fractional rate into a chance of one more pop, so a single month jumps by
+  up to one.
 - Growth tab: the Pops chart below the projection.
 - Colony tab: a Pops chart for the colony, with its monthly change, after Stability; the chart of
   employed pops, civilians and open jobs is now "Pops (jobs)".

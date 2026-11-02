@@ -910,8 +910,14 @@ habitability, not growing. Still to come once capacity is fitted: what +1 distri
 blocker, a medical building or an edict would gain, and the colonies ranked by it.
 
 **Pops charts** (all, growth and colony tabs; `popSeries()` / `colonyPopSeries()` in
-`#lib/series.ts`, the user's ask 2026-11-01): pops on the left axis, last month's change on the
-right, from `Colony.growth.by` (`current_month_growth_details`) grouped by `popCause()`: growth,
+`#lib/series.ts`, the user's ask 2026-11-01): pops on the left axis, the monthly change on the
+right as the mean of the last `POP_CHANGE_MONTHS` = 6 months (`rollingMonthMean`, saves within one
+game month counted once), each month's whole pops faint behind it (`Series.faint`: thin, dotted, the
+colour of the line before — `lineStyles()`; the user's asks 2026-11-02). **Growth is booked in whole pops, the fraction
+a chance of one more, and no remainder is kept or saved** (4.0 patch notes: "Fractional growth is
+not retained from month to month"; checked in saves 2026-11-02 — `pop_groups.<id>.fractions` is
+the faction-change remainder, keyed by faction id, `-1` = none), so one month is off the rate by up
+to 1. The change comes from `Colony.growth.by` (`current_month_growth_details`) grouped by `popCause()`: growth,
 assembly, migration (immigration, emigration, migration, resettlement), other; stratum, species,
 ethos and faction changes and group merges are left out (they move pops between groups). The game
 has **no refugee category** (4.5.x `GROWTH_CAT_*` localisation): refugees arrive as immigration.

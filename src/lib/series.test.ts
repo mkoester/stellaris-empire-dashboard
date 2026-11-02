@@ -6,11 +6,13 @@ import {
 	colonySeries,
 	gameMonth,
 	gameYear,
+	lineStyles,
 	monthStarts,
 	popCause,
 	popSeries,
 	researchSeries,
 	resourceKeys,
+	rollingMonthMean,
 	unbooked,
 	resourcePanelSeries,
 	resourceSeries,
@@ -73,8 +75,11 @@ describe('pops and their monthly change', () => {
 	it('sums the causes over the colonies, migration between them cancelling out', () => {
 		expect(popSeries(history).lines).toEqual({
 			pops: [300, null, 320],
+			'growth /mo (6-mo mean)': [4, null, 3],
 			'growth /mo': [4, null, 2],
+			'migration /mo (6-mo mean)': [2, null, 1],
 			'migration /mo': [2, null, 0],
+			'other /mo (6-mo mean)': [4, null, 2],
 			'other /mo': [4, null, 0]
 		});
 	});
@@ -82,9 +87,35 @@ describe('pops and their monthly change', () => {
 	it('follows one colony, a gap where it is not ours; no line for a cause that never moved', () => {
 		expect(colonyPopSeries(history, 1).lines).toEqual({
 			pops: [200, null, 205],
+			'growth /mo (6-mo mean)': [3, null, 2.5],
 			'growth /mo': [3, null, 2],
+			'migration /mo (6-mo mean)': [-5, null, -2.5],
 			'migration /mo': [-5, null, 0]
 		});
+		expect(colonyPopSeries(history, 1).faint).toEqual(['growth /mo', 'migration /mo']);
+	});
+
+	it('averages the last n months, a month with several saves counted once', () => {
+		const dates = ['2200.01.01', '2200.02.01', '2200.02.20', '2200.03.01', '2200.04.01'];
+		expect(rollingMonthMean([4, 6, 6, null, 5], dates, 2)).toEqual([4, 5, 5, null, 5.5]);
+		expect(
+			rollingMonthMean(
+				[5, 6, 5, 5, 6],
+				dates.map((_, i) => `2200.0${i + 1}.01`),
+				3
+			)
+		).toEqual([5, 5.5, 16 / 3, 16 / 3, 16 / 3]);
+	});
+
+	it('draws a faint line thin and dotted in the colour of the line before it', () => {
+		const s = { x: [], lines: { pops: [], 'a mean': [], a: [], b: [] }, faint: ['a'] };
+		const color = (_: string, n: number) => ['red', 'blue', 'green'][n];
+		expect(lineStyles(s, color, [undefined, [6, 4]])).toEqual([
+			{ label: 'pops', stroke: 'red', dash: undefined, faint: false },
+			{ label: 'a mean', stroke: 'blue', dash: [6, 4], faint: false },
+			{ label: 'a', stroke: 'blue', dash: [1, 3], faint: true },
+			{ label: 'b', stroke: 'green', dash: undefined, faint: false }
+		]);
 	});
 
 	it('leaves out the causes that only regroup pops', () => {
