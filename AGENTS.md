@@ -43,9 +43,15 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
 - **Planned: no cheats in multiplayer** (the user's intent, 2026-11-01; announced in the README
   and the about tab). Nothing in the game can tell a player runs the dashboard, so it could spoil
   a multiplayer game: detect one and force every `cheat`-kind switch off (`effectiveDisplay()`).
-  Candidate signal, **not checked**: the save's top-level `player = { { name country } … }` — one
-  entry in single player (Roaming Korinth 2207.02.01: `name="unknown" country=0`); whether a
-  multiplayer save lists every human (and a hot-joined or dropped one) needs a multiplayer save.
+  Signal, **checked 2026-11-03 against one multiplayer save** (Oracularity of Noerm 2200.01.01,
+  hosted alone, 4.5.3): the save's top-level `player = { { name country } … }` carries the
+  account name (`name="MirkoMachine"`) — every single-player save on the Linux machine (106, 4.5.x)
+  says `name="unknown"`. Nothing else in the save differs: `meta` and `galaxy` (`ironman=no`) are
+  alike, and no key in the gamestate exists only in multiplayer. Still open: whether a save with
+  several humans lists each of them, and what a multiplayer save says once loaded in single
+  player. A second signal from the game itself: the trigger `is_multiplayer` (scope all; vanilla
+  uses it in `01_start_of_game_effects.txt`) — the companion mod could log it with its `load` line.
+  `cheated_on_save=yes` (the console was used) is a separate flag, set in single player too.
 
 ## Running it
 
