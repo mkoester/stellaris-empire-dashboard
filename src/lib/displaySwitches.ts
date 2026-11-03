@@ -1,7 +1,7 @@
 // The display switches of ⚙, grouped as a browser's settings are, each marked as a spoiler (what
 // the game hides) or a cheat (what it never tells a player) where it is one. Hiding spoilers or
 // cheats also turns them off — `effectiveDisplay()` — while their stored values stay, so showing
-// them again brings each back as it was.
+// them again brings each back as it was. A multiplayer game turns the cheats off whatever is stored.
 import type { Display } from './profiles.ts';
 
 export type SwitchKey = Exclude<
@@ -159,11 +159,14 @@ export const SWITCHES: Switch[] = [
 
 const KIND_OF = new Map(SWITCHES.map((s) => [s.key, s.kind]));
 
-/** The switches as the tabs read them: spoilers off while spoilers are hidden, cheats likewise. */
-export function effectiveDisplay(d: Display): Display {
-	const out = { ...d };
+/**
+ * The switches as the tabs read them: spoilers off while spoilers are hidden, cheats likewise, and
+ * in a multiplayer game (`multiplayer`) the cheats always.
+ */
+export function effectiveDisplay(d: Display, multiplayer = false): Display {
+	const out = { ...d, showCheats: d.showCheats && !multiplayer };
 	for (const [key, kind] of KIND_OF)
-		if ((kind === 'spoiler' && !d.showSpoilers) || (kind === 'cheat' && !d.showCheats))
+		if ((kind === 'spoiler' && !out.showSpoilers) || (kind === 'cheat' && !out.showCheats))
 			out[key] = false;
 	return out;
 }

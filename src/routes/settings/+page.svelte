@@ -8,12 +8,17 @@
 
 	let { data } = $props();
 
-	// the display switches by group, filtered by the search; spoilers and cheats only when shown
+	// the display switches by group, filtered by the search; spoilers and cheats only when shown,
+	// cheats never in a multiplayer game
 	let query = $state('');
+	const gates = $derived({
+		showSpoilers: data.display.showSpoilers,
+		showCheats: data.display.showCheats && !data.multiplayer
+	});
 	const groups = $derived(
 		SWITCH_GROUPS.map((g) => ({
 			title: g,
-			items: SWITCHES.filter((s) => s.group === g && listed(s, data.display, query))
+			items: SWITCHES.filter((s) => s.group === g && listed(s, gates, query))
 		})).filter((g) => g.items.length)
 	);
 	const setDisplay = (patch: Partial<Display>) =>
@@ -198,13 +203,20 @@
 					onchange={(e) => setDisplay({ showSpoilers: e.currentTarget.checked })}
 				/> show the spoiler settings</label
 			>
-			<label class="mt-1 block"
-				><input
-					type="checkbox"
-					checked={data.display.showCheats}
-					onchange={(e) => setDisplay({ showCheats: e.currentTarget.checked })}
-				/> show the cheat settings</label
-			>
+			{#if data.multiplayer}
+				<p class="mt-1">
+					<b>This is a multiplayer game: the cheats are off.</b> The other players cannot see that you
+					run the dashboard, so it shows nothing here the game would not show you.
+				</p>
+			{:else}
+				<label class="mt-1 block"
+					><input
+						type="checkbox"
+						checked={data.display.showCheats}
+						onchange={(e) => setDisplay({ showCheats: e.currentTarget.checked })}
+					/> show the cheat settings</label
+				>
+			{/if}
 		</section>
 		<section id="display" class="scroll-mt-4">
 			<h2 class="mb-1 text-xl font-semibold">Display</h2>

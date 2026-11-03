@@ -8,6 +8,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Multiplayer games switch every cheat off: ⚙ says so and lists none. The dashboard recognises one
+  by its saves; companion mod 0.11.0 also reports it each month.
+
 - Pops charts show last month's change on a second axis: growth, assembly, migration (refugees
   arrive as immigration) and other causes. On the all tab migration between your own colonies
   cancels out, which leaves what came from or went to other empires.
