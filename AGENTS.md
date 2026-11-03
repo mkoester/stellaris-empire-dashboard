@@ -2162,6 +2162,22 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech
 screen, trade calibration, stored research, releases).
 
+- **Ambitions (formerly Crisis), planned 2026-11-03**: data DB `crisis_path`, `crisis_level`,
+  `crisis_objective`, `menace_perk` (extraction's design notes). Our own path: a `/ambition` tab
+  (currency, level ladder with requirements and perks, objectives with this galaxy's reward,
+  months to the next level). **Other empires' ambitions are a spoiler** (the user's decision,
+  2026-11-03; switch `ambitionsAll`): on, who, what (path, level) and where (capital and the
+  path's sites); off, only what the game tells a player (4.5.3 files). For Nemesis that's the
+  personality "Crisis Aspirant" from the perk on, the "Mysterious Supernova"/Star-Eater alerts
+  and the "Destroying Star Systems" opinion, and "Galactic Crisis Declared" at level 5. For
+  Hyperthermia it's the personality "Thermarchy", plus the opinion "Thermarchy Empire" from
+  level 2, which needs government intel 2 (everyone at 5). Behemoth shows warnings at level 5,
+  Cosmogenesis nothing that names it, and Defender an opinion modifier. Ascension perks are in
+  no intel category. **Unread: the save shape** (no local save has an ambition): in a
+  throwaway game, save before and after `activate_ascension_perk ap_become_the_crisis`, then
+  `resource menace 1000`. Also check whether the diplomacy screen lists another empire's
+  perks.
+
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
   show a link never jumped through). At the first wormhole explored, diff its `bypasses.<id>`,
   `natural_wormholes.<id>` and the country block against an earlier save for a real marker.
