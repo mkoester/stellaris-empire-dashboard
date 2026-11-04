@@ -29,9 +29,10 @@ the fun. Everything the game hides until you find it (spoilers) or never tells a
 (cheats) is off by default and labelled as such in ⚙ — turn it on only if you want it.
 
 **Multiplayer:** nothing in the game can tell that a player is running the dashboard, so it could
-spoil a multiplayer game for everyone else. I intend to work on this — the plan is to detect
-multiplayer games and switch off every cheat there. Until then: please don't use it against other
-people.
+spoil a multiplayer game for everyone else. The dashboard therefore recognises a multiplayer game
+by its saves (with or without the companion mod) and switches every cheat off there; spoilers stay
+available, as they only show what you could find yourself. This guards against using it by
+accident — it cannot stop someone set on cheating, so please don't use it against other people.
 
 ## For players
 
@@ -57,6 +58,10 @@ It only reads the game's files and your saves, stores its history in your user p
 Windows may warn that the app is unrecognised ("More info" → "Run anyway"), macOS refuses it the
 first time (System Settings → Privacy & Security → "Open Anyway"). More in the zip's `README.txt`.
 
+Found a bug, or a number that does not match the game? Post it in the
+[`empire-dashboard` forum on Discord](https://discord.gg/djHbcvHNeu) — a screenshot of the game's
+own screen next to the dashboard's helps most.
+
 ### Known limitations
 
 - **It sees the game only as often as it saves.** Monthly autosaves give the smoothest history;
@@ -64,7 +69,8 @@ first time (System Settings → Privacy & Security → "Open Anyway"). More in t
   companion mod logs it.
 - **Reloading an older save without the companion mod**: where the new branch starts is a guess
   (marked, and correctable on the timeline page).
-- **Multiplayer is not detected yet** (above).
+- **Multiplayer detection is new** (above): checked against two multiplayer saves so far, each
+  with one human player.
 - **Game versions 4.3–4.5.** Numbers are checked against the game's own screens, but not all of
   them yet, and mostly on Linux; the Windows and macOS zips have been run, with less mileage.
 - **English game texts only.**

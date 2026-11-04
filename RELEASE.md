@@ -99,5 +99,7 @@ its `Unreleased` section.
    "Latest"), titled "Stellaris Empire Dashboard X.Y.Z vN (for Open Beta 4.5.3)".
 5. When the game patch goes live: `git checkout develop && git merge --no-ff open-beta`, drop
    `openBeta` from `package.json`, the extractor's release pinned again (a `vX.Y.Z` tag, not a
-   beta one), then the normal release above; delete `open-beta` (local and remote) once released.
+   beta one), then the normal release above. **Keep `open-beta`** and its worktree: open betas
+   come several times a year. For the next one, bring it up to date with `git merge --ff-only
+   develop` in its worktree.
    No version bump after a beta tag.

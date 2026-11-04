@@ -7,6 +7,7 @@ import type { Snapshot } from '#lib/types.ts';
 import { askGone, goneToAsk, keepCampaign } from './campaigns.ts';
 import {
 	addPlanEvents,
+	campaignMultiplayer,
 	campaignName,
 	deleteCampaign,
 	galaxyOf,
@@ -134,6 +135,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	founderClass: null,
 	shipset: null,
 	galaxySetup: null,
+	multiplayer: false,
 	external: null,
 	branchSites: null,
 	history: null,
@@ -275,6 +277,18 @@ describe('merging the mod feed with saves', () => {
 		expect(merged.nodeId).toBe(saved);
 		expect(merged.mismatches).toEqual(['energy: mod 7 vs save 5']);
 		expect(history(db, saved)[0].pops).toBe(42);
+	});
+
+	it('keeps a campaign multiplayer once any reading says so, the log or a save', () => {
+		const db = openDb(':memory:');
+		record(db, saveSnap('2200.01.01', 1, 5), 'a.sav');
+		expect(campaignMultiplayer(db, 'c')).toBe(false);
+		// the mod's month says so, the save of the same month does not: the merge keeps it
+		record(db, { ...logSnap('2200.02.01', 2, 5), multiplayer: true }, 'game.log');
+		record(db, saveSnap('2200.02.01', 2, 5), 'b.sav');
+		record(db, saveSnap('2200.03.01', 3, 5), 'c.sav');
+		expect(campaignMultiplayer(db, 'c')).toBe(true);
+		expect(campaignMultiplayer(db, 'other')).toBe(false);
 	});
 
 	it("keeps the log's events, daily stockpiles and timeline id through the merge and a re-read", () => {

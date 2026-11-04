@@ -22,7 +22,7 @@ import {
 import { parseTheme, type ChartEvents, type CustomTab, type Theme } from '#lib/settings.ts';
 import { getRequestEvent } from '$app/server';
 import { getDb } from './app.ts';
-import { getSetting, headCampaign, nodes, setSetting, type Db } from './db.ts';
+import { campaignMultiplayer, getSetting, headCampaign, nodes, setSetting, type Db } from './db.ts';
 
 // The stored viewer settings. The theme is global; everything else lives in the profile in use
 // (#lib/profiles.ts): the viewed campaign's, else the last picked.
@@ -158,8 +158,15 @@ export const produceView = (): ProduceView => settings().produceView;
 export const mapFilter = (): MapFilter => settings().mapFilter;
 export const quadrantView = (): QuadrantView => settings().quadrants;
 export const popWindow = (): PopWindow => settings().popWindow;
-// as the tabs read it: hidden spoilers and cheats are off
-export const display = (): Display => effectiveDisplay(settings().display);
+/** Whether the viewed campaign is a multiplayer game, where every cheat is off. */
+export function viewedMultiplayer(db: Db): boolean {
+	const campaign = viewedCampaign(db);
+	return campaign !== null && campaignMultiplayer(db, campaign);
+}
+
+// as the tabs read it: hidden spoilers and cheats are off, cheats always in multiplayer
+export const display = (): Display =>
+	effectiveDisplay(settings().display, viewedMultiplayer(getDb()));
 // Colony charts were stored as `planet:<title>` before the rename.
 export const chartEvents = (): ChartEvents =>
 	Object.fromEntries(

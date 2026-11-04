@@ -153,7 +153,10 @@ export type Candidate = {
 	centre: number; // distance from the galaxy's centre
 };
 
-const binary = (star: string) => /^sc_(binary|trinary)/.test(star);
+/** The game's `is_multiple_star` (`common/scripted_triggers/`): binary, trinary or, since 4.5.3,
+ * quaternary, crisis variants included. */
+export const multipleStar = (star: string) =>
+	/^sc_(crisis_)?(binary|trinary|quaternary)_/.test(star);
 const isGate = (t: string) => /gateway|lgate/.test(t);
 const amount = (deposit: string) => Number(/_(\d+)$/.exec(deposit)?.[1] ?? 1);
 
@@ -276,7 +279,7 @@ export function candidates(
 			);
 		if (rule.notStars?.includes(s.star))
 			why.push(`no ${s.star.replace(/^sc_/, '').replace('_', ' ')}`);
-		if (rule.noBinary && binary(s.star)) why.push('binary or trinary star');
+		if (rule.noBinary && multipleStar(s.star)) why.push('multiple star system');
 		const existing = s.megastructures;
 		if (existing.some((t) => !isGate(t)))
 			why.push(`megastructure here: ${existing.filter((t) => !isGate(t)).join(', ')}`);

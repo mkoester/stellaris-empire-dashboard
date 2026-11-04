@@ -40,12 +40,28 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
 - Without the companion mod a reload's branch point is a _guess_ when time goes backwards (marked,
   correctable on `/timeline`). With it (0.2.0+) the mod's `load` line names the loaded save exactly
   — see "Companion mod".
-- **Planned: no cheats in multiplayer** (the user's intent, 2026-11-01; announced in the README
-  and the about tab). Nothing in the game can tell a player runs the dashboard, so it could spoil
-  a multiplayer game: detect one and force every `cheat`-kind switch off (`effectiveDisplay()`).
-  Candidate signal, **not checked**: the save's top-level `player = { { name country } … }` — one
-  entry in single player (Roaming Korinth 2207.02.01: `name="unknown" country=0`); whether a
-  multiplayer save lists every human (and a hot-joined or dropped one) needs a multiplayer save.
+- **No cheats in multiplayer** (the user's intent, 2026-11-01; built 2026-11-03). Nothing in the
+  game can tell a player runs the dashboard, so it could spoil a multiplayer game: once any reading
+  of a campaign says multiplayer (`Snapshot.multiplayer`, READER 44; `campaignMultiplayer()`, which
+  stays true — a multiplayer save loaded in single player, a month without the mod, does not undo
+  it), `display()` forces every `cheat`-kind switch off (`effectiveDisplay(d, multiplayer)`) and ⚙
+  lists none, saying why. Spoilers stay: they show only what the player could find. Two signals:
+  - **The save** (`multiplayerPlayers()`), which serves a player without the mod — a cheater would
+    just not run it: the top-level `player = { { name country } … }` names an account or lists two
+    players. Every single-player save on the Linux machine (106, 4.5.x) has one `name="unknown"`;
+    Oracularity of Noerm 2200.01.01 (a new multiplayer game, hosted alone, 4.5.3) `MirkoMachine`
+    only; UNE 2 `unknown` alone at 19:01, `unknown` + `MirkoMachine` (both country 0) from 19:41
+    on, after the Noerm session — whether it was loaded through the lobby nobody remembers
+    (`docs/open-checks.md` 27). Nothing else differs: `meta` and `galaxy` (`ironman=no`) are
+    alike, and no gamestate key exists only in multiplayer. `cheated_on_save=yes` means the console
+    was used, in single player too.
+  - **The companion mod** (0.11.0): each month, if the trigger `is_multiplayer` (scope all; vanilla
+    uses it in `01_start_of_game_effects.txt`) holds, `SDASH|2|<date>|event|multiplayer` before
+    the month's lines → `Month.multiplayer`, kept through the merge with the save
+    (`withLogFields`). Monthly, not at load: `on_single_player_save_game_load` is all the game
+    offers, and the mod's `load` line hangs on it.
+    This is a guard against using the dashboard by accident, not against a determined cheater: a
+    fresh dashboard DB, an edited save or an edited build (AGPL) gets past it.
 
 ## Running it
 
@@ -1516,6 +1532,7 @@ shows format 2.
 | `event\|leader-died\|<leader>`, `event\|ruler\|<name>`               | at once              | `on_leader_death`, `on_ruler_set`                         |
 | `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`       | each battle we fight | `on_space_battle_won`                                     |
 | `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0) | at once              | queued/cancelled, edict, decision, … (`#lib/spending.ts`) |
+| `event\|multiplayer` (0.11.0)                                        | monthly              | `is_multiplayer` holds (see "No cheats in multiplayer")   |
 
 - **Diplomatic weight** (0.4.0): no log line — each month the player's event exports every
   Galactic Community member's `diplomacy_weight` trigger into its country variable `sdash_dw`, so

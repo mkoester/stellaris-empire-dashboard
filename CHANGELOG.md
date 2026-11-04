@@ -8,9 +8,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- A build for the Stellaris 4.5.3 open beta (Steam's `stellaris_test` branch): what 0.1.8 does,
-  with the extractor v0.1.10, which reads 4.5.3's game files. The game data it extracts is kept
-  per game build, so a beta and the release after it never share one.
+- A Discord icon in the header, before the version: bugs and feedback go to the dashboard's
+  forum on the Mirko's paradox Discord.
+
+## [0.1.9] - 2026-11-04
+
+### Added
+
+- Multiplayer games switch every cheat off: ⚙ says so and lists none. The dashboard recognises one
+  by its saves; companion mod 0.11.0 also reports it each month.
 - Pops charts show last month's change on a second axis: growth, assembly, migration (refugees
   arrive as immigration) and other causes. On the all tab migration between your own colonies
   cancels out, which leaves what came from or went to other empires. Each is drawn as the mean of
@@ -38,6 +44,17 @@ All notable changes to this project are documented here. The format follows
   communications with stay grey, and a reading our intel no longer confirms is dashed.
 - Every map: "full window" lays the map over the whole browser window, with its toolbar, the map
   tab's modes and layers, and the table beside it if you pick "wide + table". Esc goes back.
+
+### Changed
+
+- Bundles the extractor v0.1.11, which reads Stellaris 4.5.3: ambitions, planet decisions and
+  the deficit fee per resource, for the deficit and what-if features above.
+
+### Fixed
+
+- Megastructure sites rule out every multiple star system, as the game does: 4.5.3's new
+  quaternary stars and the crisis binary/trinary variants were offered for a Dyson Sphere, Ring
+  World and the like.
 
 ## [0.1.8] - 2026-11-01
 

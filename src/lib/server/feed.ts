@@ -11,6 +11,7 @@ import type { ColonyDay, LogEvent, Resources, Snapshot, Tick } from '#lib/types.
 //   SDASH|2|<date>|event|<kind>|<field>…                      at once (colony, war-started, …)
 //   SDASH|2|<date>|event|colony-jobs|<colony>|<open jobs>|<unemployed>|<pops>
 //                                    within the daily tick, a colony whose numbers changed (0.9.0)
+//   SDASH|2|<date>|event|multiplayer                          monthly, in a multiplayer game (0.11.0)
 // Format 1 (mod 0.1.0) had the monthly resource and end lines only. Format 3 (mod 0.7.0) is format
 // 2 with a run id after the date on every line but events' — SDASH|3|<date>|<run>|end — drawn at
 // each load: the game drops a line it has already written this session, so without it a branch
@@ -27,6 +28,7 @@ export type Month = {
 	previousTimelineId: number | null;
 	events: LogEvent[]; // since the month before, in log order
 	ticks: Tick[];
+	multiplayer: boolean; // the mod logged `is_multiplayer` since the month before
 };
 
 /** The log formats this build reads. */
@@ -43,6 +45,7 @@ export type Line =
 	| { kind: 'tick-end'; date: string }
 	| ({ kind: 'colony-day'; date: string; colony: string } & ColonyDay)
 	| { kind: 'load'; date: string; id: number | null }
+	| { kind: 'multiplayer'; date: string }
 	| { kind: 'event'; event: LogEvent }
 	| ({ kind: 'unsupported' } & FeedFormat);
 
@@ -119,6 +122,11 @@ export function parseLine(raw: string): Line | null {
 				pops: num(args[4])
 			};
 		}
+		// mod 0.11.0: the game is multiplayer (an older dashboard skips the kind)
+		if (head === 'event' && args[0] === 'multiplayer') {
+			if (args.length !== 1) throw bad();
+			return { kind: 'multiplayer', date };
+		}
 		if (head === 'event') {
 			const [kind, ...fields] = args;
 			// a newer mod's kind: skipped, so an older dashboard keeps reading the rest
@@ -148,6 +156,7 @@ export function assembler() {
 	const colonyDays = new Map<string, Record<string, ColonyDay>>();
 	let events: LogEvent[] = [];
 	let ticks: Tick[] = [];
+	let multiplayer = false;
 	const monthOf = (date: string) => {
 		const m = months.get(date) ?? {
 			date,
@@ -156,7 +165,8 @@ export function assembler() {
 			timelineId: null,
 			previousTimelineId: null,
 			events: [],
-			ticks: []
+			ticks: [],
+			multiplayer: false
 		};
 		months.set(date, m);
 		return m;
@@ -182,6 +192,8 @@ export function assembler() {
 				month.ticks = ticks.filter((t) => t.date <= month.date);
 				events = events.filter((e) => e.date > month.date);
 				ticks = ticks.filter((t) => t.date > month.date);
+				month.multiplayer = multiplayer;
+				multiplayer = false;
 				return { kind: 'month', month };
 			}
 			case 'tick':
@@ -207,12 +219,16 @@ export function assembler() {
 			case 'event':
 				events.push(line.event);
 				return null;
+			case 'multiplayer':
+				multiplayer = true;
+				return null;
 			case 'load':
 				months.clear();
 				days.clear();
 				colonyDays.clear();
 				events = [];
 				ticks = [];
+				multiplayer = false;
 				return { kind: 'load', date: line.date, id: line.id };
 			case 'unsupported':
 				return line;
@@ -231,6 +247,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		previousTimelineId: m.previousTimelineId,
 		logEvents: m.events,
 		ticks: m.ticks,
+		multiplayer: m.multiplayer,
 		countryId: null,
 		empireName: '',
 		pops: null,

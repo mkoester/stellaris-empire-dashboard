@@ -50,6 +50,9 @@ were empty and colony event failed on arkships. Paradox Mods: version 4 (`latest
 `https://api.paradox-interactive.com/mods?modId=164724&os=Linux`, which also lists each version).
 **The upload strips `descriptor.mod`'s final newline**: harmless, restore it or commit it.
 
+**0.11.0, 2026-11-04 14:20 UTC, from `main`** (dashboard 0.1.9) — the monthly `multiplayer` line,
+seen in game first (open check 27). Paradox Mods: version 5.
+
 ## Store description — Steam Workshop (BBCode)
 
 ```bbcode
@@ -81,6 +84,9 @@ Hidden events only: once a month (and a light daily tick) it writes lines to [i]
 [h2]⚠ Not Ironman / achievement compatible[/h2]
 Like every script mod, it changes the checksum: achievements and Ironman are off while it is enabled.
 
+[h2]Bugs & feedback[/h2]
+Post them in the [url=https://discord.gg/djHbcvHNeu]empire-dashboard forum on Discord[/url] — for the dashboard and this mod alike.
+
 Unofficial fan project, not affiliated with Paradox Interactive.
 ```
 
@@ -110,6 +116,9 @@ Compatibility
 
 Not Ironman / achievement compatible
 Like every script mod, it changes the checksum: achievements and Ironman are off while it is enabled.
+
+Bugs & feedback
+Post them in the empire-dashboard forum on Discord — for the dashboard and this mod alike: https://discord.gg/djHbcvHNeu
 
 Unofficial fan project, not affiliated with Paradox Interactive.
 ```
