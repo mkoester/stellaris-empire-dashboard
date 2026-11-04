@@ -345,6 +345,8 @@ multiplayer and turns its cheats off wrongly.
   0.11.0), and the autosave 2203.11.01 lists `unknown` + `MirkoMachine` — UNE 2's shape, so the
   save rule agrees. A first lobby run (mod still 0.10.1) seemed to leave `unknown` alone, but that
   file's time went unchecked and the second run overwrote it: no evidence either way.
+  **The dashboard passed too:** with that campaign viewed, ⚙ says "This is a multiplayer game:
+  the cheats are off" and lists no cheat switch.
 - **The dashboard:** with that campaign viewed, ⚙ says "This is a multiplayer game" and no cheat
   switch is listed; a tab with a cheat on before (e.g. `historyAll`) shows only what you know.
 - **Send:** the save names, and whether the lobby or single player loaded each.

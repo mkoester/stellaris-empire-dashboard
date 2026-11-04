@@ -50,6 +50,9 @@ were empty and colony event failed on arkships. Paradox Mods: version 4 (`latest
 `https://api.paradox-interactive.com/mods?modId=164724&os=Linux`, which also lists each version).
 **The upload strips `descriptor.mod`'s final newline**: harmless, restore it or commit it.
 
+**0.11.0, 2026-11-04 14:20 UTC, from `main`** (dashboard 0.1.9) — the monthly `multiplayer` line,
+seen in game first (open check 27). Paradox Mods: version 5.
+
 ## Store description — Steam Workshop (BBCode)
 
 ```bbcode
