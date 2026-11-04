@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.9] - 2026-11-04
 
 ### Added
 
@@ -37,6 +37,11 @@ All notable changes to this project are documented here. The format follows
   communications with stay grey, and a reading our intel no longer confirms is dashed.
 - Every map: "full window" lays the map over the whole browser window, with its toolbar, the map
   tab's modes and layers, and the table beside it if you pick "wide + table". Esc goes back.
+
+### Changed
+
+- Bundles the extractor v0.1.11, which reads Stellaris 4.5.3: ambitions, planet decisions and
+  the deficit fee per resource, for the deficit and what-if features above.
 
 ### Fixed
 
