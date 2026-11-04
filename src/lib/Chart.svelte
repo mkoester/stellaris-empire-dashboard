@@ -11,6 +11,7 @@
 		spanWindow,
 		windowRange,
 		zoomWindow,
+		lineStyles,
 		type Series
 	} from './series.ts';
 	import { timeWindow } from './timeWindow.svelte.ts';
@@ -202,12 +203,16 @@
 			],
 			series: [
 				{ label: 'date', value: (_u, v) => (v == null ? '' : gameMonth(v)) },
-				...Object.keys(series.lines).map((label, i) => ({
+				...lineStyles(
+					series,
+					(label, n) => colors[label] ?? colorOf(label) ?? palette[n % palette.length],
+					dashes
+				).map(({ label, stroke, dash, faint }) => ({
 					label: label.replaceAll('_', ' '),
-					stroke: colors[label] ?? colorOf(label) ?? palette[i % palette.length],
+					stroke,
 					...(right.includes(label) ? { scale: 'right' } : {}),
-					dash: dashes[i % dashes.length],
-					width: 1.5,
+					dash,
+					width: faint ? 1 : 1.5,
 					spanGaps: true
 				}))
 			],

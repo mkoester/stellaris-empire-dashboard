@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import Chart from '#lib/Chart.svelte';
 	import Designation from '#lib/Designation.svelte';
 	import { fmt } from '#lib/format.ts';
 	import { GROWTH_CAP, type GrowthRow } from '#lib/growth.ts';
@@ -8,6 +9,7 @@
 	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
+	import { POP_CHANGE_LINES } from '#lib/series.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 
@@ -165,6 +167,14 @@
 			bind:years
 		/>
 	</Panel>
+	<Chart
+		title="Pops"
+		series={data.pops}
+		extent={data.xExtent}
+		events={data.milestones}
+		right={POP_CHANGE_LINES}
+		rightFloor={5}
+	/>
 	<Panel
 		title="Growth per colony"
 		note="Measured: natural growth per month, the mean of the colony's last saves (pop units; fractions are a chance in game). The game's rule (wiki, 4.5): 1/400 × (pops − pops² / planet capacity − 1), all species together at most {GROWTH_CAP}, times the species' growth speed — slow in a small colony, fastest at half the capacity, slow again near it. Planet capacity (not in the save) is housing + 400 per free district slot on normal planets; a queued district takes its slot at once, long before its housing arrives — queue districts just in time. More housing or free districts raise it; a colony at the cap gains nothing from more.{data.housingKnown

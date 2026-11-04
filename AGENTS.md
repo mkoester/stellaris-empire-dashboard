@@ -19,6 +19,10 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   route id plus query and `page.params` (`here()` in `+layout.svelte`). It flags an external link
   with a dynamic `href={url}` too, but not one that starts with a literal scheme: store the address
   without it and write `href="https://{host}"` (the about tab).
+- **Svelte 5 trims whitespace at the start and end of an element**, so a Prettier-wrapped
+  `<span …>⏎ by {x}</span>` renders "by" glued to what precedes it (the about tab's credits,
+  2026-11-01). The lint refuses `{' '}` (`svelte/no-useless-mustaches`): put the space in an
+  expression, ``<span>{` by ${x}`}</span>``.
 - **A `{#snippet}` written directly inside a component's children becomes that component's prop**
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
@@ -36,12 +40,28 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
 - Without the companion mod a reload's branch point is a _guess_ when time goes backwards (marked,
   correctable on `/timeline`). With it (0.2.0+) the mod's `load` line names the loaded save exactly
   — see "Companion mod".
-- **Planned: no cheats in multiplayer** (the user's intent, 2026-11-01; announced in the README
-  and the about tab). Nothing in the game can tell a player runs the dashboard, so it could spoil
-  a multiplayer game: detect one and force every `cheat`-kind switch off (`effectiveDisplay()`).
-  Candidate signal, **not checked**: the save's top-level `player = { { name country } … }` — one
-  entry in single player (Roaming Korinth 2207.02.01: `name="unknown" country=0`); whether a
-  multiplayer save lists every human (and a hot-joined or dropped one) needs a multiplayer save.
+- **No cheats in multiplayer** (the user's intent, 2026-11-01; built 2026-11-03). Nothing in the
+  game can tell a player runs the dashboard, so it could spoil a multiplayer game: once any reading
+  of a campaign says multiplayer (`Snapshot.multiplayer`, READER 44; `campaignMultiplayer()`, which
+  stays true — a multiplayer save loaded in single player, a month without the mod, does not undo
+  it), `display()` forces every `cheat`-kind switch off (`effectiveDisplay(d, multiplayer)`) and ⚙
+  lists none, saying why. Spoilers stay: they show only what the player could find. Two signals:
+  - **The save** (`multiplayerPlayers()`), which serves a player without the mod — a cheater would
+    just not run it: the top-level `player = { { name country } … }` names an account or lists two
+    players. Every single-player save on the Linux machine (106, 4.5.x) has one `name="unknown"`;
+    Oracularity of Noerm 2200.01.01 (a new multiplayer game, hosted alone, 4.5.3) `MirkoMachine`
+    only; UNE 2 `unknown` alone at 19:01, `unknown` + `MirkoMachine` (both country 0) from 19:41
+    on, after the Noerm session — whether it was loaded through the lobby nobody remembers
+    (`docs/open-checks.md` 27). Nothing else differs: `meta` and `galaxy` (`ironman=no`) are
+    alike, and no gamestate key exists only in multiplayer. `cheated_on_save=yes` means the console
+    was used, in single player too.
+  - **The companion mod** (0.11.0): each month, if the trigger `is_multiplayer` (scope all; vanilla
+    uses it in `01_start_of_game_effects.txt`) holds, `SDASH|2|<date>|event|multiplayer` before
+    the month's lines → `Month.multiplayer`, kept through the merge with the save
+    (`withLogFields`). Monthly, not at load: `on_single_player_save_game_load` is all the game
+    offers, and the mod's `load` line hangs on it.
+    This is a guard against using the dashboard by accident, not against a determined cheater: a
+    fresh dashboard DB, an edited save or an edited build (AGPL) gets past it.
 
 ## Running it
 
@@ -424,7 +444,12 @@ wide + table = that with the page's table beside the map) — one localStorage k
 systems; megastructures; situations: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
 filters stay above the map. Without `beside` (diplomacy, migration) the third button is not offered
-and a stored `side` draws as wide. **The table beside is independent of the map's height** (the
+and a stored `side` draws as wide. **Full window** (the user's ask 2026-11-02; `GalaxyMap`'s "⛶ full
+window" button, per viewer in localStorage `MAP_FULL_KEY`): the map lays itself over the whole
+browser window (`fixed`, `z-40` — below the context menu and popups, `z-50`), its toolbar on top,
+the swatches below, the table beside it still offered; the page behind does not scroll, Esc leaves
+it, and the height chosen for the page is not overwritten. A page's own map controls go into
+`GalaxyMap`'s `controls` snippet so they stay in reach there: the map tab's modes and layers. **The table beside is independent of the map's height** (the
 user's ask, 2026-11-01): it reaches the window's bottom, scrolls on its own with its header pinned,
 and sticks below the window's top while the page scrolls (`fitAside()`). Open: a cell's `InfoPopup`
 (`absolute`) at its bottom scrolls the column instead of overlapping the map. The table
@@ -446,6 +471,28 @@ own owner is not stored), an entry popup in a system whose gateway, megastructur
 own row (the Abandoned Gateway). Wormholes, gateways, L-Gates and megastructures stay open. Say
 **colony** wherever a colony is meant; planet only for the planet itself (`planetId`, Expansion,
 `PlanetInfo`).
+**Map modes** (the map tab's mode buttons, the profile's `mapFilter.mode`; `#lib/mapModes.ts`
+pure; the user's ask 2026-11-02, after 4.5.2 `common/map_modes/00_map_modes.txt`). Each mode
+recolours the territories (`recolor()`) and names after each empire why, in the swatches and on a
+system's hover. The modes: empire (default), union, diplomatic, opinion, intel, AI attitude, trust,
+threat, intel freshness, and claims, which fills systems (`claimFill()`) and leaves the borders
+alone. Union, diplomatic and attitude take the game's hsv colours (`hsv()`); diplomatic takes the
+first relation that holds in the game's order, federation › war › subject/overlord › defensive pact
+› NAP › research agreement › commercial pact › rival › closed borders › migration treaty. The
+gradients use `scaleColor()`, and opinion is clamped at ±140 as the game's bands are. The data is
+`modeData()` on the server, built from the diplomacy tab's `diplomacyView()`, so the intel model
+and its "unverified since" apply: no communications is grey, and an unverified reading is dashed.
+Intel freshness is the age of the oldest unverified reading, red at 2 years. **The save's
+`relations_manager.relation.hostile=yes` is not the game's `is_hostile`**: it sat on our subject
+Lolehndra (Planetforgers 2214.02.01), so the war colour comes from wars alone. Trust and threat
+are our relation record's (`Relation.trust|threat`); which side's view `threat` is has not been
+checked. Not built yet: neighbours (`is_neighbor_of` is engine-side), storm forecast (none of the
+last 40 saves on this machine holds a storm, so its format is unknown), and ethics, GalCom, weight,
+trade, wars and border-change modes. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01,
+Roaming Korinth 2207.02.01): `/map` returned 200 in every mode and each mode's colours were
+recomputed from `__data.json`. The drawing needs a browser, and the colours have not been compared
+with the game's map yet (`docs/open-checks.md` 27).
+
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
 panels by id (`EmpirePanel.svelte`);
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
@@ -619,7 +666,10 @@ they follow the save graph and cover all history for fields already stored. A fi
 only between saves that both have it (null = unknown; an empty colony list too), and an event is
 dated to the first save showing it. New kind: `KINDS` + a detector + a colour in `colors.ts`. Each
 chart has an "events" picker (`EventPicker.svelte`); choices are stored per `<scope>:<title>`
-(`empire:`/`colony:` — stored `planet:` keys are renamed on read; `log` for the Events panel) in the `chartEvents` setting, merged on PUT.
+(`empire:`/`colony:` — stored `planet:` keys are renamed on read; `log` for the Events panel) in the `chartEvents` setting, merged on PUT. **To challenge** (the user, 2026-11-01): keying by
+title moves a viewer's picks when a chart is renamed or a new chart takes an old title — the
+colony page's `Pops` became `Pops (jobs)`, so its picks went to the new `Pops` chart — and a title
+that changes with live data (`Pops (jobs) — <date>: …`) keys a different entry while it shows.
 
 **Council** (government tab): the ruler's seat (`councilor_ruler_<authority>`; not in the save's
 seat list, `possible = { always = no }`) and the seats held, each with what it gives **at the
@@ -875,6 +925,28 @@ cap, overcrowded (growth stops at 1.15 × housing, `OVERCROWDING_NO_GROWTH_THRES
 habitability, not growing. Still to come once capacity is fitted: what +1 district, a cleared
 blocker, a medical building or an edict would gain, and the colonies ranked by it.
 
+**Pops charts** (all, growth and colony tabs; `popSeries()` / `colonyPopSeries()` in
+`#lib/series.ts`, the user's ask 2026-11-01): pops on the left axis, the monthly change on the
+right as the mean over the months around each point (`windowMean`, saves within one game month
+counted once), each month's whole pops faint behind it (`Series.faint`: thin, dotted, the colour of
+the line before — `lineStyles()`). The window is the profile's `popWindow` (`#lib/popWindow.ts`,
+⚙ → Pops charts with a month strip): `back` 3 and `ahead` 2 by default, 0–6 each — ahead keeps the
+line level with its month, and a chart's last `ahead` points average fewer months and change as
+saves arrive. **The save at `GAME_START` (2200.01.01) has booked no month** (every colony's
+`growth.by` empty): its change is unknown, a gap the mean bridges — read as 0 it dragged every
+chart's start down. An empty `by` later is a real zero (UNE's Unity, 2202.07–08, pops unchanged).
+The user's asks 2026-11-02. **Growth is booked in whole pops, the fraction
+a chance of one more, and no remainder is kept or saved** (4.0 patch notes: "Fractional growth is
+not retained from month to month"; checked in saves 2026-11-02 — `pop_groups.<id>.fractions` is
+the faction-change remainder, keyed by faction id, `-1` = none), so one month is off the rate by up
+to 1. The change comes from `Colony.growth.by` (`current_month_growth_details`) grouped by `popCause()`: growth,
+assembly, migration (immigration, emigration, migration, resettlement), other; stratum, species,
+ethos and faction changes and group merges are left out (they move pops between groups). The game
+has **no refugee category** (4.5.x `GROWTH_CAT_*` localisation): refugees arrive as immigration.
+Causes seen in this machine's DB (2026-11-01): growth, assembly, colonization, decline, emigration,
+immigration, other, promotion (always 0). Empire-wide, migration between our own colonies cancels
+out; a cause that never moved gets no line. The colony tab's jobs chart is `Pops (jobs)`.
+
 **Growth projection** (`#lib/growthProjection.ts` pure, `GrowthProjection.svelte` on the growth tab
 and each colony page, rows from `server/growth.ts`; the user's ask 2026-10-24): 10 to 200 years
 (the pick remembered per viewer), per colony and summed, biological and mechanical apart — they follow different rules. Biological:
@@ -947,7 +1019,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`. A new view of hidden information follows the same pattern.
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`. A new view of hidden information follows the same pattern.
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
 `normal`, `spoiler` (what the game hides until found) or `cheat` (what it never tells a player;
@@ -1090,6 +1162,25 @@ counts, a gestalt's `no_happiness` ones instead); its other modifiers are the si
 unconditional modifiers — living standards' happiness, most job variants and leader traits are
 triggered and missing; 2205.07 listed Prosperous Unification, the capital building and Medical
 Workers.
+**Colony deficits** (`#lib/colonyLogistics.ts` pure, `server/logistics.ts`, `ColonyLogistics.svelte`
+on the colony page, the colonies tab's `logistics` column; the user's ask 2026-11-02: "what deficit is
+costing me per colony, so I can see whether specialising is worth it"): the budget's
+`planet_resource_deficit` (trade, empire-wide only). Rule from MattMills/stellarstellaris-win
+`docs/economy.md` ("Planetary deficits", inferred there): per colony and resource, upkeep − produces
+× the resource's `deficit_trade_conversion_mult` (data DB `strategic_resource.deficit_trade`, since
+extractor 2026-11-02; an older DB falls back to 0.125 × base price, the same numbers) × the galaxy's
+`logistics_planet_deficit_costs`; **the capital's shortfall less the country's `country_base`
+income** (`isCapital()`: `col_capital*`). Checked 2026-11-02: 15 of 17 AI empires exact
+(dashboardtest1 2210.01.01; the misses are pre-FTL colonies), ours −2.0 % (Planetforgers
+2214.02.01), +0.1 % (Roaming Korinth 2207.02.01), +4.4 % (UNE 2202.08.01), +2.4 % (UNE3
+2207.04.02); without the capital rule +29 … +67 %. The colonies tab shows the sum against what the
+budget booked (✓ within 5 %, `fitCheck()`). **Make it here instead** (`localAlternatives()`): the
+produce tab's cheapest option on the colony (districts with room, a cleared blocker's district,
+building types we have — slots unknown), as many as cover the shortfall; its net cost a month =
+(cost over the produce view's horizon + upkeep + what the moved workers make now − the unit's value)
+× all it makes, surplus included; civilians take the jobs first, a worker is worth the colony's job
+output ÷ employed (`perWorker()`). Wins when that is below the fee on the shortfall. Not counted:
+designation bonuses. Not yet compared with the game's budget tooltip.
 **Distribute Luxury Goods** (`#lib/luxuries.ts`, `LuxuryGoods.svelte` on the colony page; the user's
 ask 2026-10-31): `decision_planet_luxuries_boost` costs 100 Consumer Goods per started 1000 pops
 (8500–9999: 900, at most 1000; 4.5.3 `common/decisions/00_resource_decisions.txt`), then
@@ -1101,6 +1192,29 @@ on today's job output scaled back by stability's share (`jobOutput()` from the j
 `screenshot_2026-10-31_18-16-28`: physicists' "High Stability +30 %" under Produces, upkeep 5.16
 without it); job efficiency (`screenshot_…18-16-11`: +72 % → 344 of 200 workforce) is extra
 workforce and scales both. Not offered to gestalts, on a Nanotech World or while it runs.
+**What-ifs** (the profile's `whatIfs` switch, a **spoiler**, off by default — the user's ask
+2026-11-02: "more what-ifs like Distribute Luxury Goods, for edicts and policies, guarded by a
+setting"; it gates Distribute Luxury Goods' too; `#lib/whatIf.ts` pure, `server/whatIfs.ts`,
+`WhatIfLine.svelte`, `ColonyWhatIfs.svelte`): what a set of modifiers would do from now, ≈. Two
+paths: output modifiers as the produce tab prices edicts (`changesOf()` → `changeGain()`, a share
+of today's output, an upper bound), plus — in `whatIf.ts` only, the trade-offs tab's rules leave
+them out on purpose — `country_<res>_produces_mult` (a share of the jobs' output of it) and
+`<job>_jobs_bonus_workforce_mult` (designations; extra workforce, its upkeep not counted); and
+amenities, `pop_happiness` and `planet_stability_add` colony by colony along the Luxury Goods chain
+(`wellbeingChain()`, which `luxuryWhatIf()` now runs on). Every other key is listed "not counted"
+(most edict and policy modifiers are military, leaders, diplomacy). **Government tab**: per edict
+"if enacted now" (an active one "if cancelled now"), per policy option the switch from the selected
+one (`swapModifiers()`; data DB `tradition_modifier` of the option, `GameData.policyModifiers`).
+**Colony page**: designations of the colony's own kind (`designationCandidates()`: same district
+set, capital among capitals, gestalt ones for gestalts — the game's `potential`s are planet-scope
+triggers the save cannot answer, so ≈), each with the deficit fee's change; and every planet
+decision not ruled out (data DB `decision`, extractor 2026-11-02, `#lib/planetDecisions.ts`: the
+planet's own leaves — `has_modifier`, `has_designation`, `is_planet_class`, `is_capital`,
+`pop_amount` — answered there, the country's by `#lib/triggers.ts`, "(?)" otherwise) that adds a
+static modifier (its explanation's modifiers) or removes one the planet has, with its cost tier and
+duration. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01, UNE 2202.08.01): every page
+200; switch off → none shown, on → shown, spoilers hidden → off again. Not compared with the game
+(`docs/open-checks.md` 28).
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
@@ -1418,6 +1532,7 @@ shows format 2.
 | `event\|leader-died\|<leader>`, `event\|ruler\|<name>`               | at once              | `on_leader_death`, `on_ruler_set`                         |
 | `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`       | each battle we fight | `on_space_battle_won`                                     |
 | `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0) | at once              | queued/cancelled, edict, decision, … (`#lib/spending.ts`) |
+| `event\|multiplayer` (0.11.0)                                        | monthly              | `is_multiplayer` holds (see "No cheats in multiplayer")   |
 
 - **Diplomatic weight** (0.4.0): no log line — each month the player's event exports every
   Galactic Community member's `diplomacy_weight` trigger into its country variable `sdash_dw`, so
@@ -1445,7 +1560,7 @@ shows format 2.
   `sdash_fj|un|pp`, and only when one differs from the last logged (`sdash_*_log`) a line
   `SDASH|2|<date>|event|colony-jobs|<colony>|<open jobs>|<unemployed>|<pops>` — an event line, so
   a dashboard without the kind skips it. `feed.ts` files it with its day (`Tick.colonies`, by
-  colony name), so it reaches the page live (the colony page's Pops chart title: "Pops —
+  colony name), so it reaches the page live (the colony page's Pops (jobs) chart title: "Pops (jobs) —
   <date>: … employed, … civilians, … open jobs") and is stored with the month; the Pops chart
   draws those days between the saves (`colonyDaySeries()`). **Broken in game (2026-10-31):**
   `num_sapient_pops` is no trigger, and the lines come out empty (`docs/open-checks.md` 23). Mod
@@ -1587,7 +1702,11 @@ an `every_situation = { limit = … }` form did not).
 **For a shape not yet seen in our saves** (wars, trade deals, galactic market): the other parser,
 eliasdoehne/stellaris-dashboard (`stellarisdashboard/parsing/timeline.py`), reads many; a 4.0.1
 save at 2312 lives in chennin/stellaris-dashboard-test-saves (galactic market and GalCom, but
-still no trade deal). Download into `$TMPDIR`, never into the repo. **To find where a save keeps
+still no trade deal). **What the engine does with a field** (not in any game file): MattMills/
+stellarstellaris-win, a reverse engineering of the GOG 4.5.2 build, unofficial — `docs/pops.md`
+(growth rounded at random each month, no remainder kept), `docs/ethics.md` (`pop_groups.<id>.fractions`
+= the faction-change remainder, `-1` no faction); it agreed with the saves on both (2026-11-02).
+Download into `$TMPDIR`, never into the repo. **To find where a save keeps
 something**, grepping the raw `gamestate` is not enough: the names are not what you expect (a
 branch office is `externally_owned_buildings`, not `branch_office*`). Parse it with jomini
 (`parseText(…, q => q.json())` in a throwaway `.mjs` in the repo, so `jomini` resolves; deleted
@@ -2059,6 +2178,22 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 **The checks still owed from the 2026-10-22 session — what, how, which screenshot — are listed in
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech
 screen, trade calibration, stored research, releases).
+
+- **Ambitions (formerly Crisis), planned 2026-11-03**: data DB `crisis_path`, `crisis_level`,
+  `crisis_objective`, `menace_perk` (extraction's design notes). Our own path: a `/ambition` tab
+  (currency, level ladder with requirements and perks, objectives with this galaxy's reward,
+  months to the next level). **Other empires' ambitions are a spoiler** (the user's decision,
+  2026-11-03; switch `ambitionsAll`): on, who, what (path, level) and where (capital and the
+  path's sites); off, only what the game tells a player (4.5.3 files). For Nemesis that's the
+  personality "Crisis Aspirant" from the perk on, the "Mysterious Supernova"/Star-Eater alerts
+  and the "Destroying Star Systems" opinion, and "Galactic Crisis Declared" at level 5. For
+  Hyperthermia it's the personality "Thermarchy", plus the opinion "Thermarchy Empire" from
+  level 2, which needs government intel 2 (everyone at 5). Behemoth shows warnings at level 5,
+  Cosmogenesis nothing that names it, and Defender an opinion modifier. Ascension perks are in
+  no intel category. **Unread: the save shape** (no local save has an ambition): in a
+  throwaway game, save before and after `activate_ascension_perk ap_become_the_crisis`, then
+  `resource menace 1000`. Also check whether the diplomacy screen lists another empire's
+  perks.
 
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
   show a link never jumped through). At the first wormhole explored, diff its `bypasses.<id>`,

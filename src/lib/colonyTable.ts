@@ -28,6 +28,7 @@ export type ColonyRow = {
 	civilians: number;
 	openJobs: number;
 	net: Resources; // monthly output minus upkeep
+	logistics: { fee: number; short: Resources; byResource: Resources }; // #lib/colonyLogistics.ts
 	districts: { type: string; built: number; cap: number | null }[];
 	room: number | null; // districts left under the planet's limit; null = unknown (habitats)
 	blockers: number;
@@ -158,6 +159,8 @@ export function sortValue(r: ColonyRow, column: string, species = ''): SortValue
 			return r.problems.length;
 		case 'queue':
 			return r.queue.length;
+		case 'logistics':
+			return r.logistics.fee;
 		default:
 			return null;
 	}
@@ -207,6 +210,7 @@ export const COLUMNS = [
 	{ id: 'civilians', label: 'Civilians' },
 	{ id: 'jobs', label: 'Open jobs' },
 	{ id: 'net', label: 'Net output' },
+	{ id: 'logistics', label: 'Deficit fee (trade)' },
 	{ id: 'districts', label: 'Districts' },
 	{ id: 'suits', label: 'Suits' },
 	{ id: 'pros', label: '👍 pros' },

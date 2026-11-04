@@ -105,6 +105,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	founderClass: null,
 	shipset: null,
 	galaxySetup: null,
+	multiplayer: false,
 	external: null,
 	branchSites: null,
 	history: null,

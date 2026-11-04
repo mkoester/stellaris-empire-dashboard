@@ -4,6 +4,51 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.9] - 2026-11-04
+
+### Added
+
+- Multiplayer games switch every cheat off: ⚙ says so and lists none. The dashboard recognises one
+  by its saves; companion mod 0.11.0 also reports it each month.
+- Pops charts show last month's change on a second axis: growth, assembly, migration (refugees
+  arrive as immigration) and other causes. On the all tab migration between your own colonies
+  cancels out, which leaves what came from or went to other empires. Each is drawn as the mean of
+  the months around it, with the month itself (whole pops, as the game books them) faint behind
+  it: the game turns a fractional rate into a chance of one more pop, so a single month jumps by
+  up to one. ⚙ → Pops charts sets the months: 3 before and 2 after by default, up to 6 each way.
+  The game's first day counts as no month booked yet, no longer as a drop to zero.
+- What colony deficits cost: a colony that uses more of a resource than it makes is supplied by
+  the rest of the empire, and the game charges trade for it (energy, minerals and food 0.125 a
+  unit, consumer goods 0.25, alloys 0.5; the capital's shortfall less the empire's base income).
+  The colonies tab has a "Deficit" column and the empire's total against what the budget booked;
+  each colony page a "Supplied from elsewhere" panel that weighs the fee against making it there
+  instead — building, upkeep and what the workers make now, less what it would make.
+- What-ifs (⚙ → What-ifs, a spoiler, off by default): what an edict would do if enacted now (or
+  an active one if cancelled), what switching a policy would do, and on each colony page what
+  another designation or a planet decision would do — output a month and stability, with what the
+  estimate does not count named. Distribute Luxury Goods' estimate is now behind the same switch.
+- Growth tab: the Pops chart below the projection.
+- Colony tab: a Pops chart for the colony, with its monthly change, after Stability; the chart of
+  employed pops, civilians and open jobs is now "Pops (jobs)".
+- Map tab: map modes, after the game's own. They colour the borders by union, by our diplomatic
+  relation in the game's order, by their opinion of us, intel or AI attitude, and by trust, threat
+  and how fresh our intel is. A claims mode fills the systems we claim and our systems others
+  claim. A mode shows only what our intel shows, as the diplomacy tab does. Empires we have no
+  communications with stay grey, and a reading our intel no longer confirms is dashed.
+- Every map: "full window" lays the map over the whole browser window, with its toolbar, the map
+  tab's modes and layers, and the table beside it if you pick "wide + table". Esc goes back.
+
+### Changed
+
+- Bundles the extractor v0.1.11, which reads Stellaris 4.5.3: ambitions, planet decisions and
+  the deficit fee per resource, for the deficit and what-if features above.
+
+### Fixed
+
+- Megastructure sites rule out every multiple star system, as the game does: 4.5.3's new
+  quaternary stars and the crisis binary/trinary variants were offered for a Dyson Sphere, Ring
+  World and the like.
+
 ## [0.1.8] - 2026-11-01
 
 ### Changed

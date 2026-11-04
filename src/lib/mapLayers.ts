@@ -1,4 +1,5 @@
 import { pretty } from './format.ts';
+import { parseMapMode, type MapMode } from './mapModes.ts';
 import { NOMAD_ECONOMY } from './nomad.ts';
 import { shipLabel } from './ships.ts';
 import type { SeenStation } from './territories.ts';
@@ -60,8 +61,9 @@ export const LAYER_INFO: Record<MapLayer, { label: string; symbol: string; color
 export const MAP_SHIPS = ['off', 'all', 'fleets', 'civilian'] as const;
 export type MapShips = (typeof MAP_SHIPS)[number];
 
-export type MapFilter = { hidden: MapLayer[]; ships: MapShips };
-export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], ships: 'off' };
+// `mode`: what colours the borders or systems (#lib/mapModes.ts)
+export type MapFilter = { hidden: MapLayer[]; ships: MapShips; mode: MapMode };
+export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], ships: 'off', mode: 'empire' };
 
 export function parseMapFilter(v: unknown): MapFilter {
 	const o = (v && typeof v === 'object' ? v : {}) as Partial<MapFilter>;
@@ -69,7 +71,8 @@ export function parseMapFilter(v: unknown): MapFilter {
 		hidden: Array.isArray(o.hidden)
 			? MAP_LAYERS.filter((l) => (o.hidden as unknown[]).includes(l))
 			: [],
-		ships: MAP_SHIPS.find((s) => s === o.ships) ?? 'off'
+		ships: MAP_SHIPS.find((s) => s === o.ships) ?? 'off',
+		mode: parseMapMode(o.mode)
 	};
 }
 

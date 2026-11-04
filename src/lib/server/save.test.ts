@@ -46,6 +46,7 @@ import {
 	marketOrders,
 	progress,
 	readSave,
+	multiplayerPlayers,
 	subjects,
 	sumSources,
 	galacticCommunity,
@@ -107,6 +108,7 @@ const raw: RawSave = {
 	bypasses: {},
 	naturalWormholes: {},
 	globalFlags: {},
+	multiplayer: false,
 	countryNames: {},
 	// as in the 2201.06.01 save: a city district with a filled Government Zone and an empty one
 	districtsDb: {
@@ -183,6 +185,22 @@ const raw: RawSave = {
 	},
 	deposits: { '443': { type: 'd_decrepit_dwellings' } }
 };
+
+describe('multiplayerPlayers', () => {
+	it('single player names its one player "unknown"; multiplayer an account, or more players', () => {
+		expect(multiplayerPlayers([{ name: 'unknown', country: 0 }])).toBe(false);
+		expect(multiplayerPlayers({ name: 'unknown', country: 0 })).toBe(false);
+		expect(multiplayerPlayers(undefined)).toBe(false);
+		// Oracularity of Noerm 2200.01.01, hosted alone (2026-11-03)
+		expect(multiplayerPlayers([{ name: 'MirkoMachine', country: 0 }])).toBe(true);
+		expect(
+			multiplayerPlayers([
+				{ name: 'unknown', country: 0 },
+				{ name: 'unknown', country: 3 }
+			])
+		).toBe(true);
+	});
+});
 
 describe('toSnapshot', () => {
 	const s = toSnapshot(raw, 'camp');

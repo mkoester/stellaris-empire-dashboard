@@ -2,13 +2,17 @@ import { describe, expect, it } from 'vitest';
 import {
 	agendaSeries,
 	colonyDaySeries,
+	colonyPopSeries,
 	colonySeries,
 	gameMonth,
 	gameYear,
+	lineStyles,
 	monthStarts,
+	popCause,
 	popSeries,
 	researchSeries,
 	resourceKeys,
+	windowMean,
 	unbooked,
 	resourcePanelSeries,
 	resourceSeries,
@@ -20,7 +24,7 @@ import {
 	xExtent,
 	zoomWindow
 } from './series.ts';
-import type { Snapshot } from './types.ts';
+import type { Colony, Snapshot } from './types.ts';
 
 const s = (date: string, stockpile: Record<string, number>) =>
 	({ date, stockpile }) as unknown as Snapshot;
@@ -40,12 +44,107 @@ describe('series', () => {
 	});
 });
 
+const W = { back: 3, ahead: 2 };
+
 describe('series with mod-feed months', () => {
 	it('leaves gaps, not zeros, where a source does not report a value', () => {
 		const save = { date: '2200.01.01', pops: 10, income: { energy: 3 } } as unknown as Snapshot;
 		const log = { date: '2200.02.01', pops: null, income: null } as unknown as Snapshot;
-		expect(popSeries([save, log]).lines.pops).toEqual([10, null]);
+		expect(
+			popSeries(
+				[
+					{ ...save, colonies: [] },
+					{ ...log, colonies: [] }
+				],
+				W
+			).lines.pops
+		).toEqual([10, null]);
 		expect(resourceSeries([save, log], (x) => x.income).lines.energy).toEqual([3, null]);
+	});
+});
+
+describe('pops and their monthly change', () => {
+	const colony = (planetId: number, pops: number, by: Record<string, number> | null) =>
+		({ planetId, pops, growth: by && { net: 0, by, byStratum: {} } }) as unknown as Colony;
+	const snap = (date: string, pops: number | null, colonies: Colony[]) =>
+		({ date, pops, colonies }) as unknown as Snapshot;
+	const history = [
+		snap('2201.01.01', 300, [
+			colony(1, 200, { growth: 3, emigration: -5, promotion: 0, species: 2 }),
+			colony(2, 100, { growth: 1, immigration: 7, colonization: 4 }) // 2 refugees
+		]),
+		snap('2201.02.01', null, []), // a mod-feed month
+		snap('2201.03.01', 320, [colony(1, 205, { growth: 2 }), colony(2, 115, null)])
+	];
+
+	it('sums the causes over the colonies, migration between them cancelling out', () => {
+		expect(popSeries(history, W).lines).toEqual({
+			pops: [300, null, 320],
+			'growth /mo (mean)': [3, 3, 3],
+			'growth /mo': [4, null, 2],
+			'migration /mo (mean)': [1, 1, 1],
+			'migration /mo': [2, null, 0],
+			'other /mo (mean)': [2, 2, 2],
+			'other /mo': [4, null, 0]
+		});
+	});
+
+	it('follows one colony, a gap where it is not ours; no line for a cause that never moved', () => {
+		expect(colonyPopSeries(history, 1, W).lines).toEqual({
+			pops: [200, null, 205],
+			'growth /mo (mean)': [2.5, null, 2.5],
+			'growth /mo': [3, null, 2],
+			'migration /mo (mean)': [-2.5, null, -2.5],
+			'migration /mo': [-5, null, 0]
+		});
+		expect(colonyPopSeries(history, 1, W).faint).toEqual(['growth /mo', 'migration /mo']);
+	});
+
+	it('reads the game start as no month booked yet, not as 0', () => {
+		const start = [
+			snap('2200.01.01', 100, [colony(1, 100, {})]),
+			snap('2200.02.01', 104, [colony(1, 104, { growth: 4 })]),
+			snap('2200.03.01', 110, [colony(1, 110, { growth: 6 })])
+		];
+		expect(popSeries(start, W).lines).toMatchObject({
+			'growth /mo (mean)': [5, 5, 5],
+			'growth /mo': [null, 4, 6]
+		});
+		// later, an empty breakdown is a month in which nothing changed
+		const later = start.map((s, i) => ({ ...s, date: `2201.0${i + 1}.01` }));
+		expect(popSeries(later, W).lines['growth /mo']).toEqual([0, 4, 6]);
+	});
+
+	it('averages the months around each point, a month with several saves counted once', () => {
+		const dates = ['2200.02.01', '2200.03.01', '2200.03.20', '2200.04.01', '2200.05.01'];
+		const values = [4, 6, 7, null, 5];
+		expect(windowMean(values, dates, { back: 1, ahead: 0 })).toEqual([4, 5.5, 5.5, 7, 5]);
+		expect(windowMean(values, dates, { back: 0, ahead: 1 })).toEqual([5.5, 7, 7, 5, 5]);
+		expect(windowMean(values, dates, { back: 0, ahead: 0 }, (i) => i !== 1)).toEqual([
+			4,
+			null,
+			7,
+			null,
+			5
+		]);
+	});
+
+	it('draws a faint line thin and dotted in the colour of the line before it', () => {
+		const s = { x: [], lines: { pops: [], 'a mean': [], a: [], b: [] }, faint: ['a'] };
+		const color = (_: string, n: number) => ['red', 'blue', 'green'][n];
+		expect(lineStyles(s, color, [undefined, [6, 4]])).toEqual([
+			{ label: 'pops', stroke: 'red', dash: undefined, faint: false },
+			{ label: 'a mean', stroke: 'blue', dash: [6, 4], faint: false },
+			{ label: 'a', stroke: 'blue', dash: [1, 3], faint: true },
+			{ label: 'b', stroke: 'green', dash: undefined, faint: false }
+		]);
+	});
+
+	it('leaves out the causes that only regroup pops', () => {
+		expect(popCause('promotion')).toBeNull();
+		expect(popCause('ethics')).toBeNull();
+		expect(popCause('resettle')).toBe('migration');
+		expect(popCause('decline')).toBe('other');
 	});
 });
 

@@ -7,6 +7,7 @@ import type { MapFilter } from '#lib/mapLayers.ts';
 import type { MegaView } from '#lib/megastructures.ts';
 import type { SystemView } from '#lib/systems.ts';
 import type { ProduceView } from '#lib/produce.ts';
+import type { PopWindow } from '#lib/popWindow.ts';
 import type { QuadrantView } from '#lib/quadrants.ts';
 import { effectiveDisplay } from '#lib/displaySwitches.ts';
 import {
@@ -21,7 +22,7 @@ import {
 import { parseTheme, type ChartEvents, type CustomTab, type Theme } from '#lib/settings.ts';
 import { getRequestEvent } from '$app/server';
 import { getDb } from './app.ts';
-import { getSetting, headCampaign, nodes, setSetting, type Db } from './db.ts';
+import { campaignMultiplayer, getSetting, headCampaign, nodes, setSetting, type Db } from './db.ts';
 
 // The stored viewer settings. The theme is global; everything else lives in the profile in use
 // (#lib/profiles.ts): the viewed campaign's, else the last picked.
@@ -156,8 +157,16 @@ export const systemView = (): SystemView => settings().systemView;
 export const produceView = (): ProduceView => settings().produceView;
 export const mapFilter = (): MapFilter => settings().mapFilter;
 export const quadrantView = (): QuadrantView => settings().quadrants;
-// as the tabs read it: hidden spoilers and cheats are off
-export const display = (): Display => effectiveDisplay(settings().display);
+export const popWindow = (): PopWindow => settings().popWindow;
+/** Whether the viewed campaign is a multiplayer game, where every cheat is off. */
+export function viewedMultiplayer(db: Db): boolean {
+	const campaign = viewedCampaign(db);
+	return campaign !== null && campaignMultiplayer(db, campaign);
+}
+
+// as the tabs read it: hidden spoilers and cheats are off, cheats always in multiplayer
+export const display = (): Display =>
+	effectiveDisplay(settings().display, viewedMultiplayer(getDb()));
 // Colony charts were stored as `planet:<title>` before the rename.
 export const chartEvents = (): ChartEvents =>
 	Object.fromEntries(

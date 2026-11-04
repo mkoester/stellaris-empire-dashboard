@@ -162,6 +162,23 @@
 	modifier with an end date) — counted, and shown apart: 6 (5+1) is 5 lasting and 1 temporary.
 </p>
 
+{#if data.logistics.model > 0 || data.logistics.booked}
+	{@const l = data.logistics}
+	<p
+		class="mb-3 text-sm"
+		title="per unit short: the resource's deficit_trade_conversion_mult (0.125 energy, minerals, food; 0.25 consumer goods; 0.5 alloys) × the galaxy's Planet Deficit setting (×{l.mult}); the capital's shortfall less the empire's base income. Within a few % of the budget: the colony tables are the month's, the budget a moment later"
+	>
+		Deficit fee: ≈ <span class="text-red-600">−{fmt(l.model)} trade</span> a month over all colonies
+		{#if l.booked !== null}
+			· the budget booked {fmt(l.booked)}
+			{#if l.off !== null && Math.abs(l.off) < 0.05}<span class="text-green-700">✓</span
+				>{:else}<span class="text-amber-600"
+					>⚠ {l.off === null ? 'off' : `off by ${Math.round(l.off * 100)} %`}</span
+				>{/if}
+		{/if}
+	</p>
+{/if}
+
 {#snippet table(rows: typeof shown, marked: boolean)}
 	<ColonyTable
 		{rows}

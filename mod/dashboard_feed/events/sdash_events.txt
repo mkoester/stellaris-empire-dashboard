@@ -22,6 +22,13 @@ country_event = {
 
 	immediate = {
 		sdash_roll_timeline = yes
+		# 0.11.0: a multiplayer game, where the dashboard turns every cheat off — before the month's
+		# end line, so the month carries it. Trigger from 4.5.3 triggers.log (scope all); the save's
+		# `player` block says it too, which serves a player without the mod.
+		if = {
+			limit = { is_multiplayer = yes }
+			log = "SDASH|2|[GetDate]|event|multiplayer"
+		}
 		# 0.4.0: every Galactic Community member's diplomatic weight, which the game does not save —
 		# into the country variable sdash_dw, so every save carries it (the dashboard's vote sums);
 		# no log line. Trigger and effect from 4.5.2 script_documentation (triggers.log, effects.log).

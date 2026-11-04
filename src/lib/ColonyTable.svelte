@@ -150,6 +150,11 @@
 						</th>
 					{/each}
 				{/if}
+				{#if show('logistics')}{@render head(
+						'logistics',
+						'Deficit',
+						'≈ trade a month the empire pays to supply what this colony uses beyond what it makes (the capital: beyond the empire’s base income too)'
+					)}{/if}
 				{#if show('districts')}{@render head(
 						'districts',
 						'Districts',
@@ -243,6 +248,19 @@
 										: ''}">{v === 0 ? '·' : signed(v)}</td
 							>
 						{/each}
+					{/if}
+					{#if show('logistics')}
+						<td
+							class="p-1 text-right tabular-nums {r.logistics.fee > 0
+								? 'text-red-600'
+								: 'text-gray-400'}"
+							title={Object.entries(r.logistics.short)
+								.map(
+									([k, v]) =>
+										`${pretty(k)}: ${fmt(v)} short → ${fmt(r.logistics.byResource[k] ?? 0)} trade`
+								)
+								.join('\n')}>{r.logistics.fee > 0 ? `≈ −${fmt(r.logistics.fee)}` : '·'}</td
+						>
 					{/if}
 					{#if show('districts')}
 						<td class="p-1">

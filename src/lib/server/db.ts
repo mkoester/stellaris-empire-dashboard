@@ -273,6 +273,21 @@ export function campaignDifficulty(db: Db, campaign: string): string | null {
 	return row?.d ?? null;
 }
 
+/**
+ * Whether the campaign is a multiplayer game: any of its readings says so, and it stays so — a
+ * multiplayer save loaded in single player, or a month without the mod, does not undo it.
+ */
+export function campaignMultiplayer(db: Db, campaign: string): boolean {
+	return (
+		db
+			.prepare(
+				`SELECT 1 FROM node n JOIN snapshot s ON s.node_id = n.id
+				WHERE n.campaign = ? AND json_extract(s.json, '$.multiplayer') = 1 LIMIT 1`
+			)
+			.get(campaign) !== undefined
+	);
+}
+
 /** The empire's name in the campaign's latest save ('' before one; game.log nodes carry none). */
 export function campaignName(db: Db, campaign: string): string {
 	const row = db
@@ -401,7 +416,8 @@ export function withLogFields(save: Snapshot, log: Snapshot): Snapshot {
 		timelineId: save.timelineId ?? log.timelineId,
 		previousTimelineId: save.previousTimelineId ?? log.previousTimelineId,
 		logEvents: save.logEvents ?? log.logEvents,
-		ticks: save.ticks ?? log.ticks
+		ticks: save.ticks ?? log.ticks,
+		multiplayer: save.multiplayer || log.multiplayer
 	};
 }
 

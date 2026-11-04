@@ -139,7 +139,8 @@ describe('assembler', () => {
 				timelineId: null,
 				previousTimelineId: null,
 				events: [],
-				ticks: []
+				ticks: [],
+				multiplayer: false
 			}
 		});
 	});
@@ -203,6 +204,21 @@ describe('assembler', () => {
 		expect((out[2] as { month: Month }).month.ticks[0].colonies).toEqual(day);
 	});
 
+	it('marks the month after a multiplayer line (mod 0.11.0), and only that one', () => {
+		const add = assembler();
+		const out = feed(
+			add,
+			`SDASH|2|2201.03.01|event|multiplayer
+			SDASH|3|2201.03.01|7|energy|5|1
+			SDASH|3|2201.03.01|7|end
+			SDASH|3|2201.04.01|7|energy|6|1
+			SDASH|3|2201.04.01|7|end`
+		);
+		expect(out.map((o) => (o as { month: Month }).month.multiplayer)).toEqual([true, false]);
+		expect((out[0] as { month: Month }).month.events).toEqual([]);
+		expect(() => parseLine('SDASH|2|2201.03.01|event|multiplayer|1')).toThrow(/malformed/);
+	});
+
 	it('drops what happened after the last month once a save is loaded: that future was left', () => {
 		const add = assembler();
 		const out = feed(
@@ -231,7 +247,8 @@ describe('monthFingerprint', () => {
 		timelineId: null,
 		previousTimelineId: null,
 		events: [],
-		ticks: []
+		ticks: [],
+		multiplayer: false
 	});
 	it('differs between branches with different stockpiles at the same date', () => {
 		expect(monthFingerprint(m(1))).not.toBe(monthFingerprint(m(2)));

@@ -101,6 +101,7 @@ export type RawSave = {
 	bypasses: Record<string, Raw>; // wormholes, gateways, L-Gates, … (#lib/galaxyGraph.ts)
 	naturalWormholes: Record<string, Raw>;
 	globalFlags: Record<string, Raw>; // top-level `flags`
+	multiplayer: boolean; // the top-level `player` block, `multiplayerPlayers()`
 	countryNames: Record<string, string>; // owners of colonised planets
 	empireName: string;
 	meta: { version: string | null; dlcs: string[]; mods: string[] }; // the save's `meta` file
@@ -262,6 +263,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			bypasses: q.at('/bypasses') ?? {},
 			naturalWormholes: q.at('/natural_wormholes') ?? {},
 			globalFlags: q.at('/flags') ?? {},
+			multiplayer: multiplayerPlayers(q.at('/player')),
 			// the whole setup block: the cost sliders here, every setting for the galaxy tab
 			galaxy: q.at('/galaxy') ?? {},
 			councilPositions: q.at('/council_positions/council_positions') ?? {},
@@ -277,7 +279,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '43'; // 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '44'; // 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -438,8 +440,22 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
 		logEvents: null,
-		ticks: null
+		ticks: null,
+		multiplayer: raw.multiplayer
 	};
+}
+
+/**
+ * Whether the save's `player = { { name country } … }` is a multiplayer game's: every
+ * single-player save names its one player "unknown" (106 saves, 4.5.x, Linux), the one multiplayer
+ * save seen its account (Oracularity of Noerm 2200.01.01, hosted alone, 2026-11-03). Two or more
+ * players can only be multiplayer.
+ */
+export function multiplayerPlayers(player: Raw): boolean {
+	const players = items(player);
+	return (
+		players.length > 1 || players.some((p) => typeof p?.name === 'string' && p.name !== 'unknown')
+	);
 }
 
 const RIGHT_KINDS = [

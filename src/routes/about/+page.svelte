@@ -91,8 +91,9 @@
 		</p>
 		<p>
 			<span class="font-medium">Multiplayer:</span> nothing in the game can tell that a player runs the
-			dashboard, so it could spoil a multiplayer game for everyone else. I intend to detect multiplayer
-			games and switch off every cheat there; until then, please don't use it against other people.
+			dashboard, so it could spoil a multiplayer game for everyone else. It recognises a multiplayer game
+			by its saves and switches every cheat off there. That guards against using it by accident, not against
+			someone set on cheating: please don't use it against other people.
 		</p>
 	</section>
 
@@ -107,7 +108,9 @@
 				Without the companion mod, where a reloaded save's branch starts is a guess (marked, and
 				correctable on the timeline).
 			</li>
-			<li>Multiplayer is not detected yet.</li>
+			<li>
+				Multiplayer detection is new: checked against two multiplayer saves, each with one human.
+			</li>
 			<li>
 				Game versions 4.3–4.5; numbers are checked against the game's own screens, not all of them
 				yet, and mostly on Linux.

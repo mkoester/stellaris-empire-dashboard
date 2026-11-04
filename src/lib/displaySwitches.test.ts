@@ -27,6 +27,12 @@ describe('effectiveDisplay', () => {
 		expect(e.wormholePairs).toBe(true);
 		expect(e.tradeIntel).toBe(true);
 	});
+	it('in multiplayer every cheat is off, shown or not; spoilers stay as stored', () => {
+		const e = effectiveDisplay({ ...on, showSpoilers: true, showCheats: true }, true);
+		expect(SWITCHES.filter((s) => s.kind === 'cheat' && e[s.key])).toEqual([]);
+		expect(e.showCheats).toBe(false);
+		expect(e.wormholePairs).toBe(true);
+	});
 });
 
 describe('parseDisplay: the gates', () => {

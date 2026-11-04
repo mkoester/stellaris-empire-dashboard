@@ -9,12 +9,15 @@
 	import ColonyStabilityRoom from '#lib/ColonyStabilityRoom.svelte';
 	import ColonyWellbeing from '#lib/ColonyWellbeing.svelte';
 	import LuxuryGoods from '#lib/LuxuryGoods.svelte';
+	import ColonyLogistics from '#lib/ColonyLogistics.svelte';
+	import ColonyWhatIfs from '#lib/ColonyWhatIfs.svelte';
 	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import PlanetInfo from '#lib/panels/PlanetInfo.svelte';
 	import { automationRows } from '#lib/automation.ts';
 	import { net } from '#lib/flows.ts';
+	import { POP_CHANGE_LINES } from '#lib/series.ts';
 	import { fmt, nameOf, pretty } from '#lib/format.ts';
 	import { followBranch, followGame, followTicks } from '#lib/live.ts';
 	import type { ColonyDay } from '#lib/types.ts';
@@ -137,6 +140,8 @@
 	<div class="grid items-start gap-x-4 lg:grid-cols-2">
 		<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
 		<LuxuryGoods what={data.luxuries} until={data.luxuriesUntil} />
+		<ColonyLogistics what={data.logistics} />
+		<ColonyWhatIfs what={data.whatIfs} />
 		{#if data.colony.stability >= data.wellbeing.maxStability}
 			<ColonyStabilityRoom
 				colony={data.colony}
@@ -164,8 +169,8 @@
 		{/if}
 		<Chart
 			title={live
-				? `Pops — ${live.date}: ${fmt(live.day.pops - live.day.unemployed)} employed, ${fmt(live.day.unemployed)} civilians, ${fmt(live.day.openJobs)} open jobs`
-				: 'Pops'}
+				? `Pops (jobs) — ${live.date}: ${fmt(live.day.pops - live.day.unemployed)} employed, ${fmt(live.day.unemployed)} civilians, ${fmt(live.day.openJobs)} open jobs`
+				: 'Pops (jobs)'}
 			series={data.charts.pops}
 			extent={data.xExtent}
 			events={planetEvents}
@@ -180,6 +185,15 @@
 			scope="colony"
 			right={['over 100']}
 			rightFloor={10}
+		/>
+		<Chart
+			title="Pops"
+			series={data.charts.popChange}
+			extent={data.xExtent}
+			events={planetEvents}
+			scope="colony"
+			right={POP_CHANGE_LINES}
+			rightFloor={5}
 		/>
 		<Chart
 			title="Pops per month: growth and migration"

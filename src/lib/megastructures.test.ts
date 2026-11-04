@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { candidates, scoreFill } from './megastructures.ts';
+import { candidates, multipleStar, scoreFill } from './megastructures.ts';
 import type { Body, GalaxySystem, GameData } from './types.ts';
 
 const body = (id: number, cls: string, b: Partial<Body> = {}): Body => ({
@@ -146,5 +146,22 @@ describe('scoreFill', () => {
 		expect(fill[2]).toBe('#08519c');
 		expect(fill[1]).toBe('#c6dbef');
 		expect(fill[3]).toBeUndefined();
+	});
+});
+
+describe('multipleStar', () => {
+	it('matches binary, trinary and quaternary systems, crisis variants included', () => {
+		for (const s of [
+			'sc_binary_1',
+			'sc_trinary_4',
+			'sc_quaternary_1',
+			'sc_crisis_binary_7_8_9',
+			'sc_crisis_quaternary_1'
+		])
+			expect(multipleStar(s)).toBe(true);
+	});
+	it('leaves single stars alone', () => {
+		for (const s of ['sc_g', 'sc_pulsar', 'sc_black_hole', 'sc_neutron_star'])
+			expect(multipleStar(s)).toBe(false);
 	});
 });

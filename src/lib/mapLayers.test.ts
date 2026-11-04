@@ -339,13 +339,19 @@ describe('parseMapFilter', () => {
 	it('keeps known layers only', () => {
 		expect(parseMapFilter({ hidden: ['ruins', 'nonsense'] })).toEqual({
 			hidden: ['ruins'],
-			ships: 'off'
+			ships: 'off',
+			mode: 'empire'
 		});
 	});
 
 	it('keeps a known ships choice, else none', () => {
 		expect(parseMapFilter({ ships: 'fleets' }).ships).toBe('fleets');
 		expect(parseMapFilter({ ships: 'boats' }).ships).toBe('off');
+	});
+
+	it('keeps a known map mode, else empire', () => {
+		expect(parseMapFilter({ mode: 'opinion' }).mode).toBe('opinion');
+		expect(parseMapFilter({ mode: 'weather' }).mode).toBe('empire');
 	});
 });
 
