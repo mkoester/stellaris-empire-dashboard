@@ -17,6 +17,7 @@ export function load() {
 		active: active.id,
 		display: active.settings.display,
 		quadrants: active.settings.quadrants,
+		popWindow: active.settings.popWindow,
 		campaign: viewedCampaign(db),
 		multiplayer: viewedMultiplayer(db),
 		campaigns: campaignsOf(db),

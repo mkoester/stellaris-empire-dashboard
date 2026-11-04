@@ -1,4 +1,5 @@
 import { automationSummary } from '#lib/automation.ts';
+import { BUDGET_SOURCE, fitCheck } from '#lib/colonyLogistics.ts';
 import { profile } from '#lib/colonyProfile.ts';
 import { problems, type ColonyRow } from '#lib/colonyTable.ts';
 import { net } from '#lib/flows.ts';
@@ -10,6 +11,7 @@ import { getExplanations, getGameData } from './app.ts';
 import type { branch } from './branch.ts';
 import { pick } from './explain.ts';
 import { colonyBlockerHints, colonyDetails } from './planets.ts';
+import { colonyFee, feeInputs } from './logistics.ts';
 
 /**
  * The colonies tab's rows at the branch tip, with what naming and explaining them needs: display
@@ -33,7 +35,9 @@ export function colonyRows(b: NonNullable<ReturnType<typeof branch>>) {
 		...hints.names,
 		...Object.assign({}, ...[...details.values()].map((d) => d?.names ?? {}))
 	};
+	const feeIn = feeInputs(b);
 	const rows: ColonyRow[] = colonies.map((c) => {
+		const { short, fee } = colonyFee(c, feeIn);
 		const caps = details.get(c.planetId)?.caps ?? null;
 		const own = hints.hints.filter((h) => h.planetId === c.planetId);
 		const refs = [
@@ -68,6 +72,7 @@ export function colonyRows(b: NonNullable<ReturnType<typeof branch>>) {
 			civilians: c.civilians,
 			openJobs: c.openJobs,
 			net: net(c.produces, c.upkeep),
+			logistics: { fee: fee.total, short, byResource: fee.byResource },
 			// every type built or allowed, as the game's district boxes
 			districts: [
 				...new Set([
@@ -90,8 +95,20 @@ export function colonyRows(b: NonNullable<ReturnType<typeof branch>>) {
 	const refs = rows.flatMap((r) =>
 		[...r.profile.pros, ...r.profile.cons].flatMap((t) => (t.ref ? [t.ref] : []))
 	);
+	// the model's sum against what the budget booked, from the same save as the colonies
+	const budget = b.snaps.findLast((s) => s.budget)?.budget ?? null;
+	const booked = budget
+		? (budget.find((x) => x.source === BUDGET_SOURCE)?.expenses.trade ?? 0)
+		: null;
 	return {
 		rows,
+		logistics: {
+			mult: feeIn.mult,
+			...fitCheck(
+				rows.map((r) => r.logistics.fee),
+				booked
+			)
+		},
 		names,
 		colors: pick(data.districtColors, [
 			...rows.flatMap((r) => r.districts.map((d) => d.type)),

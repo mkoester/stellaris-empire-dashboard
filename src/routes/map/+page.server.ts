@@ -7,6 +7,8 @@ import {
 	ownOnMap,
 	tracked
 } from '#lib/mapLayers.ts';
+import { diplomacyView } from '#lib/diplomacy.ts';
+import { modeData } from '#lib/mapModes.ts';
 import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
@@ -24,7 +26,7 @@ import { plannedSystems } from '#lib/server/planner.ts';
 
 // The galaxy as the empire has discovered it: borders, first contacts, stations seen, anomalies,
 // dig sites, special projects, wormholes, gateways, megastructures and their ruins — each a layer
-// the profile's mapFilter can hide.
+// the profile's mapFilter can hide — and the map modes' data.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
@@ -70,6 +72,17 @@ export function load({ url }) {
 			capital: x.id === capital
 		})),
 		territories: territoriesOf(snaps),
+		// the map modes (#lib/mapModes.ts): what our intel shows of each empire, as the diplomacy
+		// tab has it (nothing hidden leaves the server), and the claims we know
+		modes: modeData(
+			diplomacyView(snaps, data.flagColors, display().diplomacyAll),
+			snaps.findLast((x) => x.relations)?.relations ?? [],
+			snaps.findLast((x) => x.aiIntel)?.aiIntel ?? []
+		),
+		claims: snaps.findLast((x) => x.claims)?.claims ?? [],
+		attitudes: Object.fromEntries(
+			Object.entries(data.attitudes).map(([k, v]) => [k, { name: v.name }])
+		),
 		markers: mapMarkers({
 			// what was discovered only: a marker's place is never a spoiler
 			galaxy: [

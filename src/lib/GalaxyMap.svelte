@@ -5,6 +5,7 @@
 	import { claimRadius, outlines, REACH, type Site } from './borders.ts';
 	import {
 		fit,
+		MAP_FULL_KEY,
 		MAP_WIDTH_KEY,
 		pan,
 		parseMapWidth,
@@ -28,6 +29,9 @@
 	// "my stations and ships" and our ships drawn per system, which `ships` picks (`onShips` stores it).
 	// `arkships` (a nomad's) are drawn always, as a hexagon above their system, the capital ringed,
 	// with a fit "my arkships".
+	// "full window" lays the map over the whole browser window (Esc leaves it), for every map, per
+	// viewer; `controls` (the page's own, e.g. the map tab's modes) go under the toolbar, so they
+	// stay in reach there.
 	// `beside` is the page's table of what the map shows: the page draws it below the map, and hands
 	// it over to go beside the map when the viewer picks "wide + table" (`width`, bindable, tells it
 	// which; without `beside` that choice is drawn as plain wide).
@@ -51,6 +55,7 @@
 		label = 'Galaxy map',
 		layer,
 		beside,
+		controls,
 		width = $bindable('normal'),
 		territories = [],
 		hovered = $bindable(null),
@@ -70,6 +75,7 @@
 		label?: string;
 		layer?: Snippet<[(p: Point) => Point, number]>; // transform, scale (px per galaxy unit)
 		beside?: Snippet;
+		controls?: Snippet;
 		width?: MapWidth;
 		territories?: Territory[];
 		hovered?: number | null;
@@ -164,7 +170,9 @@
 	// The width is one choice for every map, per viewer: in the page, the browser's full width
 	// (`vw`, the window without its scrollbar), or that with the page's table beside the map.
 	let vw = $state(0);
-	const full = $derived(width !== 'normal' && vw > 0);
+	// the whole browser window: one choice for every map, per viewer
+	let fullWindow = $state(false);
+	const full = $derived(!fullWindow && width !== 'normal' && vw > 0);
 	const side = $derived(width === 'side' && beside !== undefined);
 	// The table beside reaches the window's bottom, whatever the map's height, and scrolls on its
 	// own; it sticks below the window's top edge once the page scrolls past it. Its table's header
@@ -179,6 +187,24 @@
 	$effect(() => {
 		if (side && aside) fitAside();
 	});
+	const setFullWindow = (on: boolean) => {
+		fullWindow = on;
+		try {
+			localStorage.setItem(MAP_FULL_KEY, on ? '1' : '');
+		} catch {
+			/* storage unavailable */
+		}
+	};
+	// the page behind does not scroll while the map covers it
+	$effect(() => {
+		if (!fullWindow) return;
+		const html = document.documentElement;
+		const before = html.style.overflow;
+		html.style.overflow = 'hidden';
+		return () => {
+			html.style.overflow = before;
+		};
+	});
 	const setWidth = (m: MapWidth) => {
 		width = m;
 		try {
@@ -191,6 +217,7 @@
 		try {
 			height = Math.max(200, Number(localStorage.getItem(heightKey)) || height);
 			width = parseMapWidth(localStorage.getItem(MAP_WIDTH_KEY));
+			fullWindow = localStorage.getItem(MAP_FULL_KEY) === '1';
 		} catch {
 			/* storage unavailable: default */
 		}
@@ -202,7 +229,8 @@
 		return () => ro.disconnect();
 	});
 	$effect(() => {
-		if (outer === 0 || outer === height) return;
+		// the full window's height is the window's, not a choice to remember
+		if (fullWindow || outer === 0 || outer === height) return;
 		try {
 			localStorage.setItem(heightKey, String(outer));
 		} catch {
@@ -326,7 +354,13 @@
 	const offered = $derived(beside ? widths : widths.filter(([m]) => m !== 'side'));
 </script>
 
-<svelte:window onscroll={fitAside} onresize={fitAside} />
+<svelte:window
+	onscroll={fitAside}
+	onresize={fitAside}
+	onkeydown={(e) => {
+		if (fullWindow && e.key === 'Escape') setFullWindow(false);
+	}}
+/>
 
 {#snippet swatches()}
 	{#if shown.length}
@@ -345,11 +379,16 @@
 {/snippet}
 
 <!-- full width: centred on the window, as `main` is (mx-auto), whatever its max width -->
+<!-- the whole window: fixed over the page, below its menus and popups (z-50) -->
 <div
-	class={full ? 'px-4' : ''}
+	class={fullWindow
+		? 'fixed inset-0 z-40 flex flex-col bg-white p-3 dark:bg-gray-950'
+		: full
+			? 'px-4'
+			: ''}
 	style={full ? `width: ${vw}px; margin-inline: calc(50% - ${vw / 2}px)` : ''}
 >
-	<div class="mb-2 flex flex-wrap items-center gap-2 text-sm">
+	<div class="mb-2 flex shrink-0 flex-wrap items-center gap-2 text-sm">
 		<button class={button} disabled={!capital} onclick={() => capital && toCapital(capital)}
 			>capital</button
 		>
@@ -414,12 +453,28 @@
 				onclick={() => setWidth(m)}>{text}</button
 			>
 		{/each}
+		<button
+			class="{button} {fullWindow ? 'bg-gray-200 dark:bg-gray-800' : ''}"
+			aria-pressed={fullWindow}
+			title={fullWindow ? 'back to the page (Esc)' : 'the map over the whole browser window'}
+			onclick={() => setFullWindow(!fullWindow)}
+			>{fullWindow ? '✕ full window' : '⛶ full window'}</button
+		>
 	</div>
-	<div class={side ? 'grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start' : ''}>
-		<div class="min-w-0">
+	{#if controls}<div class="mb-2 shrink-0">{@render controls()}</div>{/if}
+	<div
+		class="{side ? 'grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]' : ''} {fullWindow
+			? 'min-h-0 flex-1'
+			: side
+				? 'lg:items-start'
+				: ''}"
+	>
+		<div class="min-w-0 {fullWindow ? 'flex h-full min-h-0 flex-col' : ''}">
 			<div
-				class="w-full resize-y overflow-hidden rounded border border-gray-200 dark:border-gray-800"
-				style="height: {height}px; min-height: 200px"
+				class="w-full overflow-hidden rounded border border-gray-200 dark:border-gray-800 {fullWindow
+					? 'min-h-0 flex-1'
+					: 'resize-y'}"
+				style={fullWindow ? 'min-height: 200px' : `height: ${height}px; min-height: 200px`}
 				bind:clientWidth={w}
 				bind:clientHeight={h}
 				bind:offsetHeight={outer}
@@ -650,7 +705,9 @@
 		</div>
 		{#if side}
 			<aside
-				class="overflow-auto lg:sticky lg:top-4 lg:h-(--side-h) [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-white dark:[&_thead_th]:bg-gray-950"
+				class="overflow-auto {fullWindow
+					? 'h-full'
+					: 'lg:sticky lg:top-4 lg:h-(--side-h)'} [&_thead_th]:sticky [&_thead_th]:top-0 [&_thead_th]:z-10 [&_thead_th]:bg-white dark:[&_thead_th]:bg-gray-950"
 				style:--side-h="{asideH}px"
 				bind:this={aside}
 			>

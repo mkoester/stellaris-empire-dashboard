@@ -3,6 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { listed, SWITCH_GROUPS, SWITCHES } from '#lib/displaySwitches.ts';
 	import { ROW_LINES, type Display, type RowLine } from '#lib/profiles.ts';
+	import { MAX_POP_WINDOW, windowMonths, windowStrip, type PopWindow } from '#lib/popWindow.ts';
 	import { MAX_RINGS, SECTOR_COUNTS, type QuadrantView, type SectorCount } from '#lib/quadrants.ts';
 	import { campaignAction, profileAction, putSettings } from '#lib/settings.ts';
 
@@ -30,6 +31,7 @@
 		['reveal', 'Spoilers and cheats'],
 		['display', 'Display'],
 		['quadrants', 'Map rings and quadrants'],
+		['popWindow', 'Pops charts'],
 		['games', 'Games'],
 		['folders', 'Folders']
 	] as const;
@@ -49,6 +51,12 @@
 	// every map's rings and sectors, stored whole
 	const setQuadrants = (patch: Partial<QuadrantView>) =>
 		act(() => putSettings({ quadrants: { ...data.quadrants, ...patch } }));
+
+	// the months the Pops charts' mean takes in, stored whole
+	const setPopWindow = (patch: Partial<PopWindow>) =>
+		act(() => putSettings({ popWindow: { ...data.popWindow, ...patch } }));
+	const strip = $derived(windowStrip(data.popWindow));
+	const MONTH_CHOICES = Array.from({ length: MAX_POP_WINDOW + 1 }, (_, i) => i);
 
 	const act = async (f: () => Promise<unknown>) => {
 		failure = '';
@@ -306,6 +314,60 @@
 					onchange={(e) => setQuadrants({ rotated: e.currentTarget.checked })}
 				/> cross turned by half a sector (4 sectors: N, E, S, W instead of NE, SE, SW, NW)</label
 			>
+		</section>
+		<section id="popWindow" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Pops charts</h2>
+			<p class="mb-1 text-gray-500">
+				The game books growth in whole pops and turns a fraction into a chance of one more, so a
+				single month is off the rate by up to one. The charts draw each month faint and, over it,
+				its mean over the months around it.
+			</p>
+			<label class="block"
+				>months before
+				<select
+					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+					value={String(data.popWindow.back)}
+					onchange={(e) => setPopWindow({ back: Number(e.currentTarget.value) })}
+				>
+					{#each MONTH_CHOICES as n (n)}<option value={String(n)}>{n}</option>{/each}
+				</select></label
+			>
+			<label class="mt-2 block"
+				>months after
+				<select
+					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+					value={String(data.popWindow.ahead)}
+					onchange={(e) => setPopWindow({ ahead: Number(e.currentTarget.value) })}
+				>
+					{#each MONTH_CHOICES as n (n)}<option value={String(n)}>{n}</option>{/each}
+				</select></label
+			>
+			<div class="mt-3 flex gap-0.5" aria-label="the months a point's mean takes in">
+				{#each strip as m (m.offset)}
+					<div
+						class={[
+							'flex h-8 w-8 items-center justify-center rounded-sm text-xs tabular-nums',
+							m.in ? 'bg-sky-600 text-white' : 'bg-gray-200 text-gray-500 dark:bg-gray-800',
+							m.offset === 0 && 'font-bold ring-2 ring-gray-900 dark:ring-gray-100'
+						]}
+						title={m.offset === 0
+							? 'the month the point stands for'
+							: `${Math.abs(m.offset)} month${Math.abs(m.offset) > 1 ? 's' : ''} ${m.offset < 0 ? 'before' : 'after'}`}
+					>
+						{m.offset === 0 ? 'now' : m.offset > 0 ? `+${m.offset}` : m.offset}
+					</div>
+				{/each}
+			</div>
+			<p class="mt-2 text-gray-500">
+				Each point: the mean of {windowMonths(data.popWindow)} month{windowMonths(data.popWindow) >
+				1
+					? 's'
+					: ''}{data.popWindow.ahead
+					? `. The last ${data.popWindow.ahead} point${data.popWindow.ahead > 1 ? 's' : ''} of a chart have fewer months after them yet, and change as later saves arrive.`
+					: ', all before it: the line trails the change by about ' +
+						data.popWindow.back / 2 +
+						' months.'}
+			</p>
 		</section>
 		<section id="games" class="scroll-mt-4">
 			<h2 class="mb-1 text-xl font-semibold">Games</h2>

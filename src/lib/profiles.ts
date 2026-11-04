@@ -8,6 +8,7 @@ import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
 import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
+import { DEFAULT_POP_WINDOW, parsePopWindow, type PopWindow } from './popWindow.ts';
 import { DEFAULT_QUADRANT_VIEW, parseQuadrantView, type QuadrantView } from './quadrants.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
@@ -42,6 +43,7 @@ export type Display = {
 	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, whatever our intel (cheating)
 	historyAll: boolean; // history tab: every empire's history, whatever we know (cheat)
+	whatIfs: boolean; // ≈ what an edict, policy, designation or planet decision would do now (spoiler)
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
@@ -64,6 +66,7 @@ export const DEFAULT_DISPLAY: Display = {
 	factionTypes: false,
 	allFactionTypes: false,
 	tradeoffs: false,
+	whatIfs: false,
 	tradeIntel: false,
 	diplomacyAll: false,
 	historyAll: false
@@ -82,6 +85,7 @@ export type ProfileSettings = {
 	produceView: ProduceView;
 	mapFilter: MapFilter;
 	quadrants: QuadrantView; // every map's rings and sectors
+	popWindow: PopWindow; // the months the Pops charts' mean takes in
 	display: Display;
 };
 export type ProfileInfo = { id: string; name: string };
@@ -98,6 +102,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	systemView: DEFAULT_SYSTEM_VIEW,
 	produceView: DEFAULT_PRODUCE_VIEW,
 	quadrants: DEFAULT_QUADRANT_VIEW,
+	popWindow: DEFAULT_POP_WINDOW,
 	mapFilter: DEFAULT_MAP_FILTER,
 	display: DEFAULT_DISPLAY
 };
@@ -115,6 +120,7 @@ export function parseDisplay(v: unknown): Display {
 		showSpoilers: typeof o.showSpoilers === 'boolean' ? o.showSpoilers : anyOn(o, 'spoiler'),
 		showCheats: typeof o.showCheats === 'boolean' ? o.showCheats : anyOn(o, 'cheat'),
 		habitatsAlways: o.habitatsAlways === true,
+		whatIfs: o.whatIfs === true,
 		anomalySpoilers: o.anomalySpoilers === true,
 		projectSpoilers: o.projectSpoilers === true,
 		contactStations: o.contactStations === true,
@@ -152,6 +158,7 @@ export function parseSettings(v: unknown): ProfileSettings {
 		produceView: parseProduceView(o.produceView),
 		mapFilter: parseMapFilter(o.mapFilter),
 		quadrants: parseQuadrantView(o.quadrants),
+		popWindow: parsePopWindow(o.popWindow),
 		display: parseDisplay(o.display)
 	};
 }

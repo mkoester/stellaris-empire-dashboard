@@ -9,6 +9,8 @@
 	import ColonyStabilityRoom from '#lib/ColonyStabilityRoom.svelte';
 	import ColonyWellbeing from '#lib/ColonyWellbeing.svelte';
 	import LuxuryGoods from '#lib/LuxuryGoods.svelte';
+	import ColonyLogistics from '#lib/ColonyLogistics.svelte';
+	import ColonyWhatIfs from '#lib/ColonyWhatIfs.svelte';
 	import GrowthProjection from '#lib/GrowthProjection.svelte';
 	import Districts from '#lib/panels/Districts.svelte';
 	import AddGoal from '#lib/planner/AddGoal.svelte';
@@ -138,6 +140,8 @@
 	<div class="grid items-start gap-x-4 lg:grid-cols-2">
 		<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
 		<LuxuryGoods what={data.luxuries} until={data.luxuriesUntil} />
+		<ColonyLogistics what={data.logistics} />
+		<ColonyWhatIfs what={data.whatIfs} />
 		{#if data.colony.stability >= data.wellbeing.maxStability}
 			<ColonyStabilityRoom
 				colony={data.colony}

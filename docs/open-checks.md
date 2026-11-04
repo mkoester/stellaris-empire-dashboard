@@ -249,6 +249,38 @@ unknown too.
   button land on the same system; the planner's habitability for a target matches "Hab. now", and
   once settled the planet's habitability matches "Hab. settled".
 
+### 27. Map modes and full window — map tab (from 2026-11-02)
+
+Recomputed from `__data.json` on a DB copy (Planetforgers 2214.02.01, Roaming Korinth
+2207.02.01) but never compared with the game's map or drawn in a browser. **Assumed**: the
+diplomatic order and colours as `common/map_modes/00_map_modes.txt` lists them; our relation
+record's `threat` is the threat we feel from them, not theirs from us (every empire read 0 in both
+campaigns, so nothing showed it); the save's `hostile=yes` is not the game's `is_hostile` (it sat
+on our subject Lolehndra, so the war colour comes from wars alone).
+
+- **Do:** in a campaign with several contacts, the game's diplomatic (Ctrl+X), opinion (Ctrl+C)
+  and AI attitude (Ctrl+V) map modes, zoomed out over the known empires; then the same modes on
+  the dashboard's map tab, also in "⛶ full window", once with "wide + table".
+- **Send:** the three screenshots and the date. Check: each empire's colour and its reason match
+  the game's; an empire that threatens us (after a war or a conquest nearby) shows `threat` above
+  0, and whose record it is in; full window fills the browser, the table beside scrolls on its own
+  and Esc goes back.
+
+### 28. Deficit fee and what-ifs — colonies, colony and government tabs (from 2026-11-02)
+
+The fee rule (MattMills/stellarstellaris-win, inferred there) fits our saves within 4.4 % (the
+budget's `planet_resource_deficit` against the sum), but no colony's own share has been seen in
+game, and the what-ifs (⚙ What-ifs, a spoiler) are estimates never compared with a change made.
+**Assumed**: the capital is the colony whose shortfall `country_base` covers; an output modifier
+adds its share of today's output (an upper bound); a designation's candidates are those of its own
+kind.
+
+- **Do:** with the switch on, note one edict's "≈ if enacted now" and one colony's designation
+  what-if; enact the edict (or switch the designation), let a month pass, then the budget's
+  Planetary Deficit line (hover) and the resource's income tooltip.
+- **Send:** the screenshots before and after, and the date. Check: the colonies tab's deficit
+  total against the budget line; the month's change against the estimate.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

@@ -10,6 +10,7 @@
 	import Government from '#lib/panels/Government.svelte';
 	import Panel from '#lib/panels/Panel.svelte';
 	import SortTable from '#lib/SortTable.svelte';
+	import WhatIfLine from '#lib/WhatIfLine.svelte';
 	import type { Column } from '#lib/sort.ts';
 	import type { Modifier, Resources } from '#lib/types.ts';
 
@@ -139,6 +140,12 @@
 	{@const e = data.explain[`edict:${r.key}`]}
 	{@render mods(e?.modifiers ?? [])}
 	{#if e?.text}<div class="max-w-md text-gray-500">{e.text}</div>{/if}
+	{#if data.whatIfs?.[`edict:${r.key}`]}<div>
+			<WhatIfLine
+				what={data.whatIfs[`edict:${r.key}`]}
+				label={r.active ? 'if cancelled now' : 'if enacted now'}
+			/>
+		</div>{/if}
 {/snippet}
 {#snippet agendaName(r: AgendaRow & { months: number | null })}
 	<InfoPopup explanation={data.explain[`agenda:${r.key}`]}>{r.name}</InfoPopup>
@@ -339,6 +346,11 @@
 													>{o.name}</InfoPopup
 												>{o.valid === null && !o.selected ? '?' : ''}</span
 											>{/each}
+										{#each p.options.filter((o) => data.whatIfs?.[`policy:${o.key}`]) as o (o.key)}
+											<div>
+												<WhatIfLine what={data.whatIfs?.[`policy:${o.key}`]} label={o.name} />
+											</div>
+										{/each}
 									</td>
 								</tr>
 							{/each}

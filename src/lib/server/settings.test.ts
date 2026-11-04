@@ -44,7 +44,8 @@ describe('profiles', () => {
 				tradeoffs: false,
 				tradeIntel: false,
 				diplomacyAll: false,
-				historyAll: false
+				historyAll: false,
+				whatIfs: false
 			}
 		});
 		expect(activeProfile(db).settings.display.colonyRowLine).toBe('thick');
@@ -91,7 +92,8 @@ describe('profiles', () => {
 				tradeoffs: false,
 				tradeIntel: false,
 				diplomacyAll: false,
-				historyAll: false
+				historyAll: false,
+				whatIfs: false
 			}
 		});
 		const copy = profileAction(db, { action: 'create', name: 'default', copyOf: 'default' })!;

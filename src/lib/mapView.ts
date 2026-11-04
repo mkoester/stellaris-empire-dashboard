@@ -53,5 +53,7 @@ export const MAP_WIDTHS = ['normal', 'wide', 'side'] as const;
 export type MapWidth = (typeof MAP_WIDTHS)[number];
 /** One localStorage key for every map: switching one switches them all (per browser). */
 export const MAP_WIDTH_KEY = 'galaxy-map-width';
+// '1' while the viewer has the map over the whole browser window (GalaxyMap's "full window")
+export const MAP_FULL_KEY = 'galaxy-map-full';
 export const parseMapWidth = (stored: string | null): MapWidth =>
 	MAP_WIDTHS.find((m) => m === stored) ?? 'normal';

@@ -1,10 +1,6 @@
 import type { Colony, Resources } from './types.ts';
-import {
-	amenities,
-	happinessStability,
-	stabilityOutput,
-	type WellbeingRules
-} from './wellbeing.ts';
+import type { WellbeingRules } from './wellbeing.ts';
+import { wellbeingChain } from './whatIf.ts';
 
 // The planet decision "Distribute Luxury Goods" (`decision_planet_luxuries_boost`, 4.5.3
 // common/decisions/00_resource_decisions.txt): Consumer Goods by the colony's pops, then
@@ -55,37 +51,17 @@ export function luxuryWhatIf(
 ): LuxuryWhatIf | null {
 	if (gestalt || colony.designation === 'col_nanotech_world') return null;
 	if (colony.planet?.modifiers.some((m) => m.key === LUXURY_MODIFIER)) return null;
-	const have = colony.amenities;
-	const need = colony.amenitiesUsage;
-	const approval = colony.approval ?? colony.happiness;
-	if (have == null || need == null || approval == null) return null;
-	const before = amenities(have, need, false, r);
-	const added = have * AMENITIES_MULT;
-	const after = amenities(have + added, need, false, r);
-	if (!before || !after) return null;
-	const happiness = after.effect - before.effect;
-	const approvalAfter = Math.min(1, Math.max(0, approval + happiness));
-	const mult = 1 + (colony.stabilityMult ?? 0);
-	const stability = (happinessStability(approvalAfter, r) - happinessStability(approval, r)) * mult;
-	const now = uncapped ?? colony.stability;
-	const cap = (s: number) => Math.min(Math.max(s, r.minStability), r.maxStability);
-	const outNow = stabilityOutput(cap(now), r);
-	const output = stabilityOutput(cap(now + stability), r) - outNow;
-	const monthly = Object.fromEntries(
-		Object.entries(jobOutput)
-			.filter(([, v]) => v > 0)
-			.map(([k, v]) => [k, (v / (1 + outNow)) * output])
+	const c = wellbeingChain(
+		{ colony, jobOutput, uncapped },
+		{ amenitiesMult: AMENITIES_MULT },
+		false,
+		r
 	);
+	if (!c) return null;
 	return {
 		cost: luxuryCost(colony.pops),
-		amenities: added,
-		happiness,
-		approval: approvalAfter,
-		stability,
-		stabilityAfter: cap(now + stability),
-		output,
-		monthly,
-		total: Object.fromEntries(Object.entries(monthly).map(([k, v]) => [k, v * LUXURY_MONTHS]))
+		...c,
+		total: Object.fromEntries(Object.entries(c.monthly).map(([k, v]) => [k, v * LUXURY_MONTHS]))
 	};
 }
 
