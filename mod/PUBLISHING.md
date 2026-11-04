@@ -84,6 +84,9 @@ Hidden events only: once a month (and a light daily tick) it writes lines to [i]
 [h2]⚠ Not Ironman / achievement compatible[/h2]
 Like every script mod, it changes the checksum: achievements and Ironman are off while it is enabled.
 
+[h2]Bugs & feedback[/h2]
+Post them in the [url=https://discord.gg/djHbcvHNeu]empire-dashboard forum on Discord[/url] — for the dashboard and this mod alike.
+
 Unofficial fan project, not affiliated with Paradox Interactive.
 ```
 
@@ -113,6 +116,9 @@ Compatibility
 
 Not Ironman / achievement compatible
 Like every script mod, it changes the checksum: achievements and Ironman are off while it is enabled.
+
+Bugs & feedback
+Post them in the empire-dashboard forum on Discord — for the dashboard and this mod alike: https://discord.gg/djHbcvHNeu
 
 Unofficial fan project, not affiliated with Paradox Interactive.
 ```
