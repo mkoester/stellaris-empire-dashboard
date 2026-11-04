@@ -58,6 +58,10 @@ It only reads the game's files and your saves, stores its history in your user p
 Windows may warn that the app is unrecognised ("More info" → "Run anyway"), macOS refuses it the
 first time (System Settings → Privacy & Security → "Open Anyway"). More in the zip's `README.txt`.
 
+Found a bug, or a number that does not match the game? Post it in the
+[`empire-dashboard` forum on Discord](https://discord.gg/djHbcvHNeu) — a screenshot of the game's
+own screen next to the dashboard's helps most.
+
 ### Known limitations
 
 - **It sees the game only as often as it saves.** Monthly autosaves give the smoothest history;
