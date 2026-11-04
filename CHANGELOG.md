@@ -18,6 +18,12 @@ All notable changes to this project are documented here. The format follows
 - Colony tab: a Pops chart for the colony, with its monthly change, after Stability; the chart of
   employed pops, civilians and open jobs is now "Pops (jobs)".
 
+### Fixed
+
+- Megastructure sites rule out every multiple star system, as the game does: 4.5.3's new
+  quaternary stars and the crisis binary/trinary variants were offered for a Dyson Sphere, Ring
+  World and the like.
+
 ## [0.1.8] - 2026-11-01
 
 ### Changed
