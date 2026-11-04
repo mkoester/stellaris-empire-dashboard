@@ -339,6 +339,14 @@ multiplayer and turns its cheats off wrongly.
 - **A single-player save hosted:** load a single-player save through the multiplayer lobby, save
   → its `player` block (UNE 2's shape expected), and with mod 0.11.0 the
   `SDASH|2|<date>|event|multiplayer` line in `game.log` at the next month.
+  **2026-11-04, 4.5.3 (4e91), passed for the mod:** Yorphian Extractorate, a single-player game
+  loaded through the lobby, the empire picked again ("Previously Played By: unknown",
+  `screenshots/2026_11_04_1.png`): `game.log` has `SDASH|2|2203.11.01|event|multiplayer` (mod
+  0.11.0), and the autosave 2203.11.01 lists `unknown` + `MirkoMachine` — UNE 2's shape, so the
+  save rule agrees. A first lobby run (mod still 0.10.1) seemed to leave `unknown` alone, but that
+  file's time went unchecked and the second run overwrote it: no evidence either way.
+  **The dashboard passed too:** with that campaign viewed, ⚙ says "This is a multiplayer game:
+  the cheats are off" and lists no cheat switch.
 - **The dashboard:** with that campaign viewed, ⚙ says "This is a multiplayer game" and no cheat
   switch is listed; a tab with a cheat on before (e.g. `historyAll`) shows only what you know.
 - **Send:** the save names, and whether the lobby or single player loaded each.
