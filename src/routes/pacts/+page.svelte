@@ -135,7 +135,7 @@
 			<p class="mb-2 text-sm text-gray-500">
 				Not a flat amount: +25 % research speed on a tech the partner already has, added to the
 				speed you already research at — so the more bonuses you have, the less it adds (seen in
-				game: +26 % became +51 %). Two partners with the same tech: counted once.
+				game: +26 % became +51 %). Two partners with the same tech count once (seen in game).
 			</p>
 			<p class="mb-2 text-sm">
 				Your research speed now (progress ÷ research output, measured between monthly saves):

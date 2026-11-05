@@ -296,15 +296,14 @@ although the budget booked a gain).
 
 ### 31. What the engine adds to job output — jobs tab (from 2026-11-05)
 
-The job output panel counts every bonus the files name and measures the rest from the save: about
-+30 % on Planetforgers' capital (stability 84.3) and on Roaming Korinth's (stability 100). Two
-engine modifiers make it up, scaled in ways the files do not say: High Stability (up to +30 %) and
-Pleased (+25 % workers and specialists — when?).
+**High Stability settled 2026-11-05**: +30 % × (stability − 50) ÷ 50 (the throwaway game's Physicist
+tooltip: stability 73.345 → +14.01 %), now counted. Left in the panel's "Rest": +10 % on
+Planetforgers' capital research (Pleased, +25 % workers and specialists — when?), −1 % (Theian
+Preservers) and −3 % (Korinth) on worker jobs' output, and more on alloys and minerals.
 
-- **Do:** on a colony with stability between 50 and 100, hover a specialist job's output (e.g.
-  Physicist) in the planet view's jobs; note the colony's stability and its pops' happiness.
-- **Send:** the tooltip and the date. Check: the High Stability and Pleased lines against the
-  panel's "Rest" for that colony and resource.
+- **Do:** hover a worker job's output (Miner, Technician) on a capital, and on Planetforgers' capital
+  a Physicist's.
+- **Send:** the tooltips and the date. Check: the lines the panel does not count yet.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
@@ -313,10 +312,12 @@ Setup as in `AGENTS.md` → "Testing in a throwaway game".
 ### 30. Research agreements and migration treaties — pacts tab (from 2026-11-05)
 
 **Settled 2026-11-05: the +25 % adds** to our other research speed bonuses (throwaway Theian
-Preservers 2200.06–07: ×1.26 → ×1.51; the tooltip lists the agreement as +25.00 %). Open: whether two partners with the same tech add their
-+25 % (the tab counts it once), and how fast pops cross under a migration treaty (the tab shows species
+Preservers 2200.06–07: ×1.26 → ×1.51; the tooltip lists the agreement as +25.00 %). **Two partners
+with the same tech count once** (2200.08–2201.01: ×1.51 with both; the tooltip lists only one
+agreement line). Open: how fast pops cross under a migration treaty (the tab shows species
 counts per empire; no save of ours has seen a pop cross yet — Planetforgers' 719 Pyrrag'Thul with
-the Oklarr may predate the treaty).
+the Oklarr may predate the treaty; the throwaway game's treaty from 2200.10 moved none in three
+months, both empires on their homeworld alone).
 
 - **Do:** two research agreements with empires that both have a tech we can research
   (a throwaway game), research it, hover its

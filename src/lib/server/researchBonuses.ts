@@ -111,7 +111,7 @@ export function empireSources(
  * A research agreement's +25 % on each tech in progress that a partner has: added to the other
  * speed bonuses, as the game's tooltip lists it ("Baanthurian Research Agreement: +25.00%",
  * throwaway Theian Preservers 2200.07: +51 % = 26 + 25, progress ×1.510). Once per tech, however
- * many partners have it (two not yet seen). From `AiIntel.techsWeLack`: the game shows the bonus.
+ * many partners have it (seen in game: two partners, still ×1.51). From `AiIntel.techsWeLack`: the game shows the bonus.
  */
 export function agreementLines(s: Snapshot): Line[] {
 	const partners = (s.relations ?? []).filter((r) => r.agreements.includes('research_agreement'));

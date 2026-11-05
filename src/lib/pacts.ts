@@ -10,7 +10,8 @@
 //   partner has (concept_research_agreement_desc). Read as added to the research speed we already
 //   have (measured, #lib/researchSpeed.ts): +0.25 × output a month, and of a tech's time
 //   0.25 ÷ (factor + 0.25) saved — 20 % at no other bonus, 14.5 % at ×1.48. Confirmed in game
-//   (throwaway Theian Preservers 2200.07: ×1.26 → ×1.51). Two partners with it: counted once.
+//   (throwaway Theian Preservers 2200.07: ×1.26 → ×1.51). Two partners with it count once
+//   (2200.08–2201.01: still ×1.51; the tooltip lists one agreement).
 // - Migration treaty: pops of both empires may settle in the other's colonies.
 // Intel (common/intel_categories): technology level 1 (intel ≥ 30; an agreement keeps it there)
 // shows the number of techs per area, no level lists them; economy level 3 (intel ≥ 90) shows

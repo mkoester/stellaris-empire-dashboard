@@ -52,7 +52,7 @@
 			cell: rest,
 			right: true,
 			title:
-				'what the counted sources do not explain: the engine applies High Stability (up to +30 %, by stability) and Pleased (+25 % for workers and specialists) itself; flat output from buildings shows here too'
+				'what the counted sources do not explain yet: e.g. Pleased (+25 % for workers and specialists, when the engine applies it) and flat output from buildings'
 		},
 		{ id: 'total', label: 'Total', value: (r) => total(r), cell: tot, right: true },
 		{

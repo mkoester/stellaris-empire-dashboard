@@ -972,13 +972,15 @@ Sources: `empireSources()` (as research), the colony's buildings, designation, d
 modifiers (`heldOf`), its governor (`leaderRoles`, wasted ones out), the species' traits for their
 share of each job (`ColonyJob.species`, READER 46; 4.5.x traits mostly change workforce, which the
 save's `bonus_workforce` already holds), and the player's difficulty bonus
-(`modifier:difficulty_<d>_player`: cadet +50 % to every job). **Measured against the save**: the
-colony's `produces` ÷ its base = the multiplier it got; the **rest** (measured − counted) is what the
-engine applies itself — High Stability (`planet_stability_high`, up to +30 %: Roaming Korinth at
-stability 100 got exactly +30 %, Planetforgers' capital at 84.3 about +5.6 %) and Pleased
-(`pop_pleased`, +25 % workers and specialists; Planetforgers yes, Korinth no) — plus flat building
-output. Their scaling is not in the files (open check 31). Planetforgers' capital research: counted
-+103 / +10 / +3 %, rest +30.6 % in all three. "+10 % is" values one more bonus against the measured
+(`modifier:difficulty_<d>_player`: cadet +50 % to every job), and **High Stability**
+(`stabilitySource()`: `planet_stability_high`'s +30 % × (stability − 50) ÷ 50, from 0 at 50 to all
+of it at 100 — the game's Physicist tooltip at the throwaway Theian Preservers' capital: stability
+73.345 → "High Stability +14.01%", 73.362 → +14.02 %; Roaming Korinth at 100 → +30 %). **Measured
+against the save**: the colony's `produces` ÷ its base = the multiplier it got; the **rest**
+(measured − counted) is what is not counted yet. Theian Preservers' capital: research and unity
+rest 0.0, worker resources −1.0 % (Korinth −3 %: not crime, Korinth has none); Planetforgers'
+capital research +10 % (Pleased, `pop_pleased` +25 % workers and specialists, never in a tooltip
+yet?), alloys and minerals more (flat building output?) — open check 31. "+10 % is" values one more bonus against the measured
 total (`realGain`).
 
 **Jobs tab and the shared values** (`/jobs`, `#lib/unitCosts.ts` pure, `server/unitCosts.ts`; the
@@ -1500,7 +1502,7 @@ holds a pact.
   one's research output — Planetforgers ×1.48 in every area and month (2213–2214), Roaming Korinth
   1.19 then 1.24, UNE 1.07, Yorphia 0.94. **Stored research comes on top, unboosted** (2214.02:
   2.48 = 1.48 + 1 while points were stored), so such months are skipped. Partners' own speed is
-  unknown: their gain is read at ×1, an upper bound. Two partners with the same tech counted once
+  unknown: their gain is read at ×1, an upper bound. Two partners with the same tech count once (seen in game: ×1.51 with both, one tooltip line)
   (open check 30). Plain: this month's extra research (where the tech in progress is one the
   partner has — the game shows the bonus on the tech) and our measured speed. `pactIntel`: the
   partner's techs per area at technology intel 1 (intel ≥ 30; an agreement keeps it there) — the
