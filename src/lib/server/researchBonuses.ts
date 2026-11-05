@@ -11,6 +11,8 @@ import {
 	type Source
 } from '#lib/researchBonuses.ts';
 import { researchSpeed } from '#lib/researchSpeed.ts';
+
+const RESEARCH_AGREEMENT_SPEED = 0.25; // RESEARCH_AGREEMENT_SPEED_MULT
 import type { Explanation, GameData, Modifier, Snapshot } from '#lib/types.ts';
 import { empireHeld } from '#lib/wellbeingLevers.ts';
 
@@ -105,6 +107,32 @@ export function empireSources(
 	return [...held, ...policies, ...council, ...situations];
 }
 
+/**
+ * A research agreement's +25 % on each tech in progress that a partner has: added to the other
+ * speed bonuses, as the game's tooltip lists it ("Baanthurian Research Agreement: +25.00%",
+ * throwaway Theian Preservers 2200.07: +51 % = 26 + 25, progress ×1.510). Once per tech, however
+ * many partners have it (two not yet seen). From `AiIntel.techsWeLack`: the game shows the bonus.
+ */
+export function agreementLines(s: Snapshot): Line[] {
+	const partners = (s.relations ?? []).filter((r) => r.agreements.includes('research_agreement'));
+	return (s.progress?.research ?? []).flatMap((r) => {
+		const by = partners.filter((p) =>
+			s.aiIntel?.find((a) => a.countryId === p.countryId)?.techsWeLack?.includes(r.tech)
+		);
+		return by.length
+			? [
+					{
+						ref: `pact:${by[0].countryId}`,
+						name: `Research agreement (${by.map((p) => p.name).join(', ')})`,
+						pile: 'speed' as const,
+						scope: { kind: 'tech' as const, tech: r.tech },
+						value: RESEARCH_AGREEMENT_SPEED
+					}
+				]
+			: [];
+	});
+}
+
 export function researchBonuses(
 	snaps: Snapshot[],
 	data: GameData,
@@ -112,7 +140,7 @@ export function researchBonuses(
 ) {
 	const s = snaps.findLast((x) => x.progress !== null);
 	if (!s) return null;
-	const lines: Line[] = researchLines(empireSources(s, data, explain));
+	const lines: Line[] = [...researchLines(empireSources(s, data, explain)), ...agreementLines(s)];
 	const speed = researchSpeed(snaps);
 	const settings = s.progress!.costSettings;
 	const sizeBase = data.defines.EMPIRE_SIZE_BASE ?? 100;
@@ -134,13 +162,16 @@ export function researchBonuses(
 			const sc = l.scope;
 			if (sc.kind === 'category') return fields.has(sc.category);
 			if (sc.kind === 'area' || sc.kind === 'jobs') return sc.area === area;
+			if (sc.kind === 'tech') return data.techs[sc.tech]?.area === area;
 			return true; // all research, rare techs
 		};
 		const of = (pile: Line['pile']) => lines.filter((l) => l.pile === pile && inArea(l));
 		const current = s.progress!.research.find((r) => r.area === area) ?? null;
-		const tech = current ? data.techs[current.tech] : undefined;
+		const tech = current ? { key: current.tech, ...data.techs[current.tech] } : undefined;
 		const measured = speed[area] ?? null;
-		const measuredTech = measured?.tech ? data.techs[measured.tech] : undefined;
+		const measuredTech = measured?.tech
+			? { key: measured.tech, ...data.techs[measured.tech] }
+			: undefined;
 		const speedSum = pileSum(lines, 'speed', area, tech);
 		const outputSum = pileSum(lines, 'output', area);
 		const costSum = pileSum(lines, 'cost', area);

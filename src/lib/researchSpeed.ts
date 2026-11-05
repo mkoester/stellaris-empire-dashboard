@@ -41,8 +41,8 @@ export function researchSpeed(history: Snapshot[]): Record<string, SpeedReading>
 }
 
 /**
- * The share of a tech's time a +`bonus` speed saves on top of `factor`, if the game adds speed
- * bonuses up (the usual Paradox rule for modifiers of one kind): 1 − factor ÷ (factor + bonus).
+ * The share of a tech's time a +`bonus` speed saves on top of `factor`, as the game adds speed
+ * bonuses up (seen in game, 2026-11-05): 1 − factor ÷ (factor + bonus).
  * At factor 1 that is 20 % for +25 %, at 1.48 only 14.5 %.
  */
 export const savedShare = (bonus: number, factor = 1) => bonus / (factor + bonus);

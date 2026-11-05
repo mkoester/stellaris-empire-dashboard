@@ -19,6 +19,7 @@ export type Scope =
 	| { kind: 'area'; area: string }
 	| { kind: 'category'; category: string }
 	| { kind: 'rare' }
+	| { kind: 'tech'; tech: string } // one tech: a research agreement's partner has it
 	| { kind: 'jobs'; area: string }; // output of jobs only (stations not)
 
 /** Which pile and scope a modifier key belongs to; null: not about research. */
@@ -63,7 +64,7 @@ export function researchLines(sources: Source[]): Line[] {
 export function appliesTo(
 	scope: Scope,
 	area: string,
-	tech?: { category?: string | null; rare?: boolean }
+	tech?: { key?: string; category?: string | null; rare?: boolean }
 ): boolean {
 	switch (scope.kind) {
 		case 'all':
@@ -75,6 +76,8 @@ export function appliesTo(
 			return tech?.category === scope.category;
 		case 'rare':
 			return tech?.rare === true;
+		case 'tech':
+			return tech?.key === scope.tech;
 	}
 }
 
@@ -83,7 +86,7 @@ export const pileSum = (
 	lines: Line[],
 	pile: Pile,
 	area: string,
-	tech?: { category?: string | null; rare?: boolean }
+	tech?: { key?: string; category?: string | null; rare?: boolean }
 ) =>
 	lines
 		.filter((l) => l.pile === pile && appliesTo(l.scope, area, tech))
@@ -104,5 +107,7 @@ export function scopeLabel(s: Scope): string {
 			return s.category.replaceAll('_', ' ');
 		case 'rare':
 			return 'rare techs';
+		case 'tech':
+			return 'this tech';
 	}
 }

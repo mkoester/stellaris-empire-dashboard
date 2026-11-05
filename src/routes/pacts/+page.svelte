@@ -134,8 +134,8 @@
 			<h2 class="mb-1 font-semibold">Research agreements {@render upkeep('research_agreement')}</h2>
 			<p class="mb-2 text-sm text-gray-500">
 				Not a flat amount: +25 % research speed on a tech the partner already has, added to the
-				speed you already research at — so the more bonuses you have, the less it adds (assumed: not
-				yet seen in a save). Two partners with the same tech: counted once.
+				speed you already research at — so the more bonuses you have, the less it adds (seen in
+				game: +26 % became +51 %). Two partners with the same tech: counted once.
 			</p>
 			<p class="mb-2 text-sm">
 				Your research speed now (progress ÷ research output, measured between monthly saves):

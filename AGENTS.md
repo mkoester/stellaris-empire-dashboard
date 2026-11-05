@@ -1489,9 +1489,12 @@ holds a pact.
   per partner with `pactIntel` at economy intel 3 (intel ≥ 90, `resource_production` in
   `common/intel_categories/02_intel_economy.txt`), any partner with `pactAll`.
 - **Research agreements** (`researchValue()`, `techCounts()`, `techHints()`): +25 % research speed
-  (`RESEARCH_AGREEMENT_SPEED_MULT`) on a tech the partner has, **read as added to the speed we
-  already have** (the user's point 2026-11-05; the usual rule for modifiers of one kind, the files
-  do not say): +0.25 × output a month, and 0.25 ÷ (factor + 0.25) of a tech's time saved — 20 % with
+  (`RESEARCH_AGREEMENT_SPEED_MULT`) on a tech the partner has, **added to the speed we already
+  have — confirmed in game** (the user's point 2026-11-05; throwaway Theian Preservers 2200.07: the
+  tooltip lists "Baanthurian Research Agreement: +25.00%" beside the other bonuses, +51 % = 26 +
+  25, progress ×1.510 against ×1.260 without; multiplied would be ×1.575). On the tech tab it is a
+  speed line of its own for the tech in progress (`agreementLines()` in
+  `server/researchBonuses.ts`, scope `tech`): +0.25 × output a month, and 0.25 ÷ (factor + 0.25) of a tech's time saved — 20 % with
   no other bonus, 14.5 % at ×1.48. **The factor is measured, not modelled** (`researchSpeed()`,
   `#lib/researchSpeed.ts`): progress gained between two consecutive month-start saves ÷ the earlier
   one's research output — Planetforgers ×1.48 in every area and month (2213–2214), Roaming Korinth
