@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
-import type { ActionKind, CapEffect, Costs, GameData } from '#lib/types.ts';
+import type { ActionKind, CapEffect, Costs, GameData, Resources } from '#lib/types.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -358,6 +358,24 @@ export function loadGameData(file: string): GameData {
 			})),
 			// what each situation stage does, by situation and stage index (extractor 2026-11-05;
 			// an older data DB has none)
+			// each job's output and upkeep per 100 workforce (`job_resource`), the base its bonuses scale
+			jobResources: rows<{ job_key: string; kind: string; resource: string; amount: number }>(
+				"SELECT job_key, kind, resource, amount FROM job_resource WHERE kind IN ('produces', 'upkeep')"
+			).reduce<Record<string, { produces: Resources; upkeep: Resources }>>((out, r) => {
+				const j = (out[r.job_key] ??= { produces: {}, upkeep: {} });
+				j[r.kind as 'produces' | 'upkeep'][r.resource] = r.amount;
+				return out;
+			}, {}),
+			// economic category → its parent (extractor 2026-11-05; an older data DB has none)
+			categoryParents: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'economic_category'"
+			).length
+				? Object.fromEntries(
+						rows<{ key: string; parent: string | null }>(
+							'SELECT key, parent FROM economic_category'
+						).map((r) => [r.key, r.parent])
+					)
+				: {},
 			situationStageModifiers: rows<{ name: string }>(
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'situation_stage_modifier'"
 			).length

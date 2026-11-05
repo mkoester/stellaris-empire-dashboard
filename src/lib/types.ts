@@ -174,7 +174,14 @@ export type ColonyDistrict = {
 };
 
 /** One job on a colony. Positions null: unlimited (civilian). */
-export type ColonyJob = { type: string; pops: number; filled: number; positions: number | null };
+export type ColonyJob = {
+	type: string;
+	pops: number;
+	filled: number; // workforce
+	positions: number | null;
+	bonus?: number; // job efficiency's extra workforce (`bonus_workforce`); READER 46
+	species?: Record<string, number>; // workforce by species id; READER 46
+};
 
 /** A system the country knows (visited or own), with its hyperlanes to other known systems. */
 export type KnownSystem = {
@@ -1064,7 +1071,7 @@ export type GameData = {
 		}
 	>;
 	defines: Record<string, number>;
-	jobs: Record<string, { name: string; category: string | null }>;
+	jobs: Record<string, { name: string; category: string | null; budgetSource?: string | null }>;
 	edicts: Record<
 		string,
 		{
@@ -1223,6 +1230,8 @@ export type GameData = {
 	// `councilor_skill_add` by source: `tradition:` (traditions, edicts, policy options, agendas'
 	// `#finish`), `civic:`, `modifier:` (static modifiers)
 	councilorSkill: Record<string, number>;
+	jobResources: Record<string, { produces: Resources; upkeep: Resources }>; // per 100 workforce
+	categoryParents: Record<string, string | null>; // economic category → parent
 	// situation → stage index → its modifiers (data DB `situation_stage_modifier`)
 	situationStageModifiers: Record<string, Record<number, { key: string; value: number }[]>>;
 	// what raises a class's leader limit: source (`tradition:<key>` — perks, edicts, policies too —,

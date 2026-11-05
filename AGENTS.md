@@ -958,6 +958,27 @@ stop at `OVERCROWDING_NO_GROWTH|ASSEMBLY_THRESHOLD` × housing, housing need per
 Everything else is held at today's values (no new districts, colonies, migration, techs) — not
 checked against a game run yet.
 
+**Job output bonuses and how they stack** (jobs tab, first panel; the user's ask 2026-11-05;
+`#lib/outputBonuses.ts` pure, `server/outputModel.ts`, `panels/OutputBonuses.svelte`): per colony
+and resource, workforce (`ColonyJob.filled` + `bonus`, job efficiency's `bonus_workforce`, READER 46)
+÷ 100 × (base + adds) × (1 + mults). Base: data DB `job_resource`. **Which modifiers reach a job**:
+its economic category (`job.budget_source`) and every parent (data DB `economic_category`,
+extraction 2026-11-05: physicists → researchers → jobs_specialist → jobs_productive → jobs →
+planets → country); `<category>_produces_mult` and `<category>_<res>_produces_mult` of any of them,
+`<own category>_<res>_produces_add` only (common/economic_categories README: adds do not inherit).
+Sources: `empireSources()` (as research), the colony's buildings, designation, deposits and planet
+modifiers (`heldOf`), its governor (`leaderRoles`, wasted ones out), the species' traits for their
+share of each job (`ColonyJob.species`, READER 46; 4.5.x traits mostly change workforce, which the
+save's `bonus_workforce` already holds), and the player's difficulty bonus
+(`modifier:difficulty_<d>_player`: cadet +50 % to every job). **Measured against the save**: the
+colony's `produces` ÷ its base = the multiplier it got; the **rest** (measured − counted) is what the
+engine applies itself — High Stability (`planet_stability_high`, up to +30 %: Roaming Korinth at
+stability 100 got exactly +30 %, Planetforgers' capital at 84.3 about +5.6 %) and Pleased
+(`pop_pleased`, +25 % workers and specialists; Planetforgers yes, Korinth no) — plus flat building
+output. Their scaling is not in the files (open check 31). Planetforgers' capital research: counted
++103 / +10 / +3 %, rest +30.6 % in all three. "+10 % is" values one more bonus against the measured
+total (`realGain`).
+
 **Jobs tab and the shared values** (`/jobs`, `#lib/unitCosts.ts` pure, `server/unitCosts.ts`; the
 user's asks 2026-10-22: "normalised costs for everything we produce" and "how well does each job
 perform on each colony, which colonies should be specialised"):

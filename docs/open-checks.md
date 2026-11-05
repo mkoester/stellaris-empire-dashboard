@@ -293,6 +293,18 @@ although the budget booked a gain).
 - **Send:** the screenshots and the date. Check: the influence tab's sources and "Not collected"
   against the tooltip's Power Projection line and its maximum (`country_power_projection_max`).
 
+### 31. What the engine adds to job output — jobs tab (from 2026-11-05)
+
+The job output panel counts every bonus the files name and measures the rest from the save: about
++30 % on Planetforgers' capital (stability 84.3) and on Roaming Korinth's (stability 100). Two
+engine modifiers make it up, scaled in ways the files do not say: High Stability (up to +30 %) and
+Pleased (+25 % workers and specialists — when?).
+
+- **Do:** on a colony with stability between 50 and 100, hover a specialist job's output (e.g.
+  Physicist) in the planet view's jobs; note the colony's stability and its pops' happiness.
+- **Send:** the tooltip and the date. Check: the High Stability and Pleased lines against the
+  panel's "Rest" for that colony and resource.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

@@ -293,7 +293,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '45'; // 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '46'; // 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1897,7 +1897,7 @@ function playerColonies(raw: RawSave): Colony[] {
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
 			buildSlots:
 				num(raw.construction?.queue_mgr?.queues?.[String(planet?.build_queue)]?.simultaneous) || 1,
-			...colonyJobs(raw.popJobs, list(c.pop_jobs)),
+			...colonyJobs(raw.popJobs, list(c.pop_jobs), raw.popGroups),
 			...strata(raw.popGroups, list(c.pop_groups)),
 			automation: {
 				enabled: c.automation?.enabled === true || c.automation?.enabled === 'yes',
@@ -2583,19 +2583,34 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
  * `max_workforce` -1 means unlimited (civilian); jobs nobody works and that have no positions are
  * the placeholders every colony carries (servant, purge, …) and are left out.
  */
-export function colonyJobs(popJobs: Record<string, Raw>, ids: number[]) {
+export function colonyJobs(
+	popJobs: Record<string, Raw>,
+	ids: number[],
+	popGroups: Record<string, Raw> = {}
+) {
 	const jobs: ColonyJob[] = ids.flatMap((id) => {
 		const j = popJobs[String(id)];
 		if (!j || typeof j !== 'object') return [];
 		const pops = items(j.pop_groups).reduce((sum: number, g: Raw) => sum + num(g?.amount), 0);
 		const max = num(j.max_workforce);
 		if (pops === 0 && max <= 0) return [];
+		const filled = Math.max(num(j.workforce), 0);
+		// job efficiency's extra workforce (READER 46): Servants 2196 + 330.55 (Planetforgers 2214.02)
+		const bonus = filled > 0 ? num(j.bonus_workforce) : 0;
+		// who works it, by species id (READER 46): species traits act on their own pops' jobs
+		const species: Record<string, number> = {};
+		for (const g of items(j.pop_groups)) {
+			const sp = popGroups[String(g?.pop_group)]?.key?.species;
+			if (sp !== undefined) species[String(sp)] = (species[String(sp)] ?? 0) + num(g?.amount);
+		}
 		return [
 			{
 				type: String(j.type),
 				pops,
-				filled: Math.max(num(j.workforce), 0),
-				positions: max > 0 ? max : null
+				filled,
+				positions: max > 0 ? max : null,
+				...(bonus > 0 && { bonus }),
+				...(Object.keys(species).length && { species })
 			}
 		];
 	});

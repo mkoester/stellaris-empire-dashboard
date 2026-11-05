@@ -45,7 +45,7 @@ export function policyModifiers(policy: string, mods: Modifier[]): Modifier[] {
 		: mods;
 }
 
-export function researchSources(
+export function empireSources(
 	s: Snapshot,
 	data: GameData,
 	explain: Record<string, Explanation>
@@ -112,7 +112,7 @@ export function researchBonuses(
 ) {
 	const s = snaps.findLast((x) => x.progress !== null);
 	if (!s) return null;
-	const lines: Line[] = researchLines(researchSources(s, data, explain));
+	const lines: Line[] = researchLines(empireSources(s, data, explain));
 	const speed = researchSpeed(snaps);
 	const settings = s.progress!.costSettings;
 	const sizeBase = data.defines.EMPIRE_SIZE_BASE ?? 100;
