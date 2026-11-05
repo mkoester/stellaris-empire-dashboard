@@ -31,6 +31,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The colonies tab, the colony tab and the empire panel show your colonies again while months
+  pass without autosaves (`fast_forward`, or autosaves off with the companion mod on); they read
+  "No colony matches" before.
 - Councilors in an oligarchic empire act two levels higher (the authority's +2), as in game; the
   council's effects were shown two levels too low.
 

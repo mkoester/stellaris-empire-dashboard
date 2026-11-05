@@ -1601,6 +1601,10 @@ node (`place()` → `merge`), otherwise the second would look like a reload. The
 mod's income with the save's balance and logs `mod and save disagree on net income` on a mismatch.
 The save's reading wins, but what only the log knows — `logEvents`, `ticks`, and the timeline id if
 the save lacks it — is kept (`withLogFields()`), also when a save is read again.
+**A month from the feed alone carries no colonies** (`toLogSnapshot`: `colonies: []`). While no save
+follows — `fast_forward` writes no autosaves — `branch()`'s `latest` takes the last save's colonies
+(`latestOf()`, `#lib/latest.ts`): before, the colonies tab read "No colony matches" (throwaway
+Theian Preservers 2207.05–10, 2026-11-05).
 
 ## Companion mod (`mod/dashboard_feed`)
 

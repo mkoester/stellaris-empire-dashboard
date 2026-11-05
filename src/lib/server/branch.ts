@@ -1,3 +1,4 @@
+import { latestOf } from '#lib/latest.ts';
 import { expiries, rolls, timedOut, upcoming, toDays } from '#lib/events.ts';
 import { jobRows, jobSources, netFlows, withFlows, workedJobs } from '#lib/jobs.ts';
 import { getDb, getExplanations, getGameData } from './app.ts';
@@ -92,7 +93,7 @@ export function branch(url: URL) {
 		tip,
 		isHead: tip === headId(db),
 		snaps,
-		latest: snaps[snaps.length - 1],
+		latest: latestOf(snaps),
 		guessedLinks: path(all, tip).filter((n) => n.ambiguous).length
 	};
 }
