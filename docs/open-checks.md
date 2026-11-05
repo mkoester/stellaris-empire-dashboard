@@ -299,8 +299,9 @@ Setup as in `AGENTS.md` → "Testing in a throwaway game".
 
 ### 30. Research agreements and migration treaties — pacts tab (from 2026-11-05)
 
-Two things the files do not say: whether two partners with the same tech add their +25 % (the
-tab counts it once), and how fast pops cross under a migration treaty (the tab shows species
+Three things the files do not say: whether the +25 % adds to our other research speed bonuses
+or multiplies them (the tab assumes it adds), whether two partners with the same tech add their
++25 % (the tab counts it once), and how fast pops cross under a migration treaty (the tab shows species
 counts per empire; no save of ours has seen a pop cross yet — Planetforgers' 719 Pyrrag'Thul with
 the Oklarr may predate the treaty).
 
@@ -309,6 +310,9 @@ the Oklarr may predate the treaty).
   progress in the research screen; a migration treaty with a neighbour and two months.
 - **Send:** the tooltip's speed bonus lines and the dates. Check: the pacts tab's "extra this
   month" against the tooltip; the species counts across the two months.
+- **No game session needed for the first question:** the next month-start save pair whose tech in
+  progress a partner has settles it — progress ÷ output (`researchSpeed()`) at the factor + 0.25
+  means added (Planetforgers: 1.73), × 1.25 multiplied (1.85).
 
 ### 6. Trade calibration — the rest (paused 2026-10-23)
 

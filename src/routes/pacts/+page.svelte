@@ -133,8 +133,25 @@
 		<section class="rounded border border-gray-300 p-2 dark:border-gray-700">
 			<h2 class="mb-1 font-semibold">Research agreements {@render upkeep('research_agreement')}</h2>
 			<p class="mb-2 text-sm text-gray-500">
-				Not a flat amount: +25 % research speed on a tech the partner already has — 20 % of its cost
-				saved. Whether two partners with the same tech add up is not known; counted once.
+				Not a flat amount: +25 % research speed on a tech the partner already has, added to the
+				speed you already research at — so the more bonuses you have, the less it adds (assumed: not
+				yet seen in a save). Two partners with the same tech: counted once.
+			</p>
+			<p class="mb-2 text-sm">
+				Your research speed now (progress ÷ research output, measured between monthly saves):
+				{#each ['physics', 'society', 'engineering'] as a, i (a)}
+					{@const sp = r.speed[a]}
+					{i ? ' · ' : ''}{a}
+					{#if sp}
+						<span
+							class="font-semibold"
+							title="{sp.tech}, {sp.date}: ×{sp.factor.toFixed(2)} → with +25 % ×{(
+								sp.factor + 0.25
+							).toFixed(2)}, {Math.round((25 / (sp.factor + 0.25)) * 10) /
+								10} % of a tech's time saved">×{sp.factor.toFixed(2)}</span
+						>
+					{:else}<span class="text-gray-500">not measured yet</span>{/if}
+				{/each}
 			</p>
 			<table class="mb-3 text-left text-sm tabular-nums">
 				<thead>

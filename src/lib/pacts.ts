@@ -7,13 +7,16 @@
 //   not taken from the partner, booked as trade under `commercial_pacts`. Fit: Planetforgers
 //   2214.02 booked 46.85, Σ 0.1 × (partner's trade income − its own commercial pacts' trade) 46.83.
 // - Research agreement: +25 % research speed (`RESEARCH_AGREEMENT_SPEED_MULT`) on a tech the
-//   partner has (concept_research_agreement_desc) — 20 % of the tech's cost saved. Whether two
-//   partners knowing a tech add up is not known: counted once.
+//   partner has (concept_research_agreement_desc). Read as added to the research speed we already
+//   have (measured, #lib/researchSpeed.ts): +0.25 × output a month, and of a tech's time
+//   0.25 ÷ (factor + 0.25) saved — 20 % at no other bonus, 14.5 % at ×1.48. Not confirmed: no save
+//   yet has a month whose tech in progress a partner had. Two partners with it: counted once.
 // - Migration treaty: pops of both empires may settle in the other's colonies.
 // Intel (common/intel_categories): technology level 1 (intel ≥ 30; an agreement keeps it there)
 // shows the number of techs per area, no level lists them; economy level 3 (intel ≥ 90) shows
 // resource production.
 
+import { savedShare } from './researchSpeed.ts';
 import { gameYear } from './series.ts';
 import type { Series } from './series.ts';
 import type { AiIntel, BudgetSource, EmpireSpecies, Relation, Snapshot } from './types.ts';
@@ -31,7 +34,6 @@ export type PactKey = (typeof PACT_TYPES)[number]['key'];
 
 export const COMMERCIAL_SHARE = 0.1;
 export const RESEARCH_SPEED = 0.25;
-export const RESEARCH_SAVED = 0.2; // 1 − 1 ÷ (1 + RESEARCH_SPEED): of a tech’s cost
 
 const flows = (sources: BudgetSource[], source: string) => {
 	const s = sources.find((x) => x.source === source);
@@ -100,9 +102,13 @@ export type ResearchValue = {
 
 type TechInfo = (key: string) => { cost: number; area: string };
 
+/** Our research speed factor per area (#lib/researchSpeed.ts); 1 where not measured. */
+export type Factor = (area: string) => number;
+
 /**
- * What a research agreement is worth to each side: 20 % of the cost of every tech only the other
- * has (ours: those within reach first), and this month's extra research — 25 % of our monthly
+ * What a research agreement is worth to each side: the share of every tech only the other has
+ * that +25 % on top of the side's own speed saves (ours: measured; theirs: unknown, read as none —
+ * an upper bound), ours within reach first; and this month's extra research — 25 % of our monthly
  * output in each area whose tech in progress the partner has.
  */
 export function researchValue(
@@ -112,12 +118,14 @@ export function researchValue(
 	info: TechInfo,
 	reach: Set<string>,
 	current: { area: string; tech: string }[],
-	monthly: Record<string, number>
+	monthly: Record<string, number>,
+	factor: Factor = () => 1
 ): ResearchValue {
 	const techs = weLack
 		.map((key) => ({ key, ...info(key), inReach: reach.has(key) }))
 		.sort((a, b) => Number(b.inReach) - Number(a.inReach) || b.cost - a.cost);
-	const saved = (list: { cost: number }[]) => list.reduce((t, x) => t + x.cost * RESEARCH_SAVED, 0);
+	const saved = (list: { cost: number; area: string }[], f: Factor = factor) =>
+		list.reduce((t, x) => t + x.cost * savedShare(RESEARCH_SPEED, f(x.area)), 0);
 	const known = new Set(weLack);
 	return {
 		countryId,
@@ -126,7 +134,7 @@ export function researchValue(
 			savedInReach: saved(techs.filter((t) => t.inReach)),
 			saved: saved(techs)
 		},
-		theirs: { count: theyLack.length, saved: saved(theyLack.map(info)) },
+		theirs: { count: theyLack.length, saved: saved(theyLack.map(info), () => 1) },
 		thisMonth: current
 			.filter((c) => known.has(c.tech))
 			.map((c) => ({ ...c, extra: (monthly[c.area] ?? 0) * RESEARCH_SPEED }))
@@ -168,7 +176,8 @@ export function techHints(
 	partners: { countryId: number; weLack: string[] }[],
 	offered: Set<string>,
 	reach: Set<string>,
-	info: TechInfo
+	info: TechInfo,
+	factor: Factor = () => 1
 ): TechHint[] {
 	const by = new Map<string, number[]>();
 	for (const p of partners)
@@ -180,7 +189,7 @@ export function techHints(
 			return {
 				key,
 				...t,
-				saved: t.cost * RESEARCH_SAVED,
+				saved: t.cost * savedShare(RESEARCH_SPEED, factor(t.area)),
 				partners: ids,
 				offered: offered.has(key)
 			};

@@ -14,6 +14,7 @@ import {
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { display } from '#lib/server/settings.ts';
+import { researchSpeed } from '#lib/researchSpeed.ts';
 import { inReach } from '#lib/techTiers.ts';
 import { evaluate } from '#lib/triggers.ts';
 import { xExtent } from '#lib/series.ts';
@@ -84,13 +85,15 @@ export function load({ url }) {
 		['physics', 'society', 'engineering'].map((a) => [a, latest.income?.[`${a}_research`] ?? 0])
 	);
 	const current = progress?.research ?? [];
+	const speed = researchSpeed(snaps);
+	const factor = (area: string) => speed[area]?.factor ?? 1;
 	const research = partnersOf('research_agreement').map((p) => {
 		const a = ai.get(p.countryId);
 		const weLack = a?.techsWeLack ?? null;
 		const theyLack = a?.techsTheyLack ?? null;
 		if (weLack === null || theyLack === null)
 			return { countryId: p.countryId, name: p.name, known: false as const };
-		const v = researchValue(p.countryId, weLack, theyLack, info, reach, current, monthly);
+		const v = researchValue(p.countryId, weLack, theyLack, info, reach, current, monthly, factor);
 		const counts =
 			d.pactAll || (d.pactIntel && intelLevel(p.countryId, 'technology') >= 1)
 				? techCounts(researched, weLack, theyLack, (k) => data.techs[k]?.area ?? '')
@@ -122,7 +125,8 @@ export function load({ url }) {
 				})),
 				offered,
 				reach,
-				info
+				info,
+				factor
 			)
 				.slice(0, 15)
 				.map((h) => ({ ...h, name: name(h.key) }))
@@ -138,6 +142,7 @@ export function load({ url }) {
 					partners: research,
 					hints,
 					monthly,
+					speed,
 					current: current.map((c) => ({ ...c, name: name(c.tech) }))
 				}
 			: null,

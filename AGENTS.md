@@ -1443,14 +1443,22 @@ holds a pact.
   per partner with `pactIntel` at economy intel 3 (intel ≥ 90, `resource_production` in
   `common/intel_categories/02_intel_economy.txt`), any partner with `pactAll`.
 - **Research agreements** (`researchValue()`, `techCounts()`, `techHints()`): +25 % research speed
-  (`RESEARCH_AGREEMENT_SPEED_MULT`) on a tech the partner has — 20 % of its cost saved; two partners
-  with the same tech counted once (unknown, open check 30). Plain: this month's extra research
-  (25 % of the area's output where the tech in progress is one the partner has — the game shows the
-  bonus on the tech). `pactIntel`: the partner's techs per area at technology intel 1 (intel ≥ 30;
-  an agreement keeps it there) — the game shows that number and **no intel level lists the
-  techs** (`intel_tech_researched_all` is in the localisation, in no level). `pactAll`: which
-  techs, research saved each way, and the hints (the cards on offer and techs `inReach()` a partner
-  has, by research saved). From `AiIntel.techsWeLack` / `techsTheyLack` (READER 45, research
+  (`RESEARCH_AGREEMENT_SPEED_MULT`) on a tech the partner has, **read as added to the speed we
+  already have** (the user's point 2026-11-05; the usual rule for modifiers of one kind, the files
+  do not say): +0.25 × output a month, and 0.25 ÷ (factor + 0.25) of a tech's time saved — 20 % with
+  no other bonus, 14.5 % at ×1.48. **The factor is measured, not modelled** (`researchSpeed()`,
+  `#lib/researchSpeed.ts`): progress gained between two consecutive month-start saves ÷ the earlier
+  one's research output — Planetforgers ×1.48 in every area and month (2213–2214), Roaming Korinth
+  1.19 then 1.24, UNE 1.07, Yorphia 0.94. **Stored research comes on top, unboosted** (2214.02:
+  2.48 = 1.48 + 1 while points were stored), so such months are skipped. Partners' own speed is
+  unknown: their gain is read at ×1, an upper bound. Two partners with the same tech counted once
+  (open check 30). Plain: this month's extra research (where the tech in progress is one the
+  partner has — the game shows the bonus on the tech) and our measured speed. `pactIntel`: the
+  partner's techs per area at technology intel 1 (intel ≥ 30; an agreement keeps it there) — the
+  game shows that number and **no intel level lists the techs** (`intel_tech_researched_all` is in
+  the localisation, in no level). `pactAll`: which techs, research saved each way, and the hints
+  (the cards on offer and techs `inReach()` a partner has, by research saved). From
+  `AiIntel.techsWeLack` / `techsTheyLack` (READER 45, research
   partners only, to keep snapshots small); costs × `techCostFactor()`.
 
 The route sends a partner's data only as far as the switches allow. `levelOf()` covers the economy
