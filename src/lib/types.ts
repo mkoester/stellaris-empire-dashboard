@@ -1040,7 +1040,17 @@ export type GameData = {
 			dangerous: boolean;
 		}
 	>; // `tech:`/`tradition:` key → cost and output modifiers
-	techs: Record<string, { name: string; cost: number | null; area: string; tier: number | null }>;
+	techs: Record<
+		string,
+		{
+			name: string;
+			cost: number | null;
+			area: string;
+			tier: number | null;
+			category?: string | null; // field, e.g. "particles"
+			rare?: boolean;
+		}
+	>;
 	agendas: Record<
 		string,
 		{
@@ -1213,6 +1223,8 @@ export type GameData = {
 	// `councilor_skill_add` by source: `tradition:` (traditions, edicts, policy options, agendas'
 	// `#finish`), `civic:`, `modifier:` (static modifiers)
 	councilorSkill: Record<string, number>;
+	// situation → stage index → its modifiers (data DB `situation_stage_modifier`)
+	situationStageModifiers: Record<string, Record<number, { key: string; value: number }[]>>;
 	// what raises a class's leader limit: source (`tradition:<key>` — perks, edicts, policies too —,
 	// `civic:`, `origin:`, `tech:`, `modifier:`) → class (`leader`: every class) → +n
 	leaderCap: Record<string, Record<string, number>>;

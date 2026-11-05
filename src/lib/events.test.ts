@@ -46,6 +46,7 @@ const data: GameData = {
 	scriptedTriggers: {},
 	speciesRights: [],
 	councilorSkill: {},
+	situationStageModifiers: {},
 	leaderCap: {},
 	leaderCost: {},
 	speciesArchetypes: {},

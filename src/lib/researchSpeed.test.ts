@@ -17,6 +17,24 @@ describe('researchSpeed', () => {
 		const r = researchSpeed([save('2213.10.01', 100, 88.97), save('2213.11.01', 231.68, 90)]);
 		expect(r.physics.factor).toBeCloseTo(1.48, 3);
 	});
+	it('reads an area missing from the stored points as none stored', () => {
+		const a = { ...save('2201.02.01', 0, 50), techStored: {} } as Snapshot;
+		expect(researchSpeed([a, save('2201.03.01', 53.5, 50)]).physics.factor).toBeCloseTo(1.07);
+		const old = { ...save('2201.02.01', 0, 50), techStored: null } as Snapshot;
+		expect(researchSpeed([old, save('2201.03.01', 53.5, 50)])).toEqual({});
+	});
+	it('reads an idle area’s stored points growing (UNE 2, 2201.02 → 03)', () => {
+		const idle = (date: string, stored: number) =>
+			({
+				kind: 'save',
+				date,
+				income: { physics_research: 14.03796 },
+				techStored: { physics: stored },
+				progress: { research: [] }
+			}) as unknown as Snapshot;
+		const r = researchSpeed([idle('2201.02.01', 186.01548), idle('2201.03.01', 200.33419)]);
+		expect(r.physics).toEqual({ factor: expect.closeTo(1.02, 4), date: '2201.03.01', tech: null });
+	});
 	it('skips months with stored research, gaps and mid-month saves', () => {
 		expect(
 			researchSpeed([save('2214.01.01', 0, 88.95, 500), save('2214.02.01', 220.61, 88)])

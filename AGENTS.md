@@ -1379,7 +1379,29 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   (`tech_status.alternatives`; the game redraws a field's cards once its tech is done) with ▶ the
   one being researched, ★ the permanent options and the progress of queued ones, "offered over
   time" (`#lib/techOffers.ts`: a run of saves with the same cards is one offer, the pick = the
-  field's tech researched meanwhile), research tiers, everything researched.
+  field's tech researched meanwhile), research tiers, everything researched. **Research bonuses
+  and how they stack** (the user's ask 2026-11-05: "the good ones are applied multiplicatively,
+  the regular ones additively"; `#lib/researchBonuses.ts` pure, `server/researchBonuses.ts`,
+  `panels/ResearchBonuses.svelte`): per area three piles — **speed** (`all_technology_research_speed`,
+  `country_<area>_tech_research_speed`, `category_<field>_research_speed_mult` for the tech's field,
+  `rare_tech_research_speed_mult`), **output** (`country_`/`planet_jobs_<area>_research_produces_mult`)
+  and **cost** (`<area>_tech_cost_mult`, difficulty × tier, slider, empire size +0.2 % above 100).
+  Sources: every empire-wide one `empireHeld()` lists (species traits and rights left out: they act
+  on their pops' jobs), policies by policy (`policyModifiers()`: the data DB keys options by name,
+  so General Studies — an option of all three research policies — holds the physics one; read with
+  the policy's area), the council through `leaderRoles()` (seats at the councilor level, councilor
+  traits with their conditions weighed: the councilor subclass's +5 % is conditional), and
+  situations at their stage (`GameData.situationStageModifiers`, extraction 2026-11-05; `{}` with an
+  older data DB). **Speed bonuses add up — measured**: the speed applied (`researchSpeed()`,
+  progress ÷ output between month-start saves) equals 1 + the sum of the lines, exactly, in every
+  area: Planetforgers ×1.48 (Discovery 0.10, fanatic materialist 0.10, Administrative AI 0.05,
+  General Studies 0.10, Head of Research 0.02 × 4, Statistician 0.05; multiplied they would give
+  ×1.555), Roaming Korinth ×1.19 (Science Officer 0.02 × 3, Spark of Genius 0.03, Nomad Economy
+  at Operational Reserves: High 0.10) and ×1.24 in engineering (+ Improved Energy Initiative on
+  Materials 0.05), Yorphia ×0.94 (Energy Extractors −0.10, council 0.04), UNE 2 ×1.02 (measured on
+  stored points: an area researching nothing stores at the same speed). So one more bonus is worth
+  bonus ÷ (1 + pile) (`realGain()`); the piles multiply (time = cost ÷ (output × speed)). The
+  panel says when the lines miss the measured factor.
 - **leaders**: `Snapshot.leaderList`, traits explained by `ltrait:<key>` (data DB `leader_trait`,
   each modifier labelled with its scope); class colours (`class-*` in `colors.ts`, envoys ours);
   envoys behind a switch, off by default. **Leader modifiers from the empire** (the user's ask

@@ -4,6 +4,7 @@ import { techTiers } from '#lib/techTiers.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
+import { researchBonuses } from '#lib/server/researchBonuses.ts';
 
 // Research: what is being researched with its due date, the cards on offer, what is done.
 export function load({ url }) {
@@ -57,6 +58,7 @@ export function load({ url }) {
 		offers: offers.map((o) => ({ ...o, cards: o.cards.map(tech) })),
 		researched: researched.map(tech).map((t) => ({ ...t, area: techs[t.key]?.area ?? '' })),
 		tiers: techTiers(researched, techs),
+		bonuses: researchBonuses(snaps, getGameData(), getExplanations()),
 		explain: pick(
 			getExplanations(),
 			[

@@ -19,6 +19,11 @@ All notable changes to this project are documented here. The format follows
   and shown), so it is worth less the more bonuses you have — this month's extra research, and with
   ⚙'s pacts intel spoiler each partner's techs per area against ours. The pacts cheat adds which techs each partner has, what
   each commercial pact brings, and which tech to pick to gain most.
+- The tech tab shows your research bonuses and how they stack, per area: speed, output and cost,
+  each with its sources (traditions, ethics, techs, policies, the council and its councilors'
+  traits, situation stages, …). Bonuses of one kind add up, so each one more is worth less — the
+  tab says what one more +10 % is really worth, and what a research agreement adds. Your actual
+  speed is measured from your saves and checked against the sum of the sources.
 
 ## [0.1.10] - 2026-11-04
 

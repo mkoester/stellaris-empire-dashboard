@@ -145,10 +145,11 @@
 					{#if sp}
 						<span
 							class="font-semibold"
-							title="{sp.tech}, {sp.date}: ×{sp.factor.toFixed(2)} → with +25 % ×{(
-								sp.factor + 0.25
-							).toFixed(2)}, {Math.round((25 / (sp.factor + 0.25)) * 10) /
-								10} % of a tech's time saved">×{sp.factor.toFixed(2)}</span
+							title="{sp.tech ?? 'stored research'}, {sp.date}: ×{sp.factor.toFixed(
+								2
+							)} → with +25 % ×{(sp.factor + 0.25).toFixed(2)}, {Math.round(
+								(25 / (sp.factor + 0.25)) * 10
+							) / 10} % of a tech's time saved">×{sp.factor.toFixed(2)}</span
 						>
 					{:else}<span class="text-gray-500">not measured yet</span>{/if}
 				{/each}
