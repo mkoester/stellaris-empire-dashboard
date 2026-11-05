@@ -45,6 +45,8 @@ describe('profiles', () => {
 				tradeIntel: false,
 				diplomacyAll: false,
 				historyAll: false,
+				pactIntel: false,
+				pactAll: false,
 				whatIfs: false
 			}
 		});
@@ -93,6 +95,8 @@ describe('profiles', () => {
 				tradeIntel: false,
 				diplomacyAll: false,
 				historyAll: false,
+				pactIntel: false,
+				pactAll: false,
 				whatIfs: false
 			}
 		});

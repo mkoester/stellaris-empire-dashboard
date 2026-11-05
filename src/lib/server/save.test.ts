@@ -36,6 +36,7 @@ import {
 	sectorBySystem,
 	sectors,
 	speciesInfo,
+	speciesByEmpire,
 	planetBudget,
 	shipCounts,
 	strata,
@@ -1053,6 +1054,68 @@ describe('intelOf', () => {
 			net: { energy: 8.2 },
 			income: { energy: 20 }
 		});
+	});
+});
+
+describe('intelOf, a pact partner (READER 45)', () => {
+	it('reads what its commercial pacts bring it and, for a research partner, the tech gaps', () => {
+		const c = {
+			tech_status: { technology: ['tech_a', 'tech_b', 'tech_c'] },
+			budget: { current_month: { income: { commercial_pacts: { trade: 48.66 } } } }
+		};
+		expect(intelOf(1, c, {}, 0, false, ['tech_a', 'tech_d'])).toMatchObject({
+			commercialPactTrade: 48.66,
+			techsWeLack: ['tech_b', 'tech_c'],
+			techsTheyLack: ['tech_d']
+		});
+		expect(intelOf(1, c, {}, 0)).not.toHaveProperty('techsWeLack');
+	});
+});
+
+describe('speciesByEmpire', () => {
+	it('sums our and our migration partners’ pops by species name (Planetforgers 2214.02 shapes)', () => {
+		const raw = {
+			countryId: 0,
+			country: {
+				controlled_colonies: [10],
+				founder_species_ref: 1,
+				relations_manager: {
+					relation: [
+						{ country: 5, migration_access: true },
+						{ country: 6, commercial_pact: true }
+					]
+				}
+			},
+			countryBlocks: {
+				5: { controlled_colonies: [20], founder_species_ref: 3 },
+				6: { controlled_colonies: [30], founder_species_ref: 3 }
+			},
+			colonies: { 10: { pop_groups: [100] }, 20: { pop_groups: [200, 201, 202, 203] } },
+			popGroups: {
+				100: { key: { species: 1 }, size: 5084 },
+				200: { key: { species: 3 }, size: 3171 },
+				201: { key: { species: 1 }, size: 475 },
+				202: { key: { species: 2 }, size: 227 }, // a modified Pyrragthul
+				203: { key: { species: 4 }, size: 10 } // under 1 %
+			},
+			speciesDb: {
+				1: { name: 'Pyrragthul' },
+				2: { name: 'Pyrragthul' },
+				3: { name: 'Oklarr' },
+				4: { name: 'Few' }
+			}
+		};
+		expect(speciesByEmpire(raw as never)).toEqual([
+			{ countryId: 0, founder: 'Pyrragthul', species: [{ name: 'Pyrragthul', pops: 5084 }] },
+			{
+				countryId: 5,
+				founder: 'Oklarr',
+				species: [
+					{ name: 'Oklarr', pops: 3171 },
+					{ name: 'Pyrragthul', pops: 702 }
+				]
+			}
+		]);
 	});
 });
 

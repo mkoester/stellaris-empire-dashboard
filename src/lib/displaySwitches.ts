@@ -150,6 +150,24 @@ export const SWITCHES: Switch[] = [
 		note: 'the game shows what your intel on each empire reveals'
 	},
 	{
+		key: 'pactIntel',
+		group: 'Diplomacy and trade',
+		kind: 'spoiler',
+		label:
+			'Pacts: what your intel shows of each partner — its techs per area, its trade at high intel',
+		note: 'the game shows them on the empire’s intel screen, not what a pact comes to',
+		tags: 'research agreement commercial pact intel'
+	},
+	{
+		key: 'pactAll',
+		group: 'Diplomacy and trade',
+		kind: 'cheat',
+		label:
+			'Pacts: which techs each research partner has, what each commercial pact brings, and which tech to pick',
+		note: 'no intel level lists another empire’s techs',
+		tags: 'research agreement commercial pact tech hints'
+	},
+	{
 		key: 'tradeIntel',
 		group: 'Diplomacy and trade',
 		kind: 'cheat',

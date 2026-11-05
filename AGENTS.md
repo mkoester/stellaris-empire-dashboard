@@ -357,6 +357,7 @@ left, net per month right (`resourcePanelSeries()`) — and the latest save's mo
 (`Snapshot.budget`, every source, the market's as `market:<source>`; `resourceBudget()` in
 `#lib/flows.ts`; its total is the save's balance: 2207.04.02 energy +3.455 both), and below it
 what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
+`influence` and `pacts` (below),
 `trade-offs` (only with its switch, below) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `ethics`, `situations`, `shroud` (patrons and attunement), `focus`,
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `subjects`, `megastructures` (all below), `galaxy` (the galaxy setup, below), `mods`,
@@ -1019,7 +1020,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`. A new view of hidden information follows the same pattern.
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`. A new view of hidden information follows the same pattern.
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
 `normal`, `spoiler` (what the game hides until found) or `cheat` (what it never tells a player;
@@ -1400,6 +1401,60 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   Caravaneers), pre-FTL civilisations (`primitive`), space fauna (leviathans and guardians
   included), marauders, other (factions, the Shroud, event countries). Names are `EmpireName`
   (map-colour swatch) with `EmpireBadges` (fallen, enclave, nomadic, … — shared with the trade tab).
+
+**Influence tab** (`/influence`, `#lib/influence.ts` pure; the user's ask 2026-11-05: "how much
+do I get and from which source, how much do I spend and for what, how much am I not collecting"):
+the month by budget source (`resourceBudget()` with `INFLUENCE_LABELS`), the sources over time
+(`influenceSeries()`), what the budget does not book (`unbooked()`, `namedSpending()`), and **Not
+collected** (`uncollected()`):
+
+- **Power projection** (budget `country_power_projection`): at most 2
+  (`country_power_projection_influence_produces_add`, `empire_base`), × naval coverage —
+  `navy_coverage_shortage` (1 − navy size ÷ empire size, clamped, mult −1). **Fitted on 40 saves
+  (2026-11-05): navy size = 2 × `used_naval_capacity`**, so coverage = min(1, 2 × used ÷
+  `empire_size`) — 15 at 52 → 1.1538, 28 at 70 → 1.6, 15 at 119 → 0.5042, exact. The maximum is
+  read as booked ÷ coverage, so modifiers count (Planetforgers 2214.02 books 5.25 at full
+  coverage). A navy of 0 booked 0.2 (Roaming Korinth): read as a 10 % coverage floor, unconfirmed
+  (`docs/open-checks.md` 29).
+- **Rival slots**: 0.5 influence a rival (`common/diplomacy_economy`, valued at what a rival books
+  now when there is one); slots 3 (`empire_base`) + 2 with the Animosity stance
+  (`diplo_stance_animosity*` policy flag) + 1 with `tr_enmity_adopt`.
+- **Lost at the storage cap** (`lostAtCap()`): with companion mod's `storageMax`, the net while at
+  it; without, a stockpile that did not move although the budget booked a gain (Planetforgers
+  2214.01–02: 1000 both, +5.8 booked) — estimated; the unexplained row then says so.
+
+**Pacts tab** (`/pacts`, `#lib/pacts.ts` pure; the user's ask 2026-11-05: "what do I get from
+them, per type, then per empire"): every type we hold (`PACT_TYPES`: the relation flag and the
+budget category) with partners and booked upkeep (0.25 influence for migration treaties, research
+agreements, commercial pacts and NAPs, 1 defensive pact, 0.5 guarantee; free under some federation
+perks and laws, `common/diplomacy_economy/00_diplomacy_economy.txt`). Dimmed while no relation
+holds a pact.
+
+- **Migration treaties** (`speciesExchange()`): our main (founder) species in each partner's
+  empire and its main species in ours, save by save, from `Snapshot.speciesByEmpire` (READER 45:
+  us and our treaty partners, pops by species name — a modified species keeps its parent's name,
+  Oklarr 2214.02 had two "Pyrragthul" —, under 1 % left out). **The save has no per-species
+  migration**: `last_month_growth_data.species` holds net growth per species and stratum only, the
+  causes are per colony. Shown plainly, like `/migration`'s foreign colonies.
+- **Commercial pacts** (`commercialSplit()`): we gain 10 % of the partner's trade production
+  (`COMMERCIAL_PACTS_INCOME_PERCENTAGE`), booked as trade under `commercial_pacts`, not taken from
+  the partner. **Fit**: Planetforgers 2214.02 booked 46.85, Σ 0.1 × (partner's trade income − its
+  own `commercial_pacts` trade, `AiIntel.commercialPactTrade`) 46.83. The total is always shown;
+  per partner with `pactIntel` at economy intel 3 (intel ≥ 90, `resource_production` in
+  `common/intel_categories/02_intel_economy.txt`), any partner with `pactAll`.
+- **Research agreements** (`researchValue()`, `techCounts()`, `techHints()`): +25 % research speed
+  (`RESEARCH_AGREEMENT_SPEED_MULT`) on a tech the partner has — 20 % of its cost saved; two partners
+  with the same tech counted once (unknown, open check 30). Plain: this month's extra research
+  (25 % of the area's output where the tech in progress is one the partner has — the game shows the
+  bonus on the tech). `pactIntel`: the partner's techs per area at technology intel 1 (intel ≥ 30;
+  an agreement keeps it there) — the game shows that number and **no intel level lists the
+  techs** (`intel_tech_researched_all` is in the localisation, in no level). `pactAll`: which
+  techs, research saved each way, and the hints (the cards on offer and techs `inReach()` a partner
+  has, by research saved). From `AiIntel.techsWeLack` / `techsTheyLack` (READER 45, research
+  partners only, to keep snapshots small); costs × `techCostFactor()`.
+
+The route sends a partner's data only as far as the switches allow. `levelOf()` covers the economy
+and technology categories too (`INTEL_LEVELS`, 00_intel_levels.txt: both move together).
 
 **Diplomacy tab** (`/diplomacy`, `#lib/diplomacy.ts` pure, `diplomacy()` and `ourIntel()` in
 `server/world.ts`; the user's ask 2026-10-23: "all the player knows(!) about all other empires"):

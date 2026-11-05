@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- An influence tab: this month's influence by source, the sources over time, what was spent
+  outside the budget (claims, outposts, decisions) and what goes uncollected — power projection
+  below its maximum (with the naval capacity still to fill: full coverage needs used naval
+  capacity × 2 ≥ empire size), empty rival slots, and income lost at the storage cap.
+- A pacts tab: each pact type with its partners and upkeep. Migration treaties: our main species
+  in each partner's empire and theirs in ours, over time. Commercial pacts: what they bring in
+  trade (10 % of each partner's trade production). Research agreements: the +25 % research speed
+  on a tech the partner has — this month's extra research, and with ⚙'s pacts intel spoiler each
+  partner's techs per area against ours. The pacts cheat adds which techs each partner has, what
+  each commercial pact brings, and which tech to pick to gain most.
+
 ## [0.1.10] - 2026-11-04
 
 ### Added

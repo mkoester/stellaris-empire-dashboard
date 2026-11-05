@@ -124,6 +124,13 @@ export type CivilianShip = {
 
 export type SpeciesInfo = { id: string; name: string; cls: string; traits: string[]; pops: number };
 
+/** An empire's pops by species (ours and our migration-treaty partners'); `founder` its main one. */
+export type EmpireSpecies = {
+	countryId: number;
+	founder: string | null;
+	species: { name: string; pops: number }[];
+};
+
 export type Sector = { name: string; type: string; systems: number; colonies: number };
 
 /** A surveyed planet nobody owns; jumps from the capital system, null when unreachable. */
@@ -261,6 +268,9 @@ export type AiIntel = {
 	net: Resources; // per month
 	income: Resources; // per month, gross (the cap on what it pays a month); {} before READER 12
 	max?: Resources; // storage, exact: companion mod 0.5.0's sdash_m_<res>; absent without it
+	commercialPactTrade?: number; // trade its own commercial pacts bring it (READER 45)
+	techsWeLack?: string[]; // a research partner's techs we do not have (READER 45)
+	techsTheyLack?: string[]; // ours it does not have (READER 45)
 };
 
 /** A trader enclave we talk to; `kind` 1 XuraCorp, 2 Riggans, 3 Muutagan (#lib/aiTrade.ts). */
@@ -386,6 +396,7 @@ export type Snapshot = {
 		insults?: { country: string; until: string }[];
 	} | null;
 	species: SpeciesInfo[] | null; // species with pops in the empire
+	speciesByEmpire: EmpireSpecies[] | null; // ours and our migration-treaty partners' (READER 45)
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
 	stations: Station[] | null; // starbases with their queues and shipyards

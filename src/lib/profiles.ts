@@ -43,6 +43,8 @@ export type Display = {
 	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, whatever our intel (cheating)
 	historyAll: boolean; // history tab: every empire's history, whatever we know (cheat)
+	pactIntel: boolean; // pacts tab: what intel shows of partners — tech counts, trade at economy intel 3 (spoiler)
+	pactAll: boolean; // pacts tab: partners' techs and trade whatever our intel, tech hints (cheat)
 	whatIfs: boolean; // ≈ what an edict, policy, designation or planet decision would do now (spoiler)
 };
 export const DEFAULT_DISPLAY: Display = {
@@ -69,7 +71,9 @@ export const DEFAULT_DISPLAY: Display = {
 	whatIfs: false,
 	tradeIntel: false,
 	diplomacyAll: false,
-	historyAll: false
+	historyAll: false,
+	pactIntel: false,
+	pactAll: false
 };
 
 export type ProfileSettings = {
@@ -138,7 +142,9 @@ export function parseDisplay(v: unknown): Display {
 		tradeoffs: o.tradeoffs === true,
 		tradeIntel: o.tradeIntel === true,
 		diplomacyAll: o.diplomacyAll === true,
-		historyAll: o.historyAll === true
+		historyAll: o.historyAll === true,
+		pactIntel: o.pactIntel === true,
+		pactAll: o.pactAll === true
 	};
 }
 

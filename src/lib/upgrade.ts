@@ -46,6 +46,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	countryTimedFlags: null,
 	cooldowns: null,
 	species: null,
+	speciesByEmpire: null,
 	sectors: null,
 	expansion: null,
 	stations: null,

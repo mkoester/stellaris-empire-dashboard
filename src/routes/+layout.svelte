@@ -77,6 +77,11 @@
 			active: path === '/trade'
 		},
 		{
+			name: 'influence',
+			href: node ? resolve(`/influence?node=${node}`) : resolve('/influence'),
+			active: path === '/influence'
+		},
+		{
 			name: 'trade deals',
 			href: node ? resolve(`/deals?node=${node}`) : resolve('/deals'),
 			active: path === '/deals'
@@ -164,6 +169,11 @@
 			name: 'diplomacy',
 			href: node ? resolve(`/diplomacy?node=${node}`) : resolve('/diplomacy'),
 			active: path === '/diplomacy'
+		},
+		{
+			name: 'pacts',
+			href: node ? resolve(`/pacts?node=${node}`) : resolve('/pacts'),
+			active: path === '/pacts'
 		},
 		{
 			name: 'subjects',

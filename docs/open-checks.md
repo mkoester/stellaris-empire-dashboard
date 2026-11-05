@@ -281,9 +281,34 @@ kind.
 - **Send:** the screenshots before and after, and the date. Check: the colonies tab's deficit
   total against the budget line; the month's change against the estimate.
 
+### 29. Influence and pacts — influence and pacts tabs (from 2026-11-05)
+
+Power projection is a fit, not a rule from the files: 2 × min(1, 2 × used naval capacity ÷ empire
+size), exact in 40 saves; one save with no navy booked 0.2, read as a 10 % coverage floor. Income
+lost at the storage cap is inferred without the companion mod (a stockpile that did not move
+although the budget booked a gain).
+
+- **Do:** hover the influence income in the top bar, and the navy size / naval coverage line of
+  the fleet manager; note the influence stockpile.
+- **Send:** the screenshots and the date. Check: the influence tab's sources and "Not collected"
+  against the tooltip's Power Projection line and its maximum (`country_power_projection_max`).
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
+
+### 30. Research agreements and migration treaties — pacts tab (from 2026-11-05)
+
+Two things the files do not say: whether two partners with the same tech add their +25 % (the
+tab counts it once), and how fast pops cross under a migration treaty (the tab shows species
+counts per empire; no save of ours has seen a pop cross yet — Planetforgers' 719 Pyrrag'Thul with
+the Oklarr may predate the treaty).
+
+- **Do:** two research agreements with empires that both have a tech we can research
+  (a throwaway game), research it, hover its
+  progress in the research screen; a migration treaty with a neighbour and two months.
+- **Send:** the tooltip's speed bonus lines and the dates. Check: the pacts tab's "extra this
+  month" against the tooltip; the species counts across the two months.
 
 ### 6. Trade calibration — the rest (paused 2026-10-23)
 
