@@ -513,6 +513,8 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT 'civic:' || civic_key, modifier_value FROM civic_modifier
 					   WHERE modifier_key = 'councilor_skill_add'
 					 UNION ALL SELECT 'modifier:' || static_key, modifier_value FROM static_modifier_modifier
+					   WHERE modifier_key = 'councilor_skill_add'
+					 UNION ALL SELECT 'authority:' || authority_key, modifier_value FROM authority_modifier
 					   WHERE modifier_key = 'councilor_skill_add'`
 				).map((r) => [r.owner, r.value])
 			),

@@ -68,7 +68,8 @@
 			>
 				Power projection {fmt(pp.booked)} of {pp.floored ? '≈ ' : ''}{fmt(pp.max)}: naval coverage
 				{Math.round(pp.coverage * 100)} % ({data.navalUsed} naval capacity used × 2 ÷ empire size
-				{data.empireSize}){pp.floored ? ' — at the 10 % floor seen once, unconfirmed' : ''}. Rivals: {data.rivals}.
+				{data.empireSize}){pp.floored ? ' — at the 10 % floor: no navy still pays 0.2' : ''}.
+				Rivals: {data.rivals}.
 				{#if data.max !== null}Stockpile {fmt(data.stockpile ?? 0)} of {fmt(data.max)}.{/if}
 			</p>
 		{/if}

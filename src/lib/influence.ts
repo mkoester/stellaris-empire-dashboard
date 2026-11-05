@@ -6,7 +6,7 @@
 // (`navy_coverage_shortage`: 1 − navy size ÷ empire size, clamped 0–1, mult −1). Fitted on 40
 // saves (2026-11-05): navy size = 2 × used naval capacity, so coverage = min(1, 2 × used ÷ size)
 // — 15 at 52 → 1.1538, 28 at 70 → 1.6, 15 at 119 → 0.5042. A navy of 0 booked 0.2 (Roaming
-// Korinth): read as a floor of 10 % coverage, unconfirmed.
+// Korinth; the throwaway Theian Preservers 2200.03–05 likewise): read as a floor of 10 % coverage.
 // Rivals (common/diplomacy_economy): 0.5 influence each, × `rivalries_influence_produces_mult`.
 // Slots: 3 (`empire_base`), +2 with the Animosity stance, +1 with Enmity adopted.
 
@@ -15,7 +15,7 @@ import type { Series, Unbooked } from './series.ts';
 import type { BudgetSource, Snapshot } from './types.ts';
 
 export const PP_MAX = 2;
-const COVERAGE_FLOOR = 0.1; // estimated from one save
+const COVERAGE_FLOOR = 0.1; // no navy books 0.2 (two empires)
 export const RIVAL_INFLUENCE = 0.5;
 const RIVAL_SLOTS = 3;
 

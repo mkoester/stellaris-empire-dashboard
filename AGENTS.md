@@ -678,7 +678,9 @@ leader's level** — 4.5.2 `common/governments/councilors/000_councilor_document
 `modifier` "is multiplied by assigned Leader's level" (`atLevel`; `seat:<key>` popups hold the
 per-level values), shown per level and, in brackets, at the **councilor level** = leader level +
 its `bonus_skill_level` + the empire's `councilor_skill_add` the save shows active (traditions,
-edicts, policy options, civics, timed modifiers; `councilorBonus()`, data DB `councilorSkill`).
+edicts, policy options, civics, the authority — oligarchic +2, missed until 2026-11-05: the
+throwaway Theian Preservers' level-1 Head of Research gave +6 % in game, 3 × 2 % —, timed
+modifiers; `councilorBonus()`, data DB `councilorSkill`).
 Each seat's leader classes are chips in the game's colours; the leader's traits add their
 `councilor_modifier` ("applied to country if leader is on the Council", flat — 4.5.2
 `common/traits/000_documentation_leader_traits.txt`; `ltraitcouncil:<key>`). Possible seats are our
@@ -1457,8 +1459,9 @@ collected** (`uncollected()`):
   (2026-11-05): navy size = 2 × `used_naval_capacity`**, so coverage = min(1, 2 × used ÷
   `empire_size`) — 15 at 52 → 1.1538, 28 at 70 → 1.6, 15 at 119 → 0.5042, exact. The maximum is
   read as booked ÷ coverage, so modifiers count (Planetforgers 2214.02 books 5.25 at full
-  coverage). A navy of 0 booked 0.2 (Roaming Korinth): read as a 10 % coverage floor, unconfirmed
-  (`docs/open-checks.md` 29).
+  coverage). **A navy of 0 books 0.2**: Roaming Korinth (nomad) and the throwaway Theian
+  Preservers (2200.03–05, fleet disbanded; 1.2 at 15 of size 50 before) — read as a 10 % coverage
+  floor (a flat 0.2 minimum would read the same at the default maximum of 2).
 - **Rival slots**: 0.5 influence a rival (`common/diplomacy_economy`, valued at what a rival books
   now when there is one); slots 3 (`empire_base`) + 2 with the Animosity stance
   (`diplo_stance_animosity*` policy flag) + 1 with `tr_enmity_adopt`.

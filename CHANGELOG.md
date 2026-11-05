@@ -29,6 +29,11 @@ All notable changes to this project are documented here. The format follows
   species, difficulty), the rest the colony got on top (stability, happiness), and what one more
   +10 % is really worth there.
 
+### Fixed
+
+- Councilors in an oligarchic empire act two levels higher (the authority's +2), as in game; the
+  council's effects were shown two levels too low.
+
 ## [0.1.10] - 2026-11-04
 
 ### Added

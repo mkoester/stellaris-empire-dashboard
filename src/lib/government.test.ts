@@ -270,6 +270,20 @@ describe('councilorBonus', () => {
 	});
 });
 
+describe('councilorBonus, the authority', () => {
+	it('counts oligarchic’s +2 (Theian Preservers 2200.05: Head of Research level 1 gave +6 %)', () => {
+		const s = upgrade({
+			kind: 'save',
+			campaign: 'c',
+			date: '2200.05.01',
+			government: ['auth_oligarchic', 'ethic_fanatic_materialist', 'civic_meritocracy']
+		} as Partial<Snapshot> & Pick<Snapshot, 'kind' | 'campaign' | 'date'>);
+		expect(councilorBonus(s, { 'authority:auth_oligarchic': 2 })).toEqual([
+			{ source: 'auth_oligarchic', value: 2 }
+		]);
+	});
+});
+
 describe('launchDates', () => {
 	it('works back from the cooldown end to the launch and the end of the after-launch effect', () => {
 		// another empire at 2207.03.10: Infinite Opportunities available again 2231.12.01, 30-year

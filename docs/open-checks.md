@@ -284,7 +284,8 @@ kind.
 ### 29. Influence and pacts — influence and pacts tabs (from 2026-11-05)
 
 Power projection is a fit, not a rule from the files: 2 × min(1, 2 × used naval capacity ÷ empire
-size), exact in 40 saves; one save with no navy booked 0.2, read as a 10 % coverage floor. Income
+size), exact in 40 saves; with no navy it books 0.2 (two empires, 2026-11-05 — settled), read as
+a 10 % coverage floor. Income
 lost at the storage cap is inferred without the companion mod (a stockpile that did not move
 although the budget booked a gain).
 
