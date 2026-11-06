@@ -27,6 +27,7 @@ import type {
 	Fleet,
 	Sector,
 	SpeciesInfo,
+	EmpireSpecies,
 	ColonyJob,
 	PoolLeader,
 	LeaderInfo,
@@ -157,6 +158,10 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 		const aiIntel: AiIntel[] = [];
 		const traderEnclaves: TraderEnclave[] = [];
 		const nomads = nomadCountries(q.at('/situations/situations') ?? {});
+		const us = allCountries[String(countryId)];
+		const ourTechs = items(us?.tech_status?.technology).map(String);
+		const ourRelation = (id: number) =>
+			items(us?.relations_manager?.relation).find((r) => r?.country === id);
 		for (const [id, c] of Object.entries(allCountries)) {
 			if (!c || typeof c !== 'object') continue;
 			if (typeof c.loyalty === 'number') loyalty[id] = c.loyalty;
@@ -168,7 +173,16 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 				TRADING_TYPES.includes(String(c.type)) &&
 				(toUs?.communications === true || toUs?.communications === 'yes')
 			)
-				aiIntel.push(intelOf(Number(id), c, toUs, countryId, nomads.has(Number(id))));
+				aiIntel.push(
+					intelOf(
+						Number(id),
+						c,
+						toUs,
+						countryId,
+						nomads.has(Number(id)),
+						isYes(ourRelation(Number(id))?.research_agreement) ? ourTechs : null
+					)
+				);
 			const enclave = traderEnclaveKind(c);
 			if (enclave !== null && (toUs?.communications === true || toUs?.communications === 'yes'))
 				traderEnclaves.push({ countryId: Number(id), name: displayName(c.name), kind: enclave });
@@ -263,7 +277,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			bypasses: q.at('/bypasses') ?? {},
 			naturalWormholes: q.at('/natural_wormholes') ?? {},
 			globalFlags: q.at('/flags') ?? {},
-			multiplayer: multiplayerPlayers(q.at('/player')),
+			multiplayer: multiplayerPlayers(q.at('/player'), q.at('/galaxy')?.ironman),
 			// the whole setup block: the cost sliders here, every setting for the galaxy tab
 			galaxy: q.at('/galaxy') ?? {},
 			councilPositions: q.at('/council_positions/council_positions') ?? {},
@@ -279,7 +293,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '44'; // 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '48'; // 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -344,6 +358,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		countryTimedFlags: timedFlags(raw.country?.flags, raw.date),
 		cooldowns: cooldowns(raw),
 		species: speciesInfo(raw),
+		speciesByEmpire: speciesByEmpire(raw),
 		sectors: sectors(raw),
 		expansion: expansion(raw, shipyardSystems(raw)),
 		habitatSites: habitatSites(raw, shipyardSystems(raw)),
@@ -449,13 +464,15 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
  * Whether the save's `player = { { name country } … }` is a multiplayer game's: every
  * single-player save names its one player "unknown" (106 saves, 4.5.x, Linux), the one multiplayer
  * save seen its account (Oracularity of Noerm 2200.01.01, hosted alone, 2026-11-03). Two or more
- * players can only be multiplayer.
+ * players can only be multiplayer. **Not in Ironman** (`ironman`, the `galaxy` block's value:
+ * jomini reads `yes` as true): a single-player Ironman save names the account too (UNE 2's
+ * `ironman.sav`, 2026-11-06), so there only the count tells.
  */
-export function multiplayerPlayers(player: Raw): boolean {
+export function multiplayerPlayers(player: Raw, ironman: unknown = false): boolean {
 	const players = items(player);
-	return (
-		players.length > 1 || players.some((p) => typeof p?.name === 'string' && p.name !== 'unknown')
-	);
+	if (players.length > 1) return true;
+	if (ironman === true || ironman === 'yes') return false;
+	return players.some((p) => typeof p?.name === 'string' && p.name !== 'unknown');
 }
 
 const RIGHT_KINDS = [
@@ -1060,6 +1077,9 @@ export function ownSystems(
 
 const TRADING_TYPES = ['default', 'fallen_empire', 'awakened_fallen_empire'];
 
+/** A save flag, `x=yes` (parsed as true, or the string when the parser leaves it). */
+export const isYes = (v: Raw) => v === true || v === 'yes';
+
 /**
  * Nomadic empires: those running the `situation_nomad_economy` (their operational reserves).
  * `is_nomadic` is the engine's, and the origin does not tell: 2212.06.01 had five of these
@@ -1091,8 +1111,17 @@ export function traderEnclaveKind(c: Raw): 1 | 2 | 3 | null {
  * relation to us: `relation_current`, `modifier = { modifier value }`) — and what it hides: their
  * stockpile and monthly net (the budget's balance, the market's included).
  */
-export function intelOf(id: number, c: Raw, toUs: Raw, us: number, nomadic = false): AiIntel {
+export function intelOf(
+	id: number,
+	c: Raw,
+	toUs: Raw,
+	us: number,
+	nomadic = false,
+	ourTechs: string[] | null = null
+): AiIntel {
 	const budget = c.budget?.current_month ?? {};
+	const pactTrade = budget.income?.commercial_pacts?.trade;
+	const theirTechs = items(c.tech_status?.technology).map(String);
 	return {
 		countryId: id,
 		nomadic,
@@ -1106,7 +1135,14 @@ export function intelOf(id: number, c: Raw, toUs: Raw, us: number, nomadic = fal
 		stockpile: resources(c.modules?.standard_economy_module?.resources),
 		net: addResources(sumSources(budget.balance), sumSources(budget.trade_balance)),
 		income: addResources(sumSources(budget.income), sumSources(budget.trade_income)),
-		...(storageMax(c.variables) && { max: storageMax(c.variables)! })
+		...(storageMax(c.variables) && { max: storageMax(c.variables)! }),
+		// what its commercial pacts bring it, so 10 % of the rest is what one with it brings us
+		...(typeof pactTrade === 'number' && { commercialPactTrade: pactTrade }),
+		// a research partner: the techs only one side has (READER 45)
+		...(ourTechs && {
+			techsWeLack: theirTechs.filter((t) => !ourTechs.includes(t)),
+			techsTheyLack: ourTechs.filter((t) => !theirTechs.includes(t))
+		})
 	};
 }
 
@@ -1411,14 +1447,7 @@ export function militaryFleets(
 export function speciesInfo(
 	raw: Pick<RawSave, 'country' | 'colonies' | 'popGroups' | 'speciesDb'>
 ): SpeciesInfo[] {
-	const pops = new Map<string, number>();
-	for (const colonyId of list(raw.country?.controlled_colonies))
-		for (const g of list(raw.colonies[String(colonyId)]?.pop_groups)) {
-			const group = raw.popGroups[String(g)];
-			const sp = group?.key?.species;
-			if (sp !== undefined) pops.set(String(sp), (pops.get(String(sp)) ?? 0) + num(group.size));
-		}
-	return [...pops].map(([id, n]) => {
+	return [...speciesPops(raw, raw.country)].map(([id, n]) => {
 		const s = raw.speciesDb[id] ?? {};
 		return {
 			id,
@@ -1428,6 +1457,81 @@ export function speciesInfo(
 			pops: n
 		};
 	});
+}
+
+/** Pops per species id on a country's colonies (`pop_groups.key.species`, summed `size`). */
+function speciesPops(raw: Pick<RawSave, 'colonies' | 'popGroups'>, country: Raw) {
+	const pops = new Map<string, number>();
+	for (const colonyId of list(country?.controlled_colonies))
+		for (const g of list(raw.colonies[String(colonyId)]?.pop_groups)) {
+			const group = raw.popGroups[String(g)];
+			const sp = group?.key?.species;
+			if (sp !== undefined) pops.set(String(sp), (pops.get(String(sp)) ?? 0) + num(group.size));
+		}
+	return pops;
+}
+
+/**
+ * Pops by species of our empire and of each empire we have a migration treaty with (READER 45):
+ * whose pops went where, read as the change between saves — the save books migration per colony,
+ * and per species only as net growth (`last_month_growth_data.species`). Each empire's founder
+ * species (`founder_species_ref`) is its main one; species under 1 % of an empire are left out.
+ * Every other empire we have communications with lists only our species there (`onlyOurs`, READER
+ * 47): treaties end, emigrants stay (throwaway Theian Preservers 2214.01: 338 Theians in three
+ * colonies of the Baanthurian Council after its treaty had ended).
+ */
+export function speciesByEmpire(
+	raw: Pick<
+		RawSave,
+		'country' | 'countryId' | 'countryBlocks' | 'colonies' | 'popGroups' | 'speciesDb'
+	>
+): EmpireSpecies[] {
+	const byName = (c: Raw) => {
+		// by name: a modified species keeps its parent's name (Oklarr 2214.02: two "Pyrragthul")
+		const out = new Map<string, number>();
+		for (const [sp, n] of speciesPops(raw, c)) {
+			const name = speciesName(raw.speciesDb[sp]?.name);
+			out.set(name, (out.get(name) ?? 0) + n);
+		}
+		return out;
+	};
+	const entry = (id: number, c: Raw, species: [string, number][]) => {
+		const founder = c.founder_species_ref;
+		return {
+			countryId: id,
+			founder: founder === undefined ? null : speciesName(raw.speciesDb[String(founder)]?.name),
+			species: species.map(([name, n]) => ({ name, pops: n })).sort((a, b) => b.pops - a.pops)
+		};
+	};
+	const full = (id: number, c: Raw) => {
+		const pops = [...byName(c)];
+		const total = pops.reduce((t, [, n]) => t + n, 0);
+		return entry(
+			id,
+			c,
+			pops.filter(([, n]) => n > 0 && n >= total / 100)
+		);
+	};
+	const us = full(raw.countryId, raw.country);
+	const ours = new Set(us.species.map((s) => s.name));
+	const partners = migrationPartners(raw.country);
+	const contacts = items(raw.country?.relations_manager?.relation)
+		.filter((r) => isYes(r?.communications))
+		.map((r) => Number(r.country))
+		.filter((id) => !partners.has(id) && id !== raw.countryId);
+	return [
+		us,
+		...[...partners].flatMap((id) => {
+			const c = raw.countryBlocks[String(id)];
+			return c && typeof c === 'object' ? [full(id, c)] : [];
+		}),
+		...contacts.flatMap((id) => {
+			const c = raw.countryBlocks[String(id)];
+			if (!c || typeof c !== 'object') return [];
+			const there = [...byName(c)].filter(([name, n]) => ours.has(name) && n > 0);
+			return there.length ? [{ ...entry(id, c, there), onlyOurs: true as const }] : [];
+		})
+	];
 }
 
 /**
@@ -1821,7 +1925,7 @@ function playerColonies(raw: RawSave): Colony[] {
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
 			buildSlots:
 				num(raw.construction?.queue_mgr?.queues?.[String(planet?.build_queue)]?.simultaneous) || 1,
-			...colonyJobs(raw.popJobs, list(c.pop_jobs)),
+			...colonyJobs(raw.popJobs, list(c.pop_jobs), raw.popGroups),
 			...strata(raw.popGroups, list(c.pop_groups)),
 			automation: {
 				enabled: c.automation?.enabled === true || c.automation?.enabled === 'yes',
@@ -2507,19 +2611,34 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
  * `max_workforce` -1 means unlimited (civilian); jobs nobody works and that have no positions are
  * the placeholders every colony carries (servant, purge, …) and are left out.
  */
-export function colonyJobs(popJobs: Record<string, Raw>, ids: number[]) {
+export function colonyJobs(
+	popJobs: Record<string, Raw>,
+	ids: number[],
+	popGroups: Record<string, Raw> = {}
+) {
 	const jobs: ColonyJob[] = ids.flatMap((id) => {
 		const j = popJobs[String(id)];
 		if (!j || typeof j !== 'object') return [];
 		const pops = items(j.pop_groups).reduce((sum: number, g: Raw) => sum + num(g?.amount), 0);
 		const max = num(j.max_workforce);
 		if (pops === 0 && max <= 0) return [];
+		const filled = Math.max(num(j.workforce), 0);
+		// job efficiency's extra workforce (READER 46): Servants 2196 + 330.55 (Planetforgers 2214.02)
+		const bonus = filled > 0 ? num(j.bonus_workforce) : 0;
+		// who works it, by species id (READER 46): species traits act on their own pops' jobs
+		const species: Record<string, number> = {};
+		for (const g of items(j.pop_groups)) {
+			const sp = popGroups[String(g?.pop_group)]?.key?.species;
+			if (sp !== undefined) species[String(sp)] = (species[String(sp)] ?? 0) + num(g?.amount);
+		}
 		return [
 			{
 				type: String(j.type),
 				pops,
-				filled: Math.max(num(j.workforce), 0),
-				positions: max > 0 ? max : null
+				filled,
+				positions: max > 0 ? max : null,
+				...(bonus > 0 && { bonus }),
+				...(Object.keys(species).length && { species })
 			}
 		];
 	});

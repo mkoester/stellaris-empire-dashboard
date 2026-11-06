@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { anyOn, effectiveDisplay, listed, SWITCH_GROUPS, SWITCHES } from './displaySwitches.ts';
+import {
+	anyOn,
+	barred,
+	effectiveDisplay,
+	listed,
+	SWITCH_GROUPS,
+	SWITCHES
+} from './displaySwitches.ts';
 import { DEFAULT_DISPLAY, parseDisplay } from './profiles.ts';
 
 const sw = (key: string) => SWITCHES.find((s) => s.key === key)!;
@@ -27,11 +34,32 @@ describe('effectiveDisplay', () => {
 		expect(e.wormholePairs).toBe(true);
 		expect(e.tradeIntel).toBe(true);
 	});
-	it('in multiplayer every cheat is off, shown or not; spoilers stay as stored', () => {
-		const e = effectiveDisplay({ ...on, showSpoilers: true, showCheats: true }, true);
-		expect(SWITCHES.filter((s) => s.kind === 'cheat' && e[s.key])).toEqual([]);
+	it('without cheats (multiplayer, Ironman) every cheat and intel spoiler is off; other spoilers as stored', () => {
+		const all = Object.fromEntries(SWITCHES.map((s) => [s.key, true]));
+		const e = effectiveDisplay(
+			{ ...DEFAULT_DISPLAY, ...all, showSpoilers: true, showCheats: true },
+			true
+		);
+		expect(SWITCHES.filter((s) => barred(s) && e[s.key])).toEqual([]);
 		expect(e.showCheats).toBe(false);
-		expect(e.wormholePairs).toBe(true);
+		expect(e.wormholePairs).toBe(false);
+		expect(e.wholeGalaxy).toBe(false);
+		expect(e.anomalySpoilers).toBe(true);
+		expect(e.unknownStars).toBe(true);
+	});
+	it('the intel spoilers: the map and contact reveals and pact intel', () => {
+		expect(
+			SWITCHES.filter((s) => s.intel)
+				.map((s) => s.key)
+				.sort()
+		).toEqual([
+			'contactStations',
+			'lgates',
+			'pactIntel',
+			'surveyAll',
+			'wholeGalaxy',
+			'wormholePairs'
+		]);
 	});
 });
 
@@ -52,6 +80,12 @@ describe('listed', () => {
 	it('hides kinds not shown', () => {
 		expect(listed(sw('lgates'), shown, '')).toBe(true);
 		expect(listed(sw('tradeIntel'), shown, '')).toBe(false);
+	});
+	it('without cheats lists neither cheats nor intel spoilers', () => {
+		const all = { showSpoilers: true, showCheats: true };
+		expect(listed(sw('lgates'), all, '', true)).toBe(false);
+		expect(listed(sw('tradeIntel'), all, '', true)).toBe(false);
+		expect(listed(sw('anomalySpoilers'), all, '', true)).toBe(true);
 	});
 	it('matches every word of the query in label, note, group, tags or kind', () => {
 		expect(listed(sw('wanderlustAll'), shown, 'nomads map')).toBe(true);

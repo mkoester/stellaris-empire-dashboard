@@ -4,6 +4,58 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.11] - 2026-11-06
+
+### Added
+
+- The planner offers tech shortcuts: bundles of techs worth having in nearly every game (the
+  resource districts' zone slots, the research buildings, habitats, the largest hull of your
+  shipset, Mega-Engineering, …), each added with one click, its prerequisites following by itself.
+- Ironman games are recognised (from the save's galaxy settings) and get the same treatment as
+  multiplayer: the cheats are off for good once any save of the game is Ironman.
+- In multiplayer and Ironman games the spoilers that reveal other empires or space you have not
+  explored are off too: the whole galaxy, every system surveyed, every wormhole pair, every L-Gate,
+  station owners before communications, and pact intel. Spoilers about the game's own content
+  (anomalies, special projects, event timers, what-ifs) stay available.
+- An influence tab: this month's influence by source, the sources over time, what was spent
+  outside the budget (claims, outposts, decisions) and what goes uncollected — power projection
+  below its maximum (with the naval capacity still to fill: full coverage needs used naval
+  capacity × 2 ≥ empire size), empty rival slots, and income lost at the storage cap.
+- A pacts tab: each pact type with its partners and upkeep. Migration treaties: our main species
+  in each partner's empire and theirs in ours, over time. Commercial pacts: what they bring in
+  trade (10 % of each partner's trade production). Research agreements: the +25 % research speed
+  on a tech the partner has, added to the speed you already research at (measured from your saves
+  and shown), so it is worth less the more bonuses you have — this month's extra research, and with
+  ⚙'s pacts intel spoiler each partner's techs per area against ours. The pacts cheat adds which techs each partner has, what
+  each commercial pact brings, and which tech to pick to gain most.
+- The tech tab shows your research bonuses and how they stack, per area: speed, output and cost,
+  each with its sources (traditions, ethics, techs, policies, the council and its councilors'
+  traits, situation stages, …). Bonuses of one kind add up, so each one more is worth less — the
+  tab says what one more +10 % is really worth, and what a research agreement adds. Your actual
+  speed is measured from your saves and checked against the sum of the sources.
+- The pacts tab lists our species living in other empires — also after a migration treaty has
+  ended — with the change since they first showed up there.
+- The jobs tab shows, per colony and resource, the job output bonuses and how they stack: the
+  workforce's base output, the bonuses counted from the game files (empire, colony, governor,
+  species, difficulty), the rest the colony got on top (stability, happiness), and what one more
+  +10 % is really worth there.
+
+### Changed
+
+- The zips bring Node 26 (the current LTS) instead of 24. Same requirements: Windows 10, macOS
+  13.5 or newer.
+
+### Fixed
+
+- The planner loads again for a campaign with a large galaxy that is neither Ironman nor
+  multiplayer: a nomad empire's planner never finished loading, and the map and every other tab
+  got faster too.
+- The colonies tab, the colony tab and the empire panel show your colonies again while months
+  pass without autosaves (`fast_forward`, or autosaves off with the companion mod on); they read
+  "No colony matches" before.
+- Councilors in an oligarchic empire act two levels higher (the authority's +2), as in game; the
+  council's effects were shown two levels too low.
+
 ## [0.1.10] - 2026-11-04
 
 ### Added

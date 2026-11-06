@@ -1,7 +1,8 @@
 // The display switches of ⚙, grouped as a browser's settings are, each marked as a spoiler (what
 // the game hides) or a cheat (what it never tells a player) where it is one. Hiding spoilers or
 // cheats also turns them off — `effectiveDisplay()` — while their stored values stay, so showing
-// them again brings each back as it was. A multiplayer game turns the cheats off whatever is stored.
+// them again brings each back as it was. A multiplayer or Ironman game turns the cheats off whatever is
+// stored, and the spoilers marked `intel` too — they reveal other empires or space not explored.
 import type { Display } from './profiles.ts';
 
 export type SwitchKey = Exclude<
@@ -16,6 +17,8 @@ export type Switch = {
 	group: string;
 	kind: SwitchKind;
 	tags?: string; // more words the search finds it by
+	// reveals other empires or space not explored: off where cheats are (multiplayer, Ironman)
+	intel?: true;
 };
 
 export const SWITCH_GROUPS = [
@@ -60,12 +63,14 @@ export const SWITCHES: Switch[] = [
 		key: 'wormholePairs',
 		group: 'Maps',
 		kind: 'spoiler',
+		intel: true,
 		label: 'Show every wormhole pair and its connection, explored or not'
 	},
 	{
 		key: 'lgates',
 		group: 'Maps',
 		kind: 'spoiler',
+		intel: true,
 		label: 'Show every L-Gate, the L-Cluster and all their connections',
 		note: 'until the gates open the L-Cluster does not exist yet: shown where it is predicted to spawn'
 	},
@@ -81,12 +86,14 @@ export const SWITCHES: Switch[] = [
 		key: 'wholeGalaxy',
 		group: 'Maps',
 		kind: 'spoiler',
+		intel: true,
 		label: 'Every system with its name and hyperlanes (maps and megastructure sites)'
 	},
 	{
 		key: 'contactStations',
 		group: 'Maps',
 		kind: 'spoiler',
+		intel: true,
 		label: 'Colour visited systems by their station’s owner, named, before communications',
 		note: 'the save knows them before you have communications',
 		tags: 'first contact borders'
@@ -95,6 +102,7 @@ export const SWITCHES: Switch[] = [
 		key: 'surveyAll',
 		group: 'Expansion',
 		kind: 'spoiler',
+		intel: true,
 		label:
 			'Treat every system as fully surveyed: bodies, deposits, anomalies, expansion and habitat sites'
 	},
@@ -150,6 +158,25 @@ export const SWITCHES: Switch[] = [
 		note: 'the game shows what your intel on each empire reveals'
 	},
 	{
+		key: 'pactIntel',
+		group: 'Diplomacy and trade',
+		kind: 'spoiler',
+		intel: true,
+		label:
+			'Pacts: what your intel shows of each partner — its techs per area, its trade at high intel',
+		note: 'the game shows them on the empire’s intel screen, not what a pact comes to',
+		tags: 'research agreement commercial pact intel'
+	},
+	{
+		key: 'pactAll',
+		group: 'Diplomacy and trade',
+		kind: 'cheat',
+		label:
+			'Pacts: which techs each research partner has, what each commercial pact brings, and which tech to pick',
+		note: 'no intel level lists another empire’s techs',
+		tags: 'research agreement commercial pact tech hints'
+	},
+	{
 		key: 'tradeIntel',
 		group: 'Diplomacy and trade',
 		kind: 'cheat',
@@ -167,22 +194,33 @@ export const SWITCHES: Switch[] = [
 	}
 ];
 
-const KIND_OF = new Map(SWITCHES.map((s) => [s.key, s.kind]));
+/** Whether a switch is barred where cheats are (multiplayer, Ironman): the cheats and `intel`. */
+export const barred = (s: Switch) => s.kind === 'cheat' || s.intel === true;
 
 /**
  * The switches as the tabs read them: spoilers off while spoilers are hidden, cheats likewise, and
- * in a multiplayer game (`multiplayer`) the cheats always.
+ * in a game without cheats (`noCheats`: multiplayer, Ironman) the cheats and `intel` spoilers always.
  */
-export function effectiveDisplay(d: Display, multiplayer = false): Display {
-	const out = { ...d, showCheats: d.showCheats && !multiplayer };
-	for (const [key, kind] of KIND_OF)
-		if ((kind === 'spoiler' && !out.showSpoilers) || (kind === 'cheat' && !out.showCheats))
-			out[key] = false;
+export function effectiveDisplay(d: Display, noCheats = false): Display {
+	const out = { ...d, showCheats: d.showCheats && !noCheats };
+	for (const s of SWITCHES)
+		if (
+			(s.kind === 'spoiler' && !out.showSpoilers) ||
+			(s.kind === 'cheat' && !out.showCheats) ||
+			(noCheats && barred(s))
+		)
+			out[s.key] = false;
 	return out;
 }
 
-/** Whether a switch is listed: its kind shown, and every word of `query` in its text. */
-export function listed(s: Switch, d: Pick<Display, 'showSpoilers' | 'showCheats'>, query: string) {
+/** Whether a switch is listed: its kind shown, not barred, and every word of `query` in its text. */
+export function listed(
+	s: Switch,
+	d: Pick<Display, 'showSpoilers' | 'showCheats'>,
+	query: string,
+	noCheats = false
+) {
+	if (noCheats && barred(s)) return false;
 	if (s.kind === 'spoiler' && !d.showSpoilers) return false;
 	if (s.kind === 'cheat' && !d.showCheats) return false;
 	const text = [s.label, s.note, s.group, s.tags, s.key, s.kind === 'normal' ? '' : s.kind]

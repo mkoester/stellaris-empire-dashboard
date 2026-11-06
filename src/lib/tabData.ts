@@ -1,5 +1,6 @@
 // Which tabs have nothing to show yet along a branch: their names are dimmed in the tab bar, the
 // title saying why. Still links — the page explains itself.
+import { PACT_TYPES } from './pacts.ts';
 import type { Snapshot } from './types.ts';
 
 type Fields = Pick<
@@ -60,6 +61,13 @@ const CHECKS: {
 		why: 'no contact with another empire yet',
 		known: (s) => s.relations !== null && s.relations !== undefined,
 		has: (s) => (s.relations ?? []).some((r) => r.contact)
+	},
+	{
+		tab: 'pacts',
+		why: 'no pact with another empire yet',
+		known: (s) => s.relations !== null && s.relations !== undefined,
+		has: (s) =>
+			(s.relations ?? []).some((r) => PACT_TYPES.some((t) => r.agreements.includes(t.key)))
 	},
 	{
 		tab: 'subjects',

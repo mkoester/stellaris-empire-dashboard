@@ -90,10 +90,11 @@
 			off by default and labelled in ⚙.
 		</p>
 		<p>
-			<span class="font-medium">Multiplayer:</span> nothing in the game can tell that a player runs the
-			dashboard, so it could spoil a multiplayer game for everyone else. It recognises a multiplayer game
-			by its saves and switches every cheat off there. That guards against using it by accident, not against
-			someone set on cheating: please don't use it against other people.
+			<span class="font-medium">Multiplayer and Ironman:</span> nothing in the game can tell that a player
+			runs the dashboard, so it could spoil a multiplayer game for everyone else, and Ironman is meant
+			to be played as it comes. It recognises both by their saves and switches every cheat off there,
+			along with the spoilers that reveal other empires or space you have not explored. That guards against
+			using it by accident, not against someone set on cheating: please don't use it against other people.
 		</p>
 	</section>
 
@@ -109,7 +110,8 @@
 				correctable on the timeline).
 			</li>
 			<li>
-				Multiplayer detection is new: checked against two multiplayer saves, each with one human.
+				Multiplayer and Ironman detection are new: checked against two multiplayer saves, each with
+				one human, and one Ironman save.
 			</li>
 			<li>
 				Game versions 4.3–4.5; numbers are checked against the game's own screens, not all of them

@@ -10,16 +10,16 @@
 	let { data } = $props();
 
 	// the display switches by group, filtered by the search; spoilers and cheats only when shown,
-	// cheats never in a multiplayer game
+	// cheats and the spoilers revealing other empires never in a multiplayer or Ironman game
 	let query = $state('');
 	const gates = $derived({
 		showSpoilers: data.display.showSpoilers,
-		showCheats: data.display.showCheats && !data.multiplayer
+		showCheats: data.display.showCheats && !data.noCheats
 	});
 	const groups = $derived(
 		SWITCH_GROUPS.map((g) => ({
 			title: g,
-			items: SWITCHES.filter((s) => s.group === g && listed(s, gates, query))
+			items: SWITCHES.filter((s) => s.group === g && listed(s, gates, query, !!data.noCheats))
 		})).filter((g) => g.items.length)
 	);
 	const setDisplay = (patch: Partial<Display>) =>
@@ -211,10 +211,16 @@
 					onchange={(e) => setDisplay({ showSpoilers: e.currentTarget.checked })}
 				/> show the spoiler settings</label
 			>
-			{#if data.multiplayer}
+			{#if data.noCheats === 'ironman'}
 				<p class="mt-1">
-					<b>This is a multiplayer game: the cheats are off.</b> The other players cannot see that you
-					run the dashboard, so it shows nothing here the game would not show you.
+					<b>This is an Ironman game: the cheats are off</b>, and so are the spoilers that reveal
+					other empires or space you have not explored. Ironman is the game played as it comes.
+				</p>
+			{:else if data.noCheats === 'multiplayer'}
+				<p class="mt-1">
+					<b>This is a multiplayer game: the cheats are off</b>, and so are the spoilers that reveal
+					other empires or space you have not explored. The other players cannot see that you run
+					the dashboard, so it shows nothing here the game would not show you.
 				</p>
 			{:else}
 				<label class="mt-1 block"

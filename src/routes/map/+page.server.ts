@@ -38,11 +38,12 @@ export function load({ url }) {
 	const capital = capitalId(snaps);
 	// Wanderlust's targets once we have the perk; every one, revealed, with the spoiler
 	const wanderlust = snaps.findLast((x) => x.wanderlust)?.wanderlust ?? null;
-	const allTargets = wanderlust !== null && display().wanderlustAll;
+	const shown = display(); // once: it reads the profile and every node, `spoiled` runs per system
+	const allTargets = wanderlust !== null && shown.wanderlustAll;
 	const spoiled = (x: (typeof g)[number]) =>
 		!x.visited &&
 		!x.owned &&
-		((display().lgates && x.lgate) || (allTargets && (x.wanderlust?.length ?? 0) > 0));
+		((shown.lgates && x.lgate) || (allTargets && (x.wanderlust?.length ?? 0) > 0));
 	const entries = firstEntries(
 		snaps.map((x) => ({ entries: x.entryEvents, flags: x.countryFlags }))
 	);
@@ -75,7 +76,7 @@ export function load({ url }) {
 		// the map modes (#lib/mapModes.ts): what our intel shows of each empire, as the diplomacy
 		// tab has it (nothing hidden leaves the server), and the claims we know
 		modes: modeData(
-			diplomacyView(snaps, data.flagColors, display().diplomacyAll),
+			diplomacyView(snaps, data.flagColors, shown.diplomacyAll),
 			snaps.findLast((x) => x.relations)?.relations ?? [],
 			snaps.findLast((x) => x.aiIntel)?.aiIntel ?? []
 		),

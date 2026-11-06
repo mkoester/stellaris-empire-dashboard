@@ -28,10 +28,12 @@ Some of what the dashboard shows makes the game easier, and for some players tha
 the fun. Everything the game hides until you find it (spoilers) or never tells a player at all
 (cheats) is off by default and labelled as such in ⚙ — turn it on only if you want it.
 
-**Multiplayer:** nothing in the game can tell that a player is running the dashboard, so it could
-spoil a multiplayer game for everyone else. The dashboard therefore recognises a multiplayer game
-by its saves (with or without the companion mod) and switches every cheat off there; spoilers stay
-available, as they only show what you could find yourself. This guards against using it by
+**Multiplayer and Ironman:** nothing in the game can tell that a player is running the dashboard,
+so it could spoil a multiplayer game for everyone else, and an Ironman game is meant to be played
+as it comes. The dashboard therefore recognises both by their saves (with or without the companion
+mod) and switches every cheat off there, along with the spoilers that reveal other empires or
+space you have not explored (the whole galaxy, every wormhole and L-Gate, station owners, pact
+intel); spoilers about the game's own content stay available. This guards against using it by
 accident — it cannot stop someone set on cheating, so please don't use it against other people.
 
 ## For players
@@ -69,8 +71,8 @@ own screen next to the dashboard's helps most.
   companion mod logs it.
 - **Reloading an older save without the companion mod**: where the new branch starts is a guess
   (marked, and correctable on the timeline page).
-- **Multiplayer detection is new** (above): checked against two multiplayer saves so far, each
-  with one human player.
+- **Multiplayer and Ironman detection are new** (above): checked against two multiplayer saves so
+  far, each with one human player, and one Ironman save.
 - **Game versions 4.3–4.5.** Numbers are checked against the game's own screens, but not all of
   them yet, and mostly on Linux; the Windows and macOS zips have been run, with less mileage.
 - **English game texts only.**
@@ -81,7 +83,7 @@ app.
 
 ## For developers
 
-SvelteKit on Node 24; game data from
+SvelteKit on Node 26 (the current LTS); game data from
 [stellaris-data-extraction](https://github.com/mkoester/stellaris-data-extraction). Setup, how
 it works and packaging: [`AGENTS.md`](AGENTS.md#running-it). Releases: [`RELEASE.md`](RELEASE.md),
 changes: [`CHANGELOG.md`](CHANGELOG.md).

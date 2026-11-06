@@ -22,7 +22,15 @@ import {
 import { parseTheme, type ChartEvents, type CustomTab, type Theme } from '#lib/settings.ts';
 import { getRequestEvent } from '$app/server';
 import { getDb } from './app.ts';
-import { campaignMultiplayer, getSetting, headCampaign, nodes, setSetting, type Db } from './db.ts';
+import {
+	campaignIronman,
+	campaignMultiplayer,
+	getSetting,
+	headCampaign,
+	nodes,
+	setSetting,
+	type Db
+} from './db.ts';
 
 // The stored viewer settings. The theme is global; everything else lives in the profile in use
 // (#lib/profiles.ts): the viewed campaign's, else the last picked.
@@ -158,15 +166,21 @@ export const produceView = (): ProduceView => settings().produceView;
 export const mapFilter = (): MapFilter => settings().mapFilter;
 export const quadrantView = (): QuadrantView => settings().quadrants;
 export const popWindow = (): PopWindow => settings().popWindow;
-/** Whether the viewed campaign is a multiplayer game, where every cheat is off. */
-export function viewedMultiplayer(db: Db): boolean {
+/**
+ * Why the viewed campaign allows no cheats, or null: Ironman first — before READER 48 its saves
+ * read as multiplayer too, and a stored reading of a save gone from disk keeps that.
+ */
+export function viewedNoCheats(db: Db): 'ironman' | 'multiplayer' | null {
 	const campaign = viewedCampaign(db);
-	return campaign !== null && campaignMultiplayer(db, campaign);
+	if (campaign === null) return null;
+	if (campaignIronman(db, campaign)) return 'ironman';
+	return campaignMultiplayer(db, campaign) ? 'multiplayer' : null;
 }
 
-// as the tabs read it: hidden spoilers and cheats are off, cheats always in multiplayer
+// as the tabs read it: hidden spoilers and cheats are off; in multiplayer and Ironman the cheats
+// and the `intel` spoilers always
 export const display = (): Display =>
-	effectiveDisplay(settings().display, viewedMultiplayer(getDb()));
+	effectiveDisplay(settings().display, viewedNoCheats(getDb()) !== null);
 // Colony charts were stored as `planet:<title>` before the rename.
 export const chartEvents = (): ChartEvents =>
 	Object.fromEntries(

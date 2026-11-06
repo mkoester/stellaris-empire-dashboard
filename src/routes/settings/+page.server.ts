@@ -5,7 +5,7 @@ import {
 	campaignsOf,
 	profiles,
 	viewedCampaign,
-	viewedMultiplayer
+	viewedNoCheats
 } from '#lib/server/settings.ts';
 
 // The config tab: profiles, display options and the games in the history.
@@ -19,7 +19,7 @@ export function load() {
 		quadrants: active.settings.quadrants,
 		popWindow: active.settings.popWindow,
 		campaign: viewedCampaign(db),
-		multiplayer: viewedMultiplayer(db),
+		noCheats: viewedNoCheats(db),
 		campaigns: campaignsOf(db),
 		games: campaignRows(db, campaignsOnDisk())
 	};

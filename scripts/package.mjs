@@ -29,12 +29,12 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decoratedVersion } from './version.mjs';
 
-const NODE = '24.22.0';
+const NODE = '26.13.0';
 const NODE_SHA256 = {
-	'windows-x64': 'f9683a19877e12a9b167305c8db71040d812876359de21f0d2e97c3f321f80c3', // win-x64.zip
-	'linux-x64': 'cc2f601cee82d9a5a233302fe307abc600727035fd7d2c3a3571755989e95008', // linux-x64.tar.xz
-	'macos-arm64': '75ddfb875bbd868ebe57536f4442225f54dd10f6d2178dd439de869a5c648dc3', // darwin-arm64.tar.xz
-	'macos-x64': 'b890d687983ddc811641f6739c3ce99d2912c58f9e44b68aa25944037b425305' // darwin-x64.tar.xz
+	'windows-x64': 'dcc60d59a0746999f99064a01c020445d54d84228c691cdbf25b49ac3b59150a', // win-x64.zip
+	'linux-x64': 'd28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997', // linux-x64.tar.xz
+	'macos-arm64': '6f5b3187d9df9fc007e881167905bc7d69ad26450ddc377c83d63256a2495b6e', // darwin-arm64.tar.xz
+	'macos-x64': '8bd636bc981a92e1ab930c02340eece2076eb1aaf94d14e421cdeeddc1292298' // darwin-x64.tar.xz
 };
 const PYTHON = '3.14.8';
 const PYTHON_SHA256 = 'a93abe456ab01bd96d7a085b3cdb6566b3063f4241360d114142fbdb07f0a310'; // embed-amd64.zip

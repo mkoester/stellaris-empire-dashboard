@@ -124,6 +124,14 @@ export type CivilianShip = {
 
 export type SpeciesInfo = { id: string; name: string; cls: string; traits: string[]; pops: number };
 
+/** An empire's pops by species (ours and our migration-treaty partners'); `founder` its main one. */
+export type EmpireSpecies = {
+	countryId: number;
+	founder: string | null;
+	species: { name: string; pops: number }[];
+	onlyOurs?: true; // not a treaty partner: only our species there (READER 47)
+};
+
 export type Sector = { name: string; type: string; systems: number; colonies: number };
 
 /** A surveyed planet nobody owns; jumps from the capital system, null when unreachable. */
@@ -167,7 +175,14 @@ export type ColonyDistrict = {
 };
 
 /** One job on a colony. Positions null: unlimited (civilian). */
-export type ColonyJob = { type: string; pops: number; filled: number; positions: number | null };
+export type ColonyJob = {
+	type: string;
+	pops: number;
+	filled: number; // workforce
+	positions: number | null;
+	bonus?: number; // job efficiency's extra workforce (`bonus_workforce`); READER 46
+	species?: Record<string, number>; // workforce by species id; READER 46
+};
 
 /** A system the country knows (visited or own), with its hyperlanes to other known systems. */
 export type KnownSystem = {
@@ -261,6 +276,9 @@ export type AiIntel = {
 	net: Resources; // per month
 	income: Resources; // per month, gross (the cap on what it pays a month); {} before READER 12
 	max?: Resources; // storage, exact: companion mod 0.5.0's sdash_m_<res>; absent without it
+	commercialPactTrade?: number; // trade its own commercial pacts bring it (READER 45)
+	techsWeLack?: string[]; // a research partner's techs we do not have (READER 45)
+	techsTheyLack?: string[]; // ours it does not have (READER 45)
 };
 
 /** A trader enclave we talk to; `kind` 1 XuraCorp, 2 Riggans, 3 Muutagan (#lib/aiTrade.ts). */
@@ -386,6 +404,7 @@ export type Snapshot = {
 		insults?: { country: string; until: string }[];
 	} | null;
 	species: SpeciesInfo[] | null; // species with pops in the empire
+	speciesByEmpire: EmpireSpecies[] | null; // ours and our migration-treaty partners' (READER 45)
 	sectors: Sector[] | null;
 	expansion: ExpansionPlanet[] | null; // surveyed, unowned rocky planets
 	stations: Station[] | null; // starbases with their queues and shipyards
@@ -480,8 +499,9 @@ export type Snapshot = {
 	// before, exactly dated, and the daily stockpiles.
 	logEvents: LogEvent[] | null;
 	ticks: Tick[] | null;
-	// A multiplayer game: the save's `player` block names an account (single player: "unknown"),
-	// or the mod logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
+	// A multiplayer game: the save's `player` block names an account (single player: "unknown";
+	// not in Ironman, whose single-player saves name it too — READER 48) or two players, or the mod
+	// logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
 	multiplayer: boolean;
 };
 
@@ -1029,7 +1049,17 @@ export type GameData = {
 			dangerous: boolean;
 		}
 	>; // `tech:`/`tradition:` key → cost and output modifiers
-	techs: Record<string, { name: string; cost: number | null; area: string; tier: number | null }>;
+	techs: Record<
+		string,
+		{
+			name: string;
+			cost: number | null;
+			area: string;
+			tier: number | null;
+			category?: string | null; // field, e.g. "particles"
+			rare?: boolean;
+		}
+	>;
 	agendas: Record<
 		string,
 		{
@@ -1043,7 +1073,7 @@ export type GameData = {
 		}
 	>;
 	defines: Record<string, number>;
-	jobs: Record<string, { name: string; category: string | null }>;
+	jobs: Record<string, { name: string; category: string | null; budgetSource?: string | null }>;
 	edicts: Record<
 		string,
 		{
@@ -1202,6 +1232,10 @@ export type GameData = {
 	// `councilor_skill_add` by source: `tradition:` (traditions, edicts, policy options, agendas'
 	// `#finish`), `civic:`, `modifier:` (static modifiers)
 	councilorSkill: Record<string, number>;
+	jobResources: Record<string, { produces: Resources; upkeep: Resources }>; // per 100 workforce
+	categoryParents: Record<string, string | null>; // economic category → parent
+	// situation → stage index → its modifiers (data DB `situation_stage_modifier`)
+	situationStageModifiers: Record<string, Record<number, { key: string; value: number }[]>>;
 	// what raises a class's leader limit: source (`tradition:<key>` — perks, edicts, policies too —,
 	// `civic:`, `origin:`, `tech:`, `modifier:`) → class (`leader`: every class) → +n
 	leaderCap: Record<string, Record<string, number>>;

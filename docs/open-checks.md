@@ -281,9 +281,68 @@ kind.
 - **Send:** the screenshots before and after, and the date. Check: the colonies tab's deficit
   total against the budget line; the month's change against the estimate.
 
+### 29. Influence and pacts — influence and pacts tabs (from 2026-11-05)
+
+Power projection is a fit, not a rule from the files: 2 × min(1, 2 × used naval capacity ÷ empire
+size), exact in 40 saves; with no navy it books 0.2 (two empires, 2026-11-05 — settled), read as
+a 10 % coverage floor. Income
+lost at the storage cap is inferred without the companion mod (a stockpile that did not move
+although the budget booked a gain).
+
+- **Do:** hover the influence income in the top bar, and the navy size / naval coverage line of
+  the fleet manager; note the influence stockpile.
+- **Send:** the screenshots and the date. Check: the influence tab's sources and "Not collected"
+  against the tooltip's Power Projection line and its maximum (`country_power_projection_max`).
+
+### 31. What the engine adds to job output — jobs tab (from 2026-11-05)
+
+**High Stability settled 2026-11-05**: +30 % × (stability − 50) ÷ 50 (the throwaway game's Physicist
+tooltip: stability 73.345 → +14.01 %), now counted. Low Stability (−50 % × (50 − stability) ÷ 50) and
+the governor's sector effect (not for its own colony) settled 2026-11-06 from the 2219.01 Miner and
+Technician tooltips. Left in the panel's "Rest": +10 % on Planetforgers' capital research (Pleased,
++25 % workers and specialists — when?), −1 % (Theian Preservers 2201) and −3 % (Korinth) on worker
+jobs, alloys and minerals on Planetforgers, and job output lost in a resource shortage (inputs).
+
+- **Do:** hover a worker job's output (Miner, Technician) on a capital, and on Planetforgers' capital
+  a Physicist's.
+- **Send:** the tooltips and the date. Check: the lines the panel does not count yet.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
+
+### 30. Research agreements and migration treaties — pacts tab (from 2026-11-05)
+
+**Settled 2026-11-05: the +25 % adds** to our other research speed bonuses (throwaway Theian
+Preservers 2200.06–07: ×1.26 → ×1.51; the tooltip lists the agreement as +25.00 %). **Two partners
+with the same tech count once** (2200.08–2201.01: ×1.51 with both; the tooltip lists only one
+agreement line). Open: how fast pops cross under a migration treaty (the tab shows species
+counts per empire; no save of ours has seen a pop cross yet — Planetforgers' 719 Pyrrag'Thul with
+the Oklarr may predate the treaty).
+
+**Throwaway Theian Preservers, 2200.10–2214.01 (pacifist, fanatic materialist; treaties with three
+xenophile AIs):** no pop arrived in our empire in 11 years — with 1,000+ open jobs on two colonies,
+one of them arid (80 % for the Baanthurians, the crater modifier removed), migration allowed on
+both sides, policies `resettlement_allowed`. Meanwhile treaty migration ran between the AIs
+(Belmacosa homeworld: 502 Baanthurians at 50 % habitability, 118 Humans; United Nations: 112
+Baanthurians) and **our own species left us**: 338 Theians in three new Baanthurian colonies — our
+grown pops (they start as civilians, Dev Diary 388) emigrating while our open worker jobs stayed
+open. Every receiving empire is xenophile; xenophilia has no migration modifier in the files
+(`common/ethics/00_ethics.txt`, only pop attraction). **Not the condition:** with our pacifism
+swapped for xenophile by console (2214), still no immigrant by 2219.01, while emigration went on
+(Theians: 478 with the Baanthurian Council, 102 with the United Nations, a treaty partner). Open,
+and engine-side: what makes an empire a destination — the dashboard only reports it.
+The pacts tab lost the emigrants: the Baanthurian treaty ended, and `speciesByEmpire` reads only
+current partners.
+
+- **Do:** two research agreements with empires that both have a tech we can research
+  (a throwaway game), research it, hover its
+  progress in the research screen; a migration treaty with a neighbour and two months.
+- **Send:** the tooltip's speed bonus lines and the dates. Check: the pacts tab's "extra this
+  month" against the tooltip; the species counts across the two months.
+- **Stacking, in the throwaway game:** give a second empire the tech in progress (`play <id>`,
+  `research_technology <tech>`, `play 0`), sign a research agreement with it, two months: ×1.76
+  (1.51 + 0.25) means each partner counts, ×1.51 once.
 
 ### 6. Trade calibration — the rest (paused 2026-10-23)
 
@@ -350,6 +409,10 @@ multiplayer and turns its cheats off wrongly.
 - **The dashboard:** with that campaign viewed, ⚙ says "This is a multiplayer game" and no cheat
   switch is listed; a tab with a cheat on before (e.g. `historyAll`) shows only what you know.
 - **Send:** the save names, and whether the lobby or single player loaded each.
+- **A single-player Ironman game names the account (2026-11-06, answered):** UNE 2's
+  `ironman.sav` (4.5.3; the game restarted without mods, then a new **single-player** Ironman
+  game, the user) lists `MirkoMachine` alone, the Noerm shape. So an account name is a
+  multiplayer signal only outside Ironman: `multiplayerPlayers()` ignores it there since READER 48.
 
 ### 25. A root 404 during the first start — release smoke test (2026-10-31)
 

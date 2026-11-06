@@ -27,6 +27,7 @@ describe('emptyTabs', () => {
 			'diplomacy',
 			'galcom',
 			'migration',
+			'pacts',
 			'shroud',
 			'situations',
 			'subjects',
@@ -39,6 +40,13 @@ describe('emptyTabs', () => {
 			migration: [{ own: true, immigration: 2, emigration: 0 }] as Snapshot['migration']
 		});
 		expect(emptyTabs([moved, blank()]).migration).toBeUndefined();
+	});
+
+	it('a pact undims the pacts tab, an embassy does not', () => {
+		const rel = (agreements: string[]) =>
+			blank({ relations: [{ contact: true, agreements }] as unknown as Snapshot['relations'] });
+		expect(emptyTabs([rel(['embassy'])]).pacts).toBeDefined();
+		expect(emptyTabs([rel(['research_agreement'])]).pacts).toBeUndefined();
 	});
 
 	it('foreign migration alone does not count', () => {

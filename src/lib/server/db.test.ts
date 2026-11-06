@@ -7,6 +7,7 @@ import type { Snapshot } from '#lib/types.ts';
 import { askGone, goneToAsk, keepCampaign } from './campaigns.ts';
 import {
 	addPlanEvents,
+	campaignIronman,
 	campaignMultiplayer,
 	campaignName,
 	deleteCampaign,
@@ -79,6 +80,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	civilianShips: null,
 	edicts: null,
 	species: null,
+	speciesByEmpire: null,
 	sectors: null,
 	expansion: null,
 	stations: null,
@@ -289,6 +291,29 @@ describe('merging the mod feed with saves', () => {
 		record(db, saveSnap('2200.03.01', 3, 5), 'c.sav');
 		expect(campaignMultiplayer(db, 'c')).toBe(true);
 		expect(campaignMultiplayer(db, 'other')).toBe(false);
+	});
+
+	it('answers anew once a stored reading changes in place (a re-read, no new node)', () => {
+		const db = openDb(':memory:');
+		const nodeId = record(db, saveSnap('2200.01.01', 1, 5), 'a.sav').nodeId;
+		expect(campaignMultiplayer(db, 'c')).toBe(false); // cached
+		db.prepare('UPDATE snapshot SET json = json_set(json, ?, 1) WHERE node_id = ?').run(
+			'$.multiplayer',
+			nodeId
+		);
+		expect(campaignMultiplayer(db, 'c')).toBe(true);
+	});
+
+	it('calls a campaign Ironman once any save says so (`yes` as read, or true)', () => {
+		const db = openDb(':memory:');
+		record(db, { ...saveSnap('2200.01.01', 1, 5), galaxySetup: { ironman: 'no' } }, 'a.sav');
+		expect(campaignIronman(db, 'c')).toBe(false);
+		record(db, { ...saveSnap('2200.02.01', 2, 5), galaxySetup: { ironman: 'yes' } }, 'b.sav');
+		expect(campaignIronman(db, 'c')).toBe(true);
+		expect(campaignIronman(db, 'other')).toBe(false);
+		const db2 = openDb(':memory:');
+		record(db2, { ...saveSnap('2200.01.01', 1, 5), galaxySetup: { ironman: true } }, 'a.sav');
+		expect(campaignIronman(db2, 'c')).toBe(true);
 	});
 
 	it("keeps the log's events, daily stockpiles and timeline id through the merge and a re-read", () => {
