@@ -42,6 +42,7 @@ import {
 	type Target
 } from '#lib/planner/replay.ts';
 import { holdsSince, seenAlong, type Since } from '#lib/planner/status.ts';
+import { SHORTCUTS, shortcutRows } from '#lib/planner/shortcuts.ts';
 import { systemInfo } from '#lib/planner/systemInfo.ts';
 import { techNeeds } from '#lib/planner/needs.ts';
 import { AREAS, inReach } from '#lib/techTiers.ts';
@@ -460,6 +461,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 		}
 	const all = [...Object.values(rows).flat(), ...parkedRows];
 	const suggested = c ? suggestions(c, plan) : [];
+	const shortcutList = c ? shortcuts(c, plan) : [];
 	const otherRows = c ? others.map((g) => ({ ...row(g, c, dates), tips: g.tips })) : [];
 	return {
 		groups: GROUPS.map((g) => ({ ...g, goals: rows[g.id] })),
@@ -497,6 +499,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				group: GROUPS.find((g) => g.id === r.group)?.name ?? null
 			})),
 		suggestions: suggested,
+		shortcuts: shortcutList,
 		options: c ? fieldOptions(c) : {},
 		kinds: Object.entries(KINDS)
 			.filter(([id]) => !c || !unavailable(c.ctx.latest).includes(id))
@@ -508,7 +511,9 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				manual: k.manual ?? false
 			})),
 		explain: explanations(
-			[...all, ...otherRows, ...suggested].map((r) => r.ref ?? null).filter((r) => r !== null),
+			[...all, ...otherRows, ...suggested, ...shortcutList.flatMap((s) => s.techs)]
+				.map((r) => r.ref ?? null)
+				.filter((r) => r !== null),
 			c
 		),
 		laterBranches: below,
@@ -585,6 +590,30 @@ function fieldOptions(c: Ctx): Record<string, Option[]> {
 			(k) => d.identityNames[k]
 		)
 	};
+}
+
+/** The tech shortcuts (#lib/planner/shortcuts.ts): per bundle, the techs still open to plan. */
+function shortcuts(c: Ctx, plan: Plan) {
+	const have = new Set([...plan.goals.values()].map((g) => goalKey(g.kind, g.target, g.title)));
+	const data = getGameData();
+	return shortcutRows(
+		SHORTCUTS,
+		(tech) => have.has(goalKey('tech', { tech })),
+		(tech) => {
+			const target = { tech };
+			if (!data.techs[tech]) return null; // not in this game version's data
+			if (check('tech', target, false, c.ctx).state !== 'open') return null;
+			return {
+				kind: 'tech',
+				target,
+				label: label('tech', target, '', c.names),
+				ref: KINDS.tech.ref?.(target) ?? null,
+				badge: badgeOf('tech', target, data),
+				area: areaOf('tech', target, data),
+				tint: tintOf('tech', target, data)
+			};
+		}
+	);
 }
 
 const LIMIT = 12;

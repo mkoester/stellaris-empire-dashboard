@@ -823,7 +823,21 @@ goals keep their place folded away below. **Traditions** are labelled with their
 tree first ("Cybernetics (adopt) · opened by The Flesh is Weak"). Nomads settle no planets either
 (`unavailable()`: outposts and colonies; the layout's `plan.unavailable` hides those "+ goal"
 buttons on other tabs). Potential goals start folded, per group, their "+ want" and "⊘" (avoid)
-buttons at the left of each row, the row lit on hover. **Later phases** (not built): diplomacy (befriend,
+buttons at the left of each row, the row lit on hover. **Shortcuts** (the user's ask 2026-11-06:
+"techs almost every player would want, offered as shortcuts"; `#lib/planner/shortcuts.ts`,
+`shortcuts()` in `server/planner.ts`): bundles of techs above the potential goals — economy core,
+its second step, strategic resources, habitats and terraforming, military, late game — each tech
+with "+ want", each bundle with "+ add all"; prerequisites and tier gates follow via `techNeeds()`.
+Only techs whose `check()` is open are offered (not researched, under way, planned or blocked), so
+playstyles need no conditions: the hull line follows `country_uses_bio_ships` (Battleships or
+Stingers), robots drop out for hive minds. **The list is ours**: a web search (2026-11-06) found
+no reliable 4.x consensus, so each entry is a tech whose unlock the 4.5.3 files show — the
+resource districts' zone slot each (`common/zone_slots/00_zone_slots.txt`: `tech_power_hub_1`,
+`tech_mineral_purification_1`, `tech_food_processing_1`, via `has_tech_or_functional_civic`, so
+a civic can stand in), city zone slots 4–5 (`tech_planetary_unification` + `tech_colonial_bureaucracy`),
+the zone buildings' upgrades (`*_2`, `03_resource_buildings.txt`), habitat slots
+(`01_habitat_zone_slots.txt`) — or a modifier (Galactic Administration +1 civic slot). Re-check on
+game updates. **Later phases** (not built): diplomacy (befriend,
 rivals, pacts wanted or avoided), GalCom and federation (federation tables not loaded, none seen
 in a save), market prices and trade deals, leaders, Shroud, jobs and resource priorities, orbital
 rings (their `Station.level` not yet seen in a save), espionage (nothing in the save or the data
