@@ -826,6 +826,7 @@ buttons on other tabs). Potential goals start folded, per group, their "+ want" 
 buttons at the left of each row, the row lit on hover. **Shortcuts** (the user's ask 2026-11-06:
 "techs almost every player would want, offered as shortcuts"; `#lib/planner/shortcuts.ts`,
 `shortcuts()` in `server/planner.ts`): bundles of techs above the potential goals — economy core,
+research buildings (`tech_physics_1`, `tech_society_1`, `tech_engineering_1`: each field's lab),
 its second step, strategic resources, habitats and terraforming, military, late game — each tech
 with "+ want", each bundle with "+ add all"; prerequisites and tier gates follow via `techNeeds()`.
 Only techs whose `check()` is open are offered (not researched, under way, planned or blocked), so

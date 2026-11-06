@@ -41,6 +41,16 @@ export const SHORTCUTS: Shortcut[] = [
 		]
 	},
 	{
+		id: 'research',
+		name: 'Research buildings',
+		why: 'one per field, early',
+		techs: [
+			{ tech: 'tech_physics_1', why: 'Field Dynamics Center (physics)' },
+			{ tech: 'tech_society_1', why: 'Xenobiological Lab (society)' },
+			{ tech: 'tech_engineering_1', why: 'Materials Workshop (engineering)' }
+		]
+	},
+	{
 		id: 'economy2',
 		name: 'Economy, second step',
 		why: 'the zone buildings upgraded, more housing',
@@ -93,18 +103,18 @@ export const SHORTCUTS: Shortcut[] = [
 				why: 'Naval Logistics Office (starbase, +3 naval capacity per Anchorage), Fleet Academy'
 			},
 			{ tech: 'tech_starbase_5', why: 'Citadel' },
-			{ tech: 'tech_titans', why: 'Titans' }
+			{ tech: 'tech_titans', why: 'Titans' },
+			{ tech: 'tech_zero_point_power', why: 'Zero Point Reactor (ship power)' }
 		]
 	},
 	{
 		id: 'late',
 		name: 'Late game',
-		why: 'megastructures and mobility',
+		why: 'megastructures, gateways, the market',
 		techs: [
 			{ tech: 'tech_mega_engineering', why: 'megastructures' },
 			{ tech: 'tech_gateway_construction', why: 'build gateways' },
-			{ tech: 'tech_galactic_markets', why: 'the Galactic Market' },
-			{ tech: 'tech_zero_point_power', why: 'Zero Point Reactor (ship power)' }
+			{ tech: 'tech_galactic_markets', why: 'the Galactic Market' }
 		]
 	}
 ];
