@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Upcoming tells you when a tech you planned (or one it needs) is among the research cards on
+  offer — the game does not. The row stays until you pick it or dismiss it.
+
 ## [0.1.11] - 2026-11-06
 
 ### Added

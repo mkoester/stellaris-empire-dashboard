@@ -6,6 +6,8 @@ import { headId, history, nodes } from './db.ts';
 import { pick } from './explain.ts';
 import { dismissed } from './campaigns.ts';
 import { idles, withIdleShips } from '#lib/idle.ts';
+import { plannedOnOffer } from '#lib/techOffers.ts';
+import { planSummary } from './planner.ts';
 import { display } from './settings.ts';
 import { empireColors } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
@@ -63,7 +65,13 @@ export function branch(url: URL) {
 					...idle.rows,
 					...expiries(last, getGameData(), title, display().hiddenTimers),
 					...timedOut(saves, getGameData(), title, dismissed(db, campaign)),
-					...rolls(last)
+					...rolls(last),
+					...plannedOnOffer(
+						saves,
+						new Map(planSummary(tip).wantedTechs),
+						getGameData().techs,
+						dismissed(db, campaign)
+					)
 				].sort((a, b) => toDays(a.date) - toDays(b.date) || a.what.localeCompare(b.what))
 			: [],
 		// Display names of what the colonies hold: queue items, districts, zones, buildings.

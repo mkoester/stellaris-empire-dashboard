@@ -82,7 +82,9 @@
 			class="opacity-60 hover:opacity-100"
 			title={e.kind === 'cooldown'
 				? 'dismiss — it shows again once it has been used and runs out again'
-				: 'dismiss — it shows again once it has been busy and sits idle again'}
+				: e.kind === 'offer'
+					? 'dismiss — it shows again if a later draw offers it again'
+					: 'dismiss — it shows again once it has been busy and sits idle again'}
 			onclick={() => dismiss(e.dismiss!)}>✕</button
 		>{/if}{/snippet}
 {#snippet kind(e: Row)}<span class="whitespace-nowrap opacity-75"
@@ -91,7 +93,9 @@
 					? 'available again then — the game does not announce it'
 					: e.kind === 'idle'
 						? 'idle since then — until busy again or dismissed'
-						: 'the build slot runs idle then — the game sends no notification'}>⚠</span
+						: e.kind === 'offer'
+							? 'a planned tech is on offer now — the game does not point it out; pick it or dismiss'
+							: 'the build slot runs idle then — the game sends no notification'}>⚠</span
 			>{/if}
 		{e.sub ?? e.kind}</span
 	>{/snippet}

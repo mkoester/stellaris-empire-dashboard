@@ -343,6 +343,17 @@ without a post, an empty council seat, free leader slots (`leaderLimits`, ≈) �
 the first save of the idle spell, walked back along the branch's saves: busy again, then idle,
 is a new row. 2206.10.08 (Roaming Korinth): 2 official and 2 commander slots free, the arkship's
 shipyard (before READER 39: since then the arkship's colony row), one idle science ship.
+**Planned techs on offer** (`plannedOnOffer()` in `#lib/techOffers.ts`, the user's ask 2026-11-06:
+"when I planned some tech, I want to get notified once it pops up in my current list of available
+tech options"; in Upcoming for now, its own place if more such notices come): every wanted, unparked
+tech goal — the prerequisites `techNeeds()` adds included, with their "needed for …" note —
+among the latest save's cards and not the field's research is a row of kind `offer`, ⚠ (the game
+does not point it out), ✕. `planSummary()` hands the wanted techs to `branch()` (cached with the
+plan). The dismiss id ends with the offer's first save (`techOffers()`: a run of saves with the
+same cards), so a later draw offering it again is a new row; picking it in game ends the row.
+Checked 2026-11-06 on a DB copy (Yorphian Extractorate, node 533): no row before planning; rows for
+`tech_lasers_2` and `tech_bio_reactor` (on offer), none for `tech_physics_1` (being researched); ✕
+removed only its own row. Not yet seen in a browser or against a live game (open check 32).
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
@@ -2291,6 +2302,14 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   `common/technology/tier/00_tier.txt` (0 for tier 1, 6 for tiers 2–5; the file does not say per
   area — the user confirmed it, 2026-10-22) — and `potential` not false for the empire. The cards
   on offer (`tech_status.alternatives`) are a weighted random draw from those: never plan with them.
+- **Switching research mid-way** (the user's question 2026-11-06: does starting a card and switching
+  away keep it available for good, as event tech progress seems to?) — **not measured yet**, open
+  check 32. What the files say (4.5.3): events grant the two separately — of 493
+  `add_tech_progress` in `events/` and `common/`, 280 pair it with an `add_research_option` of the
+  same tech (which lands in `always_available_tech`), so progress alone presumably does not keep a
+  card; `TECH_WEIGHT_PREVIOUS_OPTION = 0.5` halves a previous card's weight at the next draw. No
+  save of ours holds a switch (533 nodes, 6 campaigns: never two queued techs in one field), and
+  the web had nothing reliable for 4.x.
 - Progress: `country.tech_status.<area>_queue = { { progress technology date } }` (research points,
   not percent; every queued tech keeps its own, `date` = started — `Snapshot.techQueued`, READER 6;
   a tech not in a queue has no progress in the save); permanent research options (focus rewards'

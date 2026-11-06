@@ -884,24 +884,26 @@ export function plannedSystems(snaps: Snapshot[], tip: number): Record<number, s
 	return out;
 }
 
-let memo: {
-	key: string;
-	value: { keys: string[]; alerts: number; unavailable: string[] };
-} | null = null;
-
-/**
- * For the tab bar and the "+ goal" buttons on every page: the plan's goal keys at the node shown,
- * and how many need attention — blocked, or avoided and happened. Cached by tip and plan.
- */
-export function planSummary(tip: number | null): {
+type Summary = {
 	keys: string[];
 	alerts: number;
 	unavailable: string[];
-} {
-	if (tip === null) return { keys: [], alerts: 0, unavailable: [] };
+	wantedTechs: [string, string][]; // tech → its goal's note, for `plannedOnOffer()`
+};
+
+let memo: { key: string; value: Summary } | null = null;
+
+/**
+ * For the tab bar and the "+ goal" buttons on every page: the plan's goal keys at the node shown,
+ * and how many need attention — blocked, or avoided and happened; for the upcoming list the techs
+ * wanted (their prerequisites included). Cached by tip and plan.
+ */
+export function planSummary(tip: number | null): Summary {
+	const none: Summary = { keys: [], alerts: 0, unavailable: [], wantedTechs: [] };
+	if (tip === null) return none;
 	const db = getDb();
 	const node = nodes(db).find((n) => n.id === tip);
-	if (!node) return { keys: [], alerts: 0, unavailable: [] };
+	if (!node) return none;
 	const events = planEvents(db, node.campaign);
 	const key = `${tip}:${events.at(-1)?.id ?? 0}:${events.length}`;
 	if (memo?.key === key) return memo.value;
@@ -923,7 +925,10 @@ export function planSummary(tip: number | null): {
 		value: {
 			keys: goals.map((g) => goalKey(g.kind, g.target, g.title)),
 			alerts,
-			unavailable: c ? unavailable(c.ctx.latest) : []
+			unavailable: c ? unavailable(c.ctx.latest) : [],
+			wantedTechs: goals
+				.filter((g) => g.kind === 'tech' && g.polarity === 'want' && !g.parked)
+				.map((g) => [String(g.target.tech), g.note])
 		}
 	};
 	return memo.value;
