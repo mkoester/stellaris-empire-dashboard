@@ -71,8 +71,8 @@ own screen next to the dashboard's helps most.
   companion mod logs it.
 - **Reloading an older save without the companion mod**: where the new branch starts is a guess
   (marked, and correctable on the timeline page).
-- **Multiplayer detection is new** (above): checked against two multiplayer saves so far, each
-  with one human player.
+- **Multiplayer and Ironman detection are new** (above): checked against two multiplayer saves so
+  far, each with one human player, and one Ironman save.
 - **Game versions 4.3–4.5.** Numbers are checked against the game's own screens, but not all of
   them yet, and mostly on Linux; the Windows and macOS zips have been run, with less mileage.
 - **English game texts only.**
