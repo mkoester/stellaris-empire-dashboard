@@ -3,6 +3,7 @@
 	import Designation from '#lib/Designation.svelte';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
+	import OutputBonuses from '#lib/panels/OutputBonuses.svelte';
 	import Panel from '#lib/panels/Panel.svelte';
 	import ResourceChips from '#lib/ResourceChips.svelte';
 	import SortTable from '#lib/SortTable.svelte';
@@ -131,6 +132,8 @@
 	<p>No full save with a budget yet.</p>
 {:else}
 	<div class="flex flex-col gap-6">
+		{#if data.output}<OutputBonuses colonies={data.output} />{/if}
+
 		<Panel
 			title="How well each colony works its jobs"
 			note="As of {e.date}. Per colony and resource: what it makes against what its filled jobs make at the empire's mean per pop — 100 % is average; above it the colony's designation, features and buildings work for that resource, so its jobs for it belong there. A colony's output also counts flat building output, which reads as higher. Bold: the best colony for that resource (of those making at least 1 a month)."

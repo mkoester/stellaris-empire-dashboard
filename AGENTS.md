@@ -5,7 +5,7 @@ income), colony state, later rule-based hints. Reads what the game writes — au
 companion mod in `mod/`, `game.log` — and keeps a **save graph**, so loading an older save starts
 a branch instead of overwriting history.
 
-SvelteKit 3 / Svelte 5 / Tailwind v4 / TypeScript 6 / pnpm, on Node 24 LTS (`.node-version`).
+SvelteKit 3 / Svelte 5 / Tailwind v4 / TypeScript 6 / pnpm, on Node 26 LTS (`.node-version`; always the current LTS, workspace `AGENTS.md`).
 Storage is `node:sqlite` (built into Node, no native build). Saves are parsed with `jomini`.
 
 - **SvelteKit 3 layout:** no `svelte.config.js` — config goes to `sveltekit({...})` in
@@ -40,12 +40,30 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
 - Without the companion mod a reload's branch point is a _guess_ when time goes backwards (marked,
   correctable on `/timeline`). With it (0.2.0+) the mod's `load` line names the loaded save exactly
   — see "Companion mod".
-- **No cheats in multiplayer** (the user's intent, 2026-11-01; built 2026-11-03). Nothing in the
-  game can tell a player runs the dashboard, so it could spoil a multiplayer game: once any reading
-  of a campaign says multiplayer (`Snapshot.multiplayer`, READER 44; `campaignMultiplayer()`, which
-  stays true — a multiplayer save loaded in single player, a month without the mod, does not undo
-  it), `display()` forces every `cheat`-kind switch off (`effectiveDisplay(d, multiplayer)`) and ⚙
-  lists none, saying why. Spoilers stay: they show only what the player could find. Two signals:
+- **No cheats in multiplayer or Ironman** (the user's intent, 2026-11-01; built 2026-11-03,
+  Ironman and the `intel` spoilers 2026-11-06). Nothing in the game can tell a player runs the
+  dashboard, so it could spoil a multiplayer game; Ironman is the game played as it comes (the
+  user's call: same treatment). Once any reading of a campaign says multiplayer
+  (`Snapshot.multiplayer`, READER 44; `campaignMultiplayer()`, which stays true — a multiplayer
+  save loaded in single player, a month without the mod, does not undo it) or Ironman
+  (`campaignIronman()`), `display()` forces every `cheat`-kind switch off **and every spoiler
+  marked `intel`** — those revealing other empires or unexplored space: `wholeGalaxy`,
+  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`
+  (`effectiveDisplay(d, noCheats)`, `barred()`) — and ⚙ lists none of them, saying why
+  (`viewedNoCheats()`: `ironman` before `multiplayer`). Other spoilers stay: they are the game's
+  own content (anomalies, projects, timers, what-ifs), not another player's secrets. **A new
+  spoiler that reveals another empire or unexplored space gets `intel: true`.**
+  - **Ironman: the save alone** — `galaxy.ironman=yes` (jomini reads it as `true`; every other
+    save `no`), already in `Snapshot.galaxySetup` (READER 42). The companion mod cannot help: any
+    script mod changes the checksum and switches Ironman off. Seen 2026-11-06 in UNE 2's
+    `ironman.sav` (4.5.3, public; a new single-player game, started after a game restart without
+    mods; `meta` too holds `ironman=yes`, other saves' `meta` no key), whose `player` block names
+    the account alone (`MirkoMachine`) — **a single-player Ironman save names the account**, so
+    in Ironman only two players mean multiplayer (`multiplayerPlayers(player, ironman)`, READER
+    48). Readings from before, of saves no longer on disk, still say multiplayer: hence the
+    Ironman check first.
+
+  Multiplayer has two signals:
   - **The save** (`multiplayerPlayers()`), which serves a player without the mod — a cheater would
     just not run it: the top-level `player = { { name country } … }` names an account or lists two
     players. Every single-player save on the Linux machine (106, 4.5.x) has one `name="unknown"`;
@@ -127,7 +145,7 @@ once more (~5 s), a release's players only when its code changes.
 `node scripts/package.mjs [--os windows|linux|macos]` →
 `dist/stellaris-empire-dashboard-<version>-<os>-<arch>.zip` (`windows-x64`, `linux-x64`,
 `macos-arm64`, `macos-x64`): the build plus `jomini` (the only external import left in the build),
-Node 24 (pinned, SHA-256 from nodejs.org; it needs macOS 13.5+), the extractor from
+Node 26 (pinned, SHA-256 from nodejs.org; it needs macOS 13.5+, and Intel Macs are Tier 2 until early 2028), the extractor from
 `../stellaris-data-extraction` by `git archive HEAD` (a release build refuses one that is not on
 the tag `package.json` pins as `extractorVersion`), Python where the system has none recent
 enough, and `release/`: `launcher.mjs`, `start.bat` / `start.command` / `start.sh` (checks
@@ -242,7 +260,11 @@ A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{�
 page's `?node=`). A save-wide question (every colony across the history) is quickest as a
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
-server modules that call `getGameData()`/`getExplanations()` — delete it after.
+server modules that call `getGameData()`/`getExplanations()` — delete it after. **To find where
+a page hangs**, call its server function from such a test under `timeout 150` and log each step's
+time with `appendFileSync` to a file: vitest holds a test's console output, and `timeout` killing
+it loses all of it (2026-11-06, Roaming Korinth's planner: `plannerPage` → `suggestions()` →
+`display()` per body).
 
 **Replaying a live month** (what a player sees as the mod's line and then the autosave arrive):
 on the copy delete the nodes after the one to start from (`snapshot`, `node`, the later saves'
@@ -357,6 +379,7 @@ left, net per month right (`resourcePanelSeries()`) — and the latest save's mo
 (`Snapshot.budget`, every source, the market's as `market:<source>`; `resourceBudget()` in
 `#lib/flows.ts`; its total is the save's balance: 2207.04.02 energy +3.455 both), and below it
 what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off spending")),
+`influence` and `pacts` (below),
 `trade-offs` (only with its switch, below) and `events`
 (`/events`: the milestone log, searchable, filtered in the page), `government`, `ethics`, `situations`, `shroud` (patrons and attunement), `focus`,
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `subjects`, `megastructures` (all below), `galaxy` (the galaxy setup, below), `mods`,
@@ -677,7 +700,9 @@ leader's level** — 4.5.2 `common/governments/councilors/000_councilor_document
 `modifier` "is multiplied by assigned Leader's level" (`atLevel`; `seat:<key>` popups hold the
 per-level values), shown per level and, in brackets, at the **councilor level** = leader level +
 its `bonus_skill_level` + the empire's `councilor_skill_add` the save shows active (traditions,
-edicts, policy options, civics, timed modifiers; `councilorBonus()`, data DB `councilorSkill`).
+edicts, policy options, civics, the authority — oligarchic +2, missed until 2026-11-05: the
+throwaway Theian Preservers' level-1 Head of Research gave +6 % in game, 3 × 2 % —, timed
+modifiers; `councilorBonus()`, data DB `councilorSkill`).
 Each seat's leader classes are chips in the game's colours; the leader's traits add their
 `councilor_modifier` ("applied to country if leader is on the Council", flat — 4.5.2
 `common/traits/000_documentation_leader_traits.txt`; `ltraitcouncil:<key>`). Possible seats are our
@@ -802,7 +827,30 @@ goals keep their place folded away below. **Traditions** are labelled with their
 tree first ("Cybernetics (adopt) · opened by The Flesh is Weak"). Nomads settle no planets either
 (`unavailable()`: outposts and colonies; the layout's `plan.unavailable` hides those "+ goal"
 buttons on other tabs). Potential goals start folded, per group, their "+ want" and "⊘" (avoid)
-buttons at the left of each row, the row lit on hover. **Later phases** (not built): diplomacy (befriend,
+buttons at the left of each row, the row lit on hover. **Shortcuts** (the user's ask 2026-11-06:
+"techs almost every player would want, offered as shortcuts"; `#lib/planner/shortcuts.ts`,
+`shortcuts()` in `server/planner.ts`): bundles of techs above the potential goals — economy core,
+research buildings (`tech_physics_1`, `tech_society_1`, `tech_engineering_1`: each field's lab),
+its second step, strategic resources, habitats and terraforming, military, late game — each tech
+with "+ want", each bundle with "+ add all"; prerequisites and tier gates follow via `techNeeds()`.
+Only techs whose `check()` is open are offered (not researched, under way, planned or blocked), so
+playstyles need no conditions: the hull line follows `country_uses_bio_ships` (Battleships or
+Stingers), robots drop out for hive minds. **The list is ours**: a web search (2026-11-06) found
+no reliable 4.x consensus, so each entry is a tech whose unlock the 4.5.3 files show — the
+resource districts' zone slot each (`common/zone_slots/00_zone_slots.txt`: `tech_power_hub_1`,
+`tech_mineral_purification_1`, `tech_food_processing_1`, via `has_tech_or_functional_civic`, so
+a civic can stand in), Societal Unification's campaign edicts (`edicts/01_campaigns.txt`), Colonial
+Bureaucracy's Administrative Park (`08_unity_buildings.txt`), the zone buildings' upgrades (`*_2`, `03_resource_buildings.txt`), each strategic resource's two techs — `tech_mine_<res>` (its deposits, `deposits/01_planetary_deposits.txt`, and its zone) and `tech_<res>` (its refinery, `04_manufacturing_buildings.txt`), habitat slots
+(`01_habitat_zone_slots.txt`) — or a modifier (Galactic Administration +1 civic slot). Re-check on
+game updates. **Not "city zone slots 4–5"**: `slot_city_04|05` (gated by those two techs and an
+upgraded capital) are not the city district's — `district_city` has the government slot and
+`slot_city_01|02`; `slot_city_04` is the ring world commercial districts' alone, `slot_city_05`
+no district's (4.5.3; the first list said otherwise, the user caught it). **Left out on purpose**:
+Weather Control (+100 housing per city district, +10 %; Anti-Gravity Engineering's prerequisite,
+so it comes along) and Galactic Markets (rare; only the Galactic Stock Exchange, one per planet:
+−5 % market fee, traders — not the Galactic Market). Checked 2026-11-06 on a DB copy: UNE 2 offers
+Battleships, Roaming Korinth (bio ships) Stingers; "+ want" and "+ add all" work in the browser
+(the user). **Later phases** (not built): diplomacy (befriend,
 rivals, pacts wanted or avoided), GalCom and federation (federation tables not loaded, none seen
 in a save), market prices and trade deals, leaders, Shroud, jobs and resource priorities, orbital
 rings (their `Station.level` not yet seen in a save), espionage (nothing in the save or the data
@@ -957,6 +1005,35 @@ stop at `OVERCROWDING_NO_GROWTH|ASSEMBLY_THRESHOLD` × housing, housing need per
 Everything else is held at today's values (no new districts, colonies, migration, techs) — not
 checked against a game run yet.
 
+**Job output bonuses and how they stack** (jobs tab, first panel; the user's ask 2026-11-05;
+`#lib/outputBonuses.ts` pure, `server/outputModel.ts`, `panels/OutputBonuses.svelte`): per colony
+and resource, workforce (`ColonyJob.filled` + `bonus`, job efficiency's `bonus_workforce`, READER 46)
+÷ 100 × (base + adds) × (1 + mults). Base: data DB `job_resource`. **Which modifiers reach a job**:
+its economic category (`job.budget_source`) and every parent (data DB `economic_category`,
+extraction 2026-11-05: physicists → researchers → jobs_specialist → jobs_productive → jobs →
+planets → country); `<category>_produces_mult` and `<category>_<res>_produces_mult` of any of them,
+`<own category>_<res>_produces_add` only (common/economic_categories README: adds do not inherit).
+Sources: `empireSources()` (as research), the colony's buildings, designation, deposits and planet
+modifiers (`heldOf`), its governor (`leaderRoles`, wasted ones out), the species' traits for their
+share of each job (`ColonyJob.species`, READER 46; 4.5.x traits mostly change workforce, which the
+save's `bonus_workforce` already holds), and the player's difficulty bonus
+(`modifier:difficulty_<d>_player`: cadet +50 % to every job), and **High Stability**
+(`stabilitySource()`: `planet_stability_high`'s +30 % × (stability − 50) ÷ 50, from 0 at 50 to all
+of it at 100 — the game's Physicist tooltip at the throwaway Theian Preservers' capital: stability
+73.345 → "High Stability +14.01%", 73.362 → +14.02 %; Roaming Korinth at 100 → +30 %), and **Low
+Stability** below 50 the same way (`planet_stability_low`'s −50 % × (50 − stability) ÷ 50: 48.88 →
+"Low Stability −1.11%", 2219.01). A governor's **sector** effect is not for its own colony (the
+tooltip lists only "Governor Skill +6%"). Checked line by line on the 2219.01 Miner tooltip: (50 +
+12.5 Mining Guilds) × (1 − 10 % Energy Shortages − 1.11 % + 2.5 % Mining Rush + 6 %) = 60.86, the
+save books 60.86. **In a resource shortage** jobs whose inputs are short make less than the bonuses
+say (alloys and consumer goods −59 % in Mineral Shortages III): a deficit, left in the rest. **Measured
+against the save**: the colony's `produces` ÷ its base = the multiplier it got; the **rest**
+(measured − counted) is what is not counted yet. Theian Preservers' capital: research and unity
+rest 0.0, worker resources −1.0 % (Korinth −3 %: not crime, Korinth has none); Planetforgers'
+capital research +10 % (Pleased, `pop_pleased` +25 % workers and specialists, never in a tooltip
+yet?), alloys and minerals more (flat building output?) — open check 31. "+10 % is" values one more bonus against the measured
+total (`realGain`).
+
 **Jobs tab and the shared values** (`/jobs`, `#lib/unitCosts.ts` pure, `server/unitCosts.ts`; the
 user's asks 2026-10-22: "normalised costs for everything we produce" and "how well does each job
 perform on each colony, which colonies should be specialised"):
@@ -1019,7 +1096,8 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`. A new view of hidden information follows the same pattern.
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`. A new view of hidden information follows the same pattern
+(and in multiplayer and Ironman: "No cheats in multiplayer or Ironman").
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
 `normal`, `spoiler` (what the game hides until found) or `cheat` (what it never tells a player;
@@ -1027,7 +1105,12 @@ pure): every switch in `SWITCHES` with its group, label, note, search tags and *
 `showSpoilers` / `showCheats` (off by default; a profile from before them starts with a gate on
 when it had one of its switches on), list those kinds; **hidden also means off**:
 `display()` (`server/settings.ts`) returns `effectiveDisplay()`, the stored values kept, so
-showing a kind again brings each switch back as it was. **A new switch goes into `SWITCHES`**
+showing a kind again brings each switch back as it was. **Read `display()` once per request,
+never in a loop**: each call reads the active profile and every node (~6 ms), and the Ironman and
+multiplayer checks behind it (`campaignIronman|Multiplayer`, cached until the DB connection writes,
+`cachedScan()`) parse every snapshot of a campaign that is neither (~100 ms uncached). Called per
+body, the planner's waystation suggestions hung Roaming Korinth's planner (8155 bodies, ~15 min;
+found 2026-11-06), per system the map tab took seconds. **A new switch goes into `SWITCHES`**
 (a test checks every `Display` boolean is there once). **The
 check is the user's in-game screenshot** of the matching panel (workspace `AGENTS.md`): it caught
 the edicts (58 → the game's 5), policies, agendas and focus cards here.
@@ -1378,7 +1461,29 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   (`tech_status.alternatives`; the game redraws a field's cards once its tech is done) with ▶ the
   one being researched, ★ the permanent options and the progress of queued ones, "offered over
   time" (`#lib/techOffers.ts`: a run of saves with the same cards is one offer, the pick = the
-  field's tech researched meanwhile), research tiers, everything researched.
+  field's tech researched meanwhile), research tiers, everything researched. **Research bonuses
+  and how they stack** (the user's ask 2026-11-05: "the good ones are applied multiplicatively,
+  the regular ones additively"; `#lib/researchBonuses.ts` pure, `server/researchBonuses.ts`,
+  `panels/ResearchBonuses.svelte`): per area three piles — **speed** (`all_technology_research_speed`,
+  `country_<area>_tech_research_speed`, `category_<field>_research_speed_mult` for the tech's field,
+  `rare_tech_research_speed_mult`), **output** (`country_`/`planet_jobs_<area>_research_produces_mult`)
+  and **cost** (`<area>_tech_cost_mult`, difficulty × tier, slider, empire size +0.2 % above 100).
+  Sources: every empire-wide one `empireHeld()` lists (species traits and rights left out: they act
+  on their pops' jobs), policies by policy (`policyModifiers()`: the data DB keys options by name,
+  so General Studies — an option of all three research policies — holds the physics one; read with
+  the policy's area), the council through `leaderRoles()` (seats at the councilor level, councilor
+  traits with their conditions weighed: the councilor subclass's +5 % is conditional), and
+  situations at their stage (`GameData.situationStageModifiers`, extraction 2026-11-05; `{}` with an
+  older data DB). **Speed bonuses add up — measured**: the speed applied (`researchSpeed()`,
+  progress ÷ output between month-start saves) equals 1 + the sum of the lines, exactly, in every
+  area: Planetforgers ×1.48 (Discovery 0.10, fanatic materialist 0.10, Administrative AI 0.05,
+  General Studies 0.10, Head of Research 0.02 × 4, Statistician 0.05; multiplied they would give
+  ×1.555), Roaming Korinth ×1.19 (Science Officer 0.02 × 3, Spark of Genius 0.03, Nomad Economy
+  at Operational Reserves: High 0.10) and ×1.24 in engineering (+ Improved Energy Initiative on
+  Materials 0.05), Yorphia ×0.94 (Energy Extractors −0.10, council 0.04), UNE 2 ×1.02 (measured on
+  stored points: an area researching nothing stores at the same speed). So one more bonus is worth
+  bonus ÷ (1 + pile) (`realGain()`); the piles multiply (time = cost ÷ (output × speed)). The
+  panel says when the lines miss the measured factor.
 - **leaders**: `Snapshot.leaderList`, traits explained by `ltrait:<key>` (data DB `leader_trait`,
   each modifier labelled with its scope); class colours (`class-*` in `colors.ts`, envoys ours);
   envoys behind a switch, off by default. **Leader modifiers from the empire** (the user's ask
@@ -1400,6 +1505,78 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   Caravaneers), pre-FTL civilisations (`primitive`), space fauna (leviathans and guardians
   included), marauders, other (factions, the Shroud, event countries). Names are `EmpireName`
   (map-colour swatch) with `EmpireBadges` (fallen, enclave, nomadic, … — shared with the trade tab).
+
+**Influence tab** (`/influence`, `#lib/influence.ts` pure; the user's ask 2026-11-05: "how much
+do I get and from which source, how much do I spend and for what, how much am I not collecting"):
+the month by budget source (`resourceBudget()` with `INFLUENCE_LABELS`), the sources over time
+(`influenceSeries()`), what the budget does not book (`unbooked()`, `namedSpending()`), and **Not
+collected** (`uncollected()`):
+
+- **Power projection** (budget `country_power_projection`): at most 2
+  (`country_power_projection_influence_produces_add`, `empire_base`), × naval coverage —
+  `navy_coverage_shortage` (1 − navy size ÷ empire size, clamped, mult −1). **Fitted on 40 saves
+  (2026-11-05): navy size = 2 × `used_naval_capacity`**, so coverage = min(1, 2 × used ÷
+  `empire_size`) — 15 at 52 → 1.1538, 28 at 70 → 1.6, 15 at 119 → 0.5042, exact. The maximum is
+  read as booked ÷ coverage, so modifiers count (Planetforgers 2214.02 books 5.25 at full
+  coverage). **A navy of 0 books 0.2**: Roaming Korinth (nomad) and the throwaway Theian
+  Preservers (2200.03–05, fleet disbanded; 1.2 at 15 of size 50 before) — read as a 10 % coverage
+  floor (a flat 0.2 minimum would read the same at the default maximum of 2).
+- **Rival slots**: 0.5 influence a rival (`common/diplomacy_economy`, valued at what a rival books
+  now when there is one); slots 3 (`empire_base`) + 2 with the Animosity stance
+  (`diplo_stance_animosity*` policy flag) + 1 with `tr_enmity_adopt`.
+- **Lost at the storage cap** (`lostAtCap()`): with companion mod's `storageMax`, the net while at
+  it; without, a stockpile that did not move although the budget booked a gain (Planetforgers
+  2214.01–02: 1000 both, +5.8 booked) — estimated; the unexplained row then says so.
+
+**Pacts tab** (`/pacts`, `#lib/pacts.ts` pure; the user's ask 2026-11-05: "what do I get from
+them, per type, then per empire"): every type we hold (`PACT_TYPES`: the relation flag and the
+budget category) with partners and booked upkeep (0.25 influence for migration treaties, research
+agreements, commercial pacts and NAPs, 1 defensive pact, 0.5 guarantee; free under some federation
+perks and laws, `common/diplomacy_economy/00_diplomacy_economy.txt`). Dimmed while no relation
+holds a pact.
+
+- **Migration treaties** (`speciesExchange()`): our main (founder) species in each partner's
+  empire and its main species in ours, save by save, from `Snapshot.speciesByEmpire` (READER 45:
+  us and our treaty partners, pops by species name — a modified species keeps its parent's name,
+  Oklarr 2214.02 had two "Pyrragthul" —, under 1 % left out). **The save has no per-species
+  migration**: `last_month_growth_data.species` holds net growth per species and stratum only, the
+  causes are per colony. Shown plainly, like `/migration`'s foreign colonies.
+- **Our species abroad** (`ourSpeciesAbroad()`, READER 47): our species in every empire we have
+  communications with, whether a treaty still holds or not (`EmpireSpecies.onlyOurs`: for
+  non-partners only our species are read), with the change since the first save that showed them.
+  Treaties end, emigrants stay: the throwaway Theian Preservers had 338 Theians in three
+  Baanthurian colonies (2214.01) after that treaty had ended, which the treaty section no longer
+  showed.
+- **Commercial pacts** (`commercialSplit()`): we gain 10 % of the partner's trade production
+  (`COMMERCIAL_PACTS_INCOME_PERCENTAGE`), booked as trade under `commercial_pacts`, not taken from
+  the partner. **Fit**: Planetforgers 2214.02 booked 46.85, Σ 0.1 × (partner's trade income − its
+  own `commercial_pacts` trade, `AiIntel.commercialPactTrade`) 46.83. The total is always shown;
+  per partner with `pactIntel` at economy intel 3 (intel ≥ 90, `resource_production` in
+  `common/intel_categories/02_intel_economy.txt`), any partner with `pactAll`.
+- **Research agreements** (`researchValue()`, `techCounts()`, `techHints()`): +25 % research speed
+  (`RESEARCH_AGREEMENT_SPEED_MULT`) on a tech the partner has, **added to the speed we already
+  have — confirmed in game** (the user's point 2026-11-05; throwaway Theian Preservers 2200.07: the
+  tooltip lists "Baanthurian Research Agreement: +25.00%" beside the other bonuses, +51 % = 26 +
+  25, progress ×1.510 against ×1.260 without; multiplied would be ×1.575). On the tech tab it is a
+  speed line of its own for the tech in progress (`agreementLines()` in
+  `server/researchBonuses.ts`, scope `tech`): +0.25 × output a month, and 0.25 ÷ (factor + 0.25) of a tech's time saved — 20 % with
+  no other bonus, 14.5 % at ×1.48. **The factor is measured, not modelled** (`researchSpeed()`,
+  `#lib/researchSpeed.ts`): progress gained between two consecutive month-start saves ÷ the earlier
+  one's research output — Planetforgers ×1.48 in every area and month (2213–2214), Roaming Korinth
+  1.19 then 1.24, UNE 1.07, Yorphia 0.94. **Stored research comes on top, unboosted** (2214.02:
+  2.48 = 1.48 + 1 while points were stored), so such months are skipped. Partners' own speed is
+  unknown: their gain is read at ×1, an upper bound. Two partners with the same tech count once (seen in game: ×1.51 with both, one tooltip line)
+  (open check 30). Plain: this month's extra research (where the tech in progress is one the
+  partner has — the game shows the bonus on the tech) and our measured speed. `pactIntel`: the
+  partner's techs per area at technology intel 1 (intel ≥ 30; an agreement keeps it there) — the
+  game shows that number and **no intel level lists the techs** (`intel_tech_researched_all` is in
+  the localisation, in no level). `pactAll`: which techs, research saved each way, and the hints
+  (the cards on offer and techs `inReach()` a partner has, by research saved). From
+  `AiIntel.techsWeLack` / `techsTheyLack` (READER 45, research
+  partners only, to keep snapshots small); costs × `techCostFactor()`.
+
+The route sends a partner's data only as far as the switches allow. `levelOf()` covers the economy
+and technology categories too (`INTEL_LEVELS`, 00_intel_levels.txt: both move together).
 
 **Diplomacy tab** (`/diplomacy`, `#lib/diplomacy.ts` pure, `diplomacy()` and `ourIntel()` in
 `server/world.ts`; the user's ask 2026-10-23: "all the player knows(!) about all other empires"):
@@ -1487,6 +1664,10 @@ node (`place()` → `merge`), otherwise the second would look like a reload. The
 mod's income with the save's balance and logs `mod and save disagree on net income` on a mismatch.
 The save's reading wins, but what only the log knows — `logEvents`, `ticks`, and the timeline id if
 the save lacks it — is kept (`withLogFields()`), also when a save is read again.
+**A month from the feed alone carries no colonies** (`toLogSnapshot`: `colonies: []`). While no save
+follows — `fast_forward` writes no autosaves — `branch()`'s `latest` takes the last save's colonies
+(`latestOf()`, `#lib/latest.ts`): before, the colonies tab read "No colony matches" (throwaway
+Theian Preservers 2207.05–10, 2026-11-05).
 
 ## Companion mod (`mod/dashboard_feed`)
 
@@ -1650,8 +1831,8 @@ folder stays untouched; count `extracting game data` lines in the log per start.
 - **After `pnpm update`/`install`, run `node_modules/.bin/prettier --write pnpm-lock.yaml`**: the
   lockfile is kept in Prettier's format (`pnpm lint` checks it), pnpm writes its own, and the diff
   balloons (2026-10-31: 2028 lines → 552 after the reformat).
-- **Node 24 is not first on PATH** (MacPorts' `node` is 22, pulled in by the `pnpm` port). Prefix
-  commands with `fnm exec --using=24 --`.
+- **The pinned Node is not first on PATH** (MacPorts' `node` is 22, pulled in by the `pnpm` port). Prefix
+  commands with `fnm exec --using=26 --`.
 - Starting the dev server needs `sandbox.network.allowLocalBinding` (set in the workspace
   `.claude/settings.json`); start it and make the requests in one Bash command.
 
@@ -1670,6 +1851,16 @@ starbase Resource Silo, Construction Templates, Mega-Engineering, the galactic m
 the console (we host; with no Galactic Community we alone have access), two 1000-energy gifts to Lahtrepian (9), the first accepted 2201.06.01 (+41; 39 from
 2202.06.01; the second gift: 78; 76 from 2203.06.01 — the first gift's date holds). Since 2026-10-24
 it runs on the native build: its saves are in the native user dir (workspace `AGENTS.md`).
+
+**The second throwaway game** (2026-11-05): `federatedtheianpreservers_-1907099999` (Lithoid,
+oligarchic, fanatic materialist, pacifist → xenophile by console 2214; Ensign — not Cadet, whose
++50 % to every job blurs output checks), dashboard DB `sdash --db-dir throwaway`. Holds: research
+agreements with two empires on one tech (2200.06–2201), migration treaties since 2200.10, a second
+colony Curiel (arid, by console), Mineral and Energy Shortages from 2219. Lessons: **pick a tech in
+every area before measuring research speed** — an empty queue stores the points, and stored points
+spoil the measurement for months; **`fast_forward` writes no autosaves** — only the companion
+mod's months arrive, which carry no colonies or species: make a manual save at the end. Console
+recipes: `stellaris-modding-insights/docs/07-debugging-and-console.md`.
 
 New save shapes come from **throwaway games with console cheats, never the real campaign** (its
 history lives only in the DB), against a **separate `DASHBOARD_DB`**, the companion mod on (cheats

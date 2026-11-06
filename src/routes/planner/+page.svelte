@@ -746,6 +746,63 @@
 			</Panel>
 		{/if}
 
+		{#if data.shortcuts.length}
+			<Panel
+				title="Shortcuts"
+				note="Techs worth having in nearly every game, per bundle; what it needs first follows by itself. Researched, planned and impossible ones are left out."
+			>
+				{#each data.shortcuts as s (s.id)}
+					{@const list = s.techs.filter(inArea)}
+					{#if list.length}
+						<details class="mt-1">
+							<summary class="cursor-pointer font-semibold"
+								>{s.name}
+								<span class="text-sm font-normal text-gray-500">({list.length}) · {s.why}</span>
+								<button
+									type="button"
+									class="ml-2 rounded border border-sky-300 px-1 text-xs font-normal text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900"
+									title="add every tech of {s.name} as wanted"
+									onclick={(e) => {
+										e.preventDefault();
+										change(
+											list.map((t) => ({
+												goal: newGoalId(),
+												op: 'add',
+												data: { kind: t.kind, target: t.target, polarity: 'want' }
+											}))
+										);
+									}}>+ add all</button
+								></summary
+							>
+							<ul class="text-sm">
+								{#each list as t (t.tech)}
+									<li
+										class="flex items-baseline gap-2 rounded px-1 py-0.5 odd:bg-gray-50 hover:bg-sky-50 dark:odd:bg-gray-900 dark:hover:bg-sky-950"
+									>
+										<span class="flex w-24 shrink-0 gap-1">
+											<button
+												type="button"
+												class="rounded border border-sky-300 px-1 text-xs text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900"
+												title="add: want {t.label}"
+												aria-label="want {t.label}"
+												onclick={() => addGoal(t.kind, t.target, 'want')}>+ want</button
+											>
+										</span>
+										<span class="flex-1"
+											><InfoPopup explanation={t.ref ? data.explain[t.ref] : undefined}
+												>{t.label}</InfoPopup
+											>{@render badges(t)}<span class="text-xs text-gray-500">{` · ${t.why}`}</span
+											></span
+										>
+									</li>
+								{/each}
+							</ul>
+						</details>
+					{/if}
+				{/each}
+			</Panel>
+		{/if}
+
 		<Panel
 			title="Potential goals"
 			note="What the latest save suggests: + want adds it, ⊘ adds it as a goal to avoid."

@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
-import type { ActionKind, CapEffect, Costs, GameData } from '#lib/types.ts';
+import type { ActionKind, CapEffect, Costs, GameData, Resources } from '#lib/types.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -62,9 +62,21 @@ export function loadGameData(file: string): GameData {
 					cost: number | null;
 					area: string;
 					tier: number | null;
-				}>('SELECT key, label, cost, area, tier FROM technology').map((r) => [
+					category: string | null;
+					rare: number | null;
+				}>(
+					`SELECT t.key, t.label, t.cost, t.area, t.tier, t.category, r.is_rare AS rare
+					 FROM technology t LEFT JOIN technology_requirement r ON r.tech_key = t.key`
+				).map((r) => [
 					r.key,
-					{ name: r.label ?? r.key, cost: r.cost, area: r.area, tier: r.tier }
+					{
+						name: r.label ?? r.key,
+						cost: r.cost,
+						area: r.area,
+						tier: r.tier,
+						category: r.category,
+						rare: r.rare === 1
+					}
 				])
 			),
 			agendas: Object.fromEntries(
@@ -344,6 +356,47 @@ export function loadGameData(file: string): GameData {
 				gameplay: r.affects_gameplay === 1,
 				baseGame: r.affects_gameplay === 1 && r.host_checks === 0
 			})),
+			// what each situation stage does, by situation and stage index (extractor 2026-11-05;
+			// an older data DB has none)
+			// each job's output and upkeep per 100 workforce (`job_resource`), the base its bonuses scale
+			jobResources: rows<{ job_key: string; kind: string; resource: string; amount: number }>(
+				"SELECT job_key, kind, resource, amount FROM job_resource WHERE kind IN ('produces', 'upkeep')"
+			).reduce<Record<string, { produces: Resources; upkeep: Resources }>>((out, r) => {
+				const j = (out[r.job_key] ??= { produces: {}, upkeep: {} });
+				j[r.kind as 'produces' | 'upkeep'][r.resource] = r.amount;
+				return out;
+			}, {}),
+			// economic category → its parent (extractor 2026-11-05; an older data DB has none)
+			categoryParents: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'economic_category'"
+			).length
+				? Object.fromEntries(
+						rows<{ key: string; parent: string | null }>(
+							'SELECT key, parent FROM economic_category'
+						).map((r) => [r.key, r.parent])
+					)
+				: {},
+			situationStageModifiers: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'situation_stage_modifier'"
+			).length
+				? rows<{
+						situation_key: string;
+						idx: number;
+						modifier_key: string;
+						modifier_value: number;
+					}>(
+						`SELECT m.situation_key, s.sort_order AS idx, m.modifier_key, m.modifier_value
+						 FROM situation_stage_modifier m JOIN situation_stage s
+						   ON s.situation_key = m.situation_key AND s.key = m.stage_key
+						 ORDER BY m.situation_key, s.sort_order, m.sort_order`
+					).reduce<Record<string, Record<number, { key: string; value: number }[]>>>((out, r) => {
+						((out[r.situation_key] ??= {})[r.idx] ??= []).push({
+							key: r.modifier_key,
+							value: r.modifier_value
+						});
+						return out;
+					}, {})
+				: {},
 			situationTypes: situationTypes(
 				rows('SELECT key, name, category FROM situation'),
 				rows('SELECT situation_key, key, name FROM situation_approach ORDER BY sort_order'),
@@ -460,6 +513,8 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT 'civic:' || civic_key, modifier_value FROM civic_modifier
 					   WHERE modifier_key = 'councilor_skill_add'
 					 UNION ALL SELECT 'modifier:' || static_key, modifier_value FROM static_modifier_modifier
+					   WHERE modifier_key = 'councilor_skill_add'
+					 UNION ALL SELECT 'authority:' || authority_key, modifier_value FROM authority_modifier
 					   WHERE modifier_key = 'councilor_skill_add'`
 				).map((r) => [r.owner, r.value])
 			),

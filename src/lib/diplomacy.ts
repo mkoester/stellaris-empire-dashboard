@@ -274,21 +274,24 @@ export function neighbours(edges: { from: number; to: number }[], id: number): S
 	]);
 }
 
-/** The first intel of each level and its government and diplomacy levels (00_intel_levels.txt). */
-const INTEL_LEVELS: { from: number; government: number; diplomacy: number }[] = [
-	{ from: 0, government: 0, diplomacy: 0 },
-	{ from: 10, government: 1, diplomacy: 0 },
-	{ from: 20, government: 1, diplomacy: 1 },
-	{ from: 30, government: 1, diplomacy: 1 },
-	{ from: 40, government: 2, diplomacy: 1 },
-	{ from: 50, government: 2, diplomacy: 2 },
-	{ from: 60, government: 2, diplomacy: 2 },
-	{ from: 70, government: 3, diplomacy: 2 },
-	{ from: 80, government: 3, diplomacy: 3 },
-	{ from: 90, government: 3, diplomacy: 3 },
-	{ from: 99, government: 4, diplomacy: 4 }
+/**
+ * The first intel of each level and its level per category (00_intel_levels.txt; economy and
+ * technology move together).
+ */
+const INTEL_LEVELS: Record<'from' | IntelCategory, number>[] = [
+	{ from: 0, government: 0, diplomacy: 0, economy: 0, technology: 0 },
+	{ from: 10, government: 1, diplomacy: 0, economy: 0, technology: 0 },
+	{ from: 20, government: 1, diplomacy: 1, economy: 0, technology: 0 },
+	{ from: 30, government: 1, diplomacy: 1, economy: 1, technology: 1 },
+	{ from: 40, government: 2, diplomacy: 1, economy: 1, technology: 1 },
+	{ from: 50, government: 2, diplomacy: 2, economy: 1, technology: 1 },
+	{ from: 60, government: 2, diplomacy: 2, economy: 2, technology: 2 },
+	{ from: 70, government: 3, diplomacy: 2, economy: 2, technology: 2 },
+	{ from: 80, government: 3, diplomacy: 3, economy: 2, technology: 2 },
+	{ from: 90, government: 3, diplomacy: 3, economy: 3, technology: 3 },
+	{ from: 99, government: 4, diplomacy: 4, economy: 4, technology: 4 }
 ];
-export type IntelCategory = 'government' | 'diplomacy';
+export type IntelCategory = 'government' | 'diplomacy' | 'economy' | 'technology';
 
 export function levelOf(intel: number, category: IntelCategory): number {
 	return INTEL_LEVELS.findLast((l) => intel >= l.from)?.[category] ?? 0;

@@ -50,14 +50,18 @@ export type ResourceBudgetRow = { label: string; income: number; expenses: numbe
  * earner first, biggest spender last; sources that do not touch it left out. The total is the
  * resource's net per month. A nomad's Operational Reserves are energy and minerals together.
  */
-export function resourceBudget(sources: BudgetSource[], key: string) {
+export function resourceBudget(
+	sources: BudgetSource[],
+	key: string,
+	label: (source: string) => string = sourceLabel
+) {
 	const keys = key === RESERVES ? ['energy', 'minerals'] : [key];
 	const of = (r: Record<string, number>) => keys.reduce((t, k) => t + (r[k] ?? 0), 0);
 	const rows: ResourceBudgetRow[] = sources
 		.map((s) => {
 			const income = of(s.income);
 			const expenses = of(s.expenses);
-			return { label: sourceLabel(s.source), income, expenses, net: income - expenses };
+			return { label: label(s.source), income, expenses, net: income - expenses };
 		})
 		.filter((r) => r.income !== 0 || r.expenses !== 0)
 		.sort((a, b) => b.net - a.net || a.label.localeCompare(b.label));

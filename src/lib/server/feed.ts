@@ -292,6 +292,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		countryTimedFlags: null,
 		cooldowns: null,
 		species: null,
+		speciesByEmpire: null,
 		sectors: null,
 		expansion: null,
 		stations: null,

@@ -6,6 +6,7 @@
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
+	import ResearchBonuses from '#lib/panels/ResearchBonuses.svelte';
 	import ResearchTiers from '#lib/panels/ResearchTiers.svelte';
 	import { AREAS } from '#lib/techTiers.ts';
 
@@ -105,6 +106,10 @@
 			</tbody>
 		</table>
 	</Panel>
+
+	{#if data.bonuses}
+		<div class="lg:col-span-2"><ResearchBonuses areas={data.bonuses} /></div>
+	{/if}
 
 	<ResearchTiers tiers={data.tiers} />
 

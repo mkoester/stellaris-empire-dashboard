@@ -307,7 +307,7 @@ export function seatRows(
 
 /**
  * Country-wide `councilor_skill_add` the save shows active: traditions taken, edicts, policy
- * options selected, civics, timed modifiers (e.g. Departmental Efficiency's after-effect).
+ * options selected, civics, the authority, timed modifiers (e.g. Departmental Efficiency's after-effect).
  */
 export function councilorBonus(
 	s: Snapshot,
@@ -318,6 +318,9 @@ export function councilorBonus(
 		...(s.edicts ?? []).map((k) => `tradition:${k}`),
 		...Object.values(s.policies ?? {}).map((k) => `tradition:${k}`),
 		...(s.government ?? []).map((k) => `civic:${k}`),
+		// the authority: oligarchic +2 to every councilor (4.5.x 00_authorities.txt; Theian
+		// Preservers 2200.05: the Head of Research at level 1 gave +6 %, 3 × 2 %)
+		...(s.government ?? []).filter((k) => k.startsWith('auth_')).map((k) => `authority:${k}`),
 		...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`)
 	];
 	return [...new Set(held)]
