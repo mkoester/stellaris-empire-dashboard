@@ -22,6 +22,8 @@ All notable changes to this project are documented here. The format follows
 - The tech tab shows the progress a tech keeps when you switch research away from it: on its card
   (↺) and in a list of every tech holding some. The game keeps the points, but not the card — the
   next draw may not offer it again.
+- A release's title names the game version it was built for: "Stellaris Empire Dashboard 0.1.12
+  (v4.5.3)".
 
 ## [0.1.11] - 2026-11-06
 
