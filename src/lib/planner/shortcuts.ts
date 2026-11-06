@@ -122,11 +122,12 @@ export const SHORTCUTS: Shortcut[] = [
 	{
 		id: 'late',
 		name: 'Late game',
-		why: 'megastructures, gateways, the market',
+		why: 'megastructures and gateways',
+		// not Galactic Markets: rare, and only the Galactic Stock Exchange (−5 % market fee,
+		// traders on one planet) — worth it for a market-heavy empire, not nearly every game
 		techs: [
 			{ tech: 'tech_mega_engineering', why: 'megastructures' },
-			{ tech: 'tech_gateway_construction', why: 'build gateways' },
-			{ tech: 'tech_galactic_markets', why: 'the Galactic Market' }
+			{ tech: 'tech_gateway_construction', why: 'build gateways' }
 		]
 	}
 ];
