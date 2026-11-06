@@ -56,9 +56,10 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
   - **Ironman: the save alone** — `galaxy.ironman=yes` (jomini reads it as `true`; every other
     save `no`), already in `Snapshot.galaxySetup` (READER 42). The companion mod cannot help: any
     script mod changes the checksum and switches Ironman off. Seen 2026-11-06 in UNE 2's
-    `ironman.sav` (4.5.3, public; `meta` too holds `ironman=yes`, other saves' `meta` no key),
-    whose `player` block names the account alone (`MirkoMachine`) — so it reads as multiplayer
-    too, hence the Ironman check first.
+    `ironman.sav` (4.5.3, public; a new single-player game, started after a game restart without
+    mods; `meta` too holds `ironman=yes`, other saves' `meta` no key), whose `player` block names
+    the account alone (`MirkoMachine`) — **a single-player Ironman save names the account**, so
+    it reads as multiplayer too (`Snapshot.multiplayer` true), hence the Ironman check first.
 
   Multiplayer has two signals:
   - **The save** (`multiplayerPlayers()`), which serves a player without the mod — a cheater would
