@@ -437,8 +437,13 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 		area: string | null;
 		tint: string | null;
 		group: string;
+		ref: string | null; // its popup, fetched on hover (`/api/explain`): only the game data's cards
 	};
 	const labels = new Map<string, About>();
+	const staticRef = (kind: string, target: Target) => {
+		const r = KINDS[kind]?.ref?.(target) ?? null;
+		return r && getExplanations()[r] ? r : null;
+	};
 	const about = (kind: string, target: Target, title: string): About | null =>
 		c
 			? {
@@ -447,7 +452,8 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 					badge: badgeOf(kind, target, getGameData()),
 					area: areaOf(kind, target, getGameData()),
 					tint: tintOf(kind, target, getGameData()),
-					group: GROUPS.find((g) => g.id === groupOf(kind))?.name ?? ''
+					group: GROUPS.find((g) => g.id === groupOf(kind))?.name ?? '',
+					ref: staticRef(kind, target)
 				}
 			: null;
 	for (const g of plan.goals.values()) {
@@ -481,6 +487,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				badge: labels.get(e.goal)?.badge ?? null,
 				area: labels.get(e.goal)?.area ?? null,
 				tint: labels.get(e.goal)?.tint ?? null,
+				ref: labels.get(e.goal)?.ref ?? null,
 				group:
 					labels.get(e.goal)?.group ?? GROUPS.find((g) => `group:${g.id}` === e.goal)?.name ?? null
 			}))
@@ -497,6 +504,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				badge: r.badge,
 				area: r.area,
 				tint: r.tint,
+				ref: r.ref,
 				group: GROUPS.find((g) => g.id === r.group)?.name ?? null
 			})),
 		suggestions: suggested,

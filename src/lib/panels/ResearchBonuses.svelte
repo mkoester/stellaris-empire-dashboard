@@ -1,4 +1,5 @@
 <script lang="ts">
+	import InfoPopup from '../InfoPopup.svelte';
 	import { colorOf } from '#lib/colors.ts';
 	import { fmt } from '#lib/format.ts';
 	import type { researchBonuses } from '#lib/server/researchBonuses.ts';
@@ -44,10 +45,10 @@
 				<h4 class="mt-2 text-sm font-semibold">
 					Speed {x(1 + a.speed.sum)}
 					{#if a.speed.tech}<span class="font-normal text-gray-500"
-							>for {a.speed.tech.name} ({a.speed.tech.category?.replaceAll('_', ' ') ?? '?'}{a.speed
-								.tech.rare
-								? ', rare'
-								: ''})</span
+							>for <InfoPopup ref="tech:{a.speed.tech.key}">{a.speed.tech.name}</InfoPopup> ({a.speed.tech.category?.replaceAll(
+								'_',
+								' '
+							) ?? '?'}{a.speed.tech.rare ? ', rare' : ''})</span
 						>{/if}
 				</h4>
 				{#if a.speed.lines.length}{@render lines(a.speed.lines)}{:else}<p

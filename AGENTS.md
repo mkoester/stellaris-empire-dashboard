@@ -374,7 +374,17 @@ from a data DB without that table (extractor before 2026-11-06). **The popup liv
 layer** (`popover="manual"`, placed by `#lib/popup.ts` in viewport coordinates, below the name or
 above it where there is more room): a scrolling panel cut it off while it was positioned inside it
 (Upcoming, the user's catch 2026-11-06), and every panel with `overflow-*` had the same problem; a
-scroll anywhere but in the card closes it. Not yet seen in a browser. Civics and origins follow the planner's pages: the effects
+scroll anywhere but in the card closes it. **Every tech named anywhere has its card** (the
+user's ask 2026-11-06: "check every place you display specific techs"): `InfoPopup`'s `ref`
+(`tech:<key>`) fetches the card on first hover from `GET /api/explain?ref=` when the page carries
+none (`getExplanations()`, the data DB's cards only — built ones like `focuscard:` are not served).
+Places: Upcoming, the tech tab, focus rewards, trade-off presets (all carried), the planner tab's
+goals, suggestions, shortcuts, history and "reached" lists (`About.ref`), researched events
+(`Milestone.ref`), attraction sources and their needs, blocker hints ("needs …"), the research
+bonuses' tech in progress, locked edicts ("🔒 needs …", formerly a native title), research
+agreements (sped-up tech, their techs we lack, hints) and the shipyards' capital sizes. Left as
+text: techs inside sentences — a goal's "needs …"/"needed for …" note and status, the charts'
+event strip. Not yet seen in a browser. Civics and origins follow the planner's pages: the effects
 tooltip as text, job swaps, unlocked buildings, granted traits, the council seat (its modifiers
 per leader level as `after`); ethics their implications (`ethic_tag_label`) and forbidden
 policies. The **Government panel** (`panels/Government.svelte`, `identity()` in `server/empire.ts`)

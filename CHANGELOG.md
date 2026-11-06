@@ -17,7 +17,8 @@ All notable changes to this project are documented here. The format follows
   offer — the game does not. The row stays until you pick it or dismiss it.
 - A tech's popup shows what the game's research card does: tier, cost, what it needs and leads
   to, its effects and what it unlocks (buildings, districts, components, ship types, features) —
-  the same card as in the empire planner.
+  the same card as in the empire planner — everywhere a tech is named: the planner tab and its
+  history, events, ethics sources, blocker hints, edicts, research agreements, shipyards.
 - The tech tab shows the progress a tech keeps when you switch research away from it: on its card
   (↺) and in a list of every tech holding some. The game keeps the points, but not the card — the
   next draw may not offer it again.

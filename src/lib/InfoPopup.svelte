@@ -10,7 +10,27 @@
 	// layer, placed next to the name in viewport coordinates: a panel that scrolls (Upcoming, wide
 	// tables) cannot cut it off, as it did while it was positioned inside the panel (the user's
 	// catch, 2026-11-06).
-	let { explanation, children }: { explanation?: Explanation; children: Snippet } = $props();
+	// `ref` (`tech:<key>`, …) instead of `explanation`: the card is fetched on first open
+	// (`/api/explain`), for names a page does not carry the card of.
+	let {
+		explanation,
+		ref,
+		children
+	}: { explanation?: Explanation; ref?: string; children: Snippet } = $props();
+	let fetched = $state<Explanation | 'loading' | 'missing' | null>(null);
+	const shown = $derived(explanation ?? (typeof fetched === 'object' ? fetched : null));
+	const fetchCard = async () => {
+		if (explanation || !ref || fetched !== null) return;
+		fetched = 'loading';
+		try {
+			const r = await fetch(`/api/explain?ref=${encodeURIComponent(ref)}`);
+			fetched = r.ok ? ((await r.json()) as Explanation) : 'missing';
+		} catch {
+			fetched = 'missing';
+		}
+		// the card's height changed: place it again
+		requestAnimationFrame(place);
+	};
 
 	let anchor = $state<HTMLElement>();
 	let card = $state<HTMLElement>();
@@ -35,6 +55,7 @@
 		if (!card?.contains(e.target as Node)) hide();
 	};
 	const open = () => {
+		void fetchCard();
 		clearTimeout(timer);
 		timer = setTimeout(() => {
 			if (!card || card.matches(':popover-open')) return;
@@ -51,7 +72,7 @@
 	};
 </script>
 
-{#if explanation}
+{#if explanation || ref}
 	<span
 		class="inline-block"
 		role="presentation"
@@ -72,7 +93,9 @@
 			class="m-0 w-80 max-w-[90vw] overflow-auto rounded-lg border border-gray-300 bg-white p-2.5 text-left text-xs font-normal text-gray-900 shadow-xl dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
 			style="position: fixed; inset: auto; max-height: 80vh"
 		>
-			<ExplanationCard {explanation} />
+			{#if shown}<ExplanationCard explanation={shown} />{:else}<span class="opacity-60"
+					>{fetched === 'missing' ? 'Nothing known about it.' : 'Loading…'}</span
+				>{/if}
 		</span>
 	</span>
 {:else}
