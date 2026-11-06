@@ -353,7 +353,7 @@ plan). The dismiss id ends with the offer's first save (`techOffers()`: a run of
 same cards), so a later draw offering it again is a new row; picking it in game ends the row.
 Checked 2026-11-06 on a DB copy (Yorphian Extractorate, node 533): no row before planning; rows for
 `tech_lasers_2` and `tech_bio_reactor` (on offer), none for `tech_physics_1` (being researched); ✕
-removed only its own row. Not yet seen in a browser or against a live game (open check 32).
+removed only its own row. Seen in game 2026-11-06 (the user): "2200.02.02 · now · Quantum Computing ✕ · ⚠ planned tech · physics · on offer since 2200.01.01".
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
@@ -2302,23 +2302,31 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   `common/technology/tier/00_tier.txt` (0 for tier 1, 6 for tiers 2–5; the file does not say per
   area — the user confirmed it, 2026-10-22) — and `potential` not false for the empire. The cards
   on offer (`tech_status.alternatives`) are a weighted random draw from those: never plan with them.
-- **Switching research mid-way** (the user's question 2026-11-06: does starting a card and switching
-  away keep it available for good, as event tech progress seems to?) — **not measured yet**, open
-  check 32. What the files say (4.5.3): events grant the two separately — of 493
-  `add_tech_progress` in `events/` and `common/`, 280 pair it with an `add_research_option` of the
-  same tech (which lands in `always_available_tech`), so progress alone presumably does not keep a
-  card; `TECH_WEIGHT_PREVIOUS_OPTION = 0.5` halves a previous card's weight at the next draw. No
-  save of ours holds a switch (533 nodes, 6 campaigns: never two queued techs in one field), and
-  the web had nothing reliable for 4.x.
+- **Switching research mid-way keeps the progress, not the card** (the user's question 2026-11-06:
+  does starting a card and switching away keep it available for good, as event tech progress
+  seems to? — **no**). Throwaway `unitednationsofearth4_-337465913`, 4.5.3, screenshots
+  `<user dir>/screenshots/2026_11_06_1…6.png`: Administrative AI researched to 13.3 / 1100, then
+  "Change Research" (2200.01.20) — its points move to
+  `tech_status.stored_techpoints_for_tech = { tech_administrative_ai=13.33826 … }` (one entry per
+  tech switched away from, all fields in one block) and its card shows "13/1100"; **switching
+  redraws nothing** (the panel: "Whenever we finish researching a Technology, up to 3 new options
+  will be generated"). At the next draw (`research_technology tech_shields_2` from the console,
+  2200.02.03 — the save's `alternatives` change at once, while the panel keeps showing the finished
+  tech until the next tick) it **was not among the new cards**, and no `always_available_tech`
+  entry appeared; its 13.3 points stayed stored. So events that grant progress *and* keep a tech
+  on offer do two things: of 493 `add_tech_progress` in `events/` and `common/`, 280 pair it with
+  an `add_research_option` of the same tech. Not read by the dashboard yet. Whether stored points
+  raise a tech's draw weight is not known (`TECH_WEIGHT_PREVIOUS_OPTION = 0.5` lowers a previous
+  card's).
 - Progress: `country.tech_status.<area>_queue = { { progress technology date } }` (research points,
   not percent; every queued tech keeps its own, `date` = started — `Snapshot.techQueued`, READER 6;
-  a tech not in a queue has no progress in the save); permanent research options (focus rewards'
+  a tech switched away from keeps its points in `stored_techpoints_for_tech`, above); permanent research options (focus rewards'
   `add_research_option`) are repeated `tech_status.always_available_tech="…"` keys
   (`Snapshot.techPermanent`; 2212.03.05: Volcanic Forge, Doctrine: Fleet Support, Exotic Materials
   Labs, each also among the cards); `stored_techpoints = { 1310.7 0 0 }` is **stored research** per
   field (`Snapshot.techStored`, READER 7; see "Stored research" under Open); `country.government.council_agenda` + `council_agenda_progress`;
   `country.next_election`. **Agenda progress moves on the 1st only** (2207.02.01 → 03.01: +44,
-  03.01 → 03.10: 0), research daily — so the agenda's rate is measured across month starts, or a
+  03.01 → 03.10: 0), research once a month too, after the 1st's autosave (2200.02.01 autosave: no new progress; 02.02: a full month, +13.47, even on a tech picked on the 1st — the tech selected at the tick gets the whole month; 2026-11-06) — so the agenda's rate is measured across month starts, or a
   mid-month manual save hides it. Galaxy cost sliders `galaxy.technology`, `galaxy.traditions`. Tech costs
   in game were ×1.05 of the extracted base (source unconfirmed, `TECH_COST_OBSERVED_FACTOR`).
 - Milestone sources (2207.03.10): `country.government.council_agenda_cooldowns = { council_agenda

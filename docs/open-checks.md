@@ -344,24 +344,6 @@ current partners.
   `research_technology <tech>`, `play 0`), sign a research agreement with it, two months: ×1.76
   (1.51 + 0.25) means each partner counts, ×1.51 once.
 
-### 32. Switching research mid-way; planned techs on offer — tech tab, Upcoming (from 2026-11-06)
-
-**The question** (the user's): can a card be kept available for good by starting it and switching
-to another? Events grant progress and a permanent option as two effects (`AGENTS.md`, "Switching
-research mid-way"), so presumably not. Throwaway game, early (few physics techs in reach):
-1. Pick a physics card, ~20 days, **manual save A**.
-2. "Change Research" to another card, **save B** at once, paused.
-3. ~10 days, **save C**; then finish the second tech and **save E** right after the redraw; go on
-   for ~5 redraws without picking the first tech, a save after each.
-4. Screenshot the cards each time: is the first tech still a card, with a progress bar?
-5. Compare `tech_status` across the saves (unzip, the `tech_status=` block): `alternatives`, each
-   `physics_queue` entry and its `progress`, `always_available_tech`, `auto_researching_physics`.
-
-Kept for good = a card at **every** redraw or an `always_available_tech` entry; missing from one
-redraw = not (a ×0.5 random draw rarely shows up 5 times running). Also: plan a tech, and when a
-draw offers it the Upcoming row "planned tech" appears; pick it, and the row is gone at the next
-save.
-
 ### 6. Trade calibration — the rest (paused 2026-10-23)
 
 The trade model is fitted to tooltips at 16 empires, gifts and deals (2026-10-23; summary in
