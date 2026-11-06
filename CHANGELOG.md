@@ -40,6 +40,11 @@ All notable changes to this project are documented here. The format follows
   species, difficulty), the rest the colony got on top (stability, happiness), and what one more
   +10 % is really worth there.
 
+### Changed
+
+- The zips bring Node 26 (the current LTS) instead of 24. Same requirements: Windows 10, macOS
+  13.5 or newer.
+
 ### Fixed
 
 - The planner loads again for a campaign with a large galaxy that is neither Ironman nor

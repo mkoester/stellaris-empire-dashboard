@@ -83,7 +83,7 @@ app.
 
 ## For developers
 
-SvelteKit on Node 24; game data from
+SvelteKit on Node 26 (the current LTS); game data from
 [stellaris-data-extraction](https://github.com/mkoester/stellaris-data-extraction). Setup, how
 it works and packaging: [`AGENTS.md`](AGENTS.md#running-it). Releases: [`RELEASE.md`](RELEASE.md),
 changes: [`CHANGELOG.md`](CHANGELOG.md).

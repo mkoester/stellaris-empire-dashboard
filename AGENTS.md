@@ -5,7 +5,7 @@ income), colony state, later rule-based hints. Reads what the game writes — au
 companion mod in `mod/`, `game.log` — and keeps a **save graph**, so loading an older save starts
 a branch instead of overwriting history.
 
-SvelteKit 3 / Svelte 5 / Tailwind v4 / TypeScript 6 / pnpm, on Node 24 LTS (`.node-version`).
+SvelteKit 3 / Svelte 5 / Tailwind v4 / TypeScript 6 / pnpm, on Node 26 LTS (`.node-version`; always the current LTS, workspace `AGENTS.md`).
 Storage is `node:sqlite` (built into Node, no native build). Saves are parsed with `jomini`.
 
 - **SvelteKit 3 layout:** no `svelte.config.js` — config goes to `sveltekit({...})` in
@@ -145,7 +145,7 @@ once more (~5 s), a release's players only when its code changes.
 `node scripts/package.mjs [--os windows|linux|macos]` →
 `dist/stellaris-empire-dashboard-<version>-<os>-<arch>.zip` (`windows-x64`, `linux-x64`,
 `macos-arm64`, `macos-x64`): the build plus `jomini` (the only external import left in the build),
-Node 24 (pinned, SHA-256 from nodejs.org; it needs macOS 13.5+), the extractor from
+Node 26 (pinned, SHA-256 from nodejs.org; it needs macOS 13.5+, and Intel Macs are Tier 2 until early 2028), the extractor from
 `../stellaris-data-extraction` by `git archive HEAD` (a release build refuses one that is not on
 the tag `package.json` pins as `extractorVersion`), Python where the system has none recent
 enough, and `release/`: `launcher.mjs`, `start.bat` / `start.command` / `start.sh` (checks
@@ -1831,8 +1831,8 @@ folder stays untouched; count `extracting game data` lines in the log per start.
 - **After `pnpm update`/`install`, run `node_modules/.bin/prettier --write pnpm-lock.yaml`**: the
   lockfile is kept in Prettier's format (`pnpm lint` checks it), pnpm writes its own, and the diff
   balloons (2026-10-31: 2028 lines → 552 after the reformat).
-- **Node 24 is not first on PATH** (MacPorts' `node` is 22, pulled in by the `pnpm` port). Prefix
-  commands with `fnm exec --using=24 --`.
+- **The pinned Node is not first on PATH** (MacPorts' `node` is 22, pulled in by the `pnpm` port). Prefix
+  commands with `fnm exec --using=26 --`.
 - Starting the dev server needs `sandbox.network.allowLocalBinding` (set in the workspace
   `.claude/settings.json`); start it and make the requests in one Bash command.
 

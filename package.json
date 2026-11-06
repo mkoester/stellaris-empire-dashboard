@@ -6,7 +6,7 @@
 	"extractorVersion": "v0.1.11",
 	"type": "module",
 	"engines": {
-		"node": ">=24"
+		"node": ">=26"
 	},
 	"imports": {
 		"#lib/*": "./src/lib/*"
@@ -29,7 +29,7 @@
 		"@sveltejs/kit": "^3.1.1",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/vite": "^4.3.4",
-		"@types/node": "^24.19.2",
+		"@types/node": "^26.6.6",
 		"eslint": "^10.14.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.24.0",
