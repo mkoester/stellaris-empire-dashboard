@@ -27,9 +27,12 @@ export const SHORTCUTS: Shortcut[] = [
 			{ tech: 'tech_food_processing_1', why: 'zone slot in farming districts' },
 			{
 				tech: 'tech_planetary_unification',
-				why: 'city zone slots 4 and 5 (with Colonial Bureaucracy)'
+				why: 'campaign edicts (Education, Learning, Recycling …), +2.5 % unity'
 			},
-			{ tech: 'tech_colonial_bureaucracy', why: 'city zone slots 4 and 5' },
+			{
+				tech: 'tech_colonial_bureaucracy',
+				why: 'Administrative Park (Network Junction for gestalts)'
+			},
 			{ tech: 'tech_genome_mapping', why: '+10 % pop growth' },
 			{ tech: 'tech_administrative_ai', why: '+5 % research speed' },
 			{ tech: 'tech_colonial_centralization', why: '+1 commander, official and scientist cap' },
@@ -46,9 +49,12 @@ export const SHORTCUTS: Shortcut[] = [
 			{ tech: 'tech_mineral_purification_2', why: 'Purification Plant → Hub' },
 			{ tech: 'tech_food_processing_2', why: 'Processing Facility → Center' },
 			{ tech: 'tech_droid_workers', why: 'droids: robots in specialist jobs' },
-			{ tech: 'tech_global_research_initiative', why: 'research building upgrade' },
-			{ tech: 'tech_housing_1', why: 'housing in city districts' },
-			{ tech: 'tech_housing_2', why: 'housing in city districts' }
+			{ tech: 'tech_global_research_initiative', why: 'Research Institute' },
+			// Weather Control (+100, +10 %) comes along as its prerequisite: too little on its own
+			{
+				tech: 'tech_housing_2',
+				why: '+200 housing per city district (+20 % of 1000; not Agrarian Idyll), with Weather Control’s +100'
+			}
 		]
 	},
 	{
@@ -70,8 +76,8 @@ export const SHORTCUTS: Shortcut[] = [
 			{ tech: 'tech_space_science_1', why: 'habitat research slot' },
 			{ tech: 'tech_habitat_2', why: 'second habitat slot' },
 			{ tech: 'tech_terrestrial_sculpting', why: 'terraforming' },
-			{ tech: 'tech_ecological_adaptation', why: 'terraforming inhabited planets' },
-			{ tech: 'tech_climate_restoration', why: 'restores Tomb Worlds, Gaia links' }
+			{ tech: 'tech_ecological_adaptation', why: 'terraforming planets with pops on them' },
+			{ tech: 'tech_climate_restoration', why: 'terraforming devastated (nuked) worlds' }
 		]
 	},
 	{
@@ -82,7 +88,10 @@ export const SHORTCUTS: Shortcut[] = [
 			{ tech: 'tech_battleships', why: 'largest regular hull' },
 			{ tech: 'tech_stingers', why: 'bio shipsets' },
 			{ tech: 'tech_doctrine_navy_size_1', why: '+25 naval capacity' },
-			{ tech: 'tech_interstellar_fleet_traditions', why: 'naval capacity' },
+			{
+				tech: 'tech_interstellar_fleet_traditions',
+				why: 'Naval Logistics Office (starbase, +3 naval capacity per Anchorage), Fleet Academy'
+			},
 			{ tech: 'tech_starbase_5', why: 'Citadel' },
 			{ tech: 'tech_titans', why: 'Titans' }
 		]
@@ -95,7 +104,7 @@ export const SHORTCUTS: Shortcut[] = [
 			{ tech: 'tech_mega_engineering', why: 'megastructures' },
 			{ tech: 'tech_gateway_construction', why: 'build gateways' },
 			{ tech: 'tech_galactic_markets', why: 'the Galactic Market' },
-			{ tech: 'tech_zero_point_power', why: 'energy' }
+			{ tech: 'tech_zero_point_power', why: 'Zero Point Reactor (ship power)' }
 		]
 	}
 ];

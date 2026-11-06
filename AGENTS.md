@@ -834,10 +834,13 @@ Stingers), robots drop out for hive minds. **The list is ours**: a web search (2
 no reliable 4.x consensus, so each entry is a tech whose unlock the 4.5.3 files show — the
 resource districts' zone slot each (`common/zone_slots/00_zone_slots.txt`: `tech_power_hub_1`,
 `tech_mineral_purification_1`, `tech_food_processing_1`, via `has_tech_or_functional_civic`, so
-a civic can stand in), city zone slots 4–5 (`tech_planetary_unification` + `tech_colonial_bureaucracy`),
-the zone buildings' upgrades (`*_2`, `03_resource_buildings.txt`), habitat slots
+a civic can stand in), Societal Unification's campaign edicts (`edicts/01_campaigns.txt`), Colonial
+Bureaucracy's Administrative Park (`08_unity_buildings.txt`), the zone buildings' upgrades (`*_2`, `03_resource_buildings.txt`), habitat slots
 (`01_habitat_zone_slots.txt`) — or a modifier (Galactic Administration +1 civic slot). Re-check on
-game updates. **Later phases** (not built): diplomacy (befriend,
+game updates. **Not "city zone slots 4–5"**: `slot_city_04|05` (gated by those two techs and an
+upgraded capital) are not the city district's — `district_city` has the government slot and
+`slot_city_01|02`; `slot_city_04` is the ring world commercial districts' alone, `slot_city_05`
+no district's (4.5.3; the first list said otherwise, the user caught it). **Later phases** (not built): diplomacy (befriend,
 rivals, pacts wanted or avoided), GalCom and federation (federation tables not loaded, none seen
 in a save), market prices and trade deals, leaders, Shroud, jobs and resource priorities, orbital
 rings (their `Station.level` not yet seen in a save), espionage (nothing in the save or the data

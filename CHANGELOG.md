@@ -9,7 +9,7 @@ All notable changes to this project are documented here. The format follows
 ### Added
 
 - The planner offers tech shortcuts: bundles of techs worth having in nearly every game (the
-  resource districts' zone slots, more city zone slots, habitats, the largest hull of your
+  resource districts' zone slots, habitats, the largest hull of your
   shipset, Mega-Engineering, …), each added with one click, its prerequisites following by itself.
 - Ironman games are recognised (from the save's galaxy settings) and get the same treatment as
   multiplayer: the cheats are off for good once any save of the game is Ironman.
