@@ -70,11 +70,23 @@ export const SHORTCUTS: Shortcut[] = [
 	{
 		id: 'strategic',
 		name: 'Strategic resources',
-		why: 'zones in the resource districts',
+		why: 'per resource: mining its deposits, and making it in a building',
 		techs: [
-			{ tech: 'tech_mine_exotic_gases', why: 'Exotic Gases zone in farming districts' },
-			{ tech: 'tech_mine_rare_crystals', why: 'Rare Crystals zone in mining districts' },
-			{ tech: 'tech_mine_volatile_motes', why: 'Volatile Motes zone in generator districts' }
+			{
+				tech: 'tech_mine_exotic_gases',
+				why: 'Exotic Gas deposits mined; Exotic Gases zone in farming districts'
+			},
+			{ tech: 'tech_exotic_gases', why: 'Exotic Gas Refineries' },
+			{
+				tech: 'tech_mine_rare_crystals',
+				why: 'Rare Crystal deposits mined; Rare Crystals zone in mining districts'
+			},
+			{ tech: 'tech_rare_crystals', why: 'Synthetic Crystal Plants' },
+			{
+				tech: 'tech_mine_volatile_motes',
+				why: 'Volatile Mote deposits mined; Volatile Motes zone in generator districts'
+			},
+			{ tech: 'tech_volatile_motes', why: 'Chemical Plants' }
 		]
 	},
 	{

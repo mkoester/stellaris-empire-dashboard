@@ -836,7 +836,7 @@ no reliable 4.x consensus, so each entry is a tech whose unlock the 4.5.3 files 
 resource districts' zone slot each (`common/zone_slots/00_zone_slots.txt`: `tech_power_hub_1`,
 `tech_mineral_purification_1`, `tech_food_processing_1`, via `has_tech_or_functional_civic`, so
 a civic can stand in), Societal Unification's campaign edicts (`edicts/01_campaigns.txt`), Colonial
-Bureaucracy's Administrative Park (`08_unity_buildings.txt`), the zone buildings' upgrades (`*_2`, `03_resource_buildings.txt`), habitat slots
+Bureaucracy's Administrative Park (`08_unity_buildings.txt`), the zone buildings' upgrades (`*_2`, `03_resource_buildings.txt`), each strategic resource's two techs — `tech_mine_<res>` (its deposits, `deposits/01_planetary_deposits.txt`, and its zone) and `tech_<res>` (its refinery, `04_manufacturing_buildings.txt`), habitat slots
 (`01_habitat_zone_slots.txt`) — or a modifier (Galactic Administration +1 civic slot). Re-check on
 game updates. **Not "city zone slots 4–5"**: `slot_city_04|05` (gated by those two techs and an
 upgraded capital) are not the city district's — `district_city` has the government slot and
