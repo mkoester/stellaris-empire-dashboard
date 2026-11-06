@@ -260,7 +260,11 @@ A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{�
 page's `?node=`). A save-wide question (every colony across the history) is quickest as a
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
-server modules that call `getGameData()`/`getExplanations()` — delete it after.
+server modules that call `getGameData()`/`getExplanations()` — delete it after. **To find where
+a page hangs**, call its server function from such a test under `timeout 150` and log each step's
+time with `appendFileSync` to a file: vitest holds a test's console output, and `timeout` killing
+it loses all of it (2026-11-06, Roaming Korinth's planner: `plannerPage` → `suggestions()` →
+`display()` per body).
 
 **Replaying a live month** (what a player sees as the mod's line and then the autosave arrive):
 on the copy delete the nodes after the one to start from (`snapshot`, `node`, the later saves'
@@ -841,7 +845,12 @@ Bureaucracy's Administrative Park (`08_unity_buildings.txt`), the zone buildings
 game updates. **Not "city zone slots 4–5"**: `slot_city_04|05` (gated by those two techs and an
 upgraded capital) are not the city district's — `district_city` has the government slot and
 `slot_city_01|02`; `slot_city_04` is the ring world commercial districts' alone, `slot_city_05`
-no district's (4.5.3; the first list said otherwise, the user caught it). **Later phases** (not built): diplomacy (befriend,
+no district's (4.5.3; the first list said otherwise, the user caught it). **Left out on purpose**:
+Weather Control (+100 housing per city district, +10 %; Anti-Gravity Engineering's prerequisite,
+so it comes along) and Galactic Markets (rare; only the Galactic Stock Exchange, one per planet:
+−5 % market fee, traders — not the Galactic Market). Checked 2026-11-06 on a DB copy: UNE 2 offers
+Battleships, Roaming Korinth (bio ships) Stingers; "+ want" and "+ add all" work in the browser
+(the user). **Later phases** (not built): diplomacy (befriend,
 rivals, pacts wanted or avoided), GalCom and federation (federation tables not loaded, none seen
 in a save), market prices and trade deals, leaders, Shroud, jobs and resource priorities, orbital
 rings (their `Station.level` not yet seen in a save), espionage (nothing in the save or the data
