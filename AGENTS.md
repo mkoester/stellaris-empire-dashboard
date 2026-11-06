@@ -27,7 +27,7 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
-  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14.
+  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14 and 2026-11-06.
 
 Cross-project conventions come from the OKF vault; workspace rules from `../AGENTS.md`.
 
@@ -1825,9 +1825,12 @@ folder stays untouched; count `extracting game data` lines in the log per start.
   `$TMPDIR`. Tests, check, build and dev don't touch the store and work sandboxed. On Linux
   (2026-10-31) `pnpm update` was denied by permission: hand it over the same way. **But on Linux
   the same day a `pnpm check` ran pnpm's own install first (pnpm 12.3.4, 29 packages missing from
-  `node_modules`) and it succeeded sandboxed**, the lockfile unchanged — so the lock failure may be
-  the Mac's alone; a frozen-lockfile install on Linux is worth one sandboxed try before handing
-  it over.
+  `node_modules`) and it succeeded sandboxed**, the lockfile unchanged — **but it built that store
+  inside the workspace** (`.pnpm-store/`, the vault's `claude-sandbox` skill): `node_modules` then
+  hung on it, and the user's next `pnpm update` failed `ERR_PNPM_UNEXPECTED_STORE` (2026-11-06; a
+  plain `pnpm install` relinked it to `~/.local/share/pnpm/store`). So never install sandboxed, and
+  run checks as `node_modules/.bin/<tool>`, not `pnpm <script>`: pnpm installs first when it finds
+  `node_modules` out of step with the lockfile.
 - **After `pnpm update`/`install`, run `node_modules/.bin/prettier --write pnpm-lock.yaml`**: the
   lockfile is kept in Prettier's format (`pnpm lint` checks it), pnpm writes its own, and the diff
   balloons (2026-10-31: 2028 lines → 552 after the reformat).
