@@ -139,6 +139,11 @@ describe('mapView', () => {
 		]);
 	});
 
+	it("passes each system's star class on, unknown systems' too", () => {
+		const pulsar = g.map((s) => (s.id === 4 ? { ...s, star: 'sc_pulsar' } : s));
+		expect(mapView(pulsar, none).map((s) => s.star)).toEqual(['sc_g', 'sc_g', 'sc_g', 'sc_pulsar']);
+	});
+
 	it('shows a wormhole once both ends are visited, every pair only as a spoiler', () => {
 		// 1 visited, 9 not: Phiroza and Eye of Bal at 2207.03.10, never jumped through
 		expect(mapView(g, { ...none, wormholes: true }).find((s) => s.id === 1)?.wormholes).toEqual([]);

@@ -44,7 +44,7 @@ export function load({ url }) {
 				.filter((id) => !onMap.has(id))
 				.map((id) => {
 					const c = byId.get(id)!;
-					return { id, name: c.name, x: c.x, y: c.y, lanes: [], known: false };
+					return { id, name: c.name, x: c.x, y: c.y, star: c.star, lanes: [], known: false };
 				})
 		],
 		territories: territoriesOf(snaps),

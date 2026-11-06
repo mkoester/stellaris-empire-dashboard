@@ -436,7 +436,14 @@ them (`discovered()`, `mapView()`, `server/mapSystems.ts`). As the game, a map a
 lane of a system whose lanes the empire knows — `country.hyperlane_systems` (`GalaxySystem.lanesKnown`):
 visited plus hyperlane detection range, which sensors and the Map the Stars edict raise
 (2207.03.10: 60 = 41 visited + 10 one jump out + 9 further; matches the game's map around Craxima
-and Rimmock) — the systems at their far ends faint, "Unknown". Explored wormholes are dashed arcs, behind the profile's `wormholeLinks` switch (on). Explored =
+and Rimmock) — the systems at their far ends faint, "Unknown". **Special stars** (the user's ask 2026-11-06; `#lib/stars.ts` pure): the star classes with a
+`modifier` in `common/star_classes/00_star_classes.txt` — pulsar and `sc_binary_1` (shields −100 %),
+neutron star and `sc_binary_2` (sublight speed −50 %), black hole (disengage chance −50 %,
+emergency FTL minimum days +50 %), toxoid star (armor −100 %), the `sc_crisis_binary_*` like their
+originals; the Astral Scar's is empty — get an icon per effect left of the system (a dot for a
+binary), their effects in its hover, and one "special stars" legend entry below every map
+(`GalaxyMap` draws it; `mapView()` passes `star` on, unknown systems' too: the game shows every
+star's class). Re-check on game updates. Explored wormholes are dashed arcs, behind the profile's `wormholeLinks` switch (on). Explored =
 **both ends visited**: the save marks no wormhole as explored (bypasses carry no such field, the
 country only `seen_bypass_types`), and exploring one is a fleet's jump through it (4.5.2
 `common/bypass/00_bypasses.txt`, `on_pre_explore`), which visits the far end; one end visited is

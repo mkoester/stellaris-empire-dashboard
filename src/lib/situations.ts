@@ -249,6 +249,7 @@ export function mapView(
 		name: revealed(byId.get(g.id)) ? (byId.get(g.id)?.name ?? g.name) : g.name,
 		x: g.x,
 		y: g.y,
+		star: g.star, // the game shows every star's class, discovered or not
 		lanes: lanes(g.id),
 		owned: g.owned,
 		known: reveal.whole || known.has(g.id),
@@ -261,6 +262,7 @@ export function mapView(
 	if (!reveal.lgates || !gates.length || galaxy.some((s) => s.lcluster)) return shown;
 	const hub = {
 		...PREDICTED_LCLUSTER,
+		star: '', // not spawned yet: no star class
 		lanes: [],
 		owned: false,
 		known: false,
