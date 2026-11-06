@@ -167,8 +167,8 @@ export const mapFilter = (): MapFilter => settings().mapFilter;
 export const quadrantView = (): QuadrantView => settings().quadrants;
 export const popWindow = (): PopWindow => settings().popWindow;
 /**
- * Why the viewed campaign allows no cheats, or null: Ironman first — its saves name the account,
- * so they read as multiplayer as well.
+ * Why the viewed campaign allows no cheats, or null: Ironman first — before READER 48 its saves
+ * read as multiplayer too, and a stored reading of a save gone from disk keeps that.
  */
 export function viewedNoCheats(db: Db): 'ironman' | 'multiplayer' | null {
 	const campaign = viewedCampaign(db);

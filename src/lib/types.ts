@@ -499,8 +499,9 @@ export type Snapshot = {
 	// before, exactly dated, and the daily stockpiles.
 	logEvents: LogEvent[] | null;
 	ticks: Tick[] | null;
-	// A multiplayer game: the save's `player` block names an account (single player: "unknown"),
-	// or the mod logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
+	// A multiplayer game: the save's `player` block names an account (single player: "unknown";
+	// not in Ironman, whose single-player saves name it too — READER 48) or two players, or the mod
+	// logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
 	multiplayer: boolean;
 };
 

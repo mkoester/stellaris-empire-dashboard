@@ -59,7 +59,9 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
     `ironman.sav` (4.5.3, public; a new single-player game, started after a game restart without
     mods; `meta` too holds `ironman=yes`, other saves' `meta` no key), whose `player` block names
     the account alone (`MirkoMachine`) — **a single-player Ironman save names the account**, so
-    it reads as multiplayer too (`Snapshot.multiplayer` true), hence the Ironman check first.
+    in Ironman only two players mean multiplayer (`multiplayerPlayers(player, ironman)`, READER
+    48). Readings from before, of saves no longer on disk, still say multiplayer: hence the
+    Ironman check first.
 
   Multiplayer has two signals:
   - **The save** (`multiplayerPlayers()`), which serves a player without the mod — a cheater would

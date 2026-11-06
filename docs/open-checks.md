@@ -412,8 +412,7 @@ multiplayer and turns its cheats off wrongly.
 - **A single-player Ironman game names the account (2026-11-06, answered):** UNE 2's
   `ironman.sav` (4.5.3; the game restarted without mods, then a new **single-player** Ironman
   game, the user) lists `MirkoMachine` alone, the Noerm shape. So an account name is a
-  multiplayer signal only outside Ironman. Harmless for the cheats — `viewedNoCheats()` checks
-  Ironman first and bars the same switches — but `Snapshot.multiplayer` is true for such a save.
+  multiplayer signal only outside Ironman: `multiplayerPlayers()` ignores it there since READER 48.
 
 ### 25. A root 404 during the first start — release smoke test (2026-10-31)
 

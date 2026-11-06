@@ -291,8 +291,7 @@ export function campaignMultiplayer(db: Db, campaign: string): boolean {
 /**
  * Whether the campaign is an Ironman game: any save's `galaxy` block says `ironman=yes` (UNE 2's
  * Ironman save, 2026-11-06; every other save holds `ironman=no`). Read from `Snapshot.galaxySetup`
- * (READER 42), so no field of its own. An Ironman save names the player's account in `player`, so
- * it reads as multiplayer too (`multiplayerPlayers()`).
+ * (READER 42), so no field of its own.
  */
 export function campaignIronman(db: Db, campaign: string): boolean {
 	return (

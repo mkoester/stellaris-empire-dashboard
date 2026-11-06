@@ -201,6 +201,13 @@ describe('multiplayerPlayers', () => {
 			])
 		).toBe(true);
 	});
+	it('in Ironman the account alone is single player (UNE 2 ironman.sav, 2026-11-06); two players still multiplayer', () => {
+		const alone = [{ name: 'MirkoMachine', country: 0 }];
+		expect(multiplayerPlayers(alone, true)).toBe(false);
+		expect(multiplayerPlayers(alone, 'yes')).toBe(false);
+		expect(multiplayerPlayers(alone, 'no')).toBe(true);
+		expect(multiplayerPlayers([...alone, { name: 'unknown', country: 3 }], true)).toBe(true);
+	});
 });
 
 describe('toSnapshot', () => {
