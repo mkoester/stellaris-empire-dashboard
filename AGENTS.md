@@ -975,7 +975,13 @@ save's `bonus_workforce` already holds), and the player's difficulty bonus
 (`modifier:difficulty_<d>_player`: cadet +50 % to every job), and **High Stability**
 (`stabilitySource()`: `planet_stability_high`'s +30 % × (stability − 50) ÷ 50, from 0 at 50 to all
 of it at 100 — the game's Physicist tooltip at the throwaway Theian Preservers' capital: stability
-73.345 → "High Stability +14.01%", 73.362 → +14.02 %; Roaming Korinth at 100 → +30 %). **Measured
+73.345 → "High Stability +14.01%", 73.362 → +14.02 %; Roaming Korinth at 100 → +30 %), and **Low
+Stability** below 50 the same way (`planet_stability_low`'s −50 % × (50 − stability) ÷ 50: 48.88 →
+"Low Stability −1.11%", 2219.01). A governor's **sector** effect is not for its own colony (the
+tooltip lists only "Governor Skill +6%"). Checked line by line on the 2219.01 Miner tooltip: (50 +
+12.5 Mining Guilds) × (1 − 10 % Energy Shortages − 1.11 % + 2.5 % Mining Rush + 6 %) = 60.86, the
+save books 60.86. **In a resource shortage** jobs whose inputs are short make less than the bonuses
+say (alloys and consumer goods −59 % in Mineral Shortages III): a deficit, left in the rest. **Measured
 against the save**: the colony's `produces` ÷ its base = the multiplier it got; the **rest**
 (measured − counted) is what is not counted yet. Theian Preservers' capital: research and unity
 rest 0.0, worker resources −1.0 % (Korinth −3 %: not crime, Korinth has none); Planetforgers'

@@ -30,25 +30,37 @@ function colonySources(
 }
 
 /**
- * High Stability, which the engine applies itself: `planet_stability_high`'s +30 % to every job,
- * scaled linearly from stability 50 (none) to 100 (all of it) — the game's job tooltip at the
- * throwaway Theian Preservers' capital: stability 73.345 → "High Stability +14.01%" (2200.06),
- * 73.362 → +14.02 % (2200.08); Roaming Korinth at 100 got +30 %. Below 50 the low-stability malus
- * (`planet_stability_low`, −50 %) is not modelled: it shows in the rest.
+ * Stability's effect on every job, which the engine applies itself, linear on both sides of 50 —
+ * the game's job tooltips at the throwaway Theian Preservers' capital:
+ * - High Stability (`planet_stability_high`, up to +30 %) from 50 (none) to 100 (all of it):
+ *   73.345 → "High Stability +14.01%" (2200.06), 73.362 → +14.02 %; Roaming Korinth at 100: +30 %.
+ * - Low Stability (`planet_stability_low`, up to −50 %) from 50 down to 0: 48.88 → "Low Stability
+ *   −1.11%" (2219.01; 0.5 × 1.117 ÷ 50 = 1.12 %, the save a few days before the screenshot).
  */
 export function stabilitySource(stability: number): OutputSource[] {
-	const share = Math.min(1, Math.max(0, (stability - 50) / 50));
-	return share > 0
-		? [
-				{
-					ref: 'modifier:planet_stability_high',
-					name: `High Stability (stability ${Math.round(stability)})`,
-					modifiers: [{ key: 'planet_jobs_produces_mult', value: HIGH_STABILITY * share }]
-				}
-			]
-		: [];
+	const high = Math.min(1, Math.max(0, (stability - 50) / 50));
+	const low = Math.min(1, Math.max(0, (50 - stability) / 50));
+	const name = (what: string) => `${what} (stability ${Math.round(stability)})`;
+	if (high > 0)
+		return [
+			{
+				ref: 'modifier:planet_stability_high',
+				name: name('High Stability'),
+				modifiers: [{ key: 'planet_jobs_produces_mult', value: HIGH_STABILITY * high }]
+			}
+		];
+	if (low > 0)
+		return [
+			{
+				ref: 'modifier:planet_stability_low',
+				name: name('Low Stability'),
+				modifiers: [{ key: 'planet_jobs_produces_mult', value: LOW_STABILITY * low }]
+			}
+		];
+	return [];
 }
 
+const LOW_STABILITY = -0.5; // planet_stability_low: planet_jobs_produces_mult
 const HIGH_STABILITY = 0.3; // planet_stability_high: planet_jobs_produces_mult
 
 /** The species' traits, each a source for that species' share of a job. */
@@ -98,8 +110,10 @@ export function outputModel(s: Snapshot, data: GameData, explain: Record<string,
 		if (gov)
 			governors.set(
 				l.governs,
+				// its sector effect is for the sector's other colonies: the game's tooltip on the
+				// governed capital lists only "Governor Skill +6%" (Theian Preservers 2219.01)
 				gov.bonuses
-					.filter((b) => !b.wasted)
+					.filter((b) => !b.wasted && !/: sector$/.test(b.source))
 					.map((b) => ({
 						ref: `leader:${l.id}`,
 						name: `${b.source} (${l.name})`,

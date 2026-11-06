@@ -297,9 +297,11 @@ although the budget booked a gain).
 ### 31. What the engine adds to job output — jobs tab (from 2026-11-05)
 
 **High Stability settled 2026-11-05**: +30 % × (stability − 50) ÷ 50 (the throwaway game's Physicist
-tooltip: stability 73.345 → +14.01 %), now counted. Left in the panel's "Rest": +10 % on
-Planetforgers' capital research (Pleased, +25 % workers and specialists — when?), −1 % (Theian
-Preservers) and −3 % (Korinth) on worker jobs' output, and more on alloys and minerals.
+tooltip: stability 73.345 → +14.01 %), now counted. Low Stability (−50 % × (50 − stability) ÷ 50) and
+the governor's sector effect (not for its own colony) settled 2026-11-06 from the 2219.01 Miner and
+Technician tooltips. Left in the panel's "Rest": +10 % on Planetforgers' capital research (Pleased,
++25 % workers and specialists — when?), −1 % (Theian Preservers 2201) and −3 % (Korinth) on worker
+jobs, alloys and minerals on Planetforgers, and job output lost in a resource shortage (inputs).
 
 - **Do:** hover a worker job's output (Miner, Technician) on a capital, and on Planetforgers' capital
   a Physicist's.
