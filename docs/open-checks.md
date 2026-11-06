@@ -316,8 +316,19 @@ Preservers 2200.06–07: ×1.26 → ×1.51; the tooltip lists the agreement as +
 with the same tech count once** (2200.08–2201.01: ×1.51 with both; the tooltip lists only one
 agreement line). Open: how fast pops cross under a migration treaty (the tab shows species
 counts per empire; no save of ours has seen a pop cross yet — Planetforgers' 719 Pyrrag'Thul with
-the Oklarr may predate the treaty; the throwaway game's treaty from 2200.10 moved none in three
-months, both empires on their homeworld alone).
+the Oklarr may predate the treaty).
+
+**Throwaway Theian Preservers, 2200.10–2214.01 (pacifist, fanatic materialist; treaties with three
+xenophile AIs):** no pop arrived in our empire in 11 years — with 1,000+ open jobs on two colonies,
+one of them arid (80 % for the Baanthurians, the crater modifier removed), migration allowed on
+both sides, policies `resettlement_allowed`. Meanwhile treaty migration ran between the AIs
+(Belmacosa homeworld: 502 Baanthurians at 50 % habitability, 118 Humans; United Nations: 112
+Baanthurians) and **our own species left us**: 338 Theians in three new Baanthurian colonies — our
+grown pops (they start as civilians, Dev Diary 388) emigrating while our open worker jobs stayed
+open. Every receiving empire is xenophile; xenophilia has no migration modifier in the files
+(`common/ethics/00_ethics.txt`, only pop attraction). Open: what makes an empire a destination.
+The pacts tab lost the emigrants: the Baanthurian treaty ended, and `speciesByEmpire` reads only
+current partners.
 
 - **Do:** two research agreements with empires that both have a tech we can research
   (a throwaway game), research it, hover its
