@@ -52,6 +52,7 @@
 	{#each data.trees as t (t.key)}
 		<Panel
 			title={t.name}
+			accent={t.color}
 			note="{t.picked.length} / {t.total} picked{t.finished
 				? ', finished'
 				: ''}. Grey: not active yet."
@@ -78,7 +79,11 @@
 
 	<Panel title="Other trees" note="Not adopted yet.">
 		<p class="text-sm">
-			{#each data.otherTrees as t, i (t.key)}{i ? ' · ' : ''}{t.name}{#if t.adopt}<AddGoal
+			{#each data.otherTrees as t, i (t.key)}{i ? ' · ' : ''}{#if t.color}<span
+						class="mr-1 inline-block size-2.5 rounded-full"
+						style:background-color={t.color}
+						aria-hidden="true"
+					></span>{/if}{t.name}{#if t.adopt}<AddGoal
 						kind="tradition"
 						target={{ tradition: t.adopt }}
 						title="plan to adopt this tree"

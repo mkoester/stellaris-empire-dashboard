@@ -12,6 +12,8 @@ All notable changes to this project are documented here. The format follows
   neutron stars (sublight speed −50 %), black holes (harder to disengage and to jump away), the
   X-ray binaries with one of them and the Viridescent Lightbringer (armor disabled). Each has its
   own icon, its effects on hover, and the legend under the map explains them.
+- The Traditions tab shows each tree in its colour from the game: a stripe beside each adopted
+  tree, a dot before each of the others.
 
 ## [0.1.12] - 2026-11-06
 

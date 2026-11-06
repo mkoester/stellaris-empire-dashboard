@@ -1169,7 +1169,8 @@ export type GameData = {
 	};
 	traditionTrees: Record<
 		string,
-		{ name: string; traditions: { key: string; name: string; role: string }[] }
+		// color: '#rrggbb', the tree's colour in game; absent on a data DB from before it
+		{ name: string; color?: string; traditions: { key: string; name: string; role: string }[] }
 	>;
 	perks: Record<string, string>; // ascension perk names
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup

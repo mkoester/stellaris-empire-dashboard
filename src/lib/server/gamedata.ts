@@ -574,7 +574,16 @@ export function loadGameData(file: string): GameData {
 				(r) => r.key
 			),
 			traditionTrees: traditionTrees(
-				rows<{ key: string; name: string | null }>('SELECT key, name FROM tradition_category'),
+				rows<{ key: string; name: string | null; color: string | null }>(
+					// the tree's colour since extractor 2026-11-06; an older data DB has none
+					`SELECT key, name, ${
+						rows<{ name: string }>('PRAGMA table_info(tradition_category)').some(
+							(c) => c.name === 'color'
+						)
+							? 'color'
+							: 'NULL AS color'
+					} FROM tradition_category`
+				),
 				rows<{ key: string; name: string | null; category_key: string; role: string }>(
 					'SELECT key, name, category_key, role FROM tradition ORDER BY sort_order'
 				)
@@ -957,7 +966,7 @@ export function perkTrees(
 }
 
 function traditionTrees(
-	trees: { key: string; name: string | null }[],
+	trees: { key: string; name: string | null; color: string | null }[],
 	traditions: { key: string; name: string | null; category_key: string; role: string }[]
 ): GameData['traditionTrees'] {
 	return Object.fromEntries(
@@ -965,6 +974,7 @@ function traditionTrees(
 			tree.key,
 			{
 				name: tree.name ?? tree.key,
+				...(tree.color ? { color: tree.color } : {}),
 				traditions: traditions
 					.filter((t) => t.category_key === tree.key)
 					.map((t) => ({ key: t.key, name: t.name ?? t.key, role: t.role }))
