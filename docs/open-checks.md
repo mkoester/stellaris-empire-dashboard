@@ -326,7 +326,10 @@ both sides, policies `resettlement_allowed`. Meanwhile treaty migration ran betw
 Baanthurians) and **our own species left us**: 338 Theians in three new Baanthurian colonies — our
 grown pops (they start as civilians, Dev Diary 388) emigrating while our open worker jobs stayed
 open. Every receiving empire is xenophile; xenophilia has no migration modifier in the files
-(`common/ethics/00_ethics.txt`, only pop attraction). Open: what makes an empire a destination.
+(`common/ethics/00_ethics.txt`, only pop attraction). **Not the condition:** with our pacifism
+swapped for xenophile by console (2214), still no immigrant by 2219.01, while emigration went on
+(Theians: 478 with the Baanthurian Council, 102 with the United Nations, a treaty partner). Open,
+and engine-side: what makes an empire a destination — the dashboard only reports it.
 The pacts tab lost the emigrants: the Baanthurian treaty ended, and `speciesByEmpire` reads only
 current partners.
 
