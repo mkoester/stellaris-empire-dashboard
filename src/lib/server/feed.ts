@@ -277,6 +277,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		traderEnclaves: null,
 		techQueued: null,
 		techPermanent: null,
+		techKept: null,
 		techStored: null,
 		score: null,
 		fleets: null,

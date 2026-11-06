@@ -10,6 +10,9 @@ All notable changes to this project are documented here. The format follows
 
 - Upcoming tells you when a tech you planned (or one it needs) is among the research cards on
   offer — the game does not. The row stays until you pick it or dismiss it.
+- The tech tab shows the progress a tech keeps when you switch research away from it: on its card
+  (↺) and in a list of every tech holding some. The game keeps the points, but not the card — the
+  next draw may not offer it again.
 
 ## [0.1.11] - 2026-11-06
 

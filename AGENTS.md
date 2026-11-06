@@ -1470,7 +1470,9 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   every perk (taken first, conditions not checked).
 - **tech**: the three queues with due dates (`events.ts`), the cards on offer **now**
   (`tech_status.alternatives`; the game redraws a field's cards once its tech is done) with ▶ the
-  one being researched, ★ the permanent options and the progress of queued ones, "offered over
+  one being researched, ★ the permanent options and the progress of queued ones, ↺ that of techs
+  switched away from (`Snapshot.techKept`, READER 49; the user's ask 2026-11-06), and under
+  "Researching" every tech holding kept progress, "on offer" where it is a card again, "offered over
   time" (`#lib/techOffers.ts`: a run of saves with the same cards is one offer, the pick = the
   field's tech researched meanwhile), research tiers, everything researched. **Research bonuses
   and how they stack** (the user's ask 2026-11-05: "the good ones are applied multiplicatively,
@@ -2315,7 +2317,7 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   tech until the next tick) it **was not among the new cards**, and no `always_available_tech`
   entry appeared; its 13.3 points stayed stored. So events that grant progress *and* keep a tech
   on offer do two things: of 493 `add_tech_progress` in `events/` and `common/`, 280 pair it with
-  an `add_research_option` of the same tech. Not read by the dashboard yet. Whether stored points
+  an `add_research_option` of the same tech. Read as `Snapshot.techKept` (READER 49, `techKept()` in `server/save.ts`), shown on the tech tab; checked 2026-11-06 on a copy of the `throwaway` DB re-read from the UNE 4 saves: Administrative AI 13 (not on offer), Zero-G Refineries 13 and Planetary Unification 16 (on offer, ↺). The game's own panel shows that draw without it too (2200.03.02, `2026_11_06_7.png`: Fusion Power, Blue Lasers, Zero-G Laboratories — the same draw, no second one yet). Whether stored points
   raise a tech's draw weight is not known (`TECH_WEIGHT_PREVIOUS_OPTION = 0.5` lowers a previous
   card's).
 - Progress: `country.tech_status.<area>_queue = { { progress technology date } }` (research points,

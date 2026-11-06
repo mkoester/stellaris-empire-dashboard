@@ -293,7 +293,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '48'; // 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '49'; // 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -436,6 +436,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			])
 		),
 		techQueued: techQueued(raw.country),
+		techKept: techKept(raw.country),
 		// per field (physics, society, engineering), in that order
 		techStored: Object.fromEntries(
 			items(raw.country?.tech_status?.stored_techpoints).map((v, i) => [RESEARCH_AREAS[i], num(v)])
@@ -1803,8 +1804,23 @@ const RESEARCH_AREAS = ['physics', 'society', 'engineering'];
 /**
  * Every tech in the research queues with its progress (research points) and the date it was
  * started: the first per field is being researched, the others wait with what they have. A tech
- * left out of the queue keeps no progress in the save.
+ * switched away from keeps its progress elsewhere (`techKept`).
  */
+/**
+ * The progress of techs switched away from ("Change Research"): `tech_status.stored_techpoints_for_tech
+ * = { <tech>=<points> … }`, all fields in one block. The game shows it on the tech's card and keeps
+ * it after the card is redrawn away (throwaway UNE 4, 2200.01.20–03.02, 2026-11-06).
+ */
+export function techKept(country: Raw): Record<string, number> {
+	const kept = country?.tech_status?.stored_techpoints_for_tech;
+	if (!kept || typeof kept !== 'object') return {};
+	return Object.fromEntries(
+		Object.entries(kept)
+			.map(([tech, points]): [string, number] => [tech, num(points)])
+			.filter(([, points]) => points > 0)
+	);
+}
+
 export function techQueued(country: Raw): QueuedTech[] {
 	return RESEARCH_AREAS.flatMap((area) =>
 		items(country?.tech_status?.[`${area}_queue`]).flatMap((q) =>
