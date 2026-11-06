@@ -1096,7 +1096,12 @@ pure): every switch in `SWITCHES` with its group, label, note, search tags and *
 `showSpoilers` / `showCheats` (off by default; a profile from before them starts with a gate on
 when it had one of its switches on), list those kinds; **hidden also means off**:
 `display()` (`server/settings.ts`) returns `effectiveDisplay()`, the stored values kept, so
-showing a kind again brings each switch back as it was. **A new switch goes into `SWITCHES`**
+showing a kind again brings each switch back as it was. **Read `display()` once per request,
+never in a loop**: each call reads the active profile and every node (~6 ms), and the Ironman and
+multiplayer checks behind it (`campaignIronman|Multiplayer`, cached until the DB connection writes,
+`cachedScan()`) parse every snapshot of a campaign that is neither (~100 ms uncached). Called per
+body, the planner's waystation suggestions hung Roaming Korinth's planner (8155 bodies, ~15 min;
+found 2026-11-06), per system the map tab took seconds. **A new switch goes into `SWITCHES`**
 (a test checks every `Display` boolean is there once). **The
 check is the user's in-game screenshot** of the matching panel (workspace `AGENTS.md`): it caught
 the edicts (58 → the game's 5), policies, agendas and focus cards here.

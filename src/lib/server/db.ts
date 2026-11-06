@@ -273,18 +273,35 @@ export function campaignDifficulty(db: Db, campaign: string): string | null {
 	return row?.d ?? null;
 }
 
+// The two scans below parse every snapshot of the campaign when no row matches (~100 ms for 106
+// saves), and `display()` runs them on each call — once per body in some loops: the planner's
+// waystation suggestions took ~15 min on Roaming Korinth (8155 bodies, 2026-11-06). The answer is
+// kept until this connection writes anything (`total_changes()`, raw SQL included).
+const scans = new WeakMap<Db, { changes: number; values: Map<string, boolean> }>();
+function cachedScan(db: Db, key: string, scan: () => boolean): boolean {
+	const changes = (db.prepare('SELECT total_changes() AS n').get() as { n: number }).n;
+	let c = scans.get(db);
+	if (!c || c.changes !== changes) scans.set(db, (c = { changes, values: new Map() }));
+	let v = c.values.get(key);
+	if (v === undefined) c.values.set(key, (v = scan()));
+	return v;
+}
+
 /**
  * Whether the campaign is a multiplayer game: any of its readings says so, and it stays so — a
  * multiplayer save loaded in single player, or a month without the mod, does not undo it.
  */
 export function campaignMultiplayer(db: Db, campaign: string): boolean {
-	return (
-		db
-			.prepare(
-				`SELECT 1 FROM node n JOIN snapshot s ON s.node_id = n.id
+	return cachedScan(
+		db,
+		`multiplayer:${campaign}`,
+		() =>
+			db
+				.prepare(
+					`SELECT 1 FROM node n JOIN snapshot s ON s.node_id = n.id
 				WHERE n.campaign = ? AND json_extract(s.json, '$.multiplayer') = 1 LIMIT 1`
-			)
-			.get(campaign) !== undefined
+				)
+				.get(campaign) !== undefined
 	);
 }
 
@@ -294,14 +311,17 @@ export function campaignMultiplayer(db: Db, campaign: string): boolean {
  * (READER 42), so no field of its own.
  */
 export function campaignIronman(db: Db, campaign: string): boolean {
-	return (
-		db
-			.prepare(
-				`SELECT 1 FROM node n JOIN snapshot s ON s.node_id = n.id
+	return cachedScan(
+		db,
+		`ironman:${campaign}`,
+		() =>
+			db
+				.prepare(
+					`SELECT 1 FROM node n JOIN snapshot s ON s.node_id = n.id
 				WHERE n.campaign = ? AND json_extract(s.json, '$.galaxySetup.ironman') IN ('yes', 1)
 				LIMIT 1`
-			)
-			.get(campaign) !== undefined
+				)
+				.get(campaign) !== undefined
 	);
 }
 

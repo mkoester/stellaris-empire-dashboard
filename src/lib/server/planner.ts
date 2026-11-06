@@ -280,6 +280,7 @@ function describe(e: PlanEvent, goals: Map<string, { label: string }>): HistoryR
 function explanations(refs: string[], c: Ctx | null): Record<string, Explanation> {
 	const out = pick(getExplanations(), refs) as Record<string, Explanation>;
 	const focus = getGameData().focus;
+	const { surveyAll } = display();
 	for (const ref of refs) {
 		const place = /^(outpost|waystation):(\d+)$/.exec(ref);
 		if (place) {
@@ -288,7 +289,7 @@ function explanations(refs: string[], c: Ctx | null): Record<string, Explanation
 				place[1] as 'outpost' | 'waystation',
 				getGameData(),
 				c?.ctx.latest.countries ?? [],
-				display().surveyAll
+				surveyAll
 			);
 			continue;
 		}
@@ -678,6 +679,9 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 			.filter((s) => s.visited && !s.owned && s.ownerId === null)
 			.map((s) => ({ target: { system: s.id } }))
 	);
+	// read once: display() reads the profile and every node, and this runs per body (8155 on
+	// Roaming Korinth's galaxy — ~15 min of display() before 2026-11-06)
+	const { surveyAll } = display();
 	add(
 		'waystation',
 		(ctx.galaxy ?? [])
@@ -687,7 +691,7 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 				n: x.bodies!.reduce(
 					(a, b) =>
 						a +
-						(display().surveyAll || b.surveyed !== false ? b.deposits : []).filter((dep) =>
+						(surveyAll || b.surveyed !== false ? b.deposits : []).filter((dep) =>
 							/^orbital_/.test(getGameData().depositCategories[dep] ?? '')
 						).length,
 					0

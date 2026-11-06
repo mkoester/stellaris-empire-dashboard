@@ -42,6 +42,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The planner loads again for a campaign with a large galaxy that is neither Ironman nor
+  multiplayer: a nomad empire's planner never finished loading, and the map and every other tab
+  got faster too.
 - The colonies tab, the colony tab and the empire panel show your colonies again while months
   pass without autosaves (`fast_forward`, or autosaves off with the companion mod on); they read
   "No colony matches" before.

@@ -293,6 +293,17 @@ describe('merging the mod feed with saves', () => {
 		expect(campaignMultiplayer(db, 'other')).toBe(false);
 	});
 
+	it('answers anew once a stored reading changes in place (a re-read, no new node)', () => {
+		const db = openDb(':memory:');
+		const nodeId = record(db, saveSnap('2200.01.01', 1, 5), 'a.sav').nodeId;
+		expect(campaignMultiplayer(db, 'c')).toBe(false); // cached
+		db.prepare('UPDATE snapshot SET json = json_set(json, ?, 1) WHERE node_id = ?').run(
+			'$.multiplayer',
+			nodeId
+		);
+		expect(campaignMultiplayer(db, 'c')).toBe(true);
+	});
+
 	it('calls a campaign Ironman once any save says so (`yes` as read, or true)', () => {
 		const db = openDb(':memory:');
 		record(db, { ...saveSnap('2200.01.01', 1, 5), galaxySetup: { ironman: 'no' } }, 'a.sav');
