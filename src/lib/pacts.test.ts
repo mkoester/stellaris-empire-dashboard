@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	commercialSplit,
+	ourSpeciesAbroad,
 	pactTypes,
 	researchValue,
 	speciesExchange,
@@ -145,5 +146,43 @@ describe('speciesExchange', () => {
 		});
 		expect(x.oursThere).toEqual([]); // the main species is the chart's
 		expect(x.series.lines).toEqual({ 'Human in theirs': [0, 10], 'Blorg in ours': [0, 4] });
+	});
+});
+
+describe('ourSpeciesAbroad', () => {
+	const at = (date: string, theirs: { countryId: number; pops: number; onlyOurs?: true }[]) =>
+		({
+			date,
+			speciesByEmpire: [
+				{ countryId: 0, founder: 'Theian', species: [{ name: 'Theian', pops: 5000 }] },
+				...theirs.map((t) => ({
+					countryId: t.countryId,
+					founder: 'Baanthurian',
+					species: [
+						{ name: 'Baanthurian', pops: 5000 },
+						{ name: 'Theian', pops: t.pops }
+					].filter((x) => x.pops > 0),
+					...(t.onlyOurs && { onlyOurs: t.onlyOurs })
+				}))
+			]
+		}) as unknown as Snapshot;
+	// throwaway Theian Preservers: the Baanthurian treaty ended, 338 Theians stayed
+	it('keeps our emigrants in view after a treaty ends, with the change since first seen', () => {
+		const a = ourSpeciesAbroad(
+			[
+				at('2204.01.01', [{ countryId: 5, pops: 0 }]),
+				at('2210.01.01', [{ countryId: 5, pops: 200 }]),
+				at('2214.01.01', [{ countryId: 5, pops: 338, onlyOurs: true }])
+			],
+			0
+		);
+		expect(a).toEqual([
+			{
+				countryId: 5,
+				partner: false,
+				first: '2210.01.01',
+				species: [{ name: 'Theian', pops: 338, since: 138 }]
+			}
+		]);
 	});
 });

@@ -1484,6 +1484,12 @@ holds a pact.
   Oklarr 2214.02 had two "Pyrragthul" —, under 1 % left out). **The save has no per-species
   migration**: `last_month_growth_data.species` holds net growth per species and stratum only, the
   causes are per colony. Shown plainly, like `/migration`'s foreign colonies.
+- **Our species abroad** (`ourSpeciesAbroad()`, READER 47): our species in every empire we have
+  communications with, whether a treaty still holds or not (`EmpireSpecies.onlyOurs`: for
+  non-partners only our species are read), with the change since the first save that showed them.
+  Treaties end, emigrants stay: the throwaway Theian Preservers had 338 Theians in three
+  Baanthurian colonies (2214.01) after that treaty had ended, which the treaty section no longer
+  showed.
 - **Commercial pacts** (`commercialSplit()`): we gain 10 % of the partner's trade production
   (`COMMERCIAL_PACTS_INCOME_PERCENTAGE`), booked as trade under `commercial_pacts`, not taken from
   the partner. **Fit**: Planetforgers 2214.02 booked 46.85, Σ 0.1 × (partner's trade income − its

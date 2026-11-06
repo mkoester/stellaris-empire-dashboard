@@ -24,6 +24,8 @@ All notable changes to this project are documented here. The format follows
   traits, situation stages, …). Bonuses of one kind add up, so each one more is worth less — the
   tab says what one more +10 % is really worth, and what a research agreement adds. Your actual
   speed is measured from your saves and checked against the sum of the sources.
+- The pacts tab lists our species living in other empires — also after a migration treaty has
+  ended — with the change since they first showed up there.
 - The jobs tab shows, per colony and resource, the job output bonuses and how they stack: the
   workforce's base output, the bonuses counted from the game files (empire, colony, governor,
   species, difficulty), the rest the colony got on top (stability, happiness), and what one more

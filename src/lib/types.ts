@@ -129,6 +129,7 @@ export type EmpireSpecies = {
 	countryId: number;
 	founder: string | null;
 	species: { name: string; pops: number }[];
+	onlyOurs?: true; // not a treaty partner: only our species there (READER 47)
 };
 
 export type Sector = { name: string; type: string; systems: number; colonies: number };

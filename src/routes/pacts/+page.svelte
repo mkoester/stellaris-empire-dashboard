@@ -34,6 +34,44 @@
 {/if}
 
 <div class="space-y-4">
+	{#if data.abroad.length}
+		<section class="rounded border border-gray-300 p-2 dark:border-gray-700">
+			<h2 class="mb-1 font-semibold">Our species abroad</h2>
+			<p class="mb-2 text-xs text-gray-500">
+				Pops of our species living in other empires, whether a treaty still holds or not — emigrants
+				stay when it ends. The change counts from the first save that showed them there.
+			</p>
+			<table class="text-left text-sm tabular-nums">
+				<thead>
+					<tr class="text-gray-500">
+						<th class="p-1">Empire</th>
+						<th class="p-1">Species</th>
+						<th class="p-1 text-right">Pops</th>
+						<th class="p-1 text-right">Change</th>
+						<th class="p-1">Since</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each data.abroad as a (a.countryId)}
+						{#each a.species as sp, i (sp.name)}
+							<tr>
+								<td class="p-1"
+									>{#if i === 0}<EmpireName name={nameOf(a.countryId)} />{#if a.partner}<span
+												class="ml-1 text-xs text-gray-500">migration treaty</span
+											>{/if}{/if}</td
+								>
+								<td class="p-1">{sp.name}</td>
+								<td class="p-1 text-right">{fmt(sp.pops)}</td>
+								<td class="p-1 text-right">{sp.since === null ? '' : signed(sp.since)}</td>
+								<td class="p-1 text-gray-500">{i === 0 ? a.first : ''}</td>
+							</tr>
+						{/each}
+					{/each}
+				</tbody>
+			</table>
+		</section>
+	{/if}
+
 	{#if typeOf('migration_access')}
 		<section class="rounded border border-gray-300 p-2 dark:border-gray-700">
 			<h2 class="mb-1 font-semibold">Migration treaties {@render upkeep('migration_access')}</h2>

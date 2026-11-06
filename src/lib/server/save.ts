@@ -293,7 +293,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '46'; // 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '47'; // 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -1473,7 +1473,10 @@ function speciesPops(raw: Pick<RawSave, 'colonies' | 'popGroups'>, country: Raw)
  * Pops by species of our empire and of each empire we have a migration treaty with (READER 45):
  * whose pops went where, read as the change between saves — the save books migration per colony,
  * and per species only as net growth (`last_month_growth_data.species`). Each empire's founder
- * species (`founder_species_ref`) is its main one. Species under 1 % of an empire are left out.
+ * species (`founder_species_ref`) is its main one; species under 1 % of an empire are left out.
+ * Every other empire we have communications with lists only our species there (`onlyOurs`, READER
+ * 47): treaties end, emigrants stay (throwaway Theian Preservers 2214.01: 338 Theians in three
+ * colonies of the Baanthurian Council after its treaty had ended).
  */
 export function speciesByEmpire(
 	raw: Pick<
@@ -1481,29 +1484,52 @@ export function speciesByEmpire(
 		'country' | 'countryId' | 'countryBlocks' | 'colonies' | 'popGroups' | 'speciesDb'
 	>
 ): EmpireSpecies[] {
-	const ids = [raw.countryId, ...migrationPartners(raw.country)];
-	return ids.flatMap((id) => {
-		const c = id === raw.countryId ? raw.country : raw.countryBlocks[String(id)];
-		if (!c || typeof c !== 'object') return [];
+	const byName = (c: Raw) => {
 		// by name: a modified species keeps its parent's name (Oklarr 2214.02: two "Pyrragthul")
-		const byName = new Map<string, number>();
+		const out = new Map<string, number>();
 		for (const [sp, n] of speciesPops(raw, c)) {
 			const name = speciesName(raw.speciesDb[sp]?.name);
-			byName.set(name, (byName.get(name) ?? 0) + n);
+			out.set(name, (out.get(name) ?? 0) + n);
 		}
-		const total = [...byName.values()].reduce((t, n) => t + n, 0);
+		return out;
+	};
+	const entry = (id: number, c: Raw, species: [string, number][]) => {
 		const founder = c.founder_species_ref;
-		return [
-			{
-				countryId: id,
-				founder: founder === undefined ? null : speciesName(raw.speciesDb[String(founder)]?.name),
-				species: [...byName]
-					.filter(([, n]) => n > 0 && n >= total / 100)
-					.map(([name, n]) => ({ name, pops: n }))
-					.sort((a, b) => b.pops - a.pops)
-			}
-		];
-	});
+		return {
+			countryId: id,
+			founder: founder === undefined ? null : speciesName(raw.speciesDb[String(founder)]?.name),
+			species: species.map(([name, n]) => ({ name, pops: n })).sort((a, b) => b.pops - a.pops)
+		};
+	};
+	const full = (id: number, c: Raw) => {
+		const pops = [...byName(c)];
+		const total = pops.reduce((t, [, n]) => t + n, 0);
+		return entry(
+			id,
+			c,
+			pops.filter(([, n]) => n > 0 && n >= total / 100)
+		);
+	};
+	const us = full(raw.countryId, raw.country);
+	const ours = new Set(us.species.map((s) => s.name));
+	const partners = migrationPartners(raw.country);
+	const contacts = items(raw.country?.relations_manager?.relation)
+		.filter((r) => isYes(r?.communications))
+		.map((r) => Number(r.country))
+		.filter((id) => !partners.has(id) && id !== raw.countryId);
+	return [
+		us,
+		...[...partners].flatMap((id) => {
+			const c = raw.countryBlocks[String(id)];
+			return c && typeof c === 'object' ? [full(id, c)] : [];
+		}),
+		...contacts.flatMap((id) => {
+			const c = raw.countryBlocks[String(id)];
+			if (!c || typeof c !== 'object') return [];
+			const there = [...byName(c)].filter(([name, n]) => ours.has(name) && n > 0);
+			return there.length ? [{ ...entry(id, c, there), onlyOurs: true as const }] : [];
+		})
+	];
 }
 
 /**

@@ -4,6 +4,7 @@ import { techCostFactor } from '#lib/events.ts';
 import { facts } from '#lib/government.ts';
 import {
 	commercialSplit,
+	ourSpeciesAbroad,
 	pactTypes,
 	researchValue,
 	speciesExchange,
@@ -38,6 +39,7 @@ export function load({ url }) {
 		commercial: null,
 		research: null,
 		migration: [] as ReturnType<typeof speciesExchange>,
+		abroad: [] as ReturnType<typeof ourSpeciesAbroad>,
 		names: {} as Record<string, string>,
 		pactIntel: d.pactIntel,
 		pactAll: d.pactAll,
@@ -150,6 +152,7 @@ export function load({ url }) {
 			partnersOf('migration_access').length && latest.countryId !== null
 				? speciesExchange(snaps, latest.countryId)
 				: [],
+		abroad: latest.countryId !== null ? ourSpeciesAbroad(snaps, latest.countryId) : [],
 		names: Object.fromEntries((latest.relations ?? []).map((r) => [r.countryId, r.name]))
 	};
 }

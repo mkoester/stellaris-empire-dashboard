@@ -1082,21 +1082,33 @@ describe('speciesByEmpire', () => {
 				relations_manager: {
 					relation: [
 						{ country: 5, migration_access: true },
-						{ country: 6, commercial_pact: true }
+						{ country: 6, commercial_pact: true },
+						{ country: 7, communications: true },
+						{ country: 8, communications: true }
 					]
 				}
 			},
 			countryBlocks: {
 				5: { controlled_colonies: [20], founder_species_ref: 3 },
-				6: { controlled_colonies: [30], founder_species_ref: 3 }
+				6: { controlled_colonies: [30], founder_species_ref: 3 },
+				7: { controlled_colonies: [40], founder_species_ref: 3 },
+				8: { controlled_colonies: [50], founder_species_ref: 3 }
 			},
-			colonies: { 10: { pop_groups: [100] }, 20: { pop_groups: [200, 201, 202, 203] } },
+			colonies: {
+				10: { pop_groups: [100] },
+				20: { pop_groups: [200, 201, 202, 203] },
+				40: { pop_groups: [400, 401] },
+				50: { pop_groups: [500] }
+			},
 			popGroups: {
 				100: { key: { species: 1 }, size: 5084 },
 				200: { key: { species: 3 }, size: 3171 },
 				201: { key: { species: 1 }, size: 475 },
 				202: { key: { species: 2 }, size: 227 }, // a modified Pyrragthul
-				203: { key: { species: 4 }, size: 10 } // under 1 %
+				203: { key: { species: 4 }, size: 10 }, // under 1 %
+				400: { key: { species: 3 }, size: 3000 },
+				401: { key: { species: 1 }, size: 119 }, // our emigrants, no treaty
+				500: { key: { species: 3 }, size: 2000 } // none of ours: left out
 			},
 			speciesDb: {
 				1: { name: 'Pyrragthul' },
@@ -1114,6 +1126,12 @@ describe('speciesByEmpire', () => {
 					{ name: 'Oklarr', pops: 3171 },
 					{ name: 'Pyrragthul', pops: 702 }
 				]
+			},
+			{
+				countryId: 7,
+				founder: 'Oklarr',
+				species: [{ name: 'Pyrragthul', pops: 119 }],
+				onlyOurs: true
 			}
 		]);
 	});

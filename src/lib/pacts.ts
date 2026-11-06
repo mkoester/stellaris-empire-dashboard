@@ -220,7 +220,7 @@ export function speciesExchange(history: Snapshot[], ourId: number): SpeciesExch
 	const ours = latest.find((e) => e.countryId === ourId);
 	const ourNames = new Set(ours?.species.map((s) => s.name) ?? []);
 	return latest
-		.filter((e) => e.countryId !== ourId)
+		.filter((e) => e.countryId !== ourId && !e.onlyOurs)
 		.map((e) => {
 			const ourSpecies = ours?.founder ?? null;
 			const label = (n: string | null, where: string) => `${n ?? '?'} ${where}`;
@@ -249,4 +249,49 @@ export function speciesExchange(history: Snapshot[], ourId: number): SpeciesExch
 				}
 			};
 		});
+}
+
+export type Abroad = {
+	countryId: number;
+	partner: boolean; // a current migration-treaty partner
+	species: { name: string; pops: number; since: number | null }[]; // since: the change since first seen
+	first: string; // the first save that shows ours there
+};
+
+/**
+ * Our species in other empires, at the latest save that reads them (READER 47 for every empire we
+ * talk to; partners since READER 45), with the change since the first save that showed them there.
+ * Emigrants stay when a treaty ends; this keeps them in view.
+ */
+export function ourSpeciesAbroad(history: Snapshot[], ourId: number): Abroad[] {
+	const saves = history.filter((s) => s.speciesByEmpire !== null);
+	const latest = saves.at(-1)?.speciesByEmpire ?? [];
+	const ours = new Set(latest.find((e) => e.countryId === ourId)?.species.map((x) => x.name) ?? []);
+	return latest
+		.filter((e) => e.countryId !== ourId)
+		.flatMap((e) => {
+			const species = e.species.filter((x) => ours.has(x.name));
+			if (!species.length) return [];
+			const firstSave = saves.find((s) =>
+				s.speciesByEmpire!.some(
+					(x) => x.countryId === e.countryId && x.species.some((y) => ours.has(y.name))
+				)
+			);
+			const before = firstSave?.speciesByEmpire!.find((x) => x.countryId === e.countryId);
+			return [
+				{
+					countryId: e.countryId,
+					partner: !e.onlyOurs,
+					first: firstSave?.date ?? '',
+					species: species.map((x) => {
+						const was = before?.species.find((y) => y.name === x.name)?.pops;
+						return {
+							...x,
+							since: was === undefined || firstSave === saves.at(-1) ? null : x.pops - was
+						};
+					})
+				}
+			];
+		})
+		.sort((a, b) => b.species[0].pops - a.species[0].pops);
 }
