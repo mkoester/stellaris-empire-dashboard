@@ -1801,6 +1801,16 @@ the console (we host; with no Galactic Community we alone have access), two 1000
 2202.06.01; the second gift: 78; 76 from 2203.06.01 — the first gift's date holds). Since 2026-10-24
 it runs on the native build: its saves are in the native user dir (workspace `AGENTS.md`).
 
+**The second throwaway game** (2026-11-05): `federatedtheianpreservers_-1907099999` (Lithoid,
+oligarchic, fanatic materialist, pacifist → xenophile by console 2214; Ensign — not Cadet, whose
++50 % to every job blurs output checks), dashboard DB `sdash --db-dir throwaway`. Holds: research
+agreements with two empires on one tech (2200.06–2201), migration treaties since 2200.10, a second
+colony Curiel (arid, by console), Mineral and Energy Shortages from 2219. Lessons: **pick a tech in
+every area before measuring research speed** — an empty queue stores the points, and stored points
+spoil the measurement for months; **`fast_forward` writes no autosaves** — only the companion
+mod's months arrive, which carry no colonies or species: make a manual save at the end. Console
+recipes: `stellaris-modding-insights/docs/07-debugging-and-console.md`.
+
 New save shapes come from **throwaway games with console cheats, never the real campaign** (its
 history lives only in the DB), against a **separate `DASHBOARD_DB`**, the companion mod on (cheats
 end achievements anyway). Per topic a manual save before and after, diffed in `$TMPDIR`, plus a
