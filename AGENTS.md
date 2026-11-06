@@ -832,7 +832,8 @@ first (a gate of tier k as k + ½), so each goes as early as it can ("Fusion Pow
 techs of tier 1", the user's ask) and the plan's order decides within a tier. **Badges**
 (`badgeOf()`, `areaOf()`): a tech's and tier gate's tier (T1…) and research area in the game's
 colours (`<area>_research`), a tradition's place — adopt, pick, finisher (the community's word;
-the game says "… Traditions Finished") —, perk; the research group filters by area (per viewer,
+the game says "… Traditions Finished"; its tree's colour from the data DB as a stripe,
+`tintOf()` → `tintColor()`) —, perk; the research group filters by area (per viewer,
 none on = all, suggestions too); the history shows them with the goal's group, its reorderings
 behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
 (`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, none that

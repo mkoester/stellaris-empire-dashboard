@@ -13,7 +13,8 @@ All notable changes to this project are documented here. The format follows
   X-ray binaries with one of them and the Viridescent Lightbringer (armor disabled). Each has its
   own icon, its effects on hover, and the legend under the map explains them.
 - The Traditions tab shows each tree in its colour from the game: a stripe beside each adopted
-  tree, a dot before each of the others.
+  tree, a dot before each of the others. The planner tab's tradition goals carry it too, as a
+  stripe on their adopt / pick / finisher badge.
 
 ## [0.1.12] - 2026-11-06
 
