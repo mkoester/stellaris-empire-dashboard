@@ -12,6 +12,7 @@ import {
 	buildQueue,
 	construction,
 	orbitalStations,
+	techKept,
 	techQueued,
 	intelOf,
 	nomadCountries,
@@ -1199,6 +1200,25 @@ describe('techQueued', () => {
 			{ area: 'physics', tech: 'tech_sensors_2', progress: 120, since: '2211.01.01' },
 			{ area: 'society', tech: 'tech_volcanic_forge', progress: 1315.7, since: '2210.05.02' }
 		]);
+	});
+});
+
+describe('techKept', () => {
+	it('reads the progress kept by techs switched away from (UNE 4, 2200.01.20)', () => {
+		const country = {
+			tech_status: {
+				stored_techpoints_for_tech: {
+					tech_administrative_ai: 13.33826,
+					tech_planetary_unification: 16.48826,
+					tech_zero: 0
+				}
+			}
+		};
+		expect(techKept(country)).toEqual({
+			tech_administrative_ai: 13.33826,
+			tech_planetary_unification: 16.48826
+		});
+		expect(techKept({ tech_status: {} })).toEqual({});
 	});
 });
 

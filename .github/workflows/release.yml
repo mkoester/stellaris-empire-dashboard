@@ -1,9 +1,10 @@
 # A version tag builds the player zips and publishes them as a GitHub release (RELEASE.md), by branch:
-#   main       `vX.Y.Z`         "Stellaris Empire Dashboard X.Y.Z", notes: CHANGELOG's X.Y.Z section
-#   develop    `vX.Y.Z-rc.N`    "… X.Y.Z rc-N", a prerelease (release candidate), notes: Unreleased
+#   main       `vX.Y.Z`         "Stellaris Empire Dashboard X.Y.Z (vG)", notes: CHANGELOG's X.Y.Z section
+#   develop    `vX.Y.Z-rc.N`    "… X.Y.Z rc-N (vG)", a prerelease (release candidate), notes: Unreleased
 #   open-beta  `vX.Y.Z-beta.N`  "… X.Y.Z vN (for Open Beta <openBeta>)", a prerelease for a game's
 #                               open beta (package.json's `openBeta`, e.g. 4.5.3), notes: Unreleased
-# Any other tag, or one off its branch, fails early.
+# vG is the game version of the bundled extractor's dump. Any other tag, or one off its branch,
+# fails early.
 name: Release
 
 on:
@@ -97,5 +98,7 @@ jobs:
           # (release-check holds that one to the public game's data)
           game=$(scripts/game-version.sh ../stellaris-data-extraction/sql/stellaris.sql "$OPEN_BETA")
           { printf '**Built for %s.**\n\n' "$game"; cat notes.md; } > release-notes.md
+          # the title names the game version too ("… 0.1.11 (v4.5.3)"); a beta's names it already
+          [ -n "$OPEN_BETA" ] || TITLE="$TITLE ($(grep -o 'v[0-9][0-9.]*[0-9]' <<<"$game"))"
           gh release create "$GITHUB_REF_NAME" dist/*.zip --verify-tag ${PRERELEASE:+--prerelease} \
             --title "$TITLE" --notes-file release-notes.md

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import InfoPopup from '../InfoPopup.svelte';
 	import { pretty } from '../format.ts';
 	import QueueList from '../QueueList.svelte';
 	import { CAPITAL_SHIPS, capitalYardMissing, megaShipyardDone, megaStage } from '../shipyards.ts';
@@ -82,8 +83,8 @@
 		>
 	{:else}
 		{#each techFor(true) as c (c.size)}
-			<span class="mr-2 {c.ok ? '' : 'text-gray-500'}" title={c.ok ? '' : `needs ${pretty(c.tech)}`}
-				>{c.ok ? '✓' : '✗'} {c.size}</span
+			<span class="mr-2 {c.ok ? '' : 'text-gray-500'}"
+				>{c.ok ? '✓' : '✗'} <InfoPopup ref="tech:{c.tech}">{c.size}</InfoPopup></span
 			>
 		{/each}
 	{/if}

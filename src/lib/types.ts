@@ -469,6 +469,7 @@ export type Snapshot = {
 	techOptions: Record<string, string[]> | null; // research field → the cards on offer
 	techQueued: QueuedTech[] | null; // every queued tech with its progress; since 2026-10-22
 	techPermanent: string[] | null; // options kept until researched (`always_available_tech`); since 2026-10-22
+	techKept: Record<string, number> | null; // tech → progress kept after switching away from it; READER 49
 	// stored research per field (`stored_techpoints`): from events or while nothing is researched;
 	// each month up to the monthly gain of it is used on top, so research runs at up to double speed
 	techStored: Record<string, number> | null; // since 2026-10-22

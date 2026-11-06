@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.12] - 2026-11-06
+
+### Fixed
+
+- Popups are no longer cut off at the edge of a scrolling panel (Upcoming, wide tables): they open
+  above the page, below the name or above it where there is more room.
+
+### Added
+
+- Upcoming tells you when a tech you planned (or one it needs) is among the research cards on
+  offer — the game does not. The row stays until you pick it or dismiss it.
+- A tech's popup shows what the game's research card does: tier, cost, what it needs and leads
+  to, its effects and what it unlocks (buildings, districts, components, ship types, features) —
+  the same card as in the empire planner — everywhere a tech is named: the planner tab and its
+  history, events, ethics sources, blocker hints, edicts, research agreements, shipyards.
+- The tech tab shows the progress a tech keeps when you switch research away from it: on its card
+  (↺) and in a list of every tech holding some. The game keeps the points, but not the card — the
+  next draw may not offer it again.
+- A release's title names the game version it was built for: "Stellaris Empire Dashboard 0.1.12
+  (v4.5.3)".
+
 ## [0.1.11] - 2026-11-06
 
 ### Added

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { colorOf } from './colors.ts';
+	import InfoPopup from './InfoPopup.svelte';
 	import type { Milestone } from './milestones.ts';
 
 	// Milestones as a log, newest month first, each in its kind's colour.
@@ -12,7 +13,7 @@
 		<dt class="text-gray-500 tabular-nums">{month}</dt>
 		<dd>
 			{#each list as e, i (i)}
-				<div style:color={colorOf(e.kind)}>{e.label}</div>
+				<div style:color={colorOf(e.kind)}><InfoPopup ref={e.ref}>{e.label}</InfoPopup></div>
 			{/each}
 		</dd>
 	{/each}

@@ -673,7 +673,8 @@
 						<li class="py-0.5">
 							<span class="text-gray-500 tabular-nums">{h.date ?? '?'}</span>
 							<b>{h.op}</b>
-							{@render group(h.group)}{h.label}{#if h.kind}{@render badges({
+							{@render group(h.group)}<InfoPopup ref={h.ref ?? undefined}>{h.label}</InfoPopup
+							>{#if h.kind}{@render badges({
 									kind: h.kind,
 									badge: h.badge,
 									area: h.area,
@@ -694,7 +695,10 @@
 							<b class={d.avoid ? 'text-red-600' : 'text-green-700 dark:text-green-400'}
 								>{d.avoid ? 'happened' : 'reached'}</b
 							>
-							{@render group(d.group)}{d.label}{@render badges(d)}
+							{@render group(d.group)}<InfoPopup
+								explanation={d.ref ? data.explain[d.ref] : undefined}
+								ref={d.ref ?? undefined}>{d.label}</InfoPopup
+							>{@render badges(d)}
 						</li>
 					{:else}
 						<li class="text-gray-500">Nothing reached yet.</li>

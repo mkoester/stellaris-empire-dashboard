@@ -27,7 +27,7 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
-  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14.
+  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14 and 2026-11-06.
 
 Cross-project conventions come from the OKF vault; workspace rules from `../AGENTS.md`.
 
@@ -343,6 +343,17 @@ without a post, an empty council seat, free leader slots (`leaderLimits`, ≈) �
 the first save of the idle spell, walked back along the branch's saves: busy again, then idle,
 is a new row. 2206.10.08 (Roaming Korinth): 2 official and 2 commander slots free, the arkship's
 shipyard (before READER 39: since then the arkship's colony row), one idle science ship.
+**Planned techs on offer** (`plannedOnOffer()` in `#lib/techOffers.ts`, the user's ask 2026-11-06:
+"when I planned some tech, I want to get notified once it pops up in my current list of available
+tech options"; in Upcoming for now, its own place if more such notices come): every wanted, unparked
+tech goal — the prerequisites `techNeeds()` adds included, with their "needed for …" note —
+among the latest save's cards and not the field's research is a row of kind `offer`, ⚠ (the game
+does not point it out), ✕. `planSummary()` hands the wanted techs to `branch()` (cached with the
+plan). The dismiss id ends with the offer's first save (`techOffers()`: a run of saves with the
+same cards), so a later draw offering it again is a new row; picking it in game ends the row.
+Checked 2026-11-06 on a DB copy (Yorphian Extractorate, node 533): no row before planning; rows for
+`tech_lasers_2` and `tech_bio_reactor` (on offer), none for `tech_physics_1` (being researched); ✕
+removed only its own row. Seen in game 2026-11-06 (the user): "2200.02.02 · now · Quantum Computing ✕ · ⚠ planned tech · physics · on offer since 2200.01.01".
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
@@ -354,7 +365,26 @@ own since the save before (`daysPerJump()`), else our ships' median (`measuredDa
 jobs, colony designations (`designation:`, data DB `colony_type`; `Designation.svelte` reads them
 from the page's `designations`, which `branch()` picks for every page) and the empire's identity (`civic:`, `origin:`, `authority:`, `ethic:`, `gov:`) explained from
 the extraction DB — descriptions, modifiers (edict/agenda ones live in `tradition_modifier`, techs
-in `technology_modifier`), a few facts. Civics and origins follow the planner's pages: the effects
+in `technology_modifier`), a few facts. **A tech's popup is its research card** (the user's ask
+2026-11-06: "more than the flavour text, aligned with the planner"; `#lib/techCard.ts`, a copy of
+which builds the planner's): tier, base cost, rare/dangerous, what it needs (OR groups as "A or
+B") and leads to, its modifiers, and the card's unlock lines from the data DB's `technology_unlock`
+("Unlocks Building: Field Dynamics Center", "Unlocks Feature: Auto-Research Technologies") — none
+from a data DB without that table (extractor before 2026-11-06). **The popup lives in the top
+layer** (`popover="manual"`, placed by `#lib/popup.ts` in viewport coordinates, below the name or
+above it where there is more room): a scrolling panel cut it off while it was positioned inside it
+(Upcoming, the user's catch 2026-11-06), and every panel with `overflow-*` had the same problem; a
+scroll anywhere but in the card closes it. **Every tech named anywhere has its card** (the
+user's ask 2026-11-06: "check every place you display specific techs"): `InfoPopup`'s `ref`
+(`tech:<key>`) fetches the card on first hover from `GET /api/explain?ref=` when the page carries
+none (`getExplanations()`, the data DB's cards only — built ones like `focuscard:` are not served).
+Places: Upcoming, the tech tab, focus rewards, trade-off presets (all carried), the planner tab's
+goals, suggestions, shortcuts, history and "reached" lists (`About.ref`), researched events
+(`Milestone.ref`), attraction sources and their needs, blocker hints ("needs …"), the research
+bonuses' tech in progress, locked edicts ("🔒 needs …", formerly a native title), research
+agreements (sped-up tech, their techs we lack, hints) and the shipyards' capital sizes. Left as
+text: techs inside sentences — a goal's "needs …"/"needed for …" note and status, the charts'
+event strip. Not yet seen in a browser. Civics and origins follow the planner's pages: the effects
 tooltip as text, job swaps, unlocked buildings, granted traits, the council seat (its modifiers
 per leader level as `after`); ethics their implications (`ethic_tag_label`) and forbidden
 policies. The **Government panel** (`panels/Government.svelte`, `identity()` in `server/empire.ts`)
@@ -1459,7 +1489,9 @@ system). Rules needing bodies are unknown (`?`) in unvisited systems.
   every perk (taken first, conditions not checked).
 - **tech**: the three queues with due dates (`events.ts`), the cards on offer **now**
   (`tech_status.alternatives`; the game redraws a field's cards once its tech is done) with ▶ the
-  one being researched, ★ the permanent options and the progress of queued ones, "offered over
+  one being researched, ★ the permanent options and the progress of queued ones, ↺ that of techs
+  switched away from (`Snapshot.techKept`, READER 49; the user's ask 2026-11-06), and under
+  "Researching" every tech holding kept progress, "on offer" where it is a card again, "offered over
   time" (`#lib/techOffers.ts`: a run of saves with the same cards is one offer, the pick = the
   field's tech researched meanwhile), research tiers, everything researched. **Research bonuses
   and how they stack** (the user's ask 2026-11-05: "the good ones are applied multiplicatively,
@@ -1825,9 +1857,12 @@ folder stays untouched; count `extracting game data` lines in the log per start.
   `$TMPDIR`. Tests, check, build and dev don't touch the store and work sandboxed. On Linux
   (2026-10-31) `pnpm update` was denied by permission: hand it over the same way. **But on Linux
   the same day a `pnpm check` ran pnpm's own install first (pnpm 12.3.4, 29 packages missing from
-  `node_modules`) and it succeeded sandboxed**, the lockfile unchanged — so the lock failure may be
-  the Mac's alone; a frozen-lockfile install on Linux is worth one sandboxed try before handing
-  it over.
+  `node_modules`) and it succeeded sandboxed**, the lockfile unchanged — **but it built that store
+  inside the workspace** (`.pnpm-store/`, the vault's `claude-sandbox` skill): `node_modules` then
+  hung on it, and the user's next `pnpm update` failed `ERR_PNPM_UNEXPECTED_STORE` (2026-11-06; a
+  plain `pnpm install` relinked it to `~/.local/share/pnpm/store`). So never install sandboxed, and
+  run checks as `node_modules/.bin/<tool>`, not `pnpm <script>`: pnpm installs first when it finds
+  `node_modules` out of step with the lockfile.
 - **After `pnpm update`/`install`, run `node_modules/.bin/prettier --write pnpm-lock.yaml`**: the
   lockfile is kept in Prettier's format (`pnpm lint` checks it), pnpm writes its own, and the diff
   balloons (2026-10-31: 2028 lines → 552 after the reformat).
@@ -2288,15 +2323,31 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   `common/technology/tier/00_tier.txt` (0 for tier 1, 6 for tiers 2–5; the file does not say per
   area — the user confirmed it, 2026-10-22) — and `potential` not false for the empire. The cards
   on offer (`tech_status.alternatives`) are a weighted random draw from those: never plan with them.
+- **Switching research mid-way keeps the progress, not the card** (the user's question 2026-11-06:
+  does starting a card and switching away keep it available for good, as event tech progress
+  seems to? — **no**). Throwaway `unitednationsofearth4_-337465913`, 4.5.3, screenshots
+  `<user dir>/screenshots/2026_11_06_1…6.png`: Administrative AI researched to 13.3 / 1100, then
+  "Change Research" (2200.01.20) — its points move to
+  `tech_status.stored_techpoints_for_tech = { tech_administrative_ai=13.33826 … }` (one entry per
+  tech switched away from, all fields in one block) and its card shows "13/1100"; **switching
+  redraws nothing** (the panel: "Whenever we finish researching a Technology, up to 3 new options
+  will be generated"). At the next draw (`research_technology tech_shields_2` from the console,
+  2200.02.03 — the save's `alternatives` change at once, while the panel keeps showing the finished
+  tech until the next tick) it **was not among the new cards**, and no `always_available_tech`
+  entry appeared; its 13.3 points stayed stored. So events that grant progress *and* keep a tech
+  on offer do two things: of 493 `add_tech_progress` in `events/` and `common/`, 280 pair it with
+  an `add_research_option` of the same tech. Read as `Snapshot.techKept` (READER 49, `techKept()` in `server/save.ts`), shown on the tech tab; checked 2026-11-06 on a copy of the `throwaway` DB re-read from the UNE 4 saves: Administrative AI 13 (not on offer), Zero-G Refineries 13 and Planetary Unification 16 (on offer, ↺). The game's own panel shows that draw without it too (2200.03.02, `2026_11_06_7.png`: Fusion Power, Blue Lasers, Zero-G Laboratories — the same draw, no second one yet). Whether stored points
+  raise a tech's draw weight is not known (`TECH_WEIGHT_PREVIOUS_OPTION = 0.5` lowers a previous
+  card's).
 - Progress: `country.tech_status.<area>_queue = { { progress technology date } }` (research points,
   not percent; every queued tech keeps its own, `date` = started — `Snapshot.techQueued`, READER 6;
-  a tech not in a queue has no progress in the save); permanent research options (focus rewards'
+  a tech switched away from keeps its points in `stored_techpoints_for_tech`, above); permanent research options (focus rewards'
   `add_research_option`) are repeated `tech_status.always_available_tech="…"` keys
   (`Snapshot.techPermanent`; 2212.03.05: Volcanic Forge, Doctrine: Fleet Support, Exotic Materials
   Labs, each also among the cards); `stored_techpoints = { 1310.7 0 0 }` is **stored research** per
   field (`Snapshot.techStored`, READER 7; see "Stored research" under Open); `country.government.council_agenda` + `council_agenda_progress`;
   `country.next_election`. **Agenda progress moves on the 1st only** (2207.02.01 → 03.01: +44,
-  03.01 → 03.10: 0), research daily — so the agenda's rate is measured across month starts, or a
+  03.01 → 03.10: 0), research once a month too, after the 1st's autosave (2200.02.01 autosave: no new progress; 02.02: a full month, +13.47, even on a tech picked on the 1st — the tech selected at the tick gets the whole month; 2026-11-06) — so the agenda's rate is measured across month starts, or a
   mid-month manual save hides it. Galaxy cost sliders `galaxy.technology`, `galaxy.traditions`. Tech costs
   in game were ×1.05 of the extracted base (source unconfirmed, `TECH_COST_OBSERVED_FACTOR`).
 - Milestone sources (2207.03.10): `country.government.council_agenda_cooldowns = { council_agenda

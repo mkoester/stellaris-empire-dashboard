@@ -37,15 +37,16 @@ version's `CHANGELOG.md` section.
 
 Each is a tag the workflow builds and publishes; the title is the release's name on GitHub.
 
-| Branch      | Tag             | Release title                                         | Notes from        |
-| ----------- | --------------- | ----------------------------------------------------- | ----------------- |
-| `main`      | `vX.Y.Z`        | Stellaris Empire Dashboard X.Y.Z                      | `## [X.Y.Z]`      |
-| `develop`   | `vX.Y.Z-rc.N`   | Stellaris Empire Dashboard X.Y.Z rc-N (prerelease)    | `## [Unreleased]` |
-| `open-beta` | `vX.Y.Z-beta.N` | Stellaris Empire Dashboard X.Y.Z vN (for Open Beta B) | `## [Unreleased]` |
+| Branch      | Tag             | Release title                                           | Notes from        |
+| ----------- | --------------- | ------------------------------------------------------- | ----------------- |
+| `main`      | `vX.Y.Z`        | Stellaris Empire Dashboard X.Y.Z (vG)                   | `## [X.Y.Z]`      |
+| `develop`   | `vX.Y.Z-rc.N`   | Stellaris Empire Dashboard X.Y.Z rc-N (vG) (prerelease) | `## [Unreleased]` |
+| `open-beta` | `vX.Y.Z-beta.N` | Stellaris Empire Dashboard X.Y.Z vN (for Open Beta B)   | `## [Unreleased]` |
 
 Every release's notes open with the game it was built for (`scripts/game-version.sh`): a beta
 build's `openBeta`, else the bundled extractor's `sql/stellaris.sql` `meta.game_version` ("Built for
-Stellaris Cygnus v4.5.2 (9776).").
+Stellaris Cygnus v4.5.2 (9776)."), and a regular build's or release candidate's title its version
+number, vG (`v4.5.2`; the step fails without one).
 
 **A prerelease needs a non-empty `## [Unreleased]` section** — right after a regular release there
 is none, and the run fails at its last step, after building everything (caught by a dry run before
