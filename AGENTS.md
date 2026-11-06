@@ -365,7 +365,16 @@ own since the save before (`daysPerJump()`), else our ships' median (`measuredDa
 jobs, colony designations (`designation:`, data DB `colony_type`; `Designation.svelte` reads them
 from the page's `designations`, which `branch()` picks for every page) and the empire's identity (`civic:`, `origin:`, `authority:`, `ethic:`, `gov:`) explained from
 the extraction DB — descriptions, modifiers (edict/agenda ones live in `tradition_modifier`, techs
-in `technology_modifier`), a few facts. Civics and origins follow the planner's pages: the effects
+in `technology_modifier`), a few facts. **A tech's popup is its research card** (the user's ask
+2026-11-06: "more than the flavour text, aligned with the planner"; `#lib/techCard.ts`, a copy of
+which builds the planner's): tier, base cost, rare/dangerous, what it needs (OR groups as "A or
+B") and leads to, its modifiers, and the card's unlock lines from the data DB's `technology_unlock`
+("Unlocks Building: Field Dynamics Center", "Unlocks Feature: Auto-Research Technologies") — none
+from a data DB without that table (extractor before 2026-11-06). **The popup lives in the top
+layer** (`popover="manual"`, placed by `#lib/popup.ts` in viewport coordinates, below the name or
+above it where there is more room): a scrolling panel cut it off while it was positioned inside it
+(Upcoming, the user's catch 2026-11-06), and every panel with `overflow-*` had the same problem; a
+scroll anywhere but in the card closes it. Not yet seen in a browser. Civics and origins follow the planner's pages: the effects
 tooltip as text, job swaps, unlocked buildings, granted traits, the council seat (its modifiers
 per leader level as `after`); ethics their implications (`ethic_tag_label`) and forbidden
 policies. The **Government panel** (`panels/Government.svelte`, `identity()` in `server/empire.ts`)

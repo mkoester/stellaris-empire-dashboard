@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { pretty } from '#lib/format.ts';
+import { techCard, type TechUnlock } from '#lib/techCard.ts';
 import { describe, parseTrigger } from '#lib/triggers.ts';
 import type { Explanation, Modifier } from '#lib/types.ts';
 
@@ -271,24 +272,64 @@ export function loadExplanations(file: string): Explanations {
 		const techMods = grouped(
 			'SELECT tech_key AS owner, modifier_key AS key, modifier_value AS value FROM technology_modifier ORDER BY sort_order'
 		);
-		for (const t of rows<{
+		// the research card's lines (`#lib/techCard.ts`, as the planner shows them); a data DB from
+		// an extractor before 2026-11-06 has no `technology_unlock`: no unlock lines then
+		const techs = rows<{
 			key: string;
 			label: string | null;
 			description: string | null;
 			area: string;
 			tier: number | null;
 			cost: number | null;
-		}>('SELECT key, label, description, area, tier, cost FROM technology'))
+			prerequisites_json: string | null;
+			prerequisites_any_json: string | null;
+			is_rare: number | null;
+			is_dangerous: number | null;
+		}>(
+			`SELECT t.key, t.label, t.description, t.area, t.tier, t.cost, r.prerequisites_json,
+			        r.prerequisites_any_json, r.is_rare, r.is_dangerous
+			 FROM technology t LEFT JOIN technology_requirement r ON r.tech_key = t.key`
+		);
+		const techName = new Map(techs.map((t) => [t.key, t.label ?? pretty(t.key)]));
+		const nameOf = (k: string) => techName.get(k) ?? pretty(k);
+		const techUnlocks = new Map<string, TechUnlock[]>();
+		if (
+			db
+				.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'technology_unlock'")
+				.get()
+		)
+			for (const u of rows<TechUnlock & { tech_key: string }>(
+				'SELECT tech_key, kind, label, detail FROM technology_unlock ORDER BY tech_key, sort_order'
+			))
+				(techUnlocks.get(u.tech_key) ?? techUnlocks.set(u.tech_key, []).get(u.tech_key)!).push(u);
+		const needs = new Map(
+			techs.map((t) => [t.key, JSON.parse(t.prerequisites_json ?? '[]') as string[]])
+		);
+		const leadsTo = new Map<string, string[]>();
+		for (const [k, list] of needs)
+			for (const p of list) (leadsTo.get(p) ?? leadsTo.set(p, []).get(p)!).push(nameOf(k));
+		for (const t of techs) {
+			const card = techCard({
+				area: t.area,
+				tier: t.tier,
+				cost: t.cost,
+				rare: t.is_rare === 1,
+				dangerous: t.is_dangerous === 1,
+				unlocks: techUnlocks.get(t.key) ?? [],
+				needs: (needs.get(t.key) ?? []).map(nameOf),
+				needsAny: (JSON.parse(t.prerequisites_any_json ?? '[]') as string[][]).map((g) =>
+					g.map(nameOf)
+				),
+				leadsTo: (leadsTo.get(t.key) ?? []).sort()
+			});
 			out[`tech:${t.key}`] = {
 				title: t.label ?? pretty(t.key),
 				description: t.description,
 				modifiers: techMods.get(t.key) ?? [],
-				text: null,
-				facts: [
-					`${t.area}, tier ${t.tier ?? '?'}`,
-					...(t.cost ? [`base cost ${t.cost.toLocaleString('en')}`] : [])
-				]
+				text: card.unlocks.length ? card.unlocks.join('\n') : null,
+				facts: card.facts
 			};
+		}
 
 		// Traditions and ascension perks: modifiers in tradition_modifier (owner_key = key).
 		for (const t of rows<{
