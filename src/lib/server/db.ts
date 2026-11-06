@@ -288,6 +288,24 @@ export function campaignMultiplayer(db: Db, campaign: string): boolean {
 	);
 }
 
+/**
+ * Whether the campaign is an Ironman game: any save's `galaxy` block says `ironman=yes` (UNE 2's
+ * Ironman save, 2026-11-06; every other save holds `ironman=no`). Read from `Snapshot.galaxySetup`
+ * (READER 42), so no field of its own. An Ironman save names the player's account in `player`, so
+ * it reads as multiplayer too (`multiplayerPlayers()`).
+ */
+export function campaignIronman(db: Db, campaign: string): boolean {
+	return (
+		db
+			.prepare(
+				`SELECT 1 FROM node n JOIN snapshot s ON s.node_id = n.id
+				WHERE n.campaign = ? AND json_extract(s.json, '$.galaxySetup.ironman') IN ('yes', 1)
+				LIMIT 1`
+			)
+			.get(campaign) !== undefined
+	);
+}
+
 /** The empire's name in the campaign's latest save ('' before one; game.log nodes carry none). */
 export function campaignName(db: Db, campaign: string): string {
 	const row = db

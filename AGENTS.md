@@ -40,12 +40,27 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
 - Without the companion mod a reload's branch point is a _guess_ when time goes backwards (marked,
   correctable on `/timeline`). With it (0.2.0+) the mod's `load` line names the loaded save exactly
   — see "Companion mod".
-- **No cheats in multiplayer** (the user's intent, 2026-11-01; built 2026-11-03). Nothing in the
-  game can tell a player runs the dashboard, so it could spoil a multiplayer game: once any reading
-  of a campaign says multiplayer (`Snapshot.multiplayer`, READER 44; `campaignMultiplayer()`, which
-  stays true — a multiplayer save loaded in single player, a month without the mod, does not undo
-  it), `display()` forces every `cheat`-kind switch off (`effectiveDisplay(d, multiplayer)`) and ⚙
-  lists none, saying why. Spoilers stay: they show only what the player could find. Two signals:
+- **No cheats in multiplayer or Ironman** (the user's intent, 2026-11-01; built 2026-11-03,
+  Ironman and the `intel` spoilers 2026-11-06). Nothing in the game can tell a player runs the
+  dashboard, so it could spoil a multiplayer game; Ironman is the game played as it comes (the
+  user's call: same treatment). Once any reading of a campaign says multiplayer
+  (`Snapshot.multiplayer`, READER 44; `campaignMultiplayer()`, which stays true — a multiplayer
+  save loaded in single player, a month without the mod, does not undo it) or Ironman
+  (`campaignIronman()`), `display()` forces every `cheat`-kind switch off **and every spoiler
+  marked `intel`** — those revealing other empires or unexplored space: `wholeGalaxy`,
+  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`
+  (`effectiveDisplay(d, noCheats)`, `barred()`) — and ⚙ lists none of them, saying why
+  (`viewedNoCheats()`: `ironman` before `multiplayer`). Other spoilers stay: they are the game's
+  own content (anomalies, projects, timers, what-ifs), not another player's secrets. **A new
+  spoiler that reveals another empire or unexplored space gets `intel: true`.**
+  - **Ironman: the save alone** — `galaxy.ironman=yes` (jomini reads it as `true`; every other
+    save `no`), already in `Snapshot.galaxySetup` (READER 42). The companion mod cannot help: any
+    script mod changes the checksum and switches Ironman off. Seen 2026-11-06 in UNE 2's
+    `ironman.sav` (4.5.3, public; `meta` too holds `ironman=yes`, other saves' `meta` no key),
+    whose `player` block names the account alone (`MirkoMachine`) — so it reads as multiplayer
+    too, hence the Ironman check first.
+
+  Multiplayer has two signals:
   - **The save** (`multiplayerPlayers()`), which serves a player without the mod — a cheater would
     just not run it: the top-level `player = { { name country } … }` names an account or lists two
     players. Every single-player save on the Linux machine (106, 4.5.x) has one `name="unknown"`;
@@ -1051,7 +1066,8 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`. A new view of hidden information follows the same pattern.
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`. A new view of hidden information follows the same pattern
+(and in multiplayer and Ironman: "No cheats in multiplayer or Ironman").
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
 `normal`, `spoiler` (what the game hides until found) or `cheat` (what it never tells a player;

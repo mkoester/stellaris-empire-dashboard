@@ -28,10 +28,12 @@ Some of what the dashboard shows makes the game easier, and for some players tha
 the fun. Everything the game hides until you find it (spoilers) or never tells a player at all
 (cheats) is off by default and labelled as such in ⚙ — turn it on only if you want it.
 
-**Multiplayer:** nothing in the game can tell that a player is running the dashboard, so it could
-spoil a multiplayer game for everyone else. The dashboard therefore recognises a multiplayer game
-by its saves (with or without the companion mod) and switches every cheat off there; spoilers stay
-available, as they only show what you could find yourself. This guards against using it by
+**Multiplayer and Ironman:** nothing in the game can tell that a player is running the dashboard,
+so it could spoil a multiplayer game for everyone else, and an Ironman game is meant to be played
+as it comes. The dashboard therefore recognises both by their saves (with or without the companion
+mod) and switches every cheat off there, along with the spoilers that reveal other empires or
+space you have not explored (the whole galaxy, every wormhole and L-Gate, station owners, pact
+intel); spoilers about the game's own content stay available. This guards against using it by
 accident — it cannot stop someone set on cheating, so please don't use it against other people.
 
 ## For players

@@ -409,6 +409,11 @@ multiplayer and turns its cheats off wrongly.
 - **The dashboard:** with that campaign viewed, ⚙ says "This is a multiplayer game" and no cheat
   switch is listed; a tab with a cheat on before (e.g. `historyAll`) shows only what you know.
 - **Send:** the save names, and whether the lobby or single player loaded each.
+- **Ironman names the account too (2026-11-06):** UNE 2's `ironman.sav` (4.5.3, a new game)
+  lists `MirkoMachine` alone, the Noerm shape. If it was started in single player, an account
+  name is no multiplayer signal on its own — harmless for the cheats (Ironman is checked first and
+  bars the same switches), but the rule would call such a game multiplayer. **Open:** how was it
+  started — single player or the lobby?
 
 ### 25. A root 404 during the first start — release smoke test (2026-10-31)
 

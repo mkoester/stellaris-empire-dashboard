@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Ironman games are recognised (from the save's galaxy settings) and get the same treatment as
+  multiplayer: the cheats are off for good once any save of the game is Ironman.
+- In multiplayer and Ironman games the spoilers that reveal other empires or space you have not
+  explored are off too: the whole galaxy, every system surveyed, every wormhole pair, every L-Gate,
+  station owners before communications, and pact intel. Spoilers about the game's own content
+  (anomalies, special projects, event timers, what-ifs) stay available.
 - An influence tab: this month's influence by source, the sources over time, what was spent
   outside the budget (claims, outposts, decisions) and what goes uncollected — power projection
   below its maximum (with the naval capacity still to fill: full coverage needs used naval
