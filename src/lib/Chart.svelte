@@ -35,6 +35,7 @@
 		yMax,
 		markers = [],
 		right = [],
+		rightLabel,
 		rightFloor = 50,
 		colors = {},
 		events,
@@ -48,6 +49,7 @@
 		yMax?: number; // a fixed top, e.g. 100 for percentages
 		markers?: Marker[];
 		right?: string[]; // lines drawn against a second y-axis on the right
+		rightLabel?: string; // the right axis' name, beside it (default: its one line's name)
 		rightFloor?: number; // the right axis spans at least 0 to this
 		colors?: Record<string, string>; // a line's colour by label, before the resource colours
 		events?: Milestone[]; // milestones the viewer can switch on, per kind, for this chart
@@ -199,7 +201,21 @@
 					values: (_u, ticks) => ticks.map(gameMonth)
 				},
 				axis,
-				...(right.length ? [{ ...axis, scale: 'right', side: 1, grid: { show: false } }] : [])
+				...(right.length
+					? [
+							{
+								...axis,
+								scale: 'right',
+								side: 1,
+								grid: { show: false },
+								// named beside its ticks, rotated, in the tick size: which lines it belongs to
+								label: (rightLabel ?? (right.length === 1 ? right[0] : '')).replaceAll('_', ' '),
+								labelSize: 14,
+								labelGap: 0,
+								labelFont: '11px sans-serif'
+							}
+						]
+					: [])
 			],
 			series: [
 				{ label: 'date', value: (_u, v) => (v == null ? '' : gameMonth(v)) },
