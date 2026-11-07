@@ -61,6 +61,7 @@ describe('effectiveDisplay', () => {
 				.sort()
 		).toEqual([
 			'contactStations',
+			'contractSpoilers',
 			'lgates',
 			'pactIntel',
 			'surveyAll',

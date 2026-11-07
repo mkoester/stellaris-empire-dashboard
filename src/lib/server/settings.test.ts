@@ -48,6 +48,8 @@ describe('profiles', () => {
 				historyAll: false,
 				pactIntel: false,
 				pactAll: false,
+				contractSpoilers: false,
+				contractsAll: false,
 				whatIfs: false
 			}
 		});
@@ -99,6 +101,8 @@ describe('profiles', () => {
 				historyAll: false,
 				pactIntel: false,
 				pactAll: false,
+				contractSpoilers: false,
+				contractsAll: false,
 				whatIfs: false
 			}
 		});

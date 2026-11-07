@@ -307,6 +307,20 @@ jobs, alloys and minerals on Planetforgers, and job output lost in a resource sh
   a Physicist's.
 - **Send:** the tooltips and the date. Check: the lines the panel does not count yet.
 
+### 32. Which contracts the game shows — contracts tab (from 2026-11-07)
+
+The save holds every contract (`missions` + `contracts.available|in_progress`) but not who may
+see one. The tab's rules are ours (`#lib/contracts.ts`): a nomad sees what it took and the offers
+of empires it has communications with; a settled empire only the contracts it issued — others'
+are a spoiler (by range beyond the border) or a cheat. Unknown: whether a settled empire sees
+other empires' contracts at all (map icons, a list), and whether a nomad's list leaves out offers
+it cannot accept (`possible_operator`: already on the same contract, a tech, out of reach).
+
+- **Do:** as a nomad, open the contract list; as a settled empire with nomads around, look for
+  contract icons on the galaxy map in systems that are not yours.
+- **Send:** the screenshots and the date. Check: the contracts tab's rows without spoilers (the
+  normal view should show exactly the game's).
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".

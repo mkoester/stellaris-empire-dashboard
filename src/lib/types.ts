@@ -449,6 +449,7 @@ export type Snapshot = {
 	shroud: Shroud | null; // null before access to the Shroud, and before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
+	contracts: Contract[] | null; // every Nomads contract in the galaxy, offered or accepted; READER 52
 	// From the save's `meta`; null from the mod feed and in older snapshots.
 	gameVersion: string | null; // e.g. "Cygnus v4.5.2"
 	dlcs: string[] | null; // DLCs active in this save (`required_dlcs`), by name
@@ -973,6 +974,30 @@ export type BranchSite = {
 /** What one side of a trade deal hands over: resources monthly or once, and anything else. */
 export type DealSide = { monthly: Resources; once: Resources; other: string[] };
 
+/** A contract's kind as the game files define it (data DB `contract`). */
+export type ContractType = {
+	name: string;
+	category: string; // e.g. resource_contract, science_contract_internal, crew_resource_contract_special
+	timeToAccept: number | null; // days an offer stays open
+};
+
+/**
+ * A Nomads contract (`missions.<id>` listed in `contracts.available|in_progress`), whoever issued
+ * it: who may see it is decided on read (#lib/contracts.ts), the save does not record it.
+ */
+export type Contract = {
+	id: number;
+	key: string; // `mission`, e.g. "contract_harvest_minerals" — data DB `contract.key`
+	issuer: number;
+	issuerName: string;
+	operator: number | null; // null: not accepted (4294967295); the issuer itself for internal ones
+	operatorName: string | null;
+	systemId: number | null; // `location = { type=4 id }`, a galactic object
+	state: 'offered' | 'active';
+	daysLeft: number | null; // an offer's days to accept
+	accepted: string | null; // accepted_date
+};
+
 /**
  * A trade deal with another empire. UNVERIFIED shape — none seen in a save yet (see AGENTS.md):
  * `raw` keeps the deal as the save wrote it, so the first one seen can be checked on /deals.
@@ -1194,6 +1219,8 @@ export type GameData = {
 	>;
 	perks: Record<string, string>; // ascension perk names
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
+	// Nomads contracts by key (data DB `contract`, extractor 2026-11-07; {} with an older one)
+	contractTypes: Record<string, ContractType>;
 	// shipset → the ship kinds it builds (data DB `graphical_culture`): `uses_ship_category`
 	shipKinds: Record<string, string[]>;
 	// who can ever take a perk (`potential`) and what taking it needs (`possible`), normalised

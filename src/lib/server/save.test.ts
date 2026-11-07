@@ -58,6 +58,7 @@ import {
 	combats,
 	toSnapshot,
 	tradeDeals,
+	contracts,
 	wars,
 	wanderlust,
 	systemEntries,
@@ -99,6 +100,8 @@ const raw: RawSave = {
 	speciesDb: {},
 	wars: {},
 	tradeDeals: {},
+	missions: {},
+	contractIds: undefined,
 	agreements: {},
 	loyalty: {},
 	rivalsOfUs: [],
@@ -2344,5 +2347,95 @@ describe('leaderPool', () => {
 		expect(leaderPool(raw)).toMatchObject([
 			{ id: 272, class: 'official', level: 1, bonus: 1, age: 33, added: '2200.01.01' }
 		]);
+	});
+});
+
+describe('contracts', () => {
+	// Planetforgers 2214.02.01 (Proton save), trimmed: an offer, an accepted one, an internal one
+	// (operator = issuer), a star journal mission (not a contract) and a gap (`21=none`).
+	const missions = {
+		'1': {
+			mission: 'NOMAD_STAR_JOURNAL_BINARY_TRINARY',
+			status: 'active',
+			operator: 1,
+			issuer: 4294967295
+		},
+		'21': 'none',
+		'23': {
+			mission: 'contract_colony_startup',
+			days_left: 1025,
+			location: { type: 4, id: 383 },
+			operator: 4294967295,
+			issuer: 16777227
+		},
+		'16777235': {
+			mission: 'contract_onboard_physics_research',
+			accepted_date: '2213.08.12',
+			status: 'active',
+			location: { type: 4, id: 303 },
+			operator: 1,
+			issuer: 16777219
+		},
+		'16777230': {
+			mission: 'contract_eternal_chorus',
+			days_left: 1136,
+			location: { type: 4, id: 9 },
+			operator: 1,
+			issuer: 1
+		}
+	};
+	const countryBlocks = {
+		'1': { name: { key: 'Korinth' } },
+		'16777219': { name: { key: 'Oklarr' } },
+		'16777227': { name: { key: 'Vel' } }
+	};
+	it('reads the listed missions, offers and accepted ones', () => {
+		const got = contracts({
+			missions,
+			countryBlocks,
+			contractIds: { available: [23, 16777230, 21], in_progress: [16777235] }
+		});
+		expect(got).toEqual([
+			{
+				id: 23,
+				key: 'contract_colony_startup',
+				issuer: 16777227,
+				issuerName: 'Vel',
+				operator: null,
+				operatorName: null,
+				systemId: 383,
+				state: 'offered',
+				daysLeft: 1025,
+				accepted: null
+			},
+			{
+				id: 16777230,
+				key: 'contract_eternal_chorus',
+				issuer: 1,
+				issuerName: 'Korinth',
+				operator: 1,
+				operatorName: 'Korinth',
+				systemId: 9,
+				state: 'offered',
+				daysLeft: 1136,
+				accepted: null
+			},
+			{
+				id: 16777235,
+				key: 'contract_onboard_physics_research',
+				issuer: 16777219,
+				issuerName: 'Oklarr',
+				operator: 1,
+				operatorName: 'Korinth',
+				systemId: 303,
+				state: 'active',
+				daysLeft: null,
+				accepted: '2213.08.12'
+			}
+		]);
+	});
+	it('an empty or missing contracts block is no contract', () => {
+		expect(contracts({ missions, countryBlocks, contractIds: {} })).toEqual([]);
+		expect(contracts({ missions, countryBlocks, contractIds: undefined })).toEqual([]);
 	});
 });

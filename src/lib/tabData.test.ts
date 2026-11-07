@@ -7,6 +7,8 @@ const blank = (over: Partial<Snapshot> = {}) =>
 	({
 		migration: [],
 		tradeDeals: [],
+		contracts: [],
+		countryId: 0,
 		galcom: null,
 		shroud: null,
 		relations: [],
@@ -26,6 +28,7 @@ const blank = (over: Partial<Snapshot> = {}) =>
 describe('emptyTabs', () => {
 	it('dims every tab without data', () => {
 		expect(Object.keys(emptyTabs([blank()])).sort()).toEqual([
+			'contracts',
 			'diplomacy',
 			'galcom',
 			'migration',

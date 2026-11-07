@@ -320,6 +320,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		shroud: null,
 		warLostDate: null,
 		tradeDeals: null,
+		contracts: null,
 		gameVersion: null,
 		dlcs: null,
 		mods: null,

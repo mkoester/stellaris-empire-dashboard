@@ -1,3 +1,4 @@
+import { contractMarksAt } from '#lib/server/contracts.ts';
 import { error } from '@sveltejs/kit';
 import { discovered, jumpsFromBorder, mapView } from '#lib/situations.ts';
 import {
@@ -33,7 +34,8 @@ export function load({ url }) {
 	const { snaps, ...rest } = b;
 	const latest = snaps.findLast((s) => s.kind === 'save' && s.knownSystems !== null);
 	const g = latest ? campaignGalaxy(latest.campaign) : null;
-	const { wholeGalaxy: whole, unknownStars: stars } = display();
+	const shown = display(); // once per request
+	const { wholeGalaxy: whole, unknownStars: stars } = shown;
 	const galaxy = discovered(g?.systems ?? [], { whole, stars });
 	const beyond = jumpsFromBorder(galaxy);
 	const game = getGameData();
@@ -103,6 +105,7 @@ export function load({ url }) {
 		names: game.names,
 		territories: territoriesOf(snaps),
 		arkships: arkshipsOf(snaps),
+		contractMarks: contractMarksAt(snaps, shown),
 		systems: mapView(g?.systems ?? [], reveal()).map((x) => ({ ...x, capital: x.id === capital }))
 	};
 }

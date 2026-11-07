@@ -1,3 +1,4 @@
+import { contractMarksAt } from '#lib/server/contracts.ts';
 import { error } from '@sveltejs/kit';
 import { ethicsHistory, diplomacyView as view } from '#lib/diplomacy.ts';
 import { mapView } from '#lib/situations.ts';
@@ -15,7 +16,8 @@ export function load({ url }) {
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	const data = getGameData();
-	const cheat = display().diplomacyAll;
+	const opts = display(); // once per request
+	const cheat = opts.diplomacyAll;
 	const d = view(snaps, data.flagColors, cheat);
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const g = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
@@ -35,6 +37,7 @@ export function load({ url }) {
 	return {
 		...rest,
 		cheat,
+		contractMarks: contractMarksAt(snaps, opts),
 		diplomacy: d,
 		capitals, // empire → its capital system, where our intel knows it
 		// the map: what we discovered, plus each known capital (the intel names it), faint

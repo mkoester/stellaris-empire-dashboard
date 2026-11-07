@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- A Contracts tab for Nomads contracts. A nomad sees the contracts it took and the offers of
+  empires it talks to; a settled empire the contracts it issued. Each comes with its kind, issuer,
+  who took it, system and days left to accept, and a map. Two new switches in ⚙: a spoiler
+  (offers of empires you do not talk to as a nomad; other empires' contracts up to a picked range
+  beyond your border as a settled empire) and a cheat (every contract in the galaxy). The map
+  tab has a contracts layer, and the systems, situations, diplomacy and megastructures maps mark
+  contracts too. Names and kinds need a data DB with the `contract` table (extractor 2026-11-07).
+
 ## [0.1.13] - 2026-11-07
 
 ### Added

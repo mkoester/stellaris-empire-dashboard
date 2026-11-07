@@ -651,6 +651,22 @@ export function loadGameData(file: string): GameData {
 						removes: JSON.parse(r.removes_json ?? '[]')
 					}))
 				: [],
+			// an older data DB may lack the table: contracts by their key then
+			contractTypes: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'contract'"
+			).length
+				? Object.fromEntries(
+						rows<{
+							key: string;
+							name: string | null;
+							category: string;
+							time_to_accept: number | null;
+						}>('SELECT key, name, category, time_to_accept FROM contract').map((r) => [
+							r.key,
+							{ name: r.name ?? r.key, category: r.category, timeToAccept: r.time_to_accept }
+						])
+					)
+				: {},
 			// an older data DB may lack the table: unnamed then
 			precursors: rows<{ name: string }>(
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'precursor'"

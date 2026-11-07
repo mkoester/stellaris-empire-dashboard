@@ -170,6 +170,11 @@
 			active: path === '/contacts'
 		},
 		{
+			name: 'contracts',
+			href: node ? resolve(`/contracts?node=${node}`) : resolve('/contracts'),
+			active: path === '/contracts'
+		},
+		{
 			name: 'galcom',
 			href: node ? resolve(`/galcom?node=${node}`) : resolve('/galcom'),
 			active: path === '/galcom'

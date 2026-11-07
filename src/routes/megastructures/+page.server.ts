@@ -1,3 +1,4 @@
+import { contractMarksAt } from '#lib/server/contracts.ts';
 import { error } from '@sveltejs/kit';
 import { candidates, KINDS, MEGA_RULES } from '#lib/megastructures.ts';
 import { discovered, jumpsFromBorder, mapView } from '#lib/situations.ts';
@@ -13,7 +14,8 @@ export function load({ url }) {
 	const { snaps, ...rest } = b;
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const g = s ? campaignGalaxy(s.campaign) : null;
-	const { wholeGalaxy: whole, unknownStars: stars, contactStations } = display();
+	const shown = display(); // once per request
+	const { wholeGalaxy: whole, unknownStars: stars, contactStations } = shown;
 	// what is not discovered is neither a candidate nor counted (the catapult's farthest system);
 	// with the unknown stars shown, their stars count (the game shows a star's class), not bodies
 	const galaxy = discovered(g?.systems ?? [], { whole, stars });
@@ -42,6 +44,7 @@ export function load({ url }) {
 		owners,
 		view: megastructureView(),
 		territories: territoriesOf(snaps),
+		contractMarks: contractMarksAt(snaps, shown),
 		systems: mapView(g?.systems ?? [], reveal()),
 		kinds: KINDS.map((kind) => ({
 			kind,

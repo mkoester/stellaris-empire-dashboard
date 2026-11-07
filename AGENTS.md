@@ -48,7 +48,7 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
   save loaded in single player, a month without the mod, does not undo it) or Ironman
   (`campaignIronman()`), `display()` forces every `cheat`-kind switch off **and every spoiler
   marked `intel`** — those revealing other empires or unexplored space: `wholeGalaxy`,
-  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`
+  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`, `contractSpoilers`
   (`effectiveDisplay(d, noCheats)`, `barred()`) — and ⚙ lists none of them, saying why
   (`viewedNoCheats()`: `ironman` before `multiplayer`). Other spoilers stay: they are the game's
   own content (anomalies, projects, timers, what-ifs), not another player's secrets. **A new
@@ -1141,7 +1141,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`. A new view of hidden information follows the same pattern
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`. A new view of hidden information follows the same pattern
 (and in multiplayer and Ironman: "No cheats in multiplayer or Ironman").
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
@@ -1577,6 +1577,27 @@ collected** (`uncollected()`):
   it; without, a stockpile that did not move although the budget booked a gain (Planetforgers
   2214.01–02: 1000 both, +5.8 booked) — estimated; the unexplained row then says so.
 
+**Contracts tab** (`/contracts`, `#lib/contracts.ts` pure, `server/contracts.ts`; the user's ask
+2026-11-07: contracts for nomadic and settled empires, a tab and on the maps). `Snapshot.contracts`
+(READER 52, `contracts()` in save.ts) is every contract in the galaxy — **the save does not say
+who may see or accept one** (the game's `potential_operator` / `possible_operator`; scripts can
+only count them: `count_visible_contracts`, `count_available_contracts`), so the rules are ours
+(the user's call): a **nomad** (`nomadic()`) sees what it operates and the offers of issuers it
+has communications with (an issuer needs that to issue at all, `can_issue_contracts_trigger`);
+spoiler `contractSpoilers` (intel) the other offers; cheat `contractsAll` everything. A **settled**
+empire sees what it issued; the spoiler adds others' contracts up to `contractView.range` jumps
+beyond the border (`jumpsFromBorder()` over discovered lanes — Planetforgers 2214.02.01: 32 of 129
+visited systems reachable, so most contracts need range "anywhere"), the cheat everything.
+What the game shows a settled empire of others' contracts is not known (`docs/open-checks.md` 32).
+Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
+table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
+name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the
+systems, situations, diplomacy and megastructures maps draw `ContractMarks.svelte` in their
+`layer` (`contractMarksAt()`), the history map not (it shows a past month). Checked 2026-11-07
+on a fresh DB with Planetforgers 2214.02.01 (settled): 0 rows plain, 1 spoiler at +7 (Lolehndra's
+Remote Physics Research), 18 with the cheat, every map 200; the nomad rules by unit tests only
+(no nomad player save with contracts on this machine), the drawing not seen in a browser.
+
 **Pacts tab** (`/pacts`, `#lib/pacts.ts` pure; the user's ask 2026-11-05: "what do I get from
 them, per type, then per empire"): every type we hold (`PACT_TYPES`: the relation flag and the
 budget category) with partners and booked upkeep (0.25 influence for migration treaties, research
@@ -1942,6 +1963,8 @@ the Galactic Community, `distar.11000` opens the L-Gates, `crisis.199|1000|2000|
 an `every_situation = { limit = … }` form did not).
 
 ## Save format facts (4.5.2, read from a real save)
+
+**Contracts** (Planetforgers 2214.02.01, Proton): top-level `missions = { <id> = { mission="<key>" issuer operator location={ type=4 id=<system> } … } }` holds contracts and situation-log missions alike (star journals: `issuer=4294967295`), gaps as `<id>=none`; `contracts = { available = { ids } in_progress = { ids } }` says which are contracts. An offer has `days_left` and `operator=4294967295`, an accepted one `accepted_date` and `status=active`; an internal one (Eternal Chorus, Forever Cruise's) has operator = issuer while still offered. 18 contracts there, from 9 issuers.
 
 **For a shape not yet seen in our saves** (wars, trade deals, galactic market): the other parser,
 eliasdoehne/stellaris-dashboard (`stellarisdashboard/parsing/timeline.py`), reads many; a 4.0.1

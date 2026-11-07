@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ContractMarks from '#lib/ContractMarks.svelte';
 	import { resolve } from '$app/paths';
 	import { pretty } from '#lib/format.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
@@ -268,6 +269,7 @@
 						>
 					{/if}
 				{/each}
+				<ContractMarks marks={data.contractMarks} {at} place={byId} />
 			{/snippet}
 		</GalaxyMap>
 		{#if data.owners.length}

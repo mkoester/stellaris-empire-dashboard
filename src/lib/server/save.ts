@@ -44,6 +44,7 @@ import type {
 	Resources,
 	DealSide,
 	TradeDeal,
+	Contract,
 	War,
 	WarSides,
 	Subject,
@@ -124,6 +125,8 @@ export type RawSave = {
 	popJobs: Record<string, Raw>; // top-level pop_jobs, referenced from colony.pop_jobs
 	popGroups: Record<string, Raw>; // top-level pop_groups, referenced from colony.pop_groups
 	slaveMarket: Raw; // slave_market_manager.slaves_on_market
+	missions: Record<string, Raw>; // top-level missions: contracts and situation-log missions
+	contractIds: Raw; // top-level contracts: { available in_progress }
 	fleets: Record<string, Raw>;
 	ships: Record<string, Raw>;
 	shipDesigns: Record<string, Raw>;
@@ -254,6 +257,8 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			popJobs: q.at('/pop_jobs') ?? {},
 			popGroups: q.at('/pop_groups') ?? {},
 			slaveMarket: q.at('/slave_market_manager/slaves_on_market'),
+			missions: q.at('/missions') ?? {},
+			contractIds: q.at('/contracts'),
 			fleets: q.at('/fleet') ?? {},
 			ships: q.at('/ships') ?? {},
 			shipDesigns: q.at('/ship_design') ?? {},
@@ -296,7 +301,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '51'; // 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '52'; // 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -421,6 +426,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		warLostDate:
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
 		tradeDeals: tradeDeals(raw),
+		contracts: contracts(raw),
 		gameVersion: raw.meta.version,
 		dlcs: raw.meta.dlcs,
 		mods: raw.meta.mods,
@@ -2499,6 +2505,45 @@ export function externalBuildings(
  * $FIRST_OFFER$"), resources under a key with "month" in it are monthly. A deal whose sides are not
  * found keeps everything in `gives.other`, and is logged.
  */
+/**
+ * Every contract in the galaxy: the missions `contracts.available` (offers) and `in_progress`
+ * list. Planetforgers 2214.02.01: `missions.23 = { mission="contract_colony_startup" days_left=1025
+ * location={ type=4 id=383 } operator=4294967295 issuer=16777227 }`; accepted ones carry
+ * `accepted_date` and `status=active`, internal ones (Eternal Chorus) operator = issuer.
+ */
+const NO_ID = 4294967295; // the save's "none" for an id
+
+export function contracts(
+	raw: Pick<RawSave, 'missions' | 'contractIds' | 'countryBlocks'>
+): Contract[] {
+	const name = (id: number) => displayName(raw.countryBlocks[String(id)]?.name) || `empire ${id}`;
+	const ids = [
+		...items(raw.contractIds?.available).map((id) => [Number(id), 'offered'] as const),
+		...items(raw.contractIds?.in_progress).map((id) => [Number(id), 'active'] as const)
+	];
+	return ids.flatMap(([id, listed]) => {
+		const m = raw.missions[String(id)];
+		if (!m || typeof m !== 'object' || typeof m.mission !== 'string') return [];
+		const operator = typeof m.operator === 'number' && m.operator !== NO_ID ? m.operator : null;
+		const issuer = Number(m.issuer);
+		return [
+			{
+				id,
+				key: m.mission,
+				issuer,
+				issuerName: name(issuer),
+				operator,
+				operatorName: operator === null ? null : name(operator),
+				systemId:
+					m.location?.type === 4 && typeof m.location.id === 'number' ? m.location.id : null,
+				state: listed,
+				daysLeft: numOrNull(m.days_left),
+				accepted: typeof m.accepted_date === 'string' ? m.accepted_date : null
+			}
+		];
+	});
+}
+
 export function tradeDeals(
 	raw: Pick<RawSave, 'tradeDeals' | 'countryId' | 'countryNames'>
 ): TradeDeal[] {
