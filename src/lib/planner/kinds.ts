@@ -203,6 +203,8 @@ export const KINDS: Record<string, Kind> = {
 				return { state: 'done' };
 			const x = sys(c, n(t, 'system'));
 			if (!x) return { state: 'unknown' };
+			// the Ancient Highway's ring nodes and portals (its `can_build_starbase_around` rule)
+			if (x.unclaimable) return { state: 'blocked', why: 'never claimable (Ancient Highway)' };
 			return lost(c, x.id) ?? { state: 'open' };
 		}
 	},

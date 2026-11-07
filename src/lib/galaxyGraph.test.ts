@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bypassLinks, distances, graph, type Bypass } from './galaxyGraph.ts';
+import { bypassLinks, distances, graph, ruleFor, type Bypass } from './galaxyGraph.ts';
 
 // A line 1-2-3-4-5-6, plus 10 off on its own.
 const lanes: [number, number][] = [
@@ -89,5 +89,41 @@ describe('gateways and L-Gates', () => {
 		expect(
 			bypassLinks({ ...none, bypasses: [tunnel, { ...tunnel, id: 1, system: 6, links: [0] }] })
 		).toEqual([]);
+	});
+});
+
+describe('the Ancient Highway mod’s bypasses', () => {
+	// a gate pair 3 (portal 1 ↔ ring node 6) and an express link 2 (ring nodes 6 ↔ 10)
+	const pair = (id: number, system: number, to: number, type: string): Bypass => ({
+		id,
+		type,
+		active: true,
+		system,
+		links: [to]
+	});
+	const bypasses = [
+		pair(0, 1, 1, 'ahw_link_3'),
+		pair(1, 6, 0, 'ahw_link_3'),
+		pair(2, 6, 3, 'ahw_express_2'),
+		pair(3, 10, 2, 'ahw_express_2')
+	];
+	const via = (researched: string[], globalFlags: string[]) =>
+		bypassLinks({ ...none, bypasses, researched, globalFlags }).map(
+			(l) => `${l.from}>${l.to} ${l.via}`
+		);
+	it('a repaired gate needs Highway Gate Theory, and a seal closes it', () => {
+		expect(ruleFor('ahw_link_3')?.tech).toBe('ahw_tech_gate_theory');
+		expect(via([], [])).toEqual([]);
+		expect(via(['ahw_tech_gate_theory'], [])).toEqual(['1>6 ahw_link_3', '6>1 ahw_link_3']);
+		expect(via(['ahw_tech_gate_theory'], ['ahw_sealed_3'])).toEqual([]);
+		expect(via(['ahw_tech_gate_theory'], ['ahw_sealed_4'])).toHaveLength(2);
+	});
+	it('an express link is open while its flag is set or once stable', () => {
+		expect(via([], ['ahw_express_open_2'])).toEqual(['6>10 ahw_express_2', '10>6 ahw_express_2']);
+		expect(via([], ['ahw_express_stable_2'])).toHaveLength(2);
+		expect(via([], ['ahw_express_open_1'])).toEqual([]);
+	});
+	it('unknown types stay unusable', () => {
+		expect(ruleFor('ahw_linkage')).toBeUndefined();
 	});
 });

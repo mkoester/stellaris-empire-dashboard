@@ -1,5 +1,6 @@
 import { kindOf, type ContactKind } from '#lib/contacts.ts';
 import { wanderlustCategories } from '#lib/wanderlust.ts';
+import { highwaySystem, unclaimable } from '#lib/highway.ts';
 import type { Bypass } from '#lib/galaxyGraph.ts';
 import { addGameDays } from '#lib/series.ts';
 import type {
@@ -181,6 +182,7 @@ export function galaxy(
 		const id = Number(key);
 		const seen = visited.has(id);
 		const lgate = (megas.get(id) ?? []).some((t) => /^lgate/.test(t));
+		const highway = highwaySystem(starFlags(s), s.variables);
 		return [
 			{
 				id,
@@ -206,6 +208,8 @@ export function galaxy(
 					wanderlust: wanderlustCategories(starFlags(s))
 				}),
 				lgateTo: lgate && open ? entrance : [],
+				...(highway && { highway }),
+				...(unclaimable(starFlags(s)) && { unclaimable: true }),
 				sector: own.has(id) ? (sectorOf.get(id) ?? null) : null,
 				bypasses: seen
 					? list(s.bypasses)

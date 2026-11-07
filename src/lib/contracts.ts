@@ -111,6 +111,7 @@ export type ContractContext = {
 	spoilers: boolean; // contractSpoilers
 	all: boolean; // contractsAll
 	types: Record<string, ContractType>;
+	names?: Record<string, string>; // the enabled mods' texts: their contracts' names
 };
 
 const ORDER: Record<ContractWhy, number> = { mine: 0, offered: 1, spoiler: 2, cheat: 3 };
@@ -124,7 +125,7 @@ export function contractRows(contracts: Contract[], ctx: ContractContext): Contr
 			const category = type?.category ?? null;
 			return {
 				...c,
-				name: type?.name ?? c.key,
+				name: type?.name ?? ctx.names?.[c.key] ?? c.key,
 				category,
 				kind: kindOf(category),
 				internal: category?.endsWith('_internal') ?? false,

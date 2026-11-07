@@ -41,7 +41,8 @@ export function contractsAt(snaps: Snapshot[], shown: Display): ContractsAt {
 		range,
 		spoilers: shown.contractSpoilers,
 		all: shown.contractsAll,
-		types: getGameData().contractTypes
+		types: getGameData().contractTypes,
+		names: getGameData().modText
 	});
 	const used = new Set(rows.map((r) => r.systemId));
 	return {

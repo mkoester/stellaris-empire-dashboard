@@ -15,6 +15,16 @@ All notable changes to this project are documented here. The format follows
   beyond your border as a settled empire) and a cheat (every contract in the galaxy). The map
   tab has a contracts layer, and the systems, situations, diplomacy and megastructures maps mark
   contracts too. Names and kinds need a data DB with the `contract` table (extractor 2026-11-07).
+- Mods' names: whatever an enabled mod adds — systems, megastructures, techs, special projects,
+  contracts — is named from the mod's own English texts instead of its raw keys, and a mod's
+  techs get their area, tier and cost.
+- Support for the Ancient Highway mod (in the making): a Highway tab in campaigns that run it —
+  your portal and its gate (broken, studied, repaired, sealed) with the next step, both gate techs
+  with the grants so far, open studies, the express links, a map of the ring and the mod's terms.
+  Two switches in ⚙: a spoiler (what your friends know of the ring) and a cheat (what every
+  other empire knows). The mod's centres show as special stars with its gentler effects, jumps
+  and distances count the gates and express links you can use, and the ring's systems and portals
+  are never offered for outposts, colonies or megastructures.
 
 ## [0.1.13] - 2026-11-07
 

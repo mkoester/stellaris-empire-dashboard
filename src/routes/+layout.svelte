@@ -174,6 +174,15 @@
 			href: node ? resolve(`/contracts?node=${node}`) : resolve('/contracts'),
 			active: path === '/contracts'
 		},
+		...(data.highway
+			? [
+					{
+						name: 'highway',
+						href: node ? resolve(`/highway?node=${node}`) : resolve('/highway'),
+						active: path === '/highway'
+					}
+				]
+			: []),
 		{
 			name: 'galcom',
 			href: node ? resolve(`/galcom?node=${node}`) : resolve('/galcom'),

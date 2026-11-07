@@ -60,6 +60,7 @@ import { MARKET_RESOURCES } from '#lib/market.ts';
 import { addGameDays, START_YEAR } from '#lib/series.ts';
 import { entryEventsFor, type EntryEvent, type SystemEntry } from '#lib/systemEvents.ts';
 import { WANDERLUST, wanderlustCategories } from '#lib/wanderlust.ts';
+import { readHighway, unclaimable } from '#lib/highway.ts';
 import { readZipEntry } from './zip.ts';
 import {
 	anomalies,
@@ -72,6 +73,7 @@ import {
 	galaxy as galaxySystems,
 	historyReading,
 	knownCountries,
+	stationOwner,
 	ourIntel,
 	relations,
 	situations,
@@ -127,6 +129,7 @@ export type RawSave = {
 	slaveMarket: Raw; // slave_market_manager.slaves_on_market
 	missions: Record<string, Raw>; // top-level missions: contracts and situation-log missions
 	contractIds: Raw; // top-level contracts: { available in_progress }
+	playerPortals: number[]; // the Ancient Highway mod's `saved_event_target` ahw_player_portal: systems
 	fleets: Record<string, Raw>;
 	ships: Record<string, Raw>;
 	shipDesigns: Record<string, Raw>;
@@ -259,6 +262,9 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			slaveMarket: q.at('/slave_market_manager/slaves_on_market'),
 			missions: q.at('/missions') ?? {},
 			contractIds: q.at('/contracts'),
+			playerPortals: items(q.at('/saved_event_target'))
+				.filter((t) => t?.name === 'ahw_player_portal' && t?.type === 'galactic_object')
+				.map((t) => Number(t.id)),
 			fleets: q.at('/fleet') ?? {},
 			ships: q.at('/ships') ?? {},
 			shipDesigns: q.at('/ship_design') ?? {},
@@ -301,7 +307,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '52'; // 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '53'; // 53: the Ancient Highway mod; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -427,6 +433,17 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
 		tradeDeals: tradeDeals(raw),
 		contracts: contracts(raw),
+		highway: readHighway({
+			systems: raw.systems,
+			megastructures: raw.megastructures,
+			globalFlags: Object.keys(raw.globalFlags ?? {}),
+			countryId: raw.countryId,
+			countryBlocks: raw.countryBlocks,
+			stationOwner: (s) => stationOwner(raw, s),
+			// ours as the dashboard names it everywhere, the others as `countries` does
+			nameOf: (c, id) => (id === raw.countryId ? raw.empireName : displayName(c?.name)),
+			playerPortals: raw.playerPortals ?? []
+		}),
 		gameVersion: raw.meta.version,
 		dlcs: raw.meta.dlcs,
 		mods: raw.meta.mods,
@@ -1639,8 +1656,37 @@ const NOT_ROCKY =
  */
 type GalaxyRaw = Pick<
 	RawSave,
-	'country' | 'systems' | 'bypasses' | 'naturalWormholes' | 'megastructures' | 'globalFlags'
+	| 'country'
+	| 'systems'
+	| 'bypasses'
+	| 'naturalWormholes'
+	| 'megastructures'
+	| 'globalFlags'
+	| 'countryId'
+	| 'starbases'
+	| 'ships'
+	| 'fleetOwner'
 >;
+
+/**
+ * The Ancient Highway's seals we pass (`ahw_sealed_N`): those of pairs whose anchor we own — a
+ * seal blocks everyone but the sealer, the anchor's owner. Friends of the sealer pass in game
+ * too; that is left out here (the dashboard's approximation).
+ */
+function ownSeals(raw: Partial<GalaxyRaw> & Pick<GalaxyRaw, 'systems'>): Set<string> {
+	if (raw.countryId === undefined || !raw.starbases || !raw.ships || !raw.fleetOwner)
+		return new Set();
+	const owner = raw as Pick<RawSave, 'starbases' | 'ships' | 'fleetOwner'>;
+	const out = new Set<string>();
+	for (const s of Object.values(raw.systems)) {
+		const flags = Object.keys(s?.flags ?? {});
+		if (!flags.includes('ahw_portal')) continue;
+		const anchor = raw.systems[String(items(s?.hyperlane)[0]?.to)];
+		if (stationOwner(owner, anchor) !== raw.countryId) continue;
+		for (const f of flags) if (/^ahw_entry_\d+$/.test(f)) out.add(f.replace('entry', 'sealed'));
+	}
+	return out;
+}
 
 /** The galaxy the country moves in: hyperlanes plus the bypasses it can use. */
 export function galaxy(raw: Partial<GalaxyRaw> & Pick<GalaxyRaw, 'country' | 'systems'>): Graph {
@@ -1648,6 +1694,7 @@ export function galaxy(raw: Partial<GalaxyRaw> & Pick<GalaxyRaw, 'country' | 'sy
 		items(s?.hyperlane).map((l) => [Number(id), Number(l?.to)] as [number, number])
 	);
 	const bypasses = bypassList(raw);
+	const passed = ownSeals(raw);
 	const starFlagged = (flag: string) =>
 		Object.entries(raw.systems)
 			.filter(([, s]) => s?.flags?.[flag] !== undefined)
@@ -1658,7 +1705,7 @@ export function galaxy(raw: Partial<GalaxyRaw> & Pick<GalaxyRaw, 'country' | 'sy
 			bypasses,
 			researched: items(raw.country?.tech_status?.technology).map(String),
 			visited: list(raw.country?.visited_objects),
-			globalFlags: Object.keys(raw.globalFlags ?? {}),
+			globalFlags: Object.keys(raw.globalFlags ?? {}).filter((f) => !passed.has(f)),
 			lgateSystems: starFlagged('lgate'),
 			lclusterSystems: starFlagged('lcluster1')
 		})
@@ -1776,34 +1823,40 @@ export function expansion(
 		: items(raw.country?.surveyed_deposit_holders)
 				.filter((h) => num(h?.type) === 0)
 				.map((h) => Number(h.id));
-	return ids
-		.map((id) => [id, raw.planets[String(id)]] as const)
-		.filter(([, p]) => p && typeof p === 'object' && p.owner === undefined)
-		.filter(([, p]) => p.controller === undefined || controlled(p))
-		.filter(([, p]) => !NOT_ROCKY.test(String(p.planet_class)))
-		.map(([planetId, p]) => {
-			const sys = p.coordinate?.origin;
-			return {
-				planetId,
-				name: displayName(p.name),
-				planetClass: String(p.planet_class),
-				size: num(p.planet_size),
-				system: displayName(raw.systems[String(sys)]?.name),
-				jumps: fromCapital.jumps.get(Number(sys)) ?? null,
-				beyond: fromBorder.jumps.get(Number(sys)) ?? null,
-				shipyard: fromShipyard.jumps.get(Number(sys)) ?? null,
-				via: fromBorder.via(Number(sys)),
-				modifier: typeof p.planet_modifier === 'string' ? p.planet_modifier : null,
-				// `terraforming_candidate` (Mars) or `toxic_terraforming_candidate` (toxic worlds: only
-				// with the right perk, origin or civic), as a permanent timed modifier
-				candidate:
-					items(p.timed_modifier?.items)
-						.map((m) => String(m?.modifier))
-						.find((m) => m.endsWith('terraforming_candidate')) ?? null,
-				planet: planetState(raw, p)
-			};
-		})
-		.sort((a, b) => (a.jumps ?? 1e9) - (b.jumps ?? 1e9) || b.size - a.size);
+	return (
+		ids
+			.map((id) => [id, raw.planets[String(id)]] as const)
+			.filter(([, p]) => p && typeof p === 'object' && p.owner === undefined)
+			.filter(([, p]) => p.controller === undefined || controlled(p))
+			.filter(([, p]) => !NOT_ROCKY.test(String(p.planet_class)))
+			// the Ancient Highway's ring nodes and portals: never claimable, so never settled
+			.filter(
+				([, p]) => !unclaimable(Object.keys(raw.systems[String(p.coordinate?.origin)]?.flags ?? {}))
+			)
+			.map(([planetId, p]) => {
+				const sys = p.coordinate?.origin;
+				return {
+					planetId,
+					name: displayName(p.name),
+					planetClass: String(p.planet_class),
+					size: num(p.planet_size),
+					system: displayName(raw.systems[String(sys)]?.name),
+					jumps: fromCapital.jumps.get(Number(sys)) ?? null,
+					beyond: fromBorder.jumps.get(Number(sys)) ?? null,
+					shipyard: fromShipyard.jumps.get(Number(sys)) ?? null,
+					via: fromBorder.via(Number(sys)),
+					modifier: typeof p.planet_modifier === 'string' ? p.planet_modifier : null,
+					// `terraforming_candidate` (Mars) or `toxic_terraforming_candidate` (toxic worlds: only
+					// with the right perk, origin or civic), as a permanent timed modifier
+					candidate:
+						items(p.timed_modifier?.items)
+							.map((m) => String(m?.modifier))
+							.find((m) => m.endsWith('terraforming_candidate')) ?? null,
+					planet: planetState(raw, p)
+				};
+			})
+			.sort((a, b) => (a.jumps ?? 1e9) - (b.jumps ?? 1e9) || b.size - a.size)
+	);
 }
 
 /** Hyperlane jumps from `start` to every reachable system (breadth-first). */

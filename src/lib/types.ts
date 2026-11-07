@@ -3,6 +3,7 @@ import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
+import type { Highway, HighwaySystem } from './highway.ts';
 import type { GalaxySetup } from './galaxySetup.ts';
 import type { AiWeight } from './votes.ts';
 
@@ -450,6 +451,7 @@ export type Snapshot = {
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	contracts: Contract[] | null; // every Nomads contract in the galaxy, offered or accepted; READER 52
+	highway: Highway | null; // the Ancient Highway mod (#lib/highway.ts), null without it; READER 53
 	// From the save's `meta`; null from the mod feed and in older snapshots.
 	gameVersion: string | null; // e.g. "Cygnus v4.5.2"
 	dlcs: string[] | null; // DLCs active in this save (`required_dlcs`), by name
@@ -633,6 +635,8 @@ export type GalaxySystem = {
 	sector?: string | null; // own systems: the sector (`sectors.<id>.systems`); since 2026-10-18
 	lanesKnown?: boolean; // in `country.hyperlane_systems`: its hyperlanes are on our map (sensors); since 2026-10-18
 	wanderlust?: string[]; // its Wanderlust categories (star flags), in any system — a spoiler where not visited; READER 31
+	highway?: HighwaySystem; // a ring node or portal of the Ancient Highway mod (star flags), in any system; READER 53
+	unclaimable?: boolean; // never claimable (the highway's star flag `ahw_unclaimable`); READER 53
 };
 
 /** A star, planet, moon or asteroid in a visited system. */
@@ -1263,6 +1267,7 @@ export type GameData = {
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
 	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1
+	modText?: Record<string, string>; // the enabled mods' English texts, loc key → text (`withModContent()`)
 	entryEvents: EntryEvent[]; // the popups a first entry into a system fires (system_entry_event)
 	scriptedTriggers: Record<string, Trigger | null>; // parameter-free scripted triggers, normalised
 	// species rights per kind, in the game's order, each with its options
@@ -1346,6 +1351,7 @@ export type ModInfo = {
 	updated: string | null; // ISO time of the workshop's last update (launcher-v2.sqlite timeUpdated)
 	file: string | null; // the descriptor's file name; null for a mod known only from the save
 	local: boolean; // a descriptor not written by the workshop (`ugc_<id>.mod`), e.g. a dev copy
+	path?: string; // the mod's folder (`path`, absolute or relative to the user dir): its texts and techs
 };
 
 /** A mod's version as the dashboard saw it at one start (`mod_version` rows). */

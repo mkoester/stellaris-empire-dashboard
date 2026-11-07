@@ -50,6 +50,8 @@ describe('profiles', () => {
 				pactAll: false,
 				contractSpoilers: false,
 				contractsAll: false,
+				highwayFriends: false,
+				highwayAll: false,
 				whatIfs: false
 			}
 		});
@@ -103,6 +105,8 @@ describe('profiles', () => {
 				pactAll: false,
 				contractSpoilers: false,
 				contractsAll: false,
+				highwayFriends: false,
+				highwayAll: false,
 				whatIfs: false
 			}
 		});

@@ -62,6 +62,7 @@ describe('effectiveDisplay', () => {
 		).toEqual([
 			'contactStations',
 			'contractSpoilers',
+			'highwayFriends',
 			'lgates',
 			'pactIntel',
 			'surveyAll',

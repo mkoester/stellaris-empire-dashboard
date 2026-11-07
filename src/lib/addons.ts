@@ -138,7 +138,8 @@ export function parseModDescriptor(text: string, file: string): ModInfo | null {
 		steamId: value('remote_file_id') ?? null,
 		updated: null,
 		file,
-		local: !/^ugc_\d+\.mod$/.test(file)
+		local: !/^ugc_\d+\.mod$/.test(file),
+		...(value('path') && { path: value('path') })
 	};
 }
 

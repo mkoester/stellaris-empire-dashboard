@@ -48,7 +48,8 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
   save loaded in single player, a month without the mod, does not undo it) or Ironman
   (`campaignIronman()`), `display()` forces every `cheat`-kind switch off **and every spoiler
   marked `intel`** — those revealing other empires or unexplored space: `wholeGalaxy`,
-  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`, `contractSpoilers`
+  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`, `contractSpoilers`,
+  `highwayFriends`
   (`effectiveDisplay(d, noCheats)`, `barred()`) — and ⚙ lists none of them, saying why
   (`viewedNoCheats()`: `ironman` before `multiplayer`). Other spoilers stay: they are the game's
   own content (anomalies, projects, timers, what-ifs), not another player's secrets. **A new
@@ -1141,7 +1142,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`. A new view of hidden information follows the same pattern
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`, `highwayFriends`, `highwayAll`. A new view of hidden information follows the same pattern
 (and in multiplayer and Ironman: "No cheats in multiplayer or Ironman").
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
@@ -1576,6 +1577,58 @@ collected** (`uncollected()`):
 - **Lost at the storage cap** (`lostAtCap()`): with companion mod's `storageMax`, the net while at
   it; without, a stockpile that did not move although the budget booked a gain (Planetforgers
   2214.01–02: 1000 both, +5.8 booked) — estimated; the unexplained row then says so.
+
+**Mods' texts and techs** (`#lib/localisation.ts`, `#lib/modContent.ts` pure, `loadModContent()`
+in `server/mods.ts`; 2026-11-07, for the Ancient Highway): the data DB is the game's own files,
+so what a mod adds showed its raw keys ("ahw node 40 1"). At start the dashboard reads each
+**enabled** mod (`dlc_load.json`'s order, the descriptor's `path` — `ModInfo.path`, absolute or
+relative to the user dir): `localisation/english/*.yml` and `replace/` (later mods win, `$key$`
+filled once, colour codes dropped) and `common/technology/*.txt` with jomini (area, tier, field,
+rarity; `@variables` from the game's `common/scripted_variables/` — `gameDir`, else unknown — and
+the mods' own). `withModContent()` puts the texts into `GameData.modText` and adds the techs the
+data DB lacks (its own win); `displayName()` reads the texts through the prescripted map (data DB
+first), `modName()` names special projects (map, situations), contracts (`ContractContext.names`)
+and megastructures (`mapMarkers`' `names`). **The reader key takes a hash of the texts**
+(`textHash()`, only when there are any, so a dashboard without mods keeps its key): a mod's new
+names re-read the saves. Not read: other languages, a mod's other `common/` folders.
+
+**Ancient Highway** (`/highway`, `#lib/highway.ts` pure, `HighwayMarks.svelte`; the user's ask
+2026-11-07: initial support for `../stellaris-mod-AncientHighway`, in the making — its
+`AGENTS.md`, "How it works", is the source of every flag below). `Snapshot.highway` (READER 53,
+`readHighway()`; null without a ring node) from what the mod writes: star flags `ahw_ring` (with
+the variable `ahw_reach`), `ahw_portal`, `ahw_unclaimable`, `ahw_entry_N` / `ahw_exit_N` (a gate
+pair N: portal ↔ ring node), `ahw_broken`, `ahw_studied`, `ahw_xst_a_j` / `ahw_xst_b_j` (express
+link j's stations); megastructures `ahw_gate_N` (repaired) / `ahw_gate_broken_N`; global flags
+`ahw_sealed_N`, `ahw_express_awake`, `ahw_express_open_j`, `ahw_express_stable_j`; country flags
+`ahw_highway_studied`, `ahw_grant_head_start` and variables `ahw_got_theory|construction` (the
+share of each tech granted, capped at 0.8); the techs' progress from `tech_status` (queue or
+`stored_techpoints_for_tech`). A portal's anchor is its one hyperlane's far end; **ours** is the
+one whose anchor we own, or the mod's `saved_event_target` `ahw_player_portal`. Others are the
+regular empires (type `default`, nomads included) that have been on the highway or studied it —
+fallen empires, fauna and event countries have visited every highway system and are left out.
+`GalaxySystem.highway` / `unclaimable` (READER 53) mark ring nodes and portals: outpost goals are
+blocked, megastructure candidates and expansion planets left out. **Routing** (`ruleFor()` in
+`#lib/galaxyGraph.ts`): `ahw_link_N` needs Highway Gate Theory and lists connections only once
+repaired (the scripted connection drops a broken node — run 43, 2222.04: pair 1 repaired, the
+other eight none), blocked by `ahw_sealed_N` unless we own that anchor (`ownSeals()` in save.ts;
+**friends of the sealer pass in game but not here**); `ahw_express_j` open with its open or stable
+flag. The mod's star classes are `SPECIAL_STARS` with its own effects (no shield regeneration and
+10 %/month, armour −0.1 %/day). **The tab** (shown only in a campaign with the mod,
+`highwayTab()`): our gate and its next step (`nextStep()`), both techs (cost ≈ base × slider ×
+difficulty, empire size left out), open `AHW_*` studies, the express links, a map (gate pairs and
+express links, solid while usable; portals by stage), "What others know about the ring" and the
+terms. What shows (`highwayView()`): what we visited, our portal and — once studied — its exit;
+spoiler **`highwayFriends`** (intel) adds what our close friends know and their rows
+(`closeFriends()`: the mod's `ahw_close_friend` — federation, overlord or subject either way,
+fellow subjects, defensive pact or guarantee either way, the same side of a war); cheat
+**`highwayAll`** everything. Checked 2026-11-07 against run 43's 2222.04–07 saves (a DB copy and
+the dev server): pair 1 "Caedris 21" off Linkirk repaired and ours, exit Caedris Node 5, seven AI
+portals studied and one broken, express dormant, Gate Construction 1925 of 2750 (= the 70 %
+granted), nine other empires with studies or techs, 68 systems reached over the highway; every
+touched tab 200. **Run 43 reads as multiplayer** (its `player` block names the account, open
+check 27), so both switches are barred there — they are checked by unit tests only, and the
+drawing is not seen in a browser yet. **A flag the mod renames breaks this silently**: change
+`#lib/highway.ts` with it.
 
 **Contracts tab** (`/contracts`, `#lib/contracts.ts` pure, `server/contracts.ts`; the user's ask
 2026-11-07: contracts for nomadic and settled empires, a tab and on the maps). `Snapshot.contracts`

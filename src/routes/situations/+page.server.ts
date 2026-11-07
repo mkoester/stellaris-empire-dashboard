@@ -6,6 +6,7 @@ import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display } from '#lib/server/settings.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
+import { modName } from '#lib/modContent.ts';
 
 // The game's situation log: first contacts (table and map), situations, anomalies, special
 // projects and dig sites, at the branch's latest save that has them, over the campaign's galaxy.
@@ -70,7 +71,7 @@ export function load({ url }) {
 			return {
 				...p,
 				system: system(p.systemId),
-				name: info?.name ?? p.key,
+				name: modName(data, p.key, info?.name),
 				department: info?.department ?? null,
 				days: info?.days ?? null,
 				outcomes: opts.projectSpoilers ? (info?.outcomes ?? []) : null

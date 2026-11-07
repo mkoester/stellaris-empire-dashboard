@@ -273,6 +273,8 @@ export function candidates(
 	const cy = galaxy.reduce((a, s) => a + s.y, 0) / Math.max(1, galaxy.length);
 	return galaxy.map((s) => {
 		const why: string[] = [];
+		// the Ancient Highway's ring nodes and portals: nobody owns them, so nobody builds there
+		if (s.unclaimable) why.push('never claimable (Ancient Highway)');
 		if (rule.stars && !rule.stars.includes(s.star))
 			why.push(
 				`not a ${rule.stars.map((x) => x.replace(/^sc_/, '').replace('_', ' ')).join(' or ')}`

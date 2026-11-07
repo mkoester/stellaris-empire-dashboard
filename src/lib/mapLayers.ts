@@ -221,13 +221,14 @@ const days = (d: number | null) => (d === null ? '' : `, ${Math.ceil(d)} days le
 
 const isGate = (t: string) => /gateway|lgate/.test(t);
 const isRuin = (t: string) => /ruined/.test(t);
-const structure = (t: string) =>
-	(/^lgate/.test(t) ? 'L-Gate' : pretty(t.replace(/_(permanently_)?ruined.*$/, ''))) +
+const structure = (t: string, names: Record<string, string> = {}) =>
+	(names[t] ?? (/^lgate/.test(t) ? 'L-Gate' : pretty(t.replace(/_(permanently_)?ruined.*$/, '')))) +
 	(/permanently_ruined/.test(t) ? ' (beyond repair)' : isRuin(t) ? ' (ruined)' : '');
 
 /** Every marker of the discovered galaxy (`galaxy` holds only what the map may show). */
 export function mapMarkers(p: {
 	galaxy: GalaxySystem[];
+	names?: Record<string, string>; // the enabled mods' texts: their megastructures' names
 	// along the branch (`tracked()`): a `doneAt` marks it done; without one, open
 	contacts: (FirstContact & { doneAt?: string | null })[];
 	anomalies: (AnomalyInfo & { doneAt?: string | null })[];
@@ -349,7 +350,7 @@ export function mapMarkers(p: {
 			out.push({
 				layer: 'gateways',
 				systemId: s.id,
-				label: structure(t),
+				label: structure(t, p.names),
 				detail: 'bypass',
 				seen: visited(s.id), // null for an L-Gate the spoiler shows
 				done: false
@@ -358,7 +359,7 @@ export function mapMarkers(p: {
 			out.push({
 				layer: isRuin(t) ? 'ruins' : 'megastructures',
 				systemId: s.id,
-				label: structure(t),
+				label: structure(t, p.names),
 				detail: 'megastructure',
 				seen: visited(s.id),
 				// a ruin is done once an empire claims its system (none of the structure's own

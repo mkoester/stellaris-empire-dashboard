@@ -60,7 +60,7 @@ describe('parseModDescriptor', () => {
 	const text =
 		'name="Colored Map Icons"\ntags={\n\t"Graphics"\n}\npicture="thumbnail.png"\nsupported_version="v4.5.*"\npath="S:/steamapps/workshop/content/281990/1381214767"\nremote_file_id="1381214767"';
 
-	it('reads name, tags, supported version and the workshop id', () => {
+	it('reads name, tags, supported version, the workshop id and the folder', () => {
 		expect(parseModDescriptor(text, 'ugc_1381214767.mod')).toEqual({
 			name: 'Colored Map Icons',
 			version: null,
@@ -69,7 +69,8 @@ describe('parseModDescriptor', () => {
 			steamId: '1381214767',
 			updated: null,
 			file: 'ugc_1381214767.mod',
-			local: false
+			local: false,
+			path: 'S:/steamapps/workshop/content/281990/1381214767'
 		});
 	});
 

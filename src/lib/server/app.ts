@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { mkdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -22,7 +23,8 @@ import { loadDataVersion, loadGameData } from './gamedata.ts';
 import { READER, setEntryEvents, setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
 import { ensureDataDb, extractorFromEnv } from './extract.ts';
-import { loadModDescriptors, readLoadOrder } from './mods.ts';
+import { loadModContent, loadModDescriptors, readLoadOrder } from './mods.ts';
+import { withModContent } from '#lib/modContent.ts';
 import { watchSaves, type Watcher } from './watch.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
@@ -208,6 +210,12 @@ async function stop() {
 	console.log('stopped');
 }
 
+/** `:<hash>` of the mods' texts for the reader key; none without any, so the key stays as it was. */
+const textHash = (text: Record<string, string>) =>
+	Object.keys(text).length
+		? `:${createHash('sha256').update(JSON.stringify(text)).digest('hex').slice(0, 12)}`
+		: '';
+
 async function run() {
 	const paths = resolvePaths(process.env, readConfig(appDir()), appDir());
 	if (!paths) {
@@ -219,17 +227,26 @@ async function run() {
 	const { dashboardDb: dbFile, saveDir, gameLog } = paths;
 	const dataDb =
 		paths.dataDb ?? (await ensureDataDb(paths.gameDir!, appDir(), extractorFromEnv(process.env)));
-	state.gameData = loadGameData(dataDb);
-	state.dataVersion = loadDataVersion(dataDb);
-	setPrescriptedNames(state.gameData.prescriptedNames);
-	setEntryEvents(state.gameData.entryEvents);
-	state.explanations = loadExplanations(dataDb);
 	state.mods = loadModDescriptors(saveDir);
 	state.userDir = dirname(saveDir);
+	// the enabled mods' texts and techs (the data DB holds the game's own): names of what they add
+	const modContent = await loadModContent(
+		state.mods,
+		readLoadOrder(state.userDir),
+		state.userDir,
+		paths.gameDir
+	);
+	state.gameData = withModContent(loadGameData(dataDb), modContent);
+	state.dataVersion = loadDataVersion(dataDb);
+	// the data DB's names win over a mod's texts
+	setPrescriptedNames({ ...modContent.text, ...state.gameData.prescriptedNames });
+	setEntryEvents(state.gameData.entryEvents);
+	state.explanations = loadExplanations(dataDb);
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));
 
-	// Snapshots carry names from the data DB (prescripted empires): a new one means a new reading.
+	// Snapshots carry names from the data DB (prescripted empires) and the mods' texts: a new one
+	// means a new reading.
 	const data = statSync(dataDb);
 	state.watcher = await watchSaves(store, saveDir, {
 		onIngest: (r) => recorded(r, r.file),
@@ -237,7 +254,8 @@ async function run() {
 		onRefresh: (r) =>
 			console.log(`${r.isNew ? 'late' : 're-read'} node ${nodeLabel(store, r.nodeId)} ← ${r.file}`),
 		onError: (file, e) => console.error(`cannot ingest ${file}:`, e),
-		reader: `${READER}:${data.mtimeMs}:${data.size}`
+		// a mod's texts name systems and the like: changed texts mean a new reading too
+		reader: `${READER}:${data.mtimeMs}:${data.size}${textHash(modContent.text)}`
 	});
 	// after the backfill, so the note carries the latest game date
 	const head = headId(store);

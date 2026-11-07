@@ -9,6 +9,7 @@ import {
 	tracked
 } from '#lib/mapLayers.ts';
 import { diplomacyView } from '#lib/diplomacy.ts';
+import { modName } from '#lib/modContent.ts';
 import { modeData } from '#lib/mapModes.ts';
 import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
@@ -118,8 +119,9 @@ export function load({ url }) {
 				(p) => p.id
 			).map((p) => ({
 				...p,
-				name: data.projects[p.key]?.name ?? p.key
+				name: modName(data, p.key, data.projects[p.key]?.name)
 			})),
+			names: data.modText,
 			anomalyNames: Object.fromEntries(
 				Object.entries(data.anomalyCategories).map(([k, v]) => [k, v.name])
 			),
