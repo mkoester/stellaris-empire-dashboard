@@ -18,6 +18,7 @@ type Fields = Pick<
 	| 'anomalies'
 	| 'specialProjects'
 	| 'digSites'
+	| 'slaveMarket'
 >;
 
 /**
@@ -31,6 +32,12 @@ const CHECKS: {
 	known: (s: Fields) => boolean;
 	has: (s: Fields) => boolean;
 }[] = [
+	{
+		tab: 'slave market',
+		why: 'nothing has been offered on the Slave Market yet',
+		known: (s) => s.slaveMarket !== null && s.slaveMarket !== undefined,
+		has: (s) => (s.slaveMarket ?? []).length > 0
+	},
 	{
 		tab: 'migration',
 		why: 'no pop has migrated into, out of or within your empire yet',

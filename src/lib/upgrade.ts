@@ -115,6 +115,8 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	timelineId: null,
 	previousTimelineId: null,
 	logEvents: null,
+	slaveMarket: null,
+	slaveTradeBans: null,
 	ticks: null
 };
 

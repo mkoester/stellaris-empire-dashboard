@@ -38,6 +38,7 @@ import {
 	sectors,
 	speciesInfo,
 	speciesByEmpire,
+	slaveMarket,
 	planetBudget,
 	shipCounts,
 	strata,
@@ -87,6 +88,7 @@ const raw: RawSave = {
 	market: undefined,
 	popJobs: {},
 	popGroups: {},
+	slaveMarket: undefined,
 	fleets: {},
 	ships: {},
 	shipDesigns: {},
@@ -1077,6 +1079,41 @@ describe('intelOf, a pact partner (READER 45)', () => {
 			techsTheyLack: ['tech_d']
 		});
 		expect(intelOf(1, c, {}, 0)).not.toHaveProperty('techsWeLack');
+	});
+});
+
+describe('slaveMarket', () => {
+	// Fangnaur 2200.02.09 (4.5.3): our Quenti on sale, their group's `planet` is a colony id
+	const raw = {
+		slaveMarket: [{ key: 71, value: 100 }],
+		popGroups: { '71': { key: { species: 2 }, planet: 0, size: 802 } },
+		speciesDb: { '2': { name: { key: 'SPEC_Quenti' } } },
+		countryId: 0,
+		empireName: 'Enlightened Kingdom of Fangnaur',
+		countryBlocks: {
+			'0': { controlled_colonies: [0] },
+			'5': { controlled_colonies: [9], name: { key: 'Roaming Beldroan' } }
+		}
+	};
+	it('reads each offer with species and seller', () => {
+		expect(slaveMarket(raw as never)).toEqual([
+			{
+				popGroup: 71,
+				species: 'Quenti',
+				pops: 100,
+				groupSize: 802,
+				seller: 0,
+				sellerName: 'Enlightened Kingdom of Fangnaur'
+			}
+		]);
+	});
+	it('names another seller, and reads an empty market', () => {
+		const theirs = { ...raw, popGroups: { '71': { ...raw.popGroups['71'], planet: 9 } } };
+		expect(slaveMarket(theirs as never)[0]).toMatchObject({
+			seller: 5,
+			sellerName: 'Roaming Beldroan'
+		});
+		expect(slaveMarket({ ...raw, slaveMarket: undefined } as never)).toEqual([]);
 	});
 });
 

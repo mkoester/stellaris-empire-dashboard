@@ -24,6 +24,7 @@ describe('profiles', () => {
 			display: {
 				colonyRowLine: 'thick',
 				expansionRowLine: 'medium',
+				slaveMarket: 'mine',
 				showSpoilers: false,
 				showCheats: false,
 				habitatsAlways: false,
@@ -74,6 +75,7 @@ describe('profiles', () => {
 			display: {
 				colonyRowLine: 'thin',
 				expansionRowLine: 'medium',
+				slaveMarket: 'mine',
 				showSpoilers: false,
 				showCheats: false,
 				habitatsAlways: false,

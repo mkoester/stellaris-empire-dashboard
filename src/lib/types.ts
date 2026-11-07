@@ -125,6 +125,20 @@ export type CivilianShip = {
 export type SpeciesInfo = { id: string; name: string; cls: string; traits: string[]; pops: number };
 
 /** An empire's pops by species (ours and our migration-treaty partners'); `founder` its main one. */
+/**
+ * Pops for sale on the Slave Market (`slave_market_manager.slaves_on_market`: pop group → pops
+ * offered, READER 50). The save keeps no seller, price or date: the seller is the owner of the pop
+ * group's planet; the pops stay in their group until sold.
+ */
+export type SlaveOffer = {
+	popGroup: number;
+	species: string;
+	pops: number; // offered
+	groupSize: number; // the whole pop group's size
+	seller: number | null; // country id
+	sellerName: string;
+};
+
 export type EmpireSpecies = {
 	countryId: number;
 	founder: string | null;
@@ -492,6 +506,9 @@ export type Snapshot = {
 	history: HistoryReading | null; // the whole galaxy's owners and colonies, for the history tab; READER 43
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
+	slaveMarket: SlaveOffer[] | null; // the Slave Market's offers, everyone's; since READER 50
+	// the Galactic Community's bans (global flags): organic or all sentient pops may not be sold
+	slaveTradeBans: { organic: boolean; sentient: boolean } | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
 	// before; names the branch point when a save is loaded. null without the mod (0.2.0+).
 	timelineId: number | null;
@@ -519,11 +536,13 @@ export type SpendLogKind =
 	| 'leader-hired'
 	| 'colonization-started'
 	| 'megastructure-started';
+/** Mod 0.12.0: a pop group sold on the Slave Market (species, pops, buyer, seller — names). */
+export type MarketLogKind = 'slave-sold';
 
 /** One `SDASH|2|<date>|event|…` line of the companion mod; fields as `feed.ts` documents them. */
 export type LogEvent = {
 	date: string;
-	kind: MilestoneLogKind | SpendLogKind;
+	kind: MilestoneLogKind | SpendLogKind | MarketLogKind;
 	fields: string[];
 };
 

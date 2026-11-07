@@ -31,6 +31,7 @@ import {
 import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
 import { settleTab } from '#lib/server/settle.ts';
+import { slaveTab } from '#lib/server/slaveTab.ts';
 import { emptyTabsAt } from '#lib/server/tabData.ts';
 import { galaxyRings } from '#lib/server/quadrants.ts';
 import type { QuadrantView } from '#lib/quadrants.ts';
@@ -49,6 +50,7 @@ export function load({ url }) {
 			campaign: null,
 			gone: [],
 			tradeoffs: false,
+			slaveMarket: false,
 			loaded: null,
 			feed: null,
 			head: null,
@@ -89,6 +91,8 @@ export function load({ url }) {
 		gone: askGone(db, campaignsOnDisk()),
 		// the exploratory trade-offs tab, a display switch
 		tradeoffs: display().tradeoffs,
+		// the slave market tab: where slavery is allowed, else as ⚙ says
+		slaveMarket: slaveTab(shownNode(), display().slaveMarket),
 		loaded: loadedNode ? { node: loadedNode.id, date: loadedNode.date } : null,
 		// the companion mod writes a log format this build skips: which side to update
 		feed: (() => {

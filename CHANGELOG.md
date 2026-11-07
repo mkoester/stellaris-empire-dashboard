@@ -15,6 +15,12 @@ All notable changes to this project are documented here. The format follows
 - The Traditions tab shows each tree in its colour from the game: a stripe beside each adopted
   tree, a dot before each of the others. The planner tab's tradition goals carry it too, as a
   stripe on their adopt / pick / finisher badge.
+- A Slave Market tab: what is for sale now (species, pops, seller) and what was offered before,
+  with the date it was gone. With the companion mod 0.12.0 it also lists every sale — species,
+  pops, buyer and seller — and names the buyer of each ended offer; in multiplayer and Ironman only
+  the sales we take part in. An empire that allows slavery always sees the tab; for one that does
+  not, ⚙ → Display decides: only while a species we give full citizenship is for sale (default),
+  always, or never.
 
 ## [0.1.12] - 2026-11-06
 

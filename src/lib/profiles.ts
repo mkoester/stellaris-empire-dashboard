@@ -19,9 +19,18 @@ import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from '.
 
 export const ROW_LINES = { thin: 1, medium: 2, thick: 4 } as const; // px
 export type RowLine = keyof typeof ROW_LINES;
+// The slave market tab for an empire that does not allow slavery (one that does always sees it):
+// only while a species we give full citizenship is for sale, always, or never.
+export const SLAVE_MARKET_MODES = {
+	mine: 'only when our citizens are for sale',
+	all: 'always',
+	hide: 'never'
+} as const;
+export type SlaveMarketMode = keyof typeof SLAVE_MARKET_MODES;
 export type Display = {
 	colonyRowLine: RowLine;
 	expansionRowLine: RowLine;
+	slaveMarket: SlaveMarketMode; // the slave market tab where slavery is not allowed
 	showSpoilers: boolean; // ⚙ lists the spoiler switches; off, they are off (#lib/displaySwitches.ts)
 	showCheats: boolean; // likewise the cheats
 	habitatsAlways: boolean; // habitat sites before habitats can be built (cheat)
@@ -50,6 +59,7 @@ export type Display = {
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
 	expansionRowLine: 'medium',
+	slaveMarket: 'mine',
 	showSpoilers: false,
 	showCheats: false,
 	habitatsAlways: false,
@@ -120,6 +130,10 @@ export function parseDisplay(v: unknown): Display {
 	return {
 		colonyRowLine: line('colonyRowLine'),
 		expansionRowLine: line('expansionRowLine'),
+		slaveMarket:
+			o.slaveMarket && o.slaveMarket in SLAVE_MARKET_MODES
+				? o.slaveMarket
+				: DEFAULT_DISPLAY.slaveMarket,
 		// a profile from before the gates keeps what it had on
 		showSpoilers: typeof o.showSpoilers === 'boolean' ? o.showSpoilers : anyOn(o, 'spoiler'),
 		showCheats: typeof o.showCheats === 'boolean' ? o.showCheats : anyOn(o, 'cheat'),

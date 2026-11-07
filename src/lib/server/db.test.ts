@@ -143,6 +143,8 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	branchSites: null,
 	history: null,
 	speciesRights: null,
+	slaveMarket: null,
+	slaveTradeBans: null,
 	timelineId: null,
 	previousTimelineId: null,
 	logEvents: null,
