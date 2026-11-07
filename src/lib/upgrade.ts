@@ -115,6 +115,8 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	timelineId: null,
 	previousTimelineId: null,
 	logEvents: null,
+	slaveMarket: null,
+	slaveTradeBans: null,
 	ticks: null
 };
 
@@ -143,6 +145,7 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	happiness: null,
 	habitability: null,
 	speciesHabitability: {},
+	speciesPops: {},
 	sector: null,
 	automation: { enabled: false, settings: [] },
 	produces: {},

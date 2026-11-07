@@ -86,6 +86,10 @@ const COLORS: Record<string, string> = {
 
 export const colorOf = (key: string): string | undefined => COLORS[key];
 
+/** A tint: a colour as is ('#rrggbb', from the game data), else a `COLORS` key. */
+export const tintColor = (tint: string): string | undefined =>
+	tint.startsWith('#') ? tint : colorOf(tint);
+
 /**
  * A value's place between the worst and the best of its column: red (worst) through amber to green
  * (best), readable on both backgrounds. Null when every value is the same.

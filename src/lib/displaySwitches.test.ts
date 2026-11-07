@@ -14,7 +14,14 @@ const sw = (key: string) => SWITCHES.find((s) => s.key === key)!;
 describe('SWITCHES', () => {
 	it('lists every switch of Display once, each in a known group', () => {
 		const keys = Object.keys(DEFAULT_DISPLAY).filter(
-			(k) => !['colonyRowLine', 'expansionRowLine', 'showSpoilers', 'showCheats'].includes(k)
+			(k) =>
+				![
+					'colonyRowLine',
+					'expansionRowLine',
+					'slaveMarket',
+					'showSpoilers',
+					'showCheats'
+				].includes(k)
 		);
 		expect(SWITCHES.map((s) => s.key).sort()).toEqual(keys.sort());
 		for (const s of SWITCHES) expect(SWITCH_GROUPS).toContain(s.group);

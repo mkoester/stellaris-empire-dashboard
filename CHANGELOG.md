@@ -4,6 +4,36 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.13] - 2026-11-07
+
+### Added
+
+- Every map marks the stars that change a fight in their system: pulsars (shields disabled),
+  neutron stars (sublight speed −50 %), black holes (harder to disengage and to jump away), the
+  X-ray binaries with one of them and the Viridescent Lightbringer (armor disabled). Each has its
+  own icon, its effects on hover, and the legend under the map explains them.
+- The Traditions tab shows each tree in its colour from the game: a stripe beside each adopted
+  tree, a dot before each of the others. The planner tab's tradition goals carry it too, as a
+  stripe on their adopt / pick / finisher badge.
+- A Slave Market tab: what is for sale now (species, pops, seller) and what was offered before,
+  with the date it was gone. With the companion mod 0.12.0 it also lists every sale — species,
+  pops, buyer and seller — and names the buyer of each ended offer; in multiplayer and Ironman only
+  the sales we take part in. An empire that allows slavery always sees the tab; for one that does
+  not, ⚙ → Display decides: only while a species we give full citizenship is for sale (default),
+  always, or never.
+- Each colony page lists its pops by species, with their citizenship (and slavery type for slaves)
+  and habitability; its Pops (jobs) chart gains an "enslaved" line where there are slaves — they
+  work ordinary jobs, so "employed" includes them.
+
+### Changed
+
+- A chart's right-hand axis is named beside it (open jobs, pops per month, …).
+
+### Fixed
+
+- Species rights of every species but the founder were not read (the government, ethics and
+  leaders tabs saw none for them).
+
 ## [0.1.12] - 2026-11-06
 
 ### Fixed

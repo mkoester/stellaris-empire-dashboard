@@ -18,6 +18,7 @@
 	import type { Territory } from './territories.ts';
 	import { MAP_SHIPS, type MapShips, type OwnOnMap } from './mapLayers.ts';
 	import type { Arkship } from './types.ts';
+	import { specialStar, starTitle, STAR_LEGEND, type StarEffect } from './stars.ts';
 
 	// A galaxy map in screen pixels: hyperlanes and systems (own ones tinted, or filled by `fill`),
 	// with drag to pan, the wheel to zoom and the bottom edge to resize. What a page draws on top is
@@ -27,6 +28,8 @@
 	// picked one keeps a ring of its own. `territories` are drawn as empire borders (#lib/borders.ts).
 	// `own` (map and systems tabs) adds a nomad's "my waystations" in place of "my empire", the fit
 	// "my stations and ships" and our ships drawn per system, which `ships` picks (`onShips` stores it).
+	// Stars that change the fight in their system (#lib/stars.ts: pulsars, neutron stars, black
+	// holes, …) get an icon left of the system, their effects as its hover, one legend entry below.
 	// `arkships` (a nomad's) are drawn always, as a hexagon above their system, the capital ringed,
 	// with a fit "my arkships".
 	// "full window" lays the map over the whole browser window (Esc leaves it), for every map, per
@@ -44,6 +47,7 @@
 		known?: boolean; // false: an undiscovered star, drawn faint
 		wormholes?: number[]; // where explored wormholes lead, drawn as dashed arcs
 		lgates?: number[]; // an L-Gate's link to the L-Cluster, likewise
+		star?: string; // star class: a special one gets an icon
 	};
 	let {
 		systems,
@@ -278,6 +282,13 @@
 			const t = (Math.PI / 3) * i - Math.PI / 2;
 			return `${i ? 'L' : 'M'}${(x + r * Math.cos(t)).toFixed(1)},${(y + r * Math.sin(t)).toFixed(1)}`;
 		}).join('') + 'Z';
+	// systems whose star changes the fight there
+	const specials = $derived(
+		systems.flatMap((s) => {
+			const star = specialStar(s.star);
+			return star ? [{ s, star }] : [];
+		})
+	);
 	const explored = $derived(systems.filter((s) => s.known !== false));
 	// at least close enough to tell the capital's neighbours apart (~100px between systems)
 	const toCapital = (c: Point) => (view = { cx: c.x, cy: c.y, k: Math.max(v.k, 5) });
@@ -362,9 +373,47 @@
 	}}
 />
 
+<!-- a special star's icon, centred on 0,0, about 12px across -->
+{#snippet starIcon(effect: StarEffect, binary: boolean)}
+	<circle r="6.5" class="fill-white/85 dark:fill-gray-950/85" />
+	{#if effect === 'shields'}
+		<g class="fill-none stroke-sky-500" stroke-width="1.3" stroke-linejoin="round">
+			<path d="M0,-4.8L3.8,-3.3V0C3.8,2.6 2,4 0,5C-2,4 -3.8,2.6 -3.8,0V-3.3Z" />
+			<path d="M-4.2,4.2L4.2,-4.2" />
+		</g>
+	{:else if effect === 'speed'}
+		<path
+			d="M-3.4,-4.4H3.4L-3.4,4.4H3.4Z"
+			class="fill-amber-500/40 stroke-amber-500"
+			stroke-width="1.3"
+			stroke-linejoin="round"
+		/>
+	{:else if effect === 'escape'}
+		<circle r="4.3" class="fill-gray-900 stroke-violet-500" stroke-width="1.6" />
+		<circle r="1.4" class="fill-violet-300" />
+	{:else}
+		<g class="fill-none stroke-lime-600 dark:stroke-lime-400" stroke-width="1.3">
+			<path d={hexagon(0, 0, 4.4)} stroke-linejoin="round" />
+			<path d="M-4.2,4.2L4.2,-4.2" />
+		</g>
+	{/if}
+	{#if binary}<circle cx="4.6" cy="-4.6" r="1.7" class="fill-orange-400" />{/if}
+{/snippet}
+
 {#snippet swatches()}
-	{#if shown.length}
+	{#if shown.length || specials.length}
 		<div class="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500">
+			{#if specials.length}
+				<span
+					class="flex items-center gap-1"
+					title={`Stars that change the fight in their system (a dot: a binary system):\n${STAR_LEGEND.map((l) => l.title).join('\n')}`}
+					><svg width="58" height="14" viewBox="-7 -7 58 14" aria-hidden="true"
+						>{#each STAR_LEGEND as l, i (l.effect)}<g transform="translate({i * 14},0)"
+								><title>{l.title}</title>{@render starIcon(l.effect, false)}</g
+							>{/each}</svg
+					>special stars</span
+				>
+			{/if}
 			{#each shown as t (t.key)}
 				<span class="flex items-center gap-1"
 					><span
@@ -599,9 +648,11 @@
 								onpointerenter={() => (hovered = s.id)}
 								onpointerleave={() => (hovered = null)}
 								><title
-									>{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{titles[s.id]
-										? ` — ${titles[s.id]}`
-										: ''}</title
+									>{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{specialStar(
+										s.star
+									)
+										? ` — ${starTitle(specialStar(s.star)!)}`
+										: ''}{titles[s.id] ? ` — ${titles[s.id]}` : ''}</title
 								></circle
 							>
 							<circle
@@ -617,6 +668,15 @@
 										: 'fill-gray-200 stroke-gray-400'}"
 								stroke-width="1"
 							/>
+						{/each}
+						{#each specials as { s, star } (s.id)}
+							{@const p = at(s)}
+							<g transform="translate({p.x - 12},{p.y})"
+								><title>{s.name} — {starTitle(star)}</title>{@render starIcon(
+									star.effect,
+									star.binary
+								)}</g
+							>
 						{/each}
 						{#each [...shipsAt] as [id, names] (id)}
 							{@const s = byId.get(id)}

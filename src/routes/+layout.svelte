@@ -91,6 +91,15 @@
 			href: node ? resolve(`/market?node=${node}`) : resolve('/market'),
 			active: path === '/market'
 		},
+		...(data.slaveMarket
+			? [
+					{
+						name: 'slave market',
+						href: node ? resolve(`/slaves?node=${node}`) : resolve('/slaves'),
+						active: path === '/slaves'
+					}
+				]
+			: []),
 		{
 			name: 'resources',
 			href: node ? resolve(`/resources?node=${node}`) : resolve('/resources'),

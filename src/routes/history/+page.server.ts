@@ -36,7 +36,15 @@ export function load({ url }) {
 	const galaxy = latest ? campaignGalaxy(latest.campaign) : null;
 	const extra = (galaxy?.systems ?? [])
 		.filter((s) => !ids.has(s.id) && named.has(s.id))
-		.map((s) => ({ id: s.id, name: s.name, x: s.x, y: s.y, lanes: [], known: false }));
+		.map((s) => ({
+			id: s.id,
+			name: s.name,
+			x: s.x,
+			y: s.y,
+			star: s.star,
+			lanes: [],
+			known: false
+		}));
 	// each empire's map colour, else one of ours
 	const colors: Record<number, string> = {};
 	Object.entries(history.names).forEach(([id, name], i) => {

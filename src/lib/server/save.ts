@@ -3,6 +3,7 @@ import { readSetup } from '#lib/galaxySetup.ts';
 import { Jomini } from 'jomini';
 import type {
 	Arkship,
+	SlaveOffer,
 	BranchSite,
 	ExternalBuildings,
 	BudgetSource,
@@ -122,6 +123,7 @@ export type RawSave = {
 	market: Raw; // market: price fluctuations, galactic and internal
 	popJobs: Record<string, Raw>; // top-level pop_jobs, referenced from colony.pop_jobs
 	popGroups: Record<string, Raw>; // top-level pop_groups, referenced from colony.pop_groups
+	slaveMarket: Raw; // slave_market_manager.slaves_on_market
 	fleets: Record<string, Raw>;
 	ships: Record<string, Raw>;
 	shipDesigns: Record<string, Raw>;
@@ -251,6 +253,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			},
 			popJobs: q.at('/pop_jobs') ?? {},
 			popGroups: q.at('/pop_groups') ?? {},
+			slaveMarket: q.at('/slave_market_manager/slaves_on_market'),
 			fleets: q.at('/fleet') ?? {},
 			ships: q.at('/ships') ?? {},
 			shipDesigns: q.at('/ship_design') ?? {},
@@ -293,7 +296,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '49'; // 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '51'; // 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -453,6 +456,11 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		...externalBuildings(raw),
 		history: historyReading(raw),
 		speciesRights: speciesRights(raw.country),
+		slaveMarket: slaveMarket(raw),
+		slaveTradeBans: {
+			organic: 'organic_slave_trade_banned_flag' in (raw.globalFlags ?? {}),
+			sentient: 'sentient_slave_trade_banned_flag' in (raw.globalFlags ?? {})
+		},
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
 		logEvents: null,
@@ -489,13 +497,16 @@ const RIGHT_KINDS = [
 ];
 
 /**
- * Each species' rights: `country.modules.standard_species_rights_module.primary = { species_index
- * citizenship living_standard … }`, one block per species (the module's `default` is for new ones).
+ * Each species' rights: `country.modules.standard_species_rights_module` holds the founder's in
+ * `primary = { species_index citizenship living_standard … }` and every other species' in
+ * `species_rights = { { species_index … } … }` (Fangnaur 2200.08, 4.5.3: the enslaved Quenti only
+ * there — read before READER 51 from `primary` alone); `default` is for new species,
+ * `built_species` for robots.
  */
 export function speciesRights(country: Raw): Record<string, Record<string, string>> {
 	const m = country?.modules?.standard_species_rights_module;
 	return Object.fromEntries(
-		items(m?.primary)
+		[...items(m?.primary), ...items(m?.species_rights)]
 			.filter((p) => typeof p?.species_index === 'number')
 			.map((p) => [
 				String(p.species_index),
@@ -1533,6 +1544,47 @@ export function speciesByEmpire(
 			return there.length ? [{ ...entry(id, c, there), onlyOurs: true as const }] : [];
 		})
 	];
+}
+
+/**
+ * The Slave Market's offers (`slave_market_manager.slaves_on_market = { { key=<pop group>
+ * value=<pops> } }`, 4.5.3 Fangnaur 2200.02.09): the pop group gives species and colony
+ * (`planet` is a colony id), the country controlling that colony the seller.
+ */
+export function slaveMarket(
+	raw: Pick<
+		RawSave,
+		'slaveMarket' | 'popGroups' | 'speciesDb' | 'countryId' | 'countryBlocks' | 'empireName'
+	>
+): SlaveOffer[] {
+	const offers = items(raw.slaveMarket);
+	if (!offers.length) return [];
+	const owner = new Map<string, number>();
+	for (const [id, c] of Object.entries(raw.countryBlocks))
+		if (c && typeof c === 'object')
+			for (const colony of list(c.controlled_colonies)) owner.set(String(colony), Number(id));
+	return offers.flatMap((e) => {
+		const id = Number(e?.key);
+		if (!Number.isFinite(id)) return [];
+		const group = raw.popGroups[String(id)] ?? {};
+		const seller = owner.get(String(group.planet)) ?? null;
+		const c = seller === null ? null : raw.countryBlocks[String(seller)];
+		return [
+			{
+				popGroup: id,
+				species: speciesName(raw.speciesDb[String(group.key?.species)]?.name),
+				pops: num(e.value),
+				groupSize: num(group.size),
+				seller,
+				sellerName:
+					seller === null
+						? '?'
+						: seller === raw.countryId
+							? raw.empireName
+							: displayName(c?.name) || `empire ${seller}`
+			}
+		];
+	});
 }
 
 /**
@@ -2580,9 +2632,14 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const hab = { size: 0, weighted: 0 };
 	const power = { total: 0, weighted: 0 };
 	const bySpecies = new Map<string, { size: number; weighted: number }>();
+	const speciesPops: Record<string, number> = {};
 	for (const id of ids) {
 		const g = popGroups[String(id)];
 		if (!g || typeof g !== 'object' || !(num(g.size) > 0)) continue;
+		if (g.key?.species !== undefined) {
+			const sp = String(g.key.species);
+			speciesPops[sp] = (speciesPops[sp] ?? 0) + num(g.size);
+		}
 		if (typeof g.habitability === 'number') {
 			hab.size += num(g.size);
 			hab.weighted += num(g.size) * g.habitability;
@@ -2618,7 +2675,8 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 		habitability: hab.size > 0 ? hab.weighted / hab.size : null,
 		speciesHabitability: Object.fromEntries(
 			[...bySpecies].map(([sp, s]) => [sp, s.weighted / s.size])
-		)
+		),
+		speciesPops
 	};
 }
 

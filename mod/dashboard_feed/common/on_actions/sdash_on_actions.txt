@@ -136,3 +136,11 @@ on_entering_system_first_time = {
 		sdash.29
 	}
 }
+
+# This = Pop group, From = Country (buyer), FromFrom = Country (seller) — every sale in the galaxy
+# (4.5.3 00_on_actions.txt; empty in vanilla)
+on_slave_sold_on_market = {
+	events = {
+		sdash.30
+	}
+}

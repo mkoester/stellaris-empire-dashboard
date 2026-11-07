@@ -6,6 +6,7 @@ import type { GameData } from './types.ts';
 export type TreeRow = {
 	key: string;
 	name: string;
+	color?: string; // the tree's colour in game
 	picked: { key: string; name: string }[];
 	total: number; // traditions to pick in the tree (adopt and finish not counted)
 	finished: boolean;
@@ -21,6 +22,7 @@ export function adoptedTrees(owned: string[], data: Pick<GameData, 'traditionTre
 			return {
 				key,
 				name: tree.name,
+				color: tree.color,
 				adopted: adopt !== undefined && have.has(adopt.key),
 				order: adopt ? owned.indexOf(adopt.key) : -1,
 				picked: owned.flatMap((k) => normal.filter((t) => t.key === k)),
@@ -31,9 +33,10 @@ export function adoptedTrees(owned: string[], data: Pick<GameData, 'traditionTre
 		})
 		.filter((t) => t.adopted)
 		.sort((a, b) => a.order - b.order)
-		.map(({ key, name, picked, total, finished, all }) => ({
+		.map(({ key, name, color, picked, total, finished, all }) => ({
 			key,
 			name,
+			...(color ? { color } : {}),
 			picked: picked.map((t) => ({ key: t.key, name: t.name })),
 			total,
 			finished,

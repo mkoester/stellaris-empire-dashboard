@@ -399,11 +399,18 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 **Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `planner`
 (`/planner`, see "Planner tab"), `colonies`
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
-`/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
+`/colony/[id]` with a dropdown; old `/planet/[id]` links redirect; its "Pops by species" panel and
+the Pops (jobs) chart's `enslaved` line come from `Colony.speciesPops` (READER 51) and the species'
+citizenship, `#lib/colonySpecies.ts` — **4.x has no slave stratum**: enslaved pops are `worker`,
+`specialist` or `civilian` (`slave_unemployment` only when jobless), so `employed` includes them),
 `map` (`/map`, the discovered galaxy, see below), `history` (below), `migration`, `expansion`
 (`/expansion`: the Expansion panel full-size, see below), `growth` (`/growth`, see below), `jobs` (`/jobs`, see below), `trade` (`/trade`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
-(`/market`: prices over time and the standing orders, `#lib/market.ts`), `resources`
+(`/market`: prices over time and the standing orders, `#lib/market.ts`), `slave market`
+(`/slaves`, `#lib/slaveMarket.ts`: offers now and before, the mod's sales; shown where our policy
+`slavery` is `slavery_allowed`, else per ⚙'s `slaveMarket` mode — `mine` (default: while a species
+of ours with `citizenship_full*` is offered, matched by name), `all`, `hide`; `slaveTab()` per tip;
+sales between two other empires barred under `viewedNoCheats()`), `resources`
 (`/resources`: per resource, in the Resources strip's order (`stripOrder()`), a chart — stockpile
 left, net per month right (`resourcePanelSeries()`) — and the latest save's month by budget source
 (`Snapshot.budget`, every source, the market's as `market:<source>`; `resourceBudget()` in
@@ -436,7 +443,14 @@ them (`discovered()`, `mapView()`, `server/mapSystems.ts`). As the game, a map a
 lane of a system whose lanes the empire knows — `country.hyperlane_systems` (`GalaxySystem.lanesKnown`):
 visited plus hyperlane detection range, which sensors and the Map the Stars edict raise
 (2207.03.10: 60 = 41 visited + 10 one jump out + 9 further; matches the game's map around Craxima
-and Rimmock) — the systems at their far ends faint, "Unknown". Explored wormholes are dashed arcs, behind the profile's `wormholeLinks` switch (on). Explored =
+and Rimmock) — the systems at their far ends faint, "Unknown". **Special stars** (the user's ask 2026-11-06; `#lib/stars.ts` pure): the star classes with a
+`modifier` in `common/star_classes/00_star_classes.txt` — pulsar and `sc_binary_1` (shields −100 %),
+neutron star and `sc_binary_2` (sublight speed −50 %), black hole (disengage chance −50 %,
+emergency FTL minimum days +50 %), toxoid star (armor −100 %), the `sc_crisis_binary_*` like their
+originals; the Astral Scar's is empty — get an icon per effect left of the system (a dot for a
+binary), their effects in its hover, and one "special stars" legend entry below every map
+(`GalaxyMap` draws it; `mapView()` passes `star` on, unknown systems' too: the game shows every
+star's class). Re-check on game updates. Explored wormholes are dashed arcs, behind the profile's `wormholeLinks` switch (on). Explored =
 **both ends visited**: the save marks no wormhole as explored (bypasses carry no such field, the
 country only `seen_bypass_types`), and exploring one is a fleet's jump through it (4.5.2
 `common/bypass/00_bypasses.txt`, `on_pre_explore`), which visits the far end; one end visited is
@@ -825,7 +839,8 @@ first (a gate of tier k as k + ½), so each goes as early as it can ("Fusion Pow
 techs of tier 1", the user's ask) and the plan's order decides within a tier. **Badges**
 (`badgeOf()`, `areaOf()`): a tech's and tier gate's tier (T1…) and research area in the game's
 colours (`<area>_research`), a tradition's place — adopt, pick, finisher (the community's word;
-the game says "… Traditions Finished") —, perk; the research group filters by area (per viewer,
+the game says "… Traditions Finished"; its tree's colour from the data DB as a stripe,
+`tintOf()` → `tintColor()`) —, perk; the research group filters by area (per viewer,
 none on = all, suggestions too); the history shows them with the goal's group, its reorderings
 behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
 (`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, none that
@@ -1162,7 +1177,9 @@ Philosophy under both its categories), edicts those whose potential holds and th
 (traditions, perks and `prerequisites` techs; 2207.03.10: exactly the game's five). The profile's
 `showLocked` switch (⚙) adds the rest: locked agendas and edicts, all policies and options.
 **Species rights** (species tab, `#lib/rights.ts`): `country.modules.standard_species_rights_module
-.primary = { species_index citizenship living_standard … }` per species, every option of each kind
+.primary = { species_index citizenship living_standard … }` for the founder species and
+`.species_rights = { { species_index … } … }` for every other (READER 51; before, other species had
+no rights at all — Fangnaur 2200.08's enslaved Quenti), every option of each kind
 whose potential is not false (`from` = the country, folded in; `has_trait` = the species'),
 2207.03.10: Human as the game's panel, a few options more than the game shows (their conditions
 read scopes the save cannot answer). **Slavery and purge types only for a species whose
@@ -1734,18 +1751,19 @@ complete and became node 286 under 281, beside the left 08.01 (282). Event lines
 The format is shared with `feed.ts` — change both together and bump the number. The table below
 shows format 2.
 
-| Line                                                                 | When                 | From                                                      |
-| -------------------------------------------------------------------- | -------------------- | --------------------------------------------------------- |
-| `timeline\|<id>\|<previous id>`                                      | monthly, first       | `on_monthly_pulse_country`                                |
-| `<resource>\|<stockpile>\|<monthly income>` × 26, then `end`         | monthly              | same                                                      |
-| `tick\|<resource>\|<stockpile>` × 26, then `tick-end`                | daily                | a self-rescheduling event                                 |
-| `load\|<id>`                                                         | a save was loaded    | `on_single_player_save_game_load`                         |
-| `event\|colony\|<planet>`                                            | colony established   | `on_colonized`                                            |
-| `event\|war-started\|<war>` / `event\|war-ended\|<loser>\|<winner>`  | at once              | `on_war_beginning` / `on_war_ended`                       |
-| `event\|leader-died\|<leader>`, `event\|ruler\|<name>`               | at once              | `on_leader_death`, `on_ruler_set`                         |
-| `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`       | each battle we fight | `on_space_battle_won`                                     |
-| `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0) | at once              | queued/cancelled, edict, decision, … (`#lib/spending.ts`) |
-| `event\|multiplayer` (0.11.0)                                        | monthly              | `is_multiplayer` holds (see "No cheats in multiplayer")   |
+| Line                                                                 | When                   | From                                                                          |
+| -------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| `timeline\|<id>\|<previous id>`                                      | monthly, first         | `on_monthly_pulse_country`                                                    |
+| `<resource>\|<stockpile>\|<monthly income>` × 26, then `end`         | monthly                | same                                                                          |
+| `tick\|<resource>\|<stockpile>` × 26, then `tick-end`                | daily                  | a self-rescheduling event                                                     |
+| `load\|<id>`                                                         | a save was loaded      | `on_single_player_save_game_load`                                             |
+| `event\|colony\|<planet>`                                            | colony established     | `on_colonized`                                                                |
+| `event\|war-started\|<war>` / `event\|war-ended\|<loser>\|<winner>`  | at once                | `on_war_beginning` / `on_war_ended`                                           |
+| `event\|leader-died\|<leader>`, `event\|ruler\|<name>`               | at once                | `on_leader_death`, `on_ruler_set`                                             |
+| `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`       | each battle we fight   | `on_space_battle_won`                                                         |
+| `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0) | at once                | queued/cancelled, edict, decision, … (`#lib/spending.ts`)                     |
+| `event\|multiplayer` (0.11.0)                                        | monthly                | `is_multiplayer` holds (see "No cheats in multiplayer")                       |
+| `event\|slave-sold\|<species>\|<pops>\|<buyer>\|<seller>` (0.12.0)   | each sale, galaxy-wide | `on_slave_sold_on_market` (This = pop group, From = buyer, FromFrom = seller) |
 
 - **Diplomatic weight** (0.4.0): no log line — each month the player's event exports every
   Galactic Community member's `diplomacy_weight` trigger into its country variable `sdash_dw`, so
@@ -1948,6 +1966,18 @@ A `.sav` is a zip of `meta` and `gamestate`, both plaintext Clausewitz (~20 MB `
   (`monthly_trades.<resource>`); the game's top bar includes them (2200.04: energy 118 − 80 = +38).
   The orders themselves: top-level `market.monthly_trades = { { trade_data = { trade_type=
 market_buy|market_sell resource country } amount } }`.
+- **Slave Market** (4.5.3, Fangnaur 2200.02–08, the first filled one we saw): top-level
+  `slave_market_manager = { slaves_on_market = { { key=<pop group> value=<pops offered> } } }`,
+  empty `{}` until someone sells. Nothing else per offer — no seller, price or date: the seller is
+  whoever controls the colony in the pop group's `planet` (a **colony** id, `country.
+controlled_colonies`). The offered pops stay in their group (71: still 802 while 100 were on
+  sale) and on a sale move into **new** groups of the buyer (two new ids on its capital), so a save
+  cannot tell the buyer — the mod's `slave-sold` line can. Only the UI ("Sell Slaves") and the AI
+  (20 % a month, `AI_SLAVE_MARKET_SELL_INTERACTION_CHANCE`) put pops on it; it needs Galactic
+  Market access (in a throwaway game: `galcom.16`, `action.96`, nominate, `action.98`; another
+  empire as `play <id>` then `effect set_country_flag = has_market_access` and `effect
+enable_galactic_market = yes`). GalCom bans: global flags `organic_slave_trade_banned_flag`,
+  `sentient_slave_trade_banned_flag` (`Snapshot.slaveTradeBans`).
 - Market prices: `market.internal_market_fluctuations = { country=<id> resources={ energy=-15.9 … }
 … }` (jomini: `country` and `resources` become parallel arrays), percent off the base price,
   only resources that moved. Base price per unit = `market_price` (100 for all) / `market_amount`
@@ -2334,7 +2364,7 @@ progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.0
   will be generated"). At the next draw (`research_technology tech_shields_2` from the console,
   2200.02.03 — the save's `alternatives` change at once, while the panel keeps showing the finished
   tech until the next tick) it **was not among the new cards**, and no `always_available_tech`
-  entry appeared; its 13.3 points stayed stored. So events that grant progress *and* keep a tech
+  entry appeared; its 13.3 points stayed stored. So events that grant progress _and_ keep a tech
   on offer do two things: of 493 `add_tech_progress` in `events/` and `common/`, 280 pair it with
   an `add_research_option` of the same tech. Read as `Snapshot.techKept` (READER 49, `techKept()` in `server/save.ts`), shown on the tech tab; checked 2026-11-06 on a copy of the `throwaway` DB re-read from the UNE 4 saves: Administrative AI 13 (not on offer), Zero-G Refineries 13 and Planetary Unification 16 (on offer, ↺). The game's own panel shows that draw without it too (2200.03.02, `2026_11_06_7.png`: Fusion Power, Blue Lasers, Zero-G Laboratories — the same draw, no second one yet). Whether stored points
   raise a tech's draw weight is not known (`TECH_WEIGHT_PREVIOUS_OPTION = 0.5` lowers a previous

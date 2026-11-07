@@ -450,12 +450,17 @@ export function agendaSeries(history: Snapshot[]): Series {
  * them on the days the companion mod (0.9.0) logged a change — its ticks, filed with the month
  * after them, matched by the colony's name (`name`: the page's, for months the log alone saw).
  * A day's employed is pops − unemployed, its civilians the unemployed (docs/open-checks.md 23).
+ * `enslaved` (pops of enslaved species, which work ordinary jobs) comes from the saves alone — the
+ * mod's days carry no species — and the line is left out when it is never above 0.
  */
 export function colonyDaySeries(
 	history: Snapshot[],
 	planetId: number,
 	name: string,
-	atSave: (c: Colony) => { pops: number; employed: number; civilians: number; open: number }
+	atSave: (
+		c: Colony,
+		s: Snapshot
+	) => { pops: number; employed: number; civilians: number; open: number; enslaved?: number | null }
 ): Series {
 	const points = history.flatMap((s, i) => {
 		const after = i > 0 ? history[i - 1].date : '';
@@ -471,22 +476,26 @@ export function colonyDaySeries(
 								pops: d.pops,
 								employed: d.pops - d.unemployed,
 								civilians: d.unemployed,
-								open: d.openJobs
+								open: d.openJobs,
+								enslaved: null
 							}
 						}
 					]
 				: [];
 		});
-		return [...days, { date: s.date, v: colony ? atSave(colony) : null }];
+		return [...days, { date: s.date, v: colony ? atSave(colony, s) : null }];
 	});
-	const line = (k: 'pops' | 'employed' | 'civilians' | 'open') =>
-		points.map((p) => (p.v ? p.v[k] : null));
+	const line = (k: 'pops' | 'employed' | 'civilians' | 'open' | 'enslaved') =>
+		points.map((p) => p.v?.[k] ?? null);
+	const enslaved = line('enslaved');
 	return {
 		x: points.map((p) => gameYear(p.date)),
 		lines: {
 			pops: line('pops'),
 			employed: line('employed'),
 			civilians: line('civilians'),
+			// a part of employed and civilians, not a third group: named so
+			...(enslaved.some((v) => (v ?? 0) > 0) ? { 'of which enslaved': enslaved } : {}),
 			'open jobs': line('open')
 		}
 	};
