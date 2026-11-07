@@ -423,6 +423,11 @@ multiplayer and turns its cheats off wrongly.
 - **The dashboard:** with that campaign viewed, ⚙ says "This is a multiplayer game" and no cheat
   switch is listed; a tab with a cheat on before (e.g. `historyAll`) shows only what you know.
 - **Send:** the save names, and whether the lobby or single player loaded each.
+- **Seen 2026-11-07, open:** UNE 5 (`unitednationsofearth5_505588286`, the Ancient Highway's run
+  43, 4.5.3, a new game with that mod and dev tools — no companion mod) lists `MirkoMachine`
+  alone in its autosaves 2222.04–07, so the dashboard reads it as multiplayer and bars every
+  cheat and intel spoiler there. Whether it was started through the lobby is not known; ask
+  before changing the rule.
 - **A single-player Ironman game names the account (2026-11-06, answered):** UNE 2's
   `ironman.sav` (4.5.3; the game restarted without mods, then a new **single-player** Ironman
   game, the user) lists `MirkoMachine` alone, the Noerm shape. So an account name is a

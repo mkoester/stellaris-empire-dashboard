@@ -258,7 +258,12 @@ each command its own network namespace. `__data.json` is devalue-encoded: decode
 `data` with `unflatten` from `node_modules/.pnpm/devalue@*/node_modules/devalue/index.js` (a
 `node --experimental-strip-types` script can import the pure `src/lib/*.ts` to recompute from it).
 A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{…}}`, with the
-page's `?node=`). A save-wide question (every colony across the history) is quickest as a
+page's `?node=`) — **the body replaces the whole `display`**: send every switch wanted at once
+(with its gate, `showSpoilers` / `showCheats`), a second PUT turns the first one's off. **A
+campaign that is not the head is read in the background and never becomes the head** ("late
+node" in the log, a few seconds after start): request its pages with `?node=<its tip>` (`SELECT
+max(id) FROM node WHERE campaign LIKE '<folder>%'` on the copy), or they answer for the head's
+campaign — 200 and plausible (2026-11-07: the highway tab hidden, its data empty). A save-wide question (every colony across the history) is quickest as a
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
 server modules that call `getGameData()`/`getExplanations()` — delete it after. **To find where
