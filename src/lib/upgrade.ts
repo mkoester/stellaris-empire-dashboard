@@ -145,6 +145,7 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	happiness: null,
 	habitability: null,
 	speciesHabitability: {},
+	speciesPops: {},
 	sector: null,
 	automation: { enabled: false, settings: [] },
 	produces: {},

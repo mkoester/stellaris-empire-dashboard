@@ -8,6 +8,7 @@
 	import DistrictName from '#lib/DistrictName.svelte';
 	import ColonyStabilityRoom from '#lib/ColonyStabilityRoom.svelte';
 	import ColonyWellbeing from '#lib/ColonyWellbeing.svelte';
+	import ColonySpecies from '#lib/ColonySpecies.svelte';
 	import LuxuryGoods from '#lib/LuxuryGoods.svelte';
 	import ColonyLogistics from '#lib/ColonyLogistics.svelte';
 	import ColonyWhatIfs from '#lib/ColonyWhatIfs.svelte';
@@ -139,6 +140,7 @@
 	<!-- beside it while the colony is at the stability cap: what is spent there for nothing -->
 	<div class="grid items-start gap-x-4 lg:grid-cols-2">
 		<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
+		<ColonySpecies rows={data.species} />
 		<LuxuryGoods what={data.luxuries} until={data.luxuriesUntil} />
 		<ColonyLogistics what={data.logistics} />
 		<ColonyWhatIfs what={data.whatIfs} />
@@ -193,6 +195,7 @@
 			events={planetEvents}
 			scope="colony"
 			right={POP_CHANGE_LINES}
+			rightLabel="pops /month"
 			rightFloor={5}
 		/>
 		<Chart

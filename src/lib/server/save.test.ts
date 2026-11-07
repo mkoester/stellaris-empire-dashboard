@@ -39,6 +39,7 @@ import {
 	speciesInfo,
 	speciesByEmpire,
 	slaveMarket,
+	speciesRights,
 	planetBudget,
 	shipCounts,
 	strata,
@@ -309,6 +310,7 @@ describe('toSnapshot', () => {
 				approval: null,
 				habitability: null,
 				speciesHabitability: {},
+				speciesPops: {},
 				sector: null,
 				automation: { enabled: false, settings: [] },
 				produces: {},
@@ -895,6 +897,8 @@ describe('strata', () => {
 		expect(r.happiness).toBeCloseTo((1911 * 0.95 + 2000 * 0.55 + 1299) / 5210);
 		expect(r.habitability).toBeCloseTo((1911 + 1800 * 0.5) / 3711);
 		expect(r.speciesHabitability).toEqual({ '7': 1, '9': 0.5 });
+		// every group with a species, with habitability or not
+		expect(r.speciesPops).toEqual({ '7': 1911, '9': 1800 });
 		expect(strata({}, []).happiness).toBeNull();
 		expect(strata({}, []).habitability).toBeNull();
 	});
@@ -1079,6 +1083,27 @@ describe('intelOf, a pact partner (READER 45)', () => {
 			techsTheyLack: ['tech_d']
 		});
 		expect(intelOf(1, c, {}, 0)).not.toHaveProperty('techsWeLack');
+	});
+});
+
+describe('speciesRights', () => {
+	it("reads the founder's rights and every other species'", () => {
+		// Fangnaur 2200.08 (4.5.3): Cevelli in `primary`, the enslaved Quenti in `species_rights`
+		const country = {
+			modules: {
+				standard_species_rights_module: {
+					default: { species_index: 0, citizenship: 'citizenship_slavery' },
+					primary: { species_index: 2751463425, citizenship: 'citizenship_full' },
+					species_rights: [
+						{ species_index: 2, citizenship: 'citizenship_slavery', slavery: 'slavery_normal' }
+					]
+				}
+			}
+		};
+		expect(speciesRights(country)).toEqual({
+			'2751463425': { citizenship: 'citizenship_full' },
+			'2': { citizenship: 'citizenship_slavery', slavery: 'slavery_normal' }
+		});
 	});
 });
 

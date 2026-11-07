@@ -399,7 +399,10 @@ popup itself is plain CSS: the planner's needs Skeleton UI.
 **Tabs and settings:** the layout's tab bar shows the custom tabs, then `all` (`/`), `planner`
 (`/planner`, see "Planner tab"), `colonies`
 (`/colonies`: all colonies in one table, see below), `colony` (`/colony` → first colony,
-`/colony/[id]` with a dropdown; old `/planet/[id]` links redirect),
+`/colony/[id]` with a dropdown; old `/planet/[id]` links redirect; its "Pops by species" panel and
+the Pops (jobs) chart's `enslaved` line come from `Colony.speciesPops` (READER 51) and the species'
+citizenship, `#lib/colonySpecies.ts` — **4.x has no slave stratum**: enslaved pops are `worker`,
+`specialist` or `civilian` (`slave_unemployment` only when jobless), so `employed` includes them),
 `map` (`/map`, the discovered galaxy, see below), `history` (below), `migration`, `expansion`
 (`/expansion`: the Expansion panel full-size, see below), `growth` (`/growth`, see below), `jobs` (`/jobs`, see below), `trade` (`/trade`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
@@ -1174,7 +1177,9 @@ Philosophy under both its categories), edicts those whose potential holds and th
 (traditions, perks and `prerequisites` techs; 2207.03.10: exactly the game's five). The profile's
 `showLocked` switch (⚙) adds the rest: locked agendas and edicts, all policies and options.
 **Species rights** (species tab, `#lib/rights.ts`): `country.modules.standard_species_rights_module
-.primary = { species_index citizenship living_standard … }` per species, every option of each kind
+.primary = { species_index citizenship living_standard … }` for the founder species and
+`.species_rights = { { species_index … } … }` for every other (READER 51; before, other species had
+no rights at all — Fangnaur 2200.08's enslaved Quenti), every option of each kind
 whose potential is not false (`from` = the country, folded in; `has_trait` = the species'),
 2207.03.10: Human as the game's panel, a few options more than the game shows (their conditions
 read scopes the save cannot answer). **Slavery and purge types only for a species whose

@@ -13,6 +13,7 @@ import { uncappedStability, wellbeingRules } from '#lib/wellbeing.ts';
 import { jobOutput, LUXURY_MODIFIER, luxuryWhatIf } from '#lib/luxuries.ts';
 import { heldOf, wellbeingLevers } from '#lib/wellbeingLevers.ts';
 import { colonyLogistics } from '#lib/server/logistics.ts';
+import { colonySpecies, enslavedPops, slaveryKeys } from '#lib/colonySpecies.ts';
 
 const pct = (v: number | null) => (v === null ? null : Math.round(v * 1000) / 10);
 
@@ -45,6 +46,8 @@ export function load({ url, params }) {
 			wellbeing
 		);
 	const colony = colonyAt(b.latest) ?? null;
+	const rights = getGameData().speciesRights;
+	const slavery = slaveryKeys(rights);
 	const { whatIfs } = display();
 	const save = b.snaps.findLast((s) => s.kind === 'save') ?? null;
 	// what could go to lower happiness or amenities, from the latest save (#lib/wellbeingLevers.ts)
@@ -67,6 +70,8 @@ export function load({ url, params }) {
 		colonies: b.latest.colonies.map((c) => ({ planetId: c.planetId, name: c.name })),
 		colony,
 		details: colonyDetails(colonyAt(b.latest), save),
+		// who lives here: pops per species and their citizenship, from the latest save
+		species: save && saved ? colonySpecies(saved, save, rights) : [],
 		blockerHints: colonyBlockerHints(
 			b.latest.colonies.filter((c) => c.planetId === planetId),
 			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [],
@@ -104,10 +109,12 @@ export function load({ url, params }) {
 		xExtent: xExtent(snaps),
 		charts: {
 			// the saves' months, and between them the days the mod logged a change (0.9.0)
-			pops: colonyDaySeries(snaps, planetId, named ? colonyAt(named)!.name : '', (c) => ({
+			pops: colonyDaySeries(snaps, planetId, named ? colonyAt(named)!.name : '', (c, s) => ({
 				pops: c.pops,
 				employed: c.employed,
 				civilians: c.civilians,
+				// enslaved pops work ordinary jobs: part of employed or civilians (#lib/colonySpecies.ts)
+				enslaved: enslavedPops(c, s, slavery),
 				// enforcer posts left to crime automation do not count, as in the colony table
 				open: openJobs(c).open
 			})),

@@ -50,6 +50,7 @@ export type Colony = {
 	approval?: number | null; // the Pop Approval Rating: happiness weighted by political power; READER 28
 	habitability: number | null; // 0–1, pops-weighted over the pop groups
 	speciesHabitability: Record<string, number>; // per species id living there, pops-weighted
+	speciesPops: Record<string, number>; // pops per species id living there; READER 51
 	automation: { enabled: boolean; settings: string[] };
 	produces: Resources; // the colony's monthly output and upkeep, as the planet view sums them
 	upkeep: Resources;

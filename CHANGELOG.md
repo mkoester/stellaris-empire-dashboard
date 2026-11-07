@@ -21,6 +21,18 @@ All notable changes to this project are documented here. The format follows
   the sales we take part in. An empire that allows slavery always sees the tab; for one that does
   not, ⚙ → Display decides: only while a species we give full citizenship is for sale (default),
   always, or never.
+- Each colony page lists its pops by species, with their citizenship (and slavery type for slaves)
+  and habitability; its Pops (jobs) chart gains an "enslaved" line where there are slaves — they
+  work ordinary jobs, so "employed" includes them.
+
+### Changed
+
+- A chart's right-hand axis is named beside it (open jobs, pops per month, …).
+
+### Fixed
+
+- Species rights of every species but the founder were not read (the government, ethics and
+  leaders tabs saw none for them).
 
 ## [0.1.12] - 2026-11-06
 
