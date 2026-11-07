@@ -18,6 +18,8 @@ const blank = (over: Partial<Snapshot> = {}) =>
 		anomalies: [],
 		specialProjects: [],
 		digSites: [],
+		traditions: [],
+		slaveMarket: [],
 		...over
 	}) as Snapshot;
 
@@ -30,8 +32,10 @@ describe('emptyTabs', () => {
 			'pacts',
 			'shroud',
 			'situations',
+			'slave market',
 			'subjects',
-			'trade deals'
+			'trade deals',
+			'traditions'
 		]);
 	});
 
@@ -47,6 +51,25 @@ describe('emptyTabs', () => {
 			blank({ relations: [{ contact: true, agreements }] as unknown as Snapshot['relations'] });
 		expect(emptyTabs([rel(['embassy'])]).pacts).toBeDefined();
 		expect(emptyTabs([rel(['research_agreement'])]).pacts).toBeUndefined();
+	});
+
+	it('the Shroud counts once a patron is met, not for the attunement every empire has', () => {
+		const shroud = (contact: string) =>
+			blank({
+				shroud: {
+					attunement: { x: 0, y: 0 },
+					monthStart: { x: 0, y: 0 },
+					lastDelve: '0.01.01',
+					preferred: null,
+					patrons: [{ contact }]
+				} as unknown as Snapshot['shroud']
+			});
+		expect(emptyTabs([shroud('none')]).shroud).toBeDefined();
+		expect(emptyTabs([shroud('completed')]).shroud).toBeUndefined();
+	});
+
+	it('an adopted tree undims the traditions tab', () => {
+		expect(emptyTabs([blank({ traditions: ['tr_expansion_adopt'] })]).traditions).toBeUndefined();
 	});
 
 	it('foreign migration alone does not count', () => {

@@ -19,6 +19,7 @@ type Fields = Pick<
 	| 'specialProjects'
 	| 'digSites'
 	| 'slaveMarket'
+	| 'traditions'
 >;
 
 /**
@@ -32,6 +33,12 @@ const CHECKS: {
 	known: (s: Fields) => boolean;
 	has: (s: Fields) => boolean;
 }[] = [
+	{
+		tab: 'traditions',
+		why: 'no tradition tree adopted yet',
+		known: (s) => s.traditions !== null && s.traditions !== undefined,
+		has: (s) => (s.traditions ?? []).length > 0
+	},
 	{
 		tab: 'slave market',
 		why: 'nothing has been offered on the Slave Market yet',
@@ -59,9 +66,11 @@ const CHECKS: {
 	},
 	{
 		tab: 'shroud',
-		why: 'no access to the Shroud yet',
+		why: 'the Shroud not breached yet: no patron met',
 		known: (s) => s.relations !== null && s.relations !== undefined,
-		has: (s) => !!s.shroud
+		// every empire has the module and an attunement from the start: data only once it has met a
+		// patron (its first delve) — the tab shows no more than a point at (0, 0) before
+		has: (s) => (s.shroud?.patrons ?? []).some((p) => p.contact !== 'none')
 	},
 	{
 		tab: 'diplomacy',

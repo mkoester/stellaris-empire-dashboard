@@ -189,7 +189,7 @@
 			rightFloor={10}
 		/>
 		<Chart
-			title="Pops"
+			title="Pops growth"
 			series={data.charts.popChange}
 			extent={data.xExtent}
 			events={planetEvents}

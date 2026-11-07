@@ -125,7 +125,8 @@ export function load({ url, params }) {
 				stability: (c) => c.stability,
 				'over 100': (c) => {
 					const u = uncapped(c);
-					return u !== null && u > wellbeing.maxStability ? u - wellbeing.maxStability : null;
+					// 0 at or under the cap; unknown (null) without the mod's reading
+					return u === null ? null : Math.max(0, u - wellbeing.maxStability);
 				}
 			}),
 			// last month's change in pops by cause (growth, immigration, emigration, …) and net

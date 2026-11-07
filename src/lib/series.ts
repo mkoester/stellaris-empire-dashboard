@@ -494,7 +494,8 @@ export function colonyDaySeries(
 			pops: line('pops'),
 			employed: line('employed'),
 			civilians: line('civilians'),
-			...(enslaved.some((v) => (v ?? 0) > 0) ? { enslaved } : {}),
+			// a part of employed and civilians, not a third group: named so
+			...(enslaved.some((v) => (v ?? 0) > 0) ? { 'of which enslaved': enslaved } : {}),
 			'open jobs': line('open')
 		}
 	};

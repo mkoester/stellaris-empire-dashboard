@@ -284,12 +284,12 @@ describe('colonyDaySeries', () => {
 			}
 		] as unknown as Snapshot[];
 		const at = (enslaved: number) => (c: Colony) => ({ ...c, open: 0, enslaved });
-		expect(colonyDaySeries(h, 1, 'Hesuk Prime', at(1600)).lines.enslaved).toEqual([
+		expect(colonyDaySeries(h, 1, 'Hesuk Prime', at(1600)).lines['of which enslaved']).toEqual([
 			1600,
 			null,
 			1600
 		]);
-		expect(colonyDaySeries(h, 1, 'Hesuk Prime', at(0)).lines.enslaved).toBeUndefined();
+		expect(colonyDaySeries(h, 1, 'Hesuk Prime', at(0)).lines['of which enslaved']).toBeUndefined();
 	});
 });
 
