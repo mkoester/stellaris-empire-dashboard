@@ -20,6 +20,23 @@ export function loadDataVersion(file: string): string | null {
 	}
 }
 
+/** The mods the data DB was extracted with (`meta.mods`, names from their `descriptor.mod`); [] for
+ * the game's own data, null for a DB from an extractor without mod support. */
+export function loadDataMods(file: string): string[] | null {
+	const db = new DatabaseSync(file, { readOnly: true });
+	try {
+		const row = db.prepare("SELECT value FROM meta WHERE key = 'mods'").get() as
+			{ value: string } | undefined;
+		if (!row) return [];
+		const mods = JSON.parse(row.value) as { name?: unknown }[];
+		return mods.map((m) => String(m.name ?? ''));
+	} catch {
+		return null; // no meta table, or unreadable
+	} finally {
+		db.close();
+	}
+}
+
 // the leader limits' modifiers: per class, and `leader` for every class
 const LEADER_CAP = `modifier_key IN ('country_official_cap_add', 'country_scientist_cap_add',
 	'country_commander_cap_add', 'country_leader_cap_add')`;

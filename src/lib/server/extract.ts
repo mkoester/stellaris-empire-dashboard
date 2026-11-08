@@ -16,14 +16,28 @@ export function extractorFromEnv(env: Record<string, string | undefined>): Extra
 	return script ? { python: env.STELLARIS_PYTHON || 'python3', script } : null;
 }
 
+/** A mod the game data is extracted with: its folder and its workshop update time. */
+export type DataMod = { path: string; updated: string | null };
+
 /**
  * `v4.5.2` (with its build, `v4.5.3_7793`: an open beta and its release share the version) plus a
- * short hash of the installed DLC folders and the extractor's version and code: a new DLC is new
- * data too, and a dashboard update may need tables an older extractor did not write.
+ * short hash of the installed DLC folders, the extractor's version and code, and the mods in load
+ * order (folder and update time; none leaves the key as it was before mods): a new DLC is new
+ * data too, a dashboard update may need tables an older extractor did not write, and another
+ * playset or a mod update is other data.
  */
-export function dataKey(version: string, dlcs: string[], extractor: string | null = null): string {
+export function dataKey(
+	version: string,
+	dlcs: string[],
+	extractor: string | null = null,
+	mods: DataMod[] = []
+): string {
 	const hash = createHash('sha256')
-		.update([...dlcs].sort().join('\n') + (extractor ? `\nextractor ${extractor}` : ''))
+		.update(
+			[...dlcs].sort().join('\n') +
+				(extractor ? `\nextractor ${extractor}` : '') +
+				mods.map((m) => `\nmod ${m.path} ${m.updated ?? ''}`).join('')
+		)
 		.digest('hex')
 		.slice(0, 8);
 	return `${version.replace(/[^\w.-]/g, '_')}-${hash}`;
@@ -61,12 +75,17 @@ export function extractorVersion(script: string): string | null {
 export const dataDbFile = (appDir: string, key: string) =>
 	join(appDir, 'data', `stellaris-${key}.sqlite`);
 
-/** The data DB for this install, extracting it first when there is none yet. */
+/**
+ * The data DB for this install and these mods (load order), extracting it first when there is
+ * none yet. A failed extraction with mods — a broken mod file, or a player's extractor from before
+ * `--mod` — falls back to the game's own data, said in the log.
+ */
 export async function ensureDataDb(
 	gameDir: string,
 	appDir: string,
 	extractor: Extractor | null,
-	log: (line: string) => void = console.log
+	log: (line: string) => void = console.log,
+	mods: DataMod[] = []
 ): Promise<string> {
 	const raw = gameVersion(gameDir);
 	if (!raw) throw new Error(`no launcher-settings.json with a game version in ${gameDir}`);
@@ -80,7 +99,7 @@ export async function ensureDataDb(
 	}
 	const file = dataDbFile(
 		appDir,
-		dataKey(version, dlcs, extractor && extractorVersion(extractor.script))
+		dataKey(version, dlcs, extractor && extractorVersion(extractor.script), mods)
 	);
 	if (existsSync(file)) return file;
 	if (!extractor)
@@ -91,8 +110,25 @@ export async function ensureDataDb(
 	mkdirSync(join(appDir, 'data'), { recursive: true });
 	const tmp = `${file}.tmp`;
 	rmSync(tmp, { force: true });
-	log(`extracting game data for ${version} from ${gameDir} …`);
-	await run(extractor.python, [extractor.script, gameDir, '--sqlite', tmp]);
+	log(
+		`extracting game data for ${version} from ${gameDir}` +
+			(mods.length ? ` with ${mods.length} mods` : '') +
+			' …'
+	);
+	try {
+		await run(extractor.python, [
+			extractor.script,
+			gameDir,
+			'--sqlite',
+			tmp,
+			...mods.flatMap((m) => ['--mod', m.path])
+		]);
+	} catch (e) {
+		if (!mods.length) throw e;
+		rmSync(tmp, { force: true });
+		log(`extraction with mods failed, using the game's own data: ${(e as Error).message}`);
+		return ensureDataDb(gameDir, appDir, extractor, log);
+	}
 	renameSync(tmp, file);
 	log(`game data ready: ${file}`);
 	return file;

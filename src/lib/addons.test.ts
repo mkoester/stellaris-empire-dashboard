@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	ageDays,
 	ageLabel,
+	dataModFolders,
+	dataModMismatch,
 	dlcRows,
 	loadOrder,
 	modRows,
@@ -11,7 +13,7 @@ import {
 	versionChanges,
 	withLauncher
 } from './addons.ts';
-import type { Dlc } from './types.ts';
+import type { Dlc, ModInfo } from './types.ts';
 
 const dlc = (name: string, category: string | null): Dlc => ({
 	name,
@@ -69,7 +71,8 @@ describe('parseModDescriptor', () => {
 			steamId: '1381214767',
 			updated: null,
 			file: 'ugc_1381214767.mod',
-			local: false
+			local: false,
+			path: 'S:/steamapps/workshop/content/281990/1381214767'
 		});
 	});
 
@@ -193,5 +196,39 @@ describe('mod age', () => {
 			'24 mo',
 			'2.5 y'
 		]);
+	});
+});
+
+describe('dataModFolders', () => {
+	const mod = (name: string, file: string, path: string | null): ModInfo => ({
+		name,
+		version: null,
+		supportedVersion: null,
+		tags: [],
+		steamId: null,
+		updated: '2026-11-01T00:00:00.000Z',
+		file,
+		local: false,
+		path
+	});
+
+	it('follows the load order and skips mods without a folder', () => {
+		const ds = [
+			mod('A', 'ugc_1.mod', '/w/1'),
+			mod('B', 'ugc_2.mod', '/w/2'),
+			mod('Z', 'z.mod', null)
+		];
+		expect(dataModFolders(ds, ['ugc_2.mod', 'z.mod', 'gone.mod', 'ugc_1.mod'])).toEqual([
+			{ name: 'B', path: '/w/2', updated: '2026-11-01T00:00:00.000Z' },
+			{ name: 'A', path: '/w/1', updated: '2026-11-01T00:00:00.000Z' }
+		]);
+	});
+});
+
+describe('dataModMismatch', () => {
+	it('names the active mods the data lacks and the data mods not active', () => {
+		expect(dataModMismatch(['A', 'B'], ['B', 'C'])).toEqual({ missing: ['C'], extra: ['A'] });
+		expect(dataModMismatch(['A'], ['A'])).toEqual({ missing: [], extra: [] });
+		expect(dataModMismatch(null, ['A'])).toBeNull();
 	});
 });

@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { mkdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { appDataDir, readConfig, resolvePaths, writeConfig, type Config } from './config.ts';
 import {
 	headCampaign,
@@ -15,10 +15,10 @@ import {
 	type Db,
 	type Recorded
 } from './db.ts';
-import { trackedMods } from '#lib/addons.ts';
+import { dataModFolders, trackedMods } from '#lib/addons.ts';
 import type { GameData, ModInfo, Tick } from '#lib/types.ts';
 import { tailLog, toLogSnapshot, type FeedFormat } from './feed.ts';
-import { loadDataVersion, loadGameData } from './gamedata.ts';
+import { loadDataMods, loadDataVersion, loadGameData } from './gamedata.ts';
 import { READER, setEntryEvents, setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
 import { ensureDataDb, extractorFromEnv } from './extract.ts';
@@ -45,6 +45,7 @@ type State = {
 	gameData?: GameData;
 	/** the game version and build the game data was extracted from */
 	dataVersion?: string | null;
+	dataMods?: string[] | null; // the mods the game data was extracted with (`meta.mods`)
 	explanations?: Explanations;
 	mods?: ModInfo[];
 	userDir?: string; // the Stellaris user folder: the save folder's parent
@@ -72,6 +73,9 @@ export function getExplanations(): Explanations {
 
 /** The game version and build the game data comes from (`Cygnus v4.5.3 (7793)`), null if unknown. */
 export const dataVersion = () => state.dataVersion ?? null;
+
+/** The mods the game data includes ([] none), null when the data DB cannot tell. */
+export const dataMods = () => state.dataMods ?? null;
 
 export function getGameData(): GameData {
 	if (!state.gameData) throw new Error('dashboard not started');
@@ -217,15 +221,29 @@ async function run() {
 	}
 	state.status = 'starting';
 	const { dashboardDb: dbFile, saveDir, gameLog } = paths;
+	state.mods = loadModDescriptors(saveDir);
+	state.userDir = dirname(saveDir);
+	// the game data includes the mods of the launcher's last game start (`dlc_load.json`)
+	const userDir = state.userDir;
+	const mods = dataModFolders(state.mods, readLoadOrder(userDir)).map((m) => ({
+		path: isAbsolute(m.path) ? m.path : join(userDir, m.path),
+		updated: m.updated
+	}));
 	const dataDb =
-		paths.dataDb ?? (await ensureDataDb(paths.gameDir!, appDir(), extractorFromEnv(process.env)));
+		paths.dataDb ??
+		(await ensureDataDb(
+			paths.gameDir!,
+			appDir(),
+			extractorFromEnv(process.env),
+			console.log,
+			mods
+		));
 	state.gameData = loadGameData(dataDb);
 	state.dataVersion = loadDataVersion(dataDb);
+	state.dataMods = loadDataMods(dataDb);
 	setPrescriptedNames(state.gameData.prescriptedNames);
 	setEntryEvents(state.gameData.entryEvents);
 	state.explanations = loadExplanations(dataDb);
-	state.mods = loadModDescriptors(saveDir);
-	state.userDir = dirname(saveDir);
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));
 

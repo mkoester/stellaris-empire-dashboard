@@ -52,6 +52,14 @@
 			title: 'since the last workshop update, today'
 		},
 		{
+			id: 'data',
+			label: 'In data',
+			value: (r) => (data.dataMods ? yesNo(data.dataMods.includes(r.name)) : null),
+			cell: inData,
+			title:
+				'in the game data the dashboard extracted at its start: what the mod adds or changes is known (names, modifiers, slots)'
+		},
+		{
 			id: 'active',
 			label: 'Active',
 			value: (r) => yesNo(r.active),
@@ -105,6 +113,11 @@
 		>{/if}
 {/snippet}
 {#snippet age(r: Row)}{r.age === null ? '' : ageLabel(r.age)}{/snippet}
+{#snippet inData(r: ModRow)}{data.dataMods === null
+		? '?'
+		: data.dataMods.includes(r.name)
+			? '✓'
+			: '–'}{/snippet}
 {#snippet active(r: ModRow)}{r.active === null ? '?' : r.active ? '✓' : '–'}{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -120,6 +133,23 @@
 	the launcher wrote when it last started the game (a change in the launcher since shows after the next
 	start).
 </p>
+
+<p class="mb-4 max-w-3xl text-sm text-gray-500">
+	{#if data.dataMods === null}The game data comes from an extractor without mod support: what mods
+		add shows as raw keys.{:else if data.dataMods.length === 0}The game data is the game's own,
+		without mods.{:else}The game data includes the {data.dataMods.length} mods of the launcher's last
+		game start, in load order — what they add or change (designations, districts, traditions, traits,
+		slots) is known.{/if}
+</p>
+{#if data.dataMismatch && (data.dataMismatch.missing.length || data.dataMismatch.extra.length)}
+	<p class="mb-4 max-w-3xl text-sm text-amber-600">
+		⚠ The save's mods differ from the game data's{data.dataMismatch.missing.length
+			? ` — not in the data: ${data.dataMismatch.missing.join(', ')}`
+			: ''}{data.dataMismatch.extra.length
+			? ` — in the data, not active: ${data.dataMismatch.extra.join(', ')}`
+			: ''}. Restart the dashboard after starting the game with this playset.
+	</p>
+{/if}
 
 <div class="mb-4 flex flex-wrap items-center gap-4 text-sm">
 	<label class="flex items-center gap-1"

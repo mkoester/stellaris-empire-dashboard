@@ -138,7 +138,40 @@ export function parseModDescriptor(text: string, file: string): ModInfo | null {
 		steamId: value('remote_file_id') ?? null,
 		updated: null,
 		file,
-		local: !/^ugc_\d+\.mod$/.test(file)
+		local: !/^ugc_\d+\.mod$/.test(file),
+		path: value('path') ?? null
+	};
+}
+
+/**
+ * The mods the game data is extracted with: the launcher's load order (`dlc_load.json`), each
+ * with its folder and update time. Descriptors without a folder (an old `archive=` zip mod) are
+ * left out — the extractor reads folders only.
+ */
+export function dataModFolders(
+	descriptors: ModInfo[],
+	order: string[]
+): { name: string; path: string; updated: string | null }[] {
+	const byFile = new Map(descriptors.map((m) => [m.file, m]));
+	return order.flatMap((f) => {
+		const m = byFile.get(f);
+		return m?.path ? [{ name: m.name, path: m.path, updated: m.updated }] : [];
+	});
+}
+
+/**
+ * The save's active mods against those the game data was extracted with: `missing` are active
+ * but not in the data (their content shows as raw keys), `extra` in the data but not active.
+ * Null when either is unknown. The data names come from each mod folder's `descriptor.mod`.
+ */
+export function dataModMismatch(
+	data: string[] | null,
+	active: string[] | null
+): { missing: string[]; extra: string[] } | null {
+	if (!data || !active) return null;
+	return {
+		missing: active.filter((n) => !data.includes(n)),
+		extra: data.filter((n) => !active.includes(n))
 	};
 }
 

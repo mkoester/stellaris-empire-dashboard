@@ -8,6 +8,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Mods in the game data: the dashboard extracts the game data with the mods of your playset (the
+  launcher's last game start), so designations, districts, tradition trees, traits and starbase
+  slots that mods add are named and counted, and rebalance mods' values are used. The mods tab
+  shows which mods the data includes and warns when a save was played with others.
+
 - A Contracts tab for Nomads contracts. A nomad sees the contracts it took and the offers of
   empires it talks to; a settled empire the contracts it issued. Each comes with its kind, issuer,
   who took it, system and days left to accept, and a map. Two new switches in ⚙: a spoiler

@@ -140,6 +140,22 @@ from older extractor code, silently (2026-10-31: Mega-Engineering's prerequisite
 extractor, never reached a dashboard with `STELLARIS_EXTRACTOR`); now any code change extracts
 once more (~5 s), a release's players only when its code changes.
 
+**Mods in the game data** (2026-11-08; the user's ask: mods adding districts, slots, designations,
+trees, perks, civics, traits): the extraction runs with the mods of the launcher's last game start
+(`dlc_load.json` → each descriptor's `path`, `dataModFolders()`; relative paths against the user
+dir), `--mod` each in load order, so their designations, districts, zones, tradition trees, traits,
+archetypes, starbase levels and defines are in the data DB, and the `Better …` rebalances' values
+replace vanilla's (the extractor's merged view: `../stellaris-data-extraction/extractor/mods.py`).
+The key adds each mod's folder and update time — none leaves it as before, so an unmodded player
+never re-extracts; another playset or a mod update extracts again (~20 s with seven mods). A failed
+modded run (a broken mod file, a player's extractor from before `--mod`) falls back to the game's
+own data, logged. `/mods` shows which mods the data includes (`meta.mods`, `loadDataMods()`; null
+for an older extractor) and warns when the viewed save's mods differ (`dataModMismatch()`): the
+data follows the launcher's last start, read at the dashboard's start — restart it after switching
+playsets. `STELLARIS_DATA_DB` dev runs stay unmodded. **The dashboard caps none of the counts
+these mods raise** (tradition trees, perks, civic points; checked 2026-11-08) — the save holds what
+was taken. Which mods need more than the data: `docs/mod-support.md`.
+
 ## Packaging and releases
 
 `node scripts/package.mjs [--os windows|linux|macos]` →
@@ -256,7 +272,10 @@ pages and `/__data.json` with curl and stop the server — all in one command wh
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
 `data` with `unflatten` from `node_modules/.pnpm/devalue@*/node_modules/devalue/index.js` (a
 `node --experimental-strip-types` script can import the pure `src/lib/*.ts` to recompute from it).
-A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{…}}`, with the
+A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{…}}` — **it replaces
+the whole `display`**, `parseDisplay()` defaulting what is left out, so send every switch the check
+needs in one PUT, the gates `showSpoilers` / `showCheats` included (2026-11-07: a second PUT for the
+cheat silently switched the spoiler off), with the
 page's `?node=`). A save-wide question (every colony across the history) is quickest as a
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
