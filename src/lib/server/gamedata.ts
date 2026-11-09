@@ -4,6 +4,7 @@ import { parseTrigger } from '#lib/triggers.ts';
 import type { ActionKind, CapEffect, Costs, GameData, Resources } from '#lib/types.ts';
 import { NO_SHIP_PARTS, type ShipParts } from '#lib/designStats.ts';
 import type { StarbasePart } from '#lib/starbasePlanner.ts';
+import { levelSlots } from '#lib/starbases.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -912,15 +913,32 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, name, max, decay FROM opinion_modifier'
 				).map((r) => [r.key, { name: r.name ?? r.key, max: r.max, decay: r.decay }])
 			),
-			// modules and buildings a starbase of each level holds (`starbase_level_starport` → starport)
-			starbaseSlots: Object.fromEntries(
-				rows<{ key: string; module_slots: number; building_slots: number }>(
-					'SELECT key, module_slots, building_slots FROM starbase_level'
-				).map((r) => [
-					r.key.replace(/^starbase_level_/, ''),
-					{ modules: r.module_slots, buildings: r.building_slots }
-				])
-			),
+			// modules and buildings a starbase of each level holds (`starbase_level_starport` →
+			// starport): its ship size's capacity (`levelSlots()`), else the level's slot list
+			starbaseSlots: (() => {
+				const sizes = rows<{ name: string }>('PRAGMA table_info(ship_size)').some(
+					(c) => c.name === 'modifiers_json'
+				);
+				return Object.fromEntries(
+					rows<{
+						key: string;
+						module_slots: number;
+						building_slots: number;
+						modifiers_json: string | null;
+					}>(
+						sizes
+							? `SELECT l.key, l.module_slots, l.building_slots, s.modifiers_json
+								 FROM starbase_level l LEFT JOIN ship_size s ON s.key = l.ship_size`
+							: 'SELECT key, module_slots, building_slots, NULL AS modifiers_json FROM starbase_level'
+					).map((r) => [
+						r.key.replace(/^starbase_level_/, ''),
+						levelSlots(
+							{ modules: r.module_slots, buildings: r.building_slots },
+							r.modifiers_json ? JSON.parse(r.modifiers_json) : null
+						)
+					])
+				);
+			})(),
 			// what an edict changes while active (its unconditional modifiers; the produce tab)
 			edictModifiers: byKey(
 				rows(

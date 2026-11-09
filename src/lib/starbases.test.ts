@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	DEFAULT_STARBASE_VIEW,
 	freeSlots,
+	levelSlots,
 	parseStarbaseView,
 	shownStations,
 	type StarbaseView
@@ -47,6 +48,39 @@ describe('freeSlots', () => {
 	});
 	it('is unknown for a level the data DB lacks', () => {
 		expect(freeSlots(stations[1], slots)).toEqual({ modules: null, buildings: null });
+	});
+});
+
+describe('levelSlots', () => {
+	it('counts from the ship size where it has a capacity', () => {
+		// starbase_starport: lists 2 modules and 1 building; Slightly Larger Starbases [4.5] makes it 3
+		expect(
+			levelSlots(
+				{ modules: 2, buildings: 1 },
+				{
+					starbase_module_capacity_add: 3,
+					starbase_building_capacity_add: 1,
+					ship_sensor_range_add: 1
+				}
+			)
+		).toEqual({ modules: 3, buildings: 1 });
+		// Outpost Slots: an outpost lists none, its ship size gets one of each
+		expect(
+			levelSlots(
+				{ modules: 0, buildings: 0 },
+				{ starbase_module_capacity_add: 1, starbase_building_capacity_add: 1 }
+			)
+		).toEqual({ modules: 1, buildings: 1 });
+	});
+
+	it('keeps the listed slots without a capacity (a level without one, an older data DB)', () => {
+		expect(levelSlots({ modules: 0, buildings: 1 }, { starbase_building_capacity_add: 1 })).toEqual(
+			{
+				modules: 0,
+				buildings: 1
+			}
+		);
+		expect(levelSlots({ modules: 2, buildings: 1 }, null)).toEqual({ modules: 2, buildings: 1 });
 	});
 });
 

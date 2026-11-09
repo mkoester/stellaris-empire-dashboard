@@ -49,9 +49,12 @@ and what-ifs, the species tab's trait budget against the game's species screen (
   `starbase_building_capacity_add` in `common/ship_sizes/` (a starbase 2 modules, orbital rings 2 / 3
   / 4); `starbase_levels`' `module_slots|building_slots` only list slot keys ("must have at least the
   correct size", its documentation). The starbases and produce tabs count free slots from
-  `starbase_level`, which matches vanilla but not Slightly Larger Starbases [4.5] (its ship sizes:
-  module capacity 2 → 3) or Outpost Slots (`starbase_outpost`), both in the user's playset. Fix: the
-  extractor reads the capacity modifiers per ship size, the dashboard counts from them.
+  `starbase_level`, which matched vanilla but not Slightly Larger Starbases [4.5]. **Fixed
+  2026-11-09**: the dashboard counts from the ship size (`levelSlots()`, AGENTS.md "Starbases tab");
+  the data DB had the modifiers already. **Outpost Slots loses to Slightly Larger Starbases**: both
+  define `starbase_outpost`, and the later file name wins (`zz_bigger_starbases.txt` over
+  `01_alice_starbases.txt`), whose outpost has no slots — in the merged data, and presumably in game
+  (to check on any outpost).
 - **Planetary Diversity, Guilli's Planet Modifiers** — names and modifiers arrive; habitability and
   capacity of 166 new planet classes need the game's screen to compare.
 - **Shed the Old Ways** (`../stellaris-mod-ShedOldWays`, private) — removes a tradition tree after
@@ -70,7 +73,7 @@ Designations; Slightly Larger Starbases [4.5], Outpost Slots; Empty Hulls and bo
 mods; two zips (Federations Less Stingy, Research options+); the rest UI. Extracted with all 50 in
 7 s on a warm parse cache, no error; the save reads with names from it. **Building slots and zones
 need nothing from the data** (the `zone` table holds names; the save holds zones and buildings) —
-BPVR's third city zone shows once one is built. Open: the starbase slots above.
+BPVR's third city zone shows once one is built. Starbase slots: fixed, above.
 
 ## Limits of the merged view
 

@@ -47,8 +47,26 @@ export const shownStations = (stations: Station[], v: StarbaseView): Station[] =
 export type Slots = Record<string, { modules: number; buildings: number }>;
 
 /**
- * Module and building slots a starbase has left: its level's (data DB `starbase_level`, keyed
- * without `starbase_level_`) less what is built; null where the level is not in the data DB
+ * How many modules and buildings a starbase level holds. **4.5 counts them from the level's ship
+ * size** (`starbase_module_capacity_add`, `starbase_building_capacity_add` in its modifiers;
+ * checked 2026-11-09 on 4.5.3): the level's `module_slots|building_slots` only list slot keys, of
+ * "at least the correct size" (`starbase_levels/00_documentation.txt`). In vanilla the two agree;
+ * mods change the ship size (Slightly Larger Starbases [4.5]: a starport's modules 2 → 3, Outpost
+ * Slots: an outpost's 0 → 1). Without a capacity (a level without one, an older data DB) the list.
+ */
+export function levelSlots(
+	listed: { modules: number; buildings: number },
+	sizeModifiers: Record<string, number> | null
+): { modules: number; buildings: number } {
+	return {
+		modules: sizeModifiers?.starbase_module_capacity_add ?? listed.modules,
+		buildings: sizeModifiers?.starbase_building_capacity_add ?? listed.buildings
+	};
+}
+
+/**
+ * Module and building slots a starbase has left: its level's (`levelSlots()`, keyed without
+ * `starbase_level_`) less what is built; null where the level is not in the data DB
  * (a mod's, or an older data DB). Queued items are not taken off: they show in the queue.
  */
 export function freeSlots(

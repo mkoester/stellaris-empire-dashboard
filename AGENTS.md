@@ -1014,8 +1014,14 @@ latest save's `stations` as one table (system, level, modules and buildings by t
 names, free slots, build queue, shipyard queue) with the profile's `starbaseView` — `yard` all /
 shipyards / without shipyard (`Station.shipyard`), `outposts` (off by default: many, nothing to
 build) and the planner's `range` —, the starbase capacity and the Shipyards panel. Free slots =
-the level's (`starbase_level`, `freeSlots()`) less what is built, `?` for a level the data DB
-lacks; queued items are not taken off.
+the level's (`freeSlots()`) less what is built, `?` for a level the data DB lacks; queued items are
+not taken off. **A level's slots are its ship size's capacity** (`levelSlots()`:
+`starbase_module_capacity_add` / `starbase_building_capacity_add` in the data DB's
+`ship_size.modifiers_json`, joined on `starbase_level.ship_size`; the level's own slot list only
+without one, or with a data DB from before `modifiers_json`) — 4.5.3 counts that way, and mods change
+the ship size, not the list (2026-11-09: Slightly Larger Starbases [4.5] makes a starport 3/2 and a
+citadel 12/6; vanilla's 41 levels are unchanged, the two agree everywhere). It also repaired the
+arkships with BPVR, whose level lists the extractor counted as 0.
 **Starbase planner** (same tab, `#lib/starbasePlanner.ts` pure, `server/starbasePlanner.ts`; the
 user's ask 2026-11-09: "where in my empire and border + x would it make sense to build what —
 resources in the systems, max deposit output, effects on my colonies, e.g. push automatic
