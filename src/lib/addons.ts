@@ -139,14 +139,14 @@ export function parseModDescriptor(text: string, file: string): ModInfo | null {
 		updated: null,
 		file,
 		local: !/^ugc_\d+\.mod$/.test(file),
-		path: value('path') ?? null
+		// an older mod comes as a zip (`archive=`), which the extractor unpacks (v0.1.15)
+		path: value('path') ?? value('archive') ?? null
 	};
 }
 
 /**
  * The mods the game data is extracted with: the launcher's load order (`dlc_load.json`), each
- * with its folder and update time. Descriptors without a folder (an old `archive=` zip mod) are
- * left out — the extractor reads folders only.
+ * with its folder (or zip) and update time. Descriptors naming neither are left out.
  */
 export function dataModFolders(
 	descriptors: ModInfo[],

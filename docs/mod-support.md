@@ -44,10 +44,14 @@ and what-ifs, the species tab's trait budget against the game's species screen (
 ## Needs a check first
 
 - **Starbase and arkship slots** — Slightly Larger Starbases, Extended Starbase Slots, Outpost
-  Slots, Starbase Extended 3.0 (+64 starbase parts), BPV's starbase levels. The produce tab counts
-  free slots from `starbase_level.module_slots|building_slots`; several of these mods edit
-  `ship_sizes` instead. Which one 4.5 takes the count from, and whether the save holds it, decides
-  what to read.
+  Slots, Starbase Extended 3.0 (+64 starbase parts), BPV's starbase levels. **4.5.3 takes the count
+  from the ship size** (checked 2026-11-09): `starbase_module_capacity_add` and
+  `starbase_building_capacity_add` in `common/ship_sizes/` (a starbase 2 modules, orbital rings 2 / 3
+  / 4); `starbase_levels`' `module_slots|building_slots` only list slot keys ("must have at least the
+  correct size", its documentation). The starbases and produce tabs count free slots from
+  `starbase_level`, which matches vanilla but not Slightly Larger Starbases [4.5] (its ship sizes:
+  module capacity 2 → 3) or Outpost Slots (`starbase_outpost`), both in the user's playset. Fix: the
+  extractor reads the capacity modifiers per ship size, the dashboard counts from them.
 - **Planetary Diversity, Guilli's Planet Modifiers** — names and modifiers arrive; habitability and
   capacity of 166 new planet classes need the game's screen to compare.
 - **Shed the Old Ways** (`../stellaris-mod-ShedOldWays`, private) — removes a tradition tree after
@@ -56,6 +60,17 @@ and what-ifs, the species tab's trait budget against the game's species screen (
   after a removal (tree and picks gone? perk slots?): a "tree shed" milestone (an adoption gone
   between two saves, `#lib/milestones.ts`) and the mod's swap count and price from its `ssow_`
   variables.
+
+## The playset played (2026-11-09)
+
+Commonwealth of Man (4.5.3), 50 mods — roughly how the user plays, Ancient Highway and Shed the Old
+Ways to come: Better Origins, Perks, Traditions and Leader Traits; BPVR More Building Slots (City 9
+Slot, 4 Zone Slots, 3 City Zones, Zone Double Row Mode on UI Overhaul Dynamic); Hybrid Colony
+Designations; Slightly Larger Starbases [4.5], Outpost Slots; Empty Hulls and both First Contact
+mods; two zips (Federations Less Stingy, Research options+); the rest UI. Extracted with all 50 in
+7 s on a warm parse cache, no error; the save reads with names from it. **Building slots and zones
+need nothing from the data** (the `zone` table holds names; the save holds zones and buildings) —
+BPVR's third city zone shows once one is built. Open: the starbase slots above.
 
 ## Limits of the merged view
 

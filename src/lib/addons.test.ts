@@ -81,6 +81,20 @@ describe('parseModDescriptor', () => {
 		expect(parseModDescriptor('tags={ "UI" }', 'x.mod')).toBeNull();
 	});
 
+	// ugc_901293740.mod (Research options+, 2017): a zip instead of a folder
+	it("takes an older mod's archive as its path, so the game data includes it", () => {
+		const zip =
+			'name="Research options+"\narchive="/w/281990/901293740/research.zip"\nremote_file_id="901293740"';
+		const m = parseModDescriptor(zip, 'ugc_901293740.mod')!;
+		expect(m.path).toBe('/w/281990/901293740/research.zip');
+		expect(dataModFolders([m], ['ugc_901293740.mod'])).toEqual([
+			{ name: 'Research options+', path: '/w/281990/901293740/research.zip', updated: null }
+		]);
+		expect(campaignModSet(['Research options+'], [m], ['ugc_901293740.mod'], []).missing).toEqual(
+			[]
+		);
+	});
+
 	// 2026-10-18: fc_meaningful_labels.mod (link-mod-proton.sh) beside its ugc_3741592450.mod
 	it('tells a dev copy from its published version by the file', () => {
 		const d = 'name="First Contact: Meaningful Labels"\nremote_file_id="3741592450"';

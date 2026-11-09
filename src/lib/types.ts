@@ -1371,7 +1371,7 @@ export type ModInfo = {
 	updated: string | null; // ISO time of the workshop's last update (launcher-v2.sqlite timeUpdated)
 	file: string | null; // the descriptor's file name; null for a mod known only from the save
 	local: boolean; // a descriptor not written by the workshop (`ugc_<id>.mod`), e.g. a dev copy
-	path?: string | null; // the mod's folder (`path=`; relative to the user dir for some local mods)
+	path?: string | null; // the mod's folder (`path=`; relative to the user dir for some local mods), or an older mod's zip (`archive=`)
 };
 
 /** A mod's version as the dashboard saw it at one start (`mod_version` rows). */

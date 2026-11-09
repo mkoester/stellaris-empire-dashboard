@@ -153,7 +153,8 @@ closest to them (`launcherPlaysets()`: `launcher-v2.sqlite`, most of the mods, f
 active one first; the mods it lacks appended alphabetically), else alphabetical ("guessed"). Measured
 2026-11-09 on this machine: no playset held any older campaign's 17 mods exactly — "4.5 tests
 dashboard" had gained Dev Tools since —, so the closest playset is the common case. A campaign
-without a save yet takes `dlc_load.json`. Relative descriptor paths resolve against the user dir.
+without a save yet takes `dlc_load.json`. Relative descriptor paths resolve against the user dir. An older mod registered by `archive=` (a
+zip, 2017's Research options+) has that as its `path` and is unpacked by the extractor (v0.1.15).
 **The data DBs** (`server/dataStore.ts`, `dataOf()` in `app.ts`): named by game, DLCs, extractor and
 mods in load order (`dataDbFor()`; folder and update time per mod — none leaves the key as before
 mods, so an unmodded player never re-extracts), kept on disk; one on disk loads at first use, the
