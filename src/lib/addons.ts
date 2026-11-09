@@ -159,6 +159,83 @@ export function dataModFolders(
 	});
 }
 
+/** A launcher playset (`launcher-v2.sqlite`): its enabled mods' descriptor files in load order. */
+export type Playset = { name: string; active: boolean; order: string[] };
+
+/**
+ * Where a campaign's load order comes from: the launcher's last game start (`dlc_load.json`), a
+ * playset (`exact`: holding exactly the save's mods; else the closest one, the mods it lacks
+ * appended alphabetically), or a guess (alphabetical) when no playset holds any of them.
+ */
+export type OrderSource =
+	{ kind: 'launch' } | { kind: 'playset'; name: string; exact: boolean } | { kind: 'guessed' };
+
+export type CampaignMods = {
+	/** the mods to extract the game data with, in load order */
+	mods: { name: string; path: string; updated: string | null }[];
+	/** null: no mods */
+	source: OrderSource | null;
+	/** active in the save, but no installed mod folder of that name */
+	missing: string[];
+};
+
+/**
+ * The mods a campaign's game data is extracted with: those of its latest save (`active`, names;
+ * null before a save or from an older reader — then the launcher's last start), in the order of
+ * the launcher's last start if that held exactly these mods, else of the playset closest to them
+ * (most of them, fewest others, the active one first), else alphabetical. The save names mods only
+ * and lists them alphabetically, so the order has to come from the launcher.
+ */
+export function campaignModSet(
+	active: string[] | null,
+	descriptors: ModInfo[],
+	launch: string[],
+	playsets: Playset[]
+): CampaignMods {
+	const folders = (order: string[]) => dataModFolders(descriptors, order);
+	if (active === null) {
+		const mods = folders(launch);
+		return { mods, source: mods.length ? { kind: 'launch' } : null, missing: [] };
+	}
+	if (!active.length) return { mods: [], source: null, missing: [] };
+	const want = new Set(active);
+	const byFile = new Map(descriptors.map((m) => [m.file, m]));
+	const nameOf = (f: string) => byFile.get(f)?.name;
+	const shared = (order: string[]) => new Set(order.filter((f) => want.has(nameOf(f) ?? '')));
+	const withFolder = new Set(descriptors.filter((m) => m.path).map((m) => m.name));
+	const missing = active.filter((n) => !withFolder.has(n));
+	const exactly = (order: string[]) =>
+		shared(order).size === want.size && order.length === want.size;
+	if (exactly(launch)) return { mods: folders(launch), source: { kind: 'launch' }, missing };
+
+	// one descriptor per name: the one the launcher loaded last if any (a dev copy next to its
+	// workshop subscription), else the first with a folder
+	const pick = (name: string) => {
+		const all = descriptors.filter((m) => m.name === name && m.path);
+		return all.find((m) => m.file && launch.includes(m.file)) ?? all[0];
+	};
+	const alphabetical = (names: string[]) =>
+		[...names].sort((a, b) => a.localeCompare(b)).flatMap((n) => pick(n)?.file ?? []);
+
+	const best = playsets
+		.map((p) => ({ p, has: shared(p.order) }))
+		.filter((c) => c.has.size)
+		.sort(
+			(a, b) =>
+				b.has.size - a.has.size ||
+				a.p.order.length - a.has.size - (b.p.order.length - b.has.size) ||
+				Number(b.p.active) - Number(a.p.active)
+		)[0];
+	if (!best) return { mods: folders(alphabetical(active)), source: { kind: 'guessed' }, missing };
+	const inOrder = best.p.order.filter((f) => best.has.has(f));
+	const covered = new Set(inOrder.map(nameOf));
+	return {
+		mods: folders([...inOrder, ...alphabetical(active.filter((n) => !covered.has(n)))]),
+		source: { kind: 'playset', name: best.p.name, exact: exactly(best.p.order) },
+		missing
+	};
+}
+
 /**
  * The save's active mods against those the game data was extracted with: `missing` are active
  * but not in the data (their content shows as raw keys), `extra` in the data but not active.

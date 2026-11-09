@@ -1,9 +1,11 @@
 import { EventEmitter } from 'node:events';
-import { mkdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { appDataDir, readConfig, resolvePaths, writeConfig, type Config } from './config.ts';
+import { getRequestEvent } from '$app/server';
 import {
+	campaignMods,
 	headCampaign,
 	headId,
 	loadedNode,
@@ -15,15 +17,17 @@ import {
 	type Db,
 	type Recorded
 } from './db.ts';
-import { dataModFolders, trackedMods } from '#lib/addons.ts';
+import { campaignModSet, trackedMods, type CampaignMods } from '#lib/addons.ts';
 import type { GameData, ModInfo, Tick } from '#lib/types.ts';
 import { tailLog, toLogSnapshot, type FeedFormat } from './feed.ts';
 import { loadDataMods, loadDataVersion, loadGameData } from './gamedata.ts';
 import { READER, setEntryEvents, setPrescriptedNames } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
-import { ensureDataDb, extractorFromEnv } from './extract.ts';
-import { loadModDescriptors, readLoadOrder } from './mods.ts';
-import { watchSaves, type Watcher } from './watch.ts';
+import { dataStore, type DataStore } from './dataStore.ts';
+import { dataDbFor, ensureDataDb, extractorFromEnv, type DataMod } from './extract.ts';
+import { launcherPlaysets, loadModDescriptors, readLoadOrder } from './mods.ts';
+import { viewedCampaign } from './settings.ts';
+import { campaignOf, watchSaves, type Watcher } from './watch.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
 // companion mod, and one event bus for live updates.
@@ -42,13 +46,19 @@ type State = {
 	/** why the last start failed, shown on /setup */
 	error?: string;
 	db?: Db;
+	/** the game data per mod set (`dataStore.ts`); each campaign reads its own (`dataOf()`) */
+	data?: DataStore<DataMod[], GameDataSet>;
+	/** each campaign's mods, resolved once until its saves or the launcher's files change */
+	campaignData?: Map<string, CampaignData>;
+	/** the launcher's files as last seen (`dlc_load.json`, `launcher-v2.sqlite`): mtimes */
+	launcherStamp?: string;
+	launcherTimer?: ReturnType<typeof setInterval>;
+	/** one data set for every campaign, set by a throwaway test instead of starting (AGENTS.md) */
 	gameData?: GameData;
-	/** the game version and build the game data was extracted from */
-	dataVersion?: string | null;
-	dataMods?: string[] | null; // the mods the game data was extracted with (`meta.mods`)
 	explanations?: Explanations;
 	mods?: ModInfo[];
 	userDir?: string; // the Stellaris user folder: the save folder's parent
+	saveDir?: string;
 	watcher?: Watcher;
 	/** stops following game.log */
 	stopTail?: () => void;
@@ -66,20 +76,138 @@ const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter(), 
 
 export const updates = state.updates;
 
-export function getExplanations(): Explanations {
-	if (!state.explanations) throw new Error('dashboard not started');
-	return state.explanations;
+/** What pages read from one data DB. */
+type GameDataSet = {
+	gameData: GameData;
+	explanations: Explanations;
+	/** the game version and build the game data was extracted from */
+	dataVersion: string | null;
+	/** the mods it was extracted with (`meta.mods`), null when the data DB cannot tell */
+	dataMods: string[] | null;
+};
+
+/** A campaign's mods and the data DB they make. */
+type CampaignData = { set: CampaignMods; mods: DataMod[] };
+
+const loadSet = (file: string): GameDataSet => ({
+	gameData: loadGameData(file),
+	explanations: loadExplanations(file),
+	dataVersion: loadDataVersion(file),
+	dataMods: loadDataMods(file)
+});
+
+/**
+ * The campaign's mods (`campaignModSet()`: its latest save's, in the launcher's order), with
+ * absolute folders. A campaign without a save yet (null) takes the launcher's last start.
+ */
+function campaignData(campaign: string | null): CampaignData {
+	const cache = (state.campaignData ??= new Map());
+	const key = campaign ?? '';
+	let c = cache.get(key);
+	if (!c) {
+		const userDir = state.userDir ?? '';
+		const active = campaign !== null && state.db ? campaignMods(state.db, campaign) : null;
+		const set = campaignModSet(
+			active,
+			state.mods ?? [],
+			userDir ? readLoadOrder(userDir) : [],
+			userDir ? launcherPlaysets(userDir) : []
+		);
+		const mods = set.mods.map((m) => ({
+			path: isAbsolute(m.path) ? m.path : join(userDir, m.path),
+			updated: m.updated
+		}));
+		cache.set(key, (c = { set, mods }));
+	}
+	return c;
 }
 
+/**
+ * The campaign's game data now: its own if extracted (loaded from disk at first use), else the
+ * most recently used — while its own is extracted in the background, after which open pages
+ * reload and its saves are read again with it (`extractFor()`).
+ */
+function dataOf(campaign: string | null): GameDataSet {
+	if (!state.data) {
+		if (state.gameData && state.explanations)
+			return {
+				gameData: state.gameData,
+				explanations: state.explanations,
+				dataVersion: null,
+				dataMods: null
+			};
+		throw new Error('dashboard not started');
+	}
+	const { mods } = campaignData(campaign);
+	const own = state.data.get(mods);
+	if (own) return own.data;
+	extractFor(campaign);
+	const latest = state.data.latest();
+	if (!latest) throw new Error('dashboard not started');
+	return latest.data;
+}
+
+/** Extracts the campaign's game data in the background, then reloads pages and reads its saves. */
+function extractFor(campaign: string | null) {
+	const { mods } = campaignData(campaign);
+	if (!state.data || state.data.pending(mods)) return;
+	updates.emit('update', 'refreshed'); // open pages show the banner
+	state.data
+		.ensure(mods)
+		.then(() => {
+			updates.emit('update', 'refreshed');
+			if (campaign !== null)
+				return state.watcher?.reread(campaign).then((n) => {
+					if (n) console.log(`read ${n} saves of ${campaign} again with its game data`);
+					updates.emit('update', 'refreshed');
+				});
+		})
+		.catch((e) => console.error(`game data for ${campaign ?? 'new games'}:`, e));
+}
+
+// The viewed campaign's data, once per request: pages call the getters many times.
+const perRequest = new WeakMap<object, GameDataSet>();
+function viewedData(): GameDataSet {
+	let event: object | null = null;
+	try {
+		event = getRequestEvent();
+	} catch {
+		// no request: the head campaign's
+	}
+	if (!event) return dataOf(state.db ? headCampaign(state.db) : null);
+	let d = perRequest.get(event);
+	if (!d) perRequest.set(event, (d = dataOf(state.db ? viewedCampaign(state.db) : null)));
+	return d;
+}
+
+export const getExplanations = (): Explanations => viewedData().explanations;
+
 /** The game version and build the game data comes from (`Cygnus v4.5.3 (7793)`), null if unknown. */
-export const dataVersion = () => state.dataVersion ?? null;
+export const dataVersion = () => viewedData().dataVersion;
 
-/** The mods the game data includes ([] none), null when the data DB cannot tell. */
-export const dataMods = () => state.dataMods ?? null;
+/** The mods the viewed campaign's game data includes ([] none), null when the data DB cannot tell. */
+export const dataMods = () => viewedData().dataMods;
 
-export function getGameData(): GameData {
-	if (!state.gameData) throw new Error('dashboard not started');
-	return state.gameData;
+export const getGameData = (): GameData => viewedData().gameData;
+
+/**
+ * The viewed campaign's mods as the game data takes them: where their order comes from, which
+ * have no folder, and whether its own data is still being extracted (pages show the older one).
+ */
+export function campaignDataState(): {
+	source: CampaignMods['source'];
+	missing: string[];
+	mods: number;
+	extracting: boolean;
+} | null {
+	if (!state.data || !state.db) return null;
+	const { set, mods } = campaignData(viewedCampaign(state.db));
+	return {
+		source: set.source,
+		missing: set.missing,
+		mods: mods.length,
+		extracting: state.data.pending(mods)
+	};
 }
 
 /** The installed mods' descriptors, read at start. */
@@ -110,6 +238,86 @@ function setFeedFormat(f: FeedFormat | undefined) {
 	state.feedFormat = f;
 	if (f) console.warn(`game.log: companion mod log format ${f.format} is not read by this build`);
 	updates.emit('update', 'refreshed'); // open pages show or drop the banner
+}
+
+/**
+ * The game data per mod set: extracted next to the dashboard's data, or a dev run's one data DB
+ * for every campaign (`STELLARIS_DATA_DB`, unmodded).
+ */
+function gameDataStore(gameDir: string, fixed: string | undefined) {
+	const extractor = extractorFromEnv(process.env);
+	const files = new Map<string, string>(); // reads the game folder once per mod set
+	const fileFor = (mods: DataMod[]) => {
+		if (fixed) return fixed;
+		const key = JSON.stringify(mods);
+		let f = files.get(key);
+		if (!f) files.set(key, (f = dataDbFor(gameDir, appDir(), extractor, mods).file));
+		return f;
+	};
+	return dataStore<DataMod[], GameDataSet>({
+		fileFor,
+		exists: existsSync,
+		ensure: async (mods) => fixed ?? ensureDataDb(gameDir, appDir(), extractor, console.log, mods),
+		load: loadSet
+	});
+}
+
+/**
+ * Who read a campaign's saves: the reader and the campaign's data DB (its file, as the stamp of
+ * its content) — another data DB means another reading. Before it is extracted: `pending`.
+ */
+function readerOf(campaign: string): string {
+	const file = state.data?.get(campaignData(campaign).mods)?.file;
+	if (!file || !existsSync(file)) return `${READER}:pending`;
+	const data = statSync(file);
+	return `${READER}:${data.mtimeMs}:${data.size}`;
+}
+
+/** A new save may name other mods: the campaign's data follows it, its saves read again. */
+function modsMayHaveChanged(campaign: string) {
+	const before = state.campaignData?.get(campaign);
+	state.campaignData?.delete(campaign);
+	if (before) follow(campaign, before, `${campaign}'s latest save`);
+}
+
+/** The campaign's mods resolved again: on a change its data follows, its saves read again. */
+function follow(campaign: string, before: CampaignData, why: string) {
+	const after = campaignData(campaign);
+	if (JSON.stringify(after.mods) === JSON.stringify(before.mods)) return;
+	console.log(`${why}: ${campaign}'s game data follows (${after.mods.length} mods)`);
+	if (state.data?.get(after.mods))
+		state.watcher?.reread(campaign).then(() => updates.emit('update', 'refreshed'));
+	else extractFor(campaign);
+}
+
+/** How often the launcher's files are checked for a playset change. */
+const LAUNCHER_POLL_MS = 5000;
+
+const launcherStamp = (userDir: string) =>
+	['dlc_load.json', 'launcher-v2.sqlite', 'launcher-v2.sqlite-wal']
+		.map((f) => {
+			try {
+				return statSync(join(userDir, f)).mtimeMs;
+			} catch {
+				return 0;
+			}
+		})
+		.join(':');
+
+/**
+ * A playset edited or a game started in the launcher: every campaign's mods are resolved again
+ * (the order may come from another playset now), mod updates noticed, open pages reloaded.
+ */
+function watchLauncher() {
+	if (!state.userDir || !state.saveDir) return;
+	const stamp = launcherStamp(state.userDir);
+	if (stamp === state.launcherStamp) return;
+	state.launcherStamp = stamp;
+	state.mods = loadModDescriptors(state.saveDir);
+	const before = new Map(state.campaignData);
+	state.campaignData = new Map();
+	for (const [campaign, c] of before) if (campaign !== '') follow(campaign, c, 'launcher changed');
+	updates.emit('update', 'refreshed');
 }
 
 function takeLoaded(): number | null {
@@ -205,6 +413,7 @@ export function start(): Promise<void> {
 async function stop() {
 	await state.starting;
 	clearTimeout(state.catchUpTimer);
+	clearInterval(state.launcherTimer);
 	state.stopTail?.();
 	await state.watcher?.stop();
 	state.db?.close();
@@ -223,39 +432,36 @@ async function run() {
 	const { dashboardDb: dbFile, saveDir, gameLog } = paths;
 	state.mods = loadModDescriptors(saveDir);
 	state.userDir = dirname(saveDir);
-	// the game data includes the mods of the launcher's last game start (`dlc_load.json`)
-	const userDir = state.userDir;
-	const mods = dataModFolders(state.mods, readLoadOrder(userDir)).map((m) => ({
-		path: isAbsolute(m.path) ? m.path : join(userDir, m.path),
-		updated: m.updated
-	}));
-	const dataDb =
-		paths.dataDb ??
-		(await ensureDataDb(
-			paths.gameDir!,
-			appDir(),
-			extractorFromEnv(process.env),
-			console.log,
-			mods
-		));
-	state.gameData = loadGameData(dataDb);
-	state.dataVersion = loadDataVersion(dataDb);
-	state.dataMods = loadDataMods(dataDb);
-	setPrescriptedNames(state.gameData.prescriptedNames);
-	setEntryEvents(state.gameData.entryEvents);
-	state.explanations = loadExplanations(dataDb);
+	state.saveDir = saveDir;
+	state.campaignData = new Map();
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));
+	state.data = gameDataStore(paths.gameDir!, paths.dataDb);
+	// the head campaign's data before the first page (later ones extract in the background)
+	await state.data.ensure(campaignData(headCampaign(store)).mods);
+	state.launcherStamp = launcherStamp(state.userDir);
+	state.launcherTimer = setInterval(watchLauncher, LAUNCHER_POLL_MS);
 
-	// Snapshots carry names from the data DB (prescripted empires): a new one means a new reading.
-	const data = statSync(dataDb);
+	// Snapshots carry names from the data DB (prescripted empires, entry events): each campaign's
+	// saves are read with its own data, and read again when that changes (its stamp in `reader`).
 	state.watcher = await watchSaves(store, saveDir, {
-		onIngest: (r) => recorded(r, r.file),
+		onIngest: (r) => {
+			recorded(r, r.file);
+			modsMayHaveChanged(campaignOf(saveDir, r.file));
+		},
 		loadedFrom: takeLoaded,
-		onRefresh: (r) =>
-			console.log(`${r.isNew ? 'late' : 're-read'} node ${nodeLabel(store, r.nodeId)} ← ${r.file}`),
+		onRefresh: (r) => {
+			console.log(`${r.isNew ? 'late' : 're-read'} node ${nodeLabel(store, r.nodeId)} ← ${r.file}`);
+			// a campaign new to the history is read in the background: its first save names its mods
+			if (r.isNew) modsMayHaveChanged(campaignOf(saveDir, r.file));
+		},
 		onError: (file, e) => console.error(`cannot ingest ${file}:`, e),
-		reader: `${READER}:${data.mtimeMs}:${data.size}`
+		prepare: async (campaign) => {
+			const d = (await state.data!.ensure(campaignData(campaign).mods)).data;
+			setPrescriptedNames(d.gameData.prescriptedNames);
+			setEntryEvents(d.gameData.entryEvents);
+		},
+		reader: (campaign) => readerOf(campaign)
 	});
 	// after the backfill, so the note carries the latest game date
 	const head = headId(store);

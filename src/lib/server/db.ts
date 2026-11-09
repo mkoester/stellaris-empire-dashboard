@@ -261,6 +261,26 @@ export function latestSaveDate(db: Db, campaign: string): string | null {
 	return row?.date ?? null;
 }
 
+/**
+ * The mods active in the campaign's latest save (`Snapshot.mods`, names), null before a save or
+ * from a reading without them.
+ */
+export function campaignMods(db: Db, campaign: string): string[] | null {
+	const row = db
+		.prepare(
+			`SELECT json_extract(s.json, '$.mods') AS m FROM node n
+			JOIN snapshot s ON s.node_id = n.id
+			WHERE n.campaign = ? AND n.kind = 'save' ORDER BY n.id DESC LIMIT 1`
+		)
+		.get(campaign) as { m: string | null } | undefined;
+	try {
+		const mods = row?.m ? JSON.parse(row.m) : null;
+		return Array.isArray(mods) ? mods.filter((n) => typeof n === 'string') : null;
+	} catch {
+		return null;
+	}
+}
+
 /** The difficulty of the campaign's latest save (`admiral`), null before READER 32 or a save. */
 export function campaignDifficulty(db: Db, campaign: string): string | null {
 	const row = db

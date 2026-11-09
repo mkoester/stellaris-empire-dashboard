@@ -412,6 +412,12 @@
 				<button class="rounded border px-2" onclick={() => (waved = loaded.node)}>not now</button>
 			</p>
 		{/if}
+		{#if data.extracting}
+			<p class="mb-2 rounded border border-sky-400 px-3 py-1 text-sm">
+				Extracting the game data with this game's {data.extracting.mods} mods … until then, what they
+				add shows as raw keys. The page reloads when it is done.
+			</p>
+		{/if}
 		{#if data.feed}
 			<p class="mb-2 rounded border border-amber-400 px-3 py-1 text-sm">
 				The companion mod (Empire Dashboard Feed) writes log format {data.feed.format}; this

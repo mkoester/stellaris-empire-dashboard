@@ -8,6 +8,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Each game's data follows its own mods: the dashboard extracts the game data with the mods of
+  that game's latest save, in your launcher's load order, so switching between games played with
+  different playsets just works. A playset edited or a game started with other mods is picked up
+  while the dashboard runs, no restart needed; a banner shows while the data is being extracted.
 - A new playset or a mod update extracts the game data about three times faster (45 mods: 34 s →
   10 s): the extractor keeps each file it has read, in `data/parse-cache`.
 - Mods in the game data: the dashboard extracts the game data with the mods of your playset (the

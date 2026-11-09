@@ -82,6 +82,30 @@ export const dataDbFile = (appDir: string, key: string) =>
 export const parseCacheDir = (appDir: string) => join(appDir, 'data', 'parse-cache');
 
 /**
+ * Where the data DB for this install and these mods (load order) is, extracted or not. Reads the
+ * game's version, its DLC folders and the extractor's code: call once per mod set, not per page.
+ */
+export function dataDbFor(
+	gameDir: string,
+	appDir: string,
+	extractor: Extractor | null,
+	mods: DataMod[] = []
+): { file: string; version: string } {
+	const raw = gameVersion(gameDir);
+	if (!raw) throw new Error(`no launcher-settings.json with a game version in ${gameDir}`);
+	const build = gameBuild(gameDir);
+	const version = build ? `${raw}_${build}` : raw;
+	let dlcs: string[] = [];
+	try {
+		dlcs = readdirSync(join(gameDir, 'dlc'));
+	} catch {
+		// no DLC folder: base game only
+	}
+	const key = dataKey(version, dlcs, extractor && extractorVersion(extractor.script), mods);
+	return { file: dataDbFile(appDir, key), version };
+}
+
+/**
  * The data DB for this install and these mods (load order), extracting it first when there is
  * none yet. A failed extraction with mods — a broken mod file, or a player's extractor from before
  * `--mod` — falls back to the game's own data, said in the log.
@@ -93,20 +117,7 @@ export async function ensureDataDb(
 	log: (line: string) => void = console.log,
 	mods: DataMod[] = []
 ): Promise<string> {
-	const raw = gameVersion(gameDir);
-	if (!raw) throw new Error(`no launcher-settings.json with a game version in ${gameDir}`);
-	const build = gameBuild(gameDir);
-	const version = build ? `${raw}_${build}` : raw;
-	let dlcs: string[] = [];
-	try {
-		dlcs = readdirSync(join(gameDir, 'dlc'));
-	} catch {
-		// no DLC folder: base game only
-	}
-	const file = dataDbFile(
-		appDir,
-		dataKey(version, dlcs, extractor && extractorVersion(extractor.script), mods)
-	);
+	const { file, version } = dataDbFor(gameDir, appDir, extractor, mods);
 	if (existsSync(file)) return file;
 	if (!extractor)
 		throw new Error(

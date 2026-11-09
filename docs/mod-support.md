@@ -2,7 +2,8 @@
 
 Which of the user's subscribed mods (`../stellaris-mod-catalog/catalog.json`) the dashboard
 copes with, and what is left. Assessed 2026-11-08 on 4.5.3. The mechanism is `AGENTS.md`, "Mods in
-the game data": the data DB is extracted with the playset's mods.
+the game data": each campaign's data DB is extracted with its latest save's mods (since
+2026-11-09; before, the launcher's last start for every campaign).
 
 ## Fine without the data (defines only, nothing in the dashboard caps them)
 
@@ -57,6 +58,10 @@ and what-ifs, the species tab's trait budget against the game's species screen (
   variables.
 
 ## Limits of the merged view
+
+- **The load order is the launcher's, not the save's**: the save names mods only. Where no playset
+  holds exactly a campaign's mods, the closest playset's order is taken — wrong only where two of
+  its mods override the same definition and the playset's order changed since.
 
 - The rules (`extractor/mods.py`): a file replaces the same path; in a `common/` folder the later
   file's definition of a key wins, in `scripted_variables` the first (the mods' `zzz_` and `!!`

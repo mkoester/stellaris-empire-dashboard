@@ -141,18 +141,46 @@ extractor, never reached a dashboard with `STELLARIS_EXTRACTOR`); now any code c
 once more (~5 s), a release's players only when its code changes.
 
 **Mods in the game data** (2026-11-08; the user's ask: mods adding districts, slots, designations,
-trees, perks, civics, traits): the extraction runs with the mods of the launcher's last game start
-(`dlc_load.json` → each descriptor's `path`, `dataModFolders()`; relative paths against the user
-dir), `--mod` each in load order, so their designations, districts, zones, tradition trees, traits,
-archetypes, starbase levels and defines are in the data DB, and the `Better …` rebalances' values
-replace vanilla's (the extractor's merged view: `../stellaris-data-extraction/extractor/mods.py`).
-The key adds each mod's folder and update time — none leaves it as before, so an unmodded player
-never re-extracts; another playset or a mod update extracts again — through the extractor's parse cache (`--cache <app dir>/data/parse-cache`, `parseCacheDir()`, extractor v0.1.14), which parses only files it has not seen: 45 mods 10 s, the game alone 6 s (2026-11-09). A failed
-modded run (a broken mod file, a player's extractor from before `--mod`) falls back to the game's
-own data, logged. `/mods` shows which mods the data includes (`meta.mods`, `loadDataMods()`; null
-for an older extractor) and warns when the viewed save's mods differ (`dataModMismatch()`): the
-data follows the launcher's last start, read at the dashboard's start — restart it after switching
-playsets. `STELLARIS_DATA_DB` dev runs stay unmodded. **The dashboard caps none of the counts
+trees, perks, civics, traits; **per campaign since 2026-11-09**, the user's ask: "only the current
+playset — can a changed playset be picked up by the running dashboard?"): **each campaign's data
+is extracted with its latest save's mods** (`campaignModSet()` in `#lib/addons.ts`, `campaignMods()`
+in `db.ts`), `--mod` each in load order, so their designations, districts, zones, tradition trees,
+traits, archetypes, starbase levels and defines are in the data DB, and the `Better …` rebalances'
+values replace vanilla's (the extractor's merged view: `../stellaris-data-extraction/extractor/mods.py`).
+**The save names mods but not their order** (`meta.mods`, alphabetical), so the order comes from the
+launcher: `dlc_load.json` (its last game start) when it holds exactly these mods, else the playset
+closest to them (`launcherPlaysets()`: `launcher-v2.sqlite`, most of the mods, fewest others, the
+active one first; the mods it lacks appended alphabetically), else alphabetical ("guessed"). Measured
+2026-11-09 on this machine: no playset held any older campaign's 17 mods exactly — "4.5 tests
+dashboard" had gained Dev Tools since —, so the closest playset is the common case. A campaign
+without a save yet takes `dlc_load.json`. Relative descriptor paths resolve against the user dir.
+**The data DBs** (`server/dataStore.ts`, `dataOf()` in `app.ts`): named by game, DLCs, extractor and
+mods in load order (`dataDbFor()`; folder and update time per mod — none leaves the key as before
+mods, so an unmodded player never re-extracts), kept on disk; one on disk loads at first use, the
+three most recently used stay in memory, one extraction runs at a time. Pages read the viewed
+campaign's (`getGameData()`, `getExplanations()`, `dataMods()`, `dataVersion()` resolve it once per
+request through `viewedCampaign()`); a campaign whose data is not extracted yet gets the most
+recently used one while it extracts in the background — the layout's banner says so — then pages
+reload. Start-up extracts the head campaign's before the first page. **Saves are read with their
+campaign's data** (prescripted names and entry events are baked into snapshots): the watcher's
+`prepare` sets them per campaign (extracting first if needed) and `reader` holds the campaign's data
+DB stamp (`readerOf()`: `READER:mtime:size` of its file, the format of before, so an unchanged data
+DB re-reads nothing), so a campaign whose data changes is read again (`Watcher.reread()`).
+**Changes are followed while running**: a new save naming other mods, or the launcher's files
+(`dlc_load.json`, `launcher-v2.sqlite` and its WAL, polled every 5 s, `watchLauncher()`) — a
+playset edited, a game started — resolve each campaign's mods again, re-read descriptors (mod
+updates), and extract and re-read where they changed. **Extraction goes through the extractor's
+parse cache** (`--cache <app dir>/data/parse-cache`, `parseCacheDir()`, extractor v0.1.14), which
+parses only files it has not seen: 45 mods 10 s, the game alone 6 s (2026-11-09). A failed modded
+run (a broken mod file, a player's extractor from before `--mod`) falls back to the game's own data,
+logged — and is tried again at the next start (its data DB never exists). `/mods` shows which mods
+the campaign's data includes (`meta.mods`, `loadDataMods()`; null for an older extractor), where
+their order comes from, mods without a folder, and the save's mods the data lacks
+(`dataModMismatch()`: while extracting, or after a failure). `STELLARIS_DATA_DB` dev runs use that
+one data DB for every campaign, unmodded. Checked 2026-11-09 on a DB copy (eight campaigns, a fresh
+app folder): three extractions (two 17-mod sets, Ancient Highway's two), the banner while one ran,
+each campaign's `/mods` naming its own; after changing the order rule, one extraction and 21
+re-reads; a third start with nothing changed: none of either. **The dashboard caps none of the counts
 these mods raise** (tradition trees, perks, civic points; checked 2026-11-08) — the save holds what
 was taken. Which mods need more than the data: `docs/mod-support.md`.
 

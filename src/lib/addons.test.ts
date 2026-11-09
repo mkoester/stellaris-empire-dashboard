@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	ageDays,
 	ageLabel,
+	campaignModSet,
 	dataModFolders,
 	dataModMismatch,
 	dlcRows,
@@ -222,6 +223,77 @@ describe('dataModFolders', () => {
 			{ name: 'B', path: '/w/2', updated: '2026-11-01T00:00:00.000Z' },
 			{ name: 'A', path: '/w/1', updated: '2026-11-01T00:00:00.000Z' }
 		]);
+	});
+});
+
+describe('campaignModSet', () => {
+	const mod = (name: string, file: string, path: string | null = `/w/${file}`): ModInfo => ({
+		name,
+		version: null,
+		supportedVersion: null,
+		tags: [],
+		steamId: null,
+		updated: null,
+		file,
+		local: !file.startsWith('ugc_'),
+		path
+	});
+	const ds = [
+		mod('A', 'ugc_1.mod'),
+		mod('B', 'ugc_2.mod'),
+		mod('C', 'ugc_3.mod'),
+		mod('C', 'c_dev.mod'), // a dev copy of C, registered next to its subscription
+		mod('Zip', 'ugc_9.mod', null)
+	];
+	const names = (r: ReturnType<typeof campaignModSet>) => r.mods.map((m) => m.path);
+
+	it("takes the launch order when it holds exactly the save's mods", () => {
+		const r = campaignModSet(['A', 'B'], ds, ['ugc_2.mod', 'ugc_1.mod'], []);
+		expect(r.source).toEqual({ kind: 'launch' });
+		expect(names(r)).toEqual(['/w/ugc_2.mod', '/w/ugc_1.mod']);
+	});
+
+	it('else a playset holding exactly them, the active one first', () => {
+		const playsets = [
+			{ name: 'other', active: false, order: ['ugc_1.mod', 'ugc_3.mod'] },
+			{ name: 'mine', active: true, order: ['ugc_3.mod', 'ugc_1.mod'] },
+			{ name: 'more', active: false, order: ['ugc_1.mod', 'ugc_2.mod', 'ugc_3.mod'] }
+		];
+		const r = campaignModSet(['A', 'C'], ds, ['ugc_1.mod'], playsets);
+		expect(r.source).toEqual({ kind: 'playset', name: 'mine', exact: true });
+		expect(names(r)).toEqual(['/w/ugc_3.mod', '/w/ugc_1.mod']);
+	});
+
+	it('else the closest playset: most of the mods, fewest others; the rest appended', () => {
+		const playsets = [
+			{ name: 'wide', active: true, order: ['ugc_2.mod', 'ugc_9.mod', 'ugc_3.mod', 'ugc_1.mod'] },
+			{ name: 'narrow', active: false, order: ['ugc_3.mod', 'x.mod', 'ugc_1.mod'] },
+			{ name: 'half', active: false, order: ['ugc_1.mod'] }
+		];
+		// both hold A and C; `narrow` has one other mod, `wide` two
+		const r = campaignModSet(['A', 'B', 'C'], ds, [], playsets.slice(1));
+		expect(r.source).toEqual({ kind: 'playset', name: 'narrow', exact: false });
+		expect(names(r)).toEqual(['/w/ugc_3.mod', '/w/ugc_1.mod', '/w/ugc_2.mod']); // B appended
+		const all = campaignModSet(['A', 'B', 'C'], ds, [], playsets);
+		expect(all.source).toEqual({ kind: 'playset', name: 'wide', exact: false }); // holds all three
+		expect(names(all)).toEqual(['/w/ugc_2.mod', '/w/ugc_3.mod', '/w/ugc_1.mod']);
+	});
+
+	it('else alphabetical, the copy the launcher loaded last for a doubled name', () => {
+		const r = campaignModSet(['C', 'A', 'Zip', 'Gone'], ds, ['c_dev.mod'], []);
+		expect(r.source).toEqual({ kind: 'guessed' });
+		expect(names(r)).toEqual(['/w/ugc_1.mod', '/w/c_dev.mod']);
+		expect(r.missing).toEqual(['Zip', 'Gone']);
+	});
+
+	it('no save yet: the launch order; no mods: none', () => {
+		expect(names(campaignModSet(null, ds, ['ugc_1.mod'], []))).toEqual(['/w/ugc_1.mod']);
+		expect(campaignModSet(null, ds, [], [])).toEqual({ mods: [], source: null, missing: [] });
+		expect(campaignModSet([], ds, ['ugc_1.mod'], [])).toEqual({
+			mods: [],
+			source: null,
+			missing: []
+		});
 	});
 });
 
