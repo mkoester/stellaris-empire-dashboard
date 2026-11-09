@@ -33,9 +33,10 @@ export function loadModDescriptors(saveDir: string): ModInfo[] {
 }
 
 /**
- * The enabled mods in the order the game loads them: `<user dir>/dlc_load.json`, which the
- * launcher writes from the active playset's order when it starts the game (checked 2026-10-31:
- * the same order as `playsets_mods.position`). None when missing or unreadable.
+ * The active playset's enabled mods in load order: `<user dir>/dlc_load.json`, which the launcher
+ * writes from the playset's order (checked 2026-10-31: the same as `playsets_mods.position`) at a
+ * game start and on every playset edit (2026-11-09) — so not necessarily the last game's order.
+ * None when missing or unreadable.
  */
 export function readLoadOrder(userDir: string): string[] {
 	try {

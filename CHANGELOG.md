@@ -12,6 +12,8 @@ All notable changes to this project are documented here. The format follows
   that game's latest save, in your launcher's load order, so switching between games played with
   different playsets just works. A playset edited or a game started with other mods is picked up
   while the dashboard runs, no restart needed; a banner shows while the data is being extracted.
+- The load order a game was played with is remembered while it runs, so editing the playset
+  afterwards does not change that game's data.
 - Older mods that come as a zip (such as Research options+) are part of the game data too.
 - A new playset or a mod update extracts the game data about three times faster (45 mods: 34 s →
   10 s): the extractor keeps each file it has read, in `data/parse-cache`.

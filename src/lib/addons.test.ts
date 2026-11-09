@@ -267,6 +267,22 @@ describe('campaignModSet', () => {
 		expect(names(r)).toEqual(['/w/ugc_2.mod', '/w/ugc_1.mod']);
 	});
 
+	it('first the order remembered from a live save, if it still holds exactly these mods', () => {
+		// 2026-11-09: the playset edited after playing — dlc_load.json no longer the game's order
+		const r = campaignModSet(
+			['A', 'B'],
+			ds,
+			['ugc_1.mod', 'ugc_2.mod'],
+			[],
+			['ugc_2.mod', 'ugc_1.mod']
+		);
+		expect(r.source).toEqual({ kind: 'remembered' });
+		expect(names(r)).toEqual(['/w/ugc_2.mod', '/w/ugc_1.mod']);
+		// the save's mods changed since: the remembered order no longer applies
+		const later = campaignModSet(['A'], ds, ['ugc_1.mod'], [], ['ugc_2.mod', 'ugc_1.mod']);
+		expect(later.source).toEqual({ kind: 'launch' });
+	});
+
 	it('else a playset holding exactly them, the active one first', () => {
 		const playsets = [
 			{ name: 'other', active: false, order: ['ugc_1.mod', 'ugc_3.mod'] },

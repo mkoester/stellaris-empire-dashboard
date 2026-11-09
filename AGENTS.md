@@ -148,7 +148,12 @@ in `db.ts`), `--mod` each in load order, so their designations, districts, zones
 traits, archetypes, starbase levels and defines are in the data DB, and the `Better …` rebalances'
 values replace vanilla's (the extractor's merged view: `../stellaris-data-extraction/extractor/mods.py`).
 **The save names mods but not their order** (`meta.mods`, alphabetical), so the order comes from the
-launcher: `dlc_load.json` (its last game start) when it holds exactly these mods, else the playset
+launcher: the order seen while the campaign was played (`rememberOrder()`: at each save the running
+game writes, `dlc_load.json` if it holds exactly the save's mods, kept as setting `loadOrder:<campaign>`
+— **the launcher rewrites `dlc_load.json` on every playset edit, not only at a game start**: on
+2026-11-09 at 21:28, after the game had closed at 21:24, with no game start between; the user had
+edited the playset), else `dlc_load.json` (the active playset) when it holds exactly these mods, else
+the playset
 closest to them (`launcherPlaysets()`: `launcher-v2.sqlite`, most of the mods, fewest others, the
 active one first; the mods it lacks appended alphabetically), else alphabetical ("guessed"). Measured
 2026-11-09 on this machine: no playset held any older campaign's 17 mods exactly — "4.5 tests
@@ -1832,9 +1837,10 @@ DLCs**: Utopia, Synthetic Dawn and Humanoids are gameplay DLCs no script checks 
 the `mod_version` table, with the head's game date — the mods tab's "Updates", since
 2026-10-18 (many mods name no version: their update shows as a new update time). **Load order**
 (`#`, the default sort): `<user dir>/dlc_load.json`'s `enabled_mods`, read per request — the
-launcher writes it from the active playset's order when it starts the game (2026-10-31: the same
-order as `launcher-v2.sqlite` `playsets_mods.position`), so a change in the launcher shows after
-the next game start. **Age**: days since the workshop's update (`ageDays()`, real time at the
+launcher writes it from the active playset's order (2026-10-31: the same order as
+`launcher-v2.sqlite` `playsets_mods.position`) at a game start **and on every playset edit**
+(2026-11-09: rewritten after the game had closed), so it is the active playset, not necessarily
+the last game's. **Age**: days since the workshop's update (`ageDays()`, real time at the
 request). The save's `meta.mods` is alphabetical, no source of the order. The DLC tab
 opens per category.
 

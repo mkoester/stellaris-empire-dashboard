@@ -25,7 +25,8 @@
 			id: 'order',
 			label: '#',
 			value: (r) => r.order,
-			title: "the launcher's load order as of the last game start (dlc_load.json); later mods win"
+			title:
+				"the active playset's load order (dlc_load.json, rewritten on every playset edit); later mods win"
 		},
 		{ id: 'name', label: 'Mod', value: (r) => r.name, cell: name },
 		{ id: 'version', label: 'Version', value: (r) => r.version },
@@ -129,9 +130,8 @@
 	{#if data.seenAt}{count} active in the save of {data.seenAt}{data.gameVersion
 			? ` (${data.gameVersion})`
 			: ''}.{:else}No save read since the mod list was added; it shows after the next one.{/if}
-	Installed mods come from the launcher's descriptors in the Stellaris user folder; # is the load order
-	the launcher wrote when it last started the game (a change in the launcher since shows after the next
-	start).
+	Installed mods come from the launcher's descriptors in the Stellaris user folder; # is the active playset's
+	load order, as the launcher last wrote it (it does on every playset edit).
 </p>
 
 <p class="mb-4 max-w-3xl text-sm text-gray-500">
@@ -141,7 +141,9 @@
 		game data is the game's own, without mods.{:else}The game data includes the {data.dataMods
 			.length} mods of this game's latest save, in load order — what they add or change (designations,
 		districts, traditions, traits, slots) is known.{/if}
-	{#if data.dataState?.source?.kind === 'launch'}The order is the launcher's last game start.
+	{#if data.dataState?.source?.kind === 'remembered'}The order is the one seen while this game was
+		played.
+	{:else if data.dataState?.source?.kind === 'launch'}The order is the active playset's.
 	{:else if data.dataState?.source?.kind === 'playset'}The order is the playset “{data.dataState
 			.source.name}”'s{data.dataState.source.exact
 			? ', which holds exactly these mods.'

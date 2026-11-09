@@ -163,12 +163,17 @@ export function dataModFolders(
 export type Playset = { name: string; active: boolean; order: string[] };
 
 /**
- * Where a campaign's load order comes from: the launcher's last game start (`dlc_load.json`), a
- * playset (`exact`: holding exactly the save's mods; else the closest one, the mods it lacks
- * appended alphabetically), or a guess (alphabetical) when no playset holds any of them.
+ * Where a campaign's load order comes from: the order the dashboard saw while the game ran
+ * (`remembered`: `dlc_load.json` at a live save holding exactly its mods), the active playset
+ * (`launch`: `dlc_load.json` now — the launcher rewrites it on every playset edit, not only at a
+ * game start), a playset (`exact`: holding exactly the save's mods; else the closest one, the mods
+ * it lacks appended alphabetically), or a guess (alphabetical) when no playset holds any of them.
  */
 export type OrderSource =
-	{ kind: 'launch' } | { kind: 'playset'; name: string; exact: boolean } | { kind: 'guessed' };
+	| { kind: 'remembered' }
+	| { kind: 'launch' }
+	| { kind: 'playset'; name: string; exact: boolean }
+	| { kind: 'guessed' };
 
 export type CampaignMods = {
 	/** the mods to extract the game data with, in load order */
@@ -181,16 +186,18 @@ export type CampaignMods = {
 
 /**
  * The mods a campaign's game data is extracted with: those of its latest save (`active`, names;
- * null before a save or from an older reader — then the launcher's last start), in the order of
- * the launcher's last start if that held exactly these mods, else of the playset closest to them
- * (most of them, fewest others, the active one first), else alphabetical. The save names mods only
- * and lists them alphabetically, so the order has to come from the launcher.
+ * null before a save or from an older reader — then the active playset), in the order remembered
+ * from a live save if that held exactly these mods, else of the active playset (`launch`) if it
+ * does, else of the playset closest to them (most of them, fewest others, the active one first),
+ * else alphabetical. The save names mods only and lists them alphabetically, so the order has to
+ * come from the launcher — and a playset edited after playing has lost it, hence `remembered`.
  */
 export function campaignModSet(
 	active: string[] | null,
 	descriptors: ModInfo[],
 	launch: string[],
-	playsets: Playset[]
+	playsets: Playset[],
+	remembered: string[] = []
 ): CampaignMods {
 	const folders = (order: string[]) => dataModFolders(descriptors, order);
 	if (active === null) {
@@ -206,6 +213,8 @@ export function campaignModSet(
 	const missing = active.filter((n) => !withFolder.has(n));
 	const exactly = (order: string[]) =>
 		shared(order).size === want.size && order.length === want.size;
+	if (remembered.length && exactly(remembered))
+		return { mods: folders(remembered), source: { kind: 'remembered' }, missing };
 	if (exactly(launch)) return { mods: folders(launch), source: { kind: 'launch' }, missing };
 
 	// one descriptor per name: the one the launcher loaded last if any (a dev copy next to its

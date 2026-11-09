@@ -6,6 +6,8 @@ import { appDataDir, readConfig, resolvePaths, writeConfig, type Config } from '
 import { getRequestEvent } from '$app/server';
 import {
 	campaignMods,
+	getSetting,
+	setSetting,
 	headCampaign,
 	headId,
 	loadedNode,
@@ -107,11 +109,14 @@ function campaignData(campaign: string | null): CampaignData {
 	if (!c) {
 		const userDir = state.userDir ?? '';
 		const active = campaign !== null && state.db ? campaignMods(state.db, campaign) : null;
+		const remembered =
+			campaign !== null && state.db ? getSetting(state.db, orderKey(campaign)) : undefined;
 		const set = campaignModSet(
 			active,
 			state.mods ?? [],
 			userDir ? readLoadOrder(userDir) : [],
-			userDir ? launcherPlaysets(userDir) : []
+			userDir ? launcherPlaysets(userDir) : [],
+			Array.isArray(remembered) ? remembered : []
 		);
 		const mods = set.mods.map((m) => ({
 			path: isAbsolute(m.path) ? m.path : join(userDir, m.path),
@@ -120,6 +125,24 @@ function campaignData(campaign: string | null): CampaignData {
 		cache.set(key, (c = { set, mods }));
 	}
 	return c;
+}
+
+/** The setting holding the load order seen while the campaign was played (`rememberOrder()`). */
+const orderKey = (campaign: string) => `loadOrder:${campaign}`;
+
+/**
+ * A save just written by the running game: if the active playset (`dlc_load.json`) holds exactly
+ * its mods, that is the order the game runs with — kept for the campaign, as the launcher rewrites
+ * `dlc_load.json` on every later playset edit (2026-11-09: edited after playing, the order lost).
+ */
+function rememberOrder(campaign: string) {
+	if (!state.db || !state.userDir) return;
+	const launch = readLoadOrder(state.userDir);
+	const set = campaignModSet(campaignMods(state.db, campaign), state.mods ?? [], launch, []);
+	if (set.source?.kind !== 'launch') return;
+	const before = getSetting(state.db, orderKey(campaign));
+	if (JSON.stringify(before) !== JSON.stringify(launch))
+		setSetting(state.db, orderKey(campaign), launch);
 }
 
 /**
@@ -216,7 +239,7 @@ export function getMods(): ModInfo[] {
 	return state.mods;
 }
 
-/** The launcher's load order as of the last game start (`dlc_load.json`), read on each call. */
+/** The active playset's load order (`dlc_load.json`, rewritten on every playset edit), read on each call. */
 export function getLoadOrder(): string[] {
 	return state.userDir ? readLoadOrder(state.userDir) : [];
 }
@@ -447,7 +470,10 @@ async function run() {
 	state.watcher = await watchSaves(store, saveDir, {
 		onIngest: (r) => {
 			recorded(r, r.file);
-			modsMayHaveChanged(campaignOf(saveDir, r.file));
+			const campaign = campaignOf(saveDir, r.file);
+			// written by the running game (a start reads saves written while the dashboard was off)
+			if (state.status === 'running') rememberOrder(campaign);
+			modsMayHaveChanged(campaign);
 		},
 		loadedFrom: takeLoaded,
 		onRefresh: (r) => {
