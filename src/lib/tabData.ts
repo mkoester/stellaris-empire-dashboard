@@ -20,6 +20,8 @@ type Fields = Pick<
 	| 'digSites'
 	| 'slaveMarket'
 	| 'traditions'
+	| 'contracts'
+	| 'countryId'
 >;
 
 /**
@@ -56,6 +58,13 @@ const CHECKS: {
 		why: 'no trade deal yet',
 		known: (s) => s.tradeDeals !== null && s.tradeDeals !== undefined,
 		has: (s) => (s.tradeDeals ?? []).length > 0
+	},
+	{
+		tab: 'contracts',
+		why: 'no contract issued or taken by you yet',
+		known: (s) => s.contracts !== null && s.contracts !== undefined,
+		has: (s) =>
+			(s.contracts ?? []).some((c) => c.issuer === s.countryId || c.operator === s.countryId)
 	},
 	{
 		tab: 'galcom',

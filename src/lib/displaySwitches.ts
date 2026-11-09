@@ -177,6 +177,23 @@ export const SWITCHES: Switch[] = [
 		tags: 'research agreement commercial pact tech hints'
 	},
 	{
+		key: 'contractSpoilers',
+		group: 'Diplomacy and trade',
+		kind: 'spoiler',
+		intel: true,
+		label:
+			'Contracts: as a nomad the offers of empires you do not talk to, as a settled empire others’ contracts near your border',
+		note: 'the range beyond the border is picked on the contracts tab',
+		tags: 'nomad nomads contract arkship'
+	},
+	{
+		key: 'contractsAll',
+		group: 'Diplomacy and trade',
+		kind: 'cheat',
+		label: 'Contracts: every contract in the galaxy, offered or taken, whoever issued it',
+		tags: 'nomad nomads contract arkship'
+	},
+	{
 		key: 'tradeIntel',
 		group: 'Diplomacy and trade',
 		kind: 'cheat',

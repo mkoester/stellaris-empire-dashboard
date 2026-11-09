@@ -99,6 +99,12 @@ export function load({ url, params }) {
 					)
 				: null,
 		luxuriesUntil: colony?.planet?.modifiers.find((m) => m.key === LUXURY_MODIFIER)?.until ?? null,
+		// each building's data DB category, for its icon (#lib/icons/icons.ts)
+		buildingCategories: Object.fromEntries(
+			(colony?.districtList ?? [])
+				.flatMap((d) => d.zones.flatMap((z) => z.buildings))
+				.map((b) => [b, getGameData().buildingCategory[b] ?? null])
+		),
 		classNames: Object.fromEntries(
 			Object.entries(getGameData().planetClasses).map(([k, v]) => [k, v.name])
 		),

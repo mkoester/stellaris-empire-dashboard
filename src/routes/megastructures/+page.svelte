@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ContractMarks from '#lib/ContractMarks.svelte';
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import type { MapWidth } from '#lib/mapView.ts';
@@ -183,7 +184,11 @@
 			bind:selected={getSelected, setSelected}
 			bind:width
 			beside={table}
-		/>
+		>
+			{#snippet layer(at)}
+				<ContractMarks marks={data.contractMarks} {at} place={byId} />
+			{/snippet}
+		</GalaxyMap>
 		<p class="mt-1 mb-3 text-xs text-gray-500">
 			Darker blue: better score among the systems shown.
 		</p>

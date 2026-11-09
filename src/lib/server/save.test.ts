@@ -34,6 +34,7 @@ import {
 	habitatSites,
 	hops,
 	militaryFleets,
+	shipDesigns,
 	sectorBySystem,
 	sectors,
 	speciesInfo,
@@ -58,6 +59,7 @@ import {
 	combats,
 	toSnapshot,
 	tradeDeals,
+	contracts,
 	wars,
 	wanderlust,
 	systemEntries,
@@ -99,6 +101,8 @@ const raw: RawSave = {
 	speciesDb: {},
 	wars: {},
 	tradeDeals: {},
+	missions: {},
+	contractIds: undefined,
 	agreements: {},
 	loyalty: {},
 	rivalsOfUs: [],
@@ -1504,9 +1508,72 @@ describe('empire overview', () => {
 					systemId: 380, // where it is, for the map (READER 38)
 					moving: true,
 					stops: [{ system: 'Sirius', jumps: 1, unexplored: true }]
-				}
+				},
+				designs: [] // its ships are not in the fixture (READER 53)
 			}
 		]);
+	});
+
+	it('lists saved designs and the unofficial ones our ships still use (READER 53)', () => {
+		// UNE 6 2208.01.01, shortened: design 35 is no longer saved, its corvettes upgrade to 2451
+		const corvette = (role: string) => ({
+			name: { key: 'HUMAN1_SHIP_Cheetah' },
+			role,
+			auto_gen_design: true,
+			growth_stages: {
+				ship_size: 'corvette',
+				section: {
+					template: 'CORVETTE_MID_S2PD1',
+					slot: 'mid',
+					component: [
+						{ slot: 'SMALL_GUN_01', template: 'POINT_DEFENCE_1' },
+						{ slot: 'SMALL_GUN_02', template: 'SMALL_MASS_DRIVER_1' }
+					]
+				},
+				required_component: ['CORVETTE_FISSION_REACTOR', 'HYPER_DRIVE_1']
+			}
+		});
+		const designs = shipDesigns({
+			country: {
+				ship_design_collection: { ship_design: [2451, 2453] },
+				fleets_manager: { owned_fleets: [{ fleet: 3 }, { fleet: 7 }] }
+			},
+			fleets: {
+				3: { ship_class: 'shipclass_military', ships: [3, 4] },
+				7: { ship_class: 'shipclass_starbase', ships: [9] }
+			},
+			ships: {
+				3: { ship_design_implementation: { design: 35, upgrade: 2451 } },
+				4: { ship_design_implementation: { design: 35, upgrade: 2451 } },
+				9: { ship_design_implementation: { design: 16777216, upgrade: 4294967295 } }
+			},
+			shipDesigns: {
+				35: corvette('gunship'),
+				2451: corvette('screen'),
+				2453: { name: { key: 'HUMAN1_SHIP_ElDorado' }, growth_stages: { ship_size: 'colonizer' } },
+				16777216: { growth_stages: { ship_size: 'starbase_starport' } }
+			}
+		});
+		expect(designs.map((d) => [d.id, d.size, d.saved, d.ships, d.upgradeTo])).toEqual([
+			[2451, 'corvette', true, 0, null],
+			[2453, 'colonizer', true, 0, null],
+			[35, 'corvette', false, 2, 2451]
+		]);
+		expect(designs[2]).toMatchObject({
+			role: 'gunship',
+			autoGen: true,
+			sections: [
+				{
+					template: 'CORVETTE_MID_S2PD1',
+					slot: 'mid',
+					components: [
+						{ slot: 'SMALL_GUN_01', template: 'POINT_DEFENCE_1' },
+						{ slot: 'SMALL_GUN_02', template: 'SMALL_MASS_DRIVER_1' }
+					]
+				}
+			],
+			required: ['CORVETTE_FISSION_REACTOR', 'HYPER_DRIVE_1']
+		});
 	});
 
 	it('sums pops per species over the colonies and names prescripted species', () => {
@@ -2344,5 +2411,95 @@ describe('leaderPool', () => {
 		expect(leaderPool(raw)).toMatchObject([
 			{ id: 272, class: 'official', level: 1, bonus: 1, age: 33, added: '2200.01.01' }
 		]);
+	});
+});
+
+describe('contracts', () => {
+	// Planetforgers 2214.02.01 (Proton save), trimmed: an offer, an accepted one, an internal one
+	// (operator = issuer), a star journal mission (not a contract) and a gap (`21=none`).
+	const missions = {
+		'1': {
+			mission: 'NOMAD_STAR_JOURNAL_BINARY_TRINARY',
+			status: 'active',
+			operator: 1,
+			issuer: 4294967295
+		},
+		'21': 'none',
+		'23': {
+			mission: 'contract_colony_startup',
+			days_left: 1025,
+			location: { type: 4, id: 383 },
+			operator: 4294967295,
+			issuer: 16777227
+		},
+		'16777235': {
+			mission: 'contract_onboard_physics_research',
+			accepted_date: '2213.08.12',
+			status: 'active',
+			location: { type: 4, id: 303 },
+			operator: 1,
+			issuer: 16777219
+		},
+		'16777230': {
+			mission: 'contract_eternal_chorus',
+			days_left: 1136,
+			location: { type: 4, id: 9 },
+			operator: 1,
+			issuer: 1
+		}
+	};
+	const countryBlocks = {
+		'1': { name: { key: 'Korinth' } },
+		'16777219': { name: { key: 'Oklarr' } },
+		'16777227': { name: { key: 'Vel' } }
+	};
+	it('reads the listed missions, offers and accepted ones', () => {
+		const got = contracts({
+			missions,
+			countryBlocks,
+			contractIds: { available: [23, 16777230, 21], in_progress: [16777235] }
+		});
+		expect(got).toEqual([
+			{
+				id: 23,
+				key: 'contract_colony_startup',
+				issuer: 16777227,
+				issuerName: 'Vel',
+				operator: null,
+				operatorName: null,
+				systemId: 383,
+				state: 'offered',
+				daysLeft: 1025,
+				accepted: null
+			},
+			{
+				id: 16777230,
+				key: 'contract_eternal_chorus',
+				issuer: 1,
+				issuerName: 'Korinth',
+				operator: 1,
+				operatorName: 'Korinth',
+				systemId: 9,
+				state: 'offered',
+				daysLeft: 1136,
+				accepted: null
+			},
+			{
+				id: 16777235,
+				key: 'contract_onboard_physics_research',
+				issuer: 16777219,
+				issuerName: 'Oklarr',
+				operator: 1,
+				operatorName: 'Korinth',
+				systemId: 303,
+				state: 'active',
+				daysLeft: null,
+				accepted: '2213.08.12'
+			}
+		]);
+	});
+	it('an empty or missing contracts block is no contract', () => {
+		expect(contracts({ missions, countryBlocks, contractIds: {} })).toEqual([]);
+		expect(contracts({ missions, countryBlocks, contractIds: undefined })).toEqual([]);
 	});
 });

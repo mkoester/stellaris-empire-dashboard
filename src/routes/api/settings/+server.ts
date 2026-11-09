@@ -6,6 +6,8 @@ import { parseExpansionView } from '#lib/expansion.ts';
 import { parseMapFilter } from '#lib/mapLayers.ts';
 import { parseMigrationView } from '#lib/migration.ts';
 import { parseMegaView } from '#lib/megastructures.ts';
+import { parseContractView } from '#lib/contracts.ts';
+import { parseStarbaseView } from '#lib/starbases.ts';
 import { parseSystemView } from '#lib/systems.ts';
 import { parseProduceView } from '#lib/produce.ts';
 import { parsePopWindow } from '#lib/popWindow.ts';
@@ -19,7 +21,7 @@ import { parseChartEvents, parseTabs, parseTheme } from '#lib/settings.ts';
 // Stores the viewer settings a page changed. `{ theme }` is global; into the profile in use go
 // `{ tabs }` (the whole list), `{ chartEvents }` (entries merged into the stored map),
 // `{ colonyView }` (the colonies tab's mode, sort, filters and columns), `{ expansionView }`,
-// `{ contactView }`, `{ diplomacyView }`, `{ migrationView }`, `{ megastructureView }`, `{ systemView }`, `{ produceView }`, `{ mapFilter }`, `{ quadrants }`, `{ popWindow }` and `{ display }`.
+// `{ contactView }`, `{ diplomacyView }`, `{ migrationView }`, `{ megastructureView }`, `{ contractView }`, `{ starbaseView }`, `{ systemView }`, `{ produceView }`, `{ mapFilter }`, `{ quadrants }`, `{ popWindow }` and `{ display }`.
 export async function PUT({ request }) {
 	const body = await request.json().catch(() => error(400, 'not JSON'));
 	if (body?.theme !== undefined) {
@@ -49,6 +51,10 @@ export async function PUT({ request }) {
 		updateProfile(getDb(), { migrationView: parseMigrationView(body.migrationView) });
 	if (body?.megastructureView !== undefined)
 		updateProfile(getDb(), { megastructureView: parseMegaView(body.megastructureView) });
+	if (body?.contractView !== undefined)
+		updateProfile(getDb(), { contractView: parseContractView(body.contractView) });
+	if (body?.starbaseView !== undefined)
+		updateProfile(getDb(), { starbaseView: parseStarbaseView(body.starbaseView) });
 	if (body?.systemView !== undefined)
 		updateProfile(getDb(), { systemView: parseSystemView(body.systemView) });
 	if (body?.produceView !== undefined)

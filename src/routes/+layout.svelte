@@ -72,6 +72,16 @@
 			active: path === '/systems'
 		},
 		{
+			name: 'fleets',
+			href: node ? resolve(`/fleets?node=${node}`) : resolve('/fleets'),
+			active: path === '/fleets'
+		},
+		{
+			name: 'starbases',
+			href: node ? resolve(`/starbases?node=${node}`) : resolve('/starbases'),
+			active: path === '/starbases'
+		},
+		{
 			name: 'trade',
 			href: node ? resolve(`/trade?node=${node}`) : resolve('/trade'),
 			active: path === '/trade'
@@ -168,6 +178,11 @@
 			name: 'contacts',
 			href: node ? resolve(`/contacts?node=${node}`) : resolve('/contacts'),
 			active: path === '/contacts'
+		},
+		{
+			name: 'contracts',
+			href: node ? resolve(`/contracts?node=${node}`) : resolve('/contracts'),
+			active: path === '/contracts'
 		},
 		{
 			name: 'galcom',
@@ -395,6 +410,12 @@
 					>show it now</button
 				>
 				<button class="rounded border px-2" onclick={() => (waved = loaded.node)}>not now</button>
+			</p>
+		{/if}
+		{#if data.extracting}
+			<p class="mb-2 rounded border border-sky-400 px-3 py-1 text-sm">
+				Extracting the game data with this game's {data.extracting.mods} mods … until then, what they
+				add shows as raw keys. The page reloads when it is done.
 			</p>
 		{/if}
 		{#if data.feed}

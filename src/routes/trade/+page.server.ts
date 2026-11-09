@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { ENCLAVE_DEAL, enclaveDeal, modelFrom } from '#lib/aiTrade.ts';
+import { ENCLAVE_DEAL, enclaveDeal, modelFrom, offersTrade } from '#lib/aiTrade.ts';
 import { marketFee, price } from '#lib/market.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -17,11 +17,12 @@ export function load({ url }) {
 	const data = getGameData();
 	const { tradeIntel } = display();
 	const names = new Map((latest?.relations ?? []).map((r) => [r.countryId, r.name]));
-	// empires that trade (the reader keeps only those since READER 10; older readings had more)
-	const types = new Map((latest?.countries ?? []).map((c) => [c.id, c.type]));
-	const trading = ['default', 'fallen_empire', 'awakened_fallen_empire'];
+	// empires we can offer a deal (the reader keeps only trading types since READER 10; older
+	// readings had more, and it keeps the berserk custodian)
+	const countries = new Map((latest?.countries ?? []).map((c) => [c.id, c]));
+	const types = new Map([...countries].map(([id, c]) => [id, c.type]));
 	const empires = (latest?.aiIntel ?? [])
-		.filter((ai) => trading.includes(types.get(ai.countryId) ?? 'default'))
+		.filter((ai) => offersTrade(countries.get(ai.countryId) ?? { type: 'default', civics: [] }))
 		.map((ai) => ({
 			...ai,
 			name: names.get(ai.countryId) ?? String(ai.countryId),

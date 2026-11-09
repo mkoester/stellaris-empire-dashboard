@@ -307,6 +307,33 @@ jobs, alloys and minerals on Planetforgers, and job output lost in a resource sh
   a Physicist's.
 - **Send:** the tooltips and the date. Check: the lines the panel does not count yet.
 
+### 32. Which contracts the game shows — contracts tab (from 2026-11-07)
+
+The save holds every contract (`missions` + `contracts.available|in_progress`) but not who may
+see one. The tab's rules are ours (`#lib/contracts.ts`): a nomad sees what it took and the offers
+of empires it has communications with; a settled empire only the contracts it issued — others'
+are a spoiler (by range beyond the border) or a cheat. Unknown: whether a settled empire sees
+other empires' contracts at all (map icons, a list), and whether a nomad's list leaves out offers
+it cannot accept (`possible_operator`: already on the same contract, a tech, out of reach).
+
+- **Do:** as a nomad, open the contract list; as a settled empire with nomads around, look for
+  contract icons on the galaxy map in systems that are not yours.
+- **Send:** the screenshots and the date. Check: the contracts tab's rows without spoilers (the
+  normal view should show exactly the game's).
+
+### 33. Design stats and the starbase list — fleets and starbases tabs (from 2026-11-09)
+
+The fleets tab adds a design's base stats from the game files (`#lib/designStats.ts`): hull,
+armor, shields, evasion, speed, power, cost, upkeep, weapons — techs and empire modifiers left
+out, so the designer's numbers should be at least these. The weapons' "dmg / cooldown" is ours;
+the CSV's cooldown unit has not been matched with the designer's damage per day. The starbases
+tab's table should list what the outliner lists.
+
+- **Do:** open the ship designer on a saved warship design (one with a Reactor Booster if there is
+  one) and hover hull, armor, speed, power and a weapon's damage; open the outliner's starbases.
+- **Send:** the screenshots and the date, with the fleets tab's design detail and the starbases
+  tab beside them. Check: which lines differ only by empire modifiers; the cooldown's unit.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
@@ -344,6 +371,26 @@ current partners.
   `research_technology <tech>`, `play 0`), sign a research agreement with it, two months: ×1.76
   (1.51 + 0.25) means each partner counts, ×1.51 once.
 
+### 34. Unofficial designs and the Transit Hub — fleets and starbases tabs (from 2026-11-09)
+
+Read from one save only (UNE 6 2208.01.01): a design no longer saved stays in `ship_design` while
+ships use it, and `ship_design_implementation.upgrade` names the design they upgrade to. The
+starbase planner ranks the Transit Hub (Hyper Drive II, a starport, a colony of ours) by the
+system's civilians and growth — no save on this machine has researched Hyper Drive II, so it was
+only seen on a DB copy with the tech added.
+
+- **Do:** in a throwaway game, save a corvette design, build two corvettes to it, delete the design
+  in the designer, save a new one, and let an autosave come. Then research Hyper Drive II and
+  check the starbases tab's planner:
+
+```
+research_technology tech_hyper_drive_2
+```
+
+- **Send:** the date, a screenshot of the fleet's ships (their design names), and of the Transit
+  Hub's tooltip on a starport with a colony. Check: the fleets tab shows the deleted design as
+  unofficial with the right upgrade target; the planner lists the Transit Hub at that starport.
+
 ### 6. Trade calibration — the rest (paused 2026-10-23)
 
 The trade model is fitted to tooltips at 16 empires, gifts and deals (2026-10-23; summary in
@@ -371,7 +418,17 @@ cheats — tooltips set up, not sent — not in a throwaway game. Open:
 - the basic resources' curves at game start differ from the campaign's (consumer goods, alloys,
   food, trade; same file): when do they change — a step at some event, or gradually?;
 - where a fallen empire's room really ends in a deal: its storage is known now (companion mod
-  0.5.0: base + 120,000), so offer it alloys up to and past 0.8 of that to see the cut-off.
+  0.5.0: base + 120,000), so offer it alloys up to and past 0.8 of that to see the cut-off;
+- a second monthly cap, net − `TRADE_MIN_RESOURCE_DELTA` (10): the mod "Stop Guessing What AI
+  Will Trade You" (Workshop 3832466386, 2026-11-09) shows min(0.3 × gross, net − 10) a month,
+  read off the define's name, not measured. `monthlyCap()` has the first half only; our one
+  measurement cannot tell (KhellZen 2212.08: gross 181.9, net 95.2 — 54 against 85). Find an
+  empire whose net is small against its gross (gross 100, net 20: the mod says 10, we say 30),
+  ask it for that resource a month and note where it turns −1000;
+- trading at war: the same mod lists no empire we are at war with, the trade tab does —
+  `action_offer_trade_deal`'s `possible` has no war condition, so try the diplomacy screen with
+  an empire at war with us (we filter the berserk machine fallen empire since 2026-11-09, its
+  `potential`).
 
 ### 7. Stored research — tech tab
 

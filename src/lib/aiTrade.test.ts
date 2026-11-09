@@ -10,6 +10,7 @@ import {
 	lumpForMonthly,
 	modelFrom,
 	monthlyCap,
+	offersTrade,
 	offerPrice,
 	rate,
 	room,
@@ -738,6 +739,18 @@ describe('prices in trade', () => {
 		expect(marketPrice('alloys', 'buy', { alloys: 4 }, 0.3)).toBeCloseTo(5.2);
 		expect(marketPrice('alloys', 'sell', { alloys: 4 }, 0.3)).toBeCloseTo(2.8);
 		expect(marketPrice('sr_zro', 'buy', { alloys: 4 }, 0.3)).toBeNull();
+	});
+});
+
+describe('who can be offered a trade', () => {
+	it('regular and fallen empires, not the berserk custodian', () => {
+		expect(offersTrade({ type: 'default', civics: ['civic_technocracy'] })).toBe(true);
+		expect(offersTrade({ type: 'fallen_empire', civics: ['civic_machine_fe'] })).toBe(true);
+		expect(offersTrade({ type: 'awakened_fallen_empire', civics: [] })).toBe(true);
+		expect(offersTrade({ type: 'fallen_empire', civics: ['civic_malfunctioning_custodian'] })).toBe(
+			false
+		);
+		expect(offersTrade({ type: 'enclave', civics: [] })).toBe(false);
 	});
 });
 

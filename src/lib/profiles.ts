@@ -6,6 +6,8 @@ import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from '
 import { anyOn } from './displaySwitches.ts';
 import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
+import { DEFAULT_CONTRACT_VIEW, parseContractView, type ContractView } from './contracts.ts';
+import { DEFAULT_STARBASE_VIEW, parseStarbaseView, type StarbaseView } from './starbases.ts';
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
 import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
 import { DEFAULT_POP_WINDOW, parsePopWindow, type PopWindow } from './popWindow.ts';
@@ -54,6 +56,8 @@ export type Display = {
 	historyAll: boolean; // history tab: every empire's history, whatever we know (cheat)
 	pactIntel: boolean; // pacts tab: what intel shows of partners — tech counts, trade at economy intel 3 (spoiler)
 	pactAll: boolean; // pacts tab: partners' techs and trade whatever our intel, tech hints (cheat)
+	contractSpoilers: boolean; // contracts: offers from issuers we do not talk to (nomad), others' near our border (settled) (spoiler)
+	contractsAll: boolean; // contracts: every contract in the galaxy (cheat)
 	whatIfs: boolean; // ≈ what an edict, policy, designation or planet decision would do now (spoiler)
 };
 export const DEFAULT_DISPLAY: Display = {
@@ -83,7 +87,9 @@ export const DEFAULT_DISPLAY: Display = {
 	diplomacyAll: false,
 	historyAll: false,
 	pactIntel: false,
-	pactAll: false
+	pactAll: false,
+	contractSpoilers: false,
+	contractsAll: false
 };
 
 export type ProfileSettings = {
@@ -95,6 +101,8 @@ export type ProfileSettings = {
 	diplomacyView: DiplomacyView;
 	migrationView: MigrationView;
 	megastructureView: MegaView;
+	contractView: ContractView;
+	starbaseView: StarbaseView;
 	systemView: SystemView;
 	produceView: ProduceView;
 	mapFilter: MapFilter;
@@ -113,6 +121,8 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	diplomacyView: DEFAULT_DIPLOMACY_VIEW,
 	migrationView: DEFAULT_MIGRATION_VIEW,
 	megastructureView: DEFAULT_MEGA_VIEW,
+	contractView: DEFAULT_CONTRACT_VIEW,
+	starbaseView: DEFAULT_STARBASE_VIEW,
 	systemView: DEFAULT_SYSTEM_VIEW,
 	produceView: DEFAULT_PRODUCE_VIEW,
 	quadrants: DEFAULT_QUADRANT_VIEW,
@@ -158,7 +168,9 @@ export function parseDisplay(v: unknown): Display {
 		diplomacyAll: o.diplomacyAll === true,
 		historyAll: o.historyAll === true,
 		pactIntel: o.pactIntel === true,
-		pactAll: o.pactAll === true
+		pactAll: o.pactAll === true,
+		contractSpoilers: o.contractSpoilers === true,
+		contractsAll: o.contractsAll === true
 	};
 }
 
@@ -174,6 +186,8 @@ export function parseSettings(v: unknown): ProfileSettings {
 		diplomacyView: parseDiplomacyView(o.diplomacyView),
 		migrationView: parseMigrationView(o.migrationView),
 		megastructureView: parseMegaView(o.megastructureView),
+		contractView: parseContractView(o.contractView),
+		starbaseView: parseStarbaseView(o.starbaseView),
 		systemView: parseSystemView(o.systemView),
 		produceView: parseProduceView(o.produceView),
 		mapFilter: parseMapFilter(o.mapFilter),

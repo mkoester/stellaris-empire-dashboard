@@ -242,7 +242,13 @@
 			hints={data.blockerHints}
 			date={data.latest.date}
 		/>
-		<Districts districts={data.colony.districtList} names={data.names} colors={data.colors} />
+		<Districts
+			districts={data.colony.districtList}
+			names={{ ...data.details?.names, ...data.names }}
+			colors={{ ...data.details?.colors, ...data.colors }}
+			caps={Object.fromEntries((data.details?.caps.types ?? []).map((t) => [t.district, t.cap]))}
+			categories={data.buildingCategories}
+		/>
 	</div>
 	{#if data.details?.caps.types.some((t) => t.cap !== null && t.built < t.cap)}
 		<p class="mt-2 text-sm">

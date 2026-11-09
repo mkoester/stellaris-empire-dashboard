@@ -1,4 +1,5 @@
 import {
+	campaignDataState,
 	campaignsOnDisk,
 	dataVersion,
 	getDb,
@@ -114,6 +115,11 @@ export function load({ url }) {
 		})(),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
+		// the viewed campaign's own game data (its mods) still being extracted: pages show older data
+		extracting: (() => {
+			const d = campaignDataState();
+			return d?.extracting ? { mods: d.mods } : null;
+		})(),
 		// the game being played: its latest save, and its latest data (a save, month or daily tick)
 		dates: (() => {
 			const head = headId(db);

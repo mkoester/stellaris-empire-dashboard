@@ -48,7 +48,7 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
   save loaded in single player, a month without the mod, does not undo it) or Ironman
   (`campaignIronman()`), `display()` forces every `cheat`-kind switch off **and every spoiler
   marked `intel`** — those revealing other empires or unexplored space: `wholeGalaxy`,
-  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`
+  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`, `contractSpoilers`
   (`effectiveDisplay(d, noCheats)`, `barred()`) — and ⚙ lists none of them, saying why
   (`viewedNoCheats()`: `ironman` before `multiplayer`). Other spoilers stay: they are the game's
   own content (anomalies, projects, timers, what-ifs), not another player's secrets. **A new
@@ -139,6 +139,56 @@ during development the version stays the same across changes, and a dashboard ke
 from older extractor code, silently (2026-10-31: Mega-Engineering's prerequisites, fixed in the
 extractor, never reached a dashboard with `STELLARIS_EXTRACTOR`); now any code change extracts
 once more (~5 s), a release's players only when its code changes.
+
+**Mods in the game data** (2026-11-08; the user's ask: mods adding districts, slots, designations,
+trees, perks, civics, traits; **per campaign since 2026-11-09**, the user's ask: "only the current
+playset — can a changed playset be picked up by the running dashboard?"): **each campaign's data
+is extracted with its latest save's mods** (`campaignModSet()` in `#lib/addons.ts`, `campaignMods()`
+in `db.ts`), `--mod` each in load order, so their designations, districts, zones, tradition trees,
+traits, archetypes, starbase levels and defines are in the data DB, and the `Better …` rebalances'
+values replace vanilla's (the extractor's merged view: `../stellaris-data-extraction/extractor/mods.py`).
+**The save names mods but not their order** (`meta.mods`, alphabetical), so the order comes from the
+launcher: the order seen while the campaign was played (`rememberOrder()`: at each save the running
+game writes, `dlc_load.json` if it holds exactly the save's mods, kept as setting `loadOrder:<campaign>`
+— **the launcher rewrites `dlc_load.json` on every playset edit, not only at a game start**: on
+2026-11-09 at 21:28, after the game had closed at 21:24, with no game start between; the user had
+edited the playset), else `dlc_load.json` (the active playset) when it holds exactly these mods, else
+the playset
+closest to them (`launcherPlaysets()`: `launcher-v2.sqlite`, most of the mods, fewest others, the
+active one first; the mods it lacks appended alphabetically), else alphabetical ("guessed"). Measured
+2026-11-09 on this machine: no playset held any older campaign's 17 mods exactly — "4.5 tests
+dashboard" had gained Dev Tools since —, so the closest playset is the common case. A campaign
+without a save yet takes `dlc_load.json`. Relative descriptor paths resolve against the user dir. An older mod registered by `archive=` (a
+zip, 2017's Research options+) has that as its `path` and is unpacked by the extractor (v0.1.15).
+**The data DBs** (`server/dataStore.ts`, `dataOf()` in `app.ts`): named by game, DLCs, extractor and
+mods in load order (`dataDbFor()`; folder and update time per mod — none leaves the key as before
+mods, so an unmodded player never re-extracts), kept on disk; one on disk loads at first use, the
+three most recently used stay in memory, one extraction runs at a time. Pages read the viewed
+campaign's (`getGameData()`, `getExplanations()`, `dataMods()`, `dataVersion()` resolve it once per
+request through `viewedCampaign()`); a campaign whose data is not extracted yet gets the most
+recently used one while it extracts in the background — the layout's banner says so — then pages
+reload. Start-up extracts the head campaign's before the first page. **Saves are read with their
+campaign's data** (prescripted names and entry events are baked into snapshots): the watcher's
+`prepare` sets them per campaign (extracting first if needed) and `reader` holds the campaign's data
+DB stamp (`readerOf()`: `READER:mtime:size` of its file, the format of before, so an unchanged data
+DB re-reads nothing), so a campaign whose data changes is read again (`Watcher.reread()`).
+**Changes are followed while running**: a new save naming other mods, or the launcher's files
+(`dlc_load.json`, `launcher-v2.sqlite` and its WAL, polled every 5 s, `watchLauncher()`) — a
+playset edited, a game started — resolve each campaign's mods again, re-read descriptors (mod
+updates), and extract and re-read where they changed. **Extraction goes through the extractor's
+parse cache** (`--cache <app dir>/data/parse-cache`, `parseCacheDir()`, extractor v0.1.14), which
+parses only files it has not seen: 45 mods 10 s, the game alone 6 s (2026-11-09). A failed modded
+run (a broken mod file, a player's extractor from before `--mod`) falls back to the game's own data,
+logged — and is tried again at the next start (its data DB never exists). `/mods` shows which mods
+the campaign's data includes (`meta.mods`, `loadDataMods()`; null for an older extractor), where
+their order comes from, mods without a folder, and the save's mods the data lacks
+(`dataModMismatch()`: while extracting, or after a failure). `STELLARIS_DATA_DB` dev runs use that
+one data DB for every campaign, unmodded. Checked 2026-11-09 on a DB copy (eight campaigns, a fresh
+app folder): three extractions (two 17-mod sets, Ancient Highway's two), the banner while one ran,
+each campaign's `/mods` naming its own; after changing the order rule, one extraction and 21
+re-reads; a third start with nothing changed: none of either. **The dashboard caps none of the counts
+these mods raise** (tradition trees, perks, civic points; checked 2026-11-08) — the save holds what
+was taken. Which mods need more than the data: `docs/mod-support.md`.
 
 ## Packaging and releases
 
@@ -256,7 +306,10 @@ pages and `/__data.json` with curl and stop the server — all in one command wh
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
 `data` with `unflatten` from `node_modules/.pnpm/devalue@*/node_modules/devalue/index.js` (a
 `node --experimental-strip-types` script can import the pure `src/lib/*.ts` to recompute from it).
-A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{…}}`, with the
+A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{…}}` — **it replaces
+the whole `display`**, `parseDisplay()` defaulting what is left out, so send every switch the check
+needs in one PUT, the gates `showSpoilers` / `showCheats` included (2026-11-07: a second PUT for the
+cheat silently switched the spoiler off), with the
 page's `?node=`). A save-wide question (every colony across the history) is quickest as a
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
@@ -936,6 +989,62 @@ caps, one build at a time per queue. 2207.04.02: Civilian Industries on Earth 10
 districts 11–20, stations 20–50; over 60 months every strategy ends within 1 % of the others
 (everything affordable gets built within ~2 years), 11 % above building nothing.
 
+**Fleets tab** (`/fleets`, `#lib/designStats.ts` pure; the user's ask 2026-11-09: "fleets and
+ship designs — a ship with a design no longer saved: make it an unofficial design so I can still
+see it"): the latest save's military fleets with their design mix (`Fleet.designs`) and our ship
+designs (`Snapshot.designs`, `shipDesigns()` in save.ts, READER 53: saved ∪ used by non-station
+fleets) — status saved / saved, unused / **unofficial** (used, not saved), unofficial first.
+**Only sizes the player configures** (`configurable()`, the user's call 2026-11-09): data DB
+`ship_size.class` `shipclass_military` (warships, bio ships) or `_military_special` (Colossus),
+plus the Juggernaut (filed as `shipclass_starbase`); no civilian ships, transports, stations,
+defense platforms, observation posts or starbases — without the data DB's sizes, by the key. A
+design's detail: sections and components by name, the fleets using it, what its ships upgrade to,
+and **base stats** from the data DB's `ship_size`, `section_template`, `component_template`
+(`GameData.shipParts`, extractor 2026-11-09; empty with an older data DB — names and keys only):
+hull (size + `ship_hitpoints_add`) × mult, armor, shields, evasion, speed × `ship_speed_mult`,
+power drawn against reactor output × `ship_reactor_power_mult`, cost and upkeep summed over size,
+sections and components, every other modifier listed, and per weapon its CSV row (damage,
+cooldown, range, accuracy, tracking). **Techs and empire modifiers are not applied**, and the
+"damage / cooldown" column compares designs only — the CSV's cooldown unit has not been matched
+with the designer's damage per day. Not yet compared with the ship designer (`docs/open-checks.md` 33).
+
+**Starbases tab** (`/starbases`, `#lib/starbases.ts` pure; the user's ask 2026-11-09: "overview
+of my starbases — separate regular ones and shipyards like in the outliner, or a toggle"): the
+latest save's `stations` as one table (system, level, modules and buildings by the data DB's
+names, free slots, build queue, shipyard queue) with the profile's `starbaseView` — `yard` all /
+shipyards / without shipyard (`Station.shipyard`), `outposts` (off by default: many, nothing to
+build) and the planner's `range` —, the starbase capacity and the Shipyards panel. Free slots =
+the level's (`freeSlots()`) less what is built, `?` for a level the data DB lacks; queued items are
+not taken off. **A level's slots are its ship size's capacity** (`levelSlots()`:
+`starbase_module_capacity_add` / `starbase_building_capacity_add` in the data DB's
+`ship_size.modifiers_json`, joined on `starbase_level.ship_size`; the level's own slot list only
+without one, or with a data DB from before `modifiers_json`) — 4.5.3 counts that way, and mods change
+the ship size, not the list (2026-11-09: Slightly Larger Starbases [4.5] makes a starport 3/2 and a
+citadel 12/6; vanilla's 41 levels are unchanged, the two agree everywhere). It also repaired the
+arkships with BPVR, whose level lists the extractor counted as 0.
+**Starbase planner** (same tab, `#lib/starbasePlanner.ts` pure, `server/starbasePlanner.ts`; the
+user's ask 2026-11-09: "where in my empire and border + x would it make sense to build what —
+resources in the systems, max deposit output, effects on my colonies, e.g. push automatic
+migration on the colony with the highest pop growth"): per starbase module and building (data DB
+`starbase_part` with `potential_json`/`possible_json`, `starbase_part_modifier`, extractor
+2026-11-09 — `owner = { … }` unwrapped to the country's conditions; `GameData.starbaseParts`, `{}`
+from an older data DB) and per candidate system (ours, and the discovered unclaimed ones up to
+`starbaseView.range` beyond the border), what its modifiers would do there: station output mults
+× the system's orbital deposits' base output (mining → gatherers, research → researchers; "stations
+on k of n deposits"); `planet_resettlement_unemployed_mult` on the system's colonies by civilians
+
+- last month's growth and assembly — **the Transit Hub** (`system_modifier` +200 %, needs a
+  starport, Hyper Drive II and a colony of ours there; the user caught that it was missing from the
+  first plan); `planet_stability_add` (colonies below 50 count fully); governing ethics attraction
+  by pops. Everything else is listed unranked. Conditions: the empire's through `#lib/triggers.ts`
+  (`atStarbase()` answers `is_normal_starbase`, rings, citadels, arkships, waystations and
+  `has_starbase_size` at each level), so a part shows the level it needs ("upgrade to starport"),
+  an outpost first outside the border, a free slot; what the save cannot answer (`solar_system = {
+… }`) marks it `?`. Already built in the system: skipped. **None of this machine's saves has
+  researched Hyper Drive II** (2026-11-09: every campaign, UNE 5's 2245 save too) — the Transit Hub
+  row was seen only on a DB copy with the tech added to Planetforgers 2214.02.01 (Embrala, Embron
+  +5 pops a month).
+
 **Systems tab** (`/systems`, `#lib/systems.ts` pure; the user's ask 2026-10-22): our systems — and
 the discovered ones up to +0…+10 jumps beyond the border, or all (`systemView.range`, facts only) —
 with what the galaxy knows (star, bodies, deposits' base yield, anomalies, megastructures,
@@ -962,7 +1071,9 @@ refunds of cancelled items, the influence of claims.
 **Trade tab** (`/trade`, `#lib/aiTrade.ts` pure; the user's biggest pain point, 2026-10-22: "who
 trades what, both directions, for how much, normalised by trade"): the empires we have
 communications with — regular and fallen ones only (`TRADING_TYPES` in save.ts; pre-FTL
-civilisations, monsters, enclaves and the game's event countries also have communications) —
+civilisations, monsters, enclaves and the game's event countries also have communications), and
+not the berserk machine fallen empire (`offersTrade()`: `action_offer_trade_deal`'s `potential`;
+whether war bars a deal is open, `docs/open-checks.md` 6) —
 with what the diplomacy screen shows: personality and its `trade_willingness`, attitude towards
 us (one that does not trade refuses everything: data DB `attitude.trade`), their opinion of us
 with its modifiers, trust, our deals, a gift's "Favorable Trade Deal" (data DB `opinion_modifier`:
@@ -1141,7 +1252,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`. A new view of hidden information follows the same pattern
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`. A new view of hidden information follows the same pattern
 (and in multiplayer and Ironman: "No cheats in multiplayer or Ironman").
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
@@ -1345,6 +1456,20 @@ static modifier (its explanation's modifiers) or removes one the planet has, wit
 duration. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01, UNE 2202.08.01): every page
 200; switch off → none shown, on → shown, spoilers hidden → off again. Not compared with the game
 (`docs/open-checks.md` 28).
+**Icons** (`#lib/icons/`, the user's ask 2026-11-09: "come up with some svg icons for the
+building — we might use original images at some point, but not for now"): our own 24×24 stroke
+icons in `currentColor` (no game art, workspace `AGENTS.md`), `iconFor(key, category?)` resolves a
+district, zone or building key by its words (first match in `BY_WORD`: strategic resources and the
+district's family before its specialisation), then a building's data DB `category`, then a
+hexagon — mods' keys get one too. The colony page's districts panel shows them as cards
+(`panels/ColonyLayout.svelte`, per viewer `localStorage` `colonyDistrictsView`, the table kept as
+the other view); no empty slot is drawn, free building slots are not in the save. **Two rows**
+(`#lib/colonyLayout.ts`, the user's ask 2026-11-09: "city district, additional zones as a 2nd
+district; the special districts; five tiles"): the city district (named like one — city, hive,
+nexus, housing; else the uncapped district) with its first zone, the government zone, and beside
+it a tile of its other zones; below, the other districts, then those the planet's caps allow but
+has none of (×0, faded) — usually generator, mining and agriculture. A planet with more special
+districts (Planetforgers' capital: geothermal, magma, mining, thermotechnic) wraps to three a row.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
@@ -1577,6 +1702,27 @@ collected** (`uncollected()`):
   it; without, a stockpile that did not move although the budget booked a gain (Planetforgers
   2214.01–02: 1000 both, +5.8 booked) — estimated; the unexplained row then says so.
 
+**Contracts tab** (`/contracts`, `#lib/contracts.ts` pure, `server/contracts.ts`; the user's ask
+2026-11-07: contracts for nomadic and settled empires, a tab and on the maps). `Snapshot.contracts`
+(READER 52, `contracts()` in save.ts) is every contract in the galaxy — **the save does not say
+who may see or accept one** (the game's `potential_operator` / `possible_operator`; scripts can
+only count them: `count_visible_contracts`, `count_available_contracts`), so the rules are ours
+(the user's call): a **nomad** (`nomadic()`) sees what it operates and the offers of issuers it
+has communications with (an issuer needs that to issue at all, `can_issue_contracts_trigger`);
+spoiler `contractSpoilers` (intel) the other offers; cheat `contractsAll` everything. A **settled**
+empire sees what it issued; the spoiler adds others' contracts up to `contractView.range` jumps
+beyond the border (`jumpsFromBorder()` over discovered lanes — Planetforgers 2214.02.01: 32 of 129
+visited systems reachable, so most contracts need range "anywhere"), the cheat everything.
+What the game shows a settled empire of others' contracts is not known (`docs/open-checks.md` 32).
+Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
+table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
+name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the
+systems, situations, diplomacy and megastructures maps draw `ContractMarks.svelte` in their
+`layer` (`contractMarksAt()`), the history map not (it shows a past month). Checked 2026-11-07
+on a fresh DB with Planetforgers 2214.02.01 (settled): 0 rows plain, 1 spoiler at +7 (Lolehndra's
+Remote Physics Research), 18 with the cheat, every map 200; the nomad rules by unit tests only
+(no nomad player save with contracts on this machine), the drawing not seen in a browser.
+
 **Pacts tab** (`/pacts`, `#lib/pacts.ts` pure; the user's ask 2026-11-05: "what do I get from
 them, per type, then per empire"): every type we hold (`PACT_TYPES`: the relation flag and the
 budget category) with partners and booked upkeep (0.25 influence for migration treaties, research
@@ -1697,9 +1843,10 @@ DLCs**: Utopia, Synthetic Dawn and Humanoids are gameplay DLCs no script checks 
 the `mod_version` table, with the head's game date — the mods tab's "Updates", since
 2026-10-18 (many mods name no version: their update shows as a new update time). **Load order**
 (`#`, the default sort): `<user dir>/dlc_load.json`'s `enabled_mods`, read per request — the
-launcher writes it from the active playset's order when it starts the game (2026-10-31: the same
-order as `launcher-v2.sqlite` `playsets_mods.position`), so a change in the launcher shows after
-the next game start. **Age**: days since the workshop's update (`ageDays()`, real time at the
+launcher writes it from the active playset's order (2026-10-31: the same order as
+`launcher-v2.sqlite` `playsets_mods.position`) at a game start **and on every playset edit**
+(2026-11-09: rewritten after the game had closed), so it is the active playset, not necessarily
+the last game's. **Age**: days since the workshop's update (`ageDays()`, real time at the
 request). The save's `meta.mods` is alphabetical, no source of the order. The DLC tab
 opens per category.
 
@@ -1943,6 +2090,8 @@ an `every_situation = { limit = … }` form did not).
 
 ## Save format facts (4.5.2, read from a real save)
 
+**Contracts** (Planetforgers 2214.02.01, Proton): top-level `missions = { <id> = { mission="<key>" issuer operator location={ type=4 id=<system> } … } }` holds contracts and situation-log missions alike (star journals: `issuer=4294967295`), gaps as `<id>=none`; `contracts = { available = { ids } in_progress = { ids } }` says which are contracts. An offer has `days_left` and `operator=4294967295`, an accepted one `accepted_date` and `status=active`; an internal one (Eternal Chorus, Forever Cruise's) has operator = issuer while still offered. 18 contracts there, from 9 issuers.
+
 **For a shape not yet seen in our saves** (wars, trade deals, galactic market): the other parser,
 eliasdoehne/stellaris-dashboard (`stellarisdashboard/parsing/timeline.py`), reads many; a 4.0.1
 save at 2312 lives in chennin/stellaris-dashboard-test-saves (galactic market and GalCom, but
@@ -2099,6 +2248,20 @@ shipyard_build_queue station }` — **no owner field**; the country's are those 
   finished Mega Shipyard, plus the tech (`*_possible_construction` in
   `scripted_triggers/07_scripted_triggers_ships.txt`). Mega Shipyards: `megastructures.<id> =
 { type owner }` — not yet seen in a save, so how its ship queue is located is a guess.
+- **Ship designs** (UNE 6 2208.01.01, 4.5.3; READER 53): the top-level `ship_design` is global
+  (2389 entries, **no owner**); the player's saved designs are
+  `country.ship_design_collection.ship_design = { 8 9 10 2451 … }`. A ship names its design in
+  `ship_design_implementation = { design upgrade growth_stage }`; a design no longer saved stays in
+  `ship_design` while ships use it — the fleets tab's **unofficial** design (design 35, an
+  auto-generated "Cheetah" gunship on three corvettes, `upgrade=2451` the saved Cheetah screen;
+  `4294967295` = none). Starbases' and stations' designs (`starbase_outpost`, `starbase_starport`)
+  are outside the collection: their fleets (`ship_class` starbase/station) are left out. A
+  design's parts: `growth_stages[0] = { ship_size section = { template slot component = { slot
+template } … } … required_component … }`, `role` (screen, gunship; absent on civilian ships),
+  `auto_gen_design=yes`. Station designs are named `SUFFIX_NAME_FORMAT` with an empty `NAME` and
+  a roman `SUFFIX` ("III"): the tab shows them after their size ("Mining Station III").
+  **Not yet checked in game**: that deleting a saved design leaves it as here, and that
+  `upgrade` names the design the ships upgrade to (`docs/open-checks.md` 34).
 - Map positions: `galactic_object.<id>.coordinate = { x y }` — the game draws **x growing to the
   left** and y growing down (2207.03: Alpha Centauri x 11 west of Sol x −6, Sirius x −30 east);
   `#lib/mapView.ts` flips x.

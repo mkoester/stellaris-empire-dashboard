@@ -4,6 +4,55 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.14] - 2026-11-09
+
+### Added
+
+- Mods in the game data: each game's data is extracted with the mods of its latest save, in your
+  launcher's load order, so designations, districts, tradition trees, traits and starbase slots
+  that mods add are named and counted, and rebalance mods' values are used. Switching between
+  games played with different playsets just works, and a playset edited or a game started with
+  other mods is picked up while the dashboard runs — no restart; a banner shows while the data is
+  being extracted. The mods tab shows which mods the data includes and where their order comes
+  from.
+- Starbase slots follow mods that enlarge starbases (such as Slightly Larger Starbases): the
+  starbases tab counts each level's slots as the game does, from its ship size.
+- The load order a game was played with is remembered while it runs, so editing the playset
+  afterwards does not change that game's data.
+- Older mods that come as a zip (such as Research options+) are part of the game data too.
+- A new playset or a mod update extracts the game data about three times faster (45 mods: 34 s →
+  10 s): the extractor keeps each file it has read, in `data/parse-cache`.
+
+- A Contracts tab for Nomads contracts. A nomad sees the contracts it took and the offers of
+  empires it talks to; a settled empire the contracts it issued. Each comes with its kind, issuer,
+  who took it, system and days left to accept, and a map. Two new switches in ⚙: a spoiler
+  (offers of empires you do not talk to as a nomad; other empires' contracts up to a picked range
+  beyond your border as a settled empire) and a cheat (every contract in the galaxy). The map
+  tab has a contracts layer, and the systems, situations, diplomacy and megastructures maps mark
+  contracts too. Names and kinds need a data DB with the `contract` table (extractor 2026-11-07).
+
+- The colony page shows its districts as cards in two rows: the city district with its government
+  zone and, beside it, its further zones; below, the special districts (usually generator, mining
+  and agriculture, those with none built yet too) — each with its icon, colour and count of its
+  cap, its zones and their buildings as tiles (disabled ones struck through). The icons are
+  our own, not the game's. A switch keeps the table view.
+
+- A Starbases tab: every starbase with its level, modules, buildings, free slots, build queue
+  and shipyard queue, filtered to all, shipyards or those without, outposts on request, plus the
+  starbase capacity and the shipyards panel. Its starbase planner ranks, per module and building,
+  the systems (yours, and unclaimed ones up to a picked range beyond your border) where it does
+  most: station output bonuses by the system's orbital deposits, the Transit Hub's resettlement
+  bonus by how many pops the system's colonies can push out, stability and governing ethics by
+  the colonies there — and what has to happen first (an outpost, an upgrade, a free slot). It
+  needs game data with starbase modifiers (extractor 2026-11-09).
+
+- A Fleets tab: your military fleets with the designs their ships are built to, and every ship
+  warship and bio-ship design — saved, saved but unused, or **unofficial** (ships still built to a design you no
+  longer have saved). A design shows its sections and components, the fleets using it, the design
+  its ships upgrade to, and base stats (hull, armor, shields, evasion, speed, power, cost, upkeep,
+  weapons) before empire modifiers. The stats need game data with ship parts (extractor
+  2026-11-09).
+
 ## [0.1.13] - 2026-11-07
 
 ### Added

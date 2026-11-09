@@ -1,3 +1,5 @@
+import type { ShipParts } from './designStats.ts';
+import type { StarbasePart } from './starbasePlanner.ts';
 import type { AttractionRule, AttractionSource } from './ethicSources.ts';
 import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
@@ -77,6 +79,26 @@ export type Fleet = {
 	ships: number;
 	power: number;
 	route: Route;
+	designs?: { designId: number; count: number }[]; // its ships per design; absent before READER 53
+};
+
+/**
+ * A ship design of ours (READER 53): one the player saved (`country.ship_design_collection`) or one
+ * our ships are built to although it is not saved any more — **unofficial** (`saved: false`; the
+ * user's word, 2026-11-09). The global `ship_design` keeps every design a ship uses, so the
+ * unofficial ones can still be shown in full. Its parts are those of the first growth stage.
+ */
+export type ShipDesign = {
+	id: number;
+	name: string;
+	size: string;
+	role: string | null;
+	sections: { template: string; slot: string; components: { slot: string; template: string }[] }[];
+	required: string[]; // `required_component`: reactor, drive, thrusters, sensors, computer
+	saved: boolean;
+	autoGen: boolean; // `auto_gen_design`: the game's own (auto-generated) design
+	ships: number; // our ships built to it
+	upgradeTo: number | null; // the design its ships upgrade to (`ship_design_implementation.upgrade`)
 };
 
 /**
@@ -397,6 +419,7 @@ export type Snapshot = {
 	traderEnclaves: TraderEnclave[] | null; // since READER 11
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
+	designs: ShipDesign[] | null; // our saved designs and those our ships use (READER 53)
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
 	traditions: string[] | null; // adopted traditions, in pick order (adopt and finish included)
 	ascensionPerks: string[] | null;
@@ -449,6 +472,7 @@ export type Snapshot = {
 	shroud: Shroud | null; // null before access to the Shroud, and before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
+	contracts: Contract[] | null; // every Nomads contract in the galaxy, offered or accepted; READER 52
 	// From the save's `meta`; null from the mod feed and in older snapshots.
 	gameVersion: string | null; // e.g. "Cygnus v4.5.2"
 	dlcs: string[] | null; // DLCs active in this save (`required_dlcs`), by name
@@ -973,6 +997,30 @@ export type BranchSite = {
 /** What one side of a trade deal hands over: resources monthly or once, and anything else. */
 export type DealSide = { monthly: Resources; once: Resources; other: string[] };
 
+/** A contract's kind as the game files define it (data DB `contract`). */
+export type ContractType = {
+	name: string;
+	category: string; // e.g. resource_contract, science_contract_internal, crew_resource_contract_special
+	timeToAccept: number | null; // days an offer stays open
+};
+
+/**
+ * A Nomads contract (`missions.<id>` listed in `contracts.available|in_progress`), whoever issued
+ * it: who may see it is decided on read (#lib/contracts.ts), the save does not record it.
+ */
+export type Contract = {
+	id: number;
+	key: string; // `mission`, e.g. "contract_harvest_minerals" — data DB `contract.key`
+	issuer: number;
+	issuerName: string;
+	operator: number | null; // null: not accepted (4294967295); the issuer itself for internal ones
+	operatorName: string | null;
+	systemId: number | null; // `location = { type=4 id }`, a galactic object
+	state: 'offered' | 'active';
+	daysLeft: number | null; // an offer's days to accept
+	accepted: string | null; // accepted_date
+};
+
 /**
  * A trade deal with another empire. UNVERIFIED shape — none seen in a save yet (see AGENTS.md):
  * `raw` keeps the deal as the save wrote it, so the first one seen can be checked on /deals.
@@ -1037,6 +1085,8 @@ export type GameData = {
 	buildDays: Record<string, number>; // districts, ship sizes, buildings: base days
 	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
 	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
+	shipParts: ShipParts; // ship sizes, sections, components (extractor 2026-11-09; empty before)
+	starbaseParts: Record<string, StarbasePart>; // conditions and modifiers (extractor 2026-11-09)
 	growthModifiers: Record<string, Record<string, number>>;
 	starbaseSlots: Record<string, { modules: number; buildings: number }>;
 	resourceInfo: Record<
@@ -1194,6 +1244,8 @@ export type GameData = {
 	>;
 	perks: Record<string, string>; // ascension perk names
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
+	// Nomads contracts by key (data DB `contract`, extractor 2026-11-07; {} with an older one)
+	contractTypes: Record<string, ContractType>;
 	// shipset → the ship kinds it builds (data DB `graphical_culture`): `uses_ship_category`
 	shipKinds: Record<string, string[]>;
 	// who can ever take a perk (`potential`) and what taking it needs (`possible`), normalised
@@ -1319,6 +1371,7 @@ export type ModInfo = {
 	updated: string | null; // ISO time of the workshop's last update (launcher-v2.sqlite timeUpdated)
 	file: string | null; // the descriptor's file name; null for a mod known only from the save
 	local: boolean; // a descriptor not written by the workshop (`ugc_<id>.mod`), e.g. a dev copy
+	path?: string | null; // the mod's folder (`path=`; relative to the user dir for some local mods), or an older mod's zip (`archive=`)
 };
 
 /** A mod's version as the dashboard saw it at one start (`mod_version` rows). */
