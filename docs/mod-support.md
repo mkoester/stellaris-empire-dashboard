@@ -18,7 +18,11 @@ Not yet looked at in a game with them.
 
 ## Supported through the data
 
-Checked by extraction (2026-11-08, seven mods): rows added or changed as the mod says.
+Checked by extraction (2026-11-08, seven mods): rows added or changed as the mod says. **First
+run in the app** (2026-11-09, `scripts/dashboard.sh`, Dev Tools + Ancient Highway): "extracting …
+with 2 mods", a new cache file, `meta.mods` lists both in load order, the mod's resolution
+category and its four resolutions are in the data DB, `/mods` shows both without a warning for a
+save played with them. The mismatch warning itself is untested in the app.
 
 - Designations: Hybrid Colony Designations (+45 `colony_type`, exactly its 45), Nanite World
   Automation (7 overrides).
