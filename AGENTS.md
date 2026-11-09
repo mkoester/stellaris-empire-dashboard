@@ -972,7 +972,7 @@ power drawn against reactor output × `ship_reactor_power_mult`, cost and upkeep
 sections and components, every other modifier listed, and per weapon its CSV row (damage,
 cooldown, range, accuracy, tracking). **Techs and empire modifiers are not applied**, and the
 "damage / cooldown" column compares designs only — the CSV's cooldown unit has not been matched
-with the designer's damage per day. Not yet compared with the ship designer (open check).
+with the designer's damage per day. Not yet compared with the ship designer (`docs/open-checks.md` 33).
 
 **Starbases tab** (`/starbases`, `#lib/starbases.ts` pure; the user's ask 2026-11-09: "overview
 of my starbases — separate regular ones and shipyards like in the outliner, or a toggle"): the
@@ -2218,7 +2218,7 @@ template } … } … required_component … }`, `role` (screen, gunship; absent 
   `auto_gen_design=yes`. Station designs are named `SUFFIX_NAME_FORMAT` with an empty `NAME` and
   a roman `SUFFIX` ("III"): the tab shows them after their size ("Mining Station III").
   **Not yet checked in game**: that deleting a saved design leaves it as here, and that
-  `upgrade` names the design the ships upgrade to.
+  `upgrade` names the design the ships upgrade to (`docs/open-checks.md` 34).
 - Map positions: `galactic_object.<id>.coordinate = { x y }` — the game draws **x growing to the
   left** and y growing down (2207.03: Alpha Centauri x 11 west of Sol x −6, Sirius x −30 east);
   `#lib/mapView.ts` flips x.

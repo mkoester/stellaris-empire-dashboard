@@ -321,6 +321,19 @@ it cannot accept (`possible_operator`: already on the same contract, a tech, out
 - **Send:** the screenshots and the date. Check: the contracts tab's rows without spoilers (the
   normal view should show exactly the game's).
 
+### 33. Design stats and the starbase list — fleets and starbases tabs (from 2026-11-09)
+
+The fleets tab adds a design's base stats from the game files (`#lib/designStats.ts`): hull,
+armor, shields, evasion, speed, power, cost, upkeep, weapons — techs and empire modifiers left
+out, so the designer's numbers should be at least these. The weapons' "dmg / cooldown" is ours;
+the CSV's cooldown unit has not been matched with the designer's damage per day. The starbases
+tab's table should list what the outliner lists.
+
+- **Do:** open the ship designer on a saved warship design (one with a Reactor Booster if there is
+  one) and hover hull, armor, speed, power and a weapon's damage; open the outliner's starbases.
+- **Send:** the screenshots and the date, with the fleets tab's design detail and the starbases
+  tab beside them. Check: which lines differ only by empire modifiers; the cooldown's unit.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `AGENTS.md` → "Testing in a throwaway game".
@@ -357,6 +370,26 @@ current partners.
 - **Stacking, in the throwaway game:** give a second empire the tech in progress (`play <id>`,
   `research_technology <tech>`, `play 0`), sign a research agreement with it, two months: ×1.76
   (1.51 + 0.25) means each partner counts, ×1.51 once.
+
+### 34. Unofficial designs and the Transit Hub — fleets and starbases tabs (from 2026-11-09)
+
+Read from one save only (UNE 6 2208.01.01): a design no longer saved stays in `ship_design` while
+ships use it, and `ship_design_implementation.upgrade` names the design they upgrade to. The
+starbase planner ranks the Transit Hub (Hyper Drive II, a starport, a colony of ours) by the
+system's civilians and growth — no save on this machine has researched Hyper Drive II, so it was
+only seen on a DB copy with the tech added.
+
+- **Do:** in a throwaway game, save a corvette design, build two corvettes to it, delete the design
+  in the designer, save a new one, and let an autosave come. Then research Hyper Drive II and
+  check the starbases tab's planner:
+
+```
+research_technology tech_hyper_drive_2
+```
+
+- **Send:** the date, a screenshot of the fleet's ships (their design names), and of the Transit
+  Hub's tooltip on a starport with a colony. Check: the fleets tab shows the deleted design as
+  unofficial with the right upgrade target; the planner lists the Transit Hub at that starport.
 
 ### 6. Trade calibration — the rest (paused 2026-10-23)
 
