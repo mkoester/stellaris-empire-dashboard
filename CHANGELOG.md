@@ -4,14 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.14] - 2026-11-09
 
 ### Added
 
-- Each game's data follows its own mods: the dashboard extracts the game data with the mods of
-  that game's latest save, in your launcher's load order, so switching between games played with
-  different playsets just works. A playset edited or a game started with other mods is picked up
-  while the dashboard runs, no restart needed; a banner shows while the data is being extracted.
+- Mods in the game data: each game's data is extracted with the mods of its latest save, in your
+  launcher's load order, so designations, districts, tradition trees, traits and starbase slots
+  that mods add are named and counted, and rebalance mods' values are used. Switching between
+  games played with different playsets just works, and a playset edited or a game started with
+  other mods is picked up while the dashboard runs — no restart; a banner shows while the data is
+  being extracted. The mods tab shows which mods the data includes and where their order comes
+  from.
 - Starbase slots follow mods that enlarge starbases (such as Slightly Larger Starbases): the
   starbases tab counts each level's slots as the game does, from its ship size.
 - The load order a game was played with is remembered while it runs, so editing the playset
@@ -19,10 +22,6 @@ All notable changes to this project are documented here. The format follows
 - Older mods that come as a zip (such as Research options+) are part of the game data too.
 - A new playset or a mod update extracts the game data about three times faster (45 mods: 34 s →
   10 s): the extractor keeps each file it has read, in `data/parse-cache`.
-- Mods in the game data: the dashboard extracts the game data with the mods of your playset (the
-  launcher's last game start), so designations, districts, tradition trees, traits and starbase
-  slots that mods add are named and counted, and rebalance mods' values are used. The mods tab
-  shows which mods the data includes and warns when a save was played with others.
 
 - A Contracts tab for Nomads contracts. A nomad sees the contracts it took and the offers of
   empires it talks to; a settled empire the contracts it issued. Each comes with its kind, issuer,
