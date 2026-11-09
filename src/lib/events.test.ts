@@ -98,6 +98,8 @@ const data: GameData = {
 	buildDays: {},
 	depositCategory: {},
 	buildingCategory: {},
+	shipParts: { sizes: {}, sections: {}, components: {} },
+	starbaseParts: {},
 	growthModifiers: {},
 	starbaseSlots: {},
 	resourceInfo: {},

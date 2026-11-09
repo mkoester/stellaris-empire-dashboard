@@ -955,6 +955,52 @@ caps, one build at a time per queue. 2207.04.02: Civilian Industries on Earth 10
 districts 11–20, stations 20–50; over 60 months every strategy ends within 1 % of the others
 (everything affordable gets built within ~2 years), 11 % above building nothing.
 
+**Fleets tab** (`/fleets`, `#lib/designStats.ts` pure; the user's ask 2026-11-09: "fleets and
+ship designs — a ship with a design no longer saved: make it an unofficial design so I can still
+see it"): the latest save's military fleets with their design mix (`Fleet.designs`) and our ship
+designs (`Snapshot.designs`, `shipDesigns()` in save.ts, READER 53: saved ∪ used by non-station
+fleets) — status saved / saved, unused / **unofficial** (used, not saved), unofficial first. A
+design's detail: sections and components by name, the fleets using it, what its ships upgrade to,
+and **base stats** from the data DB's `ship_size`, `section_template`, `component_template`
+(`GameData.shipParts`, extractor 2026-11-09; empty with an older data DB — names and keys only):
+hull (size + `ship_hitpoints_add`) × mult, armor, shields, evasion, speed × `ship_speed_mult`,
+power drawn against reactor output × `ship_reactor_power_mult`, cost and upkeep summed over size,
+sections and components, every other modifier listed, and per weapon its CSV row (damage,
+cooldown, range, accuracy, tracking). **Techs and empire modifiers are not applied**, and the
+"damage / cooldown" column compares designs only — the CSV's cooldown unit has not been matched
+with the designer's damage per day. Not yet compared with the ship designer (open check).
+
+**Starbases tab** (`/starbases`, `#lib/starbases.ts` pure; the user's ask 2026-11-09: "overview
+of my starbases — separate regular ones and shipyards like in the outliner, or a toggle"): the
+latest save's `stations` as one table (system, level, modules and buildings by the data DB's
+names, free slots, build queue, shipyard queue) with the profile's `starbaseView` — `yard` all /
+shipyards / without shipyard (`Station.shipyard`), `outposts` (off by default: many, nothing to
+build) and the planner's `range` —, the starbase capacity and the Shipyards panel. Free slots =
+the level's (`starbase_level`, `freeSlots()`) less what is built, `?` for a level the data DB
+lacks; queued items are not taken off.
+**Starbase planner** (same tab, `#lib/starbasePlanner.ts` pure, `server/starbasePlanner.ts`; the
+user's ask 2026-11-09: "where in my empire and border + x would it make sense to build what —
+resources in the systems, max deposit output, effects on my colonies, e.g. push automatic
+migration on the colony with the highest pop growth"): per starbase module and building (data DB
+`starbase_part` with `potential_json`/`possible_json`, `starbase_part_modifier`, extractor
+2026-11-09 — `owner = { … }` unwrapped to the country's conditions; `GameData.starbaseParts`, `{}`
+from an older data DB) and per candidate system (ours, and the discovered unclaimed ones up to
+`starbaseView.range` beyond the border), what its modifiers would do there: station output mults
+× the system's orbital deposits' base output (mining → gatherers, research → researchers; "stations
+on k of n deposits"); `planet_resettlement_unemployed_mult` on the system's colonies by civilians
+
+- last month's growth and assembly — **the Transit Hub** (`system_modifier` +200 %, needs a
+  starport, Hyper Drive II and a colony of ours there; the user caught that it was missing from the
+  first plan); `planet_stability_add` (colonies below 50 count fully); governing ethics attraction
+  by pops. Everything else is listed unranked. Conditions: the empire's through `#lib/triggers.ts`
+  (`atStarbase()` answers `is_normal_starbase`, rings, citadels, arkships, waystations and
+  `has_starbase_size` at each level), so a part shows the level it needs ("upgrade to starport"),
+  an outpost first outside the border, a free slot; what the save cannot answer (`solar_system = {
+… }`) marks it `?`. Already built in the system: skipped. **None of this machine's saves has
+  researched Hyper Drive II** (2026-11-09: every campaign, UNE 5's 2245 save too) — the Transit Hub
+  row was seen only on a DB copy with the tech added to Planetforgers 2214.02.01 (Embrala, Embron
+  +5 pops a month).
+
 **Systems tab** (`/systems`, `#lib/systems.ts` pure; the user's ask 2026-10-22): our systems — and
 the discovered ones up to +0…+10 jumps beyond the border, or all (`systemView.range`, facts only) —
 with what the galaxy knows (star, bodies, deposits' base yield, anomalies, megastructures,
@@ -1364,6 +1410,14 @@ static modifier (its explanation's modifiers) or removes one the planet has, wit
 duration. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01, UNE 2202.08.01): every page
 200; switch off → none shown, on → shown, spoilers hidden → off again. Not compared with the game
 (`docs/open-checks.md` 28).
+**Icons** (`#lib/icons/`, the user's ask 2026-11-09: "come up with some svg icons for the
+building — we might use original images at some point, but not for now"): our own 24×24 stroke
+icons in `currentColor` (no game art, workspace `AGENTS.md`), `iconFor(key, category?)` resolves a
+district, zone or building key by its words (first match in `BY_WORD`: strategic resources and the
+district's family before its specialisation), then a building's data DB `category`, then a
+hexagon — mods' keys get one too. The colony page's districts panel shows them as cards
+(`panels/ColonyLayout.svelte`, per viewer `localStorage` `colonyDistrictsView`, the table kept as
+the other view); no empty slot is drawn, free building slots are not in the save.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts
@@ -2141,6 +2195,20 @@ shipyard_build_queue station }` — **no owner field**; the country's are those 
   finished Mega Shipyard, plus the tech (`*_possible_construction` in
   `scripted_triggers/07_scripted_triggers_ships.txt`). Mega Shipyards: `megastructures.<id> =
 { type owner }` — not yet seen in a save, so how its ship queue is located is a guess.
+- **Ship designs** (UNE 6 2208.01.01, 4.5.3; READER 53): the top-level `ship_design` is global
+  (2389 entries, **no owner**); the player's saved designs are
+  `country.ship_design_collection.ship_design = { 8 9 10 2451 … }`. A ship names its design in
+  `ship_design_implementation = { design upgrade growth_stage }`; a design no longer saved stays in
+  `ship_design` while ships use it — the fleets tab's **unofficial** design (design 35, an
+  auto-generated "Cheetah" gunship on three corvettes, `upgrade=2451` the saved Cheetah screen;
+  `4294967295` = none). Starbases' and stations' designs (`starbase_outpost`, `starbase_starport`)
+  are outside the collection: their fleets (`ship_class` starbase/station) are left out. A
+  design's parts: `growth_stages[0] = { ship_size section = { template slot component = { slot
+template } … } … required_component … }`, `role` (screen, gunship; absent on civilian ships),
+  `auto_gen_design=yes`. Station designs are named `SUFFIX_NAME_FORMAT` with an empty `NAME` and
+  a roman `SUFFIX` ("III"): the tab shows them after their size ("Mining Station III").
+  **Not yet checked in game**: that deleting a saved design leaves it as here, and that
+  `upgrade` names the design the ships upgrade to.
 - Map positions: `galactic_object.<id>.coordinate = { x y }` — the game draws **x growing to the
   left** and y growing down (2207.03: Alpha Centauri x 11 west of Sol x −6, Sirius x −30 east);
   `#lib/mapView.ts` flips x.

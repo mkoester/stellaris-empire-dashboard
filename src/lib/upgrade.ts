@@ -34,6 +34,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	traderEnclaves: null,
 	score: null,
 	fleets: null,
+	designs: null,
 	idleLeaders: null,
 	traditions: null,
 	ascensionPerks: null,

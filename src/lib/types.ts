@@ -1,3 +1,5 @@
+import type { ShipParts } from './designStats.ts';
+import type { StarbasePart } from './starbasePlanner.ts';
 import type { AttractionRule, AttractionSource } from './ethicSources.ts';
 import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
@@ -77,6 +79,26 @@ export type Fleet = {
 	ships: number;
 	power: number;
 	route: Route;
+	designs?: { designId: number; count: number }[]; // its ships per design; absent before READER 53
+};
+
+/**
+ * A ship design of ours (READER 53): one the player saved (`country.ship_design_collection`) or one
+ * our ships are built to although it is not saved any more — **unofficial** (`saved: false`; the
+ * user's word, 2026-11-09). The global `ship_design` keeps every design a ship uses, so the
+ * unofficial ones can still be shown in full. Its parts are those of the first growth stage.
+ */
+export type ShipDesign = {
+	id: number;
+	name: string;
+	size: string;
+	role: string | null;
+	sections: { template: string; slot: string; components: { slot: string; template: string }[] }[];
+	required: string[]; // `required_component`: reactor, drive, thrusters, sensors, computer
+	saved: boolean;
+	autoGen: boolean; // `auto_gen_design`: the game's own (auto-generated) design
+	ships: number; // our ships built to it
+	upgradeTo: number | null; // the design its ships upgrade to (`ship_design_implementation.upgrade`)
 };
 
 /**
@@ -397,6 +419,7 @@ export type Snapshot = {
 	traderEnclaves: TraderEnclave[] | null; // since READER 11
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
+	designs: ShipDesign[] | null; // our saved designs and those our ships use (READER 53)
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
 	traditions: string[] | null; // adopted traditions, in pick order (adopt and finish included)
 	ascensionPerks: string[] | null;
@@ -1062,6 +1085,8 @@ export type GameData = {
 	buildDays: Record<string, number>; // districts, ship sizes, buildings: base days
 	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
 	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
+	shipParts: ShipParts; // ship sizes, sections, components (extractor 2026-11-09; empty before)
+	starbaseParts: Record<string, StarbasePart>; // conditions and modifiers (extractor 2026-11-09)
 	growthModifiers: Record<string, Record<string, number>>;
 	starbaseSlots: Record<string, { modules: number; buildings: number }>;
 	resourceInfo: Record<

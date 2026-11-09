@@ -282,6 +282,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		techStored: null,
 		score: null,
 		fleets: null,
+		designs: null,
 		idleLeaders: null,
 		traditions: null,
 		ascensionPerks: null,

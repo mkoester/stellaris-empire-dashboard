@@ -34,6 +34,7 @@ import {
 	habitatSites,
 	hops,
 	militaryFleets,
+	shipDesigns,
 	sectorBySystem,
 	sectors,
 	speciesInfo,
@@ -1507,9 +1508,72 @@ describe('empire overview', () => {
 					systemId: 380, // where it is, for the map (READER 38)
 					moving: true,
 					stops: [{ system: 'Sirius', jumps: 1, unexplored: true }]
-				}
+				},
+				designs: [] // its ships are not in the fixture (READER 53)
 			}
 		]);
+	});
+
+	it('lists saved designs and the unofficial ones our ships still use (READER 53)', () => {
+		// UNE 6 2208.01.01, shortened: design 35 is no longer saved, its corvettes upgrade to 2451
+		const corvette = (role: string) => ({
+			name: { key: 'HUMAN1_SHIP_Cheetah' },
+			role,
+			auto_gen_design: true,
+			growth_stages: {
+				ship_size: 'corvette',
+				section: {
+					template: 'CORVETTE_MID_S2PD1',
+					slot: 'mid',
+					component: [
+						{ slot: 'SMALL_GUN_01', template: 'POINT_DEFENCE_1' },
+						{ slot: 'SMALL_GUN_02', template: 'SMALL_MASS_DRIVER_1' }
+					]
+				},
+				required_component: ['CORVETTE_FISSION_REACTOR', 'HYPER_DRIVE_1']
+			}
+		});
+		const designs = shipDesigns({
+			country: {
+				ship_design_collection: { ship_design: [2451, 2453] },
+				fleets_manager: { owned_fleets: [{ fleet: 3 }, { fleet: 7 }] }
+			},
+			fleets: {
+				3: { ship_class: 'shipclass_military', ships: [3, 4] },
+				7: { ship_class: 'shipclass_starbase', ships: [9] }
+			},
+			ships: {
+				3: { ship_design_implementation: { design: 35, upgrade: 2451 } },
+				4: { ship_design_implementation: { design: 35, upgrade: 2451 } },
+				9: { ship_design_implementation: { design: 16777216, upgrade: 4294967295 } }
+			},
+			shipDesigns: {
+				35: corvette('gunship'),
+				2451: corvette('screen'),
+				2453: { name: { key: 'HUMAN1_SHIP_ElDorado' }, growth_stages: { ship_size: 'colonizer' } },
+				16777216: { growth_stages: { ship_size: 'starbase_starport' } }
+			}
+		});
+		expect(designs.map((d) => [d.id, d.size, d.saved, d.ships, d.upgradeTo])).toEqual([
+			[2451, 'corvette', true, 0, null],
+			[2453, 'colonizer', true, 0, null],
+			[35, 'corvette', false, 2, 2451]
+		]);
+		expect(designs[2]).toMatchObject({
+			role: 'gunship',
+			autoGen: true,
+			sections: [
+				{
+					template: 'CORVETTE_MID_S2PD1',
+					slot: 'mid',
+					components: [
+						{ slot: 'SMALL_GUN_01', template: 'POINT_DEFENCE_1' },
+						{ slot: 'SMALL_GUN_02', template: 'SMALL_MASS_DRIVER_1' }
+					]
+				}
+			],
+			required: ['CORVETTE_FISSION_REACTOR', 'HYPER_DRIVE_1']
+		});
 	});
 
 	it('sums pops per species over the colonies and names prescripted species', () => {

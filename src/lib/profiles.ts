@@ -7,6 +7,7 @@ import { anyOn } from './displaySwitches.ts';
 import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { DEFAULT_CONTRACT_VIEW, parseContractView, type ContractView } from './contracts.ts';
+import { DEFAULT_STARBASE_VIEW, parseStarbaseView, type StarbaseView } from './starbases.ts';
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
 import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
 import { DEFAULT_POP_WINDOW, parsePopWindow, type PopWindow } from './popWindow.ts';
@@ -101,6 +102,7 @@ export type ProfileSettings = {
 	migrationView: MigrationView;
 	megastructureView: MegaView;
 	contractView: ContractView;
+	starbaseView: StarbaseView;
 	systemView: SystemView;
 	produceView: ProduceView;
 	mapFilter: MapFilter;
@@ -120,6 +122,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	migrationView: DEFAULT_MIGRATION_VIEW,
 	megastructureView: DEFAULT_MEGA_VIEW,
 	contractView: DEFAULT_CONTRACT_VIEW,
+	starbaseView: DEFAULT_STARBASE_VIEW,
 	systemView: DEFAULT_SYSTEM_VIEW,
 	produceView: DEFAULT_PRODUCE_VIEW,
 	quadrants: DEFAULT_QUADRANT_VIEW,
@@ -184,6 +187,7 @@ export function parseSettings(v: unknown): ProfileSettings {
 		migrationView: parseMigrationView(o.migrationView),
 		megastructureView: parseMegaView(o.megastructureView),
 		contractView: parseContractView(o.contractView),
+		starbaseView: parseStarbaseView(o.starbaseView),
 		systemView: parseSystemView(o.systemView),
 		produceView: parseProduceView(o.produceView),
 		mapFilter: parseMapFilter(o.mapFilter),

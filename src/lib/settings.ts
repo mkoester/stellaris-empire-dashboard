@@ -6,6 +6,7 @@ import type { ExpansionView } from './expansion.ts';
 import type { MapFilter } from './mapLayers.ts';
 import type { MegaView } from './megastructures.ts';
 import type { ContractView } from './contracts.ts';
+import type { StarbaseView } from './starbases.ts';
 import type { SystemView } from './systems.ts';
 import type { ProduceView } from './produce.ts';
 import type { PopWindow } from './popWindow.ts';
@@ -159,6 +160,7 @@ export async function putSettings(patch: {
 	migrationView?: MigrationView;
 	megastructureView?: MegaView;
 	contractView?: ContractView;
+	starbaseView?: StarbaseView;
 	systemView?: SystemView;
 	produceView?: ProduceView;
 	mapFilter?: MapFilter;

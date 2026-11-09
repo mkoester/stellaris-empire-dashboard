@@ -2,6 +2,8 @@ import { DatabaseSync } from 'node:sqlite';
 import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
 import type { ActionKind, CapEffect, Costs, GameData, Resources } from '#lib/types.ts';
+import { NO_SHIP_PARTS, type ShipParts } from '#lib/designStats.ts';
+import type { StarbasePart } from '#lib/starbasePlanner.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -856,6 +858,8 @@ export function loadGameData(file: string): GameData {
 					}
 				])
 			),
+			shipParts: shipParts(rows),
+			starbaseParts: starbaseParts(rows),
 			buildingCategory: Object.fromEntries(
 				rows<{ key: string; category: string | null }>('SELECT key, category FROM building').map(
 					(r) => [r.key, r.category]
@@ -1192,4 +1196,113 @@ export function actionTimers(
 			...(r.role === 'bonus' && { bonus: true })
 		});
 	return out;
+}
+
+/**
+ * Ship sizes, section templates and components with their base stats (the fleets tab's design
+ * stats, #lib/designStats.ts); empty from a data DB without the tables (extractor before
+ * 2026-11-09 — a player's zip may bundle one).
+ */
+function shipParts(rows: <T>(sql: string) => T[]): ShipParts {
+	const has = (t: string) =>
+		rows(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = '${t}'`).length > 0;
+	if (!has('ship_size') || !has('section_template') || !has('component_template'))
+		return NO_SHIP_PARTS;
+	const json = <T>(s: string | null, empty: T): T => (s ? (JSON.parse(s) as T) : empty);
+	type Row = { key: string; modifiers_json: string | null; resources_json: string | null };
+	return {
+		sizes: Object.fromEntries(
+			rows<Row & { name: string | null; hitpoints: number | null; speed: number | null }>(
+				'SELECT key, name, hitpoints, speed, modifiers_json, resources_json FROM ship_size'
+			).map((r) => [
+				r.key,
+				{
+					name: r.name,
+					hitpoints: r.hitpoints ?? 0,
+					speed: r.speed ?? 0,
+					modifiers: json(r.modifiers_json, {}),
+					resources: json(r.resources_json, {})
+				}
+			])
+		),
+		sections: Object.fromEntries(
+			rows<Row>('SELECT key, modifiers_json, resources_json FROM section_template').map((r) => [
+				r.key,
+				{ modifiers: json(r.modifiers_json, {}), resources: json(r.resources_json, {}) }
+			])
+		),
+		components: Object.fromEntries(
+			rows<
+				Row & {
+					name: string | null;
+					kind: string;
+					size: string | null;
+					power: number | null;
+					weapon_json: string | null;
+				}
+			>(
+				'SELECT key, name, kind, size, power, modifiers_json, weapon_json, resources_json FROM component_template'
+			).map((r) => [
+				r.key,
+				{
+					name: r.name,
+					kind: r.kind,
+					size: r.size,
+					power: r.power ?? 0,
+					modifiers: json(r.modifiers_json, {}),
+					weapon: json<Record<string, number> | null>(r.weapon_json, null),
+					resources: json(r.resources_json, {})
+				}
+			])
+		)
+	};
+}
+
+/**
+ * Starbase modules and buildings with their conditions and modifiers per scope (the starbase
+ * planner, #lib/starbasePlanner.ts); empty from a data DB without `starbase_part_modifier`
+ * (extractor before 2026-11-09).
+ */
+function starbaseParts(rows: <T>(sql: string) => T[]): Record<string, StarbasePart> {
+	const has = rows(
+		"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'starbase_part_modifier'"
+	).length;
+	if (!has) return {};
+	const mods = new Map<string, StarbasePart['modifiers']>();
+	for (const r of rows<{
+		key: string;
+		scope: string;
+		modifier_key: string;
+		value: number;
+		trigger_json: string | null;
+	}>(
+		'SELECT key, scope, modifier_key, value, trigger_json FROM starbase_part_modifier ORDER BY key, sort_order'
+	))
+		mods.set(r.key, [
+			...(mods.get(r.key) ?? []),
+			{ scope: r.scope, key: r.modifier_key, value: r.value, when: parseTrigger(r.trigger_json) }
+		]);
+	return Object.fromEntries(
+		rows<{
+			key: string;
+			kind: string;
+			name: string | null;
+			category: string | null;
+			potential_json: string | null;
+			possible_json: string | null;
+		}>('SELECT key, kind, name, category, potential_json, possible_json FROM starbase_part').map(
+			(r) => [
+				r.key,
+				{
+					key: r.key,
+					kind: r.kind === 'building' ? 'building' : 'module',
+					name: r.name ?? r.key,
+					category: r.category,
+					potential: parseTrigger(r.potential_json),
+					possible: parseTrigger(r.possible_json),
+					modifiers: mods.get(r.key) ?? []
+				}
+			]
+		)
+	);
 }

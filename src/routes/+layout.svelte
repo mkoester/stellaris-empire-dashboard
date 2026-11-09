@@ -72,6 +72,16 @@
 			active: path === '/systems'
 		},
 		{
+			name: 'fleets',
+			href: node ? resolve(`/fleets?node=${node}`) : resolve('/fleets'),
+			active: path === '/fleets'
+		},
+		{
+			name: 'starbases',
+			href: node ? resolve(`/starbases?node=${node}`) : resolve('/starbases'),
+			active: path === '/starbases'
+		},
+		{
 			name: 'trade',
 			href: node ? resolve(`/trade?node=${node}`) : resolve('/trade'),
 			active: path === '/trade'

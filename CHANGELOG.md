@@ -21,6 +21,26 @@ All notable changes to this project are documented here. The format follows
   tab has a contracts layer, and the systems, situations, diplomacy and megastructures maps mark
   contracts too. Names and kinds need a data DB with the `contract` table (extractor 2026-11-07).
 
+- The colony page shows its districts as cards: each district with its icon, colour and count of
+  its cap, its zones and their buildings as tiles (disabled ones struck through). The icons are
+  our own, not the game's. A switch keeps the table view.
+
+- A Starbases tab: every starbase with its level, modules, buildings, free slots, build queue
+  and shipyard queue, filtered to all, shipyards or those without, outposts on request, plus the
+  starbase capacity and the shipyards panel. Its starbase planner ranks, per module and building,
+  the systems (yours, and unclaimed ones up to a picked range beyond your border) where it does
+  most: station output bonuses by the system's orbital deposits, the Transit Hub's resettlement
+  bonus by how many pops the system's colonies can push out, stability and governing ethics by
+  the colonies there — and what has to happen first (an outpost, an upgrade, a free slot). It
+  needs game data with starbase modifiers (extractor 2026-11-09).
+
+- A Fleets tab: your military fleets with the designs their ships are built to, and every ship
+  design — saved, saved but unused, or **unofficial** (ships still built to a design you no
+  longer have saved). A design shows its sections and components, the fleets using it, the design
+  its ships upgrade to, and base stats (hull, armor, shields, evasion, speed, power, cost, upkeep,
+  weapons) before empire modifiers. The stats need game data with ship parts (extractor
+  2026-11-09).
+
 ## [0.1.13] - 2026-11-07
 
 ### Added
