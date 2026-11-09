@@ -147,7 +147,7 @@ dir), `--mod` each in load order, so their designations, districts, zones, tradi
 archetypes, starbase levels and defines are in the data DB, and the `Better …` rebalances' values
 replace vanilla's (the extractor's merged view: `../stellaris-data-extraction/extractor/mods.py`).
 The key adds each mod's folder and update time — none leaves it as before, so an unmodded player
-never re-extracts; another playset or a mod update extracts again (~20 s with seven mods). A failed
+never re-extracts; another playset or a mod update extracts again — through the extractor's parse cache (`--cache <app dir>/data/parse-cache`, `parseCacheDir()`, extractor v0.1.14), which parses only files it has not seen: 45 mods 10 s, the game alone 6 s (2026-11-09). A failed
 modded run (a broken mod file, a player's extractor from before `--mod`) falls back to the game's
 own data, logged. `/mods` shows which mods the data includes (`meta.mods`, `loadDataMods()`; null
 for an older extractor) and warns when the viewed save's mods differ (`dataModMismatch()`): the

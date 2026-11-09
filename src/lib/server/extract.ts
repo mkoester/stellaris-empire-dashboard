@@ -76,6 +76,12 @@ export const dataDbFile = (appDir: string, key: string) =>
 	join(appDir, 'data', `stellaris-${key}.sqlite`);
 
 /**
+ * The extractor's parse cache (`--cache`, extractor v0.1.14): each game and mod file parsed once,
+ * by its content, so another playset or a mod update extracts in seconds (45 mods: 34 s → 10 s).
+ */
+export const parseCacheDir = (appDir: string) => join(appDir, 'data', 'parse-cache');
+
+/**
  * The data DB for this install and these mods (load order), extracting it first when there is
  * none yet. A failed extraction with mods — a broken mod file, or a player's extractor from before
  * `--mod` — falls back to the game's own data, said in the log.
@@ -121,6 +127,8 @@ export async function ensureDataDb(
 			gameDir,
 			'--sqlite',
 			tmp,
+			'--cache',
+			parseCacheDir(appDir),
 			...mods.flatMap((m) => ['--mod', m.path])
 		]);
 	} catch (e) {

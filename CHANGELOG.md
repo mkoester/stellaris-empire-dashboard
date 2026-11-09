@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- A new playset or a mod update extracts the game data about three times faster (45 mods: 34 s →
+  10 s): the extractor keeps each file it has read, in `data/parse-cache`.
 - Mods in the game data: the dashboard extracts the game data with the mods of your playset (the
   launcher's last game start), so designations, districts, tradition trees, traits and starbase
   slots that mods add are named and counted, and rebalance mods' values are used. The mods tab
