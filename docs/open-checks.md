@@ -418,7 +418,17 @@ cheats — tooltips set up, not sent — not in a throwaway game. Open:
 - the basic resources' curves at game start differ from the campaign's (consumer goods, alloys,
   food, trade; same file): when do they change — a step at some event, or gradually?;
 - where a fallen empire's room really ends in a deal: its storage is known now (companion mod
-  0.5.0: base + 120,000), so offer it alloys up to and past 0.8 of that to see the cut-off.
+  0.5.0: base + 120,000), so offer it alloys up to and past 0.8 of that to see the cut-off;
+- a second monthly cap, net − `TRADE_MIN_RESOURCE_DELTA` (10): the mod "Stop Guessing What AI
+  Will Trade You" (Workshop 3832466386, 2026-11-09) shows min(0.3 × gross, net − 10) a month,
+  read off the define's name, not measured. `monthlyCap()` has the first half only; our one
+  measurement cannot tell (KhellZen 2212.08: gross 181.9, net 95.2 — 54 against 85). Find an
+  empire whose net is small against its gross (gross 100, net 20: the mod says 10, we say 30),
+  ask it for that resource a month and note where it turns −1000;
+- trading at war: the same mod lists no empire we are at war with, the trade tab does —
+  `action_offer_trade_deal`'s `possible` has no war condition, so try the diplomacy screen with
+  an empire at war with us (we filter the berserk machine fallen empire since 2026-11-09, its
+  `potential`).
 
 ### 7. Stored research — tech tab
 

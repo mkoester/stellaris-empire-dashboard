@@ -657,6 +657,23 @@ income — fits the two regular empires to 1–2 % but puts the fallen one 8× t
 holds it, the test every line above. Not measured: volatile motes, exotic gases, rare crystals,
 zro, dark matter and the rest (the nomad test game).
 
+## Live values a companion mod could export
+
+The mod "Stop Guessing What AI Will Trade You" (Workshop 3832466386, v1.1.1, read 2026-11-09)
+reads an AI's trade inputs from script, live, per empire. We take all three from the save now, so
+these matter only if a save-read value turns out wrong:
+
+- **gross income**: `export_trigger_value_to_variable = { trigger = resource_expenses_compare
+parameters = { resource = <res> } variable = … }` gives the expenses; gross = that + the net
+  of `export_resource_income_to_variable`;
+- **the empire's market price**: `trigger = market_resource_price parameters = { resource = <res>
+amount = 1 trade_type = not_set }` (`trade` itself has none: it is the market's currency);
+- **opinion of us**: `trigger = opinion parameters = { who = root }`, `rounded = yes`.
+
+Its value columns (market price × willingness) are not what an AI weighs (above: a unit's worth
+is `P × B/(B + gross)` in acceptance points); its maximums agree with ours but for the monthly
+`net − 10` cap (`docs/open-checks.md` 6).
+
 ## Measuring more
 
 What worked: in the trade screen, set up the deal and hover the acceptance — "Our Offer Total" and

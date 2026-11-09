@@ -1031,7 +1031,9 @@ refunds of cancelled items, the influence of claims.
 **Trade tab** (`/trade`, `#lib/aiTrade.ts` pure; the user's biggest pain point, 2026-10-22: "who
 trades what, both directions, for how much, normalised by trade"): the empires we have
 communications with — regular and fallen ones only (`TRADING_TYPES` in save.ts; pre-FTL
-civilisations, monsters, enclaves and the game's event countries also have communications) —
+civilisations, monsters, enclaves and the game's event countries also have communications), and
+not the berserk machine fallen empire (`offersTrade()`: `action_offer_trade_deal`'s `potential`;
+whether war bars a deal is open, `docs/open-checks.md` 6) —
 with what the diplomacy screen shows: personality and its `trade_willingness`, attitude towards
 us (one that does not trade refuses everything: data DB `attitude.trade`), their opinion of us
 with its modifiers, trust, our deals, a gift's "Favorable Trade Deal" (data DB `opinion_modifier`:
