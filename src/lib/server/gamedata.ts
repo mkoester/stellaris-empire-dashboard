@@ -1212,12 +1212,20 @@ function shipParts(rows: <T>(sql: string) => T[]): ShipParts {
 	type Row = { key: string; modifiers_json: string | null; resources_json: string | null };
 	return {
 		sizes: Object.fromEntries(
-			rows<Row & { name: string | null; hitpoints: number | null; speed: number | null }>(
-				'SELECT key, name, hitpoints, speed, modifiers_json, resources_json FROM ship_size'
+			rows<
+				Row & {
+					name: string | null;
+					class: string | null;
+					hitpoints: number | null;
+					speed: number | null;
+				}
+			>(
+				'SELECT key, name, class, hitpoints, speed, modifiers_json, resources_json FROM ship_size'
 			).map((r) => [
 				r.key,
 				{
 					name: r.name,
+					class: r.class,
 					hitpoints: r.hitpoints ?? 0,
 					speed: r.speed ?? 0,
 					modifiers: json(r.modifiers_json, {}),

@@ -11,6 +11,7 @@ type Resources = Record<string, Record<string, number>>; // kind (cost, upkeep) 
 
 export type SizeData = {
 	name: string | null;
+	class: string | null; // shipclass_military, shipclass_science_ship, shipclass_starbase, …
 	hitpoints: number;
 	speed: number;
 	modifiers: Record<string, number>;
@@ -164,6 +165,24 @@ export function designStats(d: ShipDesign, parts: ShipParts): DesignStats {
 		other: Object.fromEntries(Object.entries(mods).filter(([k]) => !USED.has(k)))
 	};
 }
+
+// warships and bio ships (`shipclass_military`), the Colossus (`shipclass_military_special`) and
+// the Juggernaut (filed as `shipclass_starbase`, but designed like a warship)
+const CONFIGURABLE_CLASSES = new Set(['shipclass_military', 'shipclass_military_special']);
+const CONFIGURABLE_SIZES = new Set(['juggernaut']);
+// without the data DB's sizes (extractor before 2026-11-09): the sizes the game builds otherwise
+const NOT_CONFIGURABLE =
+	/station|starbase|outpost|science|constructor|colonizer|transport|arkship|waystation/;
+
+/**
+ * Whether the player configures this size in the ship designer: warships and bio ships, not
+ * civilian ships, transports, stations, defense platforms or starbases (the user's call 2026-11-09).
+ */
+export const configurable = (size: string, parts: ShipParts): boolean => {
+	const s = parts.sizes[size];
+	if (!s) return !NOT_CONFIGURABLE.test(size);
+	return CONFIGURABLE_SIZES.has(size) || (s.class !== null && CONFIGURABLE_CLASSES.has(s.class));
+};
 
 /** A design's name as the game shows it: a bare suffix ("III", or none) after its size's name. */
 export const designLabel = (d: Pick<ShipDesign, 'name' | 'size'>, sizeName: string): string =>

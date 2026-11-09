@@ -35,7 +35,7 @@ All notable changes to this project are documented here. The format follows
   needs game data with starbase modifiers (extractor 2026-11-09).
 
 - A Fleets tab: your military fleets with the designs their ships are built to, and every ship
-  design — saved, saved but unused, or **unofficial** (ships still built to a design you no
+  warship and bio-ship design — saved, saved but unused, or **unofficial** (ships still built to a design you no
   longer have saved). A design shows its sections and components, the fleets using it, the design
   its ships upgrade to, and base stats (hull, armor, shields, evasion, speed, power, cost, upkeep,
   weapons) before empire modifiers. The stats need game data with ship parts (extractor

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { designLabel, designStats, designStatus, type ShipParts } from './designStats.ts';
+import {
+	configurable,
+	designLabel,
+	designStats,
+	designStatus,
+	type ShipParts
+} from './designStats.ts';
 import type { ShipDesign } from './types.ts';
 
 // UNE 6 2208.01.01's Cheetah corvette with the 4.5.3 data DB's values, shortened
@@ -7,6 +13,7 @@ const parts: ShipParts = {
 	sizes: {
 		corvette: {
 			name: 'Corvette',
+			class: 'shipclass_military',
 			hitpoints: 200,
 			speed: 160,
 			modifiers: { ship_evasion_add: 60 },
@@ -145,5 +152,50 @@ describe('designLabel and designStatus', () => {
 		expect(designStatus({ saved: true, ships: 3 })).toBe('saved');
 		expect(designStatus({ saved: true, ships: 0 })).toBe('unused');
 		expect(designStatus({ saved: false, ships: 3 })).toBe('unofficial');
+	});
+});
+
+describe('configurable', () => {
+	const size = (cls: string) => ({
+		name: null,
+		class: cls,
+		hitpoints: 0,
+		speed: 0,
+		modifiers: {},
+		resources: {}
+	});
+	const known: ShipParts = {
+		...parts,
+		sizes: {
+			corvette: size('shipclass_military'),
+			weaver_stage_1: size('shipclass_military'),
+			colossus: size('shipclass_military_special'),
+			juggernaut: size('shipclass_starbase'),
+			starbase_starport: size('shipclass_starbase'),
+			science: size('shipclass_science_ship'),
+			transport: size('shipclass_transport'),
+			military_station_small: size('shipclass_military_station'),
+			observation_station: size('shipclass_observation_station')
+		}
+	};
+	it('keeps warships and bio ships, the Colossus and the Juggernaut', () => {
+		for (const s of ['corvette', 'weaver_stage_1', 'colossus', 'juggernaut'])
+			expect(configurable(s, known)).toBe(true);
+	});
+	it('drops civilian ships, transports, stations and starbases', () => {
+		for (const s of [
+			'starbase_starport',
+			'science',
+			'transport',
+			'military_station_small',
+			'observation_station'
+		])
+			expect(configurable(s, known)).toBe(false);
+	});
+	it('goes by the size key without the data DB’s sizes', () => {
+		const none: ShipParts = { sizes: {}, sections: {}, components: {} };
+		expect(configurable('cruiser', none)).toBe(true);
+		expect(configurable('mining_station', none)).toBe(false);
+		expect(configurable('colonizer', none)).toBe(false);
 	});
 });

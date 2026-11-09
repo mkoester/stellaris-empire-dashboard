@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { designComponents, type ShipParts } from '#lib/designStats.ts';
+import { configurable, designComponents, type ShipParts } from '#lib/designStats.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -11,8 +11,9 @@ export function load({ url }) {
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	const latest = snaps.findLast((s) => s.kind === 'save' && s.designs !== null) ?? null;
-	const designs = latest?.designs ?? [];
 	const { shipParts } = getGameData();
+	// only what the player configures in the ship designer (#lib/designStats.ts `configurable`)
+	const designs = (latest?.designs ?? []).filter((d) => configurable(d.size, shipParts));
 	const parts: ShipParts = {
 		sizes: pick(
 			shipParts.sizes,

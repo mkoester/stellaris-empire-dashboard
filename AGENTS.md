@@ -959,7 +959,11 @@ districts 11–20, stations 20–50; over 60 months every strategy ends within 1
 ship designs — a ship with a design no longer saved: make it an unofficial design so I can still
 see it"): the latest save's military fleets with their design mix (`Fleet.designs`) and our ship
 designs (`Snapshot.designs`, `shipDesigns()` in save.ts, READER 53: saved ∪ used by non-station
-fleets) — status saved / saved, unused / **unofficial** (used, not saved), unofficial first. A
+fleets) — status saved / saved, unused / **unofficial** (used, not saved), unofficial first.
+**Only sizes the player configures** (`configurable()`, the user's call 2026-11-09): data DB
+`ship_size.class` `shipclass_military` (warships, bio ships) or `_military_special` (Colossus),
+plus the Juggernaut (filed as `shipclass_starbase`); no civilian ships, transports, stations,
+defense platforms, observation posts or starbases — without the data DB's sizes, by the key. A
 design's detail: sections and components by name, the fleets using it, what its ships upgrade to,
 and **base stats** from the data DB's `ship_size`, `section_template`, `component_template`
 (`GameData.shipParts`, extractor 2026-11-09; empty with an older data DB — names and keys only):
