@@ -1421,7 +1421,13 @@ district, zone or building key by its words (first match in `BY_WORD`: strategic
 district's family before its specialisation), then a building's data DB `category`, then a
 hexagon — mods' keys get one too. The colony page's districts panel shows them as cards
 (`panels/ColonyLayout.svelte`, per viewer `localStorage` `colonyDistrictsView`, the table kept as
-the other view); no empty slot is drawn, free building slots are not in the save.
+the other view); no empty slot is drawn, free building slots are not in the save. **Two rows**
+(`#lib/colonyLayout.ts`, the user's ask 2026-11-09: "city district, additional zones as a 2nd
+district; the special districts; five tiles"): the city district (named like one — city, hive,
+nexus, housing; else the uncapped district) with its first zone, the government zone, and beside
+it a tile of its other zones; below, the other districts, then those the planet's caps allow but
+has none of (×0, faded) — usually generator, mining and agriculture. A planet with more special
+districts (Planetforgers' capital: geothermal, magma, mining, thermotechnic) wraps to three a row.
 **Building popups everywhere** (`building:<key>`, `server/explain.ts`; `BuildingName.svelte`):
 cost, upkeep, output, jobs (workforce ÷ 100), modifiers, unlocking civics; `branch()` picks those
 of every building on our colonies or queued (`buildings`, like `designations`), so the districts

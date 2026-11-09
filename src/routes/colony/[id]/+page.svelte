@@ -244,8 +244,8 @@
 		/>
 		<Districts
 			districts={data.colony.districtList}
-			names={data.names}
-			colors={data.colors}
+			names={{ ...data.details?.names, ...data.names }}
+			colors={{ ...data.details?.colors, ...data.colors }}
 			caps={Object.fromEntries((data.details?.caps.types ?? []).map((t) => [t.district, t.cap]))}
 			categories={data.buildingCategories}
 		/>

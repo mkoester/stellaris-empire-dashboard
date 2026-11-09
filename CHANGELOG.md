@@ -21,8 +21,10 @@ All notable changes to this project are documented here. The format follows
   tab has a contracts layer, and the systems, situations, diplomacy and megastructures maps mark
   contracts too. Names and kinds need a data DB with the `contract` table (extractor 2026-11-07).
 
-- The colony page shows its districts as cards: each district with its icon, colour and count of
-  its cap, its zones and their buildings as tiles (disabled ones struck through). The icons are
+- The colony page shows its districts as cards in two rows: the city district with its government
+  zone and, beside it, its further zones; below, the special districts (usually generator, mining
+  and agriculture, those with none built yet too) — each with its icon, colour and count of its
+  cap, its zones and their buildings as tiles (disabled ones struck through). The icons are
   our own, not the game's. A switch keeps the table view.
 
 - A Starbases tab: every starbase with its level, modules, buildings, free slots, build queue
