@@ -703,6 +703,15 @@ export function loadGameData(file: string): GameData {
 						)
 					)
 				: {},
+			setupScenarios: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'setup_scenario'"
+			).length
+				? Object.fromEntries(
+						rows<{ key: string; defaults_json: string | null }>(
+							'SELECT key, defaults_json FROM setup_scenario'
+						).map((r) => [r.key, r.defaults_json ? JSON.parse(r.defaults_json) : {}])
+					)
+				: {},
 			flagColors: Object.fromEntries(
 				rows<{ key: string; r: number; g: number; b: number }>(
 					'SELECT key, r, g, b FROM flag_color'

@@ -544,10 +544,13 @@ export type Snapshot = {
 	// before, exactly dated, and the daily stockpiles.
 	logEvents: LogEvent[] | null;
 	ticks: Tick[] | null;
-	// A multiplayer game: the save's `player` block names an account (single player: "unknown";
-	// not in Ironman, whose single-player saves name it too — READER 48) or two players, or the mod
-	// logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
+	// A multiplayer game: the save's `player` block lists two or more players (READER 56; before,
+	// one named account counted too, wrongly — the native build names it in single player), or the
+	// mod logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
 	multiplayer: boolean;
+	// the save's player count (READER 56; null: a log month, or read before): a reading with
+	// `multiplayer` but a count below 2 owes it to the mod
+	players: number | null;
 };
 
 export type MilestoneLogKind =
@@ -1301,6 +1304,7 @@ export type GameData = {
 	>;
 	perks: Record<string, string>; // ascension perk names
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
+	setupScenarios: Record<string, Record<string, number>>; // galaxy size → save key → its default (`setup_scenario`, extractor 0.1.16)
 	// Nomads contracts by key (data DB `contract`, extractor 2026-11-07; {} with an older one)
 	contractTypes: Record<string, ContractType>;
 	// shipset → the ship kinds it builds (data DB `graphical_culture`): `uses_ship_category`

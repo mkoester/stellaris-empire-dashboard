@@ -28,6 +28,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- A single-player game no longer counts as multiplayer because its save names the Steam
+  account: the native Linux build always writes it. Only a save with two or more players, or the
+  companion mod's monthly line, means multiplayer now; readings stored before do not count, and
+  campaigns that lost their cheats get them back once their saves are read again.
+- Galaxy tab: settings that differ from the default for the galaxy's size are highlighted (the
+  default in the hover), and the difficulty is coloured by its place, green for Civilian to red for
+  Grand Admiral, with what it does in a popup; a folded table lists every difficulty's effects on
+  us, the AI's empires and non-playable countries, and on research and tradition costs.
 - Planet decision what-ifs read "lasts: …, costs: …", and "+N effects not counted" names what the
   estimate leaves out (in its hover).
 

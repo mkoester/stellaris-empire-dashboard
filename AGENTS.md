@@ -59,14 +59,20 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
     `ironman.sav` (4.5.3, public; a new single-player game, started after a game restart without
     mods; `meta` too holds `ironman=yes`, other saves' `meta` no key), whose `player` block names
     the account alone (`MirkoMachine`) — **a single-player Ironman save names the account**, so
-    in Ironman only two players mean multiplayer (`multiplayerPlayers(player, ironman)`, READER
-    48). Readings from before, of saves no longer on disk, still say multiplayer: hence the
-    Ironman check first.
+    in Ironman only two players mean multiplayer (READER 48; since READER 56 everywhere, below).
 
   Multiplayer has two signals:
-  - **The save** (`multiplayerPlayers()`), which serves a player without the mod — a cheater would
-    just not run it: the top-level `player = { { name country } … }` names an account or lists two
-    players. Every single-player save on the Linux machine (106, 4.5.x) has one `name="unknown"`;
+  - **The save** (`playerCount()`, `Snapshot.players`, READER 56), which serves a player without
+    the mod — a cheater would just not run it: the top-level `player = { { name country } … }`
+    **lists two or more players**. One named account is no signal (it was until 2026-11-12): **the
+    native Linux build names the Steam account in single player** — every save since the switch
+    from Proton, e.g. UNE 3 and Yorphian Extractorate under Proton `unknown`, their native games
+    `MirkoMachine`; UNE 6 (single player, native) read as multiplayer and lost its cheats. A
+    multiplayer game hosted alone (one account) is the mod's to catch. **Old readings**: a stored
+    reading without `players` (before READER 56) no longer counts, and a re-read drops its flag;
+    one with `multiplayer` but fewer than 2 players owes it to the mod and stays (`fromMod()` in
+    `db.ts`, the query in `campaignMultiplayer()`). History as first written: under Proton every
+    single-player save on the Linux machine (106, 4.5.x) had one `name="unknown"`;
     Oracularity of Noerm 2200.01.01 (a new multiplayer game, hosted alone, 4.5.3) `MirkoMachine`
     only; UNE 2 `unknown` alone at 19:01, `unknown` + `MirkoMachine` (both country 0) from 19:41
     on, after the Noerm session — whether it was loaded through the lobby nobody remembers
@@ -725,7 +731,20 @@ screen's tokens (`template` = galaxy_size, `shape`, `habitability` = colonizable
 `primitive` = primitive_odds, `logistic_ceiling_v2`); labels are the localisation's where it has
 one (`NUM_HYPERLANES` "Hyperlane Density"), else ours — the dashboard is English only. Disabled
 precursors are named from the data DB's `precursor` (empty without the table). Years are after
-2200 (`mid_game_start=100` → 2300). Not yet compared with the game's own setup screen.
+2200 (`mid_game_start=100` → 2300). Not yet compared with the game's own setup screen. **What
+differs from the default is highlighted** (the user's ask 2026-11-12; `defaultOf()`, the default in
+the row's hover): per galaxy size from `map/setup_scenarios/<size>.txt` (data DB `setup_scenario`:
+empire counts, wormholes, gateways, hyperlanes, planet odds, crisis strength), else the `*_DEFAULT`
+define (game length, cost and capacity sliders, growth, logistics, storms — their caps per size —,
+voidworms, cutholoids, fallen empires), else the engine's (`ENGINE_DEFAULT`: difficulty Ensign,
+crisis "any", AI aggressiveness normal, … — **assumed**, said in the hover); `resource_abundance`
+gets none (its define is a slider step: 2 of 0–5, the save holds 1). Checked on UNE 6 (medium):
+only the 3 nomad empires (default 2) stand out. **Difficulty** (the same ask): the row coloured by
+its place — Civilian green, Cadet plain, Ensign yellow on to Grand Admiral red (the user's
+colours) — with a popup of what it does, and a folded table of all seven: the static modifiers
+`difficulty_<d>_player` (ours, Civilian and Cadet), `difficulty_<d>` (the AI's regular empires,
+Captain up; not players' subjects) and `difficulty_<d>_npc` (non-playable countries, from Ensign),
+and the research and tradition cost a tier at this game's scaling (`techCostFactor()`).
 
 **Subjects tab** (`/subjects`; the user's ask 2026-11-01: "subjects and branch offices: an
 overview"): the subject agreement cards (`SubjectCards.svelte`, shared with the contacts tab), and

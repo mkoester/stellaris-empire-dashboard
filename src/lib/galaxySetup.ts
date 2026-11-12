@@ -147,24 +147,123 @@ export function formatSetting(
 	return words(value);
 }
 
-export type SetupRow = { key: string; label: string; value: string };
+export type SetupRow = {
+	key: string;
+	label: string;
+	value: string;
+	raw: SetupValue;
+	default: string | null; // the setup screen's default, formatted; null where not known
+	changed: boolean; // differs from the default
+	assumed: boolean; // the default is the engine's (not in the files): assumed
+};
+
+/** What the defaults are read from: each galaxy size's scenario and the defines. */
+export type SetupDefaults = {
+	scenarios: Record<string, Record<string, number>>; // size → save key → default (data DB `setup_scenario`)
+	defines: Record<string, number>;
+};
+
+// Size-independent defaults: the save key's `*_DEFAULT` define (4.5.4 `common/defines/00_defines.txt`).
+const DEFINE_DEFAULT: Record<string, string> = {
+	mid_game_start: 'MID_GAME_START_DEFAULT',
+	end_game_start: 'END_GAME_START_DEFAULT',
+	victory_year: 'VICTORY_YEAR_DEFAULT',
+	num_guaranteed_colonies: 'GUARANTEED_COLONIES_DEFAULT',
+	technology: 'TECH_COST_DEFAULT',
+	traditions: 'TRADITION_COST_DEFAULT',
+	naval_capacity_mult: 'NAVAL_CAPACITY_MULT_DEFAULT',
+	command_limit_galaxy_mult: 'COMMAND_LIMIT_MULT_DEFAULT',
+	logistic_ceiling_v2: 'LOGISTIC_CEILING_DEFAULT',
+	growth_scale: 'GROWTH_SCALE_DEFAULT',
+	logistics_fleet_upkeep_costs: 'LOGISTICS_FLEET_UPKEEP_DEFAULT',
+	logistics_planet_deficit_costs: 'LOGISTICS_PLANET_DEFICIT_DEFAULT',
+	cosmic_storm_early_game_spawn_chance_scale: 'COSMIC_STORM_SPAWN_CHANCE_SCALE_DEFAULT',
+	cosmic_storm_mid_game_spawn_chance_scale: 'COSMIC_STORM_SPAWN_CHANCE_SCALE_DEFAULT',
+	cosmic_storm_late_game_spawn_chance_scale: 'COSMIC_STORM_SPAWN_CHANCE_SCALE_DEFAULT',
+	cosmic_storm_spawn_cooldown_scale: 'COSMIC_STORM_SPAWN_COOLDOWN_SCALE_DEFAULT',
+	cosmic_storm_devastation: 'COSMIC_STORM_DEVASTATION_DEFAULT',
+	voidworms_scaling: 'VOIDWORMS_SCALING_DEFAULT',
+	fallen_empire_strength_scale: 'FALLEN_EMPIRE_STRENGTH_SCALE_DEFAULT',
+	cutholoids_scaling: 'CUTHOLOIDS_SCALING_DEFAULT'
+};
+
+// The setup screen's defaults that no file holds (the engine's), assumed. `resource_abundance` is
+// left out: its define (RESOURCE_ABUNDANCE_DEFAULT 2, 0–5) is a slider step, the save holds 1.
+const ENGINE_DEFAULT: Record<string, SetupValue> = {
+	difficulty: 'ensign',
+	ironman: 'no',
+	crisis_type: 'any',
+	aggressiveness: 'normal',
+	scaling: 'scaling_off',
+	technology_difficulty_scale: 'scaling_normal',
+	player_locations: 'normal',
+	clustered: 'no',
+	advanced_starts_near_player: 'no',
+	random_empires: 'no',
+	random_advanced_empires: 'no',
+	random_fallen_empires: 'no',
+	random_marauder_empires: 'no',
+	random_nomad_empires: 'no',
+	lgate_enabled: 'yes',
+	caravaneers_enabled: 'yes',
+	difficulty_adjusted_ai_modifiers: 'no'
+};
+
+/** A setting's default in a galaxy of `size`, and whether it is assumed; null where unknown. */
+export function defaultOf(
+	key: string,
+	size: string | null,
+	d: SetupDefaults
+): { value: SetupValue; assumed: boolean } | null {
+	const scenario = size ? d.scenarios[size]?.[key] : undefined;
+	if (scenario !== undefined) return { value: scenario, assumed: false };
+	const storm = key.match(/^cosmic_storm_(early|mid|late)_game_spawn_max_cap$/);
+	const define = storm
+		? `COSMIC_STORM_${storm[1].toUpperCase()}_GAME_SPAWN_MAX_CAP_DEFAULT_${(size ?? '').toUpperCase()}_GALAXY`
+		: DEFINE_DEFAULT[key];
+	if (define && d.defines[define] !== undefined)
+		return { value: d.defines[define], assumed: false };
+	return key in ENGINE_DEFAULT ? { value: ENGINE_DEFAULT[key], assumed: true } : null;
+}
+
+const yesNo = (v: SetupValue) => (v === true ? 'yes' : v === false ? 'no' : v);
+
+/** Whether a save's value is its default (numbers to 0.001, booleans as yes/no). */
+export function sameSetting(a: SetupValue, b: SetupValue): boolean {
+	if (typeof a === 'number' && typeof b === 'number') return Math.abs(a - b) < 0.001;
+	return String(yesNo(a)) === String(yesNo(b));
+}
 
 /** The setup's settings in the setup screen's groups; keys we do not know go to "Other". */
 export function setupGroups(
 	setup: GalaxySetup,
-	names: Record<string, string> = {}
+	names: Record<string, string> = {},
+	defaults: SetupDefaults | null = null
 ): { title: string; rows: SetupRow[] }[] {
 	const known = new Set<string>();
+	const size = typeof setup.template === 'string' ? setup.template : null;
+	const row = (key: string, label: string, format: Format): SetupRow => {
+		const def = defaults ? defaultOf(key, size, defaults) : null;
+		return {
+			key,
+			label,
+			value: formatSetting(format, setup[key], names),
+			raw: setup[key],
+			default: def ? formatSetting(format, def.value, names) : null,
+			changed: def !== null && !sameSetting(setup[key], def.value),
+			assumed: def?.assumed ?? false
+		};
+	};
 	const groups = GROUPS.map((g) => ({
 		title: g.title,
 		rows: g.settings.flatMap(([key, label, format]) => {
 			known.add(key);
-			return key in setup ? [{ key, label, value: formatSetting(format, setup[key], names) }] : [];
+			return key in setup ? [row(key, label, format)] : [];
 		})
 	}));
 	const other = Object.keys(setup)
 		.filter((k) => !known.has(k))
 		.sort()
-		.map((key) => ({ key, label: words(key), value: formatSetting('text', setup[key], names) }));
+		.map((key) => row(key, words(key), 'text'));
 	return [...groups, { title: 'Other', rows: other }].filter((g) => g.rows.length);
 }

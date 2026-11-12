@@ -78,6 +78,7 @@ const data: GameData = {
 	traditionTrees: {},
 	perks: {},
 	precursors: {},
+	setupScenarios: {},
 	contractTypes: {},
 	perkTrees: {},
 	perkRules: {},
