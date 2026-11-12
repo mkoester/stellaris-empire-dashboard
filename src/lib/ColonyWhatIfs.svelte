@@ -47,12 +47,11 @@
 			<h3 class="mt-2 text-xs font-semibold text-gray-500">Planet decisions</h3>
 			{#each what.decisions as d (d.key)}
 				<div>
-					<WhatIfLine what={d.what} label={`${d.name}${d.possible === null ? ' (?)' : ''}`} />
-					<span class="text-xs text-gray-500"
-						>{d.months
-							? `for ${d.months / 12} years`
-							: 'for good'}{#if d.cost && Object.keys(d.cost).length}, costs
-							<ResourceChips flows={negate(d.cost)} />{/if}</span
+					<WhatIfLine what={d.what} label={`${d.name}${d.possible === null ? ' (?)' : ''}`} /><span
+						class="text-xs text-gray-500"
+						>{`, lasts: ${d.months ? `${fmt(d.months / 12)} years` : 'for good'}${d.cost && Object.keys(d.cost).length ? ', costs: ' : ''}`}{#if d.cost && Object.keys(d.cost).length}<ResourceChips
+								flows={negate(d.cost)}
+							/>{/if}</span
 					>
 				</div>
 			{/each}
