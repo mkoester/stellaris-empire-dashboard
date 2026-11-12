@@ -147,6 +147,10 @@ difficulties in between (#lib/events.ts techCostFactor).
 
 ### 20. Leader limits per class — leaders tab (from 2026-10-31)
 
+**Settled 2026-11-12** (UNE 6, throwaway DB, 2208.01.02, `screenshots/2026_11_12_6`): the game's
+leader screen 2/3 officials, 1/3 commanders, 1/3 scientists — the tab's limits 3 / 3 / 3. One
+sample with no cap modifier held; re-check when a tradition or civic raises a cap.
+
 The tab shows hired / limit per class (Roaming Korinth 2204.12: 2 / 4 each), the limit computed:
 base 3 + every `country_<class>_cap_add` and `country_leader_cap_add` of what the save shows held —
 traditions, perks, edicts, policies, civics, the origin, technologies, timed modifiers. Species
@@ -283,6 +287,13 @@ kind.
 
 ### 29. Influence and pacts — influence and pacts tabs (from 2026-11-05)
 
+**Power projection settled 2026-11-12** (UNE 6, 2208.01.02, `screenshots/2026_11_12_7`, `_8`): the
+fleet manager's tooltip spells the rule out — Naval Coverage 100 % = "From Navy Size" 130 (Navy
+Size 65 × (1 + Base +100 %)) ÷ Empire Size 52, capped at 100 %; Max 2.00 (Base +2.00); the top
+bar books Power Projection 2.00. So the fit's inner "2 ×" is a +100 % base modifier on navy size
+(a modifier could change it), the outer 2 the max. The influence tab read booked 2, max 2,
+coverage 1 (navy 65, size 52).
+
 Power projection is a fit, not a rule from the files: 2 × min(1, 2 × used naval capacity ÷ empire
 size), exact in 40 saves; with no navy it books 0.2 (two empires, 2026-11-05 — settled), read as
 a 10 % coverage floor. Income
@@ -295,6 +306,11 @@ although the budget booked a gain).
   against the tooltip's Power Projection line and its maximum (`country_power_projection_max`).
 
 ### 31. What the engine adds to job output — jobs tab (from 2026-11-05)
+
+**UNE 6's capital exact 2026-11-12** (2208.01.02, `screenshots/2026_11_12_10`): Technician 53.43 =
+base 39.60 × (1 + 10 % Prosperous Unification + 20.94 % High Stability + 4 % Governor Skill); the
+jobs tab predicts 53.44 with the same three lines, rest 0 (energy, minerals and food alike). The
+Planetforgers' and Korinth's remainders below are still open.
 
 **High Stability settled 2026-11-05**: +30 % × (stability − 50) ÷ 50 (the throwaway game's Physicist
 tooltip: stability 73.345 → +14.01 %), now counted. Low Stability (−50 % × (50 − stability) ÷ 50) and
@@ -322,6 +338,15 @@ it cannot accept (`possible_operator`: already on the same contract, a tech, out
   normal view should show exactly the game's).
 
 ### 33. Design stats and the starbase list — fleets and starbases tabs (from 2026-11-09)
+
+**Partly checked 2026-11-12** (UNE 6, 2208.01.02, `screenshots/2026_11_12_11`, `_12`; design
+Cheetah, screen, id 2451: point defence + 2 small red lasers, Reactor Booster): hull 200, armor
+200, shields 100, power +35 (90 − 55), cost 108 alloys — **all equal** to the designer. Evasion
+60 vs 62.3 %, speed 160 vs 166.22, upkeep 1.53 energy / 0.588 alloys vs 1.46 / 0.56 — the empire
+modifiers, as expected. **Damage**: the designer says 9.51 a day, the tab's dmg/cooldown 1.33; no
+plain unit fits (×10 = 13.3, with accuracy 11.1) — still open; a design without point defence
+would tell whether PD counts. Starbases: the Sol starport 2 / 2 modules, 1 / 1 building, as the
+game's panel; the only non-outpost, as the outliner.
 
 The fleets tab adds a design's base stats from the game files (`#lib/designStats.ts`): hull,
 armor, shields, evasion, speed, power, cost, upkeep, weapons — techs and empire modifiers left
@@ -488,9 +513,17 @@ The save's per-job `automated_workforce` and the budget's `planet_automated_jobs
 rate (one empire 2200.01.01: 1519.6 predicted, 1527.8 booked), but no building of ours has been
 built yet.
 
+**2026-11-12, first try (UNE 6, throwaway DB):** the building cannot go into a district without
+a zone — the user's catch; 4.5.4 `common/zones/00_zones.txt`: `zone_default` and `zone_urban`
+exclude every `*_automation` building set, the resource zones (Agricultural Focus …) take them.
+Earth's farming, mining and generator districts had no zone (the snapshot's `districtList`), so
+the what-if now says "needs a zone in the Agriculture District first" (`zoneNeeded()`). Before
+(`screenshot_2026-11-12_20-43-46`): Farmer +200 automated, frees 200, 600 minerals, −16 energy a
+month (8 + 2 × 4).
+
 - **Do:** in a throwaway game with Assembly Patterns (`research_technology tech_assembly_pattern`)
-  note the colony page's "District automation" line for farmers, build the Automation Building:
-  Farmer (`instant_build`), let a month pass and save.
+  note the colony page's "District automation" line for farmers, build a farming zone, then the
+  Automation Building: Farmer (`instant_build`), let a month pass and save.
 - **Send:** the farmer job's tooltip (automated workforce), the colony's energy upkeep tooltip
   ("Automated Jobs" line and the building's) and the date. Check: automated = 25 % of positions;
   energy = 8 + automated ÷ 100 × 4; whether pops left the farmer jobs or open positions filled
