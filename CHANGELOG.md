@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.15] - 2026-11-12
 
 ### Added
 
@@ -14,6 +14,23 @@ All notable changes to this project are documented here. The format follows
   adds, and what it costs. Its monthly cost grows with the districts it automates: besides the
   building's upkeep, every automated job costs energy. The colonies tab ranks where one pays most.
   Needs the game data of extractor 0.1.16 for the automated jobs' cost.
+  An automation building stands in a zone of its district: where that district has none yet, the
+  line says to build the zone first (checked in game: 300 of 1200 farmer positions automated,
+  open positions first, 12 + 8 energy a month).
+  Each line shows what the automated workforce makes and what the pops it frees made in that job:
+  automation gets every output multiplier but not job efficiency, so it makes a little less.
+- The header shows the empire's total pops.
+
+### Changed
+
+- Planet decision what-ifs read "lasts: …, costs: …", and "+N effects not counted" names what the
+  estimate leaves out (in its hover).
+
+### Fixed
+
+- The Museum Exhibits, Organic Sanctuaries and Performance Competition decisions last 10 years, not
+  "for good" (extractor 0.1.16).
+- Long rows of resource amounts wrap instead of running out of their panel (the what-ifs).
 
 ## [0.1.14] - 2026-11-09
 
