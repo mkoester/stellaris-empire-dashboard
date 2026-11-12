@@ -143,7 +143,11 @@
 		<ColonySpecies rows={data.species} />
 		<LuxuryGoods what={data.luxuries} until={data.luxuriesUntil} />
 		<ColonyLogistics what={data.logistics} />
-		<ColonyWhatIfs what={data.whatIfs} />
+		<ColonyWhatIfs
+			what={data.whatIfs}
+			automation={data.automation}
+			openJobs={data.colony?.openJobs ?? 0}
+		/>
 		{#if data.colony.stability >= data.wellbeing.maxStability}
 			<ColonyStabilityRoom
 				colony={data.colony}

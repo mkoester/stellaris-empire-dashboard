@@ -570,6 +570,24 @@ describe('colonyJobs', () => {
 			openJobs: 100
 		});
 	});
+
+	it('keeps the automated workforce, part of the filled one (READER 54)', () => {
+		// 4.5.4 save 2200.01.01: technicians on a fully automated colony; -1 on placeholders
+		const jobs = {
+			'1': {
+				type: 'technician',
+				automated_workforce: 1199,
+				workforce: 1200,
+				max_workforce: 1200,
+				pop_groups: { pop_group: 1, amount: 1 }
+			},
+			'2': { type: 'farmer', automated_workforce: -1, workforce: 400, max_workforce: 400 }
+		};
+		expect(colonyJobs(jobs, [1, 2]).jobs).toEqual([
+			{ type: 'technician', pops: 1, filled: 1200, positions: 1200, automated: 1199 },
+			{ type: 'farmer', pops: 0, filled: 400, positions: 400 }
+		]);
+	});
 });
 
 describe('colonyGrowth', () => {

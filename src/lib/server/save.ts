@@ -302,7 +302,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '53'; // 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '54'; // 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -2807,7 +2807,7 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 }
 
 /**
- * `pop_jobs.<id> = { type workforce max_workforce pop_groups = { { pop_group amount } } }`.
+ * `pop_jobs.<id> = { type workforce max_workforce automated_workforce pop_groups = { { pop_group amount } } }`.
  * `max_workforce` -1 means unlimited (civilian); jobs nobody works and that have no positions are
  * the placeholders every colony carries (servant, purge, …) and are left out.
  */
@@ -2825,6 +2825,8 @@ export function colonyJobs(
 		const filled = Math.max(num(j.workforce), 0);
 		// job efficiency's extra workforce (READER 46): Servants 2196 + 330.55 (Planetforgers 2214.02)
 		const bonus = filled > 0 ? num(j.bonus_workforce) : 0;
+		// the part of `workforce` no pop works (READER 54): automation buildings, Tankbound, …
+		const automated = Math.max(num(j.automated_workforce), 0);
 		// who works it, by species id (READER 46): species traits act on their own pops' jobs
 		const species: Record<string, number> = {};
 		for (const g of items(j.pop_groups)) {
@@ -2838,6 +2840,7 @@ export function colonyJobs(
 				filled,
 				positions: max > 0 ? max : null,
 				...(bonus > 0 && { bonus }),
+				...(automated > 0 && { automated }),
 				...(Object.keys(species).length && { species })
 			}
 		];

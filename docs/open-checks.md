@@ -478,6 +478,24 @@ answering 200, while the backlog of other campaigns was being read; the log show
 reproduced: 116 later requests, including a second empty data folder polled every second through
 the backlog, were all 200. If a player reports a blank first page, start here.
 
+### 35. District automation — colony what-ifs, colonies tab (from 2026-11-12)
+
+The what-if (`#lib/jobAutomation.ts`) assumes an automation building's 25 % (50 % for the upgrade)
+is a share of the job's **positions** (4 farming districts = 800 farmer workforce → 200
+automated), that automation takes open positions before those pops work, and that each automated
+job costs its stratum's energy (`automation_resources`, workers 4) on top of the building's 8.
+The save's per-job `automated_workforce` and the budget's `planet_automated_jobs` agree with the
+rate (one empire 2200.01.01: 1519.6 predicted, 1527.8 booked), but no building of ours has been
+built yet.
+
+- **Do:** in a throwaway game with Assembly Patterns (`research_technology tech_assembly_pattern`)
+  note the colony page's "District automation" line for farmers, build the Automation Building:
+  Farmer (`instant_build`), let a month pass and save.
+- **Send:** the farmer job's tooltip (automated workforce), the colony's energy upkeep tooltip
+  ("Automated Jobs" line and the building's) and the date. Check: automated = 25 % of positions;
+  energy = 8 + automated ÷ 100 × 4; whether pops left the farmer jobs or open positions filled
+  first.
+
 ## C. Not in the game
 
 ### 14. Storage, computed — resources panel (open task, 2026-10-24)

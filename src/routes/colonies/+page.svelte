@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import AutomationRanking from '#lib/AutomationRanking.svelte';
 	import ColonyTable from '#lib/ColonyTable.svelte';
 	import { colorOf } from '#lib/colors.ts';
 	import {
@@ -227,3 +228,4 @@
 	{/each}
 {/if}
 {#if view.mode === 'all' && !shown.length}<p>No colony matches.</p>{/if}
+<AutomationRanking rows={data.automation} {node} />

@@ -3,6 +3,11 @@ import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
 import type { ActionKind, CapEffect, Costs, GameData, Resources } from '#lib/types.ts';
 import { NO_SHIP_PARTS, type ShipParts } from '#lib/designStats.ts';
+import {
+	automationBuildingsOf,
+	NO_JOB_AUTOMATION,
+	type JobAutomation
+} from '#lib/jobAutomation.ts';
 import type { StarbasePart } from '#lib/starbasePlanner.ts';
 import { levelSlots } from '#lib/starbases.ts';
 
@@ -860,6 +865,7 @@ export function loadGameData(file: string): GameData {
 				])
 			),
 			shipParts: shipParts(rows),
+			jobAutomation: jobAutomation(rows),
 			starbaseParts: starbaseParts(rows),
 			buildingCategory: Object.fromEntries(
 				rows<{ key: string; category: string | null }>('SELECT key, category FROM building').map(
@@ -1214,6 +1220,47 @@ export function actionTimers(
 			...(r.role === 'bonus' && { bonus: true })
 		});
 	return out;
+}
+
+/**
+ * The automation buildings (#lib/jobAutomation.ts: category `pop_assembly`, every modifier a job's
+ * automated workforce) and what an automated job costs per stratum;
+ * no rates from a data DB without `pop_category_automation` (extractor before 2026-11-12), no
+ * techs without `technology_unlock`.
+ */
+function jobAutomation(rows: <T>(sql: string) => T[]): JobAutomation {
+	const has = (t: string) =>
+		rows(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = '${t}'`).length > 0;
+	if (!has('building_modifier')) return NO_JOB_AUTOMATION;
+	const mods: Record<string, { key: string; value: number }[]> = {};
+	for (const r of rows<{ building: string; key: string; value: number }>(
+		`SELECT building_key AS building, modifier_key AS key, value FROM building_modifier
+		 WHERE scope = 'planet' AND building_key IN (SELECT building_key FROM building_modifier
+		   WHERE modifier_key LIKE 'job\\_%\\_automated\\_workforce\\_mult' ESCAPE '\\')
+		 -- the game files them as pop assembly; the Master Archive automates specialists too
+		 AND building_key IN (SELECT key FROM building WHERE category = 'pop_assembly')
+		 ORDER BY sort_order`
+	))
+		(mods[r.building] ??= []).push({ key: r.key, value: r.value });
+	const names = Object.fromEntries(
+		rows<{ key: string; name: string | null }>('SELECT key, name FROM building').map((r) => [
+			r.key,
+			r.name ?? r.key
+		])
+	);
+	const techs: Record<string, string[]> = {};
+	if (has('technology_unlock'))
+		for (const r of rows<{ tech: string; item: string }>(
+			"SELECT tech_key AS tech, item_key AS item FROM technology_unlock WHERE kind = 'building'"
+		))
+			(techs[r.item] ??= []).push(r.tech);
+	const rates: JobAutomation['rates'] = {};
+	if (has('pop_category_automation'))
+		for (const r of rows<{ category: string; resource: string; amount: number }>(
+			'SELECT category, resource, amount FROM pop_category_automation'
+		))
+			(rates[r.category] ??= {})[r.resource] = r.amount;
+	return { buildings: automationBuildingsOf(mods, names, techs), rates };
 }
 
 /**

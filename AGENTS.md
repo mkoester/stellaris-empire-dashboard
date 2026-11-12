@@ -1456,6 +1456,18 @@ static modifier (its explanation's modifiers) or removes one the planet has, wit
 duration. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01, UNE 2202.08.01): every page
 200; switch off → none shown, on → shown, spoilers hidden → off again. Not compared with the game
 (`docs/open-checks.md` 28).
+**District automation** (the user's ask 2026-11-12; `#lib/jobAutomation.ts` pure,
+`colonyAutomation()` / `automationRanking()` in `server/whatIfs.ts`, `AutomationLine.svelte`, the
+colonies tab's `AutomationRanking.svelte`): per colony the next building of each automation line —
+data DB buildings of category `pop_assembly` whose every modifier is a `job_<job>_automated_workforce_mult`
+(4.5.4: farmers, miners, technicians and their drones, 25 % then 50 %), techs from `technology_unlock`
+— on the job rows: the share × positions on top of the save's `automated_workforce` (READER 54),
+open positions first, then pops' work (freed), output at the row's rate. **Its monthly cost scales
+with the districts**: the building's upkeep plus each automated job's stratum rate (data DB
+`pop_category_automation`, extractor 0.1.16; none from an older one), checked against the budget's
+`planet_automated_jobs` (1519.6 predicted, 1527.8 booked). Tankbound (1.0 by civic) and wilderness
+build none. Free slots unknown → "(?)". Checked 2026-11-12 on a DB copy (Yorphian 2203.11.01, with
+Assembly Patterns added to the copy: Yorphia technicians +225, 17 energy). In game: open check 35.
 **Icons** (`#lib/icons/`, the user's ask 2026-11-09: "come up with some svg icons for the
 building — we might use original images at some point, but not for now"): our own 24×24 stroke
 icons in `currentColor` (no game art, workspace `AGENTS.md`), `iconFor(key, category?)` resolves a

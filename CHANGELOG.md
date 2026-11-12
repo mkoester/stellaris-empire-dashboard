@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- District automation what-ifs (⚙ What-ifs, a spoiler): on the colony page, what the next
+  Automation or Optimization Building for farmers, miners or technicians would do there — how much
+  of the jobs' workforce it takes over (freeing pops for other jobs) or fills, the output that
+  adds, and what it costs. Its monthly cost grows with the districts it automates: besides the
+  building's upkeep, every automated job costs energy. The colonies tab ranks where one pays most.
+  Needs the game data of extractor 0.1.16 for the automated jobs' cost.
+
 ## [0.1.14] - 2026-11-09
 
 ### Added

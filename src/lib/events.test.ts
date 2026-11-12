@@ -99,6 +99,7 @@ const data: GameData = {
 	depositCategory: {},
 	buildingCategory: {},
 	shipParts: { sizes: {}, sections: {}, components: {} },
+	jobAutomation: { buildings: [], rates: {} },
 	starbaseParts: {},
 	growthModifiers: {},
 	starbaseSlots: {},

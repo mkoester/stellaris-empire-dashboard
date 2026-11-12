@@ -1,4 +1,5 @@
 import type { ShipParts } from './designStats.ts';
+import type { JobAutomation } from './jobAutomation.ts';
 import type { StarbasePart } from './starbasePlanner.ts';
 import type { AttractionRule, AttractionSource } from './ethicSources.ts';
 import type { EntryEvent, SystemEntry } from './systemEvents.ts';
@@ -218,6 +219,7 @@ export type ColonyJob = {
 	filled: number; // workforce
 	positions: number | null;
 	bonus?: number; // job efficiency's extra workforce (`bonus_workforce`); READER 46
+	automated?: number; // workforce no pop works, part of `filled` (`automated_workforce`); READER 54
 	species?: Record<string, number>; // workforce by species id; READER 46
 };
 
@@ -1086,6 +1088,7 @@ export type GameData = {
 	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
 	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
 	shipParts: ShipParts; // ship sizes, sections, components (extractor 2026-11-09; empty before)
+	jobAutomation: JobAutomation; // automation buildings, automated jobs' upkeep (rates: extractor 2026-11-12)
 	starbaseParts: Record<string, StarbasePart>; // conditions and modifiers (extractor 2026-11-09)
 	growthModifiers: Record<string, Record<string, number>>;
 	starbaseSlots: Record<string, { modules: number; buildings: number }>;
