@@ -9,8 +9,8 @@ import type { Explanation, Modifier } from '#lib/types.ts';
 // marked where it differs from the setup screen's default for this galaxy size; and what every
 // difficulty does (4.5.4 `common/static_modifiers/00_static_modifiers.txt`: `difficulty_<d>` on
 // the AI's regular empires — not on players' subjects —, `difficulty_<d>_player` on us at Civilian
-// and Cadet, `difficulty_<d>_npc` on non-playable countries; research and tradition costs rise per
-// tier with `technology_difficulty_scale`, `techCostFactor()`).
+// and Cadet, `difficulty_<d>_npc` on non-playable countries; tech costs rise per tier with
+// `technology_difficulty_scale`, `techCostFactor()` — how traditions scale is not known).
 export type DifficultyEffects = {
 	key: string;
 	label: string;
@@ -18,7 +18,7 @@ export type DifficultyEffects = {
 	player: Modifier[];
 	ai: Modifier[];
 	npc: Modifier[];
-	costPerTier: number | null; // research and traditions, a share per tier at this game's scaling
+	costPerTier: number | null; // a tech's cost, a share per tier at this game's scaling
 };
 
 export function load({ url }) {
@@ -81,7 +81,7 @@ function difficultyCard(d: DifficultyEffects): Explanation {
 		...(d.ai.length ? { after: { label: 'the AI’s regular empires', modifiers: d.ai } } : {}),
 		facts: [
 			d.costPerTier !== null
-				? `research and traditions cost +${Math.round(d.costPerTier * 1000) / 10} % per tier`
+				? `techs cost +${Math.round(d.costPerTier * 1000) / 10} % per tier (tier 3: ×${Math.round((1 + 3 * d.costPerTier) * 100) / 100})`
 				: '',
 			d.ai.length
 				? 'its Difficulty Modifier Mult applies only with the Difficulty Adjusted AI Modifiers setting'

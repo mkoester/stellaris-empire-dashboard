@@ -744,7 +744,8 @@ its place — Civilian green, Cadet plain, Ensign yellow on to Grand Admiral red
 colours) — with a popup of what it does, and a folded table of all seven: the static modifiers
 `difficulty_<d>_player` (ours, Civilian and Cadet), `difficulty_<d>` (the AI's regular empires,
 Captain up; not players' subjects) and `difficulty_<d>_npc` (non-playable countries, from Ensign),
-and the research and tradition cost a tier at this game's scaling (`techCostFactor()`).
+and a tech's extra cost a tier at this game's scaling (`techCostFactor()`; traditions have no
+tiers — how the setting scales them is not known).
 
 **Subjects tab** (`/subjects`; the user's ask 2026-11-01: "subjects and branch offices: an
 overview"): the subject agreement cards (`SubjectCards.svelte`, shared with the contacts tab), and

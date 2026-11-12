@@ -35,7 +35,7 @@ All notable changes to this project are documented here. The format follows
 - Galaxy tab: settings that differ from the default for the galaxy's size are highlighted (the
   default in the hover), and the difficulty is coloured by its place, green for Civilian to red for
   Grand Admiral, with what it does in a popup; a folded table lists every difficulty's effects on
-  us, the AI's empires and non-playable countries, and on research and tradition costs.
+  us, the AI's empires and non-playable countries, and on tech costs per tier.
 - Planet decision what-ifs read "lasts: …, costs: …", and "+N effects not counted" names what the
   estimate leaves out (in its hover).
 

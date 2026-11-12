@@ -74,8 +74,8 @@
 						<th class="pr-4">The AI's regular empires</th>
 						<th class="pr-4">Non-playable countries</th>
 						<th
-							title="research and traditions, per tier, at this game's Tech and Tradition Difficulty Scaling"
-							>Costs a tier</th
+							title="a tech's cost × (1 + this × its tier), at this game's Tech and Tradition Difficulty Scaling (measured in game for techs; how traditions scale is not known)"
+							>Tech cost a tier</th
 						>
 					</tr>
 				</thead>
