@@ -220,7 +220,9 @@ folder for players**; a new discovery path in `locate.ts` goes there too.
   player has allowed it in Privacy & Security; the bundled Python is not notarized, Node is.
   **The Mac zips have not run on a Mac yet** — first run per `RELEASE.md`.
   Downloads are cached in `.cache/`. **In the Claude Code sandbox** Node's `fetch` needs
-  `NODE_USE_ENV_PROXY=1` to reach nodejs.org (it ignores the proxy otherwise: `EAI_AGAIN`).
+  `NODE_USE_ENV_PROXY=1` to reach nodejs.org (it ignores the proxy otherwise: `EAI_AGAIN`), and
+  the command must name `nodejs.org` among its allowed hosts — a clone in `$TMPDIR` has no `.cache/`
+  and downloads Node (2026-11-12).
 
 **`launcher.mjs` serves the app through its own HTTP server**, not adapter-node's `index.js`:
 without `ORIGIN` adapter-node 6 takes every request for `https`, and SvelteKit rejects the forms
