@@ -1,4 +1,5 @@
 import type { ShipParts } from './designStats.ts';
+import type { JobAutomation } from './jobAutomation.ts';
 import type { StarbasePart } from './starbasePlanner.ts';
 import type { AttractionRule, AttractionSource } from './ethicSources.ts';
 import type { EntryEvent, SystemEntry } from './systemEvents.ts';
@@ -218,6 +219,7 @@ export type ColonyJob = {
 	filled: number; // workforce
 	positions: number | null;
 	bonus?: number; // job efficiency's extra workforce (`bonus_workforce`); READER 46
+	automated?: number; // workforce no pop works, part of `filled` (`automated_workforce`); READER 54
 	species?: Record<string, number>; // workforce by species id; READER 46
 };
 
@@ -542,10 +544,13 @@ export type Snapshot = {
 	// before, exactly dated, and the daily stockpiles.
 	logEvents: LogEvent[] | null;
 	ticks: Tick[] | null;
-	// A multiplayer game: the save's `player` block names an account (single player: "unknown";
-	// not in Ironman, whose single-player saves name it too — READER 48) or two players, or the mod
-	// logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
+	// A multiplayer game: the save's `player` block lists two or more players (READER 56; before,
+	// one named account counted too, wrongly — the native build names it in single player), or the
+	// mod logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
 	multiplayer: boolean;
+	// the save's player count (READER 56; null: a log month, or read before): a reading with
+	// `multiplayer` but a count below 2 owes it to the mod
+	players: number | null;
 };
 
 export type MilestoneLogKind =
@@ -954,6 +959,59 @@ export type Subject = {
 	specialistLevel: number;
 	specialistExperience: number;
 	loyalty: number | null;
+	// READER 55 (null before): when the terms last changed (`date_changed`; = since until a
+	// renegotiation), and whether the first renegotiation waits the cooldown too
+	// (`has_cooldown_on_first_renegotiation`)
+	changed: string | null;
+	firstCooldown: boolean | null;
+	// a specialisation being taken on (`subject_specialization.subject_conversion_process`)
+	conversion: { progress: number; inProgress: boolean; done: boolean } | null;
+	stance: SubjectStance | null; // what the subject does, from its own country block
+	power: SubjectPower | null; // its numbers; the game shows only "Inferior / Equivalent / …"
+};
+
+/** Subject specialisations: each type's levels and the perks they bring (data DB `specialist_*`). */
+export type Specialists = {
+	types: Record<
+		string,
+		{
+			name: string;
+			preferredEthic: string | null;
+			levels: { level: number; xpNext: number | null; perks: string[] }[];
+		}
+	>;
+	perks: Record<
+		string,
+		{
+			name: string;
+			description: string | null;
+			main: boolean;
+			subject: Record<string, number>; // what the subject gets
+			overlord: Record<string, number>; // what the overlord gets
+		}
+	>;
+};
+
+/** A subject's (or our overlord's) own state, from its country block (READER 55). */
+export type SubjectStance = {
+	opinion: number | null; // its opinion of us (`relation_current` in its relation to us)
+	trust: number | null;
+	inBreach: boolean; // `is_in_breach_of_any`: of a Galactic Community resolution
+	policies: Record<string, string>; // policy → selected option (fleet doctrine, diplomatic stance, …)
+	wars: string[]; // the wars it fights, by name
+};
+
+/** A country's numbers as its block holds them (READER 55). */
+export type SubjectPower = {
+	military: number | null;
+	economy: number | null;
+	tech: number | null;
+	fleetSize: number | null;
+	navalUsed: number | null;
+	empireSize: number | null;
+	pops: number | null;
+	colonies: number; // `controlled_colonies`
+	victoryRank: number | null;
 };
 /**
  * Buildings one empire owns on another's colony (`colony.<id>.externally_owned_buildings = { {
@@ -1086,6 +1144,7 @@ export type GameData = {
 	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
 	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
 	shipParts: ShipParts; // ship sizes, sections, components (extractor 2026-11-09; empty before)
+	jobAutomation: JobAutomation; // automation buildings, automated jobs' upkeep (rates: extractor 2026-11-12)
 	starbaseParts: Record<string, StarbasePart>; // conditions and modifiers (extractor 2026-11-09)
 	growthModifiers: Record<string, Record<string, number>>;
 	starbaseSlots: Record<string, { modules: number; buildings: number }>;
@@ -1197,6 +1256,7 @@ export type GameData = {
 	identityNames: Record<string, string>;
 	// resolutions, resolution categories, subject agreement terms, term values and presets by key
 	diploNames: Record<string, string>;
+	specialists: Specialists; // subject specialisations (extractor 0.1.16; empty before)
 	resolutionCategories: Record<string, string>; // resolution → its category key
 	resolutionGroups: Record<string, string>; // category → its group (commerce_industry, …)
 	// every resolution a category lists, in file order: what proposing it takes (#lib/proposable.ts)
@@ -1244,6 +1304,7 @@ export type GameData = {
 	>;
 	perks: Record<string, string>; // ascension perk names
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
+	setupScenarios: Record<string, Record<string, number>>; // galaxy size → save key → its default (`setup_scenario`, extractor 0.1.16)
 	// Nomads contracts by key (data DB `contract`, extractor 2026-11-07; {} with an older one)
 	contractTypes: Record<string, ContractType>;
 	// shipset → the ship kinds it builds (data DB `graphical_culture`): `uses_ship_category`

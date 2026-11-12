@@ -55,6 +55,7 @@ export type Display = {
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, whatever our intel (cheating)
 	historyAll: boolean; // history tab: every empire's history, whatever we know (cheat)
 	pactIntel: boolean; // pacts tab: what intel shows of partners — tech counts, trade at economy intel 3 (spoiler)
+	subjectNumbers: boolean; // subjects tab: a subject's power, fleet, size and pops as numbers (cheat)
 	pactAll: boolean; // pacts tab: partners' techs and trade whatever our intel, tech hints (cheat)
 	contractSpoilers: boolean; // contracts: offers from issuers we do not talk to (nomad), others' near our border (settled) (spoiler)
 	contractsAll: boolean; // contracts: every contract in the galaxy (cheat)
@@ -87,6 +88,7 @@ export const DEFAULT_DISPLAY: Display = {
 	diplomacyAll: false,
 	historyAll: false,
 	pactIntel: false,
+	subjectNumbers: false,
 	pactAll: false,
 	contractSpoilers: false,
 	contractsAll: false
@@ -168,6 +170,7 @@ export function parseDisplay(v: unknown): Display {
 		diplomacyAll: o.diplomacyAll === true,
 		historyAll: o.historyAll === true,
 		pactIntel: o.pactIntel === true,
+		subjectNumbers: o.subjectNumbers === true,
 		pactAll: o.pactAll === true,
 		contractSpoilers: o.contractSpoilers === true,
 		contractsAll: o.contractsAll === true

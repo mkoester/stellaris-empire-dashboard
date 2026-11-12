@@ -4,6 +4,47 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.15] - 2026-11-12
+
+### Added
+
+- District automation what-ifs (⚙ What-ifs, a spoiler): on the colony page, what the next
+  Automation or Optimization Building for farmers, miners or technicians would do there — how much
+  of the jobs' workforce it takes over (freeing pops for other jobs) or fills, the output that
+  adds, and what it costs. Its monthly cost grows with the districts it automates: besides the
+  building's upkeep, every automated job costs energy. The colonies tab ranks where one pays most.
+  Needs the game data of extractor 0.1.16 for the automated jobs' cost.
+  An automation building stands in a zone of its district: where that district has none yet, the
+  line says to build the zone first (checked in game: 300 of 1200 farmer positions automated,
+  open positions first, 12 + 8 energy a month).
+  Each line shows what the automated workforce makes and what the pops it frees made in that job:
+  automation gets every output multiplier but not job efficiency, so it makes a little less.
+- The header shows the empire's total pops.
+- Subjects tab: per subject its loyalty over time and where it is heading, when the deal can be
+  renegotiated and what a proposal costs, the specialisation's progress with its perks, our holdings
+  against the deal's limit, and what the subject does — its opinion of us, trust, wars and
+  policies (fleet doctrine and the rest). A cheat adds its power, fleet, size and pops as numbers.
+  Needs the game data of extractor 0.1.16 for the specialisations.
+
+### Changed
+
+- A single-player game no longer counts as multiplayer because its save names the Steam
+  account: the native Linux build always writes it. Only a save with two or more players, or the
+  companion mod's monthly line, means multiplayer now; readings stored before do not count, and
+  campaigns that lost their cheats get them back once their saves are read again.
+- Galaxy tab: settings that differ from the default for the galaxy's size are highlighted (the
+  default in the hover), and the difficulty is coloured by its place, green for Civilian to red for
+  Grand Admiral, with what it does in a popup; a folded table lists every difficulty's effects on
+  us, the AI's empires and non-playable countries, and on tech costs per tier.
+- Planet decision what-ifs read "lasts: …, costs: …", and "+N effects not counted" names what the
+  estimate leaves out (in its hover).
+
+### Fixed
+
+- The Museum Exhibits, Organic Sanctuaries and Performance Competition decisions last 10 years, not
+  "for good" (extractor 0.1.16).
+- Long rows of resource amounts wrap instead of running out of their panel (the what-ifs).
+
 ## [0.1.14] - 2026-11-09
 
 ### Added

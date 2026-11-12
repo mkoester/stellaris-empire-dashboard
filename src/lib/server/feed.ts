@@ -249,6 +249,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		logEvents: m.events,
 		ticks: m.ticks,
 		multiplayer: m.multiplayer,
+		players: null,
 		countryId: null,
 		empireName: '',
 		pops: null,

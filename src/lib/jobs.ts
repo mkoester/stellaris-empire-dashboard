@@ -43,7 +43,10 @@ export function jobRows(jobs: ColonyJob[], info: JobInfo): JobRow[] {
 						pops: sum.pops + j.pops,
 						filled: sum.filled + j.filled,
 						positions:
-							sum.positions === null || j.positions === null ? null : sum.positions + j.positions
+							sum.positions === null || j.positions === null ? null : sum.positions + j.positions,
+						...((sum.automated ?? 0) + (j.automated ?? 0) > 0 && {
+							automated: (sum.automated ?? 0) + (j.automated ?? 0)
+						})
 					}
 				: { ...j }
 		);

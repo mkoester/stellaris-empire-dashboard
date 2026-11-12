@@ -51,7 +51,7 @@ import {
 	marketOrders,
 	progress,
 	readSave,
-	multiplayerPlayers,
+	playerCount,
 	subjects,
 	sumSources,
 	galacticCommunity,
@@ -117,7 +117,7 @@ const raw: RawSave = {
 	bypasses: {},
 	naturalWormholes: {},
 	globalFlags: {},
-	multiplayer: false,
+	players: 1,
 	countryNames: {},
 	// as in the 2201.06.01 save: a city district with a filled Government Zone and an empty one
 	districtsDb: {
@@ -195,26 +195,19 @@ const raw: RawSave = {
 	deposits: { '443': { type: 'd_decrepit_dwellings' } }
 };
 
-describe('multiplayerPlayers', () => {
-	it('single player names its one player "unknown"; multiplayer an account, or more players', () => {
-		expect(multiplayerPlayers([{ name: 'unknown', country: 0 }])).toBe(false);
-		expect(multiplayerPlayers({ name: 'unknown', country: 0 })).toBe(false);
-		expect(multiplayerPlayers(undefined)).toBe(false);
-		// Oracularity of Noerm 2200.01.01, hosted alone (2026-11-03)
-		expect(multiplayerPlayers([{ name: 'MirkoMachine', country: 0 }])).toBe(true);
+describe('playerCount', () => {
+	it('counts the players, whatever their names', () => {
+		expect(playerCount([{ name: 'unknown', country: 0 }])).toBe(1);
+		expect(playerCount({ name: 'unknown', country: 0 })).toBe(1);
+		expect(playerCount(undefined)).toBe(0);
+		// UNE 6 (native Linux build, single player, 2026-11-12): the account, one player
+		expect(playerCount([{ name: 'MirkoMachine', country: 0 }])).toBe(1);
 		expect(
-			multiplayerPlayers([
+			playerCount([
 				{ name: 'unknown', country: 0 },
-				{ name: 'unknown', country: 3 }
+				{ name: 'MirkoMachine', country: 0 }
 			])
-		).toBe(true);
-	});
-	it('in Ironman the account alone is single player (UNE 2 ironman.sav, 2026-11-06); two players still multiplayer', () => {
-		const alone = [{ name: 'MirkoMachine', country: 0 }];
-		expect(multiplayerPlayers(alone, true)).toBe(false);
-		expect(multiplayerPlayers(alone, 'yes')).toBe(false);
-		expect(multiplayerPlayers(alone, 'no')).toBe(true);
-		expect(multiplayerPlayers([...alone, { name: 'unknown', country: 3 }], true)).toBe(true);
+		).toBe(2);
 	});
 });
 
@@ -569,6 +562,24 @@ describe('colonyJobs', () => {
 			],
 			openJobs: 100
 		});
+	});
+
+	it('keeps the automated workforce, part of the filled one (READER 54)', () => {
+		// 4.5.4 save 2200.01.01: technicians on a fully automated colony; -1 on placeholders
+		const jobs = {
+			'1': {
+				type: 'technician',
+				automated_workforce: 1199,
+				workforce: 1200,
+				max_workforce: 1200,
+				pop_groups: { pop_group: 1, amount: 1 }
+			},
+			'2': { type: 'farmer', automated_workforce: -1, workforce: 400, max_workforce: 400 }
+		};
+		expect(colonyJobs(jobs, [1, 2]).jobs).toEqual([
+			{ type: 'technician', pops: 1, filled: 1200, positions: 1200, automated: 1199 },
+			{ type: 'farmer', pops: 0, filled: 400, positions: 400 }
+		]);
 	});
 });
 
@@ -2185,7 +2196,33 @@ describe('milestone fields', () => {
 			},
 			countryId: 0,
 			countries: { '4': { name: 'Tzynn' } } as never,
-			loyalty: { '4': -45 }
+			loyalty: { '4': -45 },
+			// the subject's block as UNE 6's Silicron Sacred Nation had it (2208.02.01, 4.5.4)
+			countryBlocks: {
+				'4': {
+					relations_manager: {
+						relation: [{ owner: 4, country: 0, relation_current: 120, trust: 28.5 }]
+					},
+					is_in_breach_of_any: 'yes',
+					active_policies: [
+						{ policy: 'diplomatic_stance', selected: 'diplo_stance_expansionist' },
+						{ policy: 'fleet_doctrine', selected: 'fleet_doctrine_phalanx' }
+					],
+					military_power: 251.04687,
+					economy_power: 522.20822,
+					tech_power: 340,
+					fleet_size: 20,
+					used_naval_capacity: 20,
+					empire_size: 101,
+					num_sapient_pops: 6115,
+					controlled_colonies: [7, 8, 9],
+					victory_rank: 6
+				}
+			},
+			wars: {
+				'3': { name: 'Silicron War', attackers: [{ country: 9 }], defenders: [{ country: 4 }] },
+				'4': { name: 'Other War', attackers: [{ country: 9 }], defenders: [{ country: 5 }] }
+			}
 		};
 		expect(subjects(raw)).toEqual([
 			{
@@ -2201,7 +2238,31 @@ describe('milestone fields', () => {
 				subsidies: { resource_subsidies_basic: 0 },
 				specialistLevel: 0,
 				specialistExperience: 0,
-				loyalty: -45
+				loyalty: -45,
+				changed: null,
+				firstCooldown: null,
+				conversion: null,
+				stance: {
+					opinion: 120,
+					trust: 28.5,
+					inBreach: true,
+					policies: {
+						diplomatic_stance: 'diplo_stance_expansionist',
+						fleet_doctrine: 'fleet_doctrine_phalanx'
+					},
+					wars: ['Silicron War']
+				},
+				power: {
+					military: 251.04687,
+					economy: 522.20822,
+					tech: 340,
+					fleetSize: 20,
+					navalUsed: 20,
+					empireSize: 101,
+					pops: 6115,
+					colonies: 3,
+					victoryRank: 6
+				}
 			}
 		]);
 	});

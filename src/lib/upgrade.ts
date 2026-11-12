@@ -8,6 +8,7 @@ import type { Colony, Snapshot, TradeDeal, War } from './types.ts';
 const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'empireName'> = {
 	countryId: null,
 	pops: null,
+	players: null,
 	stockpile: {},
 	income: null,
 	expenses: null,
@@ -196,6 +197,16 @@ export function upgrade(
 			globalFlags: s.galcom.globalFlags ?? []
 		},
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
+		subjects:
+			s.subjects &&
+			s.subjects.map((x) => ({
+				...x,
+				changed: x.changed ?? null,
+				firstCooldown: x.firstCooldown ?? null,
+				conversion: x.conversion ?? null,
+				stance: x.stance ?? null,
+				power: x.power ?? null
+			})),
 		// stored as plain keys for a day (2026-10-17), without the end date
 		countryModifiers:
 			s.countryModifiers &&

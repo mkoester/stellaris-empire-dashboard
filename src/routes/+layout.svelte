@@ -6,6 +6,7 @@
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
+	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
 
@@ -387,9 +388,10 @@
 					>game {data.gameVersion.replace(/^\D*/, '')}</span
 				>{/if}
 			<!-- the difficulty and the dates alone on the right, also when they wrap onto a line of their own -->
-			{#if data.dates?.difficulty}<span
-					class="ml-auto pb-1 text-[11px] text-gray-400"
-					title="the game's difficulty (galaxy setup), of seven">{data.dates.difficulty}</span
+			{#if data.dates?.difficulty}<span class="ml-auto pb-1 text-[11px] text-gray-400"
+					>{#if data.dates.difficultyCard}<InfoPopup explanation={data.dates.difficultyCard}
+							>{data.dates.difficulty}</InfoPopup
+						>{:else}{data.dates.difficulty}{/if}</span
 				>{/if}
 			{#if data.dates}<span
 					class="{data.dates.difficulty ? '' : 'ml-auto'} pb-1 text-[11px] text-gray-400"

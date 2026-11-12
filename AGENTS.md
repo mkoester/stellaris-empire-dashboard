@@ -59,14 +59,20 @@ Cross-project conventions come from the OKF vault; workspace rules from `../AGEN
     `ironman.sav` (4.5.3, public; a new single-player game, started after a game restart without
     mods; `meta` too holds `ironman=yes`, other saves' `meta` no key), whose `player` block names
     the account alone (`MirkoMachine`) — **a single-player Ironman save names the account**, so
-    in Ironman only two players mean multiplayer (`multiplayerPlayers(player, ironman)`, READER
-    48). Readings from before, of saves no longer on disk, still say multiplayer: hence the
-    Ironman check first.
+    in Ironman only two players mean multiplayer (READER 48; since READER 56 everywhere, below).
 
   Multiplayer has two signals:
-  - **The save** (`multiplayerPlayers()`), which serves a player without the mod — a cheater would
-    just not run it: the top-level `player = { { name country } … }` names an account or lists two
-    players. Every single-player save on the Linux machine (106, 4.5.x) has one `name="unknown"`;
+  - **The save** (`playerCount()`, `Snapshot.players`, READER 56), which serves a player without
+    the mod — a cheater would just not run it: the top-level `player = { { name country } … }`
+    **lists two or more players**. One named account is no signal (it was until 2026-11-12): **the
+    native Linux build names the Steam account in single player** — every save since the switch
+    from Proton, e.g. UNE 3 and Yorphian Extractorate under Proton `unknown`, their native games
+    `MirkoMachine`; UNE 6 (single player, native) read as multiplayer and lost its cheats. A
+    multiplayer game hosted alone (one account) is the mod's to catch. **Old readings**: a stored
+    reading without `players` (before READER 56) no longer counts, and a re-read drops its flag;
+    one with `multiplayer` but fewer than 2 players owes it to the mod and stays (`fromMod()` in
+    `db.ts`, the query in `campaignMultiplayer()`). History as first written: under Proton every
+    single-player save on the Linux machine (106, 4.5.x) had one `name="unknown"`;
     Oracularity of Noerm 2200.01.01 (a new multiplayer game, hosted alone, 4.5.3) `MirkoMachine`
     only; UNE 2 `unknown` alone at 19:01, `unknown` + `MirkoMachine` (both country 0) from 19:41
     on, after the Noerm session — whether it was loaded through the lobby nobody remembers
@@ -310,7 +316,7 @@ A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{�
 the whole `display`**, `parseDisplay()` defaulting what is left out, so send every switch the check
 needs in one PUT, the gates `showSpoilers` / `showCheats` included (2026-11-07: a second PUT for the
 cheat silently switched the spoiler off), with the
-page's `?node=`). A save-wide question (every colony across the history) is quickest as a
+page's `?node=`). **A `?node=` the copy lacks serves another node silently** (the dev server reads new saves into its copy, so ids found in an earlier copy may not exist in a fresh one — 2026-11-12): check the decoded `tip` before trusting a page. A save-wide question (every colony across the history) is quickest as a
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
 server modules that call `getGameData()`/`getExplanations()` — delete it after. **To find where
@@ -725,10 +731,38 @@ screen's tokens (`template` = galaxy_size, `shape`, `habitability` = colonizable
 `primitive` = primitive_odds, `logistic_ceiling_v2`); labels are the localisation's where it has
 one (`NUM_HYPERLANES` "Hyperlane Density"), else ours — the dashboard is English only. Disabled
 precursors are named from the data DB's `precursor` (empty without the table). Years are after
-2200 (`mid_game_start=100` → 2300). Not yet compared with the game's own setup screen.
+2200 (`mid_game_start=100` → 2300). Not yet compared with the game's own setup screen. **What
+differs from the default is highlighted** (the user's ask 2026-11-12; `defaultOf()`, the default in
+the row's hover): per galaxy size from `map/setup_scenarios/<size>.txt` (data DB `setup_scenario`:
+empire counts, wormholes, gateways, hyperlanes, planet odds, crisis strength), else the `*_DEFAULT`
+define (game length, cost and capacity sliders, growth, logistics, storms — their caps per size —,
+voidworms, cutholoids, fallen empires), else the engine's (`ENGINE_DEFAULT`: difficulty Ensign,
+crisis "any", AI aggressiveness normal, … — **assumed**, said in the hover); `resource_abundance`
+gets none (its define is a slider step: 2 of 0–5, the save holds 1). Checked on UNE 6 (medium):
+only the 3 nomad empires (default 2) stand out. **Difficulty** (the same ask): the row coloured by
+its place — Civilian green, Cadet plain, Ensign yellow on to Grand Admiral red (the user's
+colours) — with a popup of what it does, and a folded table of all seven: the static modifiers
+`difficulty_<d>_player` (ours, Civilian and Cadet), `difficulty_<d>` (the AI's regular empires,
+Captain up; not players' subjects) and `difficulty_<d>_npc` (non-playable countries, from Ensign),
+and a tech's extra cost a tier at this game's scaling (`techCostFactor()`; traditions have no
+tiers — how the setting scales them is not known).
 
 **Subjects tab** (`/subjects`; the user's ask 2026-11-01: "subjects and branch offices: an
-overview"): the subject agreement cards (`SubjectCards.svelte`, shared with the contacts tab), the
+overview"): the subject agreement cards (`SubjectCards.svelte`, shared with the contacts tab), and
+per subject (`SubjectDetails.svelte`, `#lib/subjects.ts` pure; the user's ask 2026-11-12, with
+`stellaris-mod-VassalOrders` in mind): loyalty over time with its trend and the share from opinion
+(× 0.01, `SUBJECT_MONTHLY_LOYALTY_OPINION_MULTIPLIER`), when the deal can be renegotiated
+(`date_changed` + `AGREEMENT_CHANGE_COOLDOWN_MONTHS` 60; a deal never changed is open at once
+without `has_cooldown_on_first_renegotiation` — **assumed**, not seen in game) and what a proposal
+costs, the specialisation's level, XP and months to the next (XP = loyalty × 0.1 a month) with its
+perks as popups (data DB `specialist_*`, extractor 0.1.16), our holdings against the
+`subject_holdings_limit_N` term, and what the subject does — opinion of us, trust, wars, breach of
+a resolution, every policy (fleet doctrine …) from its own country block (`Subject.stance`, READER
+55). Its numbers (`Subject.power`: military, economy, tech power, fleet, naval use, size, pops,
+colonies, rank) only with the `subjectNumbers` cheat — the game shows Inferior / Equivalent /
+Superior. Checked 2026-11-12 on a DB copy (UNE 6, Silicron 2208.02.01: loyalty 92.8, +3.9 a month,
++3.7 from opinion 366, renegotiation open since 2205.11.01, holdings 0 / 1, 26 policies named); UNE 6
+counts as multiplayer, so the cheat stays off there (the guard). The
 branch offices and holdings we own and those on our colonies (`Snapshot.external`, READER 43:
 `colony.<id>.externally_owned_buildings`, see "Save format facts"), and for a MegaCorp the
 **branch office planner** (`#lib/branchOffices.ts` pure; after the mod Branch Office Expansion
@@ -1456,6 +1490,18 @@ static modifier (its explanation's modifiers) or removes one the planet has, wit
 duration. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01, UNE 2202.08.01): every page
 200; switch off → none shown, on → shown, spoilers hidden → off again. Not compared with the game
 (`docs/open-checks.md` 28).
+**District automation** (the user's ask 2026-11-12; `#lib/jobAutomation.ts` pure,
+`colonyAutomation()` / `automationRanking()` in `server/whatIfs.ts`, `AutomationLine.svelte`, the
+colonies tab's `AutomationRanking.svelte`): per colony the next building of each automation line —
+data DB buildings of category `pop_assembly` whose every modifier is a `job_<job>_automated_workforce_mult`
+(4.5.4: farmers, miners, technicians and their drones, 25 % then 50 %), techs from `technology_unlock`
+— on the job rows: the share × positions on top of the save's `automated_workforce` (READER 54),
+open positions first, then pops' work (freed). **Output** (the user's ask 2026-11-12): what the automated workforce makes and what the freed pops made there, at one rate per workforce (the row's output ÷ (workforce + job efficiency's bonus)) — pops add the bonus, automation does not (in game: 900 pops + 90 + 300 automated, every multiplier on all 1290); only the job's own resources (data DB `job_resource`), not its stratum's trade. **Its monthly cost scales
+with the districts**: the building's upkeep plus each automated job's stratum rate (data DB
+`pop_category_automation`, extractor 0.1.16; none from an older one), checked against the budget's
+`planet_automated_jobs` (1519.6 predicted, 1527.8 booked). Tankbound (1.0 by civic) and wilderness
+build none. **It stands in a zone of its district** (4.5.4 `common/zones/00_zones.txt`: the government and urban zones exclude the `*_automation` sets; the user's catch 2026-11-12): while no built district holding its jobs has a zone, the line says "needs a zone in the … first" (`zoneNeeded()`, the save's `districtList`). Free slots unknown → "(?)". Checked 2026-11-12 on a DB copy (Yorphian 2203.11.01, with
+Assembly Patterns added to the copy: Yorphia technicians +225, 17 energy). Seen in game 2026-11-12 (Earth: 300 of 1200 farmer positions automated, open ones first, 12 + 8 energy; `docs/open-checks.md` 35).
 **Icons** (`#lib/icons/`, the user's ask 2026-11-09: "come up with some svg icons for the
 building — we might use original images at some point, but not for now"): our own 24×24 stroke
 icons in `currentColor` (no game art, workspace `AGENTS.md`), `iconFor(key, category?)` resolves a

@@ -38,23 +38,20 @@ save played with them. The mismatch warning itself is untested in the app.
   0.15), Better Perks, Better Origins, Better Leader Traits, Better Fanatic Ethics, Better Starbase
   Buildings.
 
+- Starbase and arkship slots (since 0.1.14): **4.5.3 counts them from the ship size**
+  (`starbase_module_capacity_add`, `starbase_building_capacity_add` in `common/ship_sizes/`);
+  `starbase_levels`' slot lists only name the slots ("must have at least the correct size", its
+  documentation). The dashboard counts that way (`levelSlots()`, AGENTS.md "Starbases tab"), so
+  Slightly Larger Starbases [4.5] shows a starport's 3 modules and 2 buildings — Commonwealth of
+  Man's capital held 3 modules at 2200.02.01. **Outpost Slots loses to it**: both define
+  `starbase_outpost`, and the later file name wins (`zz_bigger_starbases.txt` over
+  `01_alice_starbases.txt`), whose outpost has no slots. Open: an outpost in game, to confirm.
+
 Open: the pages in a game with these mods — traditions tab shows the modded tree, designation names
 and what-ifs, the species tab's trait budget against the game's species screen (screenshots).
 
 ## Needs a check first
 
-- **Starbase and arkship slots** — Slightly Larger Starbases, Extended Starbase Slots, Outpost
-  Slots, Starbase Extended 3.0 (+64 starbase parts), BPV's starbase levels. **4.5.3 takes the count
-  from the ship size** (checked 2026-11-09): `starbase_module_capacity_add` and
-  `starbase_building_capacity_add` in `common/ship_sizes/` (a starbase 2 modules, orbital rings 2 / 3
-  / 4); `starbase_levels`' `module_slots|building_slots` only list slot keys ("must have at least the
-  correct size", its documentation). The starbases and produce tabs count free slots from
-  `starbase_level`, which matched vanilla but not Slightly Larger Starbases [4.5]. **Fixed
-  2026-11-09**: the dashboard counts from the ship size (`levelSlots()`, AGENTS.md "Starbases tab");
-  the data DB had the modifiers already. **Outpost Slots loses to Slightly Larger Starbases**: both
-  define `starbase_outpost`, and the later file name wins (`zz_bigger_starbases.txt` over
-  `01_alice_starbases.txt`), whose outpost has no slots — in the merged data, and presumably in game
-  (to check on any outpost).
 - **Planetary Diversity, Guilli's Planet Modifiers** — names and modifiers arrive; habitability and
   capacity of 166 new planet classes need the game's screen to compare.
 - **Shed the Old Ways** (`../stellaris-mod-ShedOldWays`, private) — removes a tradition tree after
@@ -73,13 +70,14 @@ Designations; Slightly Larger Starbases [4.5], Outpost Slots; Empty Hulls and bo
 mods; two zips (Federations Less Stingy, Research options+); the rest UI. Extracted with all 50 in
 7 s on a warm parse cache, no error; the save reads with names from it. **Building slots and zones
 need nothing from the data** (the `zone` table holds names; the save holds zones and buildings) —
-BPVR's third city zone shows once one is built. Starbase slots: fixed, above.
+BPVR's third city zone shows once one is built. Starbase slots: above.
 
 ## Limits of the merged view
 
-- **The load order is the launcher's, not the save's**: the save names mods only. Where no playset
-  holds exactly a campaign's mods, the closest playset's order is taken — wrong only where two of
-  its mods override the same definition and the playset's order changed since.
+- **The load order is the launcher's, not the save's**: the save names mods only. The dashboard
+  remembers the order of saves it sees written live; for a campaign it never saw played, and no
+  playset holding exactly its mods, the closest playset's order is taken — wrong only where two of
+  its mods override the same definition and their order changed since.
 
 - The rules (`extractor/mods.py`): a file replaces the same path; in a `common/` folder the later
   file's definition of a key wins, in `scripted_variables` the first (the mods' `zzz_` and `!!`

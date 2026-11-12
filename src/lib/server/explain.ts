@@ -143,6 +143,36 @@ export function loadExplanations(file: string): Explanations {
 				facts: []
 			};
 
+		// subject specialisation perks (extractor 0.1.16): what the subject and what the overlord get
+		if (
+			rows("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'specialist_perk'")
+				.length
+		)
+			for (const r of rows<{
+				key: string;
+				name: string | null;
+				description: string | null;
+				main_perk: number;
+				subject_json: string | null;
+				overlord_json: string | null;
+			}>(
+				'SELECT key, name, description, main_perk, subject_json, overlord_json FROM specialist_perk'
+			)) {
+				const mods = (j: string | null) =>
+					Object.entries(j ? (JSON.parse(j) as Record<string, number>) : {}).map(([k, v]) =>
+						modifier(k, v)
+					);
+				const overlord = mods(r.overlord_json);
+				out[`specialistperk:${r.key}`] = {
+					title: r.name ?? pretty(r.key),
+					description: r.description,
+					modifiers: mods(r.subject_json),
+					text: null,
+					...(overlord.length ? { after: { label: 'for the overlord', modifiers: overlord } } : {}),
+					facts: [r.main_perk ? 'the level’s main perk' : ''].filter(Boolean)
+				};
+			}
+
 		// Galactic Community resolutions: `resolution:<key>`. Their effects are the static modifier
 		// of the same key (4.5.2: `modifier = { <its key> = 1 }`).
 		for (const r of rows<{

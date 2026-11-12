@@ -4,7 +4,7 @@ import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
 import { display, popWindow } from '#lib/server/settings.ts';
-import { colonyWhatIfs } from '#lib/server/whatIfs.ts';
+import { colonyAutomation, colonyWhatIfs } from '#lib/server/whatIfs.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
 import { colonyDaySeries, colonyPopSeries, colonySeries, xExtent } from '#lib/series.ts';
@@ -88,6 +88,8 @@ export function load({ url, params }) {
 		// "Distribute Luxury Goods": what enacting it now would bring (#lib/luxuries.ts), or until when it runs
 		// the what-ifs (⚙, a spoiler): designations and planet decisions on this colony
 		whatIfs: colony && whatIfs ? colonyWhatIfs(b, colony) : null,
+		// …and district automation: the next automation building per job line (#lib/jobAutomation.ts)
+		automation: colony && whatIfs ? colonyAutomation(b, colony) : null,
 		luxuries:
 			colony && whatIfs
 				? luxuryWhatIf(

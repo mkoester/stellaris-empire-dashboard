@@ -20,6 +20,7 @@ import {
 	nodes
 } from '#lib/server/db.ts';
 import { difficultyLabel } from '#lib/events.ts';
+import { difficulties, difficultyCard } from '#lib/server/difficulty.ts';
 import {
 	activeProfile,
 	chartEvents,
@@ -126,9 +127,13 @@ export function load({ url }) {
 			const node = head === null ? undefined : nodes(db).find((n) => n.id === head);
 			return node
 				? {
-						difficulty: (() => {
+						...(() => {
 							const d = campaignDifficulty(db, node.campaign);
-							return d && difficultyLabel(d);
+							const card = d && difficulties(d.scale).find((x) => x.key === d.difficulty);
+							return {
+								difficulty: d && difficultyLabel(d.difficulty),
+								difficultyCard: card ? difficultyCard(card) : null
+							};
 						})(),
 						save: latestSaveDate(db, node.campaign),
 						data: lastDataDate(node.date),

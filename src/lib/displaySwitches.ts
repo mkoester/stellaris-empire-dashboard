@@ -168,6 +168,15 @@ export const SWITCHES: Switch[] = [
 		tags: 'research agreement commercial pact intel'
 	},
 	{
+		key: 'subjectNumbers',
+		group: 'Diplomacy and trade',
+		kind: 'cheat',
+		label:
+			'Subjects: each subject’s military, economy and tech power, fleet, size and pops as numbers',
+		note: 'the game compares them only as Inferior, Equivalent or Superior',
+		tags: 'subject vassal overlord power'
+	},
+	{
 		key: 'pactAll',
 		group: 'Diplomacy and trade',
 		kind: 'cheat',
