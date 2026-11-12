@@ -495,6 +495,10 @@ multiplayer and turns its cheats off wrongly.
   `ironman.sav` (4.5.3; the game restarted without mods, then a new **single-player** Ironman
   game, the user) lists `MirkoMachine` alone, the Noerm shape. So an account name is a
   multiplayer signal only outside Ironman: `multiplayerPlayers()` ignores it there since READER 48.
+- **The native build names the account in single player too (2026-11-12, answered):** every save
+  the native Linux build wrote (UNE 6, 4.5.4, and every campaign since the switch from Proton)
+  lists `MirkoMachine` alone; the same campaigns' Proton saves said `unknown`. So a name is never a
+  multiplayer signal: since READER 56 only two or more players are (`playerCount()`).
 
 ### 25. A root 404 during the first start — release smoke test (2026-10-31)
 

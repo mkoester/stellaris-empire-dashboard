@@ -38,6 +38,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	fingerprint,
 	countryId: 0,
 	empireName: 'E',
+	players: 1,
 	pops: 0,
 	stockpile: { energy },
 	income: {},
@@ -296,6 +297,27 @@ describe('merging the mod feed with saves', () => {
 		record(db, saveSnap('2200.03.01', 3, 5), 'c.sav');
 		expect(campaignMultiplayer(db, 'c')).toBe(true);
 		expect(campaignMultiplayer(db, 'other')).toBe(false);
+	});
+
+	it('drops the old rule’s flag on a re-read, keeps the mod’s', () => {
+		const db = openDb(':memory:');
+		const old = { ...saveSnap('2200.01.01', 1, 5), multiplayer: true } as Partial<Snapshot>;
+		delete old.players;
+		record(db, old as Snapshot, 'a.sav');
+		refresh(db, saveSnap('2200.01.01', 1, 5));
+		expect(campaignMultiplayer(db, 'c')).toBe(false);
+		record(db, { ...logSnap('2200.02.01', 2, 5), multiplayer: true }, 'game.log');
+		record(db, saveSnap('2200.02.01', 2, 5), 'b.sav');
+		refresh(db, saveSnap('2200.02.01', 2, 5));
+		expect(campaignMultiplayer(db, 'c')).toBe(true);
+	});
+
+	it('ignores a reading from before the player count (the old one-account rule)', () => {
+		const db = openDb(':memory:');
+		const old = { ...saveSnap('2200.01.01', 1, 5), multiplayer: true } as Partial<Snapshot>;
+		delete old.players;
+		record(db, old as Snapshot, 'a.sav');
+		expect(campaignMultiplayer(db, 'c')).toBe(false);
 	});
 
 	it('answers anew once a stored reading changes in place (a re-read, no new node)', () => {

@@ -51,7 +51,7 @@ import {
 	marketOrders,
 	progress,
 	readSave,
-	multiplayerPlayers,
+	playerCount,
 	subjects,
 	sumSources,
 	galacticCommunity,
@@ -117,7 +117,7 @@ const raw: RawSave = {
 	bypasses: {},
 	naturalWormholes: {},
 	globalFlags: {},
-	multiplayer: false,
+	players: 1,
 	countryNames: {},
 	// as in the 2201.06.01 save: a city district with a filled Government Zone and an empty one
 	districtsDb: {
@@ -195,26 +195,19 @@ const raw: RawSave = {
 	deposits: { '443': { type: 'd_decrepit_dwellings' } }
 };
 
-describe('multiplayerPlayers', () => {
-	it('single player names its one player "unknown"; multiplayer an account, or more players', () => {
-		expect(multiplayerPlayers([{ name: 'unknown', country: 0 }])).toBe(false);
-		expect(multiplayerPlayers({ name: 'unknown', country: 0 })).toBe(false);
-		expect(multiplayerPlayers(undefined)).toBe(false);
-		// Oracularity of Noerm 2200.01.01, hosted alone (2026-11-03)
-		expect(multiplayerPlayers([{ name: 'MirkoMachine', country: 0 }])).toBe(true);
+describe('playerCount', () => {
+	it('counts the players, whatever their names', () => {
+		expect(playerCount([{ name: 'unknown', country: 0 }])).toBe(1);
+		expect(playerCount({ name: 'unknown', country: 0 })).toBe(1);
+		expect(playerCount(undefined)).toBe(0);
+		// UNE 6 (native Linux build, single player, 2026-11-12): the account, one player
+		expect(playerCount([{ name: 'MirkoMachine', country: 0 }])).toBe(1);
 		expect(
-			multiplayerPlayers([
+			playerCount([
 				{ name: 'unknown', country: 0 },
-				{ name: 'unknown', country: 3 }
+				{ name: 'MirkoMachine', country: 0 }
 			])
-		).toBe(true);
-	});
-	it('in Ironman the account alone is single player (UNE 2 ironman.sav, 2026-11-06); two players still multiplayer', () => {
-		const alone = [{ name: 'MirkoMachine', country: 0 }];
-		expect(multiplayerPlayers(alone, true)).toBe(false);
-		expect(multiplayerPlayers(alone, 'yes')).toBe(false);
-		expect(multiplayerPlayers(alone, 'no')).toBe(true);
-		expect(multiplayerPlayers([...alone, { name: 'unknown', country: 3 }], true)).toBe(true);
+		).toBe(2);
 	});
 });
 

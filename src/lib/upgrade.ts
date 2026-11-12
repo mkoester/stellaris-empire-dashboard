@@ -8,6 +8,7 @@ import type { Colony, Snapshot, TradeDeal, War } from './types.ts';
 const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'empireName'> = {
 	countryId: null,
 	pops: null,
+	players: null,
 	stockpile: {},
 	income: null,
 	expenses: null,

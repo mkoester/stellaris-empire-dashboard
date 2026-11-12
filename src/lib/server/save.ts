@@ -105,7 +105,7 @@ export type RawSave = {
 	bypasses: Record<string, Raw>; // wormholes, gateways, L-Gates, … (#lib/galaxyGraph.ts)
 	naturalWormholes: Record<string, Raw>;
 	globalFlags: Record<string, Raw>; // top-level `flags`
-	multiplayer: boolean; // the top-level `player` block, `multiplayerPlayers()`
+	players: number; // the top-level `player` block's entries, `playerCount()`
 	countryNames: Record<string, string>; // owners of colonised planets
 	empireName: string;
 	meta: { version: string | null; dlcs: string[]; mods: string[] }; // the save's `meta` file
@@ -286,7 +286,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			bypasses: q.at('/bypasses') ?? {},
 			naturalWormholes: q.at('/natural_wormholes') ?? {},
 			globalFlags: q.at('/flags') ?? {},
-			multiplayer: multiplayerPlayers(q.at('/player'), q.at('/galaxy')?.ironman),
+			players: playerCount(q.at('/player')),
 			// the whole setup block: the cost sliders here, every setting for the galaxy tab
 			galaxy: q.at('/galaxy') ?? {},
 			councilPositions: q.at('/council_positions/council_positions') ?? {},
@@ -302,7 +302,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '55'; // 55: subjects' renegotiation dates, stance and numbers; 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '56'; // 56: the save's player count (multiplayer only from two players); 55: subjects' renegotiation dates, stance and numbers; 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -473,23 +473,20 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
 		logEvents: null,
 		ticks: null,
-		multiplayer: raw.multiplayer
+		players: raw.players,
+		multiplayer: raw.players > 1
 	};
 }
 
 /**
- * Whether the save's `player = { { name country } … }` is a multiplayer game's: every
- * single-player save names its one player "unknown" (106 saves, 4.5.x, Linux), the one multiplayer
- * save seen its account (Oracularity of Noerm 2200.01.01, hosted alone, 2026-11-03). Two or more
- * players can only be multiplayer. **Not in Ironman** (`ironman`, the `galaxy` block's value:
- * jomini reads `yes` as true): a single-player Ironman save names the account too (UNE 2's
- * `ironman.sav`, 2026-11-06), so there only the count tells.
+ * How many players the save's `player = { { name country } … }` lists. **Only two or more say
+ * multiplayer**: the name does not — the native Linux build writes the Steam account in single
+ * player too (every save since the switch from Proton; the Proton build wrote "unknown"; found
+ * 2026-11-12, when UNE 6 read as multiplayer), and so does Ironman. A multiplayer game hosted alone
+ * (Oracularity of Noerm, one player named) is caught by the companion mod's monthly line only.
  */
-export function multiplayerPlayers(player: Raw, ironman: unknown = false): boolean {
-	const players = items(player);
-	if (players.length > 1) return true;
-	if (ironman === true || ironman === 'yes') return false;
-	return players.some((p) => typeof p?.name === 'string' && p.name !== 'unknown');
+export function playerCount(player: Raw): number {
+	return items(player).length;
 }
 
 const RIGHT_KINDS = [

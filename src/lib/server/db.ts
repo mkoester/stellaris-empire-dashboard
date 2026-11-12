@@ -319,7 +319,9 @@ export function campaignMultiplayer(db: Db, campaign: string): boolean {
 			db
 				.prepare(
 					`SELECT 1 FROM node n JOIN snapshot s ON s.node_id = n.id
-				WHERE n.campaign = ? AND json_extract(s.json, '$.multiplayer') = 1 LIMIT 1`
+				WHERE n.campaign = ? AND json_extract(s.json, '$.multiplayer') = 1
+				  AND (json_extract(s.json, '$.players') IS NOT NULL
+				       OR json_extract(s.json, '$.kind') = 'log') LIMIT 1`
 				)
 				.get(campaign) !== undefined
 	);
@@ -474,9 +476,19 @@ export function withLogFields(save: Snapshot, log: Snapshot): Snapshot {
 		previousTimelineId: save.previousTimelineId ?? log.previousTimelineId,
 		logEvents: save.logEvents ?? log.logEvents,
 		ticks: save.ticks ?? log.ticks,
-		multiplayer: save.multiplayer || log.multiplayer
+		multiplayer: save.multiplayer || fromMod(log),
+		players: save.players
 	};
 }
+
+/**
+ * Whether a stored reading's `multiplayer` came from the mod's monthly line: a log month's, or a
+ * save's whose own player count could not say so (below 2). A reading from before READER 56 has no
+ * count — its flag may be the old one-account rule's (the native build names the account in single
+ * player), so a re-read drops it.
+ */
+const fromMod = (s: Snapshot) =>
+	s.multiplayer && (s.kind === 'log' || (typeof s.players === 'number' && s.players < 2));
 
 /**
  * The node of a loaded save, from the mod's `load` line: of the campaign's nodes in the month with
