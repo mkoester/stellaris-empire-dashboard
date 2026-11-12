@@ -11,6 +11,10 @@
 
 	const HOW =
 		'≈ the building’s share of each job’s positions, automated: open positions first, then those pops work (they move on). Output at the job’s output per workforce today. A month: the building’s upkeep plus each automated job’s (its stratum’s rate), so more districts cost more';
+	const AUTO =
+		'what the automated workforce makes a month: the job’s output per workforce with every multiplier, but no job efficiency — that adds workforce to pops only';
+	const FREED =
+		'what the pops it takes over make in this job today, job efficiency included — they make something else once they move to other jobs';
 	const negate = (r: Resources) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, -v]));
 	// workforce as the game shows it, the jobs in the hover (workspace AGENTS.md)
 	const jobs = (w: number) => `${fmt(w / 100)} job${Math.abs(w - 100) < 0.5 ? '' : 's'}`;
@@ -22,11 +26,15 @@
 	>
 	{#each o.steps as s (s.job)}<span class="mr-3 whitespace-nowrap" title={jobs(s.added)}
 			>{s.name} +{fmt(s.added)} automated</span
-		>{/each}{#if o.freed >= 0.5}<span
-			class="mr-3 whitespace-nowrap text-green-600"
+		>{/each}<span class="mr-1 text-gray-500" title={AUTO}>making</span><ResourceChips
+		flows={o.autoOutput}
+	/>{#if o.freed >= 0.5}<span
+			class="whitespace-nowrap text-green-600"
 			title={`${jobs(o.freed)} of pops' work for other jobs${openJobs !== null ? `; the colony has ${fmt(openJobs)} open workforce` : ''}`}
 			>frees {fmt(o.freed)} workforce</span
-		>{/if}<ResourceChips flows={o.output} />
+		><span class="mr-1 text-gray-500" title={FREED}>, which made</span><ResourceChips
+			flows={o.freedOutput}
+		/>{/if}
 	<span class="text-gray-500"
 		>costs <ResourceChips flows={negate(o.cost)} />a month <ResourceChips
 			flows={negate(o.upkeep)}

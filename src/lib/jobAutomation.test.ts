@@ -78,14 +78,35 @@ describe('automationStep', () => {
 			added: 200,
 			freed: 200,
 			filled: 0,
-			output: {},
+			autoOutput: { food: 12 },
+			freedOutput: { food: 12 },
+			output: { food: 0 },
 			upkeep: { energy: 8 } // 2 automated jobs × 4: 2 a district
 		});
 	});
 
+	it('counts only what the job makes, not its stratum’s trade', () => {
+		const s = automationStep(
+			{ ...farmers, flows: { food: 48, trade: 2 }, produces: ['food'] },
+			0.25,
+			data.rates
+		);
+		expect(s!.autoOutput).toEqual({ food: 12 });
+	});
+
+	it('loses job efficiency on the work it takes over: pops get it, automation does not', () => {
+		// 800 pops + 80 bonus make 52.8 food (880 × 0.06); 200 of theirs automated
+		const s = automationStep({ ...farmers, bonus: 80, flows: { food: 52.8 } }, 0.25, data.rates);
+		expect(s!.autoOutput.food).toBeCloseTo(12); // 200 × 0.06
+		expect(s!.freedOutput.food).toBeCloseTo(13.2); // 200 × 1.1 × 0.06
+		expect(s!.output.food).toBeCloseTo(-1.2);
+	});
+
 	it('fills open positions first, at the job’s output per workforce', () => {
 		const s = automationStep({ ...farmers, filled: 600, flows: { food: 36 } }, 0.25, data.rates);
-		expect(s).toMatchObject({ added: 200, freed: 0, filled: 200, output: { food: 12 } });
+		expect(s).toMatchObject({ added: 200, freed: 0, filled: 200 });
+		expect(s!.output.food).toBeCloseTo(12);
+		expect(s!.freedOutput).toEqual({ food: 0 });
 	});
 
 	it('adds to what is automated and stops at the positions', () => {

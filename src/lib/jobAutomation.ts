@@ -70,7 +70,12 @@ export type AutomationJob = {
 	filled: number; // workforce, the automated part included
 	positions: number | null;
 	automated?: number;
+	bonus?: number; // job efficiency's extra workforce, the pops' only
 	flows?: Resources; // its output − inputs a month
+	// what the job itself produces (data DB `job_resource`); the rest of its flows is its pops'
+	// stratum's (workers' trade: "Human Workers … Production"), which automation does not make and
+	// pops take along. Undefined: every positive flow counts.
+	produces?: string[];
 };
 
 export type AutomationStep = {
@@ -80,8 +85,16 @@ export type AutomationStep = {
 	added: number; // workforce automated on top of today's
 	freed: number; // workforce pops work today that automation takes over
 	filled: number; // workforce added to the job (open positions automation fills)
-	output: Resources; // what the added workforce makes a month, ≈ at today's rate (null: no rate)
+	autoOutput: Resources; // what the added automated workforce makes a month
+	freedOutput: Resources; // what the freed pops' work makes in this job today
+	output: Resources; // the job's output change a month: autoOutput − freedOutput
 	upkeep: Resources; // what the added automated jobs cost a month
+};
+
+const sum = (rs: Resources[]): Resources => {
+	const out: Resources = {};
+	for (const r of rs) for (const [k, v] of Object.entries(r)) out[k] = (out[k] ?? 0) + v;
+	return out;
 };
 
 const scaled = (r: Resources, k: number): Resources =>
@@ -102,15 +115,30 @@ export function automationStep(
 	if (added <= 0) return null;
 	const popAfter = Math.min(popW, limit - after);
 	const filled = after + popAfter - job.filled;
-	const made = Object.fromEntries(Object.entries(job.flows ?? {}).filter(([, v]) => v > 0));
+	// One rate per workforce for pops and automation alike (base × the colony's multipliers); pops
+	// add job efficiency's bonus workforce on top of their own, automation does not (seen in game
+	// 2026-11-12: 900 pops + 90 bonus + 300 automated, every multiplier on the whole 1290).
+	const made = Object.fromEntries(
+		Object.entries(job.flows ?? {}).filter(
+			([k, v]) => v > 0 && (job.produces === undefined || job.produces.includes(k))
+		)
+	);
+	const total = job.filled + (job.bonus ?? 0);
+	const rate = total > 0 ? 1 / total : 0;
+	const perPop = popW > 0 ? 1 + (job.bonus ?? 0) / popW : 1;
+	const freed = popW - popAfter;
+	const autoOutput = scaled(made, added * rate);
+	const freedOutput = scaled(made, freed * perPop * rate);
 	return {
 		job: job.type,
 		name: job.name ?? job.type,
 		automated: after,
 		added,
-		freed: popW - popAfter,
+		freed,
 		filled: Math.max(filled, 0),
-		output: job.filled > 0 && filled > 0 ? scaled(made, filled / job.filled) : {},
+		autoOutput,
+		freedOutput,
+		output: sum([autoOutput, scaled(freedOutput, -1)]),
 		upkeep: scaled(rates[job.category] ?? {}, added / 100)
 	};
 }
@@ -122,16 +150,12 @@ export type AutomationOption = {
 	steps: AutomationStep[];
 	freed: number;
 	filled: number;
-	output: Resources;
+	autoOutput: Resources; // what the added automated workforce makes a month
+	freedOutput: Resources; // what the freed pops' work makes today
+	output: Resources; // the jobs' output change: autoOutput − freedOutput
 	cost: Resources; // one-off
 	upkeep: Resources; // a month: the building's upkeep change plus the automated jobs'
 	missing: string[] | null; // techs still to research; null: unknown
-};
-
-const sum = (rs: Resources[]): Resources => {
-	const out: Resources = {};
-	for (const r of rs) for (const [k, v] of Object.entries(r)) out[k] = (out[k] ?? 0) + v;
-	return out;
 };
 
 /**
@@ -169,6 +193,8 @@ export function automationOptions(
 				steps,
 				freed: steps.reduce((t, s) => t + s.freed, 0),
 				filled: steps.reduce((t, s) => t + s.filled, 0),
+				autoOutput: sum(steps.map((s) => s.autoOutput)),
+				freedOutput: sum(steps.map((s) => s.freedOutput)),
 				output: sum(steps.map((s) => s.output)),
 				cost: costs[next.key]?.cost ?? {},
 				upkeep,

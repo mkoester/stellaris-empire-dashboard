@@ -1462,7 +1462,7 @@ colonies tab's `AutomationRanking.svelte`): per colony the next building of each
 data DB buildings of category `pop_assembly` whose every modifier is a `job_<job>_automated_workforce_mult`
 (4.5.4: farmers, miners, technicians and their drones, 25 % then 50 %), techs from `technology_unlock`
 — on the job rows: the share × positions on top of the save's `automated_workforce` (READER 54),
-open positions first, then pops' work (freed), output at the row's rate. **Its monthly cost scales
+open positions first, then pops' work (freed). **Output** (the user's ask 2026-11-12): what the automated workforce makes and what the freed pops made there, at one rate per workforce (the row's output ÷ (workforce + job efficiency's bonus)) — pops add the bonus, automation does not (in game: 900 pops + 90 + 300 automated, every multiplier on all 1290); only the job's own resources (data DB `job_resource`), not its stratum's trade. **Its monthly cost scales
 with the districts**: the building's upkeep plus each automated job's stratum rate (data DB
 `pop_category_automation`, extractor 0.1.16; none from an older one), checked against the budget's
 `planet_automated_jobs` (1519.6 predicted, 1527.8 booked). Tankbound (1.0 by civic) and wilderness

@@ -219,7 +219,10 @@ export function colonyAutomation(b: Branch, colony: Colony): ColonyAutomation {
 	const researched = b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [];
 	const queued = colony.buildQueue.filter((q) => q.kind === 'building').map((q) => q.name);
 	const options = automationOptions(
-		b.jobs[colony.planetId] ?? [],
+		(b.jobs[colony.planetId] ?? []).map((j) => {
+			const own = data.jobResources[j.type]?.produces;
+			return own ? { ...j, produces: Object.keys(own) } : j;
+		}),
 		colony.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings)),
 		researched,
 		data.costs.building,
