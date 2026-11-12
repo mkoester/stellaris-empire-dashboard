@@ -177,6 +177,25 @@ export function automationOptions(
 	});
 }
 
+/**
+ * Where the building would stand: it goes into a zone of the district that holds its jobs (4.5.4
+ * `common/zones/00_zones.txt`: `zone_default` and `zone_urban` exclude the `*_automation` building
+ * sets, the resource zones — Agricultural Focus … — take them; seen in game 2026-11-12: no farmer
+ * automation without the farming district's zone). The districts built on the colony whose jobs
+ * (`districtJobs`) include one of `jobs`: null when one of them has a zone (a free slot there is
+ * still unknown), else their types — a zone to build first. [] when no built district holds them.
+ */
+export function zoneNeeded(
+	jobs: string[],
+	districts: { type: string; built: number; zones: unknown[] }[],
+	districtJobs: Record<string, Record<string, number>>
+): string[] | null {
+	const holding = districts.filter(
+		(d) => d.built > 0 && jobs.some((j) => (districtJobs[d.type]?.[j] ?? 0) > 0)
+	);
+	return holding.some((d) => d.zones.length) ? null : holding.map((d) => d.type);
+}
+
 // Who cannot build them (the buildings' `potential`: `is_wilderness_empire`, `is_tankbound_empire`
 // — the Tankbound civics, 4.5.4 `scripted_triggers/08_scripted_triggers_shroud.txt`): the save
 // answers both.

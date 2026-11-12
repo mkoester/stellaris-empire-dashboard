@@ -2,6 +2,7 @@ import {
 	automationBarred,
 	automationOptions,
 	perEnergy,
+	zoneNeeded,
 	type AutomationOption
 } from '#lib/jobAutomation.ts';
 import { jobOutput } from '#lib/luxuries.ts';
@@ -198,6 +199,7 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 export type AutomationWhatIf = AutomationOption & {
 	queued: boolean; // in the colony's build queue already
 	techNames: Record<string, string>; // the missing techs' names
+	zoneFirst: string[] | null; // names of the districts that need a zone first (#lib/jobAutomation.ts zoneNeeded)
 };
 
 export type ColonyAutomation = {
@@ -225,6 +227,12 @@ export function colonyAutomation(b: Branch, colony: Colony): ColonyAutomation {
 	).map((o) => ({
 		...o,
 		queued: queued.includes(o.key),
+		zoneFirst:
+			zoneNeeded(
+				o.steps.map((s) => s.job),
+				colony.districtList,
+				data.districtJobs
+			)?.map((d) => data.names[d] ?? d) ?? null,
 		techNames: Object.fromEntries((o.missing ?? []).map((t) => [t, data.techs[t]?.name ?? t]))
 	}));
 	return { barred: null, options };

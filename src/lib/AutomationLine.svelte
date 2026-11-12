@@ -35,5 +35,9 @@
 			>needs {#each o.missing as t, i (t)}{i ? ', ' : ''}<InfoPopup ref="tech:{t}"
 					>{o.techNames[t] ?? t}</InfoPopup
 				>{/each}</span
+		>{/if}{#if o.zoneFirst?.length}<span
+			class="text-amber-600"
+			title="An automation building stands in a zone of the district whose jobs it automates — the government and urban zones take none"
+			>{` needs a zone in the ${o.zoneFirst.join(' or ')} first`}</span
 		>{/if}
 </div>

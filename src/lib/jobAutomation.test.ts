@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	automationBarred,
+	zoneNeeded,
 	automationBuildingsOf,
 	automationLines,
 	automationOptions,
@@ -139,5 +140,24 @@ describe('automationBarred', () => {
 		expect(automationBarred(['civic_tankbound_corporate'], 'origin_default')).toBe('tankbound');
 		expect(automationBarred([], 'origin_wilderness')).toBe('wilderness');
 		expect(automationBarred(null, null)).toBeNull();
+	});
+});
+
+describe('zoneNeeded', () => {
+	const districtJobs = { district_farming: { farmer: 200 }, district_city: { clerk: 100 } };
+	it('names the districts of its jobs while none has a zone (Earth 2208.01.02)', () => {
+		const d = [
+			{ type: 'district_city', built: 3, zones: [{}] },
+			{ type: 'district_farming', built: 4, zones: [] }
+		];
+		expect(zoneNeeded(['farmer'], d, districtJobs)).toEqual(['district_farming']);
+	});
+	it('is null once one of them has a zone', () => {
+		const d = [{ type: 'district_farming', built: 4, zones: [{}] }];
+		expect(zoneNeeded(['farmer'], d, districtJobs)).toBeNull();
+	});
+	it('ignores districts not built', () => {
+		const d = [{ type: 'district_farming', built: 0, zones: [] }];
+		expect(zoneNeeded(['farmer'], d, districtJobs)).toEqual([]);
 	});
 });
