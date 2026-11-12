@@ -310,7 +310,7 @@ A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{�
 the whole `display`**, `parseDisplay()` defaulting what is left out, so send every switch the check
 needs in one PUT, the gates `showSpoilers` / `showCheats` included (2026-11-07: a second PUT for the
 cheat silently switched the spoiler off), with the
-page's `?node=`). A save-wide question (every colony across the history) is quickest as a
+page's `?node=`). **A `?node=` the copy lacks serves another node silently** (the dev server reads new saves into its copy, so ids found in an earlier copy may not exist in a fresh one — 2026-11-12): check the decoded `tip` before trusting a page. A save-wide question (every colony across the history) is quickest as a
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
 server modules that call `getGameData()`/`getExplanations()` — delete it after. **To find where
