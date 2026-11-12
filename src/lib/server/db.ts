@@ -282,15 +282,19 @@ export function campaignMods(db: Db, campaign: string): string[] | null {
 }
 
 /** The difficulty of the campaign's latest save (`admiral`), null before READER 32 or a save. */
-export function campaignDifficulty(db: Db, campaign: string): string | null {
+export function campaignDifficulty(
+	db: Db,
+	campaign: string
+): { difficulty: string; scale: string | null } | null {
 	const row = db
 		.prepare(
-			`SELECT json_extract(s.json, '$.progress.costSettings.difficulty') AS d FROM node n
+			`SELECT json_extract(s.json, '$.progress.costSettings.difficulty') AS d,
+			  json_extract(s.json, '$.progress.costSettings.techDifficultyScale') AS scale FROM node n
 			JOIN snapshot s ON s.node_id = n.id
 			WHERE n.campaign = ? AND n.kind = 'save' ORDER BY n.id DESC LIMIT 1`
 		)
-		.get(campaign) as { d: string | null } | undefined;
-	return row?.d ?? null;
+		.get(campaign) as { d: string | null; scale: string | null } | undefined;
+	return row?.d ? { difficulty: row.d, scale: row.scale ?? null } : null;
 }
 
 // The two scans below parse every snapshot of the campaign when no row matches (~100 ms for 106

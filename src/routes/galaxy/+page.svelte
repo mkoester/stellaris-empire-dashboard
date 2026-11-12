@@ -41,16 +41,16 @@
 					<table class="w-full text-sm">
 						<tbody>
 							{#each g.rows as r (r.key)}
+								{@const hint = r.changed
+									? `default: ${r.default}${r.assumed ? ' (assumed: the engine’s, in no file)' : ''}`
+									: undefined}
 								<tr
 									class="border-b border-gray-100 dark:border-gray-800 {r.changed
 										? 'bg-amber-100 dark:bg-amber-900/40'
 										: ''}"
-									title={r.default === null
-										? undefined
-										: `default: ${r.default}${r.assumed ? ' (assumed)' : ''}`}
 								>
-									<td class="py-0.5 pr-3 text-gray-500" title={r.key}>{r.label}</td>
-									<td class="py-0.5 text-right">
+									<td class="py-0.5 pr-3 text-gray-500" title={hint ?? r.key}>{r.label}</td>
+									<td class="py-0.5 text-right" title={hint}>
 										{#if r.key === 'difficulty' && data.difficultyCard}
 											<span class={toneOf(r.raw)}
 												><InfoPopup explanation={data.difficultyCard}>{r.value}</InfoPopup></span
