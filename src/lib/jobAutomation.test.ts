@@ -118,6 +118,21 @@ describe('automationStep', () => {
 });
 
 describe('automationOptions', () => {
+	it('lists the lines in the colony’s job order', () => {
+		const miners = { ...farmers, type: 'miner', flows: { minerals: 24 } };
+		const mine = {
+			key: 'building_automation_miner_1',
+			name: 'm',
+			jobs: { miner: 0.25 },
+			techs: []
+		};
+		const both = { ...data, buildings: [...data.buildings, mine] };
+		const keys = automationOptions([miners, farmers], [], [], {}, both).map((o) => o.steps[0].job);
+		expect(keys).toEqual(['miner', 'farmer']);
+		const back = automationOptions([farmers, miners], [], [], {}, both).map((o) => o.steps[0].job);
+		expect(back).toEqual(['farmer', 'miner']);
+	});
+
 	it('offers the first building where none stands', () => {
 		const [o] = automationOptions([farmers], [], ['tech_assembly_pattern'], costs, data);
 		expect(o).toMatchObject({

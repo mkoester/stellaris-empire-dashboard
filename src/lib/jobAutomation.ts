@@ -161,6 +161,8 @@ export type AutomationOption = {
 /**
  * The next automation building of each line on a colony that has its jobs: the first one where
  * none stands, else the upgrade of the one that does. `buildings` every building on the colony.
+ * In the order of `jobs` (the save's, which the game's colony view shows: technicians, miners,
+ * farmers).
  */
 export function automationOptions(
 	jobs: AutomationJob[],
@@ -169,7 +171,8 @@ export function automationOptions(
 	costs: Record<string, Costs>,
 	data: JobAutomation
 ): AutomationOption[] {
-	return automationLines(data.buildings).flatMap((line) => {
+	const at = (o: AutomationOption) => jobs.findIndex((j) => j.type === o.steps[0].job);
+	const options = automationLines(data.buildings).flatMap((line) => {
 		const held = line.findLastIndex((b) => buildings.includes(b.key));
 		const next = line[held + 1];
 		if (!next) return [];
@@ -202,6 +205,7 @@ export function automationOptions(
 			}
 		];
 	});
+	return options.sort((a, b) => at(a) - at(b));
 }
 
 /**
