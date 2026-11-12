@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
-import type { ActionKind, CapEffect, Costs, GameData, Resources } from '#lib/types.ts';
+import type { ActionKind, CapEffect, Costs, GameData, Resources, Specialists } from '#lib/types.ts';
 import { NO_SHIP_PARTS, type ShipParts } from '#lib/designStats.ts';
 import {
 	automationBuildingsOf,
@@ -266,6 +266,7 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT key, name FROM agreement_preset WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name])
 			),
+			specialists: specialists(rows),
 			resolutions: Object.fromEntries(
 				rows<{
 					key: string;
@@ -1378,4 +1379,46 @@ function starbaseParts(rows: <T>(sql: string) => T[]): Record<string, StarbasePa
 			]
 		)
 	);
+}
+
+/** Subject specialisations (extractor 0.1.16): none from an older data DB. */
+function specialists(rows: <T>(sql: string) => T[]): Specialists {
+	const has = rows(
+		"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'specialist_perk'"
+	);
+	if (!has.length) return { types: {}, perks: {} };
+	const json = <T>(v: string | null, empty: T): T => (v ? (JSON.parse(v) as T) : empty);
+	const types: Specialists['types'] = {};
+	for (const t of rows<{ key: string; name: string | null; preferred_ethic: string | null }>(
+		'SELECT key, name, preferred_ethic FROM specialist_type ORDER BY sort_order'
+	))
+		types[t.key] = { name: t.name ?? t.key, preferredEthic: t.preferred_ethic, levels: [] };
+	for (const l of rows<{
+		type_key: string;
+		level: number;
+		xp_next: number | null;
+		perks_json: string | null;
+	}>('SELECT type_key, level, xp_next, perks_json FROM specialist_level ORDER BY type_key, level'))
+		types[l.type_key]?.levels.push({
+			level: l.level,
+			xpNext: l.xp_next,
+			perks: json<string[]>(l.perks_json, [])
+		});
+	const perks: Specialists['perks'] = {};
+	for (const p of rows<{
+		key: string;
+		name: string | null;
+		description: string | null;
+		main_perk: number;
+		subject_json: string | null;
+		overlord_json: string | null;
+	}>('SELECT key, name, description, main_perk, subject_json, overlord_json FROM specialist_perk'))
+		perks[p.key] = {
+			name: p.name ?? p.key,
+			description: p.description,
+			main: p.main_perk === 1,
+			subject: json(p.subject_json, {}),
+			overlord: json(p.overlord_json, {})
+		};
+	return { types, perks };
 }

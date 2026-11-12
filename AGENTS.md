@@ -728,7 +728,21 @@ precursors are named from the data DB's `precursor` (empty without the table). Y
 2200 (`mid_game_start=100` → 2300). Not yet compared with the game's own setup screen.
 
 **Subjects tab** (`/subjects`; the user's ask 2026-11-01: "subjects and branch offices: an
-overview"): the subject agreement cards (`SubjectCards.svelte`, shared with the contacts tab), the
+overview"): the subject agreement cards (`SubjectCards.svelte`, shared with the contacts tab), and
+per subject (`SubjectDetails.svelte`, `#lib/subjects.ts` pure; the user's ask 2026-11-12, with
+`stellaris-mod-VassalOrders` in mind): loyalty over time with its trend and the share from opinion
+(× 0.01, `SUBJECT_MONTHLY_LOYALTY_OPINION_MULTIPLIER`), when the deal can be renegotiated
+(`date_changed` + `AGREEMENT_CHANGE_COOLDOWN_MONTHS` 60; a deal never changed is open at once
+without `has_cooldown_on_first_renegotiation` — **assumed**, not seen in game) and what a proposal
+costs, the specialisation's level, XP and months to the next (XP = loyalty × 0.1 a month) with its
+perks as popups (data DB `specialist_*`, extractor 0.1.16), our holdings against the
+`subject_holdings_limit_N` term, and what the subject does — opinion of us, trust, wars, breach of
+a resolution, every policy (fleet doctrine …) from its own country block (`Subject.stance`, READER
+55). Its numbers (`Subject.power`: military, economy, tech power, fleet, naval use, size, pops,
+colonies, rank) only with the `subjectNumbers` cheat — the game shows Inferior / Equivalent /
+Superior. Checked 2026-11-12 on a DB copy (UNE 6, Silicron 2208.02.01: loyalty 92.8, +3.9 a month,
++3.7 from opinion 366, renegotiation open since 2205.11.01, holdings 0 / 1, 26 policies named); UNE 6
+counts as multiplayer, so the cheat stays off there (the guard). The
 branch offices and holdings we own and those on our colonies (`Snapshot.external`, READER 43:
 `colony.<id>.externally_owned_buildings`, see "Save format facts"), and for a MegaCorp the
 **branch office planner** (`#lib/branchOffices.ts` pure; after the mod Branch Office Expansion

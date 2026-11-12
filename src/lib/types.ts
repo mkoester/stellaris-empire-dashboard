@@ -956,6 +956,59 @@ export type Subject = {
 	specialistLevel: number;
 	specialistExperience: number;
 	loyalty: number | null;
+	// READER 55 (null before): when the terms last changed (`date_changed`; = since until a
+	// renegotiation), and whether the first renegotiation waits the cooldown too
+	// (`has_cooldown_on_first_renegotiation`)
+	changed: string | null;
+	firstCooldown: boolean | null;
+	// a specialisation being taken on (`subject_specialization.subject_conversion_process`)
+	conversion: { progress: number; inProgress: boolean; done: boolean } | null;
+	stance: SubjectStance | null; // what the subject does, from its own country block
+	power: SubjectPower | null; // its numbers; the game shows only "Inferior / Equivalent / …"
+};
+
+/** Subject specialisations: each type's levels and the perks they bring (data DB `specialist_*`). */
+export type Specialists = {
+	types: Record<
+		string,
+		{
+			name: string;
+			preferredEthic: string | null;
+			levels: { level: number; xpNext: number | null; perks: string[] }[];
+		}
+	>;
+	perks: Record<
+		string,
+		{
+			name: string;
+			description: string | null;
+			main: boolean;
+			subject: Record<string, number>; // what the subject gets
+			overlord: Record<string, number>; // what the overlord gets
+		}
+	>;
+};
+
+/** A subject's (or our overlord's) own state, from its country block (READER 55). */
+export type SubjectStance = {
+	opinion: number | null; // its opinion of us (`relation_current` in its relation to us)
+	trust: number | null;
+	inBreach: boolean; // `is_in_breach_of_any`: of a Galactic Community resolution
+	policies: Record<string, string>; // policy → selected option (fleet doctrine, diplomatic stance, …)
+	wars: string[]; // the wars it fights, by name
+};
+
+/** A country's numbers as its block holds them (READER 55). */
+export type SubjectPower = {
+	military: number | null;
+	economy: number | null;
+	tech: number | null;
+	fleetSize: number | null;
+	navalUsed: number | null;
+	empireSize: number | null;
+	pops: number | null;
+	colonies: number; // `controlled_colonies`
+	victoryRank: number | null;
 };
 /**
  * Buildings one empire owns on another's colony (`colony.<id>.externally_owned_buildings = { {
@@ -1200,6 +1253,7 @@ export type GameData = {
 	identityNames: Record<string, string>;
 	// resolutions, resolution categories, subject agreement terms, term values and presets by key
 	diploNames: Record<string, string>;
+	specialists: Specialists; // subject specialisations (extractor 0.1.16; empty before)
 	resolutionCategories: Record<string, string>; // resolution → its category key
 	resolutionGroups: Record<string, string>; // category → its group (commerce_industry, …)
 	// every resolution a category lists, in file order: what proposing it takes (#lib/proposable.ts)

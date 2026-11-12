@@ -63,6 +63,7 @@ const data: GameData = {
 	districtColors: {},
 	identityNames: {},
 	diploNames: {},
+	specialists: { types: {}, perks: {} },
 	resolutionCategories: {},
 	resolutionGroups: {},
 	resolutions: {},

@@ -302,7 +302,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '54'; // 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '55'; // 55: subjects' renegotiation dates, stance and numbers; 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -2458,7 +2458,10 @@ export function factions(raw: Pick<RawSave, 'popFactions' | 'countryId'>): Facti
 
 /** Our active subject agreements, as overlord or as subject (see `Subject`). */
 export function subjects(
-	raw: Pick<RawSave, 'agreements' | 'countryId' | 'countries' | 'loyalty'>
+	raw: Pick<
+		RawSave,
+		'agreements' | 'countryId' | 'countries' | 'loyalty' | 'countryBlocks' | 'wars'
+	>
 ): Subject[] {
 	const pairs = (v: Raw) => items(v).filter((x) => typeof x?.key === 'string');
 	return Object.values(raw.agreements).flatMap((a) => {
@@ -2480,10 +2483,62 @@ export function subjects(
 				),
 				specialistLevel: Number(a.subject_specialization?.level ?? 0),
 				specialistExperience: Number(a.subject_specialization?.experience ?? 0),
-				loyalty: raw.loyalty[String(target)] ?? null
+				loyalty: raw.loyalty[String(target)] ?? null,
+				changed: strOrNull(a.date_changed),
+				firstCooldown:
+					t.has_cooldown_on_first_renegotiation === undefined
+						? null
+						: isYes(t.has_cooldown_on_first_renegotiation),
+				conversion: conversionOf(a.subject_specialization?.subject_conversion_process),
+				...subjectState(raw.countryBlocks[String(other)], raw.countryId, other, raw.wars)
 			}
 		];
 	});
+}
+
+function conversionOf(p: Raw): Subject['conversion'] {
+	if (!p || typeof p !== 'object') return null;
+	return { progress: num(p.progress), inProgress: isYes(p.in_progress), done: isYes(p.done) };
+}
+
+/** A subject's stance and numbers from its own country block (see `SubjectStance`). */
+export function subjectState(
+	c: Raw,
+	us: number,
+	id: number,
+	wars: RawSave['wars']
+): Pick<Subject, 'stance' | 'power'> {
+	if (!c || typeof c !== 'object') return { stance: null, power: null };
+	const toUs = items(c.relations_manager?.relation).find((r) => r?.country === us);
+	const fighting = Object.values(wars).flatMap((w) => {
+		if (!w || typeof w !== 'object') return [];
+		const sides = [...items(w.attackers), ...items(w.defenders)].map((x) => Number(x?.country));
+		return sides.includes(id) ? [displayName(w.name)] : [];
+	});
+	return {
+		stance: {
+			opinion: numOrNull(toUs?.relation_current),
+			trust: numOrNull(toUs?.trust),
+			inBreach: isYes(c.is_in_breach_of_any),
+			policies: Object.fromEntries(
+				items(c.active_policies)
+					.filter((p) => typeof p?.policy === 'string')
+					.map((p) => [String(p.policy), String(p.selected ?? '')])
+			),
+			wars: fighting
+		},
+		power: {
+			military: numOrNull(c.military_power),
+			economy: numOrNull(c.economy_power),
+			tech: numOrNull(c.tech_power),
+			fleetSize: numOrNull(c.fleet_size),
+			navalUsed: numOrNull(c.used_naval_capacity),
+			empireSize: numOrNull(c.empire_size),
+			pops: numOrNull(c.num_sapient_pops),
+			colonies: items(c.controlled_colonies).length,
+			victoryRank: numOrNull(c.victory_rank)
+		}
+	};
 }
 
 /**

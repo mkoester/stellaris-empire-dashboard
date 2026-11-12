@@ -2203,7 +2203,33 @@ describe('milestone fields', () => {
 			},
 			countryId: 0,
 			countries: { '4': { name: 'Tzynn' } } as never,
-			loyalty: { '4': -45 }
+			loyalty: { '4': -45 },
+			// the subject's block as UNE 6's Silicron Sacred Nation had it (2208.02.01, 4.5.4)
+			countryBlocks: {
+				'4': {
+					relations_manager: {
+						relation: [{ owner: 4, country: 0, relation_current: 120, trust: 28.5 }]
+					},
+					is_in_breach_of_any: 'yes',
+					active_policies: [
+						{ policy: 'diplomatic_stance', selected: 'diplo_stance_expansionist' },
+						{ policy: 'fleet_doctrine', selected: 'fleet_doctrine_phalanx' }
+					],
+					military_power: 251.04687,
+					economy_power: 522.20822,
+					tech_power: 340,
+					fleet_size: 20,
+					used_naval_capacity: 20,
+					empire_size: 101,
+					num_sapient_pops: 6115,
+					controlled_colonies: [7, 8, 9],
+					victory_rank: 6
+				}
+			},
+			wars: {
+				'3': { name: 'Silicron War', attackers: [{ country: 9 }], defenders: [{ country: 4 }] },
+				'4': { name: 'Other War', attackers: [{ country: 9 }], defenders: [{ country: 5 }] }
+			}
 		};
 		expect(subjects(raw)).toEqual([
 			{
@@ -2219,7 +2245,31 @@ describe('milestone fields', () => {
 				subsidies: { resource_subsidies_basic: 0 },
 				specialistLevel: 0,
 				specialistExperience: 0,
-				loyalty: -45
+				loyalty: -45,
+				changed: null,
+				firstCooldown: null,
+				conversion: null,
+				stance: {
+					opinion: 120,
+					trust: 28.5,
+					inBreach: true,
+					policies: {
+						diplomatic_stance: 'diplo_stance_expansionist',
+						fleet_doctrine: 'fleet_doctrine_phalanx'
+					},
+					wars: ['Silicron War']
+				},
+				power: {
+					military: 251.04687,
+					economy: 522.20822,
+					tech: 340,
+					fleetSize: 20,
+					navalUsed: 20,
+					empireSize: 101,
+					pops: 6115,
+					colonies: 3,
+					victoryRank: 6
+				}
 			}
 		]);
 	});

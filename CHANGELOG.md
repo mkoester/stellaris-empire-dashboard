@@ -20,6 +20,11 @@ All notable changes to this project are documented here. The format follows
   Each line shows what the automated workforce makes and what the pops it frees made in that job:
   automation gets every output multiplier but not job efficiency, so it makes a little less.
 - The header shows the empire's total pops.
+- Subjects tab: per subject its loyalty over time and where it is heading, when the deal can be
+  renegotiated and what a proposal costs, the specialisation's progress with its perks, our holdings
+  against the deal's limit, and what the subject does — its opinion of us, trust, wars and
+  policies (fleet doctrine and the rest). A cheat adds its power, fleet, size and pops as numbers.
+  Needs the game data of extractor 0.1.16 for the specialisations.
 
 ### Changed
 
