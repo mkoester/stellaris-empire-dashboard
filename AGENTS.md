@@ -1467,7 +1467,7 @@ with the districts**: the building's upkeep plus each automated job's stratum ra
 `pop_category_automation`, extractor 0.1.16; none from an older one), checked against the budget's
 `planet_automated_jobs` (1519.6 predicted, 1527.8 booked). Tankbound (1.0 by civic) and wilderness
 build none. **It stands in a zone of its district** (4.5.4 `common/zones/00_zones.txt`: the government and urban zones exclude the `*_automation` sets; the user's catch 2026-11-12): while no built district holding its jobs has a zone, the line says "needs a zone in the … first" (`zoneNeeded()`, the save's `districtList`). Free slots unknown → "(?)". Checked 2026-11-12 on a DB copy (Yorphian 2203.11.01, with
-Assembly Patterns added to the copy: Yorphia technicians +225, 17 energy). In game: open check 35.
+Assembly Patterns added to the copy: Yorphia technicians +225, 17 energy). Seen in game 2026-11-12 (Earth: 300 of 1200 farmer positions automated, open ones first, 12 + 8 energy; `docs/open-checks.md` 35).
 **Icons** (`#lib/icons/`, the user's ask 2026-11-09: "come up with some svg icons for the
 building — we might use original images at some point, but not for now"): our own 24×24 stroke
 icons in `currentColor` (no game art, workspace `AGENTS.md`), `iconFor(key, category?)` resolves a

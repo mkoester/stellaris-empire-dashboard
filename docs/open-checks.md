@@ -505,6 +505,15 @@ the backlog, were all 200. If a player reports a blank first page, start here.
 
 ### 35. District automation — colony what-ifs, colonies tab (from 2026-11-12)
 
+**Settled 2026-11-12** (UNE 6, throwaway DB, Earth, 2208.01.04 and the 2208.02.01 autosave,
+`screenshots/2026_11_12_17`–`_25`): Agricultural Focus (`tech_food_processing_1`) added 400 farmer
+positions (800 → 1200), the Automation Building: Farmer **300 automated = 25 % of all 1200**; the
+automation took open positions first — pops 800 → 900 (one more worker from the civilians), none
+freed. Workforce 1290 = 900 pops + 90 job efficiency (pops only) + 300 automated; output base
+77.40 = 12.9 × 6, so automated workforce produces like pops. Energy: "Automated Workforce" 12.00 =
+300 ÷ 100 × 4 (in the job's and the colony's upkeep), the building 8 (Buildings 11 → 19). The save
+reads the same (positions 1200, automated 300, pops 900, bonus 90). All three assumptions hold.
+
 The what-if (`#lib/jobAutomation.ts`) assumes an automation building's 25 % (50 % for the upgrade)
 is a share of the job's **positions** (4 farming districts = 800 farmer workforce → 200
 automated), that automation takes open positions before those pops work, and that each automated

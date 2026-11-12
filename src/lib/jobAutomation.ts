@@ -11,9 +11,10 @@ import type { Costs, Resources } from './types.ts';
 //   of the building's own upkeep — so the bill grows with the districts automated. Measured on the
 //   2200.01.01 save of 4.5.4: one empire's automated workforce × rate ÷ 100 = 1519.6 energy, the
 //   budget booked 1527.8.
-// The save's `automated_workforce` is part of a job's `workforce` (READER 54). Assumed, not yet
-// checked in game: the share applies to the job's positions (800 → 200 at 25 %), and automation
-// takes the open positions first, then those pops work (the pops move to other jobs).
+// The save's `automated_workforce` is part of a job's `workforce` (READER 54). Seen in game
+// 2026-11-12 (docs/open-checks.md 35): the share applies to the job's positions (1200 → 300 at
+// 25 %), automation takes the open positions first, then those pops work (they move to other
+// jobs); job efficiency's bonus workforce counts pops only, automated workforce produces as theirs.
 
 /** A building that automates a share of some jobs: `jobs` job → share. */
 export type AutomationBuilding = {
