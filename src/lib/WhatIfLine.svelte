@@ -29,8 +29,8 @@
 				>{pts(what.stability)} stability</span
 			>{/if}{#if what.unmodelled.length}<span
 				class="cursor-help text-gray-500"
-				title={`not counted: ${what.unmodelled.map(pretty).join(', ')}`}
-				>+{what.unmodelled.length} not counted</span
+				title={`effects the estimate leaves out: ${what.unmodelled.map(pretty).join(', ')}`}
+				>+{what.unmodelled.length} effect{what.unmodelled.length > 1 ? 's' : ''} not counted</span
 			>{/if}
 	</span>
 {/if}

@@ -3,13 +3,13 @@
 What the systems, produce, jobs, growth, tech and trade tabs still need from the game. Each item:
 what is open, how to check it, and what to send. Screenshots go to the game's own folder
 (`<Stellaris user dir>/screenshots/`, F12 in game); name the colony or system in the message.
-Background for each is in `AGENTS.md` (sections named below).
+Background for each is in the `docs/` files named below.
 
 ## A. Screenshots from the real campaign (no cheats needed)
 
 Session 2026-10-22 (Planetforgers, 2212.03.05, screenshots `2026_10_22_1`–`21`) settled outpost
 and starbase costs, the market price formula, tech costs and research rates; results in
-`AGENTS.md` → Open. What is left:
+`docs/open-points.md`. What is left:
 
 ### 4. Market buy price — produce tab (small remainder)
 
@@ -25,7 +25,7 @@ fluctuation may lag the screen.
 
 Per item: a manual save before and after (diff in `$TMPDIR`), a screenshot of the greyed-out
 tooltip ("available in …"), the dashboard's row for comparison. **Done 2026-10-25** (throwaway
-`unitednationsofearth_-15512622`, results in `AGENTS.md` → "Cooldowns and expiries" and "Run-out
+`unitednationsofearth_-15512622`, results in `docs/tabs-shell.md` → "Cooldowns and expiries" and "Run-out
 cooldowns stay"): minor artifact actions, the relic triumph, Satisfying Insults, colony decisions
 on two colonies, species rights, moving the capital, the reform date, insults per empire, and a
 run-out cooldown dismissed on a reloaded branch. Still open:
@@ -101,7 +101,7 @@ lines change, the suspected cause.
 ### 16. Ethics attraction — the factors the save cannot tell (from 2026-10-30)
 
 Settled 2026-10-30 (throwaway nomad game, 2200.05.01, screenshots
-`~/Pictures/Screenshots/screenshot_2026-10-30_20-09-12` … `20-09-53`; `AGENTS.md` → Ethics tab).
+`~/Pictures/Screenshots/screenshot_2026-10-30_20-09-12` … `20-09-53`; `docs/tabs-ethics.md`).
 **Settled 2026-10-31 on the 4.5.3 open beta** (Roaming Korinth 2204.08.01, save; dashboard's
 ethics tab): the rules now add onto 1, and what the save cannot tell is the council —
 `value:count_councilors_with_ethic` = 0.1 (`@council_ethic_attraction`) per ruler or councilor with
@@ -146,6 +146,10 @@ difficulties in between (#lib/events.ts techCostFactor).
 - **Send:** a screenshot (a tech's cost) and the save, with the galaxy settings.
 
 ### 20. Leader limits per class — leaders tab (from 2026-10-31)
+
+**Settled 2026-11-12** (UNE 6, throwaway DB, 2208.01.02, `screenshots/2026_11_12_6`): the game's
+leader screen 2/3 officials, 1/3 commanders, 1/3 scientists — the tab's limits 3 / 3 / 3. One
+sample with no cap modifier held; re-check when a tradition or civic raises a cap.
 
 The tab shows hired / limit per class (Roaming Korinth 2204.12: 2 / 4 each), the limit computed:
 base 3 + every `country_<class>_cap_add` and `country_leader_cap_add` of what the save shows held —
@@ -283,6 +287,13 @@ kind.
 
 ### 29. Influence and pacts — influence and pacts tabs (from 2026-11-05)
 
+**Power projection settled 2026-11-12** (UNE 6, 2208.01.02, `screenshots/2026_11_12_7`, `_8`): the
+fleet manager's tooltip spells the rule out — Naval Coverage 100 % = "From Navy Size" 130 (Navy
+Size 65 × (1 + Base +100 %)) ÷ Empire Size 52, capped at 100 %; Max 2.00 (Base +2.00); the top
+bar books Power Projection 2.00. So the fit's inner "2 ×" is a +100 % base modifier on navy size
+(a modifier could change it), the outer 2 the max. The influence tab read booked 2, max 2,
+coverage 1 (navy 65, size 52).
+
 Power projection is a fit, not a rule from the files: 2 × min(1, 2 × used naval capacity ÷ empire
 size), exact in 40 saves; with no navy it books 0.2 (two empires, 2026-11-05 — settled), read as
 a 10 % coverage floor. Income
@@ -295,6 +306,11 @@ although the budget booked a gain).
   against the tooltip's Power Projection line and its maximum (`country_power_projection_max`).
 
 ### 31. What the engine adds to job output — jobs tab (from 2026-11-05)
+
+**UNE 6's capital exact 2026-11-12** (2208.01.02, `screenshots/2026_11_12_10`): Technician 53.43 =
+base 39.60 × (1 + 10 % Prosperous Unification + 20.94 % High Stability + 4 % Governor Skill); the
+jobs tab predicts 53.44 with the same three lines, rest 0 (energy, minerals and food alike). The
+Planetforgers' and Korinth's remainders below are still open.
 
 **High Stability settled 2026-11-05**: +30 % × (stability − 50) ÷ 50 (the throwaway game's Physicist
 tooltip: stability 73.345 → +14.01 %), now counted. Low Stability (−50 % × (50 − stability) ÷ 50) and
@@ -321,9 +337,31 @@ it cannot accept (`possible_operator`: already on the same contract, a tech, out
 - **Send:** the screenshots and the date. Check: the contracts tab's rows without spoilers (the
   normal view should show exactly the game's).
 
+### 33. Design stats and the starbase list — fleets and starbases tabs (from 2026-11-09)
+
+**Partly checked 2026-11-12** (UNE 6, 2208.01.02, `screenshots/2026_11_12_11`, `_12`; design
+Cheetah, screen, id 2451: point defence + 2 small red lasers, Reactor Booster): hull 200, armor
+200, shields 100, power +35 (90 − 55), cost 108 alloys — **all equal** to the designer. Evasion
+60 vs 62.3 %, speed 160 vs 166.22, upkeep 1.53 energy / 0.588 alloys vs 1.46 / 0.56 — the empire
+modifiers, as expected. **Damage**: the designer says 9.51 a day, the tab's dmg/cooldown 1.33; no
+plain unit fits (×10 = 13.3, with accuracy 11.1) — still open; a design without point defence
+would tell whether PD counts. Starbases: the Sol starport 2 / 2 modules, 1 / 1 building, as the
+game's panel; the only non-outpost, as the outliner.
+
+The fleets tab adds a design's base stats from the game files (`#lib/designStats.ts`): hull,
+armor, shields, evasion, speed, power, cost, upkeep, weapons — techs and empire modifiers left
+out, so the designer's numbers should be at least these. The weapons' "dmg / cooldown" is ours;
+the CSV's cooldown unit has not been matched with the designer's damage per day. The starbases
+tab's table should list what the outliner lists.
+
+- **Do:** open the ship designer on a saved warship design (one with a Reactor Booster if there is
+  one) and hover hull, armor, speed, power and a weapon's damage; open the outliner's starbases.
+- **Send:** the screenshots and the date, with the fleets tab's design detail and the starbases
+  tab beside them. Check: which lines differ only by empire modifiers; the cooldown's unit.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
-Setup as in `AGENTS.md` → "Testing in a throwaway game".
+Setup as in `docs/testing.md` → "Testing in a throwaway game".
 
 ### 30. Research agreements and migration treaties — pacts tab (from 2026-11-05)
 
@@ -358,6 +396,26 @@ current partners.
   `research_technology <tech>`, `play 0`), sign a research agreement with it, two months: ×1.76
   (1.51 + 0.25) means each partner counts, ×1.51 once.
 
+### 34. Unofficial designs and the Transit Hub — fleets and starbases tabs (from 2026-11-09)
+
+Read from one save only (UNE 6 2208.01.01): a design no longer saved stays in `ship_design` while
+ships use it, and `ship_design_implementation.upgrade` names the design they upgrade to. The
+starbase planner ranks the Transit Hub (Hyper Drive II, a starport, a colony of ours) by the
+system's civilians and growth — no save on this machine has researched Hyper Drive II, so it was
+only seen on a DB copy with the tech added.
+
+- **Do:** in a throwaway game, save a corvette design, build two corvettes to it, delete the design
+  in the designer, save a new one, and let an autosave come. Then research Hyper Drive II and
+  check the starbases tab's planner:
+
+```
+research_technology tech_hyper_drive_2
+```
+
+- **Send:** the date, a screenshot of the fleet's ships (their design names), and of the Transit
+  Hub's tooltip on a starport with a colony. Check: the fleets tab shows the deleted design as
+  unofficial with the right upgrade target; the planner lists the Transit Hub at that starport.
+
 ### 6. Trade calibration — the rest (paused 2026-10-23)
 
 The trade model is fitted to tooltips at 16 empires, gifts and deals (2026-10-23; summary in
@@ -385,11 +443,21 @@ cheats — tooltips set up, not sent — not in a throwaway game. Open:
 - the basic resources' curves at game start differ from the campaign's (consumer goods, alloys,
   food, trade; same file): when do they change — a step at some event, or gradually?;
 - where a fallen empire's room really ends in a deal: its storage is known now (companion mod
-  0.5.0: base + 120,000), so offer it alloys up to and past 0.8 of that to see the cut-off.
+  0.5.0: base + 120,000), so offer it alloys up to and past 0.8 of that to see the cut-off;
+- a second monthly cap, net − `TRADE_MIN_RESOURCE_DELTA` (10): the mod "Stop Guessing What AI
+  Will Trade You" (Workshop 3832466386, 2026-11-09) shows min(0.3 × gross, net − 10) a month,
+  read off the define's name, not measured. `monthlyCap()` has the first half only; our one
+  measurement cannot tell (KhellZen 2212.08: gross 181.9, net 95.2 — 54 against 85). Find an
+  empire whose net is small against its gross (gross 100, net 20: the mod says 10, we say 30),
+  ask it for that resource a month and note where it turns −1000;
+- trading at war: the same mod lists no empire we are at war with, the trade tab does —
+  `action_offer_trade_deal`'s `possible` has no war condition, so try the diplomacy screen with
+  an empire at war with us (we filter the berserk machine fallen empire since 2026-11-09, its
+  `potential`).
 
 ### 7. Stored research — tech tab
 
-`AGENTS.md` → Open → "Stored research". The 4-day puzzle is solved (a monthly chunk after the
+`docs/open-points.md` → "Stored research". The 4-day puzzle is solved (a monthly chunk after the
 1st's autosave), and the game's tooltip shows stored research adding the modified monthly gain
 while drawing the base. Left: confirm the draw per month equals the _base_ gain over a few months,
 and what a tech finishing mid-month does with its overflow — plain monthly autosaves of the
@@ -399,7 +467,7 @@ campaign suffice, no cheats.
 
 ### 27. Multiplayer detection — ⚙ cheats off, companion mod 0.11.0 (from 2026-11-03)
 
-`AGENTS.md` → "No cheats in multiplayer". The rule: a save whose `player` block names an account
+`docs/no-cheats.md`. The rule: a save whose `player` block names an account
 or lists two players is multiplayer. Seen so far: single player `unknown` (106 saves); Oracularity
 of Noerm, a new multiplayer game, only `MirkoMachine`; UNE 2 `unknown` alone at 19:01, then
 `unknown` + `MirkoMachine` in every save from 19:41 on — after the Noerm session, loaded in a way
@@ -432,6 +500,10 @@ multiplayer and turns its cheats off wrongly.
   `ironman.sav` (4.5.3; the game restarted without mods, then a new **single-player** Ironman
   game, the user) lists `MirkoMachine` alone, the Noerm shape. So an account name is a
   multiplayer signal only outside Ironman: `multiplayerPlayers()` ignores it there since READER 48.
+- **The native build names the account in single player too (2026-11-12, answered):** every save
+  the native Linux build wrote (UNE 6, 4.5.4, and every campaign since the switch from Proton)
+  lists `MirkoMachine` alone; the same campaigns' Proton saves said `unknown`. So a name is never a
+  multiplayer signal: since READER 56 only two or more players are (`playerCount()`).
 
 ### 25. A root 404 during the first start — release smoke test (2026-10-31)
 
@@ -439,6 +511,41 @@ Smoke-testing the v0.1.6 Linux zip on an empty data folder, `/` answered 404 onc
 answering 200, while the backlog of other campaigns was being read; the log showed nothing. Not
 reproduced: 116 later requests, including a second empty data folder polled every second through
 the backlog, were all 200. If a player reports a blank first page, start here.
+
+### 35. District automation — colony what-ifs, colonies tab (from 2026-11-12)
+
+**Settled 2026-11-12** (UNE 6, throwaway DB, Earth, 2208.01.04 and the 2208.02.01 autosave,
+`screenshots/2026_11_12_17`–`_25`): Agricultural Focus (`tech_food_processing_1`) added 400 farmer
+positions (800 → 1200), the Automation Building: Farmer **300 automated = 25 % of all 1200**; the
+automation took open positions first — pops 800 → 900 (one more worker from the civilians), none
+freed. Workforce 1290 = 900 pops + 90 job efficiency (pops only) + 300 automated; output base
+77.40 = 12.9 × 6, so automated workforce produces like pops. Energy: "Automated Workforce" 12.00 =
+300 ÷ 100 × 4 (in the job's and the colony's upkeep), the building 8 (Buildings 11 → 19). The save
+reads the same (positions 1200, automated 300, pops 900, bonus 90). All three assumptions hold.
+
+The what-if (`#lib/jobAutomation.ts`) assumes an automation building's 25 % (50 % for the upgrade)
+is a share of the job's **positions** (4 farming districts = 800 farmer workforce → 200
+automated), that automation takes open positions before those pops work, and that each automated
+job costs its stratum's energy (`automation_resources`, workers 4) on top of the building's 8.
+The save's per-job `automated_workforce` and the budget's `planet_automated_jobs` agree with the
+rate (one empire 2200.01.01: 1519.6 predicted, 1527.8 booked), but no building of ours has been
+built yet.
+
+**2026-11-12, first try (UNE 6, throwaway DB):** the building cannot go into a district without
+a zone — the user's catch; 4.5.4 `common/zones/00_zones.txt`: `zone_default` and `zone_urban`
+exclude every `*_automation` building set, the resource zones (Agricultural Focus …) take them.
+Earth's farming, mining and generator districts had no zone (the snapshot's `districtList`), so
+the what-if now says "needs a zone in the Agriculture District first" (`zoneNeeded()`). Before
+(`screenshot_2026-11-12_20-43-46`): Farmer +200 automated, frees 200, 600 minerals, −16 energy a
+month (8 + 2 × 4).
+
+- **Do:** in a throwaway game with Assembly Patterns (`research_technology tech_assembly_pattern`)
+  note the colony page's "District automation" line for farmers, build a farming zone, then the
+  Automation Building: Farmer (`instant_build`), let a month pass and save.
+- **Send:** the farmer job's tooltip (automated workforce), the colony's energy upkeep tooltip
+  ("Automated Jobs" line and the building's) and the date. Check: automated = 25 % of positions;
+  energy = 8 + automated ÷ 100 × 4; whether pops left the farmer jobs or open positions filled
+  first.
 
 ## C. Not in the game
 

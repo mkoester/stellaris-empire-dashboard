@@ -87,6 +87,8 @@ The dashboard's own folder:
   dashboard.v15.sqlite, ...         a copy kept before a new version changed the history
   config.json                       the two folders you picked
   data/stellaris-<version>-....sqlite   game data, read once per game version and DLC set
+  data/parse-cache/                 the game's and mods' files as last read: makes a new
+                                    playset quick; safe to delete
 
 The game install (pick this as "game install"):
 

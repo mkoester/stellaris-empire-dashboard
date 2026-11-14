@@ -1,7 +1,7 @@
 # Storage: how the game computes it (4.5.2)
 
 Read from the game files on 2026-10-24. The save does not store the result — companion mod 0.5.0
-exports it (`sdash_m_<res>`, `AGENTS.md` → Companion mod); without the mod the dashboard shows ≈
+exports it (`sdash_m_<res>`, `docs/companion-mod.md`); without the mod the dashboard shows ≈
 the base. **Never measure with `instant_build` on**: it sets every country's storage to 1,000,000.
 
 Confirmed by the mod in a throwaway game, one change per monthly autosave:

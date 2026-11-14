@@ -5,7 +5,8 @@
 	import type { Resources } from './types.ts';
 
 	// Signed amounts, each resource in its colour, in the top bar's order: only the used (sign −1)
-	// or produced (+1) part, or all of them without a sign.
+	// or produced (+1) part, or all of them without a sign. Each chip keeps together; the `<wbr>`
+	// lets a row wrap between them (nothing else separates them: Svelte trims the whitespace).
 	let { flows, sign }: { flows: Resources; sign?: 1 | -1 } = $props();
 
 	const shown = $derived(
@@ -21,5 +22,5 @@
 			>{v < 0 ? '−' : '+'}{fmt(Math.abs(v))}</span
 		>
 		<span style:color={colorOf(k)}>{pretty(k)}</span></span
-	>
+	><wbr />
 {/each}

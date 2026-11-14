@@ -12,6 +12,7 @@
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 	import SubjectCards from '#lib/SubjectCards.svelte';
+	import SubjectDetails from '#lib/SubjectDetails.svelte';
 	import type { ExternalBuildings } from '#lib/types.ts';
 
 	let { data } = $props();
@@ -75,6 +76,19 @@
 	<Panel title="Subject agreements">
 		{#if data.subjects.length}
 			<SubjectCards subjects={data.subjects} diploNames={data.diploNames} />
+			<div class="flex flex-col gap-3">
+				{#each data.subjects as s, i (s.countryId)}
+					<SubjectDetails
+						{s}
+						d={data.details[i]}
+						extent={data.xExtent}
+						subjectNumbers={data.subjectNumbers}
+						policyNames={data.policyNames}
+						perkNames={data.perkNames}
+						explain={data.explain}
+					/>
+				{/each}
+			</div>
 		{:else}
 			<p class="text-sm text-gray-500">
 				No subject agreement — we are no one's overlord or subject.

@@ -23,6 +23,10 @@
 		{
 			name: 'Branch Office Expansion Planner',
 			what: 'the branch office planner on the subjects tab'
+		},
+		{
+			name: 'Stop Guessing What AI Will Trade You (formerly Global Trade Opinions)',
+			what: 'who can be offered a trade deal, and checks still to run on the trade tab'
 		}
 	];
 

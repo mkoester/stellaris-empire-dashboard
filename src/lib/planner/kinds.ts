@@ -666,7 +666,7 @@ export const sourceOf = (kind: string, field: string) => SOURCE[`${kind}.${field
 
 /**
  * A nomadic empire: running the nomad economy situation (the origin misses most nomads, see
- * AGENTS.md "Trade tab"). It claims no systems and settles no planets (the game's
+ * docs/tabs-economy.md "Trade tab"). It claims no systems and settles no planets (the game's
  * `nomadic_gameplay_desc`): no outposts or colonies — waystations and arkships instead.
  */
 export const nomadic = (s: Snapshot) =>

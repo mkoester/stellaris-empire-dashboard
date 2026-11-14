@@ -4,9 +4,79 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.16] - 2026-11-14
+
+### Fixed
+
+- The header and every tab no longer blank out between the companion mod's monthly line and the
+  next autosave: until that save arrives, the page shows the last save's empire (name, score,
+  empire size, colonies …) with the new date and stockpile. Seen on a fast machine, where months
+  pass between autosaves.
+- Colonies named from a name list show their name ("San Lucas", "St. Pomeroy") instead of their
+  key ("HUMAN1 PLANET SanLucas") in Upcoming, the colony pages and everywhere else (the bundled
+  extractor 0.1.17 brings the names; saves still on disk are read again).
+- Setup: the user folder's caption ("the one holding `save games`") no longer breaks over three
+  lines.
+
+## [0.1.15] - 2026-11-12
 
 ### Added
+
+- District automation what-ifs (⚙ What-ifs, a spoiler): on the colony page, what the next
+  Automation or Optimization Building for farmers, miners or technicians would do there — how much
+  of the jobs' workforce it takes over (freeing pops for other jobs) or fills, the output that
+  adds, and what it costs. Its monthly cost grows with the districts it automates: besides the
+  building's upkeep, every automated job costs energy. The colonies tab ranks where one pays most.
+  Needs the game data of extractor 0.1.16 for the automated jobs' cost.
+  An automation building stands in a zone of its district: where that district has none yet, the
+  line says to build the zone first (checked in game: 300 of 1200 farmer positions automated,
+  open positions first, 12 + 8 energy a month).
+  Each line shows what the automated workforce makes and what the pops it frees made in that job:
+  automation gets every output multiplier but not job efficiency, so it makes a little less.
+- The header shows the empire's total pops.
+- Subjects tab: per subject its loyalty over time and where it is heading, when the deal can be
+  renegotiated and what a proposal costs, the specialisation's progress with its perks, our holdings
+  against the deal's limit, and what the subject does — its opinion of us, trust, wars and
+  policies (fleet doctrine and the rest). A cheat adds its power, fleet, size and pops as numbers.
+  Needs the game data of extractor 0.1.16 for the specialisations.
+
+### Changed
+
+- A single-player game no longer counts as multiplayer because its save names the Steam
+  account: the native Linux build always writes it. Only a save with two or more players, or the
+  companion mod's monthly line, means multiplayer now; readings stored before do not count, and
+  campaigns that lost their cheats get them back once their saves are read again.
+- Galaxy tab: settings that differ from the default for the galaxy's size are highlighted (the
+  default in the hover), and the difficulty is coloured by its place, green for Civilian to red for
+  Grand Admiral, with what it does in a popup; a folded table lists every difficulty's effects on
+  us, the AI's empires and non-playable countries, and on tech costs per tier.
+- Planet decision what-ifs read "lasts: …, costs: …", and "+N effects not counted" names what the
+  estimate leaves out (in its hover).
+
+### Fixed
+
+- The Museum Exhibits, Organic Sanctuaries and Performance Competition decisions last 10 years, not
+  "for good" (extractor 0.1.16).
+- Long rows of resource amounts wrap instead of running out of their panel (the what-ifs).
+
+## [0.1.14] - 2026-11-09
+
+### Added
+
+- Mods in the game data: each game's data is extracted with the mods of its latest save, in your
+  launcher's load order, so designations, districts, tradition trees, traits and starbase slots
+  that mods add are named and counted, and rebalance mods' values are used. Switching between
+  games played with different playsets just works, and a playset edited or a game started with
+  other mods is picked up while the dashboard runs — no restart; a banner shows while the data is
+  being extracted. The mods tab shows which mods the data includes and where their order comes
+  from.
+- Starbase slots follow mods that enlarge starbases (such as Slightly Larger Starbases): the
+  starbases tab counts each level's slots as the game does, from its ship size.
+- The load order a game was played with is remembered while it runs, so editing the playset
+  afterwards does not change that game's data.
+- Older mods that come as a zip (such as Research options+) are part of the game data too.
+- A new playset or a mod update extracts the game data about three times faster (45 mods: 34 s →
+  10 s): the extractor keeps each file it has read, in `data/parse-cache`.
 
 - A Contracts tab for Nomads contracts. A nomad sees the contracts it took and the offers of
   empires it talks to; a settled empire the contracts it issued. Each comes with its kind, issuer,
@@ -25,6 +95,28 @@ All notable changes to this project are documented here. The format follows
   other empire knows). The mod's centres show as special stars with its gentler effects, jumps
   and distances count the gates and express links you can use, and the ring's systems and portals
   are never offered for outposts, colonies or megastructures.
+
+- The colony page shows its districts as cards in two rows: the city district with its government
+  zone and, beside it, its further zones; below, the special districts (usually generator, mining
+  and agriculture, those with none built yet too) — each with its icon, colour and count of its
+  cap, its zones and their buildings as tiles (disabled ones struck through). The icons are
+  our own, not the game's. A switch keeps the table view.
+
+- A Starbases tab: every starbase with its level, modules, buildings, free slots, build queue
+  and shipyard queue, filtered to all, shipyards or those without, outposts on request, plus the
+  starbase capacity and the shipyards panel. Its starbase planner ranks, per module and building,
+  the systems (yours, and unclaimed ones up to a picked range beyond your border) where it does
+  most: station output bonuses by the system's orbital deposits, the Transit Hub's resettlement
+  bonus by how many pops the system's colonies can push out, stability and governing ethics by
+  the colonies there — and what has to happen first (an outpost, an upgrade, a free slot). It
+  needs game data with starbase modifiers (extractor 2026-11-09).
+
+- A Fleets tab: your military fleets with the designs their ships are built to, and every ship
+  warship and bio-ship design — saved, saved but unused, or **unofficial** (ships still built to a design you no
+  longer have saved). A design shows its sections and components, the fleets using it, the design
+  its ships upgrade to, and base stats (hull, armor, shields, evasion, speed, power, cost, upkeep,
+  weapons) before empire modifiers. The stats need game data with ship parts (extractor
+  2026-11-09).
 
 ## [0.1.13] - 2026-11-07
 

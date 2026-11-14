@@ -1,4 +1,5 @@
 import {
+	campaignDataState,
 	campaignsOnDisk,
 	dataVersion,
 	getDb,
@@ -19,6 +20,7 @@ import {
 	nodes
 } from '#lib/server/db.ts';
 import { difficultyLabel } from '#lib/events.ts';
+import { difficulties, difficultyCard } from '#lib/server/difficulty.ts';
 import {
 	activeProfile,
 	chartEvents,
@@ -118,15 +120,24 @@ export function load({ url }) {
 		})(),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
+		// the viewed campaign's own game data (its mods) still being extracted: pages show older data
+		extracting: (() => {
+			const d = campaignDataState();
+			return d?.extracting ? { mods: d.mods } : null;
+		})(),
 		// the game being played: its latest save, and its latest data (a save, month or daily tick)
 		dates: (() => {
 			const head = headId(db);
 			const node = head === null ? undefined : nodes(db).find((n) => n.id === head);
 			return node
 				? {
-						difficulty: (() => {
+						...(() => {
 							const d = campaignDifficulty(db, node.campaign);
-							return d && difficultyLabel(d);
+							const card = d && difficulties(d.scale).find((x) => x.key === d.difficulty);
+							return {
+								difficulty: d && difficultyLabel(d.difficulty),
+								difficultyCard: card ? difficultyCard(card) : null
+							};
 						})(),
 						save: latestSaveDate(db, node.campaign),
 						data: lastDataDate(node.date),
