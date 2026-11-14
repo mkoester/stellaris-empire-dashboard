@@ -26,7 +26,9 @@ version's `CHANGELOG.md` section.
    it while it extracts a campaign's data in the background logs "extraction with mods failed …
    (exit null)": the killed extractor, not a fault (v0.1.15, 2026-11-12).
    **Before tagging for real** (v0.1.8, 2026-11-01): clone both repos into `$TMPDIR`, commit the
-   pending changelog/pin there and make the tags in the clones only; give the dashboard clone a
+   pending changelog/pin there and make the tags in the clones only — a clone of the local
+   checkout has no `main` (the checkout knows it only as `origin/main`): `git fetch <checkout>
+   refs/remotes/origin/main:refs/heads/main` in the clone first (2026-11-14); give the dashboard clone a
    **copy** of `node_modules` (`cp -a`, 168 MB) — a symlinked one makes the build's pnpm want to
    reinstall (`ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`). The Windows zip on a Windows machine, the Mac zip for its architecture on a Mac (copy a few
    saves over; the game need not run there), when the launcher or packaging changed.
