@@ -1,7 +1,13 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { loadOrder, parseModDescriptor, withLauncher, type LauncherMod } from '#lib/addons.ts';
+import {
+	loadOrder,
+	parseModDescriptor,
+	withLauncher,
+	type LauncherMod,
+	type Playset
+} from '#lib/addons.ts';
 import type { ModInfo } from '#lib/types.ts';
 
 /**
@@ -27,9 +33,10 @@ export function loadModDescriptors(saveDir: string): ModInfo[] {
 }
 
 /**
- * The enabled mods in the order the game loads them: `<user dir>/dlc_load.json`, which the
- * launcher writes from the active playset's order when it starts the game (checked 2026-10-31:
- * the same order as `playsets_mods.position`). None when missing or unreadable.
+ * The active playset's enabled mods in load order: `<user dir>/dlc_load.json`, which the launcher
+ * writes from the playset's order (checked 2026-10-31: the same as `playsets_mods.position`) at a
+ * game start and on every playset edit (2026-11-09) — so not necessarily the last game's order.
+ * None when missing or unreadable.
  */
 export function readLoadOrder(userDir: string): string[] {
 	try {
@@ -52,6 +59,42 @@ function launcherMods(file: string): LauncherMod[] {
 		}
 	} catch (e) {
 		console.warn(`cannot read the launcher's mods (${file}):`, e);
+		return [];
+	}
+}
+
+/**
+ * The launcher's playsets (`launcher-v2.sqlite`), each with its enabled mods' descriptor files in
+ * load order (`playsets_mods.position`), read-only; none if the DB is missing or unreadable. Read
+ * when asked: an edit in the launcher counts at once, before the game starts with it.
+ */
+export function launcherPlaysets(userDir: string): Playset[] {
+	const file = join(userDir, 'launcher-v2.sqlite');
+	try {
+		const db = new DatabaseSync(file, { readOnly: true });
+		try {
+			const rows = db
+				.prepare(
+					`SELECT p.id, p.name, p.isActive AS active, m.gameRegistryId AS file
+					FROM playsets p
+					LEFT JOIN playsets_mods pm ON pm.playsetId = p.id AND pm.enabled
+					LEFT JOIN mods m ON m.id = pm.modId
+					WHERE NOT p.isRemoved
+					ORDER BY p.id, pm.position`
+				)
+				.all() as { id: string; name: string; active: number | null; file: string | null }[];
+			const byId = new Map<string, Playset>();
+			for (const r of rows) {
+				let p = byId.get(r.id);
+				if (!p) byId.set(r.id, (p = { name: r.name, active: !!r.active, order: [] }));
+				if (r.file) p.order.push(r.file.replace(/^mod\//, ''));
+			}
+			return [...byId.values()];
+		} finally {
+			db.close();
+		}
+	} catch (e) {
+		console.warn(`cannot read the launcher's playsets (${file}):`, e);
 		return [];
 	}
 }

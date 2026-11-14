@@ -173,6 +173,7 @@
 		extent={data.xExtent}
 		events={data.milestones}
 		right={POP_CHANGE_LINES}
+		rightLabel="pops /month"
 		rightFloor={5}
 	/>
 	<Panel

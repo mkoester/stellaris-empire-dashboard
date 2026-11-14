@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { BlockerHint } from './blockers.ts';
 	import { fmt, pretty } from './format.ts';
+	import InfoPopup from './InfoPopup.svelte';
 
 	// One blocker's clearing hint: the gain, the price, and what stands in the way.
 	let {
@@ -28,7 +29,9 @@
 	<span class="text-gray-500">· {h.days ?? '?'} days{cost ? `, ${cost}` : ''}</span>
 	{#if h.clearing}<span class="text-blue-600">· being cleared</span>
 	{:else if h.missing.length}<span class="text-amber-600"
-			>· needs {h.missing.map(name).join(', ')}</span
+			>· needs {#each h.missing as t, i (t)}{i ? ', ' : ''}<InfoPopup ref="tech:{t}"
+					>{name(t)}</InfoPopup
+				>{/each}</span
 		>
 	{:else if h.lodge}<span class="text-amber-600">· not while the Ranger Lodge stands</span>
 	{/if}

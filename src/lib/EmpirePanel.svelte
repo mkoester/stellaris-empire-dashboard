@@ -200,6 +200,9 @@
 						></span
 					>
 				{/if}
+				{#if data.latest.pops !== null}
+					<span>pops <b>{fmt(data.latest.pops)}</b></span>
+				{/if}
 				<a
 					class="underline"
 					href={data.isHead ? resolve('/timeline') : resolve(`/timeline?node=${data.tip}`)}

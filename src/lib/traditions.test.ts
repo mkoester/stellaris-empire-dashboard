@@ -21,6 +21,15 @@ describe('adoptedTrees', () => {
 		}
 	};
 
+	it("carries the tree's colour", () => {
+		const coloured = {
+			traditionTrees: {
+				tradition_expansion: { ...data.traditionTrees.tradition_expansion, color: '#2db071' }
+			}
+		};
+		expect(adoptedTrees(['tr_expansion_adopt'], coloured)[0].color).toBe('#2db071');
+	});
+
 	it('lists adopted trees with their picks (UNE 3, 2202.05)', () => {
 		expect(adoptedTrees(['tr_discovery_adopt', 'tr_discovery_to_boldly_go'], data)).toEqual([
 			{

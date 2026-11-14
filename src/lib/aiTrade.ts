@@ -154,6 +154,17 @@ export function worthOf(
 	return (fits === null ? amount : Math.min(amount, fits)) * v;
 }
 
+/**
+ * Whether we can offer `c` a trade deal at all, by its type and civics: regular and (awakened)
+ * fallen empires, but not the berserk machine fallen empire — `action_offer_trade_deal`'s
+ * `potential` (4.5.2 common/diplomatic_actions/00_actions.txt), `is_fallen_empire_berserk_machine`
+ * being a fallen machine empire with `civic_malfunctioning_custodian`. The `possible` checks
+ * (purifiers, devouring swarms, terminators, …) grey the button out but leave the empire listed.
+ */
+export const offersTrade = (c: { type: string; civics: string[] }) =>
+	['default', 'fallen_empire', 'awakened_fallen_empire'].includes(c.type) &&
+	!c.civics.includes('civic_malfunctioning_custodian');
+
 /** A nomadic empire's reserve: it takes these, never gives them. */
 export const NOMAD_RESERVE = ['energy', 'minerals'];
 

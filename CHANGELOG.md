@@ -4,6 +4,161 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.16] - 2026-11-14
+
+### Fixed
+
+- The header and every tab no longer blank out between the companion mod's monthly line and the
+  next autosave: until that save arrives, the page shows the last save's empire (name, score,
+  empire size, colonies …) with the new date and stockpile. Seen on a fast machine, where months
+  pass between autosaves.
+- Colonies named from a name list show their name ("San Lucas", "St. Pomeroy") instead of their
+  key ("HUMAN1 PLANET SanLucas") in Upcoming, the colony pages and everywhere else (the bundled
+  extractor 0.1.17 brings the names; saves still on disk are read again).
+- Setup: the user folder's caption ("the one holding `save games`") no longer breaks over three
+  lines.
+
+## [0.1.15] - 2026-11-12
+
+### Added
+
+- District automation what-ifs (⚙ What-ifs, a spoiler): on the colony page, what the next
+  Automation or Optimization Building for farmers, miners or technicians would do there — how much
+  of the jobs' workforce it takes over (freeing pops for other jobs) or fills, the output that
+  adds, and what it costs. Its monthly cost grows with the districts it automates: besides the
+  building's upkeep, every automated job costs energy. The colonies tab ranks where one pays most.
+  Needs the game data of extractor 0.1.16 for the automated jobs' cost.
+  An automation building stands in a zone of its district: where that district has none yet, the
+  line says to build the zone first (checked in game: 300 of 1200 farmer positions automated,
+  open positions first, 12 + 8 energy a month).
+  Each line shows what the automated workforce makes and what the pops it frees made in that job:
+  automation gets every output multiplier but not job efficiency, so it makes a little less.
+- The header shows the empire's total pops.
+- Subjects tab: per subject its loyalty over time and where it is heading, when the deal can be
+  renegotiated and what a proposal costs, the specialisation's progress with its perks, our holdings
+  against the deal's limit, and what the subject does — its opinion of us, trust, wars and
+  policies (fleet doctrine and the rest). A cheat adds its power, fleet, size and pops as numbers.
+  Needs the game data of extractor 0.1.16 for the specialisations.
+
+### Changed
+
+- A single-player game no longer counts as multiplayer because its save names the Steam
+  account: the native Linux build always writes it. Only a save with two or more players, or the
+  companion mod's monthly line, means multiplayer now; readings stored before do not count, and
+  campaigns that lost their cheats get them back once their saves are read again.
+- Galaxy tab: settings that differ from the default for the galaxy's size are highlighted (the
+  default in the hover), and the difficulty is coloured by its place, green for Civilian to red for
+  Grand Admiral, with what it does in a popup; a folded table lists every difficulty's effects on
+  us, the AI's empires and non-playable countries, and on tech costs per tier.
+- Planet decision what-ifs read "lasts: …, costs: …", and "+N effects not counted" names what the
+  estimate leaves out (in its hover).
+
+### Fixed
+
+- The Museum Exhibits, Organic Sanctuaries and Performance Competition decisions last 10 years, not
+  "for good" (extractor 0.1.16).
+- Long rows of resource amounts wrap instead of running out of their panel (the what-ifs).
+
+## [0.1.14] - 2026-11-09
+
+### Added
+
+- Mods in the game data: each game's data is extracted with the mods of its latest save, in your
+  launcher's load order, so designations, districts, tradition trees, traits and starbase slots
+  that mods add are named and counted, and rebalance mods' values are used. Switching between
+  games played with different playsets just works, and a playset edited or a game started with
+  other mods is picked up while the dashboard runs — no restart; a banner shows while the data is
+  being extracted. The mods tab shows which mods the data includes and where their order comes
+  from.
+- Starbase slots follow mods that enlarge starbases (such as Slightly Larger Starbases): the
+  starbases tab counts each level's slots as the game does, from its ship size.
+- The load order a game was played with is remembered while it runs, so editing the playset
+  afterwards does not change that game's data.
+- Older mods that come as a zip (such as Research options+) are part of the game data too.
+- A new playset or a mod update extracts the game data about three times faster (45 mods: 34 s →
+  10 s): the extractor keeps each file it has read, in `data/parse-cache`.
+
+- A Contracts tab for Nomads contracts. A nomad sees the contracts it took and the offers of
+  empires it talks to; a settled empire the contracts it issued. Each comes with its kind, issuer,
+  who took it, system and days left to accept, and a map. Two new switches in ⚙: a spoiler
+  (offers of empires you do not talk to as a nomad; other empires' contracts up to a picked range
+  beyond your border as a settled empire) and a cheat (every contract in the galaxy). The map
+  tab has a contracts layer, and the systems, situations, diplomacy and megastructures maps mark
+  contracts too. Names and kinds need a data DB with the `contract` table (extractor 2026-11-07).
+
+- The colony page shows its districts as cards in two rows: the city district with its government
+  zone and, beside it, its further zones; below, the special districts (usually generator, mining
+  and agriculture, those with none built yet too) — each with its icon, colour and count of its
+  cap, its zones and their buildings as tiles (disabled ones struck through). The icons are
+  our own, not the game's. A switch keeps the table view.
+
+- A Starbases tab: every starbase with its level, modules, buildings, free slots, build queue
+  and shipyard queue, filtered to all, shipyards or those without, outposts on request, plus the
+  starbase capacity and the shipyards panel. Its starbase planner ranks, per module and building,
+  the systems (yours, and unclaimed ones up to a picked range beyond your border) where it does
+  most: station output bonuses by the system's orbital deposits, the Transit Hub's resettlement
+  bonus by how many pops the system's colonies can push out, stability and governing ethics by
+  the colonies there — and what has to happen first (an outpost, an upgrade, a free slot). It
+  needs game data with starbase modifiers (extractor 2026-11-09).
+
+- A Fleets tab: your military fleets with the designs their ships are built to, and every ship
+  warship and bio-ship design — saved, saved but unused, or **unofficial** (ships still built to a design you no
+  longer have saved). A design shows its sections and components, the fleets using it, the design
+  its ships upgrade to, and base stats (hull, armor, shields, evasion, speed, power, cost, upkeep,
+  weapons) before empire modifiers. The stats need game data with ship parts (extractor
+  2026-11-09).
+
+## [0.1.13] - 2026-11-07
+
+### Added
+
+- Every map marks the stars that change a fight in their system: pulsars (shields disabled),
+  neutron stars (sublight speed −50 %), black holes (harder to disengage and to jump away), the
+  X-ray binaries with one of them and the Viridescent Lightbringer (armor disabled). Each has its
+  own icon, its effects on hover, and the legend under the map explains them.
+- The Traditions tab shows each tree in its colour from the game: a stripe beside each adopted
+  tree, a dot before each of the others. The planner tab's tradition goals carry it too, as a
+  stripe on their adopt / pick / finisher badge.
+- A Slave Market tab: what is for sale now (species, pops, seller) and what was offered before,
+  with the date it was gone. With the companion mod 0.12.0 it also lists every sale — species,
+  pops, buyer and seller — and names the buyer of each ended offer; in multiplayer and Ironman only
+  the sales we take part in. An empire that allows slavery always sees the tab; for one that does
+  not, ⚙ → Display decides: only while a species we give full citizenship is for sale (default),
+  always, or never.
+- Each colony page lists its pops by species, with their citizenship (and slavery type for slaves)
+  and habitability; its Pops (jobs) chart gains an "enslaved" line where there are slaves — they
+  work ordinary jobs, so "employed" includes them.
+
+### Changed
+
+- A chart's right-hand axis is named beside it (open jobs, pops per month, …).
+
+### Fixed
+
+- Species rights of every species but the founder were not read (the government, ethics and
+  leaders tabs saw none for them).
+
+## [0.1.12] - 2026-11-06
+
+### Fixed
+
+- Popups are no longer cut off at the edge of a scrolling panel (Upcoming, wide tables): they open
+  above the page, below the name or above it where there is more room.
+
+### Added
+
+- Upcoming tells you when a tech you planned (or one it needs) is among the research cards on
+  offer — the game does not. The row stays until you pick it or dismiss it.
+- A tech's popup shows what the game's research card does: tier, cost, what it needs and leads
+  to, its effects and what it unlocks (buildings, districts, components, ship types, features) —
+  the same card as in the empire planner — everywhere a tech is named: the planner tab and its
+  history, events, ethics sources, blocker hints, edicts, research agreements, shipyards.
+- The tech tab shows the progress a tech keeps when you switch research away from it: on its card
+  (↺) and in a list of every tech holding some. The game keeps the points, but not the card — the
+  next draw may not offer it again.
+- A release's title names the game version it was built for: "Stellaris Empire Dashboard 0.1.12
+  (v4.5.3)".
+
 ## [0.1.11] - 2026-11-06
 
 ### Added

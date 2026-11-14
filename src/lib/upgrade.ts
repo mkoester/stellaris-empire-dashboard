@@ -8,6 +8,7 @@ import type { Colony, Snapshot, TradeDeal, War } from './types.ts';
 const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'empireName'> = {
 	countryId: null,
 	pops: null,
+	players: null,
 	stockpile: {},
 	income: null,
 	expenses: null,
@@ -34,6 +35,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	traderEnclaves: null,
 	score: null,
 	fleets: null,
+	designs: null,
 	idleLeaders: null,
 	traditions: null,
 	ascensionPerks: null,
@@ -72,6 +74,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	shroud: null,
 	warLostDate: null,
 	tradeDeals: null,
+	contracts: null,
 	gameVersion: null,
 	dlcs: null,
 	mods: null,
@@ -98,6 +101,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	techOptions: null,
 	techQueued: null,
 	techPermanent: null,
+	techKept: null,
 	techStored: null,
 	leaderList: null,
 	leaderPool: null,
@@ -114,6 +118,8 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	timelineId: null,
 	previousTimelineId: null,
 	logEvents: null,
+	slaveMarket: null,
+	slaveTradeBans: null,
 	ticks: null
 };
 
@@ -142,6 +148,7 @@ const COLONY: Omit<Colony, 'planetId' | 'name'> = {
 	happiness: null,
 	habitability: null,
 	speciesHabitability: {},
+	speciesPops: {},
 	sector: null,
 	automation: { enabled: false, settings: [] },
 	produces: {},
@@ -190,6 +197,16 @@ export function upgrade(
 			globalFlags: s.galcom.globalFlags ?? []
 		},
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
+		subjects:
+			s.subjects &&
+			s.subjects.map((x) => ({
+				...x,
+				changed: x.changed ?? null,
+				firstCooldown: x.firstCooldown ?? null,
+				conversion: x.conversion ?? null,
+				stance: x.stance ?? null,
+				power: x.power ?? null
+			})),
 		// stored as plain keys for a day (2026-10-17), without the end date
 		countryModifiers:
 			s.countryModifiers &&

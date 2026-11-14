@@ -172,6 +172,45 @@ describe('watchSaves', () => {
 			w.stop();
 		}
 	});
+
+	it('reads one campaign again once its reader changes (new game data), with that data', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'saves-'));
+		mkdirSync(join(root, 'empire_1'));
+		mkdirSync(join(root, 'empire_2'));
+		const a = writeSave(join(root, 'empire_1'), 'a.sav', '2200.01.01', 1, 10);
+		const b = writeSave(join(root, 'empire_2'), 'b.sav', '2230.01.01', 2, 20);
+		utimesSync(a, 1000, 1000);
+		utimesSync(b, 2000, 2000);
+		const db = openDb(':memory:');
+		const data: Record<string, string> = { empire_1: 'vanilla', empire_2: 'vanilla' };
+		const prepared: string[] = [];
+		const reread: string[] = [];
+		const w = await watchSaves(db, root, {
+			onIngest: () => {},
+			onError: () => {},
+			onRefresh: (r) => reread.push(r.file),
+			reader: (c) => `r1:${data[c]}`,
+			prepare: (c) => {
+				prepared.push(`${c}:${data[c]}`);
+			}
+		});
+		try {
+			await w.catchUp();
+			expect(prepared).toEqual(['empire_2:vanilla', 'empire_1:vanilla']);
+			expect(reread).toEqual([a]); // empire_1 read late, in the background
+			reread.length = 0;
+			expect(await w.reread('empire_1')).toBe(0); // nothing changed
+
+			data.empire_1 = 'modded';
+			expect(await w.reread('empire_1')).toBe(1);
+			expect(reread).toEqual([a]);
+			expect(prepared.at(-1)).toBe('empire_1:modded');
+			expect(await w.reread('empire_1')).toBe(0); // read with it now
+			expect(await w.reread('empire_2')).toBe(0); // another campaign's data is unchanged
+		} finally {
+			w.stop();
+		}
+	});
 });
 
 describe('starting with several campaigns', () => {

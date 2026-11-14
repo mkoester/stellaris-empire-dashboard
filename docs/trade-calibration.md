@@ -124,7 +124,7 @@ from tooltips (results below). Kept for its offer list.
 1. New game, small galaxy, 8+ AI empires, **no** `debug_yesmen`. Play until 2200.02.01.
 2. Console: `contact`, `communications` (meet everyone), `debugtooltip` (ids in tooltips).
 3. Give yourself plenty: `cash 50000`, `minerals 50000`, `alloys 20000`,
-   `consumer_goods 20000`, `food 20000`, `resource volatile_motes 500` (forms: AGENTS.md → "Testing in a throwaway game").
+   `consumer_goods 20000`, `food 20000`, `resource volatile_motes 500` (forms: `docs/testing.md` → "Testing in a throwaway game").
 4. Start the dashboard against a **separate** DB (`DASHBOARD_DB=$TMPDIR/trade/dashboard.sqlite`)
    with the trade tab's `tradeIntel` switch on (⚙), so each manual save shows the AIs' stockpiles.
 5. Pick **three empires with different personalities** (the diplomacy screen names it), e.g. a
@@ -566,7 +566,7 @@ Two-sided deals and fallen-empire storage (screenshots `screenshot_2026-10-24_00
 
 ### 2026-10-24: the same game with the galactic market founded (2201.05.01)
 
-The market founded from the console (`AGENTS.md` → Testing in a throwaway game), no resolution.
+The market founded from the console (`docs/testing.md` → Testing in a throwaway game), no resolution.
 Manual save `2201.05.01`; screenshots `~/Pictures/Screenshots/screenshot_2026-10-24_12-35-43` …
 `12-37-12`. 1000 at once, nothing sent; predicted from the 2200.03 game-start fit at the save's
 incomes:
@@ -656,6 +656,23 @@ income — fits the two regular empires to 1–2 % but puts the fallen one 8× t
 (KhellZen's 13,063 energy and Lolehndra's 869 differ only by income). `WORTH` in `#lib/aiTrade.ts`
 holds it, the test every line above. Not measured: volatile motes, exotic gases, rare crystals,
 zro, dark matter and the rest (the nomad test game).
+
+## Live values a companion mod could export
+
+The mod "Stop Guessing What AI Will Trade You" (Workshop 3832466386, v1.1.1, read 2026-11-09)
+reads an AI's trade inputs from script, live, per empire. We take all three from the save now, so
+these matter only if a save-read value turns out wrong:
+
+- **gross income**: `export_trigger_value_to_variable = { trigger = resource_expenses_compare
+parameters = { resource = <res> } variable = … }` gives the expenses; gross = that + the net
+  of `export_resource_income_to_variable`;
+- **the empire's market price**: `trigger = market_resource_price parameters = { resource = <res>
+amount = 1 trade_type = not_set }` (`trade` itself has none: it is the market's currency);
+- **opinion of us**: `trigger = opinion parameters = { who = root }`, `rounded = yes`.
+
+Its value columns (market price × willingness) are not what an AI weighs (above: a unit's worth
+is `P × B/(B + gross)` in acceptance points); its maximums agree with ours but for the monthly
+`net − 10` cap (`docs/open-checks.md` 6).
 
 ## Measuring more
 

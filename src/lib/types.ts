@@ -1,3 +1,6 @@
+import type { ShipParts } from './designStats.ts';
+import type { JobAutomation } from './jobAutomation.ts';
+import type { StarbasePart } from './starbasePlanner.ts';
 import type { AttractionRule, AttractionSource } from './ethicSources.ts';
 import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
@@ -50,6 +53,7 @@ export type Colony = {
 	approval?: number | null; // the Pop Approval Rating: happiness weighted by political power; READER 28
 	habitability: number | null; // 0–1, pops-weighted over the pop groups
 	speciesHabitability: Record<string, number>; // per species id living there, pops-weighted
+	speciesPops: Record<string, number>; // pops per species id living there; READER 51
 	automation: { enabled: boolean; settings: string[] };
 	produces: Resources; // the colony's monthly output and upkeep, as the planet view sums them
 	upkeep: Resources;
@@ -76,6 +80,26 @@ export type Fleet = {
 	ships: number;
 	power: number;
 	route: Route;
+	designs?: { designId: number; count: number }[]; // its ships per design; absent before READER 53
+};
+
+/**
+ * A ship design of ours (READER 53): one the player saved (`country.ship_design_collection`) or one
+ * our ships are built to although it is not saved any more — **unofficial** (`saved: false`; the
+ * user's word, 2026-11-09). The global `ship_design` keeps every design a ship uses, so the
+ * unofficial ones can still be shown in full. Its parts are those of the first growth stage.
+ */
+export type ShipDesign = {
+	id: number;
+	name: string;
+	size: string;
+	role: string | null;
+	sections: { template: string; slot: string; components: { slot: string; template: string }[] }[];
+	required: string[]; // `required_component`: reactor, drive, thrusters, sensors, computer
+	saved: boolean;
+	autoGen: boolean; // `auto_gen_design`: the game's own (auto-generated) design
+	ships: number; // our ships built to it
+	upgradeTo: number | null; // the design its ships upgrade to (`ship_design_implementation.upgrade`)
 };
 
 /**
@@ -125,6 +149,20 @@ export type CivilianShip = {
 export type SpeciesInfo = { id: string; name: string; cls: string; traits: string[]; pops: number };
 
 /** An empire's pops by species (ours and our migration-treaty partners'); `founder` its main one. */
+/**
+ * Pops for sale on the Slave Market (`slave_market_manager.slaves_on_market`: pop group → pops
+ * offered, READER 50). The save keeps no seller, price or date: the seller is the owner of the pop
+ * group's planet; the pops stay in their group until sold.
+ */
+export type SlaveOffer = {
+	popGroup: number;
+	species: string;
+	pops: number; // offered
+	groupSize: number; // the whole pop group's size
+	seller: number | null; // country id
+	sellerName: string;
+};
+
 export type EmpireSpecies = {
 	countryId: number;
 	founder: string | null;
@@ -181,6 +219,7 @@ export type ColonyJob = {
 	filled: number; // workforce
 	positions: number | null;
 	bonus?: number; // job efficiency's extra workforce (`bonus_workforce`); READER 46
+	automated?: number; // workforce no pop works, part of `filled` (`automated_workforce`); READER 54
 	species?: Record<string, number>; // workforce by species id; READER 46
 };
 
@@ -382,6 +421,7 @@ export type Snapshot = {
 	traderEnclaves: TraderEnclave[] | null; // since READER 11
 	score: Score | null;
 	fleets: Fleet[] | null; // military fleets
+	designs: ShipDesign[] | null; // our saved designs and those our ships use (READER 53)
 	idleLeaders: { id: number; class: string; name: string }[] | null; // hired, without a post
 	traditions: string[] | null; // adopted traditions, in pick order (adopt and finish included)
 	ascensionPerks: string[] | null;
@@ -434,6 +474,7 @@ export type Snapshot = {
 	shroud: Shroud | null; // null before access to the Shroud, and before 2026-10-19
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
+	contracts: Contract[] | null; // every Nomads contract in the galaxy, offered or accepted; READER 52
 	// From the save's `meta`; null from the mod feed and in older snapshots.
 	gameVersion: string | null; // e.g. "Cygnus v4.5.2"
 	dlcs: string[] | null; // DLCs active in this save (`required_dlcs`), by name
@@ -469,6 +510,7 @@ export type Snapshot = {
 	techOptions: Record<string, string[]> | null; // research field → the cards on offer
 	techQueued: QueuedTech[] | null; // every queued tech with its progress; since 2026-10-22
 	techPermanent: string[] | null; // options kept until researched (`always_available_tech`); since 2026-10-22
+	techKept: Record<string, number> | null; // tech → progress kept after switching away from it; READER 49
 	// stored research per field (`stored_techpoints`): from events or while nothing is researched;
 	// each month up to the monthly gain of it is used on top, so research runs at up to double speed
 	techStored: Record<string, number> | null; // since 2026-10-22
@@ -491,6 +533,9 @@ export type Snapshot = {
 	history: HistoryReading | null; // the whole galaxy's owners and colonies, for the history tab; READER 43
 	// species id → right kind (citizenship, living_standard, …) → the right set; null before 2026-10-18
 	speciesRights: Record<string, Record<string, string>> | null;
+	slaveMarket: SlaveOffer[] | null; // the Slave Market's offers, everyone's; since READER 50
+	// the Galactic Community's bans (global flags): organic or all sentient pops may not be sold
+	slaveTradeBans: { organic: boolean; sentient: boolean } | null;
 	// The companion mod's timeline id of the month (saves: country variable sdash_tl), and the one
 	// before; names the branch point when a save is loaded. null without the mod (0.2.0+).
 	timelineId: number | null;
@@ -499,10 +544,13 @@ export type Snapshot = {
 	// before, exactly dated, and the daily stockpiles.
 	logEvents: LogEvent[] | null;
 	ticks: Tick[] | null;
-	// A multiplayer game: the save's `player` block names an account (single player: "unknown";
-	// not in Ironman, whose single-player saves name it too — READER 48) or two players, or the mod
-	// logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
+	// A multiplayer game: the save's `player` block lists two or more players (READER 56; before,
+	// one named account counted too, wrongly — the native build names it in single player), or the
+	// mod logged `is_multiplayer` (0.11.0). Turns every cheat off; READER 44.
 	multiplayer: boolean;
+	// the save's player count (READER 56; null: a log month, or read before): a reading with
+	// `multiplayer` but a count below 2 owes it to the mod
+	players: number | null;
 };
 
 export type MilestoneLogKind =
@@ -518,11 +566,13 @@ export type SpendLogKind =
 	| 'leader-hired'
 	| 'colonization-started'
 	| 'megastructure-started';
+/** Mod 0.12.0: a pop group sold on the Slave Market (species, pops, buyer, seller — names). */
+export type MarketLogKind = 'slave-sold';
 
 /** One `SDASH|2|<date>|event|…` line of the companion mod; fields as `feed.ts` documents them. */
 export type LogEvent = {
 	date: string;
-	kind: MilestoneLogKind | SpendLogKind;
+	kind: MilestoneLogKind | SpendLogKind | MarketLogKind;
 	fields: string[];
 };
 
@@ -756,7 +806,7 @@ export type CouncilSeat = {
 	leaderTraits?: string[];
 };
 
-/** A war the country is in. UNVERIFIED shape — no war seen in a save yet (see AGENTS.md). */
+/** A war the country is in. UNVERIFIED shape — no war seen in a save yet (see docs/save-format.md). */
 /** A war we take part in: top-level `war.<id>` (4.5.2, first seen 2026-10-19). */
 export type War = {
 	id: string;
@@ -909,6 +959,59 @@ export type Subject = {
 	specialistLevel: number;
 	specialistExperience: number;
 	loyalty: number | null;
+	// READER 55 (null before): when the terms last changed (`date_changed`; = since until a
+	// renegotiation), and whether the first renegotiation waits the cooldown too
+	// (`has_cooldown_on_first_renegotiation`)
+	changed: string | null;
+	firstCooldown: boolean | null;
+	// a specialisation being taken on (`subject_specialization.subject_conversion_process`)
+	conversion: { progress: number; inProgress: boolean; done: boolean } | null;
+	stance: SubjectStance | null; // what the subject does, from its own country block
+	power: SubjectPower | null; // its numbers; the game shows only "Inferior / Equivalent / …"
+};
+
+/** Subject specialisations: each type's levels and the perks they bring (data DB `specialist_*`). */
+export type Specialists = {
+	types: Record<
+		string,
+		{
+			name: string;
+			preferredEthic: string | null;
+			levels: { level: number; xpNext: number | null; perks: string[] }[];
+		}
+	>;
+	perks: Record<
+		string,
+		{
+			name: string;
+			description: string | null;
+			main: boolean;
+			subject: Record<string, number>; // what the subject gets
+			overlord: Record<string, number>; // what the overlord gets
+		}
+	>;
+};
+
+/** A subject's (or our overlord's) own state, from its country block (READER 55). */
+export type SubjectStance = {
+	opinion: number | null; // its opinion of us (`relation_current` in its relation to us)
+	trust: number | null;
+	inBreach: boolean; // `is_in_breach_of_any`: of a Galactic Community resolution
+	policies: Record<string, string>; // policy → selected option (fleet doctrine, diplomatic stance, …)
+	wars: string[]; // the wars it fights, by name
+};
+
+/** A country's numbers as its block holds them (READER 55). */
+export type SubjectPower = {
+	military: number | null;
+	economy: number | null;
+	tech: number | null;
+	fleetSize: number | null;
+	navalUsed: number | null;
+	empireSize: number | null;
+	pops: number | null;
+	colonies: number; // `controlled_colonies`
+	victoryRank: number | null;
 };
 /**
  * Buildings one empire owns on another's colony (`colony.<id>.externally_owned_buildings = { {
@@ -952,8 +1055,32 @@ export type BranchSite = {
 /** What one side of a trade deal hands over: resources monthly or once, and anything else. */
 export type DealSide = { monthly: Resources; once: Resources; other: string[] };
 
+/** A contract's kind as the game files define it (data DB `contract`). */
+export type ContractType = {
+	name: string;
+	category: string; // e.g. resource_contract, science_contract_internal, crew_resource_contract_special
+	timeToAccept: number | null; // days an offer stays open
+};
+
 /**
- * A trade deal with another empire. UNVERIFIED shape — none seen in a save yet (see AGENTS.md):
+ * A Nomads contract (`missions.<id>` listed in `contracts.available|in_progress`), whoever issued
+ * it: who may see it is decided on read (#lib/contracts.ts), the save does not record it.
+ */
+export type Contract = {
+	id: number;
+	key: string; // `mission`, e.g. "contract_harvest_minerals" — data DB `contract.key`
+	issuer: number;
+	issuerName: string;
+	operator: number | null; // null: not accepted (4294967295); the issuer itself for internal ones
+	operatorName: string | null;
+	systemId: number | null; // `location = { type=4 id }`, a galactic object
+	state: 'offered' | 'active';
+	daysLeft: number | null; // an offer's days to accept
+	accepted: string | null; // accepted_date
+};
+
+/**
+ * A trade deal with another empire. UNVERIFIED shape — none seen in a save yet (see docs/save-format.md):
  * `raw` keeps the deal as the save wrote it, so the first one seen can be checked on /deals.
  */
 export type TradeDeal = {
@@ -1016,6 +1143,9 @@ export type GameData = {
 	buildDays: Record<string, number>; // districts, ship sizes, buildings: base days
 	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
 	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
+	shipParts: ShipParts; // ship sizes, sections, components (extractor 2026-11-09; empty before)
+	jobAutomation: JobAutomation; // automation buildings, automated jobs' upkeep (rates: extractor 2026-11-12)
+	starbaseParts: Record<string, StarbasePart>; // conditions and modifiers (extractor 2026-11-09)
 	growthModifiers: Record<string, Record<string, number>>;
 	starbaseSlots: Record<string, { modules: number; buildings: number }>;
 	resourceInfo: Record<
@@ -1126,6 +1256,7 @@ export type GameData = {
 	identityNames: Record<string, string>;
 	// resolutions, resolution categories, subject agreement terms, term values and presets by key
 	diploNames: Record<string, string>;
+	specialists: Specialists; // subject specialisations (extractor 0.1.16; empty before)
 	resolutionCategories: Record<string, string>; // resolution → its category key
 	resolutionGroups: Record<string, string>; // category → its group (commerce_industry, …)
 	// every resolution a category lists, in file order: what proposing it takes (#lib/proposable.ts)
@@ -1168,10 +1299,14 @@ export type GameData = {
 	};
 	traditionTrees: Record<
 		string,
-		{ name: string; traditions: { key: string; name: string; role: string }[] }
+		// color: '#rrggbb', the tree's colour in game; absent on a data DB from before it
+		{ name: string; color?: string; traditions: { key: string; name: string; role: string }[] }
 	>;
 	perks: Record<string, string>; // ascension perk names
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
+	setupScenarios: Record<string, Record<string, number>>; // galaxy size → save key → its default (`setup_scenario`, extractor 0.1.16)
+	// Nomads contracts by key (data DB `contract`, extractor 2026-11-07; {} with an older one)
+	contractTypes: Record<string, ContractType>;
 	// shipset → the ship kinds it builds (data DB `graphical_culture`): `uses_ship_category`
 	shipKinds: Record<string, string[]>;
 	// who can ever take a perk (`potential`) and what taking it needs (`possible`), normalised
@@ -1297,6 +1432,7 @@ export type ModInfo = {
 	updated: string | null; // ISO time of the workshop's last update (launcher-v2.sqlite timeUpdated)
 	file: string | null; // the descriptor's file name; null for a mod known only from the save
 	local: boolean; // a descriptor not written by the workshop (`ugc_<id>.mod`), e.g. a dev copy
+	path?: string | null; // the mod's folder (`path=`; relative to the user dir for some local mods), or an older mod's zip (`archive=`)
 };
 
 /** A mod's version as the dashboard saw it at one start (`mod_version` rows). */

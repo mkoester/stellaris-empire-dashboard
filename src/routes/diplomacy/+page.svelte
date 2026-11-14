@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ContractMarks from '#lib/ContractMarks.svelte';
 	import { colorOf, scaleColor } from '#lib/colors.ts';
 	import { CONTACT_KINDS, KIND_LABELS, kindTypes } from '#lib/contacts.ts';
 	import DiplomacyCircle from '#lib/DiplomacyCircle.svelte';
@@ -53,6 +54,7 @@
 	);
 	const ids = $derived(new Set(nodes.map((n) => n.id)));
 	const byId = $derived(new Map(nodes.map((n) => [n.id, n])));
+	const systemById = $derived(new Map(data.systems.map((s) => [s.id, s])));
 	const edges = $derived(
 		(d?.edges ?? []).filter(
 			(e) => ids.has(e.from) && ids.has(e.to) && !view.hiddenEdges.includes(e.kind)
@@ -617,6 +619,7 @@
 							</g>
 						{/if}
 					{/each}
+					<ContractMarks marks={data.contractMarks} {at} place={systemById} />
 				{/snippet}
 			</GalaxyMap>
 			{#if offMap.length}

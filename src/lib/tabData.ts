@@ -18,6 +18,10 @@ type Fields = Pick<
 	| 'anomalies'
 	| 'specialProjects'
 	| 'digSites'
+	| 'slaveMarket'
+	| 'traditions'
+	| 'contracts'
+	| 'countryId'
 >;
 
 /**
@@ -32,6 +36,18 @@ const CHECKS: {
 	has: (s: Fields) => boolean;
 }[] = [
 	{
+		tab: 'traditions',
+		why: 'no tradition tree adopted yet',
+		known: (s) => s.traditions !== null && s.traditions !== undefined,
+		has: (s) => (s.traditions ?? []).length > 0
+	},
+	{
+		tab: 'slave market',
+		why: 'nothing has been offered on the Slave Market yet',
+		known: (s) => s.slaveMarket !== null && s.slaveMarket !== undefined,
+		has: (s) => (s.slaveMarket ?? []).length > 0
+	},
+	{
 		tab: 'migration',
 		why: 'no pop has migrated into, out of or within your empire yet',
 		known: (s) => s.migration !== null && s.migration !== undefined,
@@ -44,6 +60,13 @@ const CHECKS: {
 		has: (s) => (s.tradeDeals ?? []).length > 0
 	},
 	{
+		tab: 'contracts',
+		why: 'no contract issued or taken by you yet',
+		known: (s) => s.contracts !== null && s.contracts !== undefined,
+		has: (s) =>
+			(s.contracts ?? []).some((c) => c.issuer === s.countryId || c.operator === s.countryId)
+	},
+	{
 		tab: 'galcom',
 		why: 'the Galactic Community has not formed yet',
 		// null both before it forms and from an older reader: the relations field tells them apart
@@ -52,9 +75,11 @@ const CHECKS: {
 	},
 	{
 		tab: 'shroud',
-		why: 'no access to the Shroud yet',
+		why: 'the Shroud not breached yet: no patron met',
 		known: (s) => s.relations !== null && s.relations !== undefined,
-		has: (s) => !!s.shroud
+		// every empire has the module and an attunement from the start: data only once it has met a
+		// patron (its first delve) — the tab shows no more than a point at (0, 0) before
+		has: (s) => (s.shroud?.patrons ?? []).some((p) => p.contact !== 'none')
 	},
 	{
 		tab: 'diplomacy',

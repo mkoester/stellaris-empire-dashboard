@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ContractMarks from '#lib/ContractMarks.svelte';
 	import Chart from '#lib/Chart.svelte';
 	import { fmt, nameOf, pretty } from '#lib/format.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
@@ -296,7 +297,11 @@
 			bind:selected={getSelected, setSelected}
 			bind:width
 			beside={table}
-		/>
+		>
+			{#snippet layer(at)}
+				<ContractMarks marks={data.contractMarks} {at} place={byId} />
+			{/snippet}
+		</GalaxyMap>
 		{#if width !== 'side'}{@render table()}{/if}
 	</Panel>
 

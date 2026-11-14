@@ -13,7 +13,11 @@ export function load({ url }) {
 	const { snaps, ...rest } = b;
 	const data = getGameData();
 	const last = snaps.findLast((s) => s.species !== null);
-	const species = last?.species ?? [];
+	// the founder species first, then by pops
+	const founder = last?.speciesByEmpire?.find((e) => e.countryId === last.countryId)?.founder;
+	const species = [...(last?.species ?? [])].sort(
+		(a, b) => Number(b.name === founder) - Number(a.name === founder) || b.pops - a.pops
+	);
 	const f = last ? facts(last, data.scriptedTriggers, { shipKinds: data.shipKinds }) : null;
 	return {
 		...rest,

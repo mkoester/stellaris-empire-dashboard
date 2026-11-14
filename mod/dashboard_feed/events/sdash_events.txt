@@ -516,3 +516,20 @@ ship_event = {
 		log = "SDASH|2|[GetDate]|event|system-entered|[From.GetName]"
 	}
 }
+
+# A pop group sold on the Slave Market: species, size, buyer, seller. Every sale, not only ours —
+# the market is public in game, who bought what is not, so the dashboard bars the buyer of other
+# empires' sales where it bars intel. The size goes through the buyer's variable sdash_ss
+# (pop_group_size, as vanilla's 13_fallen_empire_buildings.txt reads it), since loc reaches
+# country variables.
+pop_group_event = {
+	id = sdash.30
+	hide_window = yes
+	is_triggered_only = yes
+
+	immediate = {
+		export_trigger_value_to_variable = { trigger = pop_group_size variable = sdash_ss_tmp }
+		From = { set_variable = { which = sdash_ss value = prev.sdash_ss_tmp } }
+		log = "SDASH|2|[GetDate]|event|slave-sold|[Root.GetSpeciesName]|[From.sdash_ss]|[From.GetName]|[FromFrom.GetName]"
+	}
+}

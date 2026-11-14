@@ -8,6 +8,7 @@
 	import DistrictName from '#lib/DistrictName.svelte';
 	import ColonyStabilityRoom from '#lib/ColonyStabilityRoom.svelte';
 	import ColonyWellbeing from '#lib/ColonyWellbeing.svelte';
+	import ColonySpecies from '#lib/ColonySpecies.svelte';
 	import LuxuryGoods from '#lib/LuxuryGoods.svelte';
 	import ColonyLogistics from '#lib/ColonyLogistics.svelte';
 	import ColonyWhatIfs from '#lib/ColonyWhatIfs.svelte';
@@ -139,9 +140,14 @@
 	<!-- beside it while the colony is at the stability cap: what is spent there for nothing -->
 	<div class="grid items-start gap-x-4 lg:grid-cols-2">
 		<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
+		<ColonySpecies rows={data.species} />
 		<LuxuryGoods what={data.luxuries} until={data.luxuriesUntil} />
 		<ColonyLogistics what={data.logistics} />
-		<ColonyWhatIfs what={data.whatIfs} />
+		<ColonyWhatIfs
+			what={data.whatIfs}
+			automation={data.automation}
+			openJobs={data.colony?.openJobs ?? 0}
+		/>
 		{#if data.colony.stability >= data.wellbeing.maxStability}
 			<ColonyStabilityRoom
 				colony={data.colony}
@@ -187,12 +193,13 @@
 			rightFloor={10}
 		/>
 		<Chart
-			title="Pops"
+			title="Pops (growth)"
 			series={data.charts.popChange}
 			extent={data.xExtent}
 			events={planetEvents}
 			scope="colony"
 			right={POP_CHANGE_LINES}
+			rightLabel="pops /month"
 			rightFloor={5}
 		/>
 		<Chart
@@ -239,7 +246,13 @@
 			hints={data.blockerHints}
 			date={data.latest.date}
 		/>
-		<Districts districts={data.colony.districtList} names={data.names} colors={data.colors} />
+		<Districts
+			districts={data.colony.districtList}
+			names={{ ...data.details?.names, ...data.names }}
+			colors={{ ...data.details?.colors, ...data.colors }}
+			caps={Object.fromEntries((data.details?.caps.types ?? []).map((t) => [t.district, t.cap]))}
+			categories={data.buildingCategories}
+		/>
 	</div>
 	{#if data.details?.caps.types.some((t) => t.cap !== null && t.built < t.cap)}
 		<p class="mt-2 text-sm">

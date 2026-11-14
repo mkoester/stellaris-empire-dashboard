@@ -705,6 +705,19 @@ describe('focus rewards', () => {
 		expect(
 			tintOf('focus_reward', { reward: 'development_rewards_2' }, fdata as unknown as GameData)
 		).toBe('focus-development');
+		const trees = {
+			techs: {},
+			traditionTrees: {
+				tradition_expansion: {
+					name: 'Expansion',
+					color: '#2db071',
+					traditions: [{ key: 'tr_expansion_adopt', name: 'Expansion', role: 'adopt' }]
+				},
+				tradition_old: { name: 'Old', traditions: [{ key: 'tr_old_1', name: 'x', role: 'pick' }] }
+			}
+		};
+		expect(tintOf('tradition', { tradition: 'tr_expansion_adopt' }, trees)).toBe('#2db071');
+		expect(tintOf('tradition', { tradition: 'tr_old_1' }, trees)).toBeNull(); // an older data DB
 		const r = (n: number) => ({
 			kind: 'focus_reward',
 			target: { reward: `development_rewards_${n}` } as Target

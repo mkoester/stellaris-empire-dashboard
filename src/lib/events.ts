@@ -48,6 +48,7 @@ export type Upcoming = {
 		| 'expires' // a timed effect ends
 		| 'roll' // an envoy's or excavation's next roll
 		| 'idle' // something sits idle until busy again or dismissed (#lib/idle.ts)
+		| 'offer' // a planned tech among the research cards (#lib/techOffers.ts plannedOnOffer)
 		| 'fleet'; // a military fleet arrives
 	what: string;
 	detail: string;
@@ -63,7 +64,7 @@ export type Upcoming = {
 	queuedAfter?: number; // construction: items still waiting when this one is done
 	fleetId?: number; // civilian ship rows
 	sub?: string; // what to show as the kind, where finer than `kind` (ships: the ship type)
-	dismiss?: string; // a cooldown run out or something idle: the id to dismiss it by (`timedOut()`, `idles()`)
+	dismiss?: string; // a cooldown run out, something idle or a planned tech on offer: the id to dismiss it by (`timedOut()`, `idles()`, `plannedOnOffer()`)
 };
 
 // The galaxy setting "Difficulty Adjusted Technology Costs" (`technology_difficulty_scale`): "how

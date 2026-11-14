@@ -4,7 +4,7 @@ import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
 import { display, popWindow } from '#lib/server/settings.ts';
-import { colonyWhatIfs } from '#lib/server/whatIfs.ts';
+import { colonyAutomation, colonyWhatIfs } from '#lib/server/whatIfs.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
 import { colonyDaySeries, colonyPopSeries, colonySeries, xExtent } from '#lib/series.ts';
@@ -13,6 +13,7 @@ import { uncappedStability, wellbeingRules } from '#lib/wellbeing.ts';
 import { jobOutput, LUXURY_MODIFIER, luxuryWhatIf } from '#lib/luxuries.ts';
 import { heldOf, wellbeingLevers } from '#lib/wellbeingLevers.ts';
 import { colonyLogistics } from '#lib/server/logistics.ts';
+import { colonySpecies, enslavedPops, slaveryKeys } from '#lib/colonySpecies.ts';
 
 const pct = (v: number | null) => (v === null ? null : Math.round(v * 1000) / 10);
 
@@ -45,6 +46,8 @@ export function load({ url, params }) {
 			wellbeing
 		);
 	const colony = colonyAt(b.latest) ?? null;
+	const rights = getGameData().speciesRights;
+	const slavery = slaveryKeys(rights);
 	const { whatIfs } = display();
 	const save = b.snaps.findLast((s) => s.kind === 'save') ?? null;
 	// what could go to lower happiness or amenities, from the latest save (#lib/wellbeingLevers.ts)
@@ -67,6 +70,8 @@ export function load({ url, params }) {
 		colonies: b.latest.colonies.map((c) => ({ planetId: c.planetId, name: c.name })),
 		colony,
 		details: colonyDetails(colonyAt(b.latest), save),
+		// who lives here: pops per species and their citizenship, from the latest save
+		species: save && saved ? colonySpecies(saved, save, rights) : [],
 		blockerHints: colonyBlockerHints(
 			b.latest.colonies.filter((c) => c.planetId === planetId),
 			b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [],
@@ -83,6 +88,8 @@ export function load({ url, params }) {
 		// "Distribute Luxury Goods": what enacting it now would bring (#lib/luxuries.ts), or until when it runs
 		// the what-ifs (⚙, a spoiler): designations and planet decisions on this colony
 		whatIfs: colony && whatIfs ? colonyWhatIfs(b, colony) : null,
+		// …and district automation: the next automation building per job line (#lib/jobAutomation.ts)
+		automation: colony && whatIfs ? colonyAutomation(b, colony) : null,
 		luxuries:
 			colony && whatIfs
 				? luxuryWhatIf(
@@ -94,6 +101,12 @@ export function load({ url, params }) {
 					)
 				: null,
 		luxuriesUntil: colony?.planet?.modifiers.find((m) => m.key === LUXURY_MODIFIER)?.until ?? null,
+		// each building's data DB category, for its icon (#lib/icons/icons.ts)
+		buildingCategories: Object.fromEntries(
+			(colony?.districtList ?? [])
+				.flatMap((d) => d.zones.flatMap((z) => z.buildings))
+				.map((b) => [b, getGameData().buildingCategory[b] ?? null])
+		),
 		classNames: Object.fromEntries(
 			Object.entries(getGameData().planetClasses).map(([k, v]) => [k, v.name])
 		),
@@ -104,10 +117,12 @@ export function load({ url, params }) {
 		xExtent: xExtent(snaps),
 		charts: {
 			// the saves' months, and between them the days the mod logged a change (0.9.0)
-			pops: colonyDaySeries(snaps, planetId, named ? colonyAt(named)!.name : '', (c) => ({
+			pops: colonyDaySeries(snaps, planetId, named ? colonyAt(named)!.name : '', (c, s) => ({
 				pops: c.pops,
 				employed: c.employed,
 				civilians: c.civilians,
+				// enslaved pops work ordinary jobs: part of employed or civilians (#lib/colonySpecies.ts)
+				enslaved: enslavedPops(c, s, slavery),
 				// enforcer posts left to crime automation do not count, as in the colony table
 				open: openJobs(c).open
 			})),
@@ -118,7 +133,8 @@ export function load({ url, params }) {
 				stability: (c) => c.stability,
 				'over 100': (c) => {
 					const u = uncapped(c);
-					return u !== null && u > wellbeing.maxStability ? u - wellbeing.maxStability : null;
+					// 0 at or under the cap; unknown (null) without the mod's reading
+					return u === null ? null : Math.max(0, u - wellbeing.maxStability);
 				}
 			}),
 			// last month's change in pops by cause (growth, immigration, emigration, …) and net

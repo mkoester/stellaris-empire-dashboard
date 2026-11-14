@@ -73,7 +73,8 @@ const EVENT_FIELDS: Record<LogEvent['kind'], number> = {
 	'leader-hired': 1, // leader
 	'colonization-started': 1, // planet
 	'megastructure-started': 1, // system
-	'system-entered': 1 // mod 0.10.0: the system a ship of ours entered first
+	'system-entered': 1, // mod 0.10.0: the system a ship of ours entered first
+	'slave-sold': 4 // mod 0.12.0: species, pops sold, buyer, seller (every sale in the galaxy)
 };
 
 /**
@@ -248,6 +249,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		logEvents: m.events,
 		ticks: m.ticks,
 		multiplayer: m.multiplayer,
+		players: null,
 		countryId: null,
 		empireName: '',
 		pops: null,
@@ -277,9 +279,11 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		traderEnclaves: null,
 		techQueued: null,
 		techPermanent: null,
+		techKept: null,
 		techStored: null,
 		score: null,
 		fleets: null,
+		designs: null,
 		idleLeaders: null,
 		traditions: null,
 		ascensionPerks: null,
@@ -318,6 +322,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		shroud: null,
 		warLostDate: null,
 		tradeDeals: null,
+		contracts: null,
 		gameVersion: null,
 		dlcs: null,
 		mods: null,
@@ -352,7 +357,9 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		external: null,
 		branchSites: null,
 		history: null,
-		speciesRights: null
+		speciesRights: null,
+		slaveMarket: null,
+		slaveTradeBans: null
 	};
 }
 

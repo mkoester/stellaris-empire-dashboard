@@ -265,6 +265,32 @@ describe('colonyDaySeries', () => {
 			'open jobs': [7, 391, 240, 7, null]
 		});
 	});
+
+	it('draws enslaved pops from the saves alone, only where there are any', () => {
+		const col = (pops: number) => ({
+			planetId: 1,
+			name: 'Hesuk Prime',
+			pops,
+			employed: 0,
+			civilians: 0
+		});
+		const day = { 'Hesuk Prime': { pops: 4800, unemployed: 0, openJobs: 0 } };
+		const h = [
+			{ date: '2200.07.01', colonies: [col(4700)] },
+			{
+				date: '2200.08.01',
+				colonies: [col(4738)],
+				ticks: [{ date: '2200.07.15', stockpile: {}, colonies: day }]
+			}
+		] as unknown as Snapshot[];
+		const at = (enslaved: number) => (c: Colony) => ({ ...c, open: 0, enslaved });
+		expect(colonyDaySeries(h, 1, 'Hesuk Prime', at(1600)).lines['of which enslaved']).toEqual([
+			1600,
+			null,
+			1600
+		]);
+		expect(colonyDaySeries(h, 1, 'Hesuk Prime', at(0)).lines['of which enslaved']).toBeUndefined();
+	});
 });
 
 describe('agendaSeries', () => {

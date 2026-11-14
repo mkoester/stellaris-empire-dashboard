@@ -59,6 +59,7 @@ export type Milestone = {
 	kind: EventKind;
 	label: string;
 	planetId?: number; // colony events: the planet, so colony pages show only their own
+	ref?: string; // its popup (`tech:<key>`), fetched on hover by the event lists
 	// Galactic Community events in parts, for the resolution's popup and the empire's colour:
 	// "<action>: <resolution> (by <by>)"
 	galcom?: { action: string; resolution: string; by?: string };
@@ -231,7 +232,8 @@ const DETECTORS = [
 		(a, b, names) =>
 			added(a, b).map((k) => ({
 				kind: 'research' as const,
-				label: `researched: ${names.techs[k]?.name ?? pretty(k)}`
+				label: `researched: ${names.techs[k]?.name ?? pretty(k)}`,
+				ref: `tech:${k}`
 			}))
 	),
 	field(

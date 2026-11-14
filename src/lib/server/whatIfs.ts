@@ -1,3 +1,10 @@
+import {
+	automationBarred,
+	automationOptions,
+	perEnergy,
+	zoneNeeded,
+	type AutomationOption
+} from '#lib/jobAutomation.ts';
 import { jobOutput } from '#lib/luxuries.ts';
 import type { GroupFlows } from '#lib/produce.ts';
 import { isCapital } from '#lib/colonyLogistics.ts';
@@ -187,4 +194,66 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 			];
 		});
 	return { designations, decisions };
+}
+
+export type AutomationWhatIf = AutomationOption & {
+	queued: boolean; // in the colony's build queue already
+	techNames: Record<string, string>; // the missing techs' names
+	zoneFirst: string[] | null; // names of the districts that need a zone first (#lib/jobAutomation.ts zoneNeeded)
+};
+
+export type ColonyAutomation = {
+	barred: 'tankbound' | 'wilderness' | null; // why the empire builds none
+	options: AutomationWhatIf[];
+};
+
+/**
+ * One colony's district automation what-ifs (#lib/jobAutomation.ts): the next automation building
+ * of each line its jobs allow, on its job rows (measured output) and every building it has.
+ */
+export function colonyAutomation(b: Branch, colony: Colony): ColonyAutomation {
+	const data = getGameData();
+	const who = b.latest.government ? b.latest : (b.snaps.findLast((s) => s.government) ?? b.latest);
+	const barred = automationBarred(who.government, who.origin);
+	if (barred) return { barred, options: [] };
+	const researched = b.snaps.findLast((s) => s.progress)?.progress?.researched ?? [];
+	const queued = colony.buildQueue.filter((q) => q.kind === 'building').map((q) => q.name);
+	const options = automationOptions(
+		(b.jobs[colony.planetId] ?? []).map((j) => {
+			const own = data.jobResources[j.type]?.produces;
+			return own ? { ...j, produces: Object.keys(own) } : j;
+		}),
+		colony.districtList.flatMap((d) => d.zones.flatMap((z) => z.buildings)),
+		researched,
+		data.costs.building,
+		data.jobAutomation
+	).map((o) => ({
+		...o,
+		queued: queued.includes(o.key),
+		zoneFirst:
+			zoneNeeded(
+				o.steps.map((s) => s.job),
+				colony.districtList,
+				data.districtJobs
+			)?.map((d) => data.names[d] ?? d) ?? null,
+		techNames: Object.fromEntries((o.missing ?? []).map((t) => [t, data.techs[t]?.name ?? t]))
+	}));
+	return { barred: null, options };
+}
+
+export type AutomationRank = { planetId: number; colony: string; option: AutomationWhatIf };
+
+/**
+ * Where an automation building takes over or adds the most workforce per energy a month, over
+ * every colony — those the empire can build now (techs researched or unknown), not queued.
+ */
+export function automationRanking(b: Branch, top = 10): AutomationRank[] {
+	return b.latest.colonies
+		.flatMap((c) =>
+			colonyAutomation(b, c)
+				.options.filter((o) => !o.queued && !o.missing?.length)
+				.map((option) => ({ planetId: c.planetId, colony: c.name, option }))
+		)
+		.sort((x, y) => perEnergy(y.option) - perEnergy(x.option))
+		.slice(0, top);
 }

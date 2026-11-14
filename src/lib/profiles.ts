@@ -6,6 +6,8 @@ import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from '
 import { anyOn } from './displaySwitches.ts';
 import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
+import { DEFAULT_CONTRACT_VIEW, parseContractView, type ContractView } from './contracts.ts';
+import { DEFAULT_STARBASE_VIEW, parseStarbaseView, type StarbaseView } from './starbases.ts';
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
 import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
 import { DEFAULT_POP_WINDOW, parsePopWindow, type PopWindow } from './popWindow.ts';
@@ -19,9 +21,18 @@ import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from '.
 
 export const ROW_LINES = { thin: 1, medium: 2, thick: 4 } as const; // px
 export type RowLine = keyof typeof ROW_LINES;
+// The slave market tab for an empire that does not allow slavery (one that does always sees it):
+// only while a species we give full citizenship is for sale, always, or never.
+export const SLAVE_MARKET_MODES = {
+	mine: 'only when our citizens are for sale',
+	all: 'always',
+	hide: 'never'
+} as const;
+export type SlaveMarketMode = keyof typeof SLAVE_MARKET_MODES;
 export type Display = {
 	colonyRowLine: RowLine;
 	expansionRowLine: RowLine;
+	slaveMarket: SlaveMarketMode; // the slave market tab where slavery is not allowed
 	showSpoilers: boolean; // ⚙ lists the spoiler switches; off, they are off (#lib/displaySwitches.ts)
 	showCheats: boolean; // likewise the cheats
 	habitatsAlways: boolean; // habitat sites before habitats can be built (cheat)
@@ -44,12 +55,16 @@ export type Display = {
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, whatever our intel (cheating)
 	historyAll: boolean; // history tab: every empire's history, whatever we know (cheat)
 	pactIntel: boolean; // pacts tab: what intel shows of partners — tech counts, trade at economy intel 3 (spoiler)
+	subjectNumbers: boolean; // subjects tab: a subject's power, fleet, size and pops as numbers (cheat)
 	pactAll: boolean; // pacts tab: partners' techs and trade whatever our intel, tech hints (cheat)
+	contractSpoilers: boolean; // contracts: offers from issuers we do not talk to (nomad), others' near our border (settled) (spoiler)
+	contractsAll: boolean; // contracts: every contract in the galaxy (cheat)
 	whatIfs: boolean; // ≈ what an edict, policy, designation or planet decision would do now (spoiler)
 };
 export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
 	expansionRowLine: 'medium',
+	slaveMarket: 'mine',
 	showSpoilers: false,
 	showCheats: false,
 	habitatsAlways: false,
@@ -73,7 +88,10 @@ export const DEFAULT_DISPLAY: Display = {
 	diplomacyAll: false,
 	historyAll: false,
 	pactIntel: false,
-	pactAll: false
+	subjectNumbers: false,
+	pactAll: false,
+	contractSpoilers: false,
+	contractsAll: false
 };
 
 export type ProfileSettings = {
@@ -85,6 +103,8 @@ export type ProfileSettings = {
 	diplomacyView: DiplomacyView;
 	migrationView: MigrationView;
 	megastructureView: MegaView;
+	contractView: ContractView;
+	starbaseView: StarbaseView;
 	systemView: SystemView;
 	produceView: ProduceView;
 	mapFilter: MapFilter;
@@ -103,6 +123,8 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	diplomacyView: DEFAULT_DIPLOMACY_VIEW,
 	migrationView: DEFAULT_MIGRATION_VIEW,
 	megastructureView: DEFAULT_MEGA_VIEW,
+	contractView: DEFAULT_CONTRACT_VIEW,
+	starbaseView: DEFAULT_STARBASE_VIEW,
 	systemView: DEFAULT_SYSTEM_VIEW,
 	produceView: DEFAULT_PRODUCE_VIEW,
 	quadrants: DEFAULT_QUADRANT_VIEW,
@@ -120,6 +142,10 @@ export function parseDisplay(v: unknown): Display {
 	return {
 		colonyRowLine: line('colonyRowLine'),
 		expansionRowLine: line('expansionRowLine'),
+		slaveMarket:
+			o.slaveMarket && o.slaveMarket in SLAVE_MARKET_MODES
+				? o.slaveMarket
+				: DEFAULT_DISPLAY.slaveMarket,
 		// a profile from before the gates keeps what it had on
 		showSpoilers: typeof o.showSpoilers === 'boolean' ? o.showSpoilers : anyOn(o, 'spoiler'),
 		showCheats: typeof o.showCheats === 'boolean' ? o.showCheats : anyOn(o, 'cheat'),
@@ -144,7 +170,10 @@ export function parseDisplay(v: unknown): Display {
 		diplomacyAll: o.diplomacyAll === true,
 		historyAll: o.historyAll === true,
 		pactIntel: o.pactIntel === true,
-		pactAll: o.pactAll === true
+		subjectNumbers: o.subjectNumbers === true,
+		pactAll: o.pactAll === true,
+		contractSpoilers: o.contractSpoilers === true,
+		contractsAll: o.contractsAll === true
 	};
 }
 
@@ -160,6 +189,8 @@ export function parseSettings(v: unknown): ProfileSettings {
 		diplomacyView: parseDiplomacyView(o.diplomacyView),
 		migrationView: parseMigrationView(o.migrationView),
 		megastructureView: parseMegaView(o.megastructureView),
+		contractView: parseContractView(o.contractView),
+		starbaseView: parseStarbaseView(o.starbaseView),
 		systemView: parseSystemView(o.systemView),
 		produceView: parseProduceView(o.produceView),
 		mapFilter: parseMapFilter(o.mapFilter),

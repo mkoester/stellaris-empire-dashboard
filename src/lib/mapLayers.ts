@@ -14,6 +14,7 @@ import type {
 	Wanderlust
 } from './types.ts';
 import { entryTitles, type SystemEntry } from './systemEvents.ts';
+import { contractLine, type ContractRow } from './contracts.ts';
 import { counted, wanderlustName } from './wanderlust.ts';
 
 // What the map tab draws on top of the galaxy — what the empire has discovered — each layer a
@@ -33,6 +34,7 @@ export const MAP_LAYERS = [
 	'ruins',
 	'wanderlust',
 	'systemEvents',
+	'contracts',
 	'planned'
 ] as const;
 export type MapLayer = (typeof MAP_LAYERS)[number];
@@ -53,6 +55,8 @@ export const LAYER_INFO: Record<MapLayer, { label: string; symbol: string; color
 	wanderlust: { label: 'Wanderlust targets', symbol: '⚑', color: '#1baf7a' },
 	// the events tab's colour for them (colors.ts `system-event`)
 	systemEvents: { label: 'system entry events', symbol: '!', color: '#c64fb5' },
+	// Nomads contracts the player may see (#lib/contracts.ts); our own symbol, not the game's icon
+	contracts: { label: 'contracts', symbol: '¤', color: '#c9822b' },
 	// the planner's goals tied to a system (#lib/planner/kinds.ts)
 	planned: { label: 'planned goals', symbol: '◆', color: '#0e8fd0' }
 };
@@ -381,4 +385,28 @@ export function mapMarkers(p: {
 	const told = new Set(out.filter((m) => TELLS_ENTRY.includes(m.layer)).map((m) => m.systemId));
 	for (const m of out) if (m.layer === 'systemEvents' && told.has(m.systemId)) m.done = true;
 	return out.filter((m) => shown.has(m.systemId));
+}
+
+/** The contracts layer: one marker per contract at its system (#lib/contracts.ts). */
+export function contractMarkers(rows: ContractRow[]): Omit<MapMarker, 'id'>[] {
+	return rows.flatMap((r) =>
+		r.systemId === null
+			? []
+			: [
+					{
+						layer: 'contracts' as const,
+						systemId: r.systemId,
+						label: `${r.name} (contract)`,
+						detail: contractLine(r),
+						ongoing: r.state === 'active',
+						progress:
+							r.state === 'offered'
+								? r.daysLeft === null
+									? 'offered'
+									: `offered, ${r.daysLeft} days to accept`
+								: `taken${r.accepted ? ` ${r.accepted}` : ''}`,
+						done: false
+					}
+				]
+	);
 }

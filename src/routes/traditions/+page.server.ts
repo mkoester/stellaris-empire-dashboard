@@ -40,6 +40,7 @@ export function load({ url }) {
 			.map(([key, t]) => ({
 				key,
 				name: t.name,
+				color: t.color,
 				// adopting it is its `adopt` tradition: the planner's goal for the tree
 				adopt: t.traditions.find((x) => x.role === 'adopt')?.key ?? null
 			})),

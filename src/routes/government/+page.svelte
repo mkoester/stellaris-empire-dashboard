@@ -190,11 +190,12 @@
 {#snippet edictName(r: EdictRow)}
 	<InfoPopup explanation={data.explain[`edict:${r.key}`]}>{r.name}</InfoPopup>{#if !r.unlocked}<span
 			class="text-gray-500"
-			title={r.needs.length
-				? `needs ${r.needs.map((t) => data.techNames[t] ?? t).join(', ')}`
-				: 'needs a tradition or perk first'}
+			title={r.needs.length ? undefined : 'needs a tradition or perk first'}
 		>
-			🔒</span
+			🔒{#if r.needs.length}
+				needs {#each r.needs as t, i (t)}{i ? ', ' : ''}<InfoPopup ref="tech:{t}"
+						>{data.techNames[t] ?? t}</InfoPopup
+					>{/each}{/if}</span
 		>{/if}
 {/snippet}
 {#snippet edictLength(r: EdictRow)}

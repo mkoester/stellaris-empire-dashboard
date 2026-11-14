@@ -1,4 +1,5 @@
 <script lang="ts">
+	import InfoPopup from '#lib/InfoPopup.svelte';
 	import Chart from '#lib/Chart.svelte';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import { fmt, pretty } from '#lib/format.ts';
@@ -207,7 +208,7 @@
 							(p) => p.known && p.thisMonth.some((m) => m.tech === cur.tech)
 						)}
 						<tr>
-							<td class="p-1">{cur.name}</td>
+							<td class="p-1"><InfoPopup ref="tech:{cur.tech}">{cur.name}</InfoPopup></td>
 							<td class="p-1">{cur.area}</td>
 							<td class="p-1"
 								>{#each by as p, i (p.countryId)}{i ? ', ' : ''}<EmpireName
@@ -271,7 +272,7 @@
 									<ul>
 										{#each p.ours.techs as t (t.key)}
 											<li class={t.inReach ? '' : 'text-gray-500'}>
-												{t.name}
+												<InfoPopup ref="tech:{t.key}">{t.name}</InfoPopup>
 												<span class="text-xs"
 													>({t.area}, {t.cost ? fmt(t.cost) : 'cost unknown'}{t.inReach
 														? ', in reach'
@@ -309,7 +310,11 @@
 					<tbody>
 						{#each r.hints as h (h.key)}
 							<tr>
-								<td class="p-1">{h.name}{h.offered ? ' · on offer' : ''}</td>
+								<td class="p-1"
+									><InfoPopup ref="tech:{h.key}">{h.name}</InfoPopup>{h.offered
+										? ' · on offer'
+										: ''}</td
+								>
 								<td class="p-1">{h.area}</td>
 								<td class="p-1 text-right">{fmt(h.saved)}</td>
 								<td class="p-1"

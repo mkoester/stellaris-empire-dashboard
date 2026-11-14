@@ -25,7 +25,8 @@
 			id: 'order',
 			label: '#',
 			value: (r) => r.order,
-			title: "the launcher's load order as of the last game start (dlc_load.json); later mods win"
+			title:
+				"the active playset's load order (dlc_load.json, rewritten on every playset edit); later mods win"
 		},
 		{ id: 'name', label: 'Mod', value: (r) => r.name, cell: name },
 		{ id: 'version', label: 'Version', value: (r) => r.version },
@@ -50,6 +51,14 @@
 			cell: age,
 			right: true,
 			title: 'since the last workshop update, today'
+		},
+		{
+			id: 'data',
+			label: 'In data',
+			value: (r) => (data.dataMods ? yesNo(data.dataMods.includes(r.name)) : null),
+			cell: inData,
+			title:
+				"in this game's game data, extracted with its latest save's mods: what the mod adds or changes is known (names, modifiers, slots)"
 		},
 		{
 			id: 'active',
@@ -105,6 +114,11 @@
 		>{/if}
 {/snippet}
 {#snippet age(r: Row)}{r.age === null ? '' : ageLabel(r.age)}{/snippet}
+{#snippet inData(r: ModRow)}{data.dataMods === null
+		? '?'
+		: data.dataMods.includes(r.name)
+			? '✓'
+			: '–'}{/snippet}
 {#snippet active(r: ModRow)}{r.active === null ? '?' : r.active ? '✓' : '–'}{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -116,10 +130,48 @@
 	{#if data.seenAt}{count} active in the save of {data.seenAt}{data.gameVersion
 			? ` (${data.gameVersion})`
 			: ''}.{:else}No save read since the mod list was added; it shows after the next one.{/if}
-	Installed mods come from the launcher's descriptors in the Stellaris user folder; # is the load order
-	the launcher wrote when it last started the game (a change in the launcher since shows after the next
-	start).
+	Installed mods come from the launcher's descriptors in the Stellaris user folder; # is the active playset's
+	load order, as the launcher last wrote it (it does on every playset edit).
 </p>
+
+<p class="mb-4 max-w-3xl text-sm text-gray-500">
+	{#if data.dataState?.extracting}The game data with this game's {data.dataState.mods} mods is being extracted;
+		until then the page shows other data.{:else if data.dataMods === null}The game data comes from
+		an extractor without mod support: what mods add shows as raw keys.{:else if data.dataMods.length === 0}The
+		game data is the game's own, without mods.{:else}The game data includes the {data.dataMods
+			.length} mods of this game's latest save, in load order — what they add or change (designations,
+		districts, traditions, traits, slots) is known.{/if}
+	{#if data.dataState?.source?.kind === 'remembered'}The order is the one seen while this game was
+		played.
+	{:else if data.dataState?.source?.kind === 'launch'}The order is the active playset's.
+	{:else if data.dataState?.source?.kind === 'playset'}The order is the playset “{data.dataState
+			.source.name}”'s{data.dataState.source.exact
+			? ', which holds exactly these mods.'
+			: ' — the one closest to these mods (the save names mods but not their order); mods it lacks come last, alphabetically.'}{/if}
+</p>
+{#if data.dataState?.source?.kind === 'guessed'}
+	<p class="mb-4 max-w-3xl text-sm text-amber-600">
+		⚠ No playset holds any of this save's mods, so their load order is a guess (alphabetical). Where
+		two mods change the same thing, the data may hold the other one's version — a playset with these
+		mods fixes it.
+	</p>
+{/if}
+{#if data.dataState?.missing.length}
+	<p class="mb-4 max-w-3xl text-sm text-amber-600">
+		⚠ Not installed as a mod folder, so not in the game data: {data.dataState.missing.join(', ')}.
+	</p>
+{/if}
+{#if data.dataMismatch && (data.dataMismatch.missing.length || data.dataMismatch.extra.length)}
+	<p class="mb-4 max-w-3xl text-sm text-amber-600">
+		⚠ The save's mods differ from the game data's{data.dataMismatch.missing.length
+			? ` — not in the data: ${data.dataMismatch.missing.join(', ')}`
+			: ''}{data.dataMismatch.extra.length
+			? ` — in the data, not active: ${data.dataMismatch.extra.join(', ')}`
+			: ''}{data.dataState?.extracting
+			? ' — its own data is being extracted.'
+			: '. Its extraction may have failed: the log says why.'}
+	</p>
+{/if}
 
 <div class="mb-4 flex flex-wrap items-center gap-4 text-sm">
 	<label class="flex items-center gap-1"

@@ -1,4 +1,5 @@
 import {
+	campaignDataState,
 	campaignsOnDisk,
 	dataVersion,
 	getDb,
@@ -19,6 +20,7 @@ import {
 	nodes
 } from '#lib/server/db.ts';
 import { difficultyLabel } from '#lib/events.ts';
+import { difficulties, difficultyCard } from '#lib/server/difficulty.ts';
 import {
 	activeProfile,
 	chartEvents,
@@ -31,6 +33,7 @@ import {
 import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
 import { settleTab } from '#lib/server/settle.ts';
+import { slaveTab } from '#lib/server/slaveTab.ts';
 import { emptyTabsAt } from '#lib/server/tabData.ts';
 import { galaxyRings } from '#lib/server/quadrants.ts';
 import type { QuadrantView } from '#lib/quadrants.ts';
@@ -49,6 +52,7 @@ export function load({ url }) {
 			campaign: null,
 			gone: [],
 			tradeoffs: false,
+			slaveMarket: false,
 			loaded: null,
 			feed: null,
 			head: null,
@@ -89,6 +93,8 @@ export function load({ url }) {
 		gone: askGone(db, campaignsOnDisk()),
 		// the exploratory trade-offs tab, a display switch
 		tradeoffs: display().tradeoffs,
+		// the slave market tab: where slavery is allowed, else as ⚙ says
+		slaveMarket: slaveTab(shownNode(), display().slaveMarket),
 		loaded: loadedNode ? { node: loadedNode.id, date: loadedNode.date } : null,
 		// the companion mod writes a log format this build skips: which side to update
 		feed: (() => {
@@ -110,15 +116,24 @@ export function load({ url }) {
 		})(),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
+		// the viewed campaign's own game data (its mods) still being extracted: pages show older data
+		extracting: (() => {
+			const d = campaignDataState();
+			return d?.extracting ? { mods: d.mods } : null;
+		})(),
 		// the game being played: its latest save, and its latest data (a save, month or daily tick)
 		dates: (() => {
 			const head = headId(db);
 			const node = head === null ? undefined : nodes(db).find((n) => n.id === head);
 			return node
 				? {
-						difficulty: (() => {
+						...(() => {
 							const d = campaignDifficulty(db, node.campaign);
-							return d && difficultyLabel(d);
+							const card = d && difficulties(d.scale).find((x) => x.key === d.difficulty);
+							return {
+								difficulty: d && difficultyLabel(d.difficulty),
+								difficultyCard: card ? difficultyCard(card) : null
+							};
 						})(),
 						save: latestSaveDate(db, node.campaign),
 						data: lastDataDate(node.date),

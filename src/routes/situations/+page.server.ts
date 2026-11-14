@@ -1,3 +1,4 @@
+import { contractMarksAt } from '#lib/server/contracts.ts';
 import { error } from '@sveltejs/kit';
 import { contactRows, mapView, situationRows, stationOwners } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
@@ -32,6 +33,7 @@ export function load({ url }) {
 	return {
 		...rest,
 		territories,
+		contractMarks: contractMarksAt(snaps, opts),
 		seen: seenRows(mergeSightings(snaps), territories, system),
 		seenAt: s?.date ?? null,
 		opts,

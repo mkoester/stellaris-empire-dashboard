@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatSetting, readSetup, setupGroups } from './galaxySetup.ts';
+import { defaultOf, formatSetting, readSetup, setupGroups } from './galaxySetup.ts';
 
 // part of a 4.5.3 save's `galaxy` block (Roaming Korinth, 2207.02.01)
 const RAW = {
@@ -65,8 +65,42 @@ describe('setupGroups', () => {
 			['Galaxy Shape', 'Elliptical']
 		]);
 		expect(groups.find((g) => g.title === 'Precursors')!.rows[0].value).toBe('precursor_3, Baol');
-		expect(groups.at(-1)!.rows).toEqual([
-			{ key: 'core_radius', label: 'Core radius', value: '112.5' }
+		expect(groups.at(-1)!.rows).toMatchObject([
+			{ key: 'core_radius', label: 'Core radius', value: '112.5', default: null, changed: false }
 		]);
+	});
+
+	// 4.5.4: data DB `setup_scenario` (large) and the defines
+	const defaults = {
+		scenarios: { large: { num_empires: 12, crises: 1.25 } },
+		defines: { GROWTH_SCALE_DEFAULT: 0.25, MID_GAME_START_DEFAULT: 100 }
+	};
+	const rows = () => setupGroups(readSetup(RAW)!, {}, defaults).flatMap((g) => g.rows);
+	const row = (key: string) => rows().find((r) => r.key === key)!;
+	it('marks what differs from the default of its galaxy size', () => {
+		expect(row('num_empires')).toMatchObject({ changed: true, default: '12', assumed: false });
+		expect(row('crises')).toMatchObject({ changed: false, default: '×1.25' });
+		expect(row('growth_scale')).toMatchObject({ changed: false });
+		expect(row('mid_game_start')).toMatchObject({ changed: false });
+	});
+	it('takes the engine’s defaults as assumed, booleans as yes/no', () => {
+		expect(row('difficulty')).toMatchObject({ changed: true, assumed: true });
+		expect(row('ironman')).toMatchObject({ changed: false, assumed: true });
+		expect(row('lgate_enabled')).toMatchObject({ changed: false });
+		expect(row('shape')).toMatchObject({ default: null, changed: false });
+	});
+});
+
+describe('defaultOf', () => {
+	it('reads the cosmic storms’ caps by galaxy size', () => {
+		const d = {
+			scenarios: {},
+			defines: { COSMIC_STORM_MID_GAME_SPAWN_MAX_CAP_DEFAULT_MEDIUM_GALAXY: 5 }
+		};
+		expect(defaultOf('cosmic_storm_mid_game_spawn_max_cap', 'medium', d)).toEqual({
+			value: 5,
+			assumed: false
+		});
+		expect(defaultOf('cosmic_storm_mid_game_spawn_max_cap', 'huge', d)).toBeNull();
 	});
 });

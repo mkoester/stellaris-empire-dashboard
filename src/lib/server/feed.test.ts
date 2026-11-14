@@ -114,6 +114,22 @@ describe('parseLine', () => {
 		});
 	});
 
+	it('reads a Slave Market sale (mod 0.12.0)', () => {
+		// as logged in Fangnaur 2200.07.01 (4.5.3): species, pops, buyer, seller
+		expect(
+			parseLine(
+				'[11:25:05][effect_impl.cpp:22232]: [2200.7.1] Log effect, file: events/sdash_events.txt line: 533. SDASH|2|2200.07.01|event|slave-sold|Quenti|100|Roaming Beldroan|Enlightened Kingdom of Fangnaur'
+			)
+		).toEqual({
+			kind: 'event',
+			event: {
+				date: '2200.07.01',
+				kind: 'slave-sold',
+				fields: ['Quenti', '100', 'Roaming Beldroan', 'Enlightened Kingdom of Fangnaur']
+			}
+		});
+	});
+
 	it('skips a newer mod\'s event kinds, refuses wrong field counts (a "|" in a name)', () => {
 		expect(parseLine('SDASH|2|2201.03.07|event|nonsense|x')).toBeNull();
 		expect(() => parseLine('SDASH|2|2201.03.07|event|colony-jobs|New|Hope|1|2|3')).toThrow(

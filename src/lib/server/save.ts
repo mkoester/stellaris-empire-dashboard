@@ -3,6 +3,7 @@ import { readSetup } from '#lib/galaxySetup.ts';
 import { Jomini } from 'jomini';
 import type {
 	Arkship,
+	SlaveOffer,
 	BranchSite,
 	ExternalBuildings,
 	BudgetSource,
@@ -37,12 +38,14 @@ import type {
 	Market,
 	MarketOrder,
 	ShipCount,
+	ShipDesign,
 	Stratum,
 	Progress,
 	QueueItem,
 	Resources,
 	DealSide,
 	TradeDeal,
+	Contract,
 	War,
 	WarSides,
 	Subject,
@@ -78,7 +81,7 @@ import {
 
 // Save → Snapshot. `querySave` is the only part touching jomini; everything after it is pure and
 // takes plain objects, so it is unit-tested against hand-written fixtures.
-// Paths into the gamestate are documented in AGENTS.md ("Save format facts").
+// Paths into the gamestate are documented in docs/save-format.md.
 
 // jomini returns untyped JS values; this is the subset of the gamestate we read.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,7 +105,7 @@ export type RawSave = {
 	bypasses: Record<string, Raw>; // wormholes, gateways, L-Gates, … (#lib/galaxyGraph.ts)
 	naturalWormholes: Record<string, Raw>;
 	globalFlags: Record<string, Raw>; // top-level `flags`
-	multiplayer: boolean; // the top-level `player` block, `multiplayerPlayers()`
+	players: number; // the top-level `player` block's entries, `playerCount()`
 	countryNames: Record<string, string>; // owners of colonised planets
 	empireName: string;
 	meta: { version: string | null; dlcs: string[]; mods: string[] }; // the save's `meta` file
@@ -122,6 +125,9 @@ export type RawSave = {
 	market: Raw; // market: price fluctuations, galactic and internal
 	popJobs: Record<string, Raw>; // top-level pop_jobs, referenced from colony.pop_jobs
 	popGroups: Record<string, Raw>; // top-level pop_groups, referenced from colony.pop_groups
+	slaveMarket: Raw; // slave_market_manager.slaves_on_market
+	missions: Record<string, Raw>; // top-level missions: contracts and situation-log missions
+	contractIds: Raw; // top-level contracts: { available in_progress }
 	fleets: Record<string, Raw>;
 	ships: Record<string, Raw>;
 	shipDesigns: Record<string, Raw>;
@@ -251,6 +257,9 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			},
 			popJobs: q.at('/pop_jobs') ?? {},
 			popGroups: q.at('/pop_groups') ?? {},
+			slaveMarket: q.at('/slave_market_manager/slaves_on_market'),
+			missions: q.at('/missions') ?? {},
+			contractIds: q.at('/contracts'),
 			fleets: q.at('/fleet') ?? {},
 			ships: q.at('/ships') ?? {},
 			shipDesigns: q.at('/ship_design') ?? {},
@@ -277,7 +286,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 			bypasses: q.at('/bypasses') ?? {},
 			naturalWormholes: q.at('/natural_wormholes') ?? {},
 			globalFlags: q.at('/flags') ?? {},
-			multiplayer: multiplayerPlayers(q.at('/player'), q.at('/galaxy')?.ironman),
+			players: playerCount(q.at('/player')),
 			// the whole setup block: the cost sliders here, every setting for the galaxy tab
 			galaxy: q.at('/galaxy') ?? {},
 			councilPositions: q.at('/council_positions/council_positions') ?? {},
@@ -293,7 +302,7 @@ export async function readSave(zip: Uint8Array): Promise<RawSave> {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '48'; // 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '56'; // 56: the save's player count (multiplayer only from two players); 55: subjects' renegotiation dates, stance and numbers; 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 	const budget = raw.country?.budget?.current_month ?? {};
@@ -342,6 +351,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			military: num(raw.country?.military_power)
 		},
 		fleets: militaryFleets(raw),
+		designs: shipDesigns(raw),
 		idleLeaders: idleLeaders(raw),
 		traditions: items(raw.country?.traditions).map(String),
 		ascensionPerks: items(raw.country?.ascension_perks).map(String),
@@ -418,6 +428,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		warLostDate:
 			typeof raw.country?.last_date_war_lost === 'string' ? raw.country.last_date_war_lost : null,
 		tradeDeals: tradeDeals(raw),
+		contracts: contracts(raw),
 		gameVersion: raw.meta.version,
 		dlcs: raw.meta.dlcs,
 		mods: raw.meta.mods,
@@ -436,6 +447,7 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 			])
 		),
 		techQueued: techQueued(raw.country),
+		techKept: techKept(raw.country),
 		// per field (physics, society, engineering), in that order
 		techStored: Object.fromEntries(
 			items(raw.country?.tech_status?.stored_techpoints).map((v, i) => [RESEARCH_AREAS[i], num(v)])
@@ -452,27 +464,29 @@ export function toSnapshot(raw: RawSave, campaign: string): Snapshot {
 		...externalBuildings(raw),
 		history: historyReading(raw),
 		speciesRights: speciesRights(raw.country),
+		slaveMarket: slaveMarket(raw),
+		slaveTradeBans: {
+			organic: 'organic_slave_trade_banned_flag' in (raw.globalFlags ?? {}),
+			sentient: 'sentient_slave_trade_banned_flag' in (raw.globalFlags ?? {})
+		},
 		timelineId: numOrNull(raw.country?.variables?.sdash_tl),
 		previousTimelineId: numOrNull(raw.country?.variables?.sdash_tl_prev),
 		logEvents: null,
 		ticks: null,
-		multiplayer: raw.multiplayer
+		players: raw.players,
+		multiplayer: raw.players > 1
 	};
 }
 
 /**
- * Whether the save's `player = { { name country } … }` is a multiplayer game's: every
- * single-player save names its one player "unknown" (106 saves, 4.5.x, Linux), the one multiplayer
- * save seen its account (Oracularity of Noerm 2200.01.01, hosted alone, 2026-11-03). Two or more
- * players can only be multiplayer. **Not in Ironman** (`ironman`, the `galaxy` block's value:
- * jomini reads `yes` as true): a single-player Ironman save names the account too (UNE 2's
- * `ironman.sav`, 2026-11-06), so there only the count tells.
+ * How many players the save's `player = { { name country } … }` lists. **Only two or more say
+ * multiplayer**: the name does not — the native Linux build writes the Steam account in single
+ * player too (every save since the switch from Proton; the Proton build wrote "unknown"; found
+ * 2026-11-12, when UNE 6 read as multiplayer), and so does Ironman. A multiplayer game hosted alone
+ * (Oracularity of Noerm, one player named) is caught by the companion mod's monthly line only.
  */
-export function multiplayerPlayers(player: Raw, ironman: unknown = false): boolean {
-	const players = items(player);
-	if (players.length > 1) return true;
-	if (ironman === true || ironman === 'yes') return false;
-	return players.some((p) => typeof p?.name === 'string' && p.name !== 'unknown');
+export function playerCount(player: Raw): number {
+	return items(player).length;
 }
 
 const RIGHT_KINDS = [
@@ -488,13 +502,16 @@ const RIGHT_KINDS = [
 ];
 
 /**
- * Each species' rights: `country.modules.standard_species_rights_module.primary = { species_index
- * citizenship living_standard … }`, one block per species (the module's `default` is for new ones).
+ * Each species' rights: `country.modules.standard_species_rights_module` holds the founder's in
+ * `primary = { species_index citizenship living_standard … }` and every other species' in
+ * `species_rights = { { species_index … } … }` (Fangnaur 2200.08, 4.5.3: the enslaved Quenti only
+ * there — read before READER 51 from `primary` alone); `default` is for new species,
+ * `built_species` for robots.
  */
 export function speciesRights(country: Raw): Record<string, Record<string, string>> {
 	const m = country?.modules?.standard_species_rights_module;
 	return Object.fromEntries(
-		items(m?.primary)
+		[...items(m?.primary), ...items(m?.species_rights)]
 			.filter((p) => typeof p?.species_index === 'number')
 			.map((p) => [
 				String(p.species_index),
@@ -1426,7 +1443,7 @@ export function route(raw: Pick<RawSave, 'planets' | 'systems' | 'country'>, f: 
 
 /** Military fleets with ship count, power (`fleet.military_power`) and route. */
 export function militaryFleets(
-	raw: Pick<RawSave, 'country' | 'fleets' | 'planets' | 'systems'>
+	raw: Pick<RawSave, 'country' | 'fleets' | 'planets' | 'systems'> & Partial<Pick<RawSave, 'ships'>>
 ): Fleet[] {
 	return items(raw.country?.fleets_manager?.owned_fleets)
 		.map((o) => ({ id: Number(o?.fleet), f: raw.fleets[String(o?.fleet)] }))
@@ -1436,8 +1453,87 @@ export function militaryFleets(
 			name: displayName(f.name),
 			ships: list(f.ships).length,
 			power: num(f.military_power),
-			route: route(raw, f)
+			route: route(raw, f),
+			designs: tally(
+				list(f.ships)
+					.map((s) => shipDesignId(raw, s))
+					.filter((d) => d >= 0)
+			).map(([designId, count]) => ({
+				designId,
+				count
+			}))
 		}));
+}
+
+const NONE = 4294967295;
+/** The design a ship is built to (`ship_design_implementation.design`), -1 when unknown. */
+const shipDesignId = (raw: Partial<Pick<RawSave, 'ships'>>, shipId: number): number => {
+	const d = raw.ships?.[String(shipId)]?.ship_design_implementation?.design;
+	return d === undefined ? -1 : Number(d);
+};
+/** [value, count] in first-seen order. */
+const tally = (xs: number[]): [number, number][] => {
+	const m = new Map<number, number>();
+	for (const x of xs) m.set(x, (m.get(x) ?? 0) + 1);
+	return [...m];
+};
+
+/**
+ * Our ship designs (READER 53): the saved ones (`country.ship_design_collection.ship_design`, ids
+ * into the global `ship_design`) and those our ships use though no longer saved — unofficial
+ * (UNE 6 2208.01.01: design 35, an auto-generated "Cheetah" gunship, on three corvettes whose
+ * `upgrade` names the saved Cheetah 2451). Ships of station fleets (starbases, mining and
+ * research stations: `ship_class` starbase/station) do not count — their designs live outside the
+ * collection (`starbase_outpost`, `starbase_starport`). `upgradeTo` is the most common `upgrade`
+ * of its ships (4294967295 = none) — a reading of one save, not yet checked in game.
+ */
+export function shipDesigns(
+	raw: Pick<RawSave, 'country' | 'fleets' | 'ships' | 'shipDesigns'>
+): ShipDesign[] {
+	const saved = list(raw.country?.ship_design_collection?.ship_design);
+	const used = new Map<number, number[]>(); // design → our ship ids
+	for (const owned of items(raw.country?.fleets_manager?.owned_fleets)) {
+		const fleet = raw.fleets[String(owned?.fleet)];
+		if (!fleet || typeof fleet !== 'object') continue;
+		if (/starbase|station/.test(String(fleet.ship_class ?? ''))) continue;
+		for (const shipId of list(fleet.ships)) {
+			const d = shipDesignId(raw, shipId);
+			if (d >= 0) used.set(d, [...(used.get(d) ?? []), shipId]);
+		}
+	}
+	const ids = [...new Set([...saved, ...used.keys()])];
+	return ids.flatMap((id) => {
+		const d = raw.shipDesigns[String(id)];
+		if (!d || typeof d !== 'object') return [];
+		const stage = first(d.growth_stages) ?? {};
+		const ships = used.get(id) ?? [];
+		const upgrades = tally(
+			ships
+				.map((s) => Number(raw.ships[String(s)]?.ship_design_implementation?.upgrade ?? NONE))
+				.filter((u) => u !== NONE && u !== id)
+		).sort((a, b) => b[1] - a[1]);
+		return [
+			{
+				id,
+				name: displayName(d.name),
+				size: String(stage.ship_size ?? d.ship_size ?? 'unknown'),
+				role: d.role === undefined ? null : String(d.role),
+				sections: items(stage.section).map((sec: Raw) => ({
+					template: String(sec?.template ?? ''),
+					slot: String(sec?.slot ?? ''),
+					components: items(sec?.component).map((c: Raw) => ({
+						slot: String(c?.slot ?? ''),
+						template: String(c?.template ?? '')
+					}))
+				})),
+				required: items(stage.required_component).map(String),
+				saved: saved.includes(id),
+				autoGen: d.auto_gen_design === true || d.auto_gen_design === 'yes',
+				ships: ships.length,
+				upgradeTo: upgrades[0]?.[0] ?? null
+			}
+		];
+	});
 }
 
 /**
@@ -1532,6 +1628,47 @@ export function speciesByEmpire(
 			return there.length ? [{ ...entry(id, c, there), onlyOurs: true as const }] : [];
 		})
 	];
+}
+
+/**
+ * The Slave Market's offers (`slave_market_manager.slaves_on_market = { { key=<pop group>
+ * value=<pops> } }`, 4.5.3 Fangnaur 2200.02.09): the pop group gives species and colony
+ * (`planet` is a colony id), the country controlling that colony the seller.
+ */
+export function slaveMarket(
+	raw: Pick<
+		RawSave,
+		'slaveMarket' | 'popGroups' | 'speciesDb' | 'countryId' | 'countryBlocks' | 'empireName'
+	>
+): SlaveOffer[] {
+	const offers = items(raw.slaveMarket);
+	if (!offers.length) return [];
+	const owner = new Map<string, number>();
+	for (const [id, c] of Object.entries(raw.countryBlocks))
+		if (c && typeof c === 'object')
+			for (const colony of list(c.controlled_colonies)) owner.set(String(colony), Number(id));
+	return offers.flatMap((e) => {
+		const id = Number(e?.key);
+		if (!Number.isFinite(id)) return [];
+		const group = raw.popGroups[String(id)] ?? {};
+		const seller = owner.get(String(group.planet)) ?? null;
+		const c = seller === null ? null : raw.countryBlocks[String(seller)];
+		return [
+			{
+				popGroup: id,
+				species: speciesName(raw.speciesDb[String(group.key?.species)]?.name),
+				pops: num(e.value),
+				groupSize: num(group.size),
+				seller,
+				sellerName:
+					seller === null
+						? '?'
+						: seller === raw.countryId
+							? raw.empireName
+							: displayName(c?.name) || `empire ${seller}`
+			}
+		];
+	});
 }
 
 /**
@@ -1803,8 +1940,23 @@ const RESEARCH_AREAS = ['physics', 'society', 'engineering'];
 /**
  * Every tech in the research queues with its progress (research points) and the date it was
  * started: the first per field is being researched, the others wait with what they have. A tech
- * left out of the queue keeps no progress in the save.
+ * switched away from keeps its progress elsewhere (`techKept`).
  */
+/**
+ * The progress of techs switched away from ("Change Research"): `tech_status.stored_techpoints_for_tech
+ * = { <tech>=<points> … }`, all fields in one block. The game shows it on the tech's card and keeps
+ * it after the card is redrawn away (throwaway UNE 4, 2200.01.20–03.02, 2026-11-06).
+ */
+export function techKept(country: Raw): Record<string, number> {
+	const kept = country?.tech_status?.stored_techpoints_for_tech;
+	if (!kept || typeof kept !== 'object') return {};
+	return Object.fromEntries(
+		Object.entries(kept)
+			.map(([tech, points]): [string, number] => [tech, num(points)])
+			.filter(([, points]) => points > 0)
+	);
+}
+
 export function techQueued(country: Raw): QueuedTech[] {
 	return RESEARCH_AREAS.flatMap((area) =>
 		items(country?.tech_status?.[`${area}_queue`]).flatMap((q) =>
@@ -2303,7 +2455,10 @@ export function factions(raw: Pick<RawSave, 'popFactions' | 'countryId'>): Facti
 
 /** Our active subject agreements, as overlord or as subject (see `Subject`). */
 export function subjects(
-	raw: Pick<RawSave, 'agreements' | 'countryId' | 'countries' | 'loyalty'>
+	raw: Pick<
+		RawSave,
+		'agreements' | 'countryId' | 'countries' | 'loyalty' | 'countryBlocks' | 'wars'
+	>
 ): Subject[] {
 	const pairs = (v: Raw) => items(v).filter((x) => typeof x?.key === 'string');
 	return Object.values(raw.agreements).flatMap((a) => {
@@ -2325,10 +2480,62 @@ export function subjects(
 				),
 				specialistLevel: Number(a.subject_specialization?.level ?? 0),
 				specialistExperience: Number(a.subject_specialization?.experience ?? 0),
-				loyalty: raw.loyalty[String(target)] ?? null
+				loyalty: raw.loyalty[String(target)] ?? null,
+				changed: strOrNull(a.date_changed),
+				firstCooldown:
+					t.has_cooldown_on_first_renegotiation === undefined
+						? null
+						: isYes(t.has_cooldown_on_first_renegotiation),
+				conversion: conversionOf(a.subject_specialization?.subject_conversion_process),
+				...subjectState(raw.countryBlocks[String(other)], raw.countryId, other, raw.wars)
 			}
 		];
 	});
+}
+
+function conversionOf(p: Raw): Subject['conversion'] {
+	if (!p || typeof p !== 'object') return null;
+	return { progress: num(p.progress), inProgress: isYes(p.in_progress), done: isYes(p.done) };
+}
+
+/** A subject's stance and numbers from its own country block (see `SubjectStance`). */
+export function subjectState(
+	c: Raw,
+	us: number,
+	id: number,
+	wars: RawSave['wars']
+): Pick<Subject, 'stance' | 'power'> {
+	if (!c || typeof c !== 'object') return { stance: null, power: null };
+	const toUs = items(c.relations_manager?.relation).find((r) => r?.country === us);
+	const fighting = Object.values(wars).flatMap((w) => {
+		if (!w || typeof w !== 'object') return [];
+		const sides = [...items(w.attackers), ...items(w.defenders)].map((x) => Number(x?.country));
+		return sides.includes(id) ? [displayName(w.name)] : [];
+	});
+	return {
+		stance: {
+			opinion: numOrNull(toUs?.relation_current),
+			trust: numOrNull(toUs?.trust),
+			inBreach: isYes(c.is_in_breach_of_any),
+			policies: Object.fromEntries(
+				items(c.active_policies)
+					.filter((p) => typeof p?.policy === 'string')
+					.map((p) => [String(p.policy), String(p.selected ?? '')])
+			),
+			wars: fighting
+		},
+		power: {
+			military: numOrNull(c.military_power),
+			economy: numOrNull(c.economy_power),
+			tech: numOrNull(c.tech_power),
+			fleetSize: numOrNull(c.fleet_size),
+			navalUsed: numOrNull(c.used_naval_capacity),
+			empireSize: numOrNull(c.empire_size),
+			pops: numOrNull(c.num_sapient_pops),
+			colonies: items(c.controlled_colonies).length,
+			victoryRank: numOrNull(c.victory_rank)
+		}
+	};
 }
 
 /**
@@ -2431,6 +2638,45 @@ export function externalBuildings(
  * $FIRST_OFFER$"), resources under a key with "month" in it are monthly. A deal whose sides are not
  * found keeps everything in `gives.other`, and is logged.
  */
+/**
+ * Every contract in the galaxy: the missions `contracts.available` (offers) and `in_progress`
+ * list. Planetforgers 2214.02.01: `missions.23 = { mission="contract_colony_startup" days_left=1025
+ * location={ type=4 id=383 } operator=4294967295 issuer=16777227 }`; accepted ones carry
+ * `accepted_date` and `status=active`, internal ones (Eternal Chorus) operator = issuer.
+ */
+const NO_ID = 4294967295; // the save's "none" for an id
+
+export function contracts(
+	raw: Pick<RawSave, 'missions' | 'contractIds' | 'countryBlocks'>
+): Contract[] {
+	const name = (id: number) => displayName(raw.countryBlocks[String(id)]?.name) || `empire ${id}`;
+	const ids = [
+		...items(raw.contractIds?.available).map((id) => [Number(id), 'offered'] as const),
+		...items(raw.contractIds?.in_progress).map((id) => [Number(id), 'active'] as const)
+	];
+	return ids.flatMap(([id, listed]) => {
+		const m = raw.missions[String(id)];
+		if (!m || typeof m !== 'object' || typeof m.mission !== 'string') return [];
+		const operator = typeof m.operator === 'number' && m.operator !== NO_ID ? m.operator : null;
+		const issuer = Number(m.issuer);
+		return [
+			{
+				id,
+				key: m.mission,
+				issuer,
+				issuerName: name(issuer),
+				operator,
+				operatorName: operator === null ? null : name(operator),
+				systemId:
+					m.location?.type === 4 && typeof m.location.id === 'number' ? m.location.id : null,
+				state: listed,
+				daysLeft: numOrNull(m.days_left),
+				accepted: typeof m.accepted_date === 'string' ? m.accepted_date : null
+			}
+		];
+	});
+}
+
 export function tradeDeals(
 	raw: Pick<RawSave, 'tradeDeals' | 'countryId' | 'countryNames'>
 ): TradeDeal[] {
@@ -2564,9 +2810,14 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 	const hab = { size: 0, weighted: 0 };
 	const power = { total: 0, weighted: 0 };
 	const bySpecies = new Map<string, { size: number; weighted: number }>();
+	const speciesPops: Record<string, number> = {};
 	for (const id of ids) {
 		const g = popGroups[String(id)];
 		if (!g || typeof g !== 'object' || !(num(g.size) > 0)) continue;
+		if (g.key?.species !== undefined) {
+			const sp = String(g.key.species);
+			speciesPops[sp] = (speciesPops[sp] ?? 0) + num(g.size);
+		}
 		if (typeof g.habitability === 'number') {
 			hab.size += num(g.size);
 			hab.weighted += num(g.size) * g.habitability;
@@ -2602,12 +2853,13 @@ export function strata(popGroups: Record<string, Raw>, ids: number[]) {
 		habitability: hab.size > 0 ? hab.weighted / hab.size : null,
 		speciesHabitability: Object.fromEntries(
 			[...bySpecies].map(([sp, s]) => [sp, s.weighted / s.size])
-		)
+		),
+		speciesPops
 	};
 }
 
 /**
- * `pop_jobs.<id> = { type workforce max_workforce pop_groups = { { pop_group amount } } }`.
+ * `pop_jobs.<id> = { type workforce max_workforce automated_workforce pop_groups = { { pop_group amount } } }`.
  * `max_workforce` -1 means unlimited (civilian); jobs nobody works and that have no positions are
  * the placeholders every colony carries (servant, purge, …) and are left out.
  */
@@ -2625,6 +2877,8 @@ export function colonyJobs(
 		const filled = Math.max(num(j.workforce), 0);
 		// job efficiency's extra workforce (READER 46): Servants 2196 + 330.55 (Planetforgers 2214.02)
 		const bonus = filled > 0 ? num(j.bonus_workforce) : 0;
+		// the part of `workforce` no pop works (READER 54): automation buildings, Tankbound, …
+		const automated = Math.max(num(j.automated_workforce), 0);
 		// who works it, by species id (READER 46): species traits act on their own pops' jobs
 		const species: Record<string, number> = {};
 		for (const g of items(j.pop_groups)) {
@@ -2638,6 +2892,7 @@ export function colonyJobs(
 				filled,
 				positions: max > 0 ? max : null,
 				...(bonus > 0 && { bonus }),
+				...(automated > 0 && { automated }),
 				...(Object.keys(species).length && { species })
 			}
 		];
@@ -2863,9 +3118,10 @@ export function displayName(name: Raw): string {
 	return (
 		key
 			.replace(/^(SPEC|NAME|PRESCRIPTED)_/, '')
-			// name lists: HUMAN1_SHIP_Byzantium, HUMAN1_CHR_Gabriela, NECROID1_FLEET_Vanguard; one whose
-			// text differs from its tail ("Maelstrom Fleet") is a prescripted name (extractor 0.1.5+)
-			.replace(/^[A-Z0-9]+_(SHIP|CHR|FLEET|ARMY)_/, '')
+			// name lists: HUMAN1_SHIP_Byzantium, HUMAN1_CHR_Gabriela, NECROID1_FLEET_Vanguard,
+			// HUMAN1_PLANET_Hope; one whose text differs from its tail ("Maelstrom Fleet", "St.
+			// Pomeroy") is a prescripted name (extractor 0.1.5+, planets since 2026-11-14)
+			.replace(/^[A-Z0-9]+_(SHIP|CHR|FLEET|ARMY|PLANET)_/, '')
 			.replace(/_(planet|system|star)$/, '')
 			.replaceAll('_', ' ')
 	);

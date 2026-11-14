@@ -73,13 +73,30 @@
 						: ''}{/each}
 			</p>
 		{/if}
+		{#if data.kept.length}
+			<p class="mt-2 text-sm">
+				Kept progress <span class="text-gray-500"
+					>(switched away from — it comes back with the tech, should a draw offer it again)</span
+				>:
+				{#each data.kept as k, i (k.key)}{i ? ' · ' : ''}<span
+						style:color={colorOf(`${k.area}_research`)}
+						><InfoPopup explanation={data.explain[`tech:${k.key}`]}>{k.name}</InfoPopup></span
+					><span class="text-gray-500"
+						>{` ${Math.round(k.points)}${k.cost ? `/${k.cost}` : ''}`}{k.onOffer
+							? ' · on offer'
+							: ''}</span
+					>{/each}
+			</p>
+		{/if}
 	</Panel>
 
 	<Panel
 		title="On offer"
-		note="The cards the game offers now, per field — redrawn once the field's current tech is done. ▶ being researched, ★ a permanent option (stays until researched), progress where a tech has some (only queued techs keep it in the save).{data.permanentKnown
+		note="The cards the game offers now, per field — redrawn once the field's current tech is done. ▶ being researched, ★ a permanent option (stays until researched), progress where a tech has some — ↺ kept from switching away (it stays with the tech, but the card does not: the next draw may drop it).{data.permanentKnown
 			? ''
-			: ' Permanent options show from the next save on.'}"
+			: ' Permanent options show from the next save on.'}{data.keptKnown
+			? ''
+			: ' Kept progress shows once the saves are read again.'}"
 	>
 		<table class="text-left text-sm">
 			<tbody>
@@ -96,7 +113,7 @@
 									{/if}<InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup
 									></span
 								><span class="text-gray-500"
-									>{t.tier !== null ? ` T${t.tier}` : ''}{t.progress !== null
+									>{t.tier !== null ? ` T${t.tier}` : ''}{t.kept ? ' ↺' : ''}{t.progress !== null
 										? ` ${Math.round(t.progress)}${t.cost ? `/${t.cost} (${Math.round((100 * t.progress) / t.cost)} %)` : ''}`
 										: ''}</span
 								>{#if !t.researching}<AddGoal kind="tech" target={{ tech: t.key }} />{/if}{/each}

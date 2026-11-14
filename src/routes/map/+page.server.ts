@@ -4,6 +4,7 @@ import {
 	contactDone,
 	firstSeen,
 	mapMarkers,
+	contractMarkers,
 	ownOnMap,
 	tracked
 } from '#lib/mapLayers.ts';
@@ -23,6 +24,7 @@ import {
 import { display, mapFilter } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
 import { plannedSystems } from '#lib/server/planner.ts';
+import { contractsAt } from '#lib/server/contracts.ts';
 
 // The galaxy as the empire has discovered it: borders, first contacts, stations seen, anomalies,
 // dig sites, special projects, wormholes, gateways, megastructures and their ruins — each a layer
@@ -128,6 +130,7 @@ export function load({ url }) {
 				Object.entries(data.anomalyCategories).map(([k, v]) => [k, v.level])
 			)
 		})
+			.concat(contractMarkers(contractsAt(snaps, shown).rows))
 			.concat(
 				// the planner's goals at this node, one marker per system
 				Object.entries(plannedSystems(snaps, b.tip)).map(([id, goals]) => ({

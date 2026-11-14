@@ -12,6 +12,7 @@ import {
 	buildQueue,
 	construction,
 	orbitalStations,
+	techKept,
 	techQueued,
 	intelOf,
 	nomadCountries,
@@ -33,10 +34,13 @@ import {
 	habitatSites,
 	hops,
 	militaryFleets,
+	shipDesigns,
 	sectorBySystem,
 	sectors,
 	speciesInfo,
 	speciesByEmpire,
+	slaveMarket,
+	speciesRights,
 	planetBudget,
 	shipCounts,
 	strata,
@@ -47,7 +51,7 @@ import {
 	marketOrders,
 	progress,
 	readSave,
-	multiplayerPlayers,
+	playerCount,
 	subjects,
 	sumSources,
 	galacticCommunity,
@@ -55,6 +59,7 @@ import {
 	combats,
 	toSnapshot,
 	tradeDeals,
+	contracts,
 	wars,
 	wanderlust,
 	systemEntries,
@@ -86,6 +91,7 @@ const raw: RawSave = {
 	market: undefined,
 	popJobs: {},
 	popGroups: {},
+	slaveMarket: undefined,
 	fleets: {},
 	ships: {},
 	shipDesigns: {},
@@ -95,6 +101,8 @@ const raw: RawSave = {
 	speciesDb: {},
 	wars: {},
 	tradeDeals: {},
+	missions: {},
+	contractIds: undefined,
 	agreements: {},
 	loyalty: {},
 	rivalsOfUs: [],
@@ -109,7 +117,7 @@ const raw: RawSave = {
 	bypasses: {},
 	naturalWormholes: {},
 	globalFlags: {},
-	multiplayer: false,
+	players: 1,
 	countryNames: {},
 	// as in the 2201.06.01 save: a city district with a filled Government Zone and an empty one
 	districtsDb: {
@@ -187,26 +195,19 @@ const raw: RawSave = {
 	deposits: { '443': { type: 'd_decrepit_dwellings' } }
 };
 
-describe('multiplayerPlayers', () => {
-	it('single player names its one player "unknown"; multiplayer an account, or more players', () => {
-		expect(multiplayerPlayers([{ name: 'unknown', country: 0 }])).toBe(false);
-		expect(multiplayerPlayers({ name: 'unknown', country: 0 })).toBe(false);
-		expect(multiplayerPlayers(undefined)).toBe(false);
-		// Oracularity of Noerm 2200.01.01, hosted alone (2026-11-03)
-		expect(multiplayerPlayers([{ name: 'MirkoMachine', country: 0 }])).toBe(true);
+describe('playerCount', () => {
+	it('counts the players, whatever their names', () => {
+		expect(playerCount([{ name: 'unknown', country: 0 }])).toBe(1);
+		expect(playerCount({ name: 'unknown', country: 0 })).toBe(1);
+		expect(playerCount(undefined)).toBe(0);
+		// UNE 6 (native Linux build, single player, 2026-11-12): the account, one player
+		expect(playerCount([{ name: 'MirkoMachine', country: 0 }])).toBe(1);
 		expect(
-			multiplayerPlayers([
+			playerCount([
 				{ name: 'unknown', country: 0 },
-				{ name: 'unknown', country: 3 }
+				{ name: 'MirkoMachine', country: 0 }
 			])
-		).toBe(true);
-	});
-	it('in Ironman the account alone is single player (UNE 2 ironman.sav, 2026-11-06); two players still multiplayer', () => {
-		const alone = [{ name: 'MirkoMachine', country: 0 }];
-		expect(multiplayerPlayers(alone, true)).toBe(false);
-		expect(multiplayerPlayers(alone, 'yes')).toBe(false);
-		expect(multiplayerPlayers(alone, 'no')).toBe(true);
-		expect(multiplayerPlayers([...alone, { name: 'unknown', country: 3 }], true)).toBe(true);
+		).toBe(2);
 	});
 });
 
@@ -306,6 +307,7 @@ describe('toSnapshot', () => {
 				approval: null,
 				habitability: null,
 				speciesHabitability: {},
+				speciesPops: {},
 				sector: null,
 				automation: { enabled: false, settings: [] },
 				produces: {},
@@ -560,6 +562,24 @@ describe('colonyJobs', () => {
 			],
 			openJobs: 100
 		});
+	});
+
+	it('keeps the automated workforce, part of the filled one (READER 54)', () => {
+		// 4.5.4 save 2200.01.01: technicians on a fully automated colony; -1 on placeholders
+		const jobs = {
+			'1': {
+				type: 'technician',
+				automated_workforce: 1199,
+				workforce: 1200,
+				max_workforce: 1200,
+				pop_groups: { pop_group: 1, amount: 1 }
+			},
+			'2': { type: 'farmer', automated_workforce: -1, workforce: 400, max_workforce: 400 }
+		};
+		expect(colonyJobs(jobs, [1, 2]).jobs).toEqual([
+			{ type: 'technician', pops: 1, filled: 1200, positions: 1200, automated: 1199 },
+			{ type: 'farmer', pops: 0, filled: 400, positions: 400 }
+		]);
 	});
 });
 
@@ -892,6 +912,8 @@ describe('strata', () => {
 		expect(r.happiness).toBeCloseTo((1911 * 0.95 + 2000 * 0.55 + 1299) / 5210);
 		expect(r.habitability).toBeCloseTo((1911 + 1800 * 0.5) / 3711);
 		expect(r.speciesHabitability).toEqual({ '7': 1, '9': 0.5 });
+		// every group with a species, with habitability or not
+		expect(r.speciesPops).toEqual({ '7': 1911, '9': 1800 });
 		expect(strata({}, []).happiness).toBeNull();
 		expect(strata({}, []).habitability).toBeNull();
 	});
@@ -1079,6 +1101,62 @@ describe('intelOf, a pact partner (READER 45)', () => {
 	});
 });
 
+describe('speciesRights', () => {
+	it("reads the founder's rights and every other species'", () => {
+		// Fangnaur 2200.08 (4.5.3): Cevelli in `primary`, the enslaved Quenti in `species_rights`
+		const country = {
+			modules: {
+				standard_species_rights_module: {
+					default: { species_index: 0, citizenship: 'citizenship_slavery' },
+					primary: { species_index: 2751463425, citizenship: 'citizenship_full' },
+					species_rights: [
+						{ species_index: 2, citizenship: 'citizenship_slavery', slavery: 'slavery_normal' }
+					]
+				}
+			}
+		};
+		expect(speciesRights(country)).toEqual({
+			'2751463425': { citizenship: 'citizenship_full' },
+			'2': { citizenship: 'citizenship_slavery', slavery: 'slavery_normal' }
+		});
+	});
+});
+
+describe('slaveMarket', () => {
+	// Fangnaur 2200.02.09 (4.5.3): our Quenti on sale, their group's `planet` is a colony id
+	const raw = {
+		slaveMarket: [{ key: 71, value: 100 }],
+		popGroups: { '71': { key: { species: 2 }, planet: 0, size: 802 } },
+		speciesDb: { '2': { name: { key: 'SPEC_Quenti' } } },
+		countryId: 0,
+		empireName: 'Enlightened Kingdom of Fangnaur',
+		countryBlocks: {
+			'0': { controlled_colonies: [0] },
+			'5': { controlled_colonies: [9], name: { key: 'Roaming Beldroan' } }
+		}
+	};
+	it('reads each offer with species and seller', () => {
+		expect(slaveMarket(raw as never)).toEqual([
+			{
+				popGroup: 71,
+				species: 'Quenti',
+				pops: 100,
+				groupSize: 802,
+				seller: 0,
+				sellerName: 'Enlightened Kingdom of Fangnaur'
+			}
+		]);
+	});
+	it('names another seller, and reads an empty market', () => {
+		const theirs = { ...raw, popGroups: { '71': { ...raw.popGroups['71'], planet: 9 } } };
+		expect(slaveMarket(theirs as never)[0]).toMatchObject({
+			seller: 5,
+			sellerName: 'Roaming Beldroan'
+		});
+		expect(slaveMarket({ ...raw, slaveMarket: undefined } as never)).toEqual([]);
+	});
+});
+
 describe('speciesByEmpire', () => {
 	it('sums our and our migration partners’ pops by species name (Planetforgers 2214.02 shapes)', () => {
 		const raw = {
@@ -1199,6 +1277,25 @@ describe('techQueued', () => {
 			{ area: 'physics', tech: 'tech_sensors_2', progress: 120, since: '2211.01.01' },
 			{ area: 'society', tech: 'tech_volcanic_forge', progress: 1315.7, since: '2210.05.02' }
 		]);
+	});
+});
+
+describe('techKept', () => {
+	it('reads the progress kept by techs switched away from (UNE 4, 2200.01.20)', () => {
+		const country = {
+			tech_status: {
+				stored_techpoints_for_tech: {
+					tech_administrative_ai: 13.33826,
+					tech_planetary_unification: 16.48826,
+					tech_zero: 0
+				}
+			}
+		};
+		expect(techKept(country)).toEqual({
+			tech_administrative_ai: 13.33826,
+			tech_planetary_unification: 16.48826
+		});
+		expect(techKept({ tech_status: {} })).toEqual({});
 	});
 });
 
@@ -1422,9 +1519,72 @@ describe('empire overview', () => {
 					systemId: 380, // where it is, for the map (READER 38)
 					moving: true,
 					stops: [{ system: 'Sirius', jumps: 1, unexplored: true }]
-				}
+				},
+				designs: [] // its ships are not in the fixture (READER 53)
 			}
 		]);
+	});
+
+	it('lists saved designs and the unofficial ones our ships still use (READER 53)', () => {
+		// UNE 6 2208.01.01, shortened: design 35 is no longer saved, its corvettes upgrade to 2451
+		const corvette = (role: string) => ({
+			name: { key: 'HUMAN1_SHIP_Cheetah' },
+			role,
+			auto_gen_design: true,
+			growth_stages: {
+				ship_size: 'corvette',
+				section: {
+					template: 'CORVETTE_MID_S2PD1',
+					slot: 'mid',
+					component: [
+						{ slot: 'SMALL_GUN_01', template: 'POINT_DEFENCE_1' },
+						{ slot: 'SMALL_GUN_02', template: 'SMALL_MASS_DRIVER_1' }
+					]
+				},
+				required_component: ['CORVETTE_FISSION_REACTOR', 'HYPER_DRIVE_1']
+			}
+		});
+		const designs = shipDesigns({
+			country: {
+				ship_design_collection: { ship_design: [2451, 2453] },
+				fleets_manager: { owned_fleets: [{ fleet: 3 }, { fleet: 7 }] }
+			},
+			fleets: {
+				3: { ship_class: 'shipclass_military', ships: [3, 4] },
+				7: { ship_class: 'shipclass_starbase', ships: [9] }
+			},
+			ships: {
+				3: { ship_design_implementation: { design: 35, upgrade: 2451 } },
+				4: { ship_design_implementation: { design: 35, upgrade: 2451 } },
+				9: { ship_design_implementation: { design: 16777216, upgrade: 4294967295 } }
+			},
+			shipDesigns: {
+				35: corvette('gunship'),
+				2451: corvette('screen'),
+				2453: { name: { key: 'HUMAN1_SHIP_ElDorado' }, growth_stages: { ship_size: 'colonizer' } },
+				16777216: { growth_stages: { ship_size: 'starbase_starport' } }
+			}
+		});
+		expect(designs.map((d) => [d.id, d.size, d.saved, d.ships, d.upgradeTo])).toEqual([
+			[2451, 'corvette', true, 0, null],
+			[2453, 'colonizer', true, 0, null],
+			[35, 'corvette', false, 2, 2451]
+		]);
+		expect(designs[2]).toMatchObject({
+			role: 'gunship',
+			autoGen: true,
+			sections: [
+				{
+					template: 'CORVETTE_MID_S2PD1',
+					slot: 'mid',
+					components: [
+						{ slot: 'SMALL_GUN_01', template: 'POINT_DEFENCE_1' },
+						{ slot: 'SMALL_GUN_02', template: 'SMALL_MASS_DRIVER_1' }
+					]
+				}
+			],
+			required: ['CORVETTE_FISSION_REACTOR', 'HYPER_DRIVE_1']
+		});
 	});
 
 	it('sums pops per species over the colonies and names prescripted species', () => {
@@ -1617,6 +1777,7 @@ describe('helpers', () => {
 		// name-list fleets and armies like ships: the key's tail where no prescripted name says more
 		expect(displayName({ key: 'NECROID1_FLEET_Vanguard' })).toBe('Vanguard');
 		expect(displayName({ key: 'NECROID1_ARMY_Legion' })).toBe('Legion');
+		expect(displayName({ key: 'HUMAN1_PLANET_Hope' })).toBe('Hope');
 		expect(
 			displayName({
 				key: '%ADJECTIVE%',
@@ -2036,7 +2197,33 @@ describe('milestone fields', () => {
 			},
 			countryId: 0,
 			countries: { '4': { name: 'Tzynn' } } as never,
-			loyalty: { '4': -45 }
+			loyalty: { '4': -45 },
+			// the subject's block as UNE 6's Silicron Sacred Nation had it (2208.02.01, 4.5.4)
+			countryBlocks: {
+				'4': {
+					relations_manager: {
+						relation: [{ owner: 4, country: 0, relation_current: 120, trust: 28.5 }]
+					},
+					is_in_breach_of_any: 'yes',
+					active_policies: [
+						{ policy: 'diplomatic_stance', selected: 'diplo_stance_expansionist' },
+						{ policy: 'fleet_doctrine', selected: 'fleet_doctrine_phalanx' }
+					],
+					military_power: 251.04687,
+					economy_power: 522.20822,
+					tech_power: 340,
+					fleet_size: 20,
+					used_naval_capacity: 20,
+					empire_size: 101,
+					num_sapient_pops: 6115,
+					controlled_colonies: [7, 8, 9],
+					victory_rank: 6
+				}
+			},
+			wars: {
+				'3': { name: 'Silicron War', attackers: [{ country: 9 }], defenders: [{ country: 4 }] },
+				'4': { name: 'Other War', attackers: [{ country: 9 }], defenders: [{ country: 5 }] }
+			}
 		};
 		expect(subjects(raw)).toEqual([
 			{
@@ -2052,7 +2239,31 @@ describe('milestone fields', () => {
 				subsidies: { resource_subsidies_basic: 0 },
 				specialistLevel: 0,
 				specialistExperience: 0,
-				loyalty: -45
+				loyalty: -45,
+				changed: null,
+				firstCooldown: null,
+				conversion: null,
+				stance: {
+					opinion: 120,
+					trust: 28.5,
+					inBreach: true,
+					policies: {
+						diplomatic_stance: 'diplo_stance_expansionist',
+						fleet_doctrine: 'fleet_doctrine_phalanx'
+					},
+					wars: ['Silicron War']
+				},
+				power: {
+					military: 251.04687,
+					economy: 522.20822,
+					tech: 340,
+					fleetSize: 20,
+					navalUsed: 20,
+					empireSize: 101,
+					pops: 6115,
+					colonies: 3,
+					victoryRank: 6
+				}
 			}
 		]);
 	});
@@ -2262,5 +2473,95 @@ describe('leaderPool', () => {
 		expect(leaderPool(raw)).toMatchObject([
 			{ id: 272, class: 'official', level: 1, bonus: 1, age: 33, added: '2200.01.01' }
 		]);
+	});
+});
+
+describe('contracts', () => {
+	// Planetforgers 2214.02.01 (Proton save), trimmed: an offer, an accepted one, an internal one
+	// (operator = issuer), a star journal mission (not a contract) and a gap (`21=none`).
+	const missions = {
+		'1': {
+			mission: 'NOMAD_STAR_JOURNAL_BINARY_TRINARY',
+			status: 'active',
+			operator: 1,
+			issuer: 4294967295
+		},
+		'21': 'none',
+		'23': {
+			mission: 'contract_colony_startup',
+			days_left: 1025,
+			location: { type: 4, id: 383 },
+			operator: 4294967295,
+			issuer: 16777227
+		},
+		'16777235': {
+			mission: 'contract_onboard_physics_research',
+			accepted_date: '2213.08.12',
+			status: 'active',
+			location: { type: 4, id: 303 },
+			operator: 1,
+			issuer: 16777219
+		},
+		'16777230': {
+			mission: 'contract_eternal_chorus',
+			days_left: 1136,
+			location: { type: 4, id: 9 },
+			operator: 1,
+			issuer: 1
+		}
+	};
+	const countryBlocks = {
+		'1': { name: { key: 'Korinth' } },
+		'16777219': { name: { key: 'Oklarr' } },
+		'16777227': { name: { key: 'Vel' } }
+	};
+	it('reads the listed missions, offers and accepted ones', () => {
+		const got = contracts({
+			missions,
+			countryBlocks,
+			contractIds: { available: [23, 16777230, 21], in_progress: [16777235] }
+		});
+		expect(got).toEqual([
+			{
+				id: 23,
+				key: 'contract_colony_startup',
+				issuer: 16777227,
+				issuerName: 'Vel',
+				operator: null,
+				operatorName: null,
+				systemId: 383,
+				state: 'offered',
+				daysLeft: 1025,
+				accepted: null
+			},
+			{
+				id: 16777230,
+				key: 'contract_eternal_chorus',
+				issuer: 1,
+				issuerName: 'Korinth',
+				operator: 1,
+				operatorName: 'Korinth',
+				systemId: 9,
+				state: 'offered',
+				daysLeft: 1136,
+				accepted: null
+			},
+			{
+				id: 16777235,
+				key: 'contract_onboard_physics_research',
+				issuer: 16777219,
+				issuerName: 'Oklarr',
+				operator: 1,
+				operatorName: 'Korinth',
+				systemId: 303,
+				state: 'active',
+				daysLeft: null,
+				accepted: '2213.08.12'
+			}
+		]);
+	});
+	it('an empty or missing contracts block is no contract', () => {
+		expect(contracts({ missions, countryBlocks, contractIds: {} })).toEqual([]);
+		expect(contracts({ missions, countryBlocks, contractIds: undefined })).toEqual([]);
 	});
 });

@@ -24,6 +24,7 @@ describe('profiles', () => {
 			display: {
 				colonyRowLine: 'thick',
 				expansionRowLine: 'medium',
+				slaveMarket: 'mine',
 				showSpoilers: false,
 				showCheats: false,
 				habitatsAlways: false,
@@ -46,7 +47,10 @@ describe('profiles', () => {
 				diplomacyAll: false,
 				historyAll: false,
 				pactIntel: false,
+				subjectNumbers: false,
 				pactAll: false,
+				contractSpoilers: false,
+				contractsAll: false,
 				whatIfs: false
 			}
 		});
@@ -74,6 +78,7 @@ describe('profiles', () => {
 			display: {
 				colonyRowLine: 'thin',
 				expansionRowLine: 'medium',
+				slaveMarket: 'mine',
 				showSpoilers: false,
 				showCheats: false,
 				habitatsAlways: false,
@@ -96,7 +101,10 @@ describe('profiles', () => {
 				diplomacyAll: false,
 				historyAll: false,
 				pactIntel: false,
+				subjectNumbers: false,
 				pactAll: false,
+				contractSpoilers: false,
+				contractsAll: false,
 				whatIfs: false
 			}
 		});

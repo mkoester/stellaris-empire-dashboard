@@ -2,7 +2,13 @@
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { listed, SWITCH_GROUPS, SWITCHES } from '#lib/displaySwitches.ts';
-	import { ROW_LINES, type Display, type RowLine } from '#lib/profiles.ts';
+	import {
+		ROW_LINES,
+		SLAVE_MARKET_MODES,
+		type Display,
+		type RowLine,
+		type SlaveMarketMode
+	} from '#lib/profiles.ts';
 	import { MAX_POP_WINDOW, windowMonths, windowStrip, type PopWindow } from '#lib/popWindow.ts';
 	import { MAX_RINGS, SECTOR_COUNTS, type QuadrantView, type SectorCount } from '#lib/quadrants.ts';
 	import { campaignAction, profileAction, putSettings } from '#lib/settings.ts';
@@ -251,6 +257,28 @@
 					</select></label
 				>
 			{/each}
+			<label class="block"
+				>Slave market tab, where slavery is not allowed
+				<select
+					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+					value={data.display.slaveMarket}
+					onchange={(e) =>
+						act(() =>
+							putSettings({
+								display: {
+									...data.display,
+									slaveMarket: e.currentTarget.value as SlaveMarketMode
+								}
+							})
+						)}
+				>
+					{#each Object.entries(SLAVE_MARKET_MODES) as [m, label] (m)}<option value={m}
+							>{label}</option
+						>{/each}
+				</select>
+				<span class="text-sm text-gray-500">(an empire allowing slavery always sees it)</span
+				></label
+			>
 			{#each groups as g (g.title)}
 				<h3 id="display-{g.title}" class="mt-4 scroll-mt-4 font-semibold">{g.title}</h3>
 				{#each g.items as s (s.key)}

@@ -1,7 +1,15 @@
 import { DatabaseSync } from 'node:sqlite';
 import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
-import type { ActionKind, CapEffect, Costs, GameData, Resources } from '#lib/types.ts';
+import type { ActionKind, CapEffect, Costs, GameData, Resources, Specialists } from '#lib/types.ts';
+import { NO_SHIP_PARTS, type ShipParts } from '#lib/designStats.ts';
+import {
+	automationBuildingsOf,
+	NO_JOB_AUTOMATION,
+	type JobAutomation
+} from '#lib/jobAutomation.ts';
+import type { StarbasePart } from '#lib/starbasePlanner.ts';
+import { levelSlots } from '#lib/starbases.ts';
 
 // Names and base costs from stellaris-data-extraction's SQLite (STELLARIS_DATA_DB), read once at
 // start. It must match the game version being played — regenerate it after a game update.
@@ -15,6 +23,23 @@ export function loadDataVersion(file: string): string | null {
 		return row?.value ?? null;
 	} catch {
 		return null; // no meta table
+	} finally {
+		db.close();
+	}
+}
+
+/** The mods the data DB was extracted with (`meta.mods`, names from their `descriptor.mod`); [] for
+ * the game's own data, null for a DB from an extractor without mod support. */
+export function loadDataMods(file: string): string[] | null {
+	const db = new DatabaseSync(file, { readOnly: true });
+	try {
+		const row = db.prepare("SELECT value FROM meta WHERE key = 'mods'").get() as
+			{ value: string } | undefined;
+		if (!row) return [];
+		const mods = JSON.parse(row.value) as { name?: unknown }[];
+		return mods.map((m) => String(m.name ?? ''));
+	} catch {
+		return null; // no meta table, or unreadable
 	} finally {
 		db.close();
 	}
@@ -241,6 +266,7 @@ export function loadGameData(file: string): GameData {
 					 UNION ALL SELECT key, name FROM agreement_preset WHERE name IS NOT NULL`
 				).map((r) => [r.key, r.name])
 			),
+			specialists: specialists(rows),
 			resolutions: Object.fromEntries(
 				rows<{
 					key: string;
@@ -574,7 +600,16 @@ export function loadGameData(file: string): GameData {
 				(r) => r.key
 			),
 			traditionTrees: traditionTrees(
-				rows<{ key: string; name: string | null }>('SELECT key, name FROM tradition_category'),
+				rows<{ key: string; name: string | null; color: string | null }>(
+					// the tree's colour since extractor 2026-11-06; an older data DB has none
+					`SELECT key, name, ${
+						rows<{ name: string }>('PRAGMA table_info(tradition_category)').some(
+							(c) => c.name === 'color'
+						)
+							? 'color'
+							: 'NULL AS color'
+					} FROM tradition_category`
+				),
 				rows<{ key: string; name: string | null; category_key: string; role: string }>(
 					'SELECT key, name, category_key, role FROM tradition ORDER BY sort_order'
 				)
@@ -642,6 +677,22 @@ export function loadGameData(file: string): GameData {
 						removes: JSON.parse(r.removes_json ?? '[]')
 					}))
 				: [],
+			// an older data DB may lack the table: contracts by their key then
+			contractTypes: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'contract'"
+			).length
+				? Object.fromEntries(
+						rows<{
+							key: string;
+							name: string | null;
+							category: string;
+							time_to_accept: number | null;
+						}>('SELECT key, name, category, time_to_accept FROM contract').map((r) => [
+							r.key,
+							{ name: r.name ?? r.key, category: r.category, timeToAccept: r.time_to_accept }
+						])
+					)
+				: {},
 			// an older data DB may lack the table: unnamed then
 			precursors: rows<{ name: string }>(
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'precursor'"
@@ -650,6 +701,15 @@ export function loadGameData(file: string): GameData {
 						rows<{ key: string; name: string | null }>('SELECT key, name FROM precursor').map(
 							(r) => [r.key, r.name ?? r.key]
 						)
+					)
+				: {},
+			setupScenarios: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'setup_scenario'"
+			).length
+				? Object.fromEntries(
+						rows<{ key: string; defaults_json: string | null }>(
+							'SELECT key, defaults_json FROM setup_scenario'
+						).map((r) => [r.key, r.defaults_json ? JSON.parse(r.defaults_json) : {}])
 					)
 				: {},
 			flagColors: Object.fromEntries(
@@ -814,6 +874,9 @@ export function loadGameData(file: string): GameData {
 					}
 				])
 			),
+			shipParts: shipParts(rows),
+			jobAutomation: jobAutomation(rows),
+			starbaseParts: starbaseParts(rows),
 			buildingCategory: Object.fromEntries(
 				rows<{ key: string; category: string | null }>('SELECT key, category FROM building').map(
 					(r) => [r.key, r.category]
@@ -866,15 +929,32 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, name, max, decay FROM opinion_modifier'
 				).map((r) => [r.key, { name: r.name ?? r.key, max: r.max, decay: r.decay }])
 			),
-			// modules and buildings a starbase of each level holds (`starbase_level_starport` → starport)
-			starbaseSlots: Object.fromEntries(
-				rows<{ key: string; module_slots: number; building_slots: number }>(
-					'SELECT key, module_slots, building_slots FROM starbase_level'
-				).map((r) => [
-					r.key.replace(/^starbase_level_/, ''),
-					{ modules: r.module_slots, buildings: r.building_slots }
-				])
-			),
+			// modules and buildings a starbase of each level holds (`starbase_level_starport` →
+			// starport): its ship size's capacity (`levelSlots()`), else the level's slot list
+			starbaseSlots: (() => {
+				const sizes = rows<{ name: string }>('PRAGMA table_info(ship_size)').some(
+					(c) => c.name === 'modifiers_json'
+				);
+				return Object.fromEntries(
+					rows<{
+						key: string;
+						module_slots: number;
+						building_slots: number;
+						modifiers_json: string | null;
+					}>(
+						sizes
+							? `SELECT l.key, l.module_slots, l.building_slots, s.modifiers_json
+								 FROM starbase_level l LEFT JOIN ship_size s ON s.key = l.ship_size`
+							: 'SELECT key, module_slots, building_slots, NULL AS modifiers_json FROM starbase_level'
+					).map((r) => [
+						r.key.replace(/^starbase_level_/, ''),
+						levelSlots(
+							{ modules: r.module_slots, buildings: r.building_slots },
+							r.modifiers_json ? JSON.parse(r.modifiers_json) : null
+						)
+					])
+				);
+			})(),
 			// what an edict changes while active (its unconditional modifiers; the produce tab)
 			edictModifiers: byKey(
 				rows(
@@ -957,7 +1037,7 @@ export function perkTrees(
 }
 
 function traditionTrees(
-	trees: { key: string; name: string | null }[],
+	trees: { key: string; name: string | null; color: string | null }[],
 	traditions: { key: string; name: string | null; category_key: string; role: string }[]
 ): GameData['traditionTrees'] {
 	return Object.fromEntries(
@@ -965,6 +1045,7 @@ function traditionTrees(
 			tree.key,
 			{
 				name: tree.name ?? tree.key,
+				...(tree.color ? { color: tree.color } : {}),
 				traditions: traditions
 					.filter((t) => t.category_key === tree.key)
 					.map((t) => ({ key: t.key, name: t.name ?? t.key, role: t.role }))
@@ -1149,4 +1230,204 @@ export function actionTimers(
 			...(r.role === 'bonus' && { bonus: true })
 		});
 	return out;
+}
+
+/**
+ * The automation buildings (#lib/jobAutomation.ts: category `pop_assembly`, every modifier a job's
+ * automated workforce) and what an automated job costs per stratum;
+ * no rates from a data DB without `pop_category_automation` (extractor before 2026-11-12), no
+ * techs without `technology_unlock`.
+ */
+function jobAutomation(rows: <T>(sql: string) => T[]): JobAutomation {
+	const has = (t: string) =>
+		rows(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = '${t}'`).length > 0;
+	if (!has('building_modifier')) return NO_JOB_AUTOMATION;
+	const mods: Record<string, { key: string; value: number }[]> = {};
+	for (const r of rows<{ building: string; key: string; value: number }>(
+		`SELECT building_key AS building, modifier_key AS key, value FROM building_modifier
+		 WHERE scope = 'planet' AND building_key IN (SELECT building_key FROM building_modifier
+		   WHERE modifier_key LIKE 'job\\_%\\_automated\\_workforce\\_mult' ESCAPE '\\')
+		 -- the game files them as pop assembly; the Master Archive automates specialists too
+		 AND building_key IN (SELECT key FROM building WHERE category = 'pop_assembly')
+		 ORDER BY sort_order`
+	))
+		(mods[r.building] ??= []).push({ key: r.key, value: r.value });
+	const names = Object.fromEntries(
+		rows<{ key: string; name: string | null }>('SELECT key, name FROM building').map((r) => [
+			r.key,
+			r.name ?? r.key
+		])
+	);
+	const techs: Record<string, string[]> = {};
+	if (has('technology_unlock'))
+		for (const r of rows<{ tech: string; item: string }>(
+			"SELECT tech_key AS tech, item_key AS item FROM technology_unlock WHERE kind = 'building'"
+		))
+			(techs[r.item] ??= []).push(r.tech);
+	const rates: JobAutomation['rates'] = {};
+	if (has('pop_category_automation'))
+		for (const r of rows<{ category: string; resource: string; amount: number }>(
+			'SELECT category, resource, amount FROM pop_category_automation'
+		))
+			(rates[r.category] ??= {})[r.resource] = r.amount;
+	return { buildings: automationBuildingsOf(mods, names, techs), rates };
+}
+
+/**
+ * Ship sizes, section templates and components with their base stats (the fleets tab's design
+ * stats, #lib/designStats.ts); empty from a data DB without the tables (extractor before
+ * 2026-11-09 — a player's zip may bundle one).
+ */
+function shipParts(rows: <T>(sql: string) => T[]): ShipParts {
+	const has = (t: string) =>
+		rows(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = '${t}'`).length > 0;
+	if (!has('ship_size') || !has('section_template') || !has('component_template'))
+		return NO_SHIP_PARTS;
+	const json = <T>(s: string | null, empty: T): T => (s ? (JSON.parse(s) as T) : empty);
+	type Row = { key: string; modifiers_json: string | null; resources_json: string | null };
+	return {
+		sizes: Object.fromEntries(
+			rows<
+				Row & {
+					name: string | null;
+					class: string | null;
+					hitpoints: number | null;
+					speed: number | null;
+				}
+			>(
+				'SELECT key, name, class, hitpoints, speed, modifiers_json, resources_json FROM ship_size'
+			).map((r) => [
+				r.key,
+				{
+					name: r.name,
+					class: r.class,
+					hitpoints: r.hitpoints ?? 0,
+					speed: r.speed ?? 0,
+					modifiers: json(r.modifiers_json, {}),
+					resources: json(r.resources_json, {})
+				}
+			])
+		),
+		sections: Object.fromEntries(
+			rows<Row>('SELECT key, modifiers_json, resources_json FROM section_template').map((r) => [
+				r.key,
+				{ modifiers: json(r.modifiers_json, {}), resources: json(r.resources_json, {}) }
+			])
+		),
+		components: Object.fromEntries(
+			rows<
+				Row & {
+					name: string | null;
+					kind: string;
+					size: string | null;
+					power: number | null;
+					weapon_json: string | null;
+				}
+			>(
+				'SELECT key, name, kind, size, power, modifiers_json, weapon_json, resources_json FROM component_template'
+			).map((r) => [
+				r.key,
+				{
+					name: r.name,
+					kind: r.kind,
+					size: r.size,
+					power: r.power ?? 0,
+					modifiers: json(r.modifiers_json, {}),
+					weapon: json<Record<string, number> | null>(r.weapon_json, null),
+					resources: json(r.resources_json, {})
+				}
+			])
+		)
+	};
+}
+
+/**
+ * Starbase modules and buildings with their conditions and modifiers per scope (the starbase
+ * planner, #lib/starbasePlanner.ts); empty from a data DB without `starbase_part_modifier`
+ * (extractor before 2026-11-09).
+ */
+function starbaseParts(rows: <T>(sql: string) => T[]): Record<string, StarbasePart> {
+	const has = rows(
+		"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'starbase_part_modifier'"
+	).length;
+	if (!has) return {};
+	const mods = new Map<string, StarbasePart['modifiers']>();
+	for (const r of rows<{
+		key: string;
+		scope: string;
+		modifier_key: string;
+		value: number;
+		trigger_json: string | null;
+	}>(
+		'SELECT key, scope, modifier_key, value, trigger_json FROM starbase_part_modifier ORDER BY key, sort_order'
+	))
+		mods.set(r.key, [
+			...(mods.get(r.key) ?? []),
+			{ scope: r.scope, key: r.modifier_key, value: r.value, when: parseTrigger(r.trigger_json) }
+		]);
+	return Object.fromEntries(
+		rows<{
+			key: string;
+			kind: string;
+			name: string | null;
+			category: string | null;
+			potential_json: string | null;
+			possible_json: string | null;
+		}>('SELECT key, kind, name, category, potential_json, possible_json FROM starbase_part').map(
+			(r) => [
+				r.key,
+				{
+					key: r.key,
+					kind: r.kind === 'building' ? 'building' : 'module',
+					name: r.name ?? r.key,
+					category: r.category,
+					potential: parseTrigger(r.potential_json),
+					possible: parseTrigger(r.possible_json),
+					modifiers: mods.get(r.key) ?? []
+				}
+			]
+		)
+	);
+}
+
+/** Subject specialisations (extractor 0.1.16): none from an older data DB. */
+function specialists(rows: <T>(sql: string) => T[]): Specialists {
+	const has = rows(
+		"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'specialist_perk'"
+	);
+	if (!has.length) return { types: {}, perks: {} };
+	const json = <T>(v: string | null, empty: T): T => (v ? (JSON.parse(v) as T) : empty);
+	const types: Specialists['types'] = {};
+	for (const t of rows<{ key: string; name: string | null; preferred_ethic: string | null }>(
+		'SELECT key, name, preferred_ethic FROM specialist_type ORDER BY sort_order'
+	))
+		types[t.key] = { name: t.name ?? t.key, preferredEthic: t.preferred_ethic, levels: [] };
+	for (const l of rows<{
+		type_key: string;
+		level: number;
+		xp_next: number | null;
+		perks_json: string | null;
+	}>('SELECT type_key, level, xp_next, perks_json FROM specialist_level ORDER BY type_key, level'))
+		types[l.type_key]?.levels.push({
+			level: l.level,
+			xpNext: l.xp_next,
+			perks: json<string[]>(l.perks_json, [])
+		});
+	const perks: Specialists['perks'] = {};
+	for (const p of rows<{
+		key: string;
+		name: string | null;
+		description: string | null;
+		main_perk: number;
+		subject_json: string | null;
+		overlord_json: string | null;
+	}>('SELECT key, name, description, main_perk, subject_json, overlord_json FROM specialist_perk'))
+		perks[p.key] = {
+			name: p.name ?? p.key,
+			description: p.description,
+			main: p.main_perk === 1,
+			subject: json(p.subject_json, {}),
+			overlord: json(p.overlord_json, {})
+		};
+	return { types, perks };
 }

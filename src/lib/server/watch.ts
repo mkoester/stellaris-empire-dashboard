@@ -30,8 +30,15 @@ import { READER, readSave, toSnapshot } from './save.ts';
 
 export type Ingested = Recorded & { file: string };
 
-async function readSnapshot(root: string, file: string) {
-	return toSnapshot(await readSave(await readFile(file)), campaignOf(root, file));
+async function readSnapshot(
+	root: string,
+	file: string,
+	prepare?: (campaign: string) => void | Promise<void>
+) {
+	const raw = await readSave(await readFile(file));
+	const campaign = campaignOf(root, file);
+	await prepare?.(campaign);
+	return toSnapshot(raw, campaign);
 }
 
 export function campaignOf(root: string, file: string): string {
@@ -57,8 +64,16 @@ export type WatchOptions = {
 	onRefresh?: (r: Ingested) => void;
 	/** The node of a save just loaded in game, if known: a new save goes below it. Asked once per save. */
 	loadedFrom?: () => number | null;
-	/** Identifies the reader; a save read by another is read again. Default `READER`. */
-	reader?: string;
+	/**
+	 * Identifies the reader, per campaign (it holds the campaign's game data); a save read by
+	 * another is read again. Default `READER`.
+	 */
+	reader?: string | ((campaign: string) => string);
+	/**
+	 * Called before a save of the campaign is turned into a snapshot: sets its game data (and may
+	 * extract it first). `reader` is asked after it.
+	 */
+	prepare?: (campaign: string) => void | Promise<void>;
 	intervalMs?: number;
 	retries?: number; // a file that keeps failing to parse is reported after this many tries
 };
@@ -72,6 +87,11 @@ export type Watcher = {
 	catchUp: (onCampaign?: (campaign: string, read: number) => void) => Promise<void>;
 	/** The campaigns with saves on disk, as of the last scan. */
 	onDisk: () => Set<string>;
+	/**
+	 * Reads the campaign's saves again that another reader read (its game data changed); resolves
+	 * with how many.
+	 */
+	reread: (campaign: string) => Promise<number>;
 };
 
 /** A save left to the backlog: new or changed since it was read, or read by an older reader. */
@@ -79,7 +99,9 @@ type Todo = { file: string; version: string; stale: boolean };
 
 /** Starts ingesting; resolves once the head campaign is read. */
 export async function watchSaves(db: Db, root: string, opts: WatchOptions): Promise<Watcher> {
-	const { intervalMs = 2000, retries = 3, reader = READER } = opts;
+	const { intervalMs = 2000, retries = 3 } = opts;
+	const readerOf = (campaign: string) =>
+		typeof opts.reader === 'function' ? opts.reader(campaign) : (opts.reader ?? READER);
 	const done: Seen = new Map(); // last version ingested (or given up on, or left to the backlog)
 	const pending: Seen = new Map(); // version seen last tick, not yet ingested
 	const failures = new Map<string, number>();
@@ -107,9 +129,10 @@ export async function watchSaves(db: Db, root: string, opts: WatchOptions): Prom
 
 	const ingest = async (file: string, version: string) => {
 		try {
-			const snap = await readSnapshot(root, file);
+			const campaign = campaignOf(root, file);
+			const snap = await readSnapshot(root, file, opts.prepare);
 			const r = record(db, snap, relative(root, file), opts.loadedFrom?.() ?? null);
-			noteFile(db, relative(root, file), { version, reader });
+			noteFile(db, relative(root, file), { version, reader: readerOf(campaign) });
 			opts.onIngest({ ...r, file });
 			done.set(file, version);
 			failures.delete(file);
@@ -131,10 +154,10 @@ export async function watchSaves(db: Db, root: string, opts: WatchOptions): Prom
 		if (done.get(t.file) !== t.version) return false; // changed since: the poll loop records it
 		const source = relative(root, t.file);
 		try {
-			const snap = await readSnapshot(root, t.file);
+			const snap = await readSnapshot(root, t.file, opts.prepare);
 			const at = cursor.has(campaign) ? cursor.get(campaign)! : lastNode(db, campaign);
 			const r = t.stale ? refresh(db, snap) : record(db, snap, source, null, at);
-			noteFile(db, source, { version: t.version, reader });
+			noteFile(db, source, { version: t.version, reader: readerOf(campaign) });
 			if (r) {
 				cursor.set(campaign, r.nodeId);
 				opts.onRefresh?.({ ...r, file: t.file });
@@ -161,7 +184,7 @@ export async function watchSaves(db: Db, root: string, opts: WatchOptions): Prom
 	for (const [file, version] of files) {
 		const k = known.get(relative(root, file));
 		const campaign = campaignOf(root, file);
-		if (k?.version === version && k.reader === reader) done.set(file, version);
+		if (k?.version === version && k.reader === readerOf(campaign)) done.set(file, version);
 		else if (campaign === first && k?.version !== version) await ingest(file, version);
 		else {
 			done.set(file, version);
@@ -218,6 +241,23 @@ export async function watchSaves(db: Db, root: string, opts: WatchOptions): Prom
 		}
 	};
 
+	// The campaign's saves on disk, read and unchanged since, that another reader read: to the
+	// backlog as re-reads (a save still to be read is in the backlog or the poll loop already).
+	const reread = (campaign: string) =>
+		exclusive(async () => {
+			const known = readFiles(db);
+			const queued = new Set((backlog.get(campaign) ?? []).map((t) => t.file));
+			const stale: Todo[] = [];
+			for (const [file, version] of await scanned()) {
+				if (campaignOf(root, file) !== campaign || queued.has(file)) continue;
+				const k = known.get(relative(root, file));
+				if (done.get(file) === version && k?.version === version && k.reader !== readerOf(campaign))
+					stale.push({ file, version, stale: true });
+			}
+			backlog.set(campaign, [...(backlog.get(campaign) ?? []), ...stale]);
+			return readAll(campaign);
+		});
+
 	return {
 		stop: () => {
 			stopped = true;
@@ -226,6 +266,7 @@ export async function watchSaves(db: Db, root: string, opts: WatchOptions): Prom
 		},
 		refreshCampaign,
 		catchUp,
-		onDisk: () => disk
+		onDisk: () => disk,
+		reread
 	};
 }

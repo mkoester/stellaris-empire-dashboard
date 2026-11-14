@@ -122,8 +122,9 @@
 					: 'on this many colonies'
 				: ''}>{mark(m.applies)}</span
 	>{/snippet}
-{#snippet nameCell(m: Source)}<InfoPopup explanation={m.ref ? explain[m.ref] : undefined}
-		>{m.name}</InfoPopup
+{#snippet nameCell(m: Source)}<InfoPopup
+		explanation={m.ref ? explain[m.ref] : undefined}
+		ref={m.ref ?? undefined}>{m.name}</InfoPopup
 	>{#if m.scope && m.scope !== 'country'}<span class="text-xs text-gray-500">
 			· {m.scope}</span
 		>{/if}{/snippet}
@@ -144,7 +145,8 @@
 						? ' or '
 						: ' · '
 					: ''}<span class={n.authority?.forUs === false ? 'opacity-50' : ''}
-					><InfoPopup explanation={n.ref ? explain[n.ref] : undefined}>{n.text}</InfoPopup
+					><InfoPopup explanation={n.ref ? explain[n.ref] : undefined} ref={n.ref ?? undefined}
+						>{n.text}</InfoPopup
 					>{#if n.authority}{@render authorityBadge(n.authority)}{/if}</span
 				>{/each}{#if m.holders.length}<span class="text-gray-500"
 					>&nbsp;— have it: {m.holders

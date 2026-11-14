@@ -18,6 +18,8 @@ export function load({ url }) {
 	// progress of every queued tech; the permanent options (null: a save read before 2026-10-22)
 	const queued = Object.fromEntries((latest?.techQueued ?? []).map((q) => [q.tech, q.progress]));
 	const permanent = latest?.techPermanent ?? null;
+	// progress kept by techs switched away from (null: a save read before READER 49)
+	const kept = latest?.techKept ?? null;
 	const offers = techOffers(snaps).reverse();
 	// stored research per field and how long it lasts: each month up to the monthly gain is used
 	const stocked = snaps.findLast((s) => s.techStored !== null);
@@ -28,6 +30,7 @@ export function load({ url }) {
 			return { area, points, months: gain > 0 ? points / gain : null };
 		});
 	const researched = progress?.researched ?? [];
+	const onOffer = new Set(Object.values(options).flat());
 	const tech = (key: string) => ({
 		key,
 		name: techs[key]?.name ?? key,
@@ -49,11 +52,23 @@ export function load({ url }) {
 					...tech(k),
 					researching: (progress?.research ?? []).some((r) => r.tech === k),
 					permanent: permanent?.includes(k) ?? false,
-					progress: queued[k] ?? null
+					progress: queued[k] ?? kept?.[k] ?? null,
+					kept: queued[k] === undefined && kept?.[k] !== undefined
 				}))
 			])
 		),
 		permanentKnown: permanent !== null,
+		keptKnown: kept !== null,
+		// every tech holding kept progress, on offer now or not: a card that may come back
+		kept: Object.entries(kept ?? {})
+			.filter(([k]) => !researched.includes(k))
+			.map(([k, points]) => ({
+				...tech(k),
+				area: techs[k]?.area ?? '',
+				points,
+				onOffer: onOffer.has(k)
+			}))
+			.sort((a, b) => a.area.localeCompare(b.area) || b.points - a.points),
 		stored,
 		offers: offers.map((o) => ({ ...o, cards: o.cards.map(tech) })),
 		researched: researched.map(tech).map((t) => ({ ...t, area: techs[t.key]?.area ?? '' })),
@@ -65,6 +80,7 @@ export function load({ url }) {
 				...researched,
 				...Object.values(options).flat(),
 				...offers.flatMap((o) => o.cards),
+				...Object.keys(kept ?? {}),
 				...(progress?.research ?? []).map((r) => r.tech)
 			].map((k) => `tech:${k}`)
 		)

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
 	ageDays,
 	ageLabel,
+	campaignModSet,
+	dataModFolders,
+	dataModMismatch,
 	dlcRows,
 	loadOrder,
 	modRows,
@@ -11,7 +14,7 @@ import {
 	versionChanges,
 	withLauncher
 } from './addons.ts';
-import type { Dlc } from './types.ts';
+import type { Dlc, ModInfo } from './types.ts';
 
 const dlc = (name: string, category: string | null): Dlc => ({
 	name,
@@ -69,12 +72,27 @@ describe('parseModDescriptor', () => {
 			steamId: '1381214767',
 			updated: null,
 			file: 'ugc_1381214767.mod',
-			local: false
+			local: false,
+			path: 'S:/steamapps/workshop/content/281990/1381214767'
 		});
 	});
 
 	it('skips a descriptor without a name', () => {
 		expect(parseModDescriptor('tags={ "UI" }', 'x.mod')).toBeNull();
+	});
+
+	// ugc_901293740.mod (Research options+, 2017): a zip instead of a folder
+	it("takes an older mod's archive as its path, so the game data includes it", () => {
+		const zip =
+			'name="Research options+"\narchive="/w/281990/901293740/research.zip"\nremote_file_id="901293740"';
+		const m = parseModDescriptor(zip, 'ugc_901293740.mod')!;
+		expect(m.path).toBe('/w/281990/901293740/research.zip');
+		expect(dataModFolders([m], ['ugc_901293740.mod'])).toEqual([
+			{ name: 'Research options+', path: '/w/281990/901293740/research.zip', updated: null }
+		]);
+		expect(campaignModSet(['Research options+'], [m], ['ugc_901293740.mod'], []).missing).toEqual(
+			[]
+		);
 	});
 
 	// 2026-10-18: fc_meaningful_labels.mod (link-mod-proton.sh) beside its ugc_3741592450.mod
@@ -193,5 +211,126 @@ describe('mod age', () => {
 			'24 mo',
 			'2.5 y'
 		]);
+	});
+});
+
+describe('dataModFolders', () => {
+	const mod = (name: string, file: string, path: string | null): ModInfo => ({
+		name,
+		version: null,
+		supportedVersion: null,
+		tags: [],
+		steamId: null,
+		updated: '2026-11-01T00:00:00.000Z',
+		file,
+		local: false,
+		path
+	});
+
+	it('follows the load order and skips mods without a folder', () => {
+		const ds = [
+			mod('A', 'ugc_1.mod', '/w/1'),
+			mod('B', 'ugc_2.mod', '/w/2'),
+			mod('Z', 'z.mod', null)
+		];
+		expect(dataModFolders(ds, ['ugc_2.mod', 'z.mod', 'gone.mod', 'ugc_1.mod'])).toEqual([
+			{ name: 'B', path: '/w/2', updated: '2026-11-01T00:00:00.000Z' },
+			{ name: 'A', path: '/w/1', updated: '2026-11-01T00:00:00.000Z' }
+		]);
+	});
+});
+
+describe('campaignModSet', () => {
+	const mod = (name: string, file: string, path: string | null = `/w/${file}`): ModInfo => ({
+		name,
+		version: null,
+		supportedVersion: null,
+		tags: [],
+		steamId: null,
+		updated: null,
+		file,
+		local: !file.startsWith('ugc_'),
+		path
+	});
+	const ds = [
+		mod('A', 'ugc_1.mod'),
+		mod('B', 'ugc_2.mod'),
+		mod('C', 'ugc_3.mod'),
+		mod('C', 'c_dev.mod'), // a dev copy of C, registered next to its subscription
+		mod('Zip', 'ugc_9.mod', null)
+	];
+	const names = (r: ReturnType<typeof campaignModSet>) => r.mods.map((m) => m.path);
+
+	it("takes the launch order when it holds exactly the save's mods", () => {
+		const r = campaignModSet(['A', 'B'], ds, ['ugc_2.mod', 'ugc_1.mod'], []);
+		expect(r.source).toEqual({ kind: 'launch' });
+		expect(names(r)).toEqual(['/w/ugc_2.mod', '/w/ugc_1.mod']);
+	});
+
+	it('first the order remembered from a live save, if it still holds exactly these mods', () => {
+		// 2026-11-09: the playset edited after playing — dlc_load.json no longer the game's order
+		const r = campaignModSet(
+			['A', 'B'],
+			ds,
+			['ugc_1.mod', 'ugc_2.mod'],
+			[],
+			['ugc_2.mod', 'ugc_1.mod']
+		);
+		expect(r.source).toEqual({ kind: 'remembered' });
+		expect(names(r)).toEqual(['/w/ugc_2.mod', '/w/ugc_1.mod']);
+		// the save's mods changed since: the remembered order no longer applies
+		const later = campaignModSet(['A'], ds, ['ugc_1.mod'], [], ['ugc_2.mod', 'ugc_1.mod']);
+		expect(later.source).toEqual({ kind: 'launch' });
+	});
+
+	it('else a playset holding exactly them, the active one first', () => {
+		const playsets = [
+			{ name: 'other', active: false, order: ['ugc_1.mod', 'ugc_3.mod'] },
+			{ name: 'mine', active: true, order: ['ugc_3.mod', 'ugc_1.mod'] },
+			{ name: 'more', active: false, order: ['ugc_1.mod', 'ugc_2.mod', 'ugc_3.mod'] }
+		];
+		const r = campaignModSet(['A', 'C'], ds, ['ugc_1.mod'], playsets);
+		expect(r.source).toEqual({ kind: 'playset', name: 'mine', exact: true });
+		expect(names(r)).toEqual(['/w/ugc_3.mod', '/w/ugc_1.mod']);
+	});
+
+	it('else the closest playset: most of the mods, fewest others; the rest appended', () => {
+		const playsets = [
+			{ name: 'wide', active: true, order: ['ugc_2.mod', 'ugc_9.mod', 'ugc_3.mod', 'ugc_1.mod'] },
+			{ name: 'narrow', active: false, order: ['ugc_3.mod', 'x.mod', 'ugc_1.mod'] },
+			{ name: 'half', active: false, order: ['ugc_1.mod'] }
+		];
+		// both hold A and C; `narrow` has one other mod, `wide` two
+		const r = campaignModSet(['A', 'B', 'C'], ds, [], playsets.slice(1));
+		expect(r.source).toEqual({ kind: 'playset', name: 'narrow', exact: false });
+		expect(names(r)).toEqual(['/w/ugc_3.mod', '/w/ugc_1.mod', '/w/ugc_2.mod']); // B appended
+		const all = campaignModSet(['A', 'B', 'C'], ds, [], playsets);
+		expect(all.source).toEqual({ kind: 'playset', name: 'wide', exact: false }); // holds all three
+		expect(names(all)).toEqual(['/w/ugc_2.mod', '/w/ugc_3.mod', '/w/ugc_1.mod']);
+	});
+
+	it('else alphabetical, the copy the launcher loaded last for a doubled name', () => {
+		const r = campaignModSet(['C', 'A', 'Zip', 'Gone'], ds, ['c_dev.mod'], []);
+		expect(r.source).toEqual({ kind: 'guessed' });
+		expect(names(r)).toEqual(['/w/ugc_1.mod', '/w/c_dev.mod']);
+		expect(r.missing).toEqual(['Zip', 'Gone']);
+	});
+
+	it('no save yet: the launch order; no mods: none', () => {
+		expect(names(campaignModSet(null, ds, ['ugc_1.mod'], []))).toEqual(['/w/ugc_1.mod']);
+		expect(campaignModSet(null, ds, [], [])).toEqual({ mods: [], source: null, missing: [] });
+		expect(campaignModSet([], ds, ['ugc_1.mod'], [])).toEqual({
+			mods: [],
+			source: null,
+			missing: []
+		});
+	});
+});
+
+describe('dataModMismatch', () => {
+	it('names the active mods the data lacks and the data mods not active', () => {
+		expect(dataModMismatch(['A', 'B'], ['B', 'C'])).toEqual({ missing: ['C'], extra: ['A'] });
+		expect(dataModMismatch(['A'], ['A'])).toEqual({ missing: [], extra: [] });
+		expect(dataModMismatch(null, ['A'])).toBeNull();
 	});
 });

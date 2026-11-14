@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { colorOf } from '#lib/colors.ts';
+	import { colorOf, tintColor } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -274,6 +274,7 @@
 	auto?: boolean;
 })}
 	{@const focus = r.kind.startsWith('focus_')}
+	{@const tree = r.kind === 'tradition' && r.tint ? tintColor(r.tint) : undefined}
 	{#if r.area}<span
 			class="ml-1 rounded border px-1 text-[10px]"
 			style:color={colorOf(`${r.area}_research`)}
@@ -282,13 +283,15 @@
 		>{/if}{#if r.badge}<span
 			class="ml-1 rounded px-1 text-[10px] {focus
 				? 'border'
-				: r.kind === 'perk'
-					? 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200'
-					: r.kind === 'tradition'
-						? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
-						: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}"
+				: tree
+					? 'border-l-4 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200'
+					: r.kind === 'perk'
+						? 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200'
+						: r.kind === 'tradition'
+							? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+							: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}"
 			style:color={focus && r.tint ? colorOf(r.tint) : null}
-			style:border-color={focus && r.tint ? colorOf(r.tint) : null}
+			style:border-color={focus && r.tint ? colorOf(r.tint) : (tree ?? null)}
 			title={r.kind === 'perk'
 				? 'ascension perk'
 				: r.kind === 'tradition'
@@ -673,7 +676,8 @@
 						<li class="py-0.5">
 							<span class="text-gray-500 tabular-nums">{h.date ?? '?'}</span>
 							<b>{h.op}</b>
-							{@render group(h.group)}{h.label}{#if h.kind}{@render badges({
+							{@render group(h.group)}<InfoPopup ref={h.ref ?? undefined}>{h.label}</InfoPopup
+							>{#if h.kind}{@render badges({
 									kind: h.kind,
 									badge: h.badge,
 									area: h.area,
@@ -694,7 +698,10 @@
 							<b class={d.avoid ? 'text-red-600' : 'text-green-700 dark:text-green-400'}
 								>{d.avoid ? 'happened' : 'reached'}</b
 							>
-							{@render group(d.group)}{d.label}{@render badges(d)}
+							{@render group(d.group)}<InfoPopup
+								explanation={d.ref ? data.explain[d.ref] : undefined}
+								ref={d.ref ?? undefined}>{d.label}</InfoPopup
+							>{@render badges(d)}
 						</li>
 					{:else}
 						<li class="text-gray-500">Nothing reached yet.</li>

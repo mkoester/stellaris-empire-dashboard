@@ -6,6 +6,7 @@
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
+	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
 
@@ -72,6 +73,16 @@
 			active: path === '/systems'
 		},
 		{
+			name: 'fleets',
+			href: node ? resolve(`/fleets?node=${node}`) : resolve('/fleets'),
+			active: path === '/fleets'
+		},
+		{
+			name: 'starbases',
+			href: node ? resolve(`/starbases?node=${node}`) : resolve('/starbases'),
+			active: path === '/starbases'
+		},
+		{
 			name: 'trade',
 			href: node ? resolve(`/trade?node=${node}`) : resolve('/trade'),
 			active: path === '/trade'
@@ -91,6 +102,15 @@
 			href: node ? resolve(`/market?node=${node}`) : resolve('/market'),
 			active: path === '/market'
 		},
+		...(data.slaveMarket
+			? [
+					{
+						name: 'slave market',
+						href: node ? resolve(`/slaves?node=${node}`) : resolve('/slaves'),
+						active: path === '/slaves'
+					}
+				]
+			: []),
 		{
 			name: 'resources',
 			href: node ? resolve(`/resources?node=${node}`) : resolve('/resources'),
@@ -159,6 +179,11 @@
 			name: 'contacts',
 			href: node ? resolve(`/contacts?node=${node}`) : resolve('/contacts'),
 			active: path === '/contacts'
+		},
+		{
+			name: 'contracts',
+			href: node ? resolve(`/contracts?node=${node}`) : resolve('/contracts'),
+			active: path === '/contracts'
 		},
 		{
 			name: 'galcom',
@@ -363,9 +388,10 @@
 					>game {data.gameVersion.replace(/^\D*/, '')}</span
 				>{/if}
 			<!-- the difficulty and the dates alone on the right, also when they wrap onto a line of their own -->
-			{#if data.dates?.difficulty}<span
-					class="ml-auto pb-1 text-[11px] text-gray-400"
-					title="the game's difficulty (galaxy setup), of seven">{data.dates.difficulty}</span
+			{#if data.dates?.difficulty}<span class="ml-auto pb-1 text-[11px] text-gray-400"
+					>{#if data.dates.difficultyCard}<InfoPopup explanation={data.dates.difficultyCard}
+							>{data.dates.difficulty}</InfoPopup
+						>{:else}{data.dates.difficulty}{/if}</span
 				>{/if}
 			{#if data.dates}<span
 					class="{data.dates.difficulty ? '' : 'ml-auto'} pb-1 text-[11px] text-gray-400"
@@ -386,6 +412,12 @@
 					>show it now</button
 				>
 				<button class="rounded border px-2" onclick={() => (waved = loaded.node)}>not now</button>
+			</p>
+		{/if}
+		{#if data.extracting}
+			<p class="mb-2 rounded border border-sky-400 px-3 py-1 text-sm">
+				Extracting the game data with this game's {data.extracting.mods} mods … until then, what they
+				add shows as raw keys. The page reloads when it is done.
 			</p>
 		{/if}
 		{#if data.feed}

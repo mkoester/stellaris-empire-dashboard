@@ -32,7 +32,7 @@ import {
 
 // What the empire knows of the galaxy and of the others: systems, the empires it met, first
 // contacts, situations, anomalies, special projects, dig sites. Pure, from the gamestate parts in
-// RawSave. Paths are in AGENTS.md ("Save format facts").
+// RawSave. Paths are in docs/save-format.md.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = any;

@@ -664,7 +664,7 @@ export const sourceOf = (kind: string, field: string) => SOURCE[`${kind}.${field
 
 /**
  * A nomadic empire: running the nomad economy situation (the origin misses most nomads, see
- * AGENTS.md "Trade tab"). It claims no systems and settles no planets (the game's
+ * docs/tabs-economy.md "Trade tab"). It claims no systems and settles no planets (the game's
  * `nomadic_gameplay_desc`): no outposts or colonies — waystations and arkships instead.
  */
 export const nomadic = (s: Snapshot) =>
@@ -846,16 +846,23 @@ export function areaOf(kind: string, target: Target, data: Pick<GameData, 'techs
 }
 
 /**
- * The colour a goal's badge takes (a `colors.ts` key): a research area's, a focus area's
- * (`focus-<area>`; a card giving to all three none).
+ * The colour a goal's badge takes: a `colors.ts` key — a research area's, a focus area's
+ * (`focus-<area>`; a card giving to all three none) — or a tradition's tree colour in game
+ * ('#rrggbb'; none from a data DB without it). `tintColor()` resolves either.
  */
 export function tintOf(
 	kind: string,
 	target: Target,
-	data: Pick<GameData, 'techs'> & Partial<Pick<GameData, 'focus'>>
+	data: Pick<GameData, 'techs'> & Partial<Pick<GameData, 'focus' | 'traditionTrees'>>
 ): string | null {
 	const area = areaOf(kind, target, data);
 	if (area) return `${area}_research`;
+	if (kind === 'tradition')
+		return (
+			Object.values(data.traditionTrees ?? {}).find((t) =>
+				t.traditions.some((x) => x.key === target.tradition)
+			)?.color ?? null
+		);
 	if (kind === 'focus_card') {
 		const card = data.focus?.cards[String(target.card)];
 		return card && card.gives.length === 1 ? `focus-${card.gives[0].category}` : null;

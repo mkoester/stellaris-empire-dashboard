@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { ageDays, modRows, versionChanges } from '#lib/addons.ts';
-import { getDb, getLoadOrder, getMods } from '#lib/server/app.ts';
+import { ageDays, dataModMismatch, modRows, versionChanges } from '#lib/addons.ts';
+import { campaignDataState, dataMods, getDb, getLoadOrder, getMods } from '#lib/server/app.ts';
 import { modVersions } from '#lib/server/db.ts';
 import { branch } from '#lib/server/branch.ts';
 
@@ -19,6 +19,11 @@ export function load({ url }) {
 		rows: modRows(getMods(), last?.mods ?? null, last?.gameVersion ?? null, getLoadOrder()).map(
 			(r) => ({ ...r, age: ageDays(r.updated, Date.now()) })
 		),
+		// the mods the campaign's game data (names, modifiers, slots) was extracted with, and where
+		// their order came from
+		dataMods: dataMods(),
+		dataState: campaignDataState(),
+		dataMismatch: dataModMismatch(dataMods(), last?.mods ?? null),
 		changes: rest.milestones.filter((m) => m.kind === 'mod'),
 		updates: versionChanges(modVersions(getDb()))
 	};
