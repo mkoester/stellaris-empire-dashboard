@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.16] - 2026-11-14
+
+### Fixed
+
+- The header and every tab no longer blank out between the companion mod's monthly line and the
+  next autosave: until that save arrives, the page shows the last save's empire (name, score,
+  empire size, colonies …) with the new date and stockpile. Seen on a fast machine, where months
+  pass between autosaves.
+- Colonies named from a name list show their name ("San Lucas", "St. Pomeroy") instead of their
+  key ("HUMAN1 PLANET SanLucas") in Upcoming, the colony pages and everywhere else (the bundled
+  extractor 0.1.17 brings the names; saves still on disk are read again).
+- Setup: the user folder's caption ("the one holding `save games`") no longer breaks over three
+  lines.
+
 ## [0.1.15] - 2026-11-12
 
 ### Added

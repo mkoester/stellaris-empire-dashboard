@@ -22,7 +22,9 @@ version's `CHANGELOG.md` section.
    (`… is on no tag` while it is on `develop`): check out `vX.Y.Z` in
    `../stellaris-data-extraction` for the build, back to `develop` after. To skip `/setup` (e.g. driving it with `curl`),
    write `<temp>/stellaris-empire-dashboard/config.json` = `{"gameDir": …, "userDir": …}` first and
-   start with `BROWSER=true`; the launcher prints its URL (checked 2026-10-31 for v0.1.4).
+   start with `BROWSER=true`; the launcher prints its URL (checked 2026-10-31 for v0.1.4). Stopping
+   it while it extracts a campaign's data in the background logs "extraction with mods failed …
+   (exit null)": the killed extractor, not a fault (v0.1.15, 2026-11-12).
    **Before tagging for real** (v0.1.8, 2026-11-01): clone both repos into `$TMPDIR`, commit the
    pending changelog/pin there and make the tags in the clones only; give the dashboard clone a
    **copy** of `node_modules` (`cp -a`, 168 MB) — a symlinked one makes the build's pnpm want to

@@ -220,7 +220,9 @@ folder for players**; a new discovery path in `locate.ts` goes there too.
   player has allowed it in Privacy & Security; the bundled Python is not notarized, Node is.
   **The Mac zips have not run on a Mac yet** — first run per `RELEASE.md`.
   Downloads are cached in `.cache/`. **In the Claude Code sandbox** Node's `fetch` needs
-  `NODE_USE_ENV_PROXY=1` to reach nodejs.org (it ignores the proxy otherwise: `EAI_AGAIN`).
+  `NODE_USE_ENV_PROXY=1` to reach nodejs.org (it ignores the proxy otherwise: `EAI_AGAIN`), and
+  the command must name `nodejs.org` among its allowed hosts — a clone in `$TMPDIR` has no `.cache/`
+  and downloads Node (2026-11-12).
 
 **`launcher.mjs` serves the app through its own HTTP server**, not adapter-node's `index.js`:
 without `ORIGIN` adapter-node 6 takes every request for `https`, and SvelteKit rejects the forms
@@ -1906,10 +1908,14 @@ node (`place()` → `merge`), otherwise the second would look like a reload. The
 mod's income with the save's balance and logs `mod and save disagree on net income` on a mismatch.
 The save's reading wins, but what only the log knows — `logEvents`, `ticks`, and the timeline id if
 the save lacks it — is kept (`withLogFields()`), also when a save is read again.
-**A month from the feed alone carries no colonies** (`toLogSnapshot`: `colonies: []`). While no save
-follows — `fast_forward` writes no autosaves — `branch()`'s `latest` takes the last save's colonies
-(`latestOf()`, `#lib/latest.ts`): before, the colonies tab read "No colony matches" (throwaway
-Theian Preservers 2207.05–10, 2026-11-05).
+**A month from the feed alone carries only its date, stockpile, net income and events**
+(`toLogSnapshot`: everything else null, `''` or `[]`). While no save follows — the next autosave,
+or `fast_forward`, which writes none — `branch()`'s `latest` takes **every field the month lacks**
+from the branch's last save (`latestOf()`, `#lib/latest.ts`), its own `logEvents` and `ticks` kept
+even when empty; `kind` stays `log`. Before, colonies alone (the colonies tab read "No colony
+matches", throwaway Theian Preservers 2207.05–10, 2026-11-05), and the header lost name, score,
+empire size, starbases, envoys, naval capacity and pops after each month (0.1.15 on a fast
+machine, the user 2026-11-14).
 
 ## Companion mod (`mod/dashboard_feed`)
 

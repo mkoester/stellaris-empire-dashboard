@@ -95,7 +95,7 @@
 				</p>
 			{/each}
 			<label class="flex flex-col gap-1"
-				>folder (the one holding <code>save games</code>)
+				><span>folder (the one holding <code>save games</code>)</span>
 				<input class={field} name="userDir" bind:value={userDir} required />
 			</label>
 			{#if form?.errors?.userDir}<p class="text-red-600">{form.errors.userDir}</p>{/if}
