@@ -8,6 +8,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- The header and every tab no longer blank out between the companion mod's monthly line and the
+  next autosave: until that save arrives, the page shows the last save's empire (name, score,
+  empire size, colonies …) with the new date and stockpile. Seen on a fast machine, where months
+  pass between autosaves.
+- Colonies named from a name list show their name ("San Lucas", "St. Pomeroy") instead of their
+  key ("HUMAN1 PLANET SanLucas") in Upcoming, the colony pages and everywhere else. Needs the game
+  data of the next extractor release.
 - Setup: the user folder's caption ("the one holding `save games`") no longer breaks over three
   lines.
 

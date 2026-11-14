@@ -3118,9 +3118,10 @@ export function displayName(name: Raw): string {
 	return (
 		key
 			.replace(/^(SPEC|NAME|PRESCRIPTED)_/, '')
-			// name lists: HUMAN1_SHIP_Byzantium, HUMAN1_CHR_Gabriela, NECROID1_FLEET_Vanguard; one whose
-			// text differs from its tail ("Maelstrom Fleet") is a prescripted name (extractor 0.1.5+)
-			.replace(/^[A-Z0-9]+_(SHIP|CHR|FLEET|ARMY)_/, '')
+			// name lists: HUMAN1_SHIP_Byzantium, HUMAN1_CHR_Gabriela, NECROID1_FLEET_Vanguard,
+			// HUMAN1_PLANET_Hope; one whose text differs from its tail ("Maelstrom Fleet", "St.
+			// Pomeroy") is a prescripted name (extractor 0.1.5+, planets since 2026-11-14)
+			.replace(/^[A-Z0-9]+_(SHIP|CHR|FLEET|ARMY|PLANET)_/, '')
 			.replace(/_(planet|system|star)$/, '')
 			.replaceAll('_', ' ')
 	);

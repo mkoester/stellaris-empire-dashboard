@@ -1777,6 +1777,7 @@ describe('helpers', () => {
 		// name-list fleets and armies like ships: the key's tail where no prescripted name says more
 		expect(displayName({ key: 'NECROID1_FLEET_Vanguard' })).toBe('Vanguard');
 		expect(displayName({ key: 'NECROID1_ARMY_Legion' })).toBe('Legion');
+		expect(displayName({ key: 'HUMAN1_PLANET_Hope' })).toBe('Hope');
 		expect(
 			displayName({
 				key: '%ADJECTIVE%',
