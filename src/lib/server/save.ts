@@ -81,7 +81,7 @@ import {
 
 // Save → Snapshot. `querySave` is the only part touching jomini; everything after it is pure and
 // takes plain objects, so it is unit-tested against hand-written fixtures.
-// Paths into the gamestate are documented in AGENTS.md ("Save format facts").
+// Paths into the gamestate are documented in docs/save-format.md.
 
 // jomini returns untyped JS values; this is the subset of the gamestate we read.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

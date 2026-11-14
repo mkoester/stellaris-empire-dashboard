@@ -55,7 +55,7 @@ type State = {
 	/** the launcher's files as last seen (`dlc_load.json`, `launcher-v2.sqlite`): mtimes */
 	launcherStamp?: string;
 	launcherTimer?: ReturnType<typeof setInterval>;
-	/** one data set for every campaign, set by a throwaway test instead of starting (AGENTS.md) */
+	/** one data set for every campaign, set by a throwaway test instead of starting (docs/testing.md) */
 	gameData?: GameData;
 	explanations?: Explanations;
 	mods?: ModInfo[];

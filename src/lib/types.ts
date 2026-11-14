@@ -806,7 +806,7 @@ export type CouncilSeat = {
 	leaderTraits?: string[];
 };
 
-/** A war the country is in. UNVERIFIED shape — no war seen in a save yet (see AGENTS.md). */
+/** A war the country is in. UNVERIFIED shape — no war seen in a save yet (see docs/save-format.md). */
 /** A war we take part in: top-level `war.<id>` (4.5.2, first seen 2026-10-19). */
 export type War = {
 	id: string;
@@ -1080,7 +1080,7 @@ export type Contract = {
 };
 
 /**
- * A trade deal with another empire. UNVERIFIED shape — none seen in a save yet (see AGENTS.md):
+ * A trade deal with another empire. UNVERIFIED shape — none seen in a save yet (see docs/save-format.md):
  * `raw` keeps the deal as the save wrote it, so the first one seen can be checked on /deals.
  */
 export type TradeDeal = {
