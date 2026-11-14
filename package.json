@@ -3,7 +3,7 @@
 	"private": true,
 	"version": "0.1.16",
 	"license": "AGPL-3.0-only",
-	"extractorVersion": "v0.1.16",
+	"extractorVersion": "v0.1.17",
 	"type": "module",
 	"engines": {
 		"node": ">=26"
