@@ -34,7 +34,8 @@ the gear tab (top right), "Folders".
 
 Options: start.bat --lan / ./start.sh --lan also serves other devices on your network, e.g. a
 tablet as the second screen (open http://<this computer's address>:<port>/ there; the window
-shows the port, usually 5174).
+shows the port, usually 5174). Other devices can look and change the view; the folders and
+deleting a game's history stay with this computer.
 
 
 Companion mod (optional)

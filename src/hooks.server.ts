@@ -1,13 +1,25 @@
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { start, status } from '#lib/server/app.ts';
+import { refusal } from '#lib/server/guard.ts';
 import { theme } from '#lib/server/settings.ts';
 
 export const init: ServerInit = start;
 
+// A request under a foreign name, a write from another site, or a change of the folders or the
+// campaigns from another device is refused (`guard.ts`).
 // Until the game folders are set (and the dashboard has started with them), every page leads to
 // /setup. The stored theme goes on <html> before the page reaches the browser, so it never flashes.
 export const handle: Handle = ({ event, resolve }) => {
+	const refused = refusal({
+		host: event.url.host,
+		client: event.getClientAddress(),
+		method: event.request.method,
+		path: event.url.pathname,
+		origin: event.request.headers.get('origin'),
+		self: event.url.origin
+	});
+	if (refused) error(403, refused);
 	const running = status() === 'running';
 	if (!running && !event.url.pathname.startsWith('/setup')) redirect(303, '/setup');
 	return resolve(event, {
