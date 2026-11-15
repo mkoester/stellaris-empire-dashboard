@@ -1,10 +1,12 @@
 import { contractMarksAt } from '#lib/server/contracts.ts';
 import { error } from '@sveltejs/kit';
+import { pretty } from '#lib/format.ts';
 import { contactRows, mapView, situationRows, stationOwners } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display } from '#lib/server/settings.ts';
+import { outcomeTrees } from '#lib/server/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
 
 // The game's situation log: first contacts (table and map), situations, anomalies, special
@@ -16,6 +18,7 @@ export function load({ url }) {
 	const { snaps, ...rest } = b;
 	const data = getGameData();
 	const opts = display();
+	const trees = outcomeTrees(data, opts);
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const galaxy = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const nameOf = new Map(galaxy.map((g) => [g.id, g.name]));
@@ -62,7 +65,8 @@ export function load({ url }) {
 				system: system(a.systemId),
 				name: cat?.name ?? a.category,
 				level: cat?.level ?? null,
-				outcomes: opts.anomalySpoilers ? (cat?.outcomes ?? []) : null
+				outcomes: opts.anomalySpoilers ? (cat?.outcomes ?? []) : null,
+				tree: trees.anomaly(a.category)
 			};
 		}),
 		projects: (s?.specialProjects ?? []).map((p) => {
@@ -73,9 +77,16 @@ export function load({ url }) {
 				name: info?.name ?? p.key,
 				department: info?.department ?? null,
 				days: info?.days ?? null,
-				outcomes: opts.projectSpoilers ? (info?.outcomes ?? []) : null
+				outcomes: opts.projectSpoilers ? (info?.outcomes ?? []) : null,
+				tree: trees.project(p.key)
 			};
 		}),
-		digSites: (s?.digSites ?? []).map((d) => ({ ...d, system: system(d.systemId) }))
+		digSites: (s?.digSites ?? []).map((d) => ({
+			...d,
+			system: system(d.systemId),
+			name: data.digSiteTypes[d.type]?.name ?? pretty(d.type.replace(/^site_/, '')),
+			stages: data.digSiteTypes[d.type]?.stages ?? null,
+			tree: trees.digSite(d.type)
+		}))
 	};
 }

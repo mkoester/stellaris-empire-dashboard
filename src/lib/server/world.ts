@@ -469,7 +469,8 @@ export function digSites(
 				difficulty: num(s.difficulty),
 				daysLeft: numOrNull(s.days_left),
 				lastRoll: numOrNull(s.last_roll),
-				excavating: idOrNull(s.excavator_fleet) !== null
+				excavating: idOrNull(s.excavator_fleet) !== null,
+				chapter: s.index === undefined ? null : num(s.index) + 1
 			}
 		];
 	});

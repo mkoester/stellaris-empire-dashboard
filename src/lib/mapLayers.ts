@@ -136,6 +136,7 @@ export type MapMarker = {
 	// no longer to be done: resolved, excavated, met, counted, claimed — or told by another marker
 	done: boolean;
 	doneAt?: string | null; // the first save showing it done, where the history tells
+	tip?: string | null; // what it leads to, as tooltip text (anomalies, projects, dig sites; spoilers)
 };
 
 /** A thing as the branch's saves list it: its latest reading, and the first save showing it done. */
@@ -241,6 +242,13 @@ export function mapMarkers(p: {
 	entries?: (SystemEntry & { detail: string; seen?: Seen | null })[];
 	firstSeen?: FirstSeen; // from the branch's saves (firstSeen())
 	anomalyLevels?: Record<string, number | null>; // category → level, the anomaly's difficulty
+	digSiteNames?: Record<string, string>; // site type → name
+	// what each leads to, as text (`outcomeTips()` in server/outcomes.ts); null behind its spoiler
+	tips?: {
+		anomaly: (category: string) => string | null;
+		project: (key: string) => string | null;
+		digSite: (type: string, chapter: number | null) => string | null;
+	};
 }): MapMarker[] {
 	const visited = (id: number) => p.firstSeen?.systems.get(id) ?? null;
 	const shown = new Set(p.galaxy.map((s) => s.id));
@@ -285,6 +293,7 @@ export function mapMarkers(p: {
 			detail: `anomaly at ${a.planet}`,
 			difficulty: p.anomalyLevels?.[a.category] ?? null,
 			seen: p.firstSeen?.anomalies.get(anomalyKey(a)) ?? null,
+			tip: p.tips?.anomaly(a.category) ?? null,
 			...done(a)
 		})),
 		...p.digSites.flatMap((d) =>
@@ -294,9 +303,10 @@ export function mapMarkers(p: {
 						{
 							layer: 'digSites' as const,
 							systemId: d.systemId,
-							label: pretty(d.type),
+							label: p.digSiteNames?.[d.type] ?? pretty(d.type.replace(/^site_/, '')),
 							detail: 'dig site',
 							difficulty: d.difficulty,
+							tip: p.tips?.digSite(d.type, d.chapter ?? null) ?? null,
 							seen: p.firstSeen?.digSites.get(d.id) ?? null,
 							...(isTrackedDone(d)
 								? { ...done(d), progress: 'excavated' }
@@ -325,6 +335,7 @@ export function mapMarkers(p: {
 							systemId: s.systemId,
 							label: s.name,
 							detail: 'special project',
+							tip: p.tips?.project(s.key) ?? null,
 							...done(s)
 						}
 					]

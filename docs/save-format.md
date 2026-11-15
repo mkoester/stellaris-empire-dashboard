@@ -489,7 +489,9 @@ type progress last_month_progress approach stage }`. Anomalies: `country.events.
 { <planet ids> }`, category in `planets.planet.<id>.anomaly`. Special projects
   `country.events.special_project = { id special_project carrier = { type=planet reference } }`,
   no progress. Dig sites `archaeological_sites.sites.<id> = { location = { type=2 id=<planet> }
-type clues difficulty days_left excavator_fleet }`. Megastructures `megastructures.<id> =
+type index clues difficulty days_left excavator_fleet }`; `index` is the chapter under way,
+  0-based (**assumed**: every site in Roaming Korinth 2210.10.20 reads 0, and `site_star_petal`'s
+  difficulty 2 is its first stage's — no site seen past a chapter yet). Megastructures `megastructures.<id> =
 { type coordinate.origin owner }` (2207.03.10: ruined gateways, a ruined quantum catapult, two
   ruined ring world sections).
 - Empire focus: `country.focus = { active = { <card ids> } priority = { current } reward = {

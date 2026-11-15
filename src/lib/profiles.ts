@@ -36,8 +36,9 @@ export type Display = {
 	showSpoilers: boolean; // ⚙ lists the spoiler switches; off, they are off (#lib/displaySwitches.ts)
 	showCheats: boolean; // likewise the cheats
 	habitatsAlways: boolean; // habitat sites before habitats can be built (cheat)
-	anomalySpoilers: boolean; // situations tab: what an anomaly can turn into
-	projectSpoilers: boolean; // situations tab: what a special project leads to
+	anomalySpoilers: boolean; // situations and map tabs: what an anomaly can turn into
+	projectSpoilers: boolean; // situations and map tabs: what a special project leads to
+	digSiteSpoilers: boolean; // situations and map tabs: what a dig site's chapters give
 	contactStations: boolean; // first contact map: whose station each visited system has
 	wholeGalaxy: boolean; // maps and megastructure sites: every system, not only the discovered
 	unknownStars: boolean; // maps: the undiscovered systems too, without their hyperlanes
@@ -70,6 +71,7 @@ export const DEFAULT_DISPLAY: Display = {
 	habitatsAlways: false,
 	anomalySpoilers: false,
 	projectSpoilers: false,
+	digSiteSpoilers: false,
 	contactStations: false,
 	wholeGalaxy: false,
 	unknownStars: false,
@@ -153,6 +155,7 @@ export function parseDisplay(v: unknown): Display {
 		whatIfs: o.whatIfs === true,
 		anomalySpoilers: o.anomalySpoilers === true,
 		projectSpoilers: o.projectSpoilers === true,
+		digSiteSpoilers: o.digSiteSpoilers === true,
 		contactStations: o.contactStations === true,
 		wholeGalaxy: o.wholeGalaxy === true,
 		unknownStars: o.unknownStars === true,

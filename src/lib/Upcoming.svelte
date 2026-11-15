@@ -90,7 +90,7 @@
 			>{/if}
 		{e.sub ?? e.kind}</span
 	>{/snippet}
-{#snippet details(e: Row)}<span style="color: CanvasText"
+{#snippet details(e: Row)}<span style="color: CanvasText" class:cursor-help={e.tip} title={e.tip}
 		>{#if e.planetId !== undefined}<a class="underline" href={colonyHref(e.planetId)}>{e.detail}</a
 			>{:else}{e.detail}{/if}</span
 	>{/snippet}

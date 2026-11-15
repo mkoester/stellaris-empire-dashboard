@@ -4,6 +4,13 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 
 ## Open (needs a running game on Linux)
 
+- **A dig site's chapter (2026-11-15)**: `DigSite.chapter` = the save's `index` + 1 is
+  **assumed** — every site seen so far reads `index=0`. Check after a chapter's event: the
+  situations tab's Chapter column should read 2, and the Outcome's "← next" mark move with it.
+- **Outcome trees against the game (2026-11-15)**: the situations tab's Outcome for an anomaly
+  or project should match what its event window offers when it completes (options, rewards). A
+  tree is built from the files (`stellaris-data-extraction` `extractor/outcomes.py`), so
+  conditions are known only as "depends", never evaluated.
 - **Tabs that did nothing when clicked, 0.1.17 on mkTuxedCachy (2026-11-15)**: every tab but
   `mods` and `about` gave no visible effect, then worked again a little later. The user then saw
   it only with two or more dashboard tabs open; closing all but one cured it. Explained: each page

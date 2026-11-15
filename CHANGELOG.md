@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- What anomalies, special projects and dig sites actually give, behind the spoiler switches: the
+  situations tab's Outcome column shows markers (known, random, choice, depends, project, later,
+  risk), the first rewards, and the whole chain on opening. The same text is the tooltip on the
+  map tab, on the planner's anomaly and dig-site suggestions and on Upcoming's excavation rolls.
+  Needs a data DB from stellaris-data-extraction with the `outcome` table; older ones show the
+  event titles as before.
+- A spoiler switch for dig sites' chapters; dig sites show their next chapter.
+
+### Fixed
+
+- Dig sites by their name ("Gas Giant Structure", not "star petal") on the situations tab, the
+  map, the planner and Upcoming.
+
 ## [0.1.21] - 2026-11-15
 
 ### Added

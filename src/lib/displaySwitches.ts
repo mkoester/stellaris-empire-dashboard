@@ -144,6 +144,12 @@ export const SWITCHES: Switch[] = [
 		label: 'Show what a special project leads to'
 	},
 	{
+		key: 'digSiteSpoilers',
+		group: 'Situations',
+		kind: 'spoiler',
+		label: 'Show what a dig site’s chapters give'
+	},
+	{
 		key: 'hiddenTimers',
 		group: 'Situations',
 		kind: 'spoiler',

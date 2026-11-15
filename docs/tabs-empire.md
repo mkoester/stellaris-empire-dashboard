@@ -202,9 +202,23 @@ Balance at ×1.
 **Situations tab** (`/situations`, `#lib/situations.ts` pure, readers in `server/world.ts`): first
 contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
-an envoy); situations, anomalies, special projects (no progress in the save), dig sites, a link
-to events. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`:
-the outcome events' titles), as is `contactStations`: visited systems coloured by their
+an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
+with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
+events. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`,
+`digSiteSpoilers`): the **Outcome** column (the user's ask 2026-11-15, `#lib/outcomes.ts` pure,
+`Outcome.svelte`, `server/outcomes.ts`) — the data DB's `outcome` trees, a project's own tree
+filled in where an anomaly leads to it (`withProjects()`), as markers, the first rewards, and the
+whole tree on opening (its plain text as the tooltip). **Markers** (`markers()`): _known_ — no
+chance, no choice, no condition anywhere, projects included; _random_ — a random list with two
+branches or more; _choice_ — an event with two options open to one empire (conditional options
+count as one variant: "Study the orb." / "Eat the orb."); _depends_ — a conditional option, a
+weighted branch with conditions, or an `if` whose branches differ; _project_ — leads to a further
+special project; _later_ — something fires a year or more later (the Orb's explorer: ~100 years);
+_risk_ — a leader killed, a ship or fleet destroyed, resources taken, or a fleet not ours. Random
+branches show percentages, or weights where a branch has conditions (the Mineral Cluster: 0, or 1
+while the scientist lacks the trait the branch gives). The same text is the tooltip on the map tab,
+on the planner's anomaly and dig-site suggestions and on Upcoming's excavation rolls. An older data
+DB has no tree: the column falls back to the outcome events' titles. So is `contactStations` a switch: visited systems coloured by their
 station's owner, and every map's borders named — the save names it before communications, a
 spoiler. **Stations seen** (`Snapshot.stationsSeen`, `stationsSeen()` in `server/world.ts`): other
 empires' stations in the systems our fleets are in when the game saves (`fleet.<id>.movement_manager.coordinate.origin`),

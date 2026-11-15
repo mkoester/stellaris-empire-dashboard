@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
+import type { OutcomeNode } from '#lib/outcomes.ts';
 import type { ActionKind, CapEffect, Costs, GameData, Resources, Specialists } from '#lib/types.ts';
 import { NO_SHIP_PARTS, type ShipParts } from '#lib/designStats.ts';
 import {
@@ -461,6 +462,28 @@ export function loadGameData(file: string): GameData {
 					{ name: r.name ?? r.key, level: r.level, outcomes: jsonList(r.outcomes_json) }
 				])
 			),
+			// an older data DB may lack both tables: outcomes as event titles, dig sites by key then
+			...(() => {
+				const has = (t: string) =>
+					rows(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = '${t}'`).length > 0;
+				const trees: GameData['outcomeTrees'] = { anomaly: {}, project: {}, dig_site: {} };
+				if (has('outcome'))
+					for (const r of rows<{ kind: string; key: string; tree_json: string }>(
+						'SELECT kind, key, tree_json FROM outcome'
+					))
+						if (r.kind === 'anomaly' || r.kind === 'project' || r.kind === 'dig_site')
+							trees[r.kind][r.key] = JSON.parse(r.tree_json) as OutcomeNode[];
+				return {
+					outcomeTrees: trees,
+					digSiteTypes: has('dig_site')
+						? Object.fromEntries(
+								rows<{ key: string; name: string | null; stages: number }>(
+									'SELECT key, name, stages FROM dig_site'
+								).map((r) => [r.key, { name: r.name ?? r.key, stages: r.stages }])
+							)
+						: {}
+				};
+			})(),
 			focus: {
 				categories: Object.fromEntries(
 					rows<{ key: string; name: string | null }>('SELECT key, name FROM focus_category').map(
@@ -1083,8 +1106,8 @@ function traditionTrees(
 				...(tree.color ? { color: tree.color } : {}),
 				potential: parseTrigger(tree.potential_json ?? null),
 				adoptPossible: parseTrigger(
-					traditions.find((t) => t.category_key === tree.key && t.role === 'adopt')?.possible_json ??
-						null
+					traditions.find((t) => t.category_key === tree.key && t.role === 'adopt')
+						?.possible_json ?? null
 				),
 				...(hasAscensionPath(parseTrigger(tree.potential_json ?? null)) ? { ascension: true } : {}),
 				traditions: traditions
