@@ -6,6 +6,7 @@ import {
 	colonyFlows,
 	designationCandidates,
 	edictPrices,
+	ownModifiers,
 	priced,
 	split,
 	upkeepOf,
@@ -111,6 +112,33 @@ describe('swapModifiers', () => {
 	it('is the new option’s modifiers less the old one’s', () => {
 		expect(swapModifiers({ a: 0.1, b: 1 }, { a: 0.1, c: 2 })).toEqual({ b: -1, c: 2 });
 		expect(swapModifiers(undefined, { c: 2 })).toEqual({ c: 2 });
+	});
+});
+
+describe('ownModifiers', () => {
+	it('drops what every alternative has at the same value', () => {
+		const nomad = { planet_stability_add: 5, pop_bonus_workforce_mult: 0.1 };
+		const forge = { planet_stability_add: 5, foundry_jobs_bonus_workforce_mult: 0.15 };
+		expect(ownModifiers(nomad, [forge, { planet_stability_add: 5 }])).toEqual({
+			pop_bonus_workforce_mult: 0.1
+		});
+		expect(ownModifiers(nomad, [])).toEqual(nomad);
+	});
+});
+
+describe('workforce modifiers', () => {
+	it('prices every pop’s and a stratum’s extra workforce as output', () => {
+		const flows = { jobs: { alloys: 100 }, 'stratum:worker': { minerals: 50 } };
+		const w = whatIf(
+			{ pop_bonus_workforce_mult: -0.1, worker_and_simple_drone_cat_bonus_workforce_mult: 0.15 },
+			flows,
+			[],
+			false,
+			rules
+		);
+		expect(w.monthly.alloys).toBeCloseTo(-10);
+		expect(w.monthly.minerals).toBeCloseTo(7.5);
+		expect(w.unmodelled).toEqual([]);
 	});
 });
 

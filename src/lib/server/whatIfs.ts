@@ -22,6 +22,7 @@ import {
 	colonyFlows,
 	designationCandidates,
 	priced,
+	ownModifiers,
 	swapModifiers,
 	whatIf,
 	type ColonyInput,
@@ -178,22 +179,22 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 	const allDesignations = Object.keys(explain)
 		.filter((k) => k.startsWith('designation:'))
 		.map((k) => k.slice('designation:'.length));
-	const designations: DesignationWhatIf[] = designationCandidates(
-		colony.designation,
-		allDesignations,
-		gestalt
-	).map((key) => {
+	const candidates = designationCandidates(colony.designation, allDesignations, gestalt);
+	const designations: DesignationWhatIf[] = candidates.map((key) => {
 		const what = run(
 			swapModifiers(data.designationModifiers[colony.designation], data.designationModifiers[key])
 		);
 		return { key, name: explain[`designation:${key}`]?.title ?? key, what, fee: feeAfter(what) };
 	});
-	// what the current designation's own modifiers bring: lost with any change
-	const currentMods = data.designationModifiers[colony.designation];
-	const losingWhat =
-		currentMods && Object.keys(currentMods).length
-			? run(swapModifiers(currentMods, undefined))
-			: null;
+	// what the current designation alone brings, lost with any change: its modifiers less those
+	// every alternative has too (a capital's stability and housing)
+	const currentMods = ownModifiers(
+		data.designationModifiers[colony.designation],
+		candidates.map((k) => data.designationModifiers[k])
+	);
+	const losingWhat = Object.keys(currentMods).length
+		? run(swapModifiers(currentMods, undefined))
+		: null;
 	const losing: DesignationWhatIf | null = losingWhat
 		? {
 				key: colony.designation,
