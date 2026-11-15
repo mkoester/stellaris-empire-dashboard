@@ -74,16 +74,15 @@
 		/>{#if what.stability !== null && Math.abs(what.stability) >= threshold}<span
 				class="mr-3 whitespace-nowrap {what.stability < 0 ? 'text-red-600' : 'text-green-600'}"
 				>{pts(what.stability)} stability</span
-			>{/if}{#if big(what.price?.upkeep) || big(what.price?.cost)}<span
-				class="mr-1 text-gray-500"
-				title={priceNote}
+			>{/if}{#if big(what.price?.upkeep)}<span class="mr-1 text-gray-500" title={priceNote}
 				>{`${Object.values(pays).some((v) => v > 0) ? 'saves' : 'pays'}${what.price?.measured ? '' : ' (base)'}`}</span
-			><ResourceChips flows={pays} />{#if big(what.price?.cost)}<span
-					class="mr-3 whitespace-nowrap text-gray-500"
-					>{`${Object.entries(what.price?.cost ?? {})
-						.map(([k, v]) => `${amount(v)} ${pretty(k)}`)
-						.join(', ')} once`}</span
-				>{/if}{/if}{#if what.net != null && Math.abs(what.net) >= threshold}<span
+			><ResourceChips flows={pays} />{/if}{#if big(what.price?.cost)}<span
+				class="mr-3 whitespace-nowrap text-red-600"
+				title={`a one-time cost you pay: ${priceNote}`}
+				>{`costs ${Object.entries(what.price?.cost ?? {})
+					.map(([k, v]) => `${amount(v)} ${pretty(k)}`)
+					.join(', ')} once${what.price?.measured ? '' : ' (base)'}`}</span
+			>{/if}{#if what.net != null && Math.abs(what.net) >= threshold}<span
 				class="mr-3 cursor-help font-semibold whitespace-nowrap {what.net < 0
 					? 'text-red-600'
 					: 'text-green-600'}"

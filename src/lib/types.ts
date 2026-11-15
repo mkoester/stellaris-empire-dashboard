@@ -45,6 +45,7 @@ export type Colony = {
 	deposits: string[]; // deposit types on the planet, blockers included
 	planet: PlanetState | null; // null in older snapshots
 	timedFlags: TimedModifier[]; // the planet's timed flags (cooldowns of decisions …); since READER 21
+	flags?: string[] | null; // every flag on the planet (carrier flags included); since READER 59
 	buildQueue: QueueItem[];
 	buildSlots: number; // items the planet builds at once (queue `simultaneous`; >1 for wilderness, arkships, mods)
 	jobs: ColonyJob[];

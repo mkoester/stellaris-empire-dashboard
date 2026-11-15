@@ -42,6 +42,7 @@
 	import type { EmpireData } from './server/empire.ts';
 	import type { PanelId } from './settings.ts';
 	import WhatIfLine from './WhatIfLine.svelte';
+	import { POLICY_YEARS } from './government.ts';
 	import { keep, recall } from './browserStore.ts';
 	import {
 		ranked,
@@ -216,6 +217,9 @@
 				title="The save cannot confirm all conditions">conditions uncertain</span
 			>{/if}
 		<WhatIfLine what={row.what} label="if changed now" showSmall emptyLabel="no modelled change" />
+		{#if row.kind === 'policy'}<span class="text-xs text-amber-600"
+				>then locked for {POLICY_YEARS} years</span
+			>{/if}
 	</li>
 {/snippet}
 

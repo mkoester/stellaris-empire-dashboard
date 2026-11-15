@@ -107,6 +107,7 @@ export function playerColonies(raw: RawSave): Colony[] {
 				.filter((d) => typeof d === 'string'),
 			planet: planet ? planetState(raw, planet) : null,
 			timedFlags: timedFlags(planet?.flags, raw.date),
+			flags: Object.keys(planet?.flags ?? {}),
 			buildQueue:
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
 			buildSlots:

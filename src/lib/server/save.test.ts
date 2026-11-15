@@ -287,6 +287,7 @@ describe('toSnapshot', () => {
 				deposits: [],
 				planet: { deposits: [], modifiers: [] },
 				timedFlags: [],
+				flags: [],
 				districts: 5,
 				districtList: [
 					{

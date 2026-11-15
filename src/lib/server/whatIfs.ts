@@ -188,6 +188,20 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 		);
 		return { key, name: explain[`designation:${key}`]?.title ?? key, what, fee: feeAfter(what) };
 	});
+	// what the current designation's own modifiers bring: lost with any change
+	const currentMods = data.designationModifiers[colony.designation];
+	const losingWhat =
+		currentMods && Object.keys(currentMods).length
+			? run(swapModifiers(currentMods, undefined))
+			: null;
+	const losing: DesignationWhatIf | null = losingWhat
+		? {
+				key: colony.designation,
+				name: explain[`designation:${colony.designation}`]?.title ?? colony.designation,
+				what: losingWhat,
+				fee: feeAfter(losingWhat)
+			}
+		: null;
 
 	const f = facts(save, data.scriptedTriggers, {
 		shipKinds: data.shipKinds,
@@ -199,7 +213,9 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 		designation: colony.designation,
 		planetClass: colony.planetClass,
 		pops: colony.pops,
-		capital: isCapital(colony)
+		capital: isCapital(colony),
+		crime: colony.crime ?? null,
+		flags: colony.flags ?? null
 	};
 	const modifiersOf = (key: string) =>
 		Object.fromEntries(
@@ -226,7 +242,7 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 				}
 			];
 		});
-	return { designations, decisions };
+	return { designations, losing, decisions };
 }
 
 /** A colony's upkeep inputs from its job rows: their inputs (negative flows), workforce, strata. */
