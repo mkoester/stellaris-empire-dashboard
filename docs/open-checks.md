@@ -562,6 +562,18 @@ holds whatever it really does.
 
 ## C. Not in the game
 
+### 37. Upkeep what-ifs and the net in trade — government, species, traditions, tech tabs (from 2026-11-15)
+
+**Assumed**: an upkeep `_mult` takes its share of what the budget books for its group today (an
+upper bound, as the output path); `planet_pops_organics_*` is the budget's `planet_pops_traits`;
+an edict's measured factor applies to its one-off cost too. Seen only against the save: 2203.09's
+Recycling Campaign ≈ +2.1 consumer goods for 15 energy (base, no edict active), net −10.8 trade.
+
+- **Do:** with ⚙ What-ifs on, note Recycling Campaign's line on the government tab; enact it,
+  let a month pass, then hover the consumer goods income in the top bar.
+- **Send:** the screenshots before and after, and the date. Check: the pops' consumer goods upkeep
+  fell by the estimate; the edict's upkeep in the budget against "pays".
+
 ### 14. Storage, computed — resources panel (open task, 2026-10-24)
 
 Without companion mod 0.5.0 the resources panel's storage is ≈ the base. Compute it instead, with a

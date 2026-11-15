@@ -5,6 +5,7 @@ import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { researchBonuses } from '#lib/server/researchBonuses.ts';
+import { sourceWhatIfs } from '#lib/server/whatIfs.ts';
 
 // Research: what is being researched with its due date, the cards on offer, what is done.
 export function load({ url }) {
@@ -39,6 +40,11 @@ export function load({ url }) {
 	});
 	return {
 		...rest,
+		// ≈ what each card on offer would do once researched (a spoiler switch in ⚙)
+		whatIfs: sourceWhatIfs(
+			b,
+			[...onOffer].map((k) => `tech:${k}`)
+		),
 		queues: (progress?.research ?? []).map((r) => ({
 			...tech(r.tech),
 			area: r.area,

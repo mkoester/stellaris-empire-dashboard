@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { pretty } from '#lib/format.ts';
+	import { fmt, pretty } from '#lib/format.ts';
 	import type { AgendaRow, EdictRow } from '#lib/government.ts';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
@@ -85,7 +85,7 @@
 			title: 'its launch effect, and the modifier it leaves for a while'
 		}
 	];
-	const edictColumns: Column<EdictRow>[] = [
+	const edictColumns = $derived<Column<EdictRow>[]>([
 		{ id: 'name', label: 'Edict', value: (r) => r.name, cell: edictName },
 		{ id: 'category', label: 'Kind', value: (r) => pretty(r.category ?? '') },
 		{
@@ -114,8 +114,21 @@
 			label: 'Effects',
 			value: (r) => data.explain[`edict:${r.key}`]?.modifiers.length ?? 0,
 			cell: edictEffects
-		}
-	];
+		},
+		...(data.whatIfs
+			? [
+					{
+						id: 'net',
+						label: 'Net ≈',
+						value: (r: EdictRow) => data.whatIfs?.[`edict:${r.key}`]?.net ?? null,
+						right: true,
+						cell: edictNet,
+						title:
+							'≈ trade a month if enacted now (cancelled, for an active one): output and upkeep it changes, minus its own upkeep, at the produce tab’s values; effects not counted are left out'
+					}
+				]
+			: [])
+	]);
 	const node = $derived(page.url.searchParams.get('node'));
 </script>
 
@@ -192,6 +205,12 @@
 			class="whitespace-nowrap"
 			style:color={colorOf(k)}>{v} {pretty(k)}</span
 		>{/each}
+{/snippet}
+{#snippet edictNet(r: EdictRow)}
+	{@const n = data.whatIfs?.[`edict:${r.key}`]?.net}
+	{#if n != null}<span class={n < 0 ? 'text-red-600' : 'text-green-600'}
+			>{n < 0 ? '−' : '+'}{fmt(Math.abs(n))}</span
+		>{/if}
 {/snippet}
 {#snippet cost(r: EdictRow)}{@render amounts(r.cost.cost)}{/snippet}
 {#snippet upkeep(r: EdictRow)}{@render amounts(r.cost.upkeep)}{/snippet}

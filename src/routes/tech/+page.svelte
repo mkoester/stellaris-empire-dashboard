@@ -4,6 +4,7 @@
 	import type { Column } from '#lib/sort.ts';
 	import { colorOf } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
+	import WhatIfLine from '#lib/WhatIfLine.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import ResearchBonuses from '#lib/panels/ResearchBonuses.svelte';
@@ -117,6 +118,10 @@
 										? ` ${Math.round(t.progress)}${t.cost ? `/${t.cost} (${Math.round((100 * t.progress) / t.cost)} %)` : ''}`
 										: ''}</span
 								>{#if !t.researching}<AddGoal kind="tech" target={{ tech: t.key }} />{/if}{/each}
+							{#each (data.options[area] ?? []).filter((t) => data.whatIfs?.[`tech:${t.key}`]) as t (t.key)}<div
+								>
+									<WhatIfLine what={data.whatIfs?.[`tech:${t.key}`]} label={t.name} />
+								</div>{/each}
 						</td>
 					</tr>
 				{/each}

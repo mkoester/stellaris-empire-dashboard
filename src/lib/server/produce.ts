@@ -1,12 +1,13 @@
 import { blocked } from '#lib/blockers.ts';
 import { pretty } from '#lib/format.ts';
 import { edictRows, facts } from '#lib/government.ts';
-import { jobFlows, workedJobs } from '#lib/jobs.ts';
+import { jobFlows, jobSources, workedJobs } from '#lib/jobs.ts';
 import { marketFee, price } from '#lib/market.ts';
 import { changeGain, type GroupFlows, type ProduceOption } from '#lib/produce.ts';
 import { stripOrder } from '#lib/resourceGroups.ts';
 import { changesOf, jobGroup } from '#lib/tradeoffs.ts';
 import type { Resources, Snapshot } from '#lib/types.ts';
+import type { UpkeepInputs } from '#lib/whatIf.ts';
 import { getGameData } from './app.ts';
 import type { branch } from './branch.ts';
 import { colonyBlockerHints, colonyDetails } from './planets.ts';
@@ -50,6 +51,50 @@ export function groupFlows(save: Snapshot): GroupFlows {
 	out.station_researchers = income('orbital_research_deposits');
 	out.station = add(out.station_gatherers, out.station_researchers);
 	return out;
+}
+
+// Budget sources per upkeep group (#lib/whatIf.ts `UPKEEP_GROUPS`): a name, or a prefix ending in _.
+const UPKEEP_SOURCES: Record<string, string[]> = {
+	pops: ['pop_category_'],
+	pops_traits: ['planet_pops_traits'],
+	buildings: ['planet_buildings'],
+	districts: ['planet_districts_'],
+	ships: ['ships', 'ship_components'],
+	starbases: ['starbases'],
+	leaders: ['leader_'],
+	armies: ['armies'],
+	edicts: ['edicts']
+};
+
+/**
+ * What the upkeep path reads (#lib/whatIf.ts): expenses per group from the budget — jobs (their
+ * upkeep and inputs, per job as `groupFlows()` splits the income), pops, buildings, ships, … —
+ * the workforce per job and the pops per stratum.
+ */
+export function upkeepInputs(save: Snapshot): UpkeepInputs {
+	const data = getGameData();
+	const budget = save.budget ?? [];
+	const worked = workedJobs(save.colonies);
+	const flows: Record<string, Resources> = {};
+	const jobs = jobSources(save.planetBudget ?? [], data.jobs, worked);
+	flows.jobs = sum(Object.values(jobs).map((s) => s.expenses));
+	for (const [job, s] of Object.entries(jobs))
+		flows[jobGroup(job)] = add(flows[jobGroup(job)] ?? {}, s.expenses);
+	for (const [group, names] of Object.entries(UPKEEP_SOURCES))
+		flows[group] = sum(
+			budget
+				.filter((b) =>
+					names.some((n) => (n.endsWith('_') ? b.source.startsWith(n) : b.source === n))
+				)
+				.map((b) => b.expenses)
+		);
+	const workforce: Record<string, number> = {};
+	for (const [job, n] of Object.entries(worked))
+		workforce[jobGroup(job)] = (workforce[jobGroup(job)] ?? 0) + n;
+	const strata: Record<string, number> = {};
+	for (const s of save.colonies.flatMap((c) => c.strata))
+		strata[s.category] = (strata[s.category] ?? 0) + s.size;
+	return { flows, workforce, strata };
 }
 
 /** Starbase modules and buildings of the types we have (so unlocked), where a slot is free. */
