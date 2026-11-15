@@ -169,7 +169,8 @@ predicted`), its pile the colony's measured total (else counted), its targets it
   the agenda in Upcoming.
 - **Job efficiency** (`efficiency()`): extra workforce, its own pile. The output pile multiplies
   it: output = (workforce + bonus) ÷ 100 × base × (1 + mults) (a 4.0 dev diary says so; our job
-  model agrees). It scales the job's upkeep too. Each job's pile is **measured**: the save's
+  model agrees). It scales the job's upkeep too (confirmed in game 2026-10-31,
+  `../docs/workspace-notes.md` → "Game mechanics measured"). Each job's pile is **measured**: the save's
   `bonus_workforce` ÷ the workforce pops work. Throwaway Quentian Hegemony 2200.07: every job +10 %,
   workers +15 %. Parts are each job's booked output share plus its upkeep (`jobResources`, per 100
   workforce, before upkeep modifiers) as a negative amount. Key → jobs:

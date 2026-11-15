@@ -556,9 +556,9 @@ holds whatever it really does.
   enact Research Subsidies, let a month pass and save.
 - **Send:** both physicist tooltips and the date. Check: the save's `bonus_workforce` for
   physicists rises by 10 % of their workforce, or not at all.
-- **Also:** on a miner, whether the job's upkeep tooltip grows with Job Efficiency. The tab assumes
-  it does, before upkeep modifiers. And a ship's upkeep and a building's build time in game against
-  the tab's base and pile.
+- **Also:** a ship's upkeep and a building's build time in game against the tab's base and pile.
+  (That job efficiency scales upkeep is confirmed: `docs/workspace-notes.md`, physicists
+  2026-10-31.)
 
 ## C. Not in the game
 
