@@ -27,3 +27,8 @@ Detail behind the DB rules in `AGENTS.md`. Read before changing `watch.ts`, `cam
   way (`nodeLabel()`: "new node #17 of roamingkorinth_…"). 17 — `plan_event`, the planner's log
   of changes (`docs/tabs-planner.md`). Checked 2026-10-31 on a copy of this machine's DB (`dashboard.v16.sqlite`
   left beside it). `deleteCampaign` drops a campaign's plan rows before its nodes (foreign key).
+  18 — indexes only: `node (campaign, kind, id)` for a campaign's latest save, and an expression
+  index on a snapshot's `galaxySetup.ironman`. Before them the layout spent ~400 ms of every page
+  in `campaignName` and `campaignRows` (CPU profile on a copy of this machine's DB, 2026-11-15,
+  330 nodes, 91 MB of snapshots). A query that should start from an expression index says so with
+  `+n.campaign`, or the planner takes the campaign's index and parses each snapshot.

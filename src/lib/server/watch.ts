@@ -10,7 +10,7 @@ import {
 	type Db,
 	type Recorded
 } from './db.ts';
-import { READER, readSave, toSnapshot } from './save.ts';
+import { NO_READING_DATA, READER, readSave, toSnapshot, type ReadingData } from './save.ts';
 
 // Ingests saves from the game's `save games/` folder, then each save as it is written. The
 // campaign is the save's folder name, e.g. `yastundevourers_-569978727`.
@@ -33,12 +33,11 @@ export type Ingested = Recorded & { file: string };
 async function readSnapshot(
 	root: string,
 	file: string,
-	prepare?: (campaign: string) => void | Promise<void>
+	prepare?: (campaign: string) => ReadingData | Promise<ReadingData>
 ) {
-	const raw = await readSave(await readFile(file));
 	const campaign = campaignOf(root, file);
-	await prepare?.(campaign);
-	return toSnapshot(raw, campaign);
+	const data = (await prepare?.(campaign)) ?? NO_READING_DATA;
+	return toSnapshot(await readSave(await readFile(file), data), campaign, data);
 }
 
 export function campaignOf(root: string, file: string): string {
@@ -70,10 +69,11 @@ export type WatchOptions = {
 	 */
 	reader?: string | ((campaign: string) => string);
 	/**
-	 * Called before a save of the campaign is turned into a snapshot: sets its game data (and may
-	 * extract it first). `reader` is asked after it.
+	 * Called before a save of the campaign is read: gives the game data to read
+	 * it with (and may extract it first). `reader` is asked after it. Without it (tests) saves are
+	 * read with no game data.
 	 */
-	prepare?: (campaign: string) => void | Promise<void>;
+	prepare?: (campaign: string) => ReadingData | Promise<ReadingData>;
 	intervalMs?: number;
 	retries?: number; // a file that keeps failing to parse is reported after this many tries
 };

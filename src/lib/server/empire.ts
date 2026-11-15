@@ -12,7 +12,7 @@ import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
 import { expansionOf, expansionRows, habitatData, speciesChoices } from './expansion.ts';
 import { colonyBlockerHints } from './planets.ts';
-import { display, expansionView, popWindow } from './settings.ts';
+import { display, setting } from './settings.ts';
 import { ROW_LINES } from '#lib/profiles.ts';
 import { branch } from './branch.ts';
 import { totalEffects, type EffectKind } from '#lib/effects.ts';
@@ -145,10 +145,10 @@ export function empireData(url: URL) {
 			HABITABILITY_OPPOSITE_PLANET: data.defines.HABITABILITY_OPPOSITE_PLANET
 		},
 		expansionRowLine: ROW_LINES[display().expansionRowLine],
-		expansionView: expansionView(),
+		expansionView: setting('expansionView'),
 		xExtent: xExtent(snaps),
 		charts: {
-			pops: popSeries(snaps, popWindow()),
+			pops: popSeries(snaps, setting('popWindow')),
 			agenda: agendaSeries(snaps),
 			score: fieldSeries(snaps, {
 				score: (s) => s.score?.score ?? null,

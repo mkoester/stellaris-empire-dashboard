@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { branch } from '#lib/server/branch.ts';
 import { growthData } from '#lib/server/growth.ts';
-import { popWindow } from '#lib/server/settings.ts';
+import { setting } from '#lib/server/settings.ts';
 import { popSeries, xExtent } from '#lib/series.ts';
 
 // Pop growth per colony as measured, with what feeds the game's planet capacity, and projected.
@@ -13,7 +13,7 @@ export function load({ url }) {
 	return {
 		...rest,
 		...growthData(snaps),
-		pops: popSeries(snaps, popWindow()),
+		pops: popSeries(snaps, setting('popWindow')),
 		xExtent: xExtent(snaps)
 	};
 }

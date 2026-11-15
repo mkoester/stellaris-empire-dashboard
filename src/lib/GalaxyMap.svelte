@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, type Snippet } from 'svelte';
+	import { keep, recall } from './browserStore.ts';
 	import { page } from '$app/state';
 	import { autoRings, crossReach, ringRadii, sectors as sectorLines } from './quadrants.ts';
 	import { claimRadius, outlines, REACH, type Site } from './borders.ts';
@@ -193,11 +194,7 @@
 	});
 	const setFullWindow = (on: boolean) => {
 		fullWindow = on;
-		try {
-			localStorage.setItem(MAP_FULL_KEY, on ? '1' : '');
-		} catch {
-			/* storage unavailable */
-		}
+		keep(MAP_FULL_KEY, on ? '1' : '');
 	};
 	// the page behind does not scroll while the map covers it
 	$effect(() => {
@@ -211,20 +208,12 @@
 	});
 	const setWidth = (m: MapWidth) => {
 		width = m;
-		try {
-			localStorage.setItem(MAP_WIDTH_KEY, m);
-		} catch {
-			/* storage unavailable */
-		}
+		keep(MAP_WIDTH_KEY, m);
 	};
 	onMount(() => {
-		try {
-			height = Math.max(200, Number(localStorage.getItem(heightKey)) || height);
-			width = parseMapWidth(localStorage.getItem(MAP_WIDTH_KEY));
-			fullWindow = localStorage.getItem(MAP_FULL_KEY) === '1';
-		} catch {
-			/* storage unavailable: default */
-		}
+		height = Math.max(200, Number(recall(heightKey)) || height);
+		width = parseMapWidth(recall(MAP_WIDTH_KEY));
+		fullWindow = recall(MAP_FULL_KEY) === '1';
 		const html = document.documentElement;
 		const measure = () => (vw = html.clientWidth);
 		measure();
@@ -235,11 +224,7 @@
 	$effect(() => {
 		// the full window's height is the window's, not a choice to remember
 		if (fullWindow || outer === 0 || outer === height) return;
-		try {
-			localStorage.setItem(heightKey, String(outer));
-		} catch {
-			/* storage unavailable */
-		}
+		keep(heightKey, String(outer));
 	});
 
 	// null = everything fitted, following the size; set by zoom, drag and the focus buttons

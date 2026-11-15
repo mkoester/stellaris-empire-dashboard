@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { appDataDir, readConfig, resolvePaths, writeConfig, type Config } from './config.ts';
-import { getRequestEvent } from '$app/server';
 import {
 	campaignMods,
 	getSetting,
@@ -11,7 +10,7 @@ import {
 	headCampaign,
 	headId,
 	loadedNode,
-	nodes,
+	nodeById,
 	noteModVersions,
 	openDb,
 	record,
@@ -23,13 +22,15 @@ import { campaignModSet, trackedMods, type CampaignMods } from '#lib/addons.ts';
 import type { GameData, ModInfo, Tick } from '#lib/types.ts';
 import { tailLog, toLogSnapshot, type FeedFormat } from './feed.ts';
 import { loadDataMods, loadDataVersion, loadGameData } from './gamedata.ts';
-import { READER, setEntryEvents, setPrescriptedNames } from './save.ts';
+import { READER } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
 import { dataStore, type DataStore } from './dataStore.ts';
 import { dataDbFor, ensureDataDb, extractorFromEnv, type DataMod } from './extract.ts';
 import { launcherPlaysets, loadModDescriptors, readLoadOrder } from './mods.ts';
+import { currentRequest } from './request.ts';
 import { viewedCampaign } from './settings.ts';
 import { campaignOf, watchSaves, type Watcher } from './watch.ts';
+import { versionLine } from '#lib/versions.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
 // companion mod, and one event bus for live updates.
@@ -191,12 +192,8 @@ function extractFor(campaign: string | null) {
 // The viewed campaign's data, once per request: pages call the getters many times.
 const perRequest = new WeakMap<object, GameDataSet>();
 function viewedData(): GameDataSet {
-	let event: object | null = null;
-	try {
-		event = getRequestEvent();
-	} catch {
-		// no request: the head campaign's
-	}
+	const event = currentRequest();
+	// no request: the head campaign's
 	if (!event) return dataOf(state.db ? headCampaign(state.db) : null);
 	let d = perRequest.get(event);
 	if (!d) perRequest.set(event, (d = dataOf(state.db ? viewedCampaign(state.db) : null)));
@@ -207,6 +204,20 @@ export const getExplanations = (): Explanations => viewedData().explanations;
 
 /** The game version and build the game data comes from (`Cygnus v4.5.3 (7793)`), null if unknown. */
 export const dataVersion = () => viewedData().dataVersion;
+
+/**
+ * The packaged launcher's start line (`release/launcher.mjs`): this build and the head campaign's
+ * game version. Read once `start()` is done; before the folders are set there is no game data.
+ */
+export function startVersions(): string {
+	let game: string | null = null;
+	try {
+		game = dataVersion();
+	} catch {
+		// not started: /setup
+	}
+	return versionLine(__APP_VERSION__, game);
+}
 
 /** The mods the viewed campaign's game data includes ([] none), null when the data DB cannot tell. */
 export const dataMods = () => viewedData().dataMods;
@@ -249,7 +260,6 @@ export function getDb(): Db {
 	return state.db;
 }
 
-/** The loaded save's node, once: the observation after a load is its child. */
 /** The save just loaded in game, until the next observation switches to its branch. */
 export const pendingLoad = (): number | null => state.loadedFrom ?? null;
 
@@ -309,7 +319,10 @@ function follow(campaign: string, before: CampaignData, why: string) {
 	if (JSON.stringify(after.mods) === JSON.stringify(before.mods)) return;
 	console.log(`${why}: ${campaign}'s game data follows (${after.mods.length} mods)`);
 	if (state.data?.get(after.mods))
-		state.watcher?.reread(campaign).then(() => updates.emit('update', 'refreshed'));
+		state.watcher
+			?.reread(campaign)
+			.then(() => updates.emit('update', 'refreshed'))
+			.catch((e) => console.error(`reading ${campaign}'s saves again:`, e));
 	else extractFor(campaign);
 }
 
@@ -378,7 +391,10 @@ function caughtUp(campaign: string, n: number) {
  * reader) in the background, once; open pages reload when it is done.
  */
 export function refreshCampaign(campaign: string) {
-	state.watcher?.refreshCampaign(campaign).then((n) => caughtUp(campaign, n));
+	state.watcher
+		?.refreshCampaign(campaign)
+		.then((n) => caughtUp(campaign, n))
+		.catch((e) => console.error(`reading ${campaign}'s saves:`, e));
 }
 
 /** The campaigns with saves on disk; empty before the start. */
@@ -482,20 +498,16 @@ async function run() {
 			if (r.isNew) modsMayHaveChanged(campaignOf(saveDir, r.file));
 		},
 		onError: (file, e) => console.error(`cannot ingest ${file}:`, e),
-		prepare: async (campaign) => {
-			const d = (await state.data!.ensure(campaignData(campaign).mods)).data;
-			setPrescriptedNames(d.gameData.prescriptedNames);
-			setEntryEvents(d.gameData.entryEvents);
-		},
+		prepare: async (campaign) =>
+			(await state.data!.ensure(campaignData(campaign).mods)).data.gameData,
 		reader: (campaign) => readerOf(campaign)
 	});
 	// after the backfill, so the note carries the latest game date
-	const head = headId(store);
 	noteModVersions(
 		store,
 		trackedMods(state.mods),
 		new Date().toISOString(),
-		nodes(store).find((n) => n.id === head)?.date ?? null
+		nodeById(store, headId(store))?.date ?? null
 	);
 	state.status = 'running';
 	state.catchUpTimer = setTimeout(() => {

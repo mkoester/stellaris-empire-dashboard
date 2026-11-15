@@ -9,7 +9,7 @@ import { actualOutlook, outlook } from '#lib/votes.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
-import { contactView } from '#lib/server/settings.ts';
+import { setting } from '#lib/server/settings.ts';
 
 /**
  * What the save tells about another empire, for the conditions of its AI's vote: its identity;
@@ -170,6 +170,6 @@ export function load({ url }) {
 			getExplanations(),
 			resolutions.map((r) => `resolution:${r.type}`)
 		),
-		view: contactView()
+		view: setting('contactView')
 	};
 }

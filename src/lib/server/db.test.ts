@@ -19,6 +19,7 @@ import {
 	latestSaveDate,
 	lastNode,
 	loadedNode,
+	nodeById,
 	nodes,
 	openDb,
 	planEvents,
@@ -27,6 +28,7 @@ import {
 	refresh,
 	setParent,
 	setSetting,
+	transaction,
 	MIGRATIONS,
 	VERSION
 } from './db.ts';
@@ -192,6 +194,37 @@ describe('db', () => {
 		expect(() => setParent(db, a, c)).toThrow(/cycle/);
 	});
 
+	it('refuses a parent that does not exist or belongs to another campaign', () => {
+		const db = openDb(':memory:');
+		const a = record(db, snap('2200.01.01', 'a'), 't').nodeId;
+		const other = record(db, { ...snap('2200.01.01', 'o'), campaign: 'other' }, 't').nodeId;
+		expect(() => setParent(db, a, 999)).toThrow(/no node 999/);
+		expect(() => setParent(db, 999, a)).toThrow(/no node 999/);
+		expect(() => setParent(db, NaN, a)).toThrow(/no node/);
+		expect(() => setParent(db, a, other)).toThrow(/another campaign/);
+		expect(nodeById(db, a)?.parentId).toBeNull();
+	});
+
+	it('finds a node by its id, and none for what is no id', () => {
+		const db = openDb(':memory:');
+		const a = record(db, snap('2200.01.01', 'a'), 't').nodeId;
+		expect(nodeById(db, a)).toMatchObject({ id: a, campaign: 'c', date: '2200.01.01' });
+		for (const id of [999, NaN, 1.5, null]) expect(nodeById(db, id)).toBeUndefined();
+	});
+
+	it('undoes every write of a transaction that throws', () => {
+		const db = openDb(':memory:');
+		expect(() =>
+			transaction(db, () => {
+				setSetting(db, 'x', 1);
+				throw new Error('no');
+			})
+		).toThrow('no');
+		expect(getSetting(db, 'x')).toBeUndefined();
+		expect(transaction(db, () => (setSetting(db, 'x', 2), 'done'))).toBe('done');
+		expect(getSetting(db, 'x')).toBe(2);
+	});
+
 	it("names each campaign after the empire in its latest save, not a game.log node's blank", () => {
 		const db = openDb(':memory:');
 		record(db, { ...snap('2200.01.01', 'a'), empireName: 'Old name' }, 't');
@@ -276,6 +309,22 @@ describe('merging the mod feed with saves', () => {
 		expect(nodes(db)).toHaveLength(2);
 		expect(nodes(db)[1]).toMatchObject({ kind: 'save', ambiguous: false });
 		expect(history(db, merged.nodeId).map((s) => s.pops)).toEqual([42, 42]); // the save won
+	});
+
+	it('stores a merge whole or not at all', () => {
+		const db = openDb(':memory:');
+		record(db, saveSnap('2200.01.01', 1, 5), 'a.sav');
+		const log = record(db, logSnap('2200.02.01', 2, 5), 'game.log').nodeId;
+		// a reading that cannot be stored (JSON has no BigInt): the node must not turn into a save
+		// whose snapshot is still the log's
+		const broken = { ...saveSnap('2200.02.01', 2, 5), pops: 1n as unknown as number };
+		expect(() => record(db, broken, 'b.sav')).toThrow();
+		expect(nodeById(db, log)).toMatchObject({ kind: 'log' });
+		expect(history(db, log).at(-1)?.pops).toBeNull();
+		expect(headId(db)).toBe(log);
+		// and the DB still takes the next reading
+		expect(record(db, saveSnap('2200.02.01', 2, 5), 'b.sav').nodeId).toBe(log);
+		expect(nodeById(db, log)).toMatchObject({ kind: 'save' });
 	});
 
 	it('folds a log line arriving after its autosave, and reports a disagreeing net income', () => {

@@ -95,26 +95,36 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   new field stays at its `upgrade()` default until the save changes. **Two branches bump it
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
-  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40.
+  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
+  2026-11-15: `develop` and `feature/highway` both have 57** (prescripted names; the Ancient Highway
+  mod) — that merge takes 58, and conflicts in `save.ts`'s import block only (the highway's
+  `readHighway`/`unclaimable` import and one `world.ts` name).
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
   only — a released step has run on players' DBs). The version is SQLite's `user_version` (0.1.0's
   `state.schema = '15'` is taken over as 15); a new DB is the 0.1.0 tables plus every step, so each
   step runs in every test. Before migrating, `openDb` leaves a copy beside the DB
   (`dashboard.v<old>.sqlite`); a DB of a newer dashboard is refused (the reason shows on `/setup`),
   never dropped — a player who starts an older zip by mistake keeps their history.
+- **A query a page runs is checked with `EXPLAIN QUERY PLAN` on a DB copy.** `USE TEMP B-TREE`
+  beside a `json_extract` column means every snapshot is parsed before `LIMIT 1` keeps one (two
+  layout queries took ~400 ms of every page until migration 18). Time a page by profiling it:
+  "Measuring a page" in `docs/testing.md`.
 - The background start, cleaning up campaigns and the migrations so far: `docs/database.md`. Read
   it before changing `watch.ts` or `campaigns.ts`, or adding a migration.
 
 ## Checking a change
 
 Check a change end to end against a copy of the dashboard DB, never the real one: a dev server
-ingests saves and moves the head. On the Linux game machine the DB in use is in
-`~/.local/share/stellaris-empire-dashboard-test/`. New save shapes come from throwaway games with
+ingests saves and moves the head. Where the DB in use lives differs per machine (`docs/testing.md`):
+on mkTuxedCachy the released zip's own, `~/.local/share/stellaris-empire-dashboard/`. New save shapes come from throwaway games with
 console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
 
 Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`,
 `node_modules/.bin/vitest run`, `node_modules/.bin/prettier --check . && node_modules/.bin/eslint .`
-(why not `pnpm <script>`: "Sandbox notes").
+(why not `pnpm <script>`: "Sandbox notes"). ESLint reads the types for `src/**/*.ts` (floating
+promises, `switch` exhaustiveness) and takes about 35 s. **A promise started and left alone needs a
+`.catch`** — a rejection nobody handles ends the Node process — and a `switch` over a union names
+every member.
 
 - The procedure on a DB copy, replaying a live month, the real-save test, reading a save ad hoc,
   the throwaway games and their console commands ("Testing in a throwaway game"): `docs/testing.md`.
@@ -129,7 +139,8 @@ Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --t
 
 **How it works:** `watch.ts` polls the save folder (first what changed since the last run, in mtime order — the head campaign's at once, the others' in the background — then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
-`zip.ts` and queries the gamestate with jomini → `db.ts` places the snapshot in the save graph via
+`zip.ts` and queries the gamestate with jomini (the readings by domain are in `server/save/`,
+re-exported by `save.ts`; `toSnapshot()` is handed the campaign's game data, never a global) → `db.ts` places the snapshot in the save graph via
 `timeline.ts` and records it → `/api/events` tells open pages to reload. In parallel, `feed.ts`
 follows `game.log` from its current end and turns the mod's monthly lines into partial snapshots
 (stockpile and net income) of the campaign being played.

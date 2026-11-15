@@ -36,11 +36,14 @@
 			)
 		].sort()
 	);
-	let weights = $state<Resources>({});
-	$effect(() => {
-		// the market's base price, else what a unit costs us (the jobs tab)
-		for (const [k, v] of Object.entries(defaultWeights(keys)))
-			if (!(k in weights)) weights[k] = data.values[k] ?? v;
+	// the weights the viewer set; every other is the market's base price, else what a unit costs
+	// us (the jobs tab)
+	let edited = $state<Resources>({});
+	const weights = $derived<Resources>({
+		...Object.fromEntries(
+			Object.entries(defaultWeights(keys)).map(([k, v]) => [k, data.values[k] ?? v])
+		),
+		...edited
 	});
 	let picked = $state<Record<number, { on: boolean; month: number }>>({});
 	let own = $state<Change[]>([]);
@@ -265,7 +268,7 @@
 							type="number"
 							step="0.5"
 							min="0"
-							bind:value={weights[k]}
+							bind:value={() => weights[k], (v) => (edited[k] = v)}
 						/></label
 					>
 				{/each}

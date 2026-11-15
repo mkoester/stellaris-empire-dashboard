@@ -25,7 +25,10 @@ vX.Y.Z (merge develop)"`, then `git tag vX.Y.Z`. The local `main` lags `origin/m
    write `<temp>/stellaris-empire-dashboard/config.json` = `{"gameDir": …, "userDir": …}` first and
    start with `BROWSER=true`; the launcher prints its URL (checked 2026-10-31 for v0.1.4). Stopping
    it while it extracts a campaign's data in the background logs "extraction with mods failed …
-   (exit null)": the killed extractor, not a fault (v0.1.15, 2026-11-12).
+   (exit null)": the killed extractor, not a fault (v0.1.15, 2026-11-12). In Claude Code's sandbox
+   the Node download needs `NODE_USE_ENV_PROXY=1` and `nodejs.org` allowed (the vault's
+   `claude-sandbox` skill), and pnpm's "Could not lock the dependency install" before the build is
+   harmless in a clone (v0.1.18, 2026-11-15).
    **Before tagging for real** (v0.1.8, 2026-11-01): clone both repos into `$TMPDIR`, commit the
    pending changelog/pin there and make the tags in the clones only — a clone of the local
    checkout has no `main` (the checkout knows it only as `origin/main`): `git fetch <checkout>

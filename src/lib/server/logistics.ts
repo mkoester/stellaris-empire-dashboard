@@ -13,7 +13,7 @@ import type { Colony, Resources } from '#lib/types.ts';
 import { getGameData } from './app.ts';
 import type { branch } from './branch.ts';
 import { produceData } from './produce.ts';
-import { produceView } from './settings.ts';
+import { setting } from './settings.ts';
 import { valuesOf } from './unitCosts.ts';
 
 type Branch = NonNullable<ReturnType<typeof branch>>;
@@ -62,7 +62,7 @@ export function colonyLogistics(b: Branch, colony: Colony): ColonyLogistics | nu
 	const { short, fee } = colonyFee(colony, f);
 	if (!Object.keys(short).length) return null;
 	const produce = produceData(b);
-	const view = produceView();
+	const view = setting('produceView');
 	const values = { ...valuesOf(b.snaps), ...view.weights };
 	const here = (produce?.options ?? []).filter(
 		(o) => o.colony === colony.planetId || o.kind === 'building'

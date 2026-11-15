@@ -56,6 +56,16 @@ export const MIGRATIONS: ((db: Db) => void)[] = [
 				json TEXT NOT NULL
 			);
 			CREATE INDEX plan_event_campaign ON plan_event (campaign, id);
+		`),
+	// 18: indexes for the queries every page runs. A campaign's latest save (`campaignName`,
+	// `campaignRows`, `campaignMods`, `campaignDifficulty`) sorted in a temp B-tree after
+	// json_extract on each of its snapshots (~185 ms each for 267 nodes, 2026-11-15); with
+	// (campaign, kind, id) it reads one. `campaignIronman` found no match only after parsing every
+	// snapshot (~186 ms); its expression index answers from the index (0.03 ms).
+	(db) =>
+		db.exec(`
+			CREATE INDEX node_campaign_kind ON node (campaign, kind, id);
+			CREATE INDEX snapshot_ironman ON snapshot (json_extract(json, '$.galaxySetup.ironman'));
 		`)
 ];
 
@@ -68,6 +78,19 @@ export function openDb(file: string, steps = MIGRATIONS): Db {
 	db.exec('PRAGMA journal_mode = WAL');
 	migrate(db, file, steps);
 	return db;
+}
+
+/** Runs `f` in one transaction: all of its writes, or (when it throws) none. */
+export function transaction<T>(db: Db, f: () => T): T {
+	db.exec('BEGIN');
+	try {
+		const out = f();
+		db.exec('COMMIT');
+		return out;
+	} catch (e) {
+		db.exec('ROLLBACK');
+		throw e;
+	}
 }
 
 /**
@@ -141,17 +164,11 @@ export function migrate(db: Db, file: string, steps = MIGRATIONS) {
 		);
 	if (v !== 0 && v < BASE)
 		throw new Error(`${file} is from a development build before 0.1.0 (version ${v})`);
-	const inTransaction = (to: number, f: () => void) => {
-		db.exec('BEGIN');
-		try {
+	const inTransaction = (to: number, f: () => void) =>
+		transaction(db, () => {
 			f();
 			db.exec(`PRAGMA user_version = ${to}`);
-			db.exec('COMMIT');
-		} catch (e) {
-			db.exec('ROLLBACK');
-			throw e;
-		}
-	};
+		});
 	if (v <= BASE)
 		inTransaction(BASE, () => {
 			createBase(db);
@@ -204,6 +221,13 @@ export function nodes(db: Db): TimelineNode[] {
 	return (db.prepare('SELECT * FROM node ORDER BY id').all() as NodeRow[]).map(toNode);
 }
 
+/** One node, undefined for an unknown id (or one that is no id: `NaN` from a missing `?node=`). */
+export function nodeById(db: Db, id: number | null): TimelineNode | undefined {
+	if (id === null || !Number.isInteger(id)) return undefined;
+	const row = db.prepare('SELECT * FROM node WHERE id = ?').get(id) as NodeRow | undefined;
+	return row && toNode(row);
+}
+
 /** A node as people read it: its campaign and its number there ("#17 of roamingkorinth_…"). */
 export function nodeLabel(db: Db, id: number): string {
 	const row = db.prepare('SELECT campaign, seq FROM node WHERE id = ?').get(id) as
@@ -219,8 +243,7 @@ export function headId(db: Db): number | null {
 
 /** The campaign currently being played, i.e. the head's; null before the first observation. */
 export function headCampaign(db: Db): string | null {
-	const id = headId(db);
-	return nodes(db).find((n) => n.id === id)?.campaign ?? null;
+	return nodeById(db, headId(db))?.campaign ?? null;
 }
 
 /** The campaign's node observed last (where the player left it), or null for an unknown one. */
@@ -237,8 +260,7 @@ export function lastNode(db: Db, campaign: string): number | null {
  * the campaign starts it afresh.
  */
 export function deleteCampaign(db: Db, campaign: string) {
-	db.exec('BEGIN');
-	try {
+	transaction(db, () => {
 		if (headCampaign(db) === campaign) db.exec("DELETE FROM state WHERE key = 'head'");
 		db.prepare(
 			'DELETE FROM snapshot WHERE node_id IN (SELECT id FROM node WHERE campaign = ?)'
@@ -246,11 +268,7 @@ export function deleteCampaign(db: Db, campaign: string) {
 		db.prepare('DELETE FROM plan_event WHERE campaign = ?').run(campaign);
 		db.prepare('DELETE FROM node WHERE campaign = ?').run(campaign);
 		db.prepare('DELETE FROM galaxy WHERE campaign = ?').run(campaign);
-		db.exec('COMMIT');
-	} catch (e) {
-		db.exec('ROLLBACK');
-		throw e;
-	}
+	});
 }
 
 /** The game date of the campaign's latest save (game.log months not counted), null before one. */
@@ -342,9 +360,11 @@ export function campaignIronman(db: Db, campaign: string): boolean {
 		`ironman:${campaign}`,
 		() =>
 			db
+				// `+n.campaign`: the planner would take the campaign's index and parse each snapshot;
+				// this way it starts from `snapshot_ironman` (migration 18), which holds the expression
 				.prepare(
-					`SELECT 1 FROM node n JOIN snapshot s ON s.node_id = n.id
-				WHERE n.campaign = ? AND json_extract(s.json, '$.galaxySetup.ironman') IN ('yes', 1)
+					`SELECT 1 FROM snapshot s JOIN node n ON n.id = s.node_id
+				WHERE +n.campaign = ? AND json_extract(s.json, '$.galaxySetup.ironman') IN ('yes', 1)
 				LIMIT 1`
 				)
 				.get(campaign) !== undefined
@@ -395,38 +415,32 @@ export function record(
 ): Recorded {
 	const placement = place(nodes(db), at === undefined ? headId(db) : at, snap, loadedFrom);
 	const setHead = (id: number) => at === undefined && setHeadTo(db, id);
-	if (placement.kind === 'duplicate') {
-		// Seen before: a save read by a newer dashboard has more fields — keep the fresh reading.
-		if (snap.kind === 'save')
-			db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
-				stored(db, withLogFields(snap, snapshotOf(db, placement.nodeId))),
+	// every case writes several rows (the node, its snapshot, the galaxy, the head): all or none
+	return transaction(db, () => {
+		if (placement.kind === 'duplicate') {
+			// Seen before: a save read by a newer dashboard has more fields — keep the fresh reading.
+			if (snap.kind === 'save')
+				store(db, placement.nodeId, withLogFields(snap, snapshotOf(db, placement.nodeId)));
+			setHead(placement.nodeId);
+			return { nodeId: placement.nodeId, isNew: false, mismatches: [] };
+		}
+		if (placement.kind === 'merge') {
+			const existing = snapshotOf(db, placement.nodeId);
+			const [save, log] = snap.kind === 'save' ? [snap, existing] : [existing, snap];
+			db.prepare("UPDATE node SET kind = 'save', fingerprint = ?, source = ? WHERE id = ?").run(
+				save.fingerprint,
+				snap.kind === 'save' ? source : sourceOf(db, placement.nodeId),
 				placement.nodeId
 			);
-		setHead(placement.nodeId);
-		return { nodeId: placement.nodeId, isNew: false, mismatches: [] };
-	}
-	if (placement.kind === 'merge') {
-		const existing = snapshotOf(db, placement.nodeId);
-		const [save, log] = snap.kind === 'save' ? [snap, existing] : [existing, snap];
-		db.prepare("UPDATE node SET kind = 'save', fingerprint = ?, source = ? WHERE id = ?").run(
-			save.fingerprint,
-			snap.kind === 'save' ? source : sourceOf(db, placement.nodeId),
-			placement.nodeId
-		);
-		db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
-			stored(db, withLogFields(save, log)),
-			placement.nodeId
-		);
-		setHead(placement.nodeId);
-		return {
-			nodeId: placement.nodeId,
-			isNew: false,
-			mismatches: compareBalances(log.balance, save.balance)
-		};
-	}
+			store(db, placement.nodeId, withLogFields(save, log));
+			setHead(placement.nodeId);
+			return {
+				nodeId: placement.nodeId,
+				isNew: false,
+				mismatches: compareBalances(log.balance, save.balance)
+			};
+		}
 
-	db.exec('BEGIN');
-	try {
 		const { lastInsertRowid } = db
 			.prepare(
 				`INSERT INTO node (kind, campaign, date, fingerprint, parent_id, ambiguous, source, observed_at, seq)
@@ -445,14 +459,10 @@ export function record(
 				snap.campaign
 			);
 		const nodeId = Number(lastInsertRowid);
-		db.prepare('INSERT INTO snapshot (node_id, json) VALUES (?, ?)').run(nodeId, stored(db, snap));
+		store(db, nodeId, snap);
 		setHead(nodeId);
-		db.exec('COMMIT');
 		return { nodeId, isNew: true, mismatches: [] };
-	} catch (e) {
-		db.exec('ROLLBACK');
-		throw e;
-	}
+	});
 }
 
 /**
@@ -465,10 +475,7 @@ export function refresh(db: Db, snap: Snapshot): Recorded | null {
 		.prepare('SELECT id FROM node WHERE campaign = ? AND fingerprint = ?')
 		.get(snap.campaign, snap.fingerprint) as { id: number } | undefined;
 	if (!row) return null;
-	db.prepare('UPDATE snapshot SET json = ? WHERE node_id = ?').run(
-		stored(db, withLogFields(snap, snapshotOf(db, row.id))),
-		row.id
-	);
+	transaction(db, () => store(db, row.id, withLogFields(snap, snapshotOf(db, row.id))));
 	return { nodeId: row.id, isNew: false, mismatches: [] };
 }
 
@@ -530,10 +537,10 @@ export function noteFile(db: Db, path: string, file: ReadFile) {
 }
 
 /**
- * A snapshot's stored JSON: its galaxy (and the lists as if all were surveyed) go to the
- * campaign's `galaxy` row, if it is the latest.
+ * Stores a node's snapshot. Its galaxy (and the lists as if all were surveyed) go to the
+ * campaign's `galaxy` row instead, if it is the latest. Call within a `transaction`.
  */
-function stored(db: Db, snap: Snapshot): string {
+function store(db: Db, nodeId: number, snap: Snapshot) {
 	if (snap.galaxy) {
 		const row = db.prepare('SELECT date FROM galaxy WHERE campaign = ?').get(snap.campaign) as
 			{ date: string } | undefined;
@@ -544,7 +551,10 @@ function stored(db: Db, snap: Snapshot): string {
 				JSON.stringify({ systems: snap.galaxy, surveyedAll: snap.surveyedAll })
 			);
 	}
-	return JSON.stringify({ ...snap, galaxy: null, surveyedAll: null });
+	db.prepare('INSERT OR REPLACE INTO snapshot (node_id, json) VALUES (?, ?)').run(
+		nodeId,
+		JSON.stringify({ ...snap, galaxy: null, surveyedAll: null })
+	);
 }
 
 /** The campaign's galaxy as last read (its date), or null before the first save that has one. */
@@ -635,10 +645,20 @@ export function history(db: Db, nodeId: number): Snapshot[] {
 	return path(nodes(db), nodeId).map((n) => snapshotOf(db, n.id));
 }
 
-/** Manual correction of a guessed parent. Refuses to create a cycle. */
+/**
+ * Manual correction of a guessed parent. Refuses an unknown node, a parent of another campaign,
+ * and a cycle.
+ */
 export function setParent(db: Db, nodeId: number, parentId: number | null) {
-	if (parentId !== null && path(nodes(db), parentId).some((n) => n.id === nodeId)) {
-		throw new Error(`node ${parentId} descends from ${nodeId}; that would make a cycle`);
+	const node = nodeById(db, nodeId);
+	if (!node) throw new Error(`no node ${nodeId}`);
+	if (parentId !== null) {
+		const parent = nodeById(db, parentId);
+		if (!parent) throw new Error(`no node ${parentId}`);
+		if (parent.campaign !== node.campaign)
+			throw new Error(`node ${parentId} belongs to another campaign`);
+		if (path(nodes(db), parentId).some((n) => n.id === nodeId))
+			throw new Error(`node ${parentId} descends from ${nodeId}; that would make a cycle`);
 	}
 	db.prepare('UPDATE node SET parent_id = ?, ambiguous = 0 WHERE id = ?').run(parentId, nodeId);
 }
@@ -678,17 +698,11 @@ export function addPlanEvents(
 	const insert = db.prepare(
 		'INSERT INTO plan_event (campaign, node_id, at, goal, op, json) VALUES (?, ?, ?, ?, ?, ?)'
 	);
-	db.exec('BEGIN');
-	try {
-		const ids = changes.map((c) =>
+	return transaction(db, () =>
+		changes.map((c) =>
 			Number(
 				insert.run(campaign, nodeId, at, c.goal, c.op, JSON.stringify(c.data ?? {})).lastInsertRowid
 			)
-		);
-		db.exec('COMMIT');
-		return ids;
-	} catch (e) {
-		db.exec('ROLLBACK');
-		throw e;
-	}
+		)
+	);
 }

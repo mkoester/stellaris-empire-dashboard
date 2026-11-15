@@ -1,7 +1,8 @@
 import { fail } from '@sveltejs/kit';
 import { getDb } from '#lib/server/app.ts';
 import { campaignName, headId, nodes, setParent } from '#lib/server/db.ts';
-import { viewedCampaign } from '#lib/server/settings.ts';
+import { nodeParam } from '#lib/server/request.ts';
+import { campaignAt } from '#lib/server/settings.ts';
 import type { TimelineNode } from '#lib/types.ts';
 
 export type Row = TimelineNode & { depth: number };
@@ -24,9 +25,9 @@ function rows(all: TimelineNode[]): Row[] {
 }
 
 // The viewed campaign's saves only: the one being played, or the one picked in the tab bar.
-export function load() {
+export function load({ url }) {
 	const db = getDb();
-	const campaign = viewedCampaign(db);
+	const campaign = campaignAt(db, nodeParam(url));
 	return {
 		rows: rows(nodes(db).filter((n) => n.campaign === campaign)),
 		head: headId(db),
@@ -37,8 +38,13 @@ export function load() {
 export const actions = {
 	default: async ({ request }) => {
 		const form = await request.formData();
-		const node = Number(form.get('node'));
-		const parent = form.get('parent') === '' ? null : Number(form.get('parent'));
+		// a node id as the form sends it, NaN for anything else
+		const id = (v: FormDataEntryValue | null) =>
+			typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : NaN;
+		const node = id(form.get('node'));
+		const parent = form.get('parent') === '' ? null : id(form.get('parent'));
+		if (Number.isNaN(node) || Number.isNaN(parent))
+			return fail(400, { error: 'malformed request' });
 		try {
 			setParent(getDb(), node, parent);
 		} catch (e) {

@@ -7,10 +7,26 @@ How to check a change end to end on a DB copy, replay a live month, read a save 
 4.0.1 save fails one); for an ad-hoc look at any save, a throwaway `src/lib/server/*.test.ts`
 calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — delete it after.
 
+**A change to the save reader that must not change its output is checked on real saves, old tree
+against new** (2026-11-15, the split of `save.ts`): `git archive develop src package.json | tar -x`
+into `$TMPDIR` with `node_modules` linked, then one Node script per tree that imports
+`src/lib/server/save.ts` and `gamedata.ts` (Node runs the `.ts` files as they are), reads the same
+saves with `loadGameData(<data DB>)` and writes each snapshot's JSON; `diff` them. Read each save
+alone _and_ after another: that comparison is what showed the old reader's names following the
+save read before, which no unit test could see (each sets its own state).
+
+**Tests of a server module that reads the process-wide state** (`getDb()`, `getGameData()`) set
+`globalThis.__stellarisDashboard` before a dynamic `import()` of the module — `planner.test.ts` is
+the pattern, with an in-memory DB and only the game data fields its goals read. This is also why
+vitest keeps one worker per file (`isolate`, its default): with shared workers that state would
+leak between test files.
+
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
 dev server ingests saves and moves the head). On the Linux game machine the one in use is
 `~/.local/share/stellaris-empire-dashboard-test/` (every campaign, the nomad Roaming Korinth
-included, 2026-10-31) — `~/.local/share/stellaris-empire-dashboard/` is stale since 2026-10-18
+included, 2026-10-31) — on mkTuxedCachy there is no `-test` folder, and the released zip's own
+`~/.local/share/stellaris-empire-dashboard/` is the one in use (2026-11-15); on the game machine
+it is stale since 2026-10-18
 (UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
@@ -38,6 +54,27 @@ lines (the real log's, or written from a snapshot's stockpile and balance — `p
 only the `SDASH|` part), fetch `__data.json`, then copy the next autosave in and fetch again. The
 save merges into the log month's node (same id, same tip). 2026-10-25: every state rendered 200
 server-side; a browser-side error needs a browser, which the sandbox cannot start.
+
+## Measuring a page
+
+How 0.1.18's speed-up was found (2026-11-15): reading the code suggested a warm-up, the profile
+showed two queries. Measure the packaged path, not `vite dev`:
+
+1. `node_modules/.bin/vite build`; a folder holding a copy of `release/launcher.mjs` and a symlink
+   `app` → `build/` runs it as a zip would.
+2. A consistent DB copy, WAL included: `VACUUM INTO '<copy>'` from a read-only `node:sqlite`
+   connection. A copy of an older schema also runs the new migration, with its backup beside it.
+3. One command: start the launcher with `DASHBOARD_DB`, `STELLARIS_SAVE_DIR`,
+   `STELLARIS_DATA_DB` (one of `data/*.sqlite`), `XDG_DATA_HOME=$TMPDIR/…` and a `PORT`; wait for
+   `every campaign is up to date` in its log (**a catch-up re-reading saves makes requests ~1.5 s
+   and drowns every other effect**), time each route twice with `curl -w '%{time_total}'`, then
+   `kill -INT` the launcher.
+4. To see where the time goes, start it with `node --cpu-prof --cpu-prof-dir=<dir>`, request one
+   page ~15 times, stop it, and sum the profile's `samples`/`timeDeltas` per function (self and
+   total time). A cost every route shares sits in `+layout.server.ts`.
+5. A suspect query: `EXPLAIN QUERY PLAN` and a timed `prepare().all()` on the copy, before and
+   after a candidate `CREATE INDEX`. SQLite takes an expression index only when the query cannot
+   use another one first (`+n.campaign`, `campaignIronman`).
 
 ## Testing in a throwaway game
 

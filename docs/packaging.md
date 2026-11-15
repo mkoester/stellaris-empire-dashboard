@@ -34,6 +34,15 @@ without `ORIGIN` adapter-node 6 takes every request for `https`, and SvelteKit r
 app, `pnpm dev` never shows it. It marks each request `http` in a header named by `PROTOCOL_HEADER`,
 so 127.0.0.1, localhost and a LAN address (`--lan`) all work, and a foreign origin is still refused.
 
+**Who may ask what is `server/guard.ts`, called from `hooks.server.ts`** (so `vite dev`, where
+SvelteKit skips its own cross-site check, is covered too). The launcher takes the origin from
+whatever `Host` the browser sent, so without a check a website that points its own name at
+127.0.0.1 (DNS rebinding) would count as the dashboard itself: only `localhost`, IP addresses,
+names without a dot and `.local` names are served. A write with a foreign `Origin` is refused
+whatever its content type. And with `--lan`, where every device on the network reaches it without
+a login, the folders (`POST /setup`) and the campaigns (`POST /api/campaigns`) change only from the
+computer it runs on — a new endpoint that deletes history or names a path goes into `LOCAL_ONLY`.
+
 **Stopping** (Ctrl+C, a closed window — SIGHUP on Windows, macOS and Linux — or a kill): the
 launcher closes its server and every connection (the event stream never goes idle), then emits
 adapter-node's `sveltekit:shutdown`; `stop()` in `app.ts` waits for a start-up and the save being
@@ -45,6 +54,10 @@ exit 130, `-wal` left). **Not yet seen on Windows or a Mac.** `pnpm dev` is Vite
 
 The version in the header and the zip names is `scripts/version.mjs` (decorated with git state;
 a commit tagged `v<version>` counts as a release, since CI builds from the detached tag).
+The launcher's start line names it and the head campaign's game version: `startVersions()` in
+`app.ts`, handed over on `globalThis` by `hooks.server.ts`, as the app is a bundle of its own.
+Before it prints that line and opens the browser, the launcher requests `/` once (warm-up: 0.36 s
+cold, 0.09 s after, on a copy of the author's DB, 2026-11-15).
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
 which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
 creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. A

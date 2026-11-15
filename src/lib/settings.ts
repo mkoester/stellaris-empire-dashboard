@@ -1,17 +1,4 @@
-import type { ColonyView } from './colonyTable.ts';
-import type { ContactView } from './contacts.ts';
-import type { DiplomacyView } from './diplomacy.ts';
-import type { MigrationView } from './migration.ts';
-import type { ExpansionView } from './expansion.ts';
-import type { MapFilter } from './mapLayers.ts';
-import type { MegaView } from './megastructures.ts';
-import type { ContractView } from './contracts.ts';
-import type { StarbaseView } from './starbases.ts';
-import type { SystemView } from './systems.ts';
-import type { ProduceView } from './produce.ts';
-import type { PopWindow } from './popWindow.ts';
-import type { QuadrantView } from './quadrants.ts';
-import type { Display } from './profiles.ts';
+import type { ProfileSettings } from './profiles.ts';
 import { KIND_IDS, type EventKind } from './milestones.ts';
 
 // Viewer settings kept on the server (`setting` table), so every device sees the same: the theme,
@@ -149,25 +136,7 @@ function api(path: string): string {
  * Stores changed settings on the server (`/api/settings`). `chartEvents` entries are merged into
  * the stored map, so charts saving at once do not undo each other.
  */
-export async function putSettings(patch: {
-	theme?: Theme;
-	tabs?: CustomTab[];
-	chartEvents?: ChartEvents;
-	colonyView?: ColonyView;
-	expansionView?: ExpansionView;
-	contactView?: ContactView;
-	diplomacyView?: DiplomacyView;
-	migrationView?: MigrationView;
-	megastructureView?: MegaView;
-	contractView?: ContractView;
-	starbaseView?: StarbaseView;
-	systemView?: SystemView;
-	produceView?: ProduceView;
-	mapFilter?: MapFilter;
-	quadrants?: QuadrantView;
-	popWindow?: PopWindow;
-	display?: Display;
-}) {
+export async function putSettings(patch: Partial<ProfileSettings> & { theme?: Theme }) {
 	const r = await fetch(api('/api/settings'), {
 		method: 'PUT',
 		headers: { 'content-type': 'application/json' },

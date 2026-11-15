@@ -177,28 +177,67 @@ export function parseDisplay(v: unknown): Display {
 	};
 }
 
+/**
+ * How each setting is read from stored or sent JSON: its value in the current shape, or null when
+ * it is malformed beyond repair (only the tabs and the chart events can be).
+ */
+export const SETTING_PARSERS: {
+	[K in keyof ProfileSettings]: (v: unknown) => ProfileSettings[K] | null;
+} = {
+	tabs: parseTabs,
+	chartEvents: parseChartEvents,
+	colonyView: parseView,
+	expansionView: parseExpansionView,
+	contactView: parseContactView,
+	diplomacyView: parseDiplomacyView,
+	migrationView: parseMigrationView,
+	megastructureView: parseMegaView,
+	contractView: parseContractView,
+	starbaseView: parseStarbaseView,
+	systemView: parseSystemView,
+	produceView: parseProduceView,
+	mapFilter: parseMapFilter,
+	quadrants: parseQuadrantView,
+	popWindow: parsePopWindow,
+	display: parseDisplay
+};
+const SETTING_KEYS = Object.keys(SETTING_PARSERS) as (keyof ProfileSettings)[];
+
+/**
+ * The settings `v` names, each in the current shape and those it does not name left out;
+ * `{ malformed }` names the first that cannot be read.
+ */
+export function parsePatch(v: unknown): Partial<ProfileSettings> | { malformed: string } {
+	const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
+	const patch: Partial<Record<keyof ProfileSettings, unknown>> = {};
+	for (const key of SETTING_KEYS) {
+		if (o[key] === undefined) continue;
+		const parsed = SETTING_PARSERS[key](o[key]);
+		if (parsed === null) return { malformed: key };
+		patch[key] = parsed;
+	}
+	return patch as Partial<ProfileSettings>;
+}
+
 /** A stored or imported profile in the current shape; broken parts fall back to the defaults. */
 export function parseSettings(v: unknown): ProfileSettings {
 	const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
-	return {
-		tabs: parseTabs(o.tabs) ?? [],
-		chartEvents: parseChartEvents(o.chartEvents) ?? {},
-		colonyView: parseView(o.colonyView),
-		expansionView: parseExpansionView(o.expansionView),
-		contactView: parseContactView(o.contactView),
-		diplomacyView: parseDiplomacyView(o.diplomacyView),
-		migrationView: parseMigrationView(o.migrationView),
-		megastructureView: parseMegaView(o.megastructureView),
-		contractView: parseContractView(o.contractView),
-		starbaseView: parseStarbaseView(o.starbaseView),
-		systemView: parseSystemView(o.systemView),
-		produceView: parseProduceView(o.produceView),
-		mapFilter: parseMapFilter(o.mapFilter),
-		quadrants: parseQuadrantView(o.quadrants),
-		popWindow: parsePopWindow(o.popWindow),
-		display: parseDisplay(o.display)
-	};
+	return Object.fromEntries(
+		SETTING_KEYS.map((key) => [key, SETTING_PARSERS[key](o[key]) ?? DEFAULT_SETTINGS[key]])
+	) as ProfileSettings;
 }
+
+/** A stored map of strings (campaign → profile); entries of another type dropped. */
+export function parseStringMap(v: unknown): Record<string, string> {
+	if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
+	return Object.fromEntries(
+		Object.entries(v).filter((e): e is [string, string] => typeof e[1] === 'string')
+	);
+}
+
+/** A stored list of strings; anything else in it dropped, [] when it is no list. */
+export const parseStrings = (v: unknown): string[] =>
+	Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 
 /** The known profiles, if `v` is a well-formed list. */
 export function parseProfiles(v: unknown): ProfileInfo[] | null {

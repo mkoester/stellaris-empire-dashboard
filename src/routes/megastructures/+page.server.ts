@@ -2,7 +2,7 @@ import { contractMarksAt } from '#lib/server/contracts.ts';
 import { error } from '@sveltejs/kit';
 import { candidates, KINDS, MEGA_RULES } from '#lib/megastructures.ts';
 import { discovered, jumpsFromBorder, mapView } from '#lib/situations.ts';
-import { display, megastructureView } from '#lib/server/settings.ts';
+import { display, setting } from '#lib/server/settings.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
@@ -42,7 +42,7 @@ export function load({ url }) {
 		wholeGalaxy: whole,
 		machineAge,
 		owners,
-		view: megastructureView(),
+		view: setting('megastructureView'),
 		territories: territoriesOf(snaps),
 		contractMarks: contractMarksAt(snaps, shown),
 		systems: mapView(g?.systems ?? [], reveal()),

@@ -4,6 +4,12 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 
 ## Open (needs a running game on Linux)
 
+- **Tabs that did nothing when clicked, 0.1.17 on mkTuxedCachy (2026-11-15)**: every tab but
+  `mods` and `about` gave no visible effect, then worked again a little later. Ruled out: the
+  server (every page and `__data.json` 200 in ~0.47 s; the catch-up had nothing to read). Unconfirmed
+  guess: a tab left open across a restart onto a new build, whose route chunks the server no longer
+  has. Next time: DevTools Console and Network on the click, before reloading.
+
 **The checks still owed from the 2026-10-22 session — what, how, which screenshot — are listed in
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech
 screen, trade calibration, stored research, releases).

@@ -12,7 +12,7 @@ export function followGame(follow: () => boolean) {
 		const events = new EventSource('/api/events');
 		events.onmessage = (e) => {
 			const pinned = new URL(location.href).searchParams.has('node');
-			if (e.data === 'refreshed' || (follow() && !pinned)) invalidateAll();
+			if (e.data === 'refreshed' || (follow() && !pinned)) void invalidateAll();
 		};
 		return () => events.close();
 	});

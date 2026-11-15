@@ -420,6 +420,14 @@ export function unlockOf(
 					available: (f.factions?.length ?? 0) > 0 ? null : false,
 					needs: [{ text: 'a faction of the ethic to promote or suppress' }]
 				};
+			break;
+		// nothing the game data names unlocks these
+		case 'deposit':
+		case 'designation':
+		case 'origin':
+		case 'other':
+		case 'relic':
+			break;
 	}
 	return { forUs: null, available: null, needs: [] };
 }
