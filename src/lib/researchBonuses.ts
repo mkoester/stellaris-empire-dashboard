@@ -92,8 +92,7 @@ export const pileSum = (
 		.filter((l) => l.pile === pile && appliesTo(l.scope, area, tech))
 		.reduce((t, l) => t + l.value, 0);
 
-/** What one more bonus is really worth in a pile that already sums to `sum`. */
-export const realGain = (bonus: number, sum: number) => bonus / (1 + sum);
+export { realGain } from './bonusPiles.ts';
 
 export function scopeLabel(s: Scope): string {
 	switch (s.kind) {

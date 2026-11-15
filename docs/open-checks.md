@@ -3,13 +3,13 @@
 What the systems, produce, jobs, growth, tech and trade tabs still need from the game. Each item:
 what is open, how to check it, and what to send. Screenshots go to the game's own folder
 (`<Stellaris user dir>/screenshots/`, F12 in game); name the colony or system in the message.
-Background for each is in `AGENTS.md` (sections named below).
+Background for each is in the `docs/` files named below.
 
 ## A. Screenshots from the real campaign (no cheats needed)
 
 Session 2026-10-22 (Planetforgers, 2212.03.05, screenshots `2026_10_22_1`–`21`) settled outpost
 and starbase costs, the market price formula, tech costs and research rates; results in
-`AGENTS.md` → Open. What is left:
+`docs/open-points.md`. What is left:
 
 ### 4. Market buy price — produce tab (small remainder)
 
@@ -25,7 +25,7 @@ fluctuation may lag the screen.
 
 Per item: a manual save before and after (diff in `$TMPDIR`), a screenshot of the greyed-out
 tooltip ("available in …"), the dashboard's row for comparison. **Done 2026-10-25** (throwaway
-`unitednationsofearth_-15512622`, results in `AGENTS.md` → "Cooldowns and expiries" and "Run-out
+`unitednationsofearth_-15512622`, results in `docs/tabs-shell.md` → "Cooldowns and expiries" and "Run-out
 cooldowns stay"): minor artifact actions, the relic triumph, Satisfying Insults, colony decisions
 on two colonies, species rights, moving the capital, the reform date, insults per empire, and a
 run-out cooldown dismissed on a reloaded branch. Still open:
@@ -101,7 +101,7 @@ lines change, the suspected cause.
 ### 16. Ethics attraction — the factors the save cannot tell (from 2026-10-30)
 
 Settled 2026-10-30 (throwaway nomad game, 2200.05.01, screenshots
-`~/Pictures/Screenshots/screenshot_2026-10-30_20-09-12` … `20-09-53`; `AGENTS.md` → Ethics tab).
+`~/Pictures/Screenshots/screenshot_2026-10-30_20-09-12` … `20-09-53`; `docs/tabs-ethics.md`).
 **Settled 2026-10-31 on the 4.5.3 open beta** (Roaming Korinth 2204.08.01, save; dashboard's
 ethics tab): the rules now add onto 1, and what the save cannot tell is the council —
 `value:count_councilors_with_ethic` = 0.1 (`@council_ethic_attraction`) per ruler or councilor with
@@ -361,7 +361,7 @@ tab's table should list what the outliner lists.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
-Setup as in `AGENTS.md` → "Testing in a throwaway game".
+Setup as in `docs/testing.md` → "Testing in a throwaway game".
 
 ### 30. Research agreements and migration treaties — pacts tab (from 2026-11-05)
 
@@ -457,7 +457,7 @@ cheats — tooltips set up, not sent — not in a throwaway game. Open:
 
 ### 7. Stored research — tech tab
 
-`AGENTS.md` → Open → "Stored research". The 4-day puzzle is solved (a monthly chunk after the
+`docs/open-points.md` → "Stored research". The 4-day puzzle is solved (a monthly chunk after the
 1st's autosave), and the game's tooltip shows stored research adding the modified monthly gain
 while drawing the base. Left: confirm the draw per month equals the _base_ gain over a few months,
 and what a tech finishing mid-month does with its overflow — plain monthly autosaves of the
@@ -467,7 +467,7 @@ campaign suffice, no cheats.
 
 ### 27. Multiplayer detection — ⚙ cheats off, companion mod 0.11.0 (from 2026-11-03)
 
-`AGENTS.md` → "No cheats in multiplayer". The rule: a save whose `player` block names an account
+`docs/no-cheats.md`. The rule: a save whose `player` block names an account
 or lists two players is multiplayer. Seen so far: single player `unknown` (106 saves); Oracularity
 of Noerm, a new multiplayer game, only `MirkoMachine`; UNE 2 `unknown` alone at 19:01, then
 `unknown` + `MirkoMachine` in every save from 19:41 on — after the Noerm session, loaded in a way
@@ -541,6 +541,24 @@ month (8 + 2 × 4).
   ("Automated Jobs" line and the building's) and the date. Check: automated = 25 % of positions;
   energy = 8 + automated ÷ 100 × 4; whether pops left the farmer jobs or open positions filled
   first.
+
+### 36. Which jobs a workforce key reaches, and what efficiency costs — bonuses tab (from 2026-11-15)
+
+`researcher_jobs_bonus_workforce_mult` (Research Subsidies, Scientific Revolution, Academic
+Privilege, psionic traits: "Bonus Workforce for Researcher jobs") names `researcher`. In 4.5.x that
+is a paragon background job with `possible = { always = no }`
+(common/pop_jobs/10_paragon_fake_jobs.txt), not physicists, biologists or engineers. So either the
+engine maps it to the research jobs, or the bonus reaches nobody. No save of ours has the edict.
+The tab treats it as reaching job `researcher` only, so it lists no line for it. The measured pile
+holds whatever it really does.
+
+- **Do:** in a throwaway game, `resource unity 5000`, note a colony's physicist tooltip (workforce),
+  enact Research Subsidies, let a month pass and save.
+- **Send:** both physicist tooltips and the date. Check: the save's `bonus_workforce` for
+  physicists rises by 10 % of their workforce, or not at all.
+- **Also:** a ship's upkeep and a building's build time in game against the tab's base and pile.
+  (That job efficiency scales upkeep is confirmed: `docs/workspace-notes.md`, physicists
+  2026-10-31.)
 
 ## C. Not in the game
 

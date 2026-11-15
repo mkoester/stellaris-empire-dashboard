@@ -11,7 +11,7 @@ dashboard_feed/thumbnail.png`) stay out of the upload.
 ## Checklist
 
 - [x] `version` in `descriptor.mod` bumped for every upload (and the log format, `SDASH|<n>|`,
-      changed only together with `feed.ts` — see `AGENTS.md` → Companion mod).
+      changed only together with `feed.ts` — see `docs/companion-mod.md`).
 - [ ] **Upload from `main`'s content only**, never from `open-beta` or a feature worktree: there is
       one item per store for every player, so a beta-only mod would reach the public game too.
 - [ ] Every open check for the version's new mod features has passed (`docs/open-checks.md`) —

@@ -1,7 +1,7 @@
 # Mod support
 
 Which of the user's subscribed mods (`../stellaris-mod-catalog/catalog.json`) the dashboard
-copes with, and what is left. Assessed 2026-11-08 on 4.5.3. The mechanism is `AGENTS.md`, "Mods in
+copes with, and what is left. Assessed 2026-11-08 on 4.5.3. The mechanism is `docs/setup-and-data.md`, "Mods in
 the game data": each campaign's data DB is extracted with its latest save's mods (since
 2026-11-09; before, the launcher's last start for every campaign).
 
@@ -41,7 +41,7 @@ save played with them. The mismatch warning itself is untested in the app.
 - Starbase and arkship slots (since 0.1.14): **4.5.3 counts them from the ship size**
   (`starbase_module_capacity_add`, `starbase_building_capacity_add` in `common/ship_sizes/`);
   `starbase_levels`' slot lists only name the slots ("must have at least the correct size", its
-  documentation). The dashboard counts that way (`levelSlots()`, AGENTS.md "Starbases tab"), so
+  documentation). The dashboard counts that way (`levelSlots()`, `docs/tabs-galaxy.md` "Starbases tab"), so
   Slightly Larger Starbases [4.5] shows a starport's 3 modules and 2 buildings — Commonwealth of
   Man's capital held 3 modules at 2200.02.01. **Outpost Slots loses to it**: both define
   `starbase_outpost`, and the later file name wins (`zz_bigger_starbases.txt` over

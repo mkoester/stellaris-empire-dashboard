@@ -124,7 +124,7 @@ from tooltips (results below). Kept for its offer list.
 1. New game, small galaxy, 8+ AI empires, **no** `debug_yesmen`. Play until 2200.02.01.
 2. Console: `contact`, `communications` (meet everyone), `debugtooltip` (ids in tooltips).
 3. Give yourself plenty: `cash 50000`, `minerals 50000`, `alloys 20000`,
-   `consumer_goods 20000`, `food 20000`, `resource volatile_motes 500` (forms: AGENTS.md → "Testing in a throwaway game").
+   `consumer_goods 20000`, `food 20000`, `resource volatile_motes 500` (forms: `docs/testing.md` → "Testing in a throwaway game").
 4. Start the dashboard against a **separate** DB (`DASHBOARD_DB=$TMPDIR/trade/dashboard.sqlite`)
    with the trade tab's `tradeIntel` switch on (⚙), so each manual save shows the AIs' stockpiles.
 5. Pick **three empires with different personalities** (the diplomacy screen names it), e.g. a
@@ -566,7 +566,7 @@ Two-sided deals and fallen-empire storage (screenshots `screenshot_2026-10-24_00
 
 ### 2026-10-24: the same game with the galactic market founded (2201.05.01)
 
-The market founded from the console (`AGENTS.md` → Testing in a throwaway game), no resolution.
+The market founded from the console (`docs/testing.md` → Testing in a throwaway game), no resolution.
 Manual save `2201.05.01`; screenshots `~/Pictures/Screenshots/screenshot_2026-10-24_12-35-43` …
 `12-37-12`. 1000 at once, nothing sent; predicted from the 2200.03 game-start fit at the save's
 incomes:
