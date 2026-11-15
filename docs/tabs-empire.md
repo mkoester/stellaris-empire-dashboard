@@ -140,6 +140,19 @@ them: policies are the save's `active_policies` (2207.03.10: 27, the game's pane
 Philosophy under both its categories), edicts those whose potential holds and that are unlocked
 (traditions, perks and `prerequisites` techs; 2207.03.10: exactly the game's five). The profile's
 `showLocked` switch (⚙) adds the rest: locked agendas and edicts, all policies and options.
+**What-ifs** (⚙ What-ifs, a spoiler; `#lib/whatIf.ts`, `server/whatIfs.ts`): three paths, all ≈ —
+output (`*_produces_mult` as a share of today's output), wellbeing (amenities → stability → output)
+and upkeep (a `_mult` × what the budget books for its group: `pop_category_*` for the pops'
+consumer goods, `planet_pops_traits` for organics' food, `planet_<job>`, `planet_buildings`,
+`ships`, `edicts`, …; an `_add` per 100 workforce of a job or per 100 pops of a stratum — 3606
+specialists × 0.5 = the 18.03 consumer goods booked, 2203.09). An edict's price is its base cost and
+upkeep × the budget's `edicts` expenses over the active edicts' base (`edict_size_effect`,
+`edicts_upkeep_mult`); with no active edict of that resource, base, marked "(base)". The net is
+trade a month at the produce tab's values (`whatIfValues()`, as `logistics.ts`). The same what-if
+runs on the species tab (Living Standards: the two options' modifiers swapped, on that species'
+strata — each colony's strata × its share of the pops, ≈), the traditions tab (traditions not
+taken in adopted trees, other trees' adoption, perks whose `potential`/`possible` is not false) and
+the tech tab (the cards on offer). Happiness per stratum (`pop_cat_*_happiness`) is not counted.
 **Species rights** (species tab, `#lib/rights.ts`): `country.modules.standard_species_rights_module
 .primary = { species_index citizenship living_standard … }` for the founder species and
 `.species_rights = { { species_index … } … }` for every other (READER 51; before, other species had

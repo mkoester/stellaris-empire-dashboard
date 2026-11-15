@@ -9,6 +9,7 @@ import {
 } from '#lib/nomad.ts';
 import { storageRows } from '#lib/storage.ts';
 import { getExplanations, getGameData } from './app.ts';
+import { recommendationOptions } from './whatIfs.ts';
 import { pick } from './explain.ts';
 import { expansionOf, expansionRows, habitatData, speciesChoices } from './expansion.ts';
 import { colonyBlockerHints } from './planets.ts';
@@ -72,6 +73,7 @@ export function empireData(url: URL) {
 			...(government?.rows.flatMap((r) => r.items.map((i) => i.id)) ?? [])
 		]),
 		government,
+		recommendations: recommendationOptions(b),
 		// what each civilian ship's current order counts to (anomalies need the game data's levels)
 		shipTotals: Object.fromEntries(
 			(latest.civilianShips ?? []).map((s) => [

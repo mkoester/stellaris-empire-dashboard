@@ -280,8 +280,11 @@ Roaming Korinth 2207.02.01): `/map` returned 200 in every mode and each mode's c
 recomputed from `__data.json`. The drawing needs a browser, and the colours have not been compared
 with the game's map yet (`docs/open-checks.md` 27).
 
-The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
-panels by id (`EmpirePanel.svelte`);
+The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render their panels
+by id (`EmpirePanel.svelte`); Recommendations is All-only, beside Upcoming, and follows the What-ifs
+spoiler. It groups positive estimated trade or stability changes across edicts, policies, colony
+designations and planet decisions. Its “Show all options, ranked” browser toggle lists every
+estimated option together, ordered by net trade and then stability;
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
 goes there and into `EmpirePanel`**. **A new profile setting is a key of `ProfileSettings` with its
 default and its parser in `SETTING_PARSERS`** (`#lib/profiles.ts`): the API, the stored profile and

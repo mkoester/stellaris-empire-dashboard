@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.20] - 2026-11-15
+
+### Added
+
+- All tab Recommendations panel (next to Upcoming, a What-ifs spoiler): worthwhile edict, policy,
+  designation and planet decision changes, with their estimates. “Show all options, ranked” lists
+  every estimate together for comparison.
+- What-ifs (⚙, a spoiler) now count upkeep: Recycling Campaign shows the consumer goods it saves,
+  not "1 effect not counted". Upkeep modifiers on pops, jobs, buildings, districts, ships,
+  starbases, leaders, armies and edicts are read from what the budget books.
+- Each what-if sets what you gain against what it costs: an edict's own upkeep and one-off cost,
+  scaled by what the budget books for your active edicts, and the net in trade a month at the
+  produce tab's values. The edicts table sorts by it.
+- What-ifs on more tabs: switching a species' Living Standards (species tab), the traditions not
+  yet picked, adopting another tree and the ascension perks open to you (traditions tab), and the
+  tech cards on offer (tech tab).
+
 ## [0.1.19] - 2026-11-15
 
 ### Added

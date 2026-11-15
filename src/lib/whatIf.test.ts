@@ -5,7 +5,10 @@ import { wellbeingRules } from './wellbeing.ts';
 import {
 	colonyFlows,
 	designationCandidates,
+	edictPrices,
+	priced,
 	split,
+	upkeepOf,
 	swapModifiers,
 	wellbeingChain,
 	whatIf
@@ -151,5 +154,100 @@ describe('colonyFlows', () => {
 		expect(f['job:miner']).toEqual({ minerals: 12 });
 		expect(f['stratum:worker']).toEqual({ minerals: 12, consumer_goods: 6 });
 		expect(f.jobs).toEqual({ minerals: 12, consumer_goods: 6 });
+	});
+});
+
+// the 2203.09 save's pop upkeep: `pop_category_*` 1.1175 + 18.03 + 2 consumer goods
+const upkeep = {
+	flows: {
+		pops: { consumer_goods: 21.1475 },
+		pops_traits: { food: 42.53, energy: 8.514 },
+		jobs: { minerals: 51.3, consumer_goods: 6.669 },
+		'job:artisan': { minerals: 51.3 },
+		'job:physicist': { consumer_goods: 6.669 },
+		edicts: { energy: 30 }
+	},
+	workforce: { 'job:miner': 300 },
+	strata: { specialist: 3606, worker: 1400 }
+};
+
+describe('upkeepOf', () => {
+	it('scales the pops’ consumer goods upkeep (Recycling Campaign)', () => {
+		expect(
+			upkeepOf('planet_pops_consumer_goods_upkeep_mult', -0.1, upkeep)!.consumer_goods
+		).toBeCloseTo(-2.11475);
+	});
+	it('takes organic pops’ food from the traits source, all of it for every pop', () => {
+		expect(upkeepOf('planet_pops_organics_upkeep_mult', -0.1, upkeep)).toEqual({ food: -4.253 });
+		const all = upkeepOf('planet_pops_upkeep_mult', 0.1, upkeep)!;
+		expect(all.consumer_goods).toBeCloseTo(2.11475);
+		expect(all.energy).toBeCloseTo(0.8514);
+	});
+	it('scales one job’s upkeep, or every job’s', () => {
+		expect(upkeepOf('planet_artisans_upkeep_mult', -0.2, upkeep)).toEqual({ minerals: -10.26 });
+		expect(upkeepOf('planet_jobs_upkeep_mult', 0.1, upkeep)!.consumer_goods).toBeCloseTo(0.6669);
+	});
+	it('adds per 100 workforce of a job and per 100 pops of a stratum', () => {
+		expect(upkeepOf('planet_miners_trade_upkeep_add', 1, upkeep)).toEqual({ trade: 3 });
+		expect(
+			upkeepOf('pop_category_specialists_consumer_goods_upkeep_add', 0.5, upkeep)!.consumer_goods
+		).toBeCloseTo(18.03);
+	});
+	it('reads nothing it has no group for', () => {
+		expect(upkeepOf('planet_buildings_clone_vats_upkeep_mult', -0.2, upkeep)).toBeNull();
+		expect(upkeepOf('ships_upkeep_mult', -0.1, upkeep)).toBeNull();
+		expect(upkeepOf('pop_category_rulers_consumer_goods_upkeep_add', 1, upkeep)).toBeNull();
+		expect(upkeepOf('country_influence_upkeep_add', 1, upkeep)).toBeNull();
+	});
+});
+
+describe('edictPrices', () => {
+	const rows: Parameters<typeof edictPrices>[0] = [
+		{ key: 'education', active: {}, cost: { upkeep: { energy: 15 } } },
+		{ key: 'recycling', active: {}, cost: { upkeep: { energy: 15 } } },
+		{ key: 'research', active: null, cost: { cost: { energy: 15 }, upkeep: { energy: 15 } } },
+		{ key: 'unity', active: null, cost: { upkeep: { unity: 10 } } }
+	];
+	it('scales by what the budget books over the active edicts’ base', () => {
+		const p = edictPrices(rows, { energy: 33 });
+		expect(p.research).toEqual({
+			cost: { energy: 16.5 },
+			upkeep: { energy: 16.5 },
+			measured: true
+		});
+		expect(p.recycling).toEqual({ cost: {}, upkeep: { energy: -16.5 }, measured: true });
+	});
+	it('keeps base values where nothing measures the factor', () => {
+		expect(edictPrices(rows, { energy: 33 }).unity).toEqual({
+			cost: {},
+			upkeep: { unity: 10 },
+			measured: false
+		});
+		expect(edictPrices(rows, undefined).research.measured).toBe(false);
+	});
+});
+
+describe('Recycling Campaign, priced', () => {
+	it('sets the consumer goods saved against its 15 energy', () => {
+		const w = whatIf(
+			{ planet_pops_consumer_goods_upkeep_mult: -0.1 },
+			{ jobs: {} },
+			[],
+			false,
+			rules,
+			upkeep
+		);
+		expect(w.modelled).toEqual(['planet_pops_consumer_goods_upkeep_mult']);
+		expect(w.unmodelled).toEqual([]);
+		const p = priced(
+			w,
+			{ cost: { energy: 15 }, upkeep: { energy: 15 }, measured: false },
+			{
+				energy: 1,
+				consumer_goods: 2
+			}
+		);
+		expect(p.gained).toBeCloseTo(4.2295);
+		expect(p.net).toBeCloseTo(4.2295 - 15);
 	});
 });

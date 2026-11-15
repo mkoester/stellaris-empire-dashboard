@@ -214,9 +214,9 @@ export const SWITCHES: Switch[] = [
 		group: 'What-ifs',
 		kind: 'spoiler',
 		label:
-			'What-ifs: ≈ what an edict, a policy, a designation or a planet decision would do if taken now',
+			'What-ifs: ≈ what an edict, a policy, a designation, a planet decision, a Living Standard, a tradition, an ascension perk or a tech on offer would do if taken now, and its net in trade',
 		note: 'the game shows a choice’s modifiers, not what they come to; Distribute Luxury Goods’ estimate is one of them',
-		tags: 'estimate edicts policies designation decisions luxury goods'
+		tags: 'estimate edicts policies designation decisions luxury goods living standards traditions perks techs upkeep trade value'
 	}
 ];
 

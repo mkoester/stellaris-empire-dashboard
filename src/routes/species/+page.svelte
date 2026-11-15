@@ -4,6 +4,7 @@
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
+	import WhatIfLine from '#lib/WhatIfLine.svelte';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -56,6 +57,9 @@
 											><InfoPopup explanation={data.explain[`right:${o.key}`]}>{o.name}</InfoPopup
 											></span
 										>{/each}
+									{#each r.options.filter((o) => s.whatIfs[`right:${o.key}`]) as o (o.key)}<div>
+											<WhatIfLine what={s.whatIfs[`right:${o.key}`]} label={o.name} />
+										</div>{/each}
 								</td>
 							</tr>
 						{/each}
