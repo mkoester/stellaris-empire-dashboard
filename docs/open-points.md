@@ -5,10 +5,14 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 ## Open (needs a running game on Linux)
 
 - **Tabs that did nothing when clicked, 0.1.17 on mkTuxedCachy (2026-11-15)**: every tab but
-  `mods` and `about` gave no visible effect, then worked again a little later. Ruled out: the
-  server (every page and `__data.json` 200 in ~0.47 s; the catch-up had nothing to read). Unconfirmed
-  guess: a tab left open across a restart onto a new build, whose route chunks the server no longer
-  has. Next time: DevTools Console and Network on the click, before reloading.
+  `mods` and `about` gave no visible effect, then worked again a little later. The user then saw
+  it only with two or more dashboard tabs open; closing all but one cured it. Explained: each page
+  held three `/api/events` streams (layout `followLoads` + `followTicks`, page `followGame`), and a
+  browser gives a host 6 HTTP/1.1 connections — two tabs held all six, so each click's
+  `__data.json` waited. `about` has no server load, which fits; `mods` has one, which does not.
+  Fixed for 0.1.19: one stream for the whole browser (SharedWorker `#lib/eventsWorker.ts`, hub
+  in `#lib/live.ts`). Still to confirm in the browser: 3+ tabs click through, DevTools shows one
+  `/api/events`.
 
 **The checks still owed from the 2026-10-22 session — what, how, which screenshot — are listed in
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech

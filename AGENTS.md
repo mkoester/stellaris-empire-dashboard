@@ -141,7 +141,10 @@ every member.
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
 `zip.ts` and queries the gamestate with jomini (the readings by domain are in `server/save/`,
 re-exported by `save.ts`; `toSnapshot()` is handed the campaign's game data, never a global) → `db.ts` places the snapshot in the save graph via
-`timeline.ts` and records it → `/api/events` tells open pages to reload. In parallel, `feed.ts`
+`timeline.ts` and records it → `/api/events` tells open pages to reload. **That stream is opened
+once per browser** (a SharedWorker, `#lib/eventsWorker.ts`): subscribe through `#lib/live.ts`,
+never `new EventSource` in a page — three per tab once held all 6 connections a browser gives a
+host with two tabs open, and every tab click hung (`docs/open-points.md`). In parallel, `feed.ts`
 follows `game.log` from its current end and turns the mod's monthly lines into partial snapshots
 (stockpile and net income) of the campaign being played.
 
