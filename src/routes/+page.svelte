@@ -18,7 +18,11 @@
 {:else}
 	<div class="flex flex-col gap-6">
 		{#each LAYOUT as group, i (i)}
-			<div class={group.cols}>
+			<div
+				class={group.panels.some((p) => p.id === 'recommendations') && !data.recommendations
+					? 'grid items-start gap-4'
+					: group.cols}
+			>
 				{#each group.panels as p (p.id)}
 					<EmpirePanel id={p.id} {data} />
 				{/each}

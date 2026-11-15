@@ -8,6 +8,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- All tab Recommendations panel (next to Upcoming, a What-ifs spoiler): worthwhile edict, policy,
+  designation and planet decision changes, with their estimates. “Show all options, ranked” lists
+  every estimate together for comparison.
 - What-ifs (⚙, a spoiler) now count upkeep: Recycling Campaign shows the consumer goods it saves,
   not "1 effect not counted". Upkeep modifiers on pops, jobs, buildings, districts, ships,
   starbases, leaders, armies and edicts are read from what the budget books.

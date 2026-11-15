@@ -7,14 +7,31 @@
 	// One what-if (#lib/whatIf.ts) on a line: "≈ <label>" then the income change a month (output,
 	// and upkeep saved or added), the stability change, what it pays, the net in trade and what
 	// was not counted. Everything here is an estimate.
-	let { what, label = 'if taken now' }: { what: WhatIf | null | undefined; label?: string } =
-		$props();
+	let {
+		what,
+		label = 'if taken now',
+		showSmall = false,
+		emptyLabel = ''
+	}: {
+		what: WhatIf | null | undefined;
+		label?: string;
+		showSmall?: boolean;
+		emptyLabel?: string;
+	} = $props();
 
 	const HOW =
 		'≈ output and upkeep modifiers as a share of what that output or upkeep is today (an upper bound: the game adds multipliers); amenities, happiness and stability along each colony’s chain to job output';
-	const pts = (v: number) => `${v > 0 ? '+' : '−'}${Math.abs(Math.round(v * 10) / 10)}`;
-	const signed = (v: number) => `${v < 0 ? '−' : '+'}${fmt(Math.abs(v))}`;
-	const big = (r: Resources | undefined) => Object.values(r ?? {}).some((v) => Math.abs(v) >= 0.05);
+	const amount = (v: number) =>
+		showSmall && Math.abs(v) > 0 && Math.abs(v) < 0.000001
+			? Math.abs(v).toExponential(2)
+			: showSmall
+				? Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 6 })
+				: fmt(Math.abs(v));
+	const pts = (v: number) => `${v > 0 ? '+' : '−'}${amount(v)}`;
+	const signed = (v: number) => `${v < 0 ? '−' : '+'}${amount(v)}`;
+	const threshold = $derived(showSmall ? Number.MIN_VALUE : 0.05);
+	const big = (r: Resources | undefined) =>
+		Object.values(r ?? {}).some((v) => Math.abs(v) >= threshold);
 	const income = $derived.by(() => {
 		const out: Resources = { ...(what?.monthly ?? {}) };
 		for (const [k, v] of Object.entries(what?.upkeep ?? {})) out[k] = (out[k] ?? 0) - v;
@@ -41,8 +58,9 @@
 			(big(income) ||
 				big(what.price?.upkeep) ||
 				big(what.price?.cost) ||
-				(what.stability !== null && Math.abs(what.stability) >= 0.05) ||
-				what.unmodelled.length > 0)
+				(what.stability !== null && Math.abs(what.stability) >= threshold) ||
+				what.unmodelled.length > 0 ||
+				!!emptyLabel)
 	);
 </script>
 
@@ -51,7 +69,9 @@
 		<span class="text-gray-500" title={HOW}>≈ {label}:</span>
 		<ResourceChips
 			flows={income}
-		/>{#if what.stability !== null && Math.abs(what.stability) >= 0.05}<span
+			minimum={threshold}
+			maximumFractionDigits={showSmall ? 6 : 1}
+		/>{#if what.stability !== null && Math.abs(what.stability) >= threshold}<span
 				class="mr-3 whitespace-nowrap {what.stability < 0 ? 'text-red-600' : 'text-green-600'}"
 				>{pts(what.stability)} stability</span
 			>{/if}{#if big(what.price?.upkeep) || big(what.price?.cost)}<span
@@ -61,9 +81,9 @@
 			><ResourceChips flows={pays} />{#if big(what.price?.cost)}<span
 					class="mr-3 whitespace-nowrap text-gray-500"
 					>{`${Object.entries(what.price?.cost ?? {})
-						.map(([k, v]) => `${fmt(v)} ${pretty(k)}`)
+						.map(([k, v]) => `${amount(v)} ${pretty(k)}`)
 						.join(', ')} once`}</span
-				>{/if}{/if}{#if what.net != null && Math.abs(what.net) >= 0.05}<span
+				>{/if}{/if}{#if what.net != null && Math.abs(what.net) >= threshold}<span
 				class="mr-3 cursor-help font-semibold whitespace-nowrap {what.net < 0
 					? 'text-red-600'
 					: 'text-green-600'}"
@@ -72,6 +92,8 @@
 				class="cursor-help text-gray-500"
 				title={`effects the estimate leaves out: ${what.unmodelled.map(pretty).join(', ')}`}
 				>+{what.unmodelled.length} effect{what.unmodelled.length > 1 ? 's' : ''} not counted</span
+			>{/if}{#if emptyLabel && !big(income) && !big(what.price?.upkeep) && !big(what.price?.cost) && (what.stability === null || Math.abs(what.stability) < threshold) && (what.net == null || Math.abs(what.net) < threshold) && !what.unmodelled.length}<span
+				class="text-gray-500">{emptyLabel}</span
 			>{/if}
 	</span>
 {/if}

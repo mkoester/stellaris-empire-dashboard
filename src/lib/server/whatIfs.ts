@@ -9,7 +9,7 @@ import { jobOutput } from '#lib/luxuries.ts';
 import type { GroupFlows } from '#lib/produce.ts';
 import { isCapital } from '#lib/colonyLogistics.ts';
 import { jobGroup } from '#lib/tradeoffs.ts';
-import { facts } from '#lib/government.ts';
+import { edictRows, facts, policyRows } from '#lib/government.ts';
 import {
 	decisionCost,
 	decisionModifiers,
@@ -29,6 +29,8 @@ import {
 	type UpkeepInputs,
 	type WhatIf
 } from '#lib/whatIf.ts';
+import { edictPrices } from '#lib/whatIf.ts';
+import type { Recommendation } from '#lib/recommendations.ts';
 import { colonyFee, feeInputs } from './logistics.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { display, setting } from './settings.ts';
@@ -333,6 +335,88 @@ export function sourceWhatIfs(b: Branch, ids: string[]): Record<string, WhatIf> 
 			return w ? [[id, w]] : [];
 		})
 	);
+}
+
+/** The actionable government and colony choices, using the same estimates as their detail pages. */
+export function recommendationOptions(b: Branch): Recommendation[] | null {
+	if (!display().whatIfs) return null;
+	const inputs = whatIfInputs(b);
+	if (!inputs) return null;
+	const data = getGameData();
+	const save = inputs.save;
+	const f = facts(save, data.scriptedTriggers, {
+		shipKinds: data.shipKinds,
+		electionTypes: data.electionTypes,
+		archetypes: data.speciesArchetypes,
+		slavery: data.speciesRights.flatMap((k) =>
+			k.options.filter((o) => o.isSlavery).map((o) => o.key)
+		)
+	});
+	const out: Recommendation[] = [];
+	const edicts = edictRows(data.edicts, save, f).filter(
+		(e) => e.active || (e.unlocked && e.possible === true)
+	);
+	const prices = edictPrices(edicts, save.budget?.find((x) => x.source === 'edicts')?.expenses);
+	for (const e of edicts) {
+		const mods = data.edictModifiers[e.key];
+		const what = whatIfOf(
+			e.active ? Object.fromEntries(Object.entries(mods ?? {}).map(([k, v]) => [k, -v])) : mods,
+			inputs,
+			prices[e.key]
+		);
+		if (what)
+			out.push({
+				kind: 'edict',
+				label: `${e.active ? 'Disable' : 'Enable'} ${e.name}`,
+				target: null,
+				planetId: null,
+				possible: e.possible,
+				what
+			});
+	}
+	const policies = policyRows(data.policies, save.policies ?? {}, f);
+	for (const p of policies)
+		for (const o of p.options.filter((o) => !o.selected && o.valid !== false)) {
+			const what = whatIfOf(
+				swapModifiers(
+					p.selected ? data.policyModifiers[p.selected] : undefined,
+					data.policyModifiers[o.key]
+				),
+				inputs
+			);
+			if (what)
+				out.push({
+					kind: 'policy',
+					label: `Set ${p.name} to ${o.name}`,
+					target: null,
+					planetId: null,
+					possible: o.valid,
+					what
+				});
+		}
+	for (const colony of b.latest.colonies) {
+		const whatIfs = colonyWhatIfs(b, colony);
+		if (!whatIfs) continue;
+		for (const d of whatIfs.designations)
+			out.push({
+				kind: 'designation',
+				label: `Change designation to ${d.name}`,
+				target: colony.name,
+				planetId: colony.planetId,
+				possible: true,
+				what: d.what
+			});
+		for (const d of whatIfs.decisions)
+			out.push({
+				kind: 'decision',
+				label: d.name,
+				target: colony.name,
+				planetId: colony.planetId,
+				possible: d.possible,
+				what: d.what
+			});
+	}
+	return out;
 }
 
 /** A species' pops per stratum, ≈: each colony's strata × the species' share of its pops. */
