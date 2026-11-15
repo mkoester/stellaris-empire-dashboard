@@ -737,8 +737,10 @@ export const arkships = (s: Snapshot, type: string) =>
  */
 export function autoGoals(
 	s: Snapshot,
-	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'traditionPrereqs'>>,
-	wanted: string[] = []
+	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'traditionPrereqs' | 'perkTrees'>>,
+	wanted: string[] = [],
+	wantedPerks: string[] = [],
+	treeAvailable: (key: string) => boolean = () => true
 ): AutoGoal[] {
 	const picked = s.traditions ?? [];
 	const taken = new Set(picked);
@@ -755,6 +757,24 @@ export function autoGoals(
 	// taken ones first, in the order picked
 	for (const k of picked) add(k);
 	const want = new Set(wanted);
+	const perkAdoptions = new Set<string>();
+	const openedByPerks = [...(s.ascensionPerks ?? []), ...wantedPerks].flatMap(
+		(perk) => data.perkTrees?.[perk] ?? []
+	);
+	const openedTrees = new Map<string, string>();
+	for (const key of openedByPerks) {
+		const tree = data.traditionTrees[key];
+		if (!tree?.traditions.some((x) => x.role === 'adopt')) continue;
+		const sameName = openedTrees.get(tree.name);
+		if (!sameName || (treeAvailable(key) && !treeAvailable(sameName))) openedTrees.set(tree.name, key);
+	}
+	for (const key of openedTrees.values()) {
+		const adopt = data.traditionTrees[key].traditions.find((x) => x.role === 'adopt')?.key;
+		if (adopt) {
+			want.add(adopt);
+			perkAdoptions.add(adopt);
+		}
+	}
 	const prereqs = data.traditionPrereqs ?? {};
 	const needs = (k: string): string[] => [...(prereqs[k] ?? []).flatMap((p) => [...needs(p), p])];
 	for (const t of Object.values(data.traditionTrees)) {
@@ -770,7 +790,7 @@ export function autoGoals(
 			}
 	}
 	return [
-		...keys.filter((k) => !want.has(k) || taken.has(k)).map(goal),
+		...keys.filter((k) => !want.has(k) || taken.has(k) || perkAdoptions.has(k)).map(goal),
 		...(s.ascensionPerks ?? []).map((k) => ({
 			id: `auto-ap-${k}`,
 			kind: 'perk',

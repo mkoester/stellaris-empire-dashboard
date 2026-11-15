@@ -1304,6 +1304,8 @@ export type GameData = {
 			name: string;
 			color?: string;
 			ascension?: boolean;
+			potential?: Trigger | null;
+			adoptPossible?: Trigger | null;
 			traditions: { key: string; name: string; role: string }[];
 		}
 	>;

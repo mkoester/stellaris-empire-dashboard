@@ -817,6 +817,7 @@
 							     item a button adds is plain to see -->
 							<li
 								class="flex items-baseline gap-2 rounded px-1 py-0.5 odd:bg-gray-50 hover:bg-sky-50 dark:odd:bg-gray-900 dark:hover:bg-sky-950"
+								class:opacity-50={s.unavailable}
 							>
 								<span class="flex w-24 shrink-0 gap-1">
 									<button

@@ -81,11 +81,14 @@ colours (`<area>_research`), a tradition's place — adopt, pick, finisher (the 
 the game says "… Traditions Finished"; its tree's colour from the data DB as a stripe,
 `tintOf()` → `tintColor()`) —, perk; ascension-path trees and path perks also carry an `ascension`
 badge. The research group filters by area (per viewer, none on = all, suggestions too). Potential
-goals list every eligible tradition and perk; same-name perk variants collapse to the one whose
-availability is best established for this empire. The history shows badges with the goal's group,
+goals list traditions and perks; same-name perk variants collapse to the one whose
+availability is best established for this empire. Ascension trees with duplicate names appear once;
+trees whose potential or adoption rules are known to fail for this empire are dimmed and labelled.
+Planning a perk that opens a tradition tree also plans that tree and its traditions; trees known to
+be unavailable are skipped. The history shows badges with the goal's group,
 its reorderings behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
-(`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, none that
-another goal or the save implies): OK removes them with it (they are derived, so nothing is
+(`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, or a
+perk's linked tree; none that another goal or the save implies): OK removes them with it (they are derived, so nothing is
 stored), Cancel keeps them as goals of their own (an add each). **Focus** (the user's ask 2026-10-31: "split this — tasks give points to one of three areas; the
 rewards per area as entries of their own"): a **task** (`focus_card`) carries its area and points
 as a badge in the area's colour (`tintOf()`: `focus-<area>`; "all +10" for core cards), its popup

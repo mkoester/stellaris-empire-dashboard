@@ -613,9 +613,20 @@ export function loadGameData(file: string): GameData {
 						`SELECT key, name, ${columns.has('color') ? 'color' : 'NULL AS color'}, ${columns.has('potential_json') ? 'potential_json' : 'NULL AS potential_json'} FROM tradition_category`
 					);
 				})(),
-				rows<{ key: string; name: string | null; category_key: string; role: string }>(
-					'SELECT key, name, category_key, role FROM tradition ORDER BY sort_order'
-				)
+				(() => {
+					const columns = new Set(
+						rows<{ name: string }>('PRAGMA table_info(tradition)').map((c) => c.name)
+					);
+					return rows<{
+						key: string;
+						name: string | null;
+						category_key: string;
+						role: string;
+						possible_json: string | null;
+					}>(
+						`SELECT key, name, category_key, role, ${columns.has('possible_json') ? 'possible_json' : 'NULL AS possible_json'} FROM tradition ORDER BY sort_order`
+					);
+				})()
 			),
 			traditionPrereqs: rows<{ tradition_key: string; requires_key: string }>(
 				'SELECT tradition_key, requires_key FROM tradition_prereq ORDER BY tradition_key, requires_key'
@@ -1056,7 +1067,13 @@ function traditionTrees(
 		color: string | null;
 		potential_json?: string | null;
 	}[],
-	traditions: { key: string; name: string | null; category_key: string; role: string }[]
+	traditions: {
+		key: string;
+		name: string | null;
+		category_key: string;
+		role: string;
+		possible_json?: string | null;
+	}[]
 ): GameData['traditionTrees'] {
 	return Object.fromEntries(
 		trees.map((tree) => [
@@ -1064,6 +1081,11 @@ function traditionTrees(
 			{
 				name: tree.name ?? tree.key,
 				...(tree.color ? { color: tree.color } : {}),
+				potential: parseTrigger(tree.potential_json ?? null),
+				adoptPossible: parseTrigger(
+					traditions.find((t) => t.category_key === tree.key && t.role === 'adopt')?.possible_json ??
+						null
+				),
 				...(hasAscensionPath(parseTrigger(tree.potential_json ?? null)) ? { ascension: true } : {}),
 				traditions: traditions
 					.filter((t) => t.category_key === tree.key)
