@@ -17,21 +17,23 @@ import {
 	headCampaign,
 	headId,
 	latestSaveDate,
+	nodeById,
 	nodes
 } from '#lib/server/db.ts';
 import { difficultyLabel } from '#lib/events.ts';
 import { difficulties, difficultyCard } from '#lib/server/difficulty.ts';
 import {
 	activeProfile,
+	campaignAt,
 	chartEvents,
 	display,
-	quadrantView,
+	setting,
 	tabs,
-	theme,
-	viewedCampaign
+	theme
 } from '#lib/server/settings.ts';
 import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
+import { shownNode } from '#lib/server/branch.ts';
 import { settleTab } from '#lib/server/settle.ts';
 import { slaveTab } from '#lib/server/slaveTab.ts';
 import { emptyTabsAt } from '#lib/server/tabData.ts';
@@ -64,23 +66,21 @@ export function load({ url }) {
 			quadrants: null as { view: QuadrantView; inner: number; outer: number } | null
 		};
 	const db = getDb();
+	const head = headId(db);
 	// the node the page shows: `?node=` when it exists, else the head
-	const shownNode = () => {
-		const requested = Number(url.searchParams.get('node'));
-		return nodes(db).some((n) => n.id === requested) ? requested : headId(db);
-	};
+	const shown = shownNode(db, url);
 	const { id, name } = activeProfile(db);
 	// the campaigns to switch between, each named after its empire
-	const campaigns = campaignTips(nodes(db), headId(db)).map((c) => ({
+	const campaigns = campaignTips(nodes(db), head).map((c) => ({
 		...c,
 		name: campaignName(db, c.campaign) || c.campaign
 	}));
-	const campaign = viewedCampaign(db);
+	const campaign = campaignAt(db, shown);
 	// another campaign's saves are read again by a newer reader once it is viewed
 	if (campaign !== null && campaign !== headCampaign(db)) refreshCampaign(campaign);
 	// a save just loaded in game: shown at once if the player wants, else with the next save or month
 	const load = pendingLoad();
-	const loadedNode = load === null ? undefined : nodes(db).find((n) => n.id === load);
+	const loadedNode = nodeById(db, load);
 	return {
 		setup: false,
 		theme: theme(),
@@ -94,7 +94,7 @@ export function load({ url }) {
 		// the exploratory trade-offs tab, a display switch
 		tradeoffs: display().tradeoffs,
 		// the slave market tab: where slavery is allowed, else as ⚙ says
-		slaveMarket: slaveTab(shownNode(), display().slaveMarket),
+		slaveMarket: slaveTab(shown, display().slaveMarket),
 		loaded: loadedNode ? { node: loadedNode.id, date: loadedNode.date } : null,
 		// the companion mod writes a log format this build skips: which side to update
 		feed: (() => {
@@ -102,17 +102,17 @@ export function load({ url }) {
 			return f && { ...f, ...FEED_FORMATS };
 		})(),
 		// the save being played, so a page pinned to it keeps following the game
-		head: headId(db),
+		head,
 		// the planner's goals at the node shown (for "+ goal" buttons) and how many need attention
-		plan: planSummary(shownNode()),
+		plan: planSummary(shown),
 		// a nomad's expansion tab is "settle", dimmed (naming what is missing) until it can
-		settle: settleTab(shownNode()),
+		settle: settleTab(shown),
 		// tabs with nothing to show yet along the branch: dimmed, their title saying why
-		empty: emptyTabsAt(shownNode()),
+		empty: emptyTabsAt(shown),
 		// every map's rings and sectors (GalaxyMap reads them from the page data)
 		quadrants: (() => {
 			const r = galaxyRings(campaign);
-			return r && { view: quadrantView(), ...r };
+			return r && { view: setting('quadrants'), ...r };
 		})(),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
@@ -123,8 +123,7 @@ export function load({ url }) {
 		})(),
 		// the game being played: its latest save, and its latest data (a save, month or daily tick)
 		dates: (() => {
-			const head = headId(db);
-			const node = head === null ? undefined : nodes(db).find((n) => n.id === head);
+			const node = nodeById(db, head);
 			return node
 				? {
 						...(() => {

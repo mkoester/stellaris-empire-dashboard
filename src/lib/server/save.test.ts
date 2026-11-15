@@ -22,7 +22,8 @@ import {
 	colonyJobs,
 	colonyDistricts,
 	displayName,
-	setPrescriptedNames,
+	NO_READING_DATA,
+	withNames,
 	speciesName,
 	envoys,
 	knownSystems,
@@ -212,7 +213,7 @@ describe('playerCount', () => {
 });
 
 describe('toSnapshot', () => {
-	const s = toSnapshot(raw, 'camp');
+	const s = toSnapshot(raw, 'camp', NO_READING_DATA);
 
 	it('takes identity from date, tick and RNG counter', () => {
 		expect(s).toMatchObject({ campaign: 'camp', date: '2210.03.01', fingerprint: '3700:123' });
@@ -220,7 +221,9 @@ describe('toSnapshot', () => {
 
 	it('dates the end game from the galaxy setting, and leaves it unknown when absent', () => {
 		expect(s.endGameYear).toBe(2350);
-		expect(toSnapshot({ ...raw, endGameStart: null }, 'camp').endGameYear).toBeNull();
+		expect(
+			toSnapshot({ ...raw, endGameStart: null }, 'camp', NO_READING_DATA).endGameYear
+		).toBeNull();
 	});
 
 	it('reads stockpile and sums budget sources per resource', () => {
@@ -238,7 +241,7 @@ describe('toSnapshot', () => {
 
 	it('reads the naval capacity companion mod 0.6.0 exports (sdash_nc)', () => {
 		const withMod = { ...raw, country: { ...raw.country, variables: { sdash_nc: 40 } } };
-		expect(toSnapshot(withMod, 'camp').navalMax).toBe(40);
+		expect(toSnapshot(withMod, 'camp', NO_READING_DATA).navalMax).toBe(40);
 	});
 
 	it('reads the stability companion mod 0.8.0 exports on each colony (sdash_stab_*)', () => {
@@ -250,7 +253,9 @@ describe('toSnapshot', () => {
 				[id]: { ...raw.colonies[id], variables: { sdash_stab_add: 32.6, sdash_stab_mult: 0.1 } }
 			}
 		};
-		const c = toSnapshot(withMod, 'camp').colonies.find((x) => x.stabilityAdd != null);
+		const c = toSnapshot(withMod, 'camp', NO_READING_DATA).colonies.find(
+			(x) => x.stabilityAdd != null
+		);
 		expect(c).toMatchObject({ stabilityAdd: 32.6, stabilityMult: 0.1 });
 	});
 
@@ -1829,8 +1834,7 @@ describe('helpers', () => {
 
 	it('fills a modified species’ inline template, prescripted names first', () => {
 		// Yorphia 2203.10.01: the machine species and its Shroud-Forged robot offshoot
-		setPrescriptedNames({ PRESCRIPTED_species_name_zrobots: 'Yorphid' });
-		try {
+		withNames({ PRESCRIPTED_species_name_zrobots: 'Yorphid' }, () => {
 			expect(speciesName({ key: 'PRESCRIPTED_species_name_zrobots' })).toBe('Yorphid');
 			expect(
 				speciesName({
@@ -1850,9 +1854,7 @@ describe('helpers', () => {
 					]
 				})
 			).toBe('Zanthi Variatus');
-		} finally {
-			setPrescriptedNames({});
-		}
+		});
 		expect(speciesName({ key: 'PRESCRIPTED_species_name_humans1' })).toBe('Humans');
 	});
 });
@@ -1885,7 +1887,7 @@ describe('milestone fields', () => {
 		'129': { class: 'scientist', name: { full_names: { key: 'Bo' } } },
 		'184549376': 'none' // a removed leader leaves this behind
 	};
-	const s = toSnapshot({ ...raw, country, leaders }, 'camp');
+	const s = toSnapshot({ ...raw, country, leaders }, 'camp', NO_READING_DATA);
 
 	it('lists all hired leaders and the ruler', () => {
 		expect(s.leaderRoster).toEqual([
@@ -2329,7 +2331,11 @@ describe('milestone fields', () => {
 const real = process.env.STELLARIS_TEST_SAVE;
 describe.skipIf(!real)('real save', () => {
 	it('parses into a plausible snapshot', async () => {
-		const s = toSnapshot(await readSave(readFileSync(real!)), 'real');
+		const s = toSnapshot(
+			await readSave(readFileSync(real!), NO_READING_DATA),
+			'real',
+			NO_READING_DATA
+		);
 		expect(s.date).toMatch(/^\d{4}\.\d{2}\.\d{2}$/);
 		expect(s.empireName).not.toBe('');
 		expect(Object.keys(s.stockpile).length).toBeGreaterThan(3);
@@ -2362,7 +2368,7 @@ describe.skipIf(!real)('real save', () => {
 		// the list runs a few pops behind (2214.02.01: materialist 4032 listed, 4042 in the groups)
 		if (process.env.STELLARIS_DATA_DB && s.ethics) {
 			const order = loadGameData(process.env.STELLARIS_DATA_DB).ethicOrder;
-			const raw = await readSave(readFileSync(real!));
+			const raw = await readSave(readFileSync(real!), NO_READING_DATA);
 			const named: Record<string, number> = {};
 			const ours = list(raw.country?.controlled_colonies).flatMap((c) =>
 				list(raw.colonies[String(c)]?.pop_groups)

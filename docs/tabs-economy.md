@@ -124,6 +124,91 @@ capital research +10 % (Pleased, `pop_pleased` +25 % workers and specialists, ne
 yet?), alloys and minerals more (flat building output?) — open check 31. "+10 % is" values one more bonus against the measured
 total (`realGain`).
 
+**Bonuses tab** (`/bonuses`; the user's ask 2026-11-15: "how big is the impact of a +x bonus
+to Y actually at this point in the game?"; `#lib/bonusPiles.ts` pure, `server/bonusPiles.ts`,
+`panels/BonusCard.svelte`). One card per pile. Each card shows the lines that hold now, a dropdown
+of typical values, "my own value…", and the result. Every pile works the same way: a bonus x
+changes what is measured now by (1 + pile + x) ÷ (1 + pile) (`factor()`), or by the inverse for
+a time a speed bonus shortens. −10 % upkeep on top of −20 % saves 12.5 %. A card's **parts** are
+what it acts on, each with its own pile and what is measured now (`base`; null: the change is shown
+relative only). A targeted bonus (an area, a resource, a ship size, a category) reaches only the
+parts that name it (`reaches()`).
+
+- **Presets** (`presets()`): every unconditional modifier the pile takes in the explanations of the
+  sources a player picks (tech, tradition, perk, civic, edict, policy, agenda, ethic, origin,
+  authority, resolution, trait, building, designation; static modifiers left out as one-offs). They
+  are ranked by how many sources give a value, the top 6 kept, each naming one source as an
+  example. The one shown first (`defaultPreset()`) is the most common one that helps (negative for
+  cost and upkeep), and the smaller on a tie.
+- **Research**: speed and cost from `researchBonuses()` (the tech tab's piles). Days are what is
+  left on the tech in progress (its due date in Upcoming). Without one the change is relative.
+- **Job output per resource**, research included (in the Research group): `outputModel()`, one part
+  per job on each colony. Its base is its share of the colony's booked output (`output ÷
+predicted`), its pile the colony's measured total (else counted), its targets its economic
+  category chain. So `planet_researchers_produces_mult` reaches researchers only. Checked
+  against the jobs tab's panel (2026-11-15, KhellZen 2210.01.01: food 101 at ×2.10, +10 % = +4.8).
+- **Upkeep by economic category**: `<category>_upkeep_mult` and `<category>_<resource>_upkeep_mult`
+  reach the category and every one below it, as output does (common/economic_categories README).
+  Budget sources are categories, so their expenses are the parts. There is one card per category
+  that has an upkeep bonus in the game data and expenses under it. The pile counts
+  `empireSources()` only: not a building's or a planet's own, nor the penalty over naval or
+  starbase capacity, so it carries ≈. No floor on upkeep mults in the defines; `TECH_COST_MIN`
+  (0.25) and `TRADITION_COST_MIN` exist but are not applied here.
+- **Pops**: `logistic_growth_mult` and `planet_pop_assembly_mult` on each colony's measured growth
+  and assembly (`growthData()`). The pile counts only the empire-wide sources, while the measured
+  rate holds every modifier, so it carries ≈.
+- **Wellbeing**: `planet_stability_add`, `pop_happiness` (not for a gestalt), `planet_amenities_add`
+  and `_mult` are flat, not a pile. They run through `whatIf()` (the colony what-ifs' chain), in the
+  page for any value.
+- **Speed**: buildings, ships (`starbase_shipyard_build_speed_mult`, plus a size's
+  `shipsize_<size>_build_speed_mult` and its class's `shipclass_<class>_build_speed_mult`), starbase
+  upgrades and modules, armies, blockers, megastructures, terraforming, colony development, planet
+  decisions and excavation. What is queued now uses its base days (`GameData.buildDays`); otherwise
+  the change of the time. Whether `progress_needed` already holds the speed is not known, so the
+  queue's own numbers are not used. Council agenda speed (`council_agenda_progress_speed`) uses
+  the agenda in Upcoming.
+- **Job efficiency** (`efficiency()`): extra workforce, its own pile. The output pile multiplies
+  it: output = (workforce + bonus) ÷ 100 × base × (1 + mults) (a 4.0 dev diary says so; our job
+  model agrees). It scales the job's upkeep too (confirmed in game 2026-10-31,
+  `../docs/workspace-notes.md` → "Game mechanics measured"). Each job's pile is **measured**: the save's
+  `bonus_workforce` ÷ the workforce pops work. Throwaway Quentian Hegemony 2200.07: every job +10 %,
+  workers +15 %. Parts are each job's booked output share plus its upkeep (`jobResources`, per 100
+  workforce, before upkeep modifiers) as a negative amount. Key → jobs:
+  `pop_bonus_workforce_mult` all; `pop_cat_<stratum>_…` and
+  `worker_and_simple_drone_cat_…` / `specialist_and_complex_drone_cat_…` by `data.jobs[j].category`;
+  `<job>_jobs_…` and `pop_<job>_…` one job (`foundry_jobs` = Metallurgists: the job key is
+  `foundry`). A species' own (`robotic_pop_…`, `psionic_pop_…`) are not listed: the measured pile
+  holds them. **`researcher_jobs_bonus_workforce_mult` names a paragon background job no pop
+  works** (`researcher`, `possible = { always = no }`): open check 36.
+- **Other output** (`budgetCards('produces')`): budget sources that are not a job's (stations,
+  starbase modules, megastructures, `pop_category_*`, the country base), by economic category, as
+  upkeep. `categoryKey()` takes `<category>_<resource>_<side>_mult` only for a real resource
+  (`resourceInfo`): `country` prefixes every key, and `country_claim_influence_cost_mult` once
+  read as the country's "claim_influence".
+- **Costs** (`costs()`): `newConstruction()` (`#lib/spending.ts`, the construction items new in each
+  save, cost exact) over the last 360 days, a month on average. By kind: buildings
+  (`planet_building`, `planet_upgrade_building`), districts, zones (`planet_zones`, under
+  `planet_structures`), ships and colony ships (`starbase_shipyard_build_cost_mult`,
+  `ship_<size>_cost_mult`), starbase upgrades, modules and buildings, armies, blockers. Checked:
+  UNE 5 2245.01.01, one 300-mineral district in the year → −10 % = −2.5 minerals a month; a
+  1000-mineral zone → −8.3. Relative only: outposts, megastructures, terraforming, leaders, edicts,
+  resolutions, claims, resettlement.
+- **Empire size** (`empireSize()`): `empireSizeBreakdown()` (`#lib/empireSize.ts`) from `sizeInputs()`
+  (`server/empire.ts`, the empire tab's estimate). Four parts plus "all of it"
+  (`empire_size_mult`), scaled to the save's size above the floor. What a change does to tech
+  and tradition cost (+0.2 % a point above 100) and agenda cost (+0.1 %): `sizeCostChange()`.
+  UNE 5 at 146: −10 % from pops = −3.9 → tech cost −0.7 %.
+- **Tradition cost** on the next tradition in Upcoming (floor `TRADITION_COST_MIN` 0.25, not
+  applied); **naval capacity** (`country_naval_cap_mult`) on the companion mod's `sdash_nc`,
+  relative without it.
+- **Not piles, so not here:** districts, envoys, starbase and edict capacity, ascension perks,
+  `country_naval_cap_add` (flat). `bonus_pop_growth_mult` multiplies the flat Bonus Pop Growth
+  (clone vats, assemblers; the Budding trait's text: "stacks with other sources of Bonus Pop Growth"), not
+  logistic growth. Where the save books it is not established yet, so it is left out.
+- **Not yet:** ship combat (fire rate, damage, hull, armor, shields: no fleet power to apply them
+  to), habitability, housing, crime, amenities usage, diplomatic weight, ethic attraction.
+- Open: check 36 in `docs/open-checks.md`.
+
 **Jobs tab and the shared values** (`/jobs`, `#lib/unitCosts.ts` pure, `server/unitCosts.ts`; the
 user's asks 2026-10-22: "normalised costs for everything we produce" and "how well does each job
 perform on each colony, which colonies should be specialised"):

@@ -34,6 +34,15 @@ without `ORIGIN` adapter-node 6 takes every request for `https`, and SvelteKit r
 app, `pnpm dev` never shows it. It marks each request `http` in a header named by `PROTOCOL_HEADER`,
 so 127.0.0.1, localhost and a LAN address (`--lan`) all work, and a foreign origin is still refused.
 
+**Who may ask what is `server/guard.ts`, called from `hooks.server.ts`** (so `vite dev`, where
+SvelteKit skips its own cross-site check, is covered too). The launcher takes the origin from
+whatever `Host` the browser sent, so without a check a website that points its own name at
+127.0.0.1 (DNS rebinding) would count as the dashboard itself: only `localhost`, IP addresses,
+names without a dot and `.local` names are served. A write with a foreign `Origin` is refused
+whatever its content type. And with `--lan`, where every device on the network reaches it without
+a login, the folders (`POST /setup`) and the campaigns (`POST /api/campaigns`) change only from the
+computer it runs on — a new endpoint that deletes history or names a path goes into `LOCAL_ONLY`.
+
 **Stopping** (Ctrl+C, a closed window — SIGHUP on Windows, macOS and Linux — or a kill): the
 launcher closes its server and every connection (the event stream never goes idle), then emits
 adapter-node's `sveltekit:shutdown`; `stop()` in `app.ts` waits for a start-up and the save being

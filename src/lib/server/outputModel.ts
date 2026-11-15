@@ -123,7 +123,7 @@ export function outputModel(s: Snapshot, data: GameData, explain: Record<string,
 	}
 	return s.colonies.map((c) => {
 		const sources = [...empire, ...colonySources(s, c, data, explain, governors), ...traits];
-		const byResource: Record<string, ReturnType<typeof jobOutput>[]> = {};
+		const byResource: Record<string, (ReturnType<typeof jobOutput> & { job: string })[]> = {};
 		for (const j of c.jobs) {
 			const base = data.jobResources[j.type]?.produces ?? {};
 			const category = data.jobs[j.type]?.budgetSource;
@@ -133,7 +133,7 @@ export function outputModel(s: Snapshot, data: GameData, explain: Record<string,
 				(byResource[res] ??= []).push({
 					...jobOutput(j, res, amount, chain, sources),
 					job: j.type
-				} as never);
+				});
 		}
 		return {
 			colony: c.name,

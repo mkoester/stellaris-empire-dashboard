@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { expansionOf, expansionRows, habitatData, speciesChoices } from '#lib/server/expansion.ts';
-import { display, expansionView } from '#lib/server/settings.ts';
+import { display, setting } from '#lib/server/settings.ts';
 import { arkshipsOf, campaignGalaxy } from '#lib/server/mapSystems.ts';
 import { settleState } from '#lib/server/settle.ts';
 import { ROW_LINES } from '#lib/profiles.ts';
@@ -19,7 +19,7 @@ export function load({ url }) {
 	const planets = expansionRows(expansionOf(b.snaps), species);
 	const settle = settleState(b.snaps);
 	const save = b.snaps.findLast((x) => x.kind === 'save');
-	const shownSpecies = expansionView().species ?? species[0]?.id ?? null;
+	const shownSpecies = setting('expansionView').species ?? species[0]?.id ?? null;
 	return {
 		planets,
 		settle: settle && {
@@ -43,7 +43,7 @@ export function load({ url }) {
 		rowLine: ROW_LINES[display().expansionRowLine],
 		date: s?.date ?? b.latest.date,
 		isHead: b.isHead,
-		view: expansionView(),
+		view: setting('expansionView'),
 		defines: {
 			HABITABILITY_WRONG_PLANET: getGameData().defines.HABITABILITY_WRONG_PLANET,
 			HABITABILITY_OPPOSITE_PLANET: getGameData().defines.HABITABILITY_OPPOSITE_PLANET

@@ -12,7 +12,7 @@ import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
 import { expansionOf, expansionRows, habitatData, speciesChoices } from './expansion.ts';
 import { colonyBlockerHints } from './planets.ts';
-import { display, expansionView, popWindow } from './settings.ts';
+import { display, setting } from './settings.ts';
 import { ROW_LINES } from '#lib/profiles.ts';
 import { branch } from './branch.ts';
 import { totalEffects, type EffectKind } from '#lib/effects.ts';
@@ -24,7 +24,7 @@ import {
 	speciesSizeMult
 } from '#lib/empireSize.ts';
 import { pretty } from '#lib/format.ts';
-import type { Snapshot } from '#lib/types.ts';
+import type { Explanation, Snapshot } from '#lib/types.ts';
 import { traitBudget } from '#lib/species.ts';
 import { techTiers } from '#lib/techTiers.ts';
 import { adoptedTrees } from '#lib/traditions.ts';
@@ -145,10 +145,10 @@ export function empireData(url: URL) {
 			HABITABILITY_OPPOSITE_PLANET: data.defines.HABITABILITY_OPPOSITE_PLANET
 		},
 		expansionRowLine: ROW_LINES[display().expansionRowLine],
-		expansionView: expansionView(),
+		expansionView: setting('expansionView'),
 		xExtent: xExtent(snaps),
 		charts: {
-			pops: popSeries(snaps, popWindow()),
+			pops: popSeries(snaps, setting('popWindow')),
 			agenda: agendaSeries(snaps),
 			score: fieldSeries(snaps, {
 				score: (s) => s.score?.score ?? null,
@@ -186,6 +186,31 @@ function reserveLine(pool: Reserves, names: string[]) {
 }
 
 /**
+ * What the size estimate reads (`#lib/empireSize.ts`): its parts, and the explanations whose
+ * `empire_size_*` modifiers count — civics, ethics, authority, origin, traditions, perks, techs,
+ * timed modifiers and, for a nomad, the engine's `nomadic_empire` (+100 % from colonies and
+ * districts). Null without the owned systems (older snapshots).
+ */
+export function sizeInputs(s: Snapshot, all: Record<string, Explanation>) {
+	const of = (ids: string[]) => ids.flatMap((id) => all[id]?.modifiers ?? []);
+	const traits = new Map((s.species ?? []).map((sp) => [sp.id, sp.traits]));
+	const parts = sizeParts(s, (id) =>
+		speciesSizeMult(of((traits.get(id) ?? []).map((t) => `trait:${t}`)))
+	);
+	if (!parts) return null;
+	const ids = [
+		...(s.government ?? []).flatMap((k) => [`civic:${k}`, `ethic:${k}`, `authority:${k}`]),
+		...(s.origin ? [`origin:${s.origin}`] : []),
+		...(s.traditions ?? []).map((k) => `tradition:${k}`),
+		...(s.ascensionPerks ?? []).map((k) => `perk:${k}`),
+		...(s.progress?.researched ?? []).map((k) => `tech:${k}`),
+		...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`),
+		...(s.situations?.some((x) => x.type === NOMAD_ECONOMY) ? ['modifier:nomadic_empire'] : [])
+	].filter((id) => all[id]);
+	return { parts, ids };
+}
+
+/**
  * Empire size as the save stores it and, while that sits at the floor (50), the unfloored size
  * estimated from its parts and the modifiers the explanations know (`#lib/empireSize.ts`).
  */
@@ -193,27 +218,12 @@ function empireSizeSeries(snaps: Snapshot[]) {
 	const all = getExplanations();
 	const { defines } = getGameData();
 	const floor = sizeFloor(defines);
-	const of = (ids: string[]) => ids.flatMap((id) => all[id]?.modifiers ?? []);
 	const estimate = (s: Snapshot) => {
 		if (s.empireSize === null || s.empireSize > floor) return null;
-		const traits = new Map((s.species ?? []).map((sp) => [sp.id, sp.traits]));
-		const parts = sizeParts(s, (id) =>
-			speciesSizeMult(of((traits.get(id) ?? []).map((t) => `trait:${t}`)))
-		);
-		if (!parts) return null;
-		const mods = sizeModifiers(
-			of([
-				...(s.government ?? []).flatMap((k) => [`civic:${k}`, `ethic:${k}`, `authority:${k}`]),
-				...(s.origin ? [`origin:${s.origin}`] : []),
-				...(s.traditions ?? []).map((k) => `tradition:${k}`),
-				...(s.ascensionPerks ?? []).map((k) => `perk:${k}`),
-				...(s.progress?.researched ?? []).map((k) => `tech:${k}`),
-				...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`),
-				// the engine's static modifier for nomads: +100 % from colonies and districts
-				...(s.situations?.some((x) => x.type === NOMAD_ECONOMY) ? ['modifier:nomadic_empire'] : [])
-			])
-		);
-		return empireSizeEstimate(parts, mods, defines);
+		const i = sizeInputs(s, all);
+		if (!i) return null;
+		const mods = sizeModifiers(i.ids.flatMap((id) => all[id].modifiers));
+		return empireSizeEstimate(i.parts, mods, defines);
 	};
 	const series = fieldSeries(snaps, {
 		'empire size': (s) => s.empireSize,

@@ -1,55 +1,39 @@
-import type { ColonyView } from '#lib/colonyTable.ts';
-import type { ContactView } from '#lib/contacts.ts';
-import type { DiplomacyView } from '#lib/diplomacy.ts';
-import type { MigrationView } from '#lib/migration.ts';
-import type { ExpansionView } from '#lib/expansion.ts';
-import type { MapFilter } from '#lib/mapLayers.ts';
-import type { MegaView } from '#lib/megastructures.ts';
-import type { ContractView } from '#lib/contracts.ts';
-import type { StarbaseView } from '#lib/starbases.ts';
-import type { SystemView } from '#lib/systems.ts';
-import type { ProduceView } from '#lib/produce.ts';
-import type { PopWindow } from '#lib/popWindow.ts';
-import type { QuadrantView } from '#lib/quadrants.ts';
 import { effectiveDisplay } from '#lib/displaySwitches.ts';
 import {
 	activeId,
 	parseProfiles,
 	parseSettings,
+	parseStringMap,
 	uniqueName,
 	type Display,
 	type ProfileInfo,
 	type ProfileSettings
 } from '#lib/profiles.ts';
 import { parseTheme, type ChartEvents, type CustomTab, type Theme } from '#lib/settings.ts';
-import { getRequestEvent } from '$app/server';
 import { getDb } from './app.ts';
 import {
 	campaignIronman,
 	campaignMultiplayer,
 	getSetting,
 	headCampaign,
-	nodes,
+	nodeById,
 	setSetting,
 	type Db
 } from './db.ts';
+import { requestedNode } from './request.ts';
 
 // The stored viewer settings. The theme is global; everything else lives in the profile in use
 // (#lib/profiles.ts): the viewed campaign's, else the last picked.
 
+/** The campaign of a node, else (no such node, or null) the one being played. */
+export const campaignAt = (db: Db, node: number | null): string | null =>
+	nodeById(db, node)?.campaign ?? headCampaign(db);
+
 /**
- * The campaign of the node a request looks at (`?node=`, pages and API calls alike), else the
- * one being played. Outside a request (the watcher, tests) the one being played.
+ * The campaign of the node the request being answered looks at (`?node=`, pages and API calls
+ * alike), else the one being played. Outside a request (the watcher, tests) the one being played.
  */
-export function viewedCampaign(db: Db): string | null {
-	let node = NaN;
-	try {
-		node = Number(getRequestEvent().url.searchParams.get('node'));
-	} catch {
-		// no request
-	}
-	return nodes(db).find((n) => n.id === node)?.campaign ?? headCampaign(db);
-}
+export const viewedCampaign = (db: Db): string | null => campaignAt(db, requestedNode());
 
 export const theme = (): Theme => parseTheme(getSetting(getDb(), 'theme')) ?? 'system';
 
@@ -74,7 +58,7 @@ export function profiles(db: Db): ProfileInfo[] {
 	return [first];
 }
 
-const byCampaign = (db: Db) => (getSetting(db, 'campaignProfiles') ?? {}) as Record<string, string>;
+const byCampaign = (db: Db) => parseStringMap(getSetting(db, 'campaignProfiles'));
 
 /** The profile in use and its settings. */
 export function activeProfile(db: Db): ProfileInfo & { settings: ProfileSettings } {
@@ -155,21 +139,10 @@ export const campaignsOf = (db: Db): Record<string, string[]> => {
 	return out;
 };
 
-const settings = () => activeProfile(getDb()).settings;
-export const tabs = (): CustomTab[] => settings().tabs;
-export const colonyView = (): ColonyView => settings().colonyView;
-export const expansionView = (): ExpansionView => settings().expansionView;
-export const contactView = (): ContactView => settings().contactView;
-export const diplomacyView = (): DiplomacyView => settings().diplomacyView;
-export const migrationView = (): MigrationView => settings().migrationView;
-export const megastructureView = (): MegaView => settings().megastructureView;
-export const contractView = (): ContractView => settings().contractView;
-export const starbaseView = (): StarbaseView => settings().starbaseView;
-export const systemView = (): SystemView => settings().systemView;
-export const produceView = (): ProduceView => settings().produceView;
-export const mapFilter = (): MapFilter => settings().mapFilter;
-export const quadrantView = (): QuadrantView => settings().quadrants;
-export const popWindow = (): PopWindow => settings().popWindow;
+/** One setting of the profile in use. */
+export const setting = <K extends keyof ProfileSettings>(key: K): ProfileSettings[K] =>
+	activeProfile(getDb()).settings[key];
+export const tabs = (): CustomTab[] => setting('tabs');
 /**
  * Why the viewed campaign allows no cheats, or null: Ironman first — before READER 48 its saves
  * read as multiplayer too, and a stored reading of a save gone from disk keeps that.
@@ -184,9 +157,9 @@ export function viewedNoCheats(db: Db): 'ironman' | 'multiplayer' | null {
 // as the tabs read it: hidden spoilers and cheats are off; in multiplayer and Ironman the cheats
 // and the `intel` spoilers always
 export const display = (): Display =>
-	effectiveDisplay(settings().display, viewedNoCheats(getDb()) !== null);
+	effectiveDisplay(setting('display'), viewedNoCheats(getDb()) !== null);
 // Colony charts were stored as `planet:<title>` before the rename.
 export const chartEvents = (): ChartEvents =>
 	Object.fromEntries(
-		Object.entries(settings().chartEvents).map(([k, v]) => [k.replace(/^planet:/, 'colony:'), v])
+		Object.entries(setting('chartEvents')).map(([k, v]) => [k.replace(/^planet:/, 'colony:'), v])
 	);

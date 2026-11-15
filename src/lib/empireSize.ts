@@ -72,12 +72,15 @@ export function sizeParts(s: Snapshot, speciesMult: (id: string) => number): Siz
 	};
 }
 
-/** The unfloored size from its parts and the empire-wide modifiers (`sizeModifiers`). */
-export function empireSizeEstimate(
+/**
+ * The size's parts from the empire-wide modifiers (`sizeModifiers`), each after its own
+ * `empire_size_<part>_mult`, before `empire_size_mult` (`mult`), which scales their sum.
+ */
+export function empireSizeBreakdown(
 	parts: SizeParts,
 	mods: Record<string, number>,
 	defines: Record<string, number>
-): number {
+) {
 	const w = (k: string) => defines[k] ?? DEFAULTS[k];
 	const m = (k: string) => mods[k] ?? 0;
 	const step = w('PLANET_ASCENSION_SPRAWL_MODIFIER') * (1 + m('planetary_ascension_effect_mult'));
@@ -91,21 +94,32 @@ export function empireSizeEstimate(
 	// the species' pops are not split by colony: they shrink by the colonies' pop-weighted factor
 	const colonyPops = sum((c) => c.pops);
 	const popShare = colonyPops > 0 ? sum((c) => c.pops * c.ascension * c.governor) / colonyPops : 1;
-	const pops = parts.pops.reduce(
-		(n, p) =>
-			n +
-			p.pops * w('EMPIRE_SIZE_FROM_POPS') * (1 + m('empire_size_pops_mult') + p.mult) * popShare,
-		0
-	);
-	return (
-		(sum((c) => c.ascension * c.governor) *
+	return {
+		colonies:
+			sum((c) => c.ascension * c.governor) *
 			w('EMPIRE_SIZE_FROM_COLONIES') *
-			(1 + m('empire_size_colonies_mult')) +
-			parts.systems * w('EMPIRE_SIZE_FROM_SYSTEMS') * (1 + m('empire_size_systems_mult')) +
+			(1 + m('empire_size_colonies_mult')),
+		systems: parts.systems * w('EMPIRE_SIZE_FROM_SYSTEMS') * (1 + m('empire_size_systems_mult')),
+		districts:
 			sum((c) => c.districts * c.ascension) *
-				w('EMPIRE_SIZE_FROM_DISTRICTS') *
-				(1 + m('empire_size_districts_mult')) +
-			pops) *
-		(1 + m('empire_size_mult'))
-	);
+			w('EMPIRE_SIZE_FROM_DISTRICTS') *
+			(1 + m('empire_size_districts_mult')),
+		pops: parts.pops.reduce(
+			(n, p) =>
+				n +
+				p.pops * w('EMPIRE_SIZE_FROM_POPS') * (1 + m('empire_size_pops_mult') + p.mult) * popShare,
+			0
+		),
+		mult: m('empire_size_mult')
+	};
+}
+
+/** The unfloored size from its parts and the empire-wide modifiers (`sizeModifiers`). */
+export function empireSizeEstimate(
+	parts: SizeParts,
+	mods: Record<string, number>,
+	defines: Record<string, number>
+): number {
+	const b = empireSizeBreakdown(parts, mods, defines);
+	return (b.colonies + b.systems + b.districts + b.pops) * (1 + b.mult);
 }

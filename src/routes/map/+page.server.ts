@@ -21,7 +21,7 @@ import {
 	reveal,
 	territoriesOf
 } from '#lib/server/mapSystems.ts';
-import { display, mapFilter } from '#lib/server/settings.ts';
+import { display, setting } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
 import { plannedSystems } from '#lib/server/planner.ts';
 import { contractsAt } from '#lib/server/contracts.ts';
@@ -65,7 +65,7 @@ export function load({ url }) {
 	return {
 		...rest,
 		seenAt: s?.date ?? null,
-		filter: mapFilter(),
+		filter: setting('mapFilter'),
 		// our stations and ships, for the fit buttons and the ships drawn
 		own: ownOnMap(b.latest),
 		arkships: arkshipsOf(snaps),

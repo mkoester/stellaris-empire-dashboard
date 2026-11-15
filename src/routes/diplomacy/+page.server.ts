@@ -6,7 +6,7 @@ import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
-import { diplomacyView, display } from '#lib/server/settings.ts';
+import { display, setting } from '#lib/server/settings.ts';
 
 // Every empire we know and the relations between them, as our intel shows them — what it no
 // longer shows marked unverified since it last did (#lib/diplomacy.ts); everything with the
@@ -51,7 +51,7 @@ export function load({ url }) {
 				})
 		],
 		territories: territoriesOf(snaps),
-		view: diplomacyView(),
+		view: setting('diplomacyView'),
 		names: data.identityNames,
 		// ethics: their axes, the federation defines, what intel saw change, the ethics' popups
 		ethics: {

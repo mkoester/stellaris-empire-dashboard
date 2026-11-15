@@ -28,21 +28,23 @@ function pairs<T>(history: Snapshot[], field: (s: Snapshot) => T | null) {
 
 type Diffed = Spend & { match?: { kind: SpendLogKind; where: string | null } };
 
-function diffed(history: Snapshot[], data: SpendData): Diffed[] {
-	const construction = pairs(history, (s) => s.construction).flatMap(({ before, after, s }) => {
+/** The construction items new in each save, with that save's date: what was paid for then. */
+export const newConstruction = (history: Snapshot[]) =>
+	pairs(history, (s) => s.construction).flatMap(({ before, after, s }) => {
 		const seen = new Set(before.map((c) => c.id));
-		return after
-			.filter((c) => !seen.has(c.id))
-			.map((c) => ({
-				date: s.date,
-				label: `${c.design ?? nameOf(data, c.name)}${c.where ? ` (${c.where})` : ''}`,
-				cost: c.cost,
-				approx: false,
-				...(c.kind === 'district' || c.kind === 'building'
-					? { match: { kind: `${c.kind}-queued` as SpendLogKind, where: c.where } }
-					: {})
-			}));
+		return after.filter((c) => !seen.has(c.id)).map((c) => ({ ...c, date: s.date }));
 	});
+
+function diffed(history: Snapshot[], data: SpendData): Diffed[] {
+	const construction = newConstruction(history).map((c) => ({
+		date: c.date,
+		label: `${c.design ?? nameOf(data, c.name)}${c.where ? ` (${c.where})` : ''}`,
+		cost: c.cost,
+		approx: false,
+		...(c.kind === 'district' || c.kind === 'building'
+			? { match: { kind: `${c.kind}-queued` as SpendLogKind, where: c.where } }
+			: {})
+	}));
 	const edicts = pairs(history, (s) => s.edicts).flatMap(({ before, after, s }) =>
 		after
 			.filter((k) => !before.includes(k))

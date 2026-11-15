@@ -542,6 +542,24 @@ month (8 + 2 × 4).
   energy = 8 + automated ÷ 100 × 4; whether pops left the farmer jobs or open positions filled
   first.
 
+### 36. Which jobs a workforce key reaches, and what efficiency costs — bonuses tab (from 2026-11-15)
+
+`researcher_jobs_bonus_workforce_mult` (Research Subsidies, Scientific Revolution, Academic
+Privilege, psionic traits: "Bonus Workforce for Researcher jobs") names `researcher`. In 4.5.x that
+is a paragon background job with `possible = { always = no }`
+(common/pop_jobs/10_paragon_fake_jobs.txt), not physicists, biologists or engineers. So either the
+engine maps it to the research jobs, or the bonus reaches nobody. No save of ours has the edict.
+The tab treats it as reaching job `researcher` only, so it lists no line for it. The measured pile
+holds whatever it really does.
+
+- **Do:** in a throwaway game, `resource unity 5000`, note a colony's physicist tooltip (workforce),
+  enact Research Subsidies, let a month pass and save.
+- **Send:** both physicist tooltips and the date. Check: the save's `bonus_workforce` for
+  physicists rises by 10 % of their workforce, or not at all.
+- **Also:** a ship's upkeep and a building's build time in game against the tab's base and pile.
+  (That job efficiency scales upkeep is confirmed: `docs/workspace-notes.md`, physicists
+  2026-10-31.)
+
 ## C. Not in the game
 
 ### 14. Storage, computed — resources panel (open task, 2026-10-24)

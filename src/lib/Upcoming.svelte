@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { keep, recall } from './browserStore.ts';
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { colorOf } from './colors.ts';
@@ -35,19 +36,9 @@
 	const KEY = 'upcoming-only-unnotified';
 	let onlyUnnotified = $state(false);
 	onMount(() => {
-		try {
-			onlyUnnotified = localStorage.getItem(KEY) === '1';
-		} catch {
-			/* storage unavailable */
-		}
+		onlyUnnotified = recall(KEY) === '1';
 	});
-	const remember = () => {
-		try {
-			localStorage.setItem(KEY, onlyUnnotified ? '1' : '0');
-		} catch {
-			/* storage unavailable */
-		}
-	};
+	const remember = () => keep(KEY, onlyUnnotified ? '1' : '0');
 	const shown = $derived(onlyUnnotified ? events.filter((e) => e.act) : events);
 
 	// A cooldown that ran out stays until used again; ✕ hides this round of it.

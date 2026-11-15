@@ -2,7 +2,8 @@ import { latestOf } from '#lib/latest.ts';
 import { expiries, rolls, timedOut, upcoming, toDays } from '#lib/events.ts';
 import { jobRows, jobSources, netFlows, withFlows, workedJobs } from '#lib/jobs.ts';
 import { getDb, getExplanations, getGameData } from './app.ts';
-import { headId, history, nodes } from './db.ts';
+import { headId, history, nodeById, nodes, type Db } from './db.ts';
+import { nodeParam } from './request.ts';
 import { pick } from './explain.ts';
 import { dismissed } from './campaigns.ts';
 import { idles, withIdleShips } from '#lib/idle.ts';
@@ -13,18 +14,20 @@ import { empireColors } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
 
+/** The node a page shows: `?node=` when it exists, else the head; null before the first save. */
+export const shownNode = (db: Db, url: URL): number | null =>
+	nodeById(db, nodeParam(url))?.id ?? headId(db);
+
 /**
  * The branch a page shows: ending at ?node=<id>, or at the head (the state last seen from the
  * game). Null before the first save.
  */
 export function branch(url: URL) {
 	const db = getDb();
-	const all = nodes(db);
-	const requested = Number(url.searchParams.get('node'));
-	const tip = all.some((n) => n.id === requested) ? requested : headId(db);
+	const tip = shownNode(db, url);
 	if (tip === null) return null;
 	const snaps = history(db, tip);
-	const campaign = all.find((n) => n.id === tip)?.campaign ?? '';
+	const campaign = nodeById(db, tip)?.campaign ?? '';
 	const title = (ref: string) => getExplanations()[ref]?.title;
 	// Events come from the latest full save; the one before it gives the rates.
 	const saves = snaps.filter((s) => s.progress !== null);
@@ -102,6 +105,6 @@ export function branch(url: URL) {
 		isHead: tip === headId(db),
 		snaps,
 		latest: latestOf(snaps),
-		guessedLinks: path(all, tip).filter((n) => n.ambiguous).length
+		guessedLinks: path(nodes(db), tip).filter((n) => n.ambiguous).length
 	};
 }

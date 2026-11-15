@@ -1,3 +1,4 @@
+import { parseStrings } from '#lib/profiles.ts';
 import { getSetting, setSetting, type Db } from './db.ts';
 
 // The campaigns in the history, and cleaning them up: any can be deleted by hand (the config tab),
@@ -33,7 +34,7 @@ export function campaignRows(db: Db, onDisk: Set<string>): CampaignRow[] {
 	}));
 }
 
-const kept = (db: Db) => (getSetting(db, 'keptCampaigns') ?? []) as string[];
+const kept = (db: Db) => parseStrings(getSetting(db, 'keptCampaigns'));
 
 /** The campaigns without saves on disk that the player has not been asked about yet. */
 export const goneToAsk = (rows: CampaignRow[], keptOnes: string[]): CampaignRow[] =>
@@ -52,7 +53,7 @@ export function keepCampaign(db: Db, campaign: string) {
 const dismissedKey = (campaign: string) => `dismissed:${campaign}`;
 
 export const dismissed = (db: Db, campaign: string): Set<string> =>
-	new Set((getSetting(db, dismissedKey(campaign)) ?? []) as string[]);
+	new Set(parseStrings(getSetting(db, dismissedKey(campaign))));
 
 export function dismiss(db: Db, campaign: string, id: string) {
 	const ids = [...dismissed(db, campaign)].filter((d) => d !== id);

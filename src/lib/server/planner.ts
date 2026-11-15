@@ -51,7 +51,7 @@ import { evaluate } from '#lib/triggers.ts';
 import type { Explanation, Snapshot } from '#lib/types.ts';
 import { WANDERLUST } from '#lib/wanderlust.ts';
 import { getDb, getExplanations, getGameData } from './app.ts';
-import { headId, history, nodes, planEvents } from './db.ts';
+import { headId, history, nodeById, nodes, planEvents } from './db.ts';
 import { pick } from './explain.ts';
 import { campaignGalaxy } from './mapSystems.ts';
 import { display } from './settings.ts';
@@ -910,7 +910,7 @@ export function planSummary(tip: number | null): Summary {
 	const none: Summary = { keys: [], alerts: 0, unavailable: [], wantedTechs: [] };
 	if (tip === null) return none;
 	const db = getDb();
-	const node = nodes(db).find((n) => n.id === tip);
+	const node = nodeById(db, tip);
 	if (!node) return none;
 	const events = planEvents(db, node.campaign);
 	const key = `${tip}:${events.at(-1)?.id ?? 0}:${events.length}`;

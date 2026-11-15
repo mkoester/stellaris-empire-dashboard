@@ -1,21 +1,23 @@
 import { error, json } from '@sveltejs/kit';
 import { parsePlanRequest } from '#lib/planner/ops.ts';
 import { getDb } from '#lib/server/app.ts';
-import { addPlanEvents, history, nodes } from '#lib/server/db.ts';
+import { addPlanEvents, history, nodeById } from '#lib/server/db.ts';
 import { systemGoals } from '#lib/server/planner.ts';
-import { viewedCampaign } from '#lib/server/settings.ts';
+import { nodeParam } from '#lib/server/request.ts';
+import { campaignAt } from '#lib/server/settings.ts';
 
 // The planner's changes (#lib/planner/ops.ts), made at the node the page shows: the body names
 // it, so a reload in game between loading the page and the click cannot put a change on another
 // branch.
-export async function POST({ request }) {
+export async function POST({ request, url }) {
 	const body = await request.json().catch(() => error(400, 'not JSON'));
 	const req = parsePlanRequest(body);
 	if (!req) error(400, 'malformed request');
 	const db = getDb();
-	const node = nodes(db).find((n) => n.id === req.node);
+	const node = nodeById(db, req.node);
 	if (!node) error(404, 'no such node');
-	if (node.campaign !== viewedCampaign(db)) error(409, 'the node is not in the viewed campaign');
+	if (node.campaign !== campaignAt(db, nodeParam(url)))
+		error(409, 'the node is not in the viewed campaign');
 	const ids = addPlanEvents(db, node.campaign, node.id, req.changes);
 	return json({ ids });
 }
@@ -26,6 +28,6 @@ export function GET({ url }) {
 	const system = Number(url.searchParams.get('system'));
 	if (!Number.isInteger(node) || !Number.isInteger(system)) error(400, 'malformed request');
 	const db = getDb();
-	if (!nodes(db).some((n) => n.id === node)) error(404, 'no such node');
+	if (!nodeById(db, node)) error(404, 'no such node');
 	return json({ goals: systemGoals(history(db, node), system) });
 }

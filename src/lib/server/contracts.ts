@@ -11,7 +11,7 @@ import { discovered, jumpsFromBorder } from '#lib/situations.ts';
 import type { Snapshot } from '#lib/types.ts';
 import { getGameData } from './app.ts';
 import { campaignGalaxy } from './mapSystems.ts';
-import { contractView } from './settings.ts';
+import { setting } from './settings.ts';
 
 export type ContractsAt = {
 	rows: ContractRow[];
@@ -25,7 +25,7 @@ export type ContractsAt = {
 /** `shown` is the request's `display()` — read once per request, never here. */
 export function contractsAt(snaps: Snapshot[], shown: Display): ContractsAt {
 	const s = snaps.findLast((x) => x.contracts !== null);
-	const range = contractView().range;
+	const range = setting('contractView').range;
 	if (!s?.contracts || s.countryId === null)
 		return { rows: [], known: false, nomadic: false, date: null, systemNames: {}, range };
 	const systems = campaignGalaxy(s.campaign)?.systems ?? [];
