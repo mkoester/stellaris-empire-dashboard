@@ -1300,9 +1300,15 @@ export type GameData = {
 	traditionTrees: Record<
 		string,
 		// color: '#rrggbb', the tree's colour in game; absent on a data DB from before it
-		{ name: string; color?: string; traditions: { key: string; name: string; role: string }[] }
+		{
+			name: string;
+			color?: string;
+			ascension?: boolean;
+			traditions: { key: string; name: string; role: string }[];
+		}
 	>;
 	perks: Record<string, string>; // ascension perk names
+	pathPerks?: string[]; // path perks from `00_ascension_paths.txt`; absent on older data DBs
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
 	setupScenarios: Record<string, Record<string, number>>; // galaxy size → save key → its default (`setup_scenario`, extractor 0.1.16)
 	// Nomads contracts by key (data DB `contract`, extractor 2026-11-07; {} with an older one)

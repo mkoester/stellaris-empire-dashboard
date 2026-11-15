@@ -621,6 +621,48 @@ export function traditionName(key: string, data: Pick<GameData, 'traditionTrees'
 	return pretty(key);
 }
 
+/** Whether a planned item belongs to an explicitly declared ascension path. */
+export function ascensionOf(
+	kind: string,
+	target: Target,
+	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'pathPerks'>>
+): boolean {
+	if (kind === 'perk') return data.pathPerks?.includes(String(target.perk)) ?? false;
+	if (kind === 'tradition')
+		return Object.values(data.traditionTrees).some(
+			(tree) => tree.ascension && tree.traditions.some((t) => t.key === target.tradition)
+		);
+	return false;
+}
+
+/** Keep one same-name perk, preferring the variant whose potential is known to apply. */
+export function uniquePerks(
+	keys: string[],
+	names: Record<string, string>,
+	potential: (key: string) => boolean | null
+): string[] {
+	const chosen = new Map<string, { key: string; rank: number; index: number }>();
+	keys.forEach((key, index) => {
+		const name = names[key] ?? key;
+		const state = potential(key);
+		const rank = state === true ? 2 : state === null ? 1 : 0;
+		const old = chosen.get(name);
+		if (!old) chosen.set(name, { key, rank, index });
+		else if (rank > old.rank) chosen.set(name, { key, rank, index: old.index });
+	});
+	return [...chosen.values()].sort((a, b) => a.index - b.index).map((x) => x.key);
+}
+
+/** Traditions and perks are complete lists; other suggestion kinds stay capped. */
+export function suggestionLimit(kind: string, limit = 12): number {
+	return kind === 'tradition' || kind === 'perk' ? Infinity : limit;
+}
+
+/** Potentially impossible perks stay plan-able by hand, but do not appear as suggestions. */
+export function suggestionVisible(kind: string, state: State): boolean {
+	return kind !== 'perk' || state !== 'blocked';
+}
+
 export const groupOf = (kind: string): Group => KINDS[kind]?.group ?? 'other';
 
 /** A goal's status for its polarity: an avoided goal that came true "happened". */

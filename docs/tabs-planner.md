@@ -79,9 +79,11 @@ techs of tier 1", the user's ask) and the plan's order decides within a tier. **
 (`badgeOf()`, `areaOf()`): a tech's and tier gate's tier (T1…) and research area in the game's
 colours (`<area>_research`), a tradition's place — adopt, pick, finisher (the community's word;
 the game says "… Traditions Finished"; its tree's colour from the data DB as a stripe,
-`tintOf()` → `tintColor()`) —, perk; the research group filters by area (per viewer,
-none on = all, suggestions too); the history shows them with the goal's group, its reorderings
-behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
+`tintOf()` → `tintColor()`) —, perk; ascension-path trees and path perks also carry an `ascension`
+badge. The research group filters by area (per viewer, none on = all, suggestions too). Potential
+goals list every eligible tradition and perk; same-name perk variants collapse to the one whose
+availability is best established for this empire. The history shows badges with the goal's group,
+its reorderings behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
 (`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, none that
 another goal or the save implies): OK removes them with it (they are derived, so nothing is
 stored), Cancel keeps them as goals of their own (an add each). **Focus** (the user's ask 2026-10-31: "split this — tasks give points to one of three areas; the

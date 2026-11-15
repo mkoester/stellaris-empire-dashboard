@@ -255,6 +255,7 @@
 {#snippet badges(r: {
 	kind: string;
 	badge?: string | null;
+	ascension?: boolean;
 	area?: string | null;
 	tint?: string | null;
 	auto?: boolean;
@@ -287,6 +288,9 @@
 						: r.kind === 'focus_reward'
 							? 'the focus area whose points unlock it'
 							: 'tech tier'}>{r.badge}</span
+		>{/if}{#if r.ascension}<span
+			class="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+			title="ascension path">ascension</span
 		>{/if}{#if r.auto}<span
 			class="ml-1 rounded bg-gray-100 px-1 text-[10px] text-gray-500 dark:bg-gray-800"
 			title="added by itself: a tradition of an adopted or planned tree, a perk taken, or what a planned tech needs"
@@ -666,6 +670,7 @@
 							>{#if h.kind}{@render badges({
 									kind: h.kind,
 									badge: h.badge,
+									ascension: h.ascension,
 									area: h.area,
 									tint: h.tint
 								})}{/if}{h.detail ? ` — ${h.detail}` : ''}

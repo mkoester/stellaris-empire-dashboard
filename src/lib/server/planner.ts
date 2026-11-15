@@ -9,6 +9,7 @@ import {
 	ARKSHIPS,
 	arkships,
 	areaOf,
+	ascensionOf,
 	autoGoals,
 	badgeOf,
 	check,
@@ -18,6 +19,9 @@ import {
 	orderResearch,
 	tintOf,
 	orderTraditions,
+	suggestionLimit,
+	suggestionVisible,
+	uniquePerks,
 	GROUPS,
 	groupOf,
 	KINDS,
@@ -71,6 +75,7 @@ export type GoalRow = Omit<Goal, 'added'> & {
 	since: Since | null;
 	manual: boolean;
 	badge: string | null; // a tech's tier, a tradition's place in its tree, a perk
+	ascension: boolean;
 	area: string | null; // a tech's research area
 	tint: string | null; // the badge's colour, a colors.ts key (research or focus area)
 	dependents: string[]; // the automatic goals only this one brings (removed with it, if wished)
@@ -84,6 +89,7 @@ export type Suggestion = {
 	why?: string;
 	ref?: string | null; // a popup with its effects
 	badge?: string | null;
+	ascension?: boolean;
 	area?: string | null;
 	tint?: string | null;
 };
@@ -97,6 +103,7 @@ export type HistoryRow = {
 	detail: string;
 	kind: string | null; // what it is about, for its badges
 	badge: string | null;
+	ascension: boolean;
 	area: string | null;
 	tint: string | null;
 	group: string | null;
@@ -193,6 +200,7 @@ function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
 		since,
 		manual: k?.manual ?? false,
 		badge: badgeOf(g.kind, g.target, getGameData()),
+		ascension: ascensionOf(g.kind, g.target, getGameData()),
 		area: areaOf(g.kind, g.target, getGameData()),
 		tint: tintOf(g.kind, g.target, getGameData()),
 		dependents: [],
@@ -434,6 +442,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 		label: string;
 		kind: string;
 		badge: string | null;
+		ascension: boolean;
 		area: string | null;
 		tint: string | null;
 		group: string;
@@ -450,6 +459,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 					label: label(kind, target, title, c.names),
 					kind,
 					badge: badgeOf(kind, target, getGameData()),
+					ascension: ascensionOf(kind, target, getGameData()),
 					area: areaOf(kind, target, getGameData()),
 					tint: tintOf(kind, target, getGameData()),
 					group: GROUPS.find((g) => g.id === groupOf(kind))?.name ?? '',
@@ -485,6 +495,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				detail: describe(e, labels),
 				kind: labels.get(e.goal)?.kind ?? null,
 				badge: labels.get(e.goal)?.badge ?? null,
+				ascension: labels.get(e.goal)?.ascension ?? false,
 				area: labels.get(e.goal)?.area ?? null,
 				tint: labels.get(e.goal)?.tint ?? null,
 				ref: labels.get(e.goal)?.ref ?? null,
@@ -502,6 +513,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				avoid: r.polarity === 'avoid',
 				kind: r.kind,
 				badge: r.badge,
+				ascension: r.ascension,
 				area: r.area,
 				tint: r.tint,
 				ref: r.ref,
@@ -637,9 +649,10 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 		if (off.includes(kind)) return;
 		let n = 0;
 		for (const x of list) {
-			if (n >= LIMIT) break;
+			if (n >= suggestionLimit(kind, LIMIT)) break;
 			if (have.has(goalKey(kind, x.target))) continue;
-			if (check(kind, x.target, false, ctx).state === 'done') continue;
+			const status = check(kind, x.target, false, ctx);
+			if (status.state === 'done' || !suggestionVisible(kind, status.state)) continue;
 			out.push({
 				kind,
 				target: x.target,
@@ -647,6 +660,7 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 				why: x.why,
 				ref: KINDS[kind]?.ref?.(x.target) ?? null,
 				badge: badgeOf(kind, x.target, getGameData()),
+				ascension: ascensionOf(kind, x.target, getGameData()),
 				area: areaOf(kind, x.target, getGameData()),
 				tint: tintOf(kind, x.target, getGameData())
 			});
@@ -798,7 +812,9 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 	);
 	add(
 		'perk',
-		Object.keys(d.perks)
+		uniquePerks(Object.keys(d.perks), d.perks, (key) =>
+			c.ctx.possible(d.perkRules[key]?.potential ?? null)
+		)
 			.filter((k) => !(l.ascensionPerks ?? []).includes(k))
 			.map((k) => ({ target: { perk: k } }))
 	);

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { byKey, byKind } from './gamedata.ts';
+import { byKey, byKind, hasAscensionPath } from './gamedata.ts';
+import { parseTrigger } from '#lib/triggers.ts';
 
 describe('byKind', () => {
 	it('groups rows by key and kind, also for the ship size named `constructor`', () => {
@@ -43,5 +44,19 @@ describe('perkTrees', () => {
 			ap_the_flesh_is_weak: ['tradition_cybernetics'],
 			ap_organo: ['tradition_cybernetics']
 		});
+	});
+});
+
+describe('hasAscensionPath', () => {
+	it('finds ascension gates in nested tree availability triggers', () => {
+		expect(
+			hasAscensionPath(
+				parseTrigger(
+					'{"op":"and","args":[{"leaf":"is_hive_empire","value":"yes"},{"leaf":"has_genetic_ascension","value":"yes"}]}'
+				)
+			)
+		).toBe(true);
+		expect(hasAscensionPath(parseTrigger('{"leaf":"is_hive_empire","value":"yes"}'))).toBe(false);
+		expect(hasAscensionPath(null)).toBe(false);
 	});
 });

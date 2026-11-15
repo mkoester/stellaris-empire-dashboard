@@ -600,16 +600,19 @@ export function loadGameData(file: string): GameData {
 				(r) => r.key
 			),
 			traditionTrees: traditionTrees(
-				rows<{ key: string; name: string | null; color: string | null }>(
-					// the tree's colour since extractor 2026-11-06; an older data DB has none
-					`SELECT key, name, ${
-						rows<{ name: string }>('PRAGMA table_info(tradition_category)').some(
-							(c) => c.name === 'color'
-						)
-							? 'color'
-							: 'NULL AS color'
-					} FROM tradition_category`
-				),
+				(() => {
+					const columns = new Set(
+						rows<{ name: string }>('PRAGMA table_info(tradition_category)').map((c) => c.name)
+					);
+					return rows<{
+						key: string;
+						name: string | null;
+						color: string | null;
+						potential_json: string | null;
+					}>(
+						`SELECT key, name, ${columns.has('color') ? 'color' : 'NULL AS color'}, ${columns.has('potential_json') ? 'potential_json' : 'NULL AS potential_json'} FROM tradition_category`
+					);
+				})(),
 				rows<{ key: string; name: string | null; category_key: string; role: string }>(
 					'SELECT key, name, category_key, role FROM tradition ORDER BY sort_order'
 				)
@@ -648,6 +651,16 @@ export function loadGameData(file: string): GameData {
 					(r) => [r.key, r.name ?? r.key]
 				)
 			),
+			pathPerks: (() => {
+				const hasPathColumn = rows<{ name: string }>('PRAGMA table_info(ascension_perk)').some(
+					(c) => c.name === 'is_path'
+				);
+				return hasPathColumn
+					? rows<{ key: string }>('SELECT key FROM ascension_perk WHERE is_path != 0').map(
+							(r) => r.key
+						)
+					: [];
+			})(),
 			// planet decisions (extractor 2026-11-02; an older data DB has none): the what-ifs
 			planetDecisions: rows<{ name: string }>(
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'decision'"
@@ -1037,7 +1050,12 @@ export function perkTrees(
 }
 
 function traditionTrees(
-	trees: { key: string; name: string | null; color: string | null }[],
+	trees: {
+		key: string;
+		name: string | null;
+		color: string | null;
+		potential_json?: string | null;
+	}[],
 	traditions: { key: string; name: string | null; category_key: string; role: string }[]
 ): GameData['traditionTrees'] {
 	return Object.fromEntries(
@@ -1046,12 +1064,20 @@ function traditionTrees(
 			{
 				name: tree.name ?? tree.key,
 				...(tree.color ? { color: tree.color } : {}),
+				...(hasAscensionPath(parseTrigger(tree.potential_json ?? null)) ? { ascension: true } : {}),
 				traditions: traditions
 					.filter((t) => t.category_key === tree.key)
 					.map((t) => ({ key: t.key, name: t.name ?? t.key, role: t.role }))
 			}
 		])
 	);
+}
+
+/** A tradition tree is an ascension path when its availability trigger names one. */
+export function hasAscensionPath(trigger: ReturnType<typeof parseTrigger>): boolean {
+	if (!trigger) return false;
+	if ('leaf' in trigger) return /^has_\w+_ascension$/.test(trigger.leaf);
+	return trigger.args.some(hasAscensionPath);
 }
 
 const CAP =

@@ -12,6 +12,10 @@ import {
 	orderResearch,
 	orderTraditions,
 	traditionName,
+	ascensionOf,
+	uniquePerks,
+	suggestionLimit,
+	suggestionVisible,
 	check,
 	groupOf,
 	label,
@@ -563,6 +567,58 @@ describe('badgeOf', () => {
 		]);
 		expect(badgeOf('perk', { perk: 'p' }, data)).toBe('perk');
 		expect(badgeOf('outpost', { system: 1 }, data)).toBeNull();
+	});
+});
+
+describe('ascension markers and suggestion lists', () => {
+	const data = {
+		traditionTrees: {
+			ordinary: {
+				name: 'Ordinary',
+				traditions: [{ key: 'tr_ordinary', name: 'A', role: 'normal' }]
+			},
+			path: {
+				name: 'Genetics',
+				ascension: true,
+				traditions: [{ key: 'tr_genetic', name: 'B', role: 'normal' }]
+			}
+		},
+		pathPerks: ['ap_genetic']
+	} as unknown as GameData;
+
+	it('marks only path perks and traditions in ascension trees', () => {
+		expect(ascensionOf('tradition', { tradition: 'tr_genetic' }, data)).toBe(true);
+		expect(ascensionOf('tradition', { tradition: 'tr_ordinary' }, data)).toBe(false);
+		expect(ascensionOf('perk', { perk: 'ap_genetic' }, data)).toBe(true);
+		expect(ascensionOf('perk', { perk: 'ap_other' }, data)).toBe(false);
+	});
+
+	it('deduplicates names and picks the variant with the best-known availability', () => {
+		const keys = ['defender', 'other', 'defender_nomads'];
+		const names = { defender: 'Defender', other: 'Other', defender_nomads: 'Defender' };
+		const availability: Record<string, boolean | null> = {
+			defender: false,
+			other: null,
+			defender_nomads: true
+		};
+		expect(uniquePerks(keys, names, (key) => availability[key])).toEqual([
+			'defender_nomads',
+			'other'
+		]);
+		expect(uniquePerks(keys, names, () => null)).toEqual(['defender', 'other']);
+	});
+
+	it('does not cap tradition or perk lists', () => {
+		expect(suggestionLimit('tradition')).toBe(Infinity);
+		expect(suggestionLimit('perk')).toBe(Infinity);
+		expect(suggestionLimit('tech')).toBe(12);
+	});
+
+	it('suggests perks only when their potential is not known to be false', () => {
+		expect(suggestionVisible('perk', 'blocked')).toBe(false);
+		expect(suggestionVisible('perk', 'open')).toBe(true);
+		expect(suggestionVisible('perk', 'unknown')).toBe(true);
+		expect(suggestionVisible('tech', 'blocked')).toBe(true);
 	});
 });
 
