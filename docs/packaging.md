@@ -56,6 +56,8 @@ The version in the header and the zip names is `scripts/version.mjs` (decorated 
 a commit tagged `v<version>` counts as a release, since CI builds from the detached tag).
 The launcher's start line names it and the head campaign's game version: `startVersions()` in
 `app.ts`, handed over on `globalThis` by `hooks.server.ts`, as the app is a bundle of its own.
+Before it prints that line and opens the browser, the launcher requests `/` once (warm-up: 0.36 s
+cold, 0.09 s after, on a copy of the author's DB, 2026-11-15).
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
 which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
 creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. A

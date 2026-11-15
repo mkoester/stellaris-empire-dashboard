@@ -79,6 +79,12 @@ async function serve(handler) {
 		lan ? '0.0.0.0' : '127.0.0.1'
 	);
 	const url = `http://127.0.0.1:${port}/`;
+	// Warm-up: the first page loads the layout's and the page's code and runs their queries cold
+	// (0.36 s, then 0.09 s on a copy of the author's DB, 2026-11-15) — done here before the
+	// browser asks, the head campaign's page included. A failure only leaves the first page cold.
+	await fetch(url, { signal: AbortSignal.timeout(30_000) })
+		.then((r) => r.arrayBuffer())
+		.catch(() => {});
 	// the app's own bundle names its build and game version (`startVersions()`, hooks.server.ts)
 	const versions = globalThis[Symbol.for('stellaris-dashboard.startVersions')]?.();
 	console.log(`Stellaris Empire Dashboard${versions ? ` ${versions}` : ''} — ${url}`);

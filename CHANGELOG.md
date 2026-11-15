@@ -10,6 +10,12 @@ All notable changes to this project are documented here. The format follows
 
 - The start window names the dashboard's version and the game version beside the address.
 
+### Changed
+
+- Pages load several times faster (about 0.05 s instead of 0.45 s on a history of 330 saves),
+  the first one after the start too: the dashboard's database gets two indexes, and the start
+  loads the first page once before the browser opens it.
+
 ### Security
 
 - The dashboard answers only under a local name (`localhost`, an IP address, a `.local` or
