@@ -56,6 +56,16 @@ export const MIGRATIONS: ((db: Db) => void)[] = [
 				json TEXT NOT NULL
 			);
 			CREATE INDEX plan_event_campaign ON plan_event (campaign, id);
+		`),
+	// 18: indexes for the queries every page runs. A campaign's latest save (`campaignName`,
+	// `campaignRows`, `campaignMods`, `campaignDifficulty`) sorted in a temp B-tree after
+	// json_extract on each of its snapshots (~185 ms each for 267 nodes, 2026-11-15); with
+	// (campaign, kind, id) it reads one. `campaignIronman` found no match only after parsing every
+	// snapshot (~186 ms); its expression index answers from the index (0.03 ms).
+	(db) =>
+		db.exec(`
+			CREATE INDEX node_campaign_kind ON node (campaign, kind, id);
+			CREATE INDEX snapshot_ironman ON snapshot (json_extract(json, '$.galaxySetup.ironman'));
 		`)
 ];
 
@@ -350,9 +360,11 @@ export function campaignIronman(db: Db, campaign: string): boolean {
 		`ironman:${campaign}`,
 		() =>
 			db
+				// `+n.campaign`: the planner would take the campaign's index and parse each snapshot;
+				// this way it starts from `snapshot_ironman` (migration 18), which holds the expression
 				.prepare(
-					`SELECT 1 FROM node n JOIN snapshot s ON s.node_id = n.id
-				WHERE n.campaign = ? AND json_extract(s.json, '$.galaxySetup.ironman') IN ('yes', 1)
+					`SELECT 1 FROM snapshot s JOIN node n ON n.id = s.node_id
+				WHERE +n.campaign = ? AND json_extract(s.json, '$.galaxySetup.ironman') IN ('yes', 1)
 				LIMIT 1`
 				)
 				.get(campaign) !== undefined
