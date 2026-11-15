@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { formatModifierValue, modifierColor, modifierLabel } from './modifiers.ts';
+import {
+	distinctModifiers,
+	formatModifierValue,
+	modifierColor,
+	modifierLabel
+} from './modifiers.ts';
 
 const mod = (key: string, value: number, positiveIsGood = true, label: string | null = null) => ({
 	key,
@@ -31,5 +36,20 @@ describe('traitCost', async () => {
 	it('says costs or gives', () => {
 		expect(traitCost(2)).toBe('costs 2 trait points');
 		expect(traitCost(-1)).toBe('gives 1 trait point');
+	});
+
+	it('lists modifiers that read alike once (the arkship tiers of a nomad agenda)', () => {
+		const tier = (n: number, value = 0.05) =>
+			mod(
+				`shipsize_civilian_arkship_tier_${n}_science_survey_speed`,
+				value,
+				true,
+				'Civilian Arkship Survey Speed'
+			);
+		const list = [tier(1), tier(2), tier(3), tier(1, 0.1)];
+		expect(distinctModifiers(list).map((m) => [m.key, m.value])).toEqual([
+			['shipsize_civilian_arkship_tier_1_science_survey_speed', 0.05],
+			['shipsize_civilian_arkship_tier_1_science_survey_speed', 0.1]
+		]);
 	});
 });

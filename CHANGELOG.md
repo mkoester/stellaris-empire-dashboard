@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.19] - 2026-11-15
+
+### Added
+
+- The megastructures tab is dimmed until a megastructure is found or the tech for one is
+  researched.
+- The council marks which class holds a seat that takes several, such as the ruler's.
+
+### Changed
+
+- In "wide + table", a map reaches the window's bottom, like the table beside it. Each map
+  remembers its height for that mode and for the others separately.
+
+### Fixed
+
+- With two or more dashboard tabs open, clicking a tab did nothing until one was closed.
+- A map's chosen height is kept: leaving the full window or switching modes no longer overwrites it.
+- Council agendas list modifiers that read alike once (Arkship Development showed each line three
+  times).
+
 ## [0.1.18] - 2026-11-15
 
 ### Added

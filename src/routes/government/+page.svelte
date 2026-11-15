@@ -5,7 +5,12 @@
 	import { page } from '$app/state';
 	import { colorOf } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
-	import { formatModifierValue, modifierColor, modifierLabel } from '#lib/modifiers.ts';
+	import {
+		distinctModifiers,
+		formatModifierValue,
+		modifierColor,
+		modifierLabel
+	} from '#lib/modifiers.ts';
 	import { followGame } from '#lib/live.ts';
 	import Government from '#lib/panels/Government.svelte';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -114,15 +119,18 @@
 	const node = $derived(page.url.searchParams.get('node'));
 </script>
 
-{#snippet classes(list: string[])}
+<!-- a seat that takes several classes (the ruler's): the one holding it solid, the others dimmed -->
+{#snippet classes(list: string[], held: string | null = null)}
+	{@const marked = held !== null && list.length > 1 && list.includes(held)}
 	{#each list as k (k)}<span
-			class="mr-1 rounded px-1 text-xs text-white"
+			class="mr-1 rounded px-1 text-xs text-white {marked && k !== held ? 'opacity-40' : ''}"
 			style:background={colorOf(`class-${k}`)}
-			title="takes a {k}">{k}</span
+			title={`${marked && k === held ? 'held by' : 'takes'} ${/^[aeiou]/.test(k) ? 'an' : 'a'} ${k}`}
+			>{k}</span
 		>{/each}
 {/snippet}
 {#snippet mods(list: Modifier[])}
-	{#each list as m (m.key)}<div>
+	{#each distinctModifiers(list) as m (m.key)}<div>
 			<span class={modifierColor(m)}>{formatModifierValue(m)}</span>
 			{modifierLabel(m)}
 		</div>{/each}
@@ -235,7 +243,7 @@
 					<tr class="border-b border-gray-100 align-top dark:border-gray-900">
 						<th class="p-1 pr-3 font-normal whitespace-nowrap"
 							><InfoPopup explanation={data.explain[`seat:${c.key}`]}>{c.name}</InfoPopup>
-							<div>{@render classes(c.classes)}</div></th
+							<div>{@render classes(c.classes, c.leaderClass)}</div></th
 						>
 						<td class="p-1 whitespace-nowrap"
 							>{c.leader ?? 'empty'}{#if c.level !== null}<div class="text-gray-500">

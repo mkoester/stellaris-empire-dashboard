@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { formatModifierValue, modifierColor, modifierLabel } from './modifiers.ts';
+	import {
+		distinctModifiers,
+		formatModifierValue,
+		modifierColor,
+		modifierLabel
+	} from './modifiers.ts';
 	import type { Explanation } from './types.ts';
 
 	// What a modifier does, compact and inline: its effects, or the game's text when it has none.
@@ -10,7 +15,7 @@
 	<!-- wrap between modifiers, never inside one: a long list (a climate preference, Machine Unit)
 	     stays within its column -->
 	<span class="inline-flex flex-wrap gap-x-2 text-xs">
-		{#each e.modifiers as m, i (i)}<span class="whitespace-nowrap"
+		{#each distinctModifiers(e.modifiers) as m, i (i)}<span class="whitespace-nowrap"
 				><span class="font-mono font-semibold {modifierColor(m)}">{formatModifierValue(m)}</span>
 				<span class="opacity-75">{modifierLabel(m)}</span></span
 			>{/each}

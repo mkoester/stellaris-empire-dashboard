@@ -1,7 +1,9 @@
 // Which tabs have nothing to show yet along a branch: their names are dimmed in the tab bar, the
 // title saying why. Still links — the page explains itself.
+import { isGate } from './mapLayers.ts';
+import { KINDS, MEGA_RULES } from './megastructures.ts';
 import { PACT_TYPES } from './pacts.ts';
-import type { Snapshot } from './types.ts';
+import type { GalaxySystem, Snapshot } from './types.ts';
 
 type Fields = Pick<
 	Snapshot,
@@ -22,6 +24,7 @@ type Fields = Pick<
 	| 'traditions'
 	| 'contracts'
 	| 'countryId'
+	| 'progress'
 >;
 
 /**
@@ -116,4 +119,22 @@ export function emptyTabs(history: Fields[]): Record<string, string> {
 	return Object.fromEntries(
 		CHECKS.filter((c) => history.some(c.known) && !history.some(c.has)).map((c) => [c.tab, c.why])
 	);
+}
+
+const MEGA_TECHS = KINDS.map((k) => MEGA_RULES[k].tech);
+
+/**
+ * The megastructures tab ranks systems from the start; it has something to show once a mega- or
+ * kilostructure is found (built or ruined, ours too; gateways and L-Gates are the bypasses') or
+ * the tech for one is researched. Null: not empty, or not known — no galaxy and no research read.
+ */
+export function megastructuresEmpty(
+	history: Pick<Snapshot, 'progress'>[],
+	systems: Pick<GalaxySystem, 'visited' | 'megastructures'>[] | null
+): string | null {
+	const researched = history.flatMap((s) => (s.progress ? [s.progress.researched] : []));
+	if (!systems && !researched.length) return null;
+	const found = (systems ?? []).some((s) => s.visited && s.megastructures.some((t) => !isGate(t)));
+	const tech = researched.some((r) => r.some((t) => MEGA_TECHS.includes(t)));
+	return found || tech ? null : 'no megastructure found yet, and no tech for one researched';
 }

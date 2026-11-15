@@ -166,10 +166,18 @@
 	const path = (poly: Point[]) =>
 		poly.length ? `M${poly.map((p) => `${at(p).x},${at(p).y}`).join('L')}Z` : '';
 
-	// The height is a per-viewer convenience, remembered in this browser once the viewer resizes
-	// (the outer height then differs from the one set), so a new default reaches everyone else.
-	let height = $state(630);
+	// The height is a per-viewer convenience, remembered in this browser once the viewer drags the
+	// box's bottom edge, so a new default reaches everyone else: one for the map in the page (normal,
+	// wide), one for "wide + table" (`<heightKey>-side`), which until then reaches the window's
+	// bottom like the table beside. Only a drag is kept — a mode switch or leaving the full window
+	// also changes the size, and once stored the full window's height in place of the chosen one.
+	const DEFAULT_H = 630;
+	let chosen: { page: number | null; side: number | null } = $state({ page: null, side: null });
+	let fillH = $state(DEFAULT_H);
 	let outer = $state(0);
+	let box: HTMLElement | undefined = $state();
+	let column: HTMLElement | undefined = $state();
+	let resizing = false;
 	let w = $state(0);
 	let h = $state(0);
 	// The width is one choice for every map, per viewer: in the page, the browser's full width
@@ -179,6 +187,31 @@
 	let fullWindow = $state(false);
 	const full = $derived(!fullWindow && width !== 'normal' && vw > 0);
 	const side = $derived(width === 'side' && beside !== undefined);
+	const mode = $derived(side ? 'side' : 'page');
+	const keyOf = (m: 'page' | 'side') => (m === 'side' ? `${heightKey}-side` : heightKey);
+	const height = $derived(side ? (chosen.side ?? fillH) : (chosen.page ?? DEFAULT_H));
+	// "wide + table" with no height chosen: the box ends where the window does with the page at its
+	// top, the legend under it still in sight
+	const fitFill = () => {
+		if (!box || !column) return;
+		const top = box.getBoundingClientRect().top + scrollY;
+		const below = column.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom;
+		fillH = Math.max(200, Math.floor(innerHeight - top - below - GAP));
+	};
+	$effect(() => {
+		if (side && box && column) fitFill();
+	});
+	const remember = () => {
+		if (!resizing || fullWindow || !box) return;
+		const px = box.offsetHeight;
+		if (px === 0 || px === height) return;
+		chosen = { ...chosen, [mode]: px };
+		keep(keyOf(mode), String(px));
+	};
+	const endResize = () => {
+		remember();
+		resizing = false;
+	};
 	// The table beside reaches the window's bottom, whatever the map's height, and scrolls on its
 	// own; it sticks below the window's top edge once the page scrolls past it. Its table's header
 	// stays in sight while it scrolls (the `[&_thead_th]` classes).
@@ -211,20 +244,26 @@
 		keep(MAP_WIDTH_KEY, m);
 	};
 	onMount(() => {
-		height = Math.max(200, Number(recall(heightKey)) || height);
+		const stored = (m: 'page' | 'side') => {
+			const px = Number(recall(keyOf(m)));
+			return px > 0 ? Math.max(200, px) : null;
+		};
+		chosen = { page: stored('page'), side: stored('side') };
 		width = parseMapWidth(recall(MAP_WIDTH_KEY));
 		fullWindow = recall(MAP_FULL_KEY) === '1';
 		const html = document.documentElement;
-		const measure = () => (vw = html.clientWidth);
+		const measure = () => {
+			vw = html.clientWidth;
+			if (side) fitFill();
+		};
 		measure();
 		const ro = new ResizeObserver(measure);
 		ro.observe(html);
 		return () => ro.disconnect();
 	});
+	// while the edge is dragged; once more when it is let go, should the last size come after
 	$effect(() => {
-		// the full window's height is the window's, not a choice to remember
-		if (fullWindow || outer === 0 || outer === height) return;
-		keep(heightKey, String(outer));
+		if (outer > 0) remember();
 	});
 
 	// null = everything fitted, following the size; set by zoom, drag and the focus buttons
@@ -352,7 +391,12 @@
 
 <svelte:window
 	onscroll={fitAside}
-	onresize={fitAside}
+	onresize={() => {
+		fitAside();
+		if (side) fitFill();
+	}}
+	onpointerup={endResize}
+	onpointercancel={endResize}
 	onkeydown={(e) => {
 		if (fullWindow && e.key === 'Escape') setFullWindow(false);
 	}}
@@ -503,8 +547,14 @@
 				? 'lg:items-start'
 				: ''}"
 	>
-		<div class="min-w-0 {fullWindow ? 'flex h-full min-h-0 flex-col' : ''}">
+		<div class="min-w-0 {fullWindow ? 'flex h-full min-h-0 flex-col' : ''}" bind:this={column}>
+			<!-- a press on the box itself is on its resize edge: the svg covers the rest -->
 			<div
+				bind:this={box}
+				role="presentation"
+				onpointerdown={(e) => {
+					if (e.target === e.currentTarget) resizing = true;
+				}}
 				class="w-full overflow-hidden rounded border border-gray-200 dark:border-gray-800 {fullWindow
 					? 'min-h-0 flex-1'
 					: 'resize-y'}"

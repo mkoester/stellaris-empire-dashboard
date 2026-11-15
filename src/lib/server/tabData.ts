@@ -1,14 +1,25 @@
-import { emptyTabs } from '#lib/tabData.ts';
+import { emptyTabs, megastructuresEmpty } from '#lib/tabData.ts';
 import { getDb } from './app.ts';
-import { history } from './db.ts';
+import { galaxyOf, history } from './db.ts';
 
 let memo: { tip: number; empty: Record<string, string> } | null = null;
 
-/** For the tab bar, at `tip`: the tabs with nothing to show yet, each with why. Kept per tip. */
+/**
+ * For the tab bar, at `tip`: the tabs with nothing to show yet, each with why. Kept per tip (the
+ * galaxy is written with each save, which moves the tip).
+ */
 export function emptyTabsAt(tip: number | null): Record<string, string> {
 	if (tip === null) return {};
 	if (memo?.tip === tip) return memo.empty;
-	const empty = emptyTabs(history(getDb(), tip));
+	const db = getDb();
+	const snaps = history(db, tip);
+	const campaign = snaps.at(-1)?.campaign;
+	// the galaxy as read, not as the display switches reveal it
+	const mega = megastructuresEmpty(
+		snaps,
+		campaign ? (galaxyOf(db, campaign)?.systems ?? null) : null
+	);
+	const empty = { ...emptyTabs(snaps), ...(mega ? { megastructures: mega } : {}) };
 	memo = { tip, empty };
 	return empty;
 }
