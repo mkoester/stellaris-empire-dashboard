@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.22] - 2026-11-15
 
 ### Changed
 
@@ -15,6 +15,11 @@ All notable changes to this project are documented here. The format follows
 - A map that ends its page is as high as it is wide, or reaches the window's bottom where that is
   more: the frontier tab's, and every map in "wide + table". Heights dragged before are not
   taken over.
+- The Resources strip shows strategic resources in the game's order — Volatile Motes, Exotic
+  Gases, Rare Crystals — here and on the resources charts, and splits into two rows: basic and
+  advanced resources, then strategic and rare resources, unity and influence.
+- Colony what-ifs: the current designation shows what leaving it loses, one-time costs read
+  "costs … once", and policy changes warn of their 10-year lock.
 
 ### Added
 
@@ -25,9 +30,15 @@ All notable changes to this project are documented here. The format follows
   Needs a data DB from stellaris-data-extraction with the `outcome` table; older ones show the
   event titles as before.
 - A spoiler switch for dig sites' chapters; dig sites show their next chapter.
+- Colony what-ifs for the crime decisions: the Anti-Crime Campaign frees the enforcers beyond
+  those holding crime at 25 for open jobs (recommended where crime is 10 or more and jobs are
+  open), Crime Lords costs the workforce of 3 criminal jobs per crime point. Whether a colony can
+  take them (crime 10 or more, Introduce Chaos's flag) is read from the save.
 
 ### Fixed
 
+- Designation what-ifs count pop-wide and stratum workforce bonuses (the nomad capital's +10 %,
+  worker and simple drone bonuses): switching away no longer looks like a pure gain.
 - Dig sites by their name ("Gas Giant Structure", not "star petal") on the frontier tab, the
   map, the planner and Upcoming.
 
