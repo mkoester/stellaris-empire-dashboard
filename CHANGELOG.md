@@ -6,10 +6,17 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The situations tab is now **frontier**: situations and events are the game's terms for one of
+  its panels each. Old links to `/situations` still work.
+- Its tables use the width: first contacts, stations seen and situations on the left; anomalies,
+  dig sites and special projects on the right; the first-contact map below them.
+
 ### Added
 
 - What anomalies, special projects and dig sites actually give, behind the spoiler switches: the
-  situations tab's Outcome column shows markers (known, random, choice, depends, project, later,
+  frontier tab's Outcome column shows markers (known, random, choice, depends, project, later,
   risk), the first rewards, and the whole chain on opening. The same text is the tooltip on the
   map tab, on the planner's anomaly and dig-site suggestions and on Upcoming's excavation rolls.
   Needs a data DB from stellaris-data-extraction with the `outcome` table; older ones show the
@@ -18,7 +25,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
-- Dig sites by their name ("Gas Giant Structure", not "star petal") on the situations tab, the
+- Dig sites by their name ("Gas Giant Structure", not "star petal") on the frontier tab, the
   map, the planner and Upcoming.
 
 ## [0.1.21] - 2026-11-15

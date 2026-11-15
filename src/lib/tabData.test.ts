@@ -30,11 +30,11 @@ describe('emptyTabs', () => {
 		expect(Object.keys(emptyTabs([blank()])).sort()).toEqual([
 			'contracts',
 			'diplomacy',
+			'frontier',
 			'galcom',
 			'migration',
 			'pacts',
 			'shroud',
-			'situations',
 			'slave market',
 			'subjects',
 			'trade deals',

@@ -36,9 +36,9 @@ export type Display = {
 	showSpoilers: boolean; // ⚙ lists the spoiler switches; off, they are off (#lib/displaySwitches.ts)
 	showCheats: boolean; // likewise the cheats
 	habitatsAlways: boolean; // habitat sites before habitats can be built (cheat)
-	anomalySpoilers: boolean; // situations and map tabs: what an anomaly can turn into
-	projectSpoilers: boolean; // situations and map tabs: what a special project leads to
-	digSiteSpoilers: boolean; // situations and map tabs: what a dig site's chapters give
+	anomalySpoilers: boolean; // frontier and map tabs: what an anomaly can turn into
+	projectSpoilers: boolean; // frontier and map tabs: what a special project leads to
+	digSiteSpoilers: boolean; // frontier and map tabs: what a dig site's chapters give
 	contactStations: boolean; // first contact map: whose station each visited system has
 	wholeGalaxy: boolean; // maps and megastructure sites: every system, not only the discovered
 	unknownStars: boolean; // maps: the undiscovered systems too, without their hyperlanes

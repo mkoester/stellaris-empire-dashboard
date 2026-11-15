@@ -225,7 +225,7 @@ stations seen, anomalies, dig sites, special projects, wormholes, gateways and L
 profile's `mapFilter`, plus a table with what is worked on and how far (an envoy on a contact,
 an excavation running; stage, clues, days — anomalies and special projects carry no progress in
 the save), an anomaly's, project's or dig site's outcome as the tooltip of its name and of its
-system on the map (`MapMarker.tip`, behind the three outcome spoilers; the situations tab's
+system on the map (`MapMarker.tip`, behind the three outcome spoilers; the frontier tab's
 Outcome column has the same) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). **Every
 map's width** is the viewer's (`GalaxyMap`'s `width` buttons: normal, wide = the window's full width,
 wide + table = that with the page's table beside the map) — one localStorage key for all maps

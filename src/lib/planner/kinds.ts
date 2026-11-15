@@ -19,7 +19,7 @@ export const GROUPS = [
 	{ id: 'research', name: 'Research' },
 	{ id: 'traditions', name: 'Traditions & perks' },
 	{ id: 'focus', name: 'Focus' },
-	{ id: 'situations', name: 'Situations & contacts' },
+	{ id: 'situations', name: 'Frontier & situations' },
 	{ id: 'government', name: 'Government & ethics' },
 	{ id: 'other', name: 'Other' }
 ] as const;

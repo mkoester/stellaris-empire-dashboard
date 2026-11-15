@@ -199,7 +199,11 @@ capital and migration are since READER 41), the trade tab's valuation of energy 
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
-**Situations tab** (`/situations`, `#lib/situations.ts` pure, readers in `server/world.ts`): first
+**Frontier tab** (`/frontier`; the situations tab until 2026-11-15 — renamed because situations and
+events are the game's own terms for one panel each, `/situations` redirects; `#lib/situations.ts` pure,
+readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,
+situations, a link to events | anomalies, dig sites, special projects), the first-contact map
+below them at full width (the user's ask, 2026-11-15): first
 contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
 an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
