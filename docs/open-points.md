@@ -13,6 +13,11 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   Fixed for 0.1.19: one stream for the whole browser (SharedWorker `#lib/eventsWorker.ts`, hub
   in `#lib/live.ts`). Still to confirm in the browser: 3+ tabs click through, DevTools shows one
   `/api/events`.
+- **Map heights, 0.1.19 (2026-11-15), unchecked in a browser**: `GalaxyMap.svelte` stores a
+  height only while a drag of the box's native resize edge is under way — it assumes a press on
+  that edge fires `pointerdown` with the box itself as target (the svg covers the rest). If a
+  dragged height is not kept after a reload, that assumption is the first suspect. Also check
+  "wide + table" with nothing stored ends at the window's bottom, the legend in sight.
 
 **The checks still owed from the 2026-10-22 session — what, how, which screenshot — are listed in
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech
