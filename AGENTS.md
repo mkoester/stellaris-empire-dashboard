@@ -105,14 +105,18 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   step runs in every test. Before migrating, `openDb` leaves a copy beside the DB
   (`dashboard.v<old>.sqlite`); a DB of a newer dashboard is refused (the reason shows on `/setup`),
   never dropped — a player who starts an older zip by mistake keeps their history.
+- **A query a page runs is checked with `EXPLAIN QUERY PLAN` on a DB copy.** `USE TEMP B-TREE`
+  beside a `json_extract` column means every snapshot is parsed before `LIMIT 1` keeps one (two
+  layout queries took ~400 ms of every page until migration 18). Time a page by profiling it:
+  "Measuring a page" in `docs/testing.md`.
 - The background start, cleaning up campaigns and the migrations so far: `docs/database.md`. Read
   it before changing `watch.ts` or `campaigns.ts`, or adding a migration.
 
 ## Checking a change
 
 Check a change end to end against a copy of the dashboard DB, never the real one: a dev server
-ingests saves and moves the head. On the Linux game machine the DB in use is in
-`~/.local/share/stellaris-empire-dashboard-test/`. New save shapes come from throwaway games with
+ingests saves and moves the head. Where the DB in use lives differs per machine (`docs/testing.md`):
+on mkTuxedCachy the released zip's own, `~/.local/share/stellaris-empire-dashboard/`. New save shapes come from throwaway games with
 console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
 
 Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`,
