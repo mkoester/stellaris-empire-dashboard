@@ -219,7 +219,7 @@ export const anomalyKey = (a: Pick<AnomalyInfo, 'planetId' | 'category'>) =>
 
 const days = (d: number | null) => (d === null ? '' : `, ${Math.ceil(d)} days left`);
 
-const isGate = (t: string) => /gateway|lgate/.test(t);
+export const isGate = (t: string) => /gateway|lgate/.test(t);
 const isRuin = (t: string) => /ruined/.test(t);
 const structure = (t: string) =>
 	(/^lgate/.test(t) ? 'L-Gate' : pretty(t.replace(/_(permanently_)?ruined.*$/, ''))) +

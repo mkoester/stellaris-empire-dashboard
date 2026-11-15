@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptyTabs } from './tabData.ts';
+import { emptyTabs, megastructuresEmpty } from './tabData.ts';
 import type { Snapshot } from './types.ts';
 
 // a snapshot read by a current reader with nothing in it
@@ -88,5 +88,30 @@ describe('emptyTabs', () => {
 		);
 		expect(emptyTabs([blank({ relations: null })])).not.toHaveProperty('diplomacy');
 		expect(emptyTabs([])).toEqual({});
+	});
+});
+
+describe('megastructuresEmpty', () => {
+	const research = (researched: string[]) => ({
+		progress: { researched } as Snapshot['progress']
+	});
+	const sys = (megastructures: string[], visited = true) => ({ visited, megastructures });
+
+	it('is empty until a structure is found or its tech researched', () => {
+		expect(megastructuresEmpty([research(['tech_lasers_1'])], [sys([])])).toMatch(
+			/no megastructure/
+		);
+		expect(megastructuresEmpty([research([]), research(['tech_dyson_swarm'])], [])).toBeNull();
+		expect(megastructuresEmpty([research([])], [sys(['ruined_dyson_sphere'])])).toBeNull();
+	});
+
+	it('does not count gateways, nor what lies in a system not visited', () => {
+		expect(
+			megastructuresEmpty([research([])], [sys(['gateway_ruined']), sys(['ring_world_1'], false)])
+		).not.toBeNull();
+	});
+
+	it('is not empty while nothing is known', () => {
+		expect(megastructuresEmpty([{ progress: null }], null)).toBeNull();
 	});
 });

@@ -212,6 +212,10 @@ sees everything — `has_full_sensor_range`). `sensor_range` is jumps: ship sens
 starbases add 1, which in map units (~20 between systems) would not leave their own system. Jumps
 run over discovered lanes, so early on the score saturates (2207.03.10: 37 for every reachable
 system). Rules needing bodies are unknown (`?`) in unvisited systems.
+The tab is dimmed in the tab bar (`megastructuresEmpty`, `#lib/tabData.ts`) until a structure is
+found in a visited system (built or ruined, ours too; gateways and L-Gates not) or a structure's
+tech is researched (`MEGA_RULES[*].tech`, the first stage's `prerequisites`) — the user's rule,
+2026-11-15. It reads the stored galaxy, not the display switches' view of it.
 2207.03.10: catapult best near the centre (Elthir: farthest 387, centre 83); arc furnace Sol 20.
 
 **Pacts tab** (`/pacts`, `#lib/pacts.ts` pure; the user's ask 2026-11-05: "what do I get from
