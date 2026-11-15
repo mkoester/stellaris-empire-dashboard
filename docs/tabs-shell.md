@@ -230,9 +230,12 @@ Outcome column has the same) and a system search (known names completed; picks a
 map's width** is the viewer's (`GalaxyMap`'s `width` buttons: normal, wide = the window's full width,
 wide + table = that with the page's table beside the map) — one localStorage key for all maps
 (`MAP_WIDTH_KEY`, `#lib/mapView.ts`). A page with a table of what its map shows (map: Found;
-systems; megastructures; situations: First contacts) defines it as a top-level snippet, passes it
+systems; megastructures; frontier: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
-filters stay above the map. Without `beside` (diplomacy, migration) the third button is not offered
+filters stay above the map. **A map that is the page's last element is as high as it is wide**,
+or reaches the window's bottom (the legend in sight) where that is more, until the viewer drags it
+(the user's ask, 2026-11-15): `square` where the page ends with it (the frontier tab), and every
+map in "wide + table", which only reached the window's bottom before. Without `beside` (diplomacy, migration) the third button is not offered
 and a stored `side` draws as wide. **Full window** (the user's ask 2026-11-02; `GalaxyMap`'s "⛶ full
 window" button, per viewer in localStorage `MAP_FULL_KEY`): the map lays itself over the whole
 browser window (`fixed`, `z-40` — below the context menu and popups, `z-50`), its toolbar on top,

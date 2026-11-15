@@ -320,6 +320,7 @@
 			{titles}
 			focus={[{ label: 'contacts', points: open.flatMap((c) => byId.get(c.systemId) ?? []) }]}
 			heightKey="first-contact-map-height"
+			square
 			bind:width
 			beside={contactTable}
 			label="First contact map"

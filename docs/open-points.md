@@ -24,7 +24,8 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   height only while a drag of the box's native resize edge is under way — it assumes a press on
   that edge fires `pointerdown` with the box itself as target (the svg covers the rest). If a
   dragged height is not kept after a reload, that assumption is the first suspect. Also check
-  "wide + table" with nothing stored ends at the window's bottom, the legend in sight.
+  that a map last on its page (the frontier tab's; every map in "wide + table") is square with
+  nothing stored — or reaches the window's bottom where that is more — and follows a resize.
 
 **The checks still owed from the 2026-10-22 session — what, how, which screenshot — are listed in
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech

@@ -12,6 +12,9 @@ All notable changes to this project are documented here. The format follows
   its panels each. Old links to `/situations` still work.
 - Its tables use the width: first contacts, stations seen and situations on the left; anomalies,
   dig sites and special projects on the right; the first-contact map below them.
+- A map that ends its page is as high as it is wide, or reaches the window's bottom where that is
+  more: the frontier tab's, and every map in "wide + table". Heights dragged before are not
+  taken over.
 
 ### Added
 
