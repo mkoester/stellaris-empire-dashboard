@@ -4,20 +4,19 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.17] - 2026-11-15
 
 ### Added
 
 - A **bonuses** tab: what one more bonus is really worth at this point in the game. Bonuses of a
-  kind add up, so +10 % on top of +50 % is only +6.7 %. For research speed and cost, job output
-  per resource (research included), upkeep by category, pop growth and assembly, stability,
-  happiness and amenities, and every build speed, it lists the bonuses that hold now. Pick a
-  typical value from the game data, or enter your own, to see the change in resources a month, pops
-  or days.
-- The bonuses tab also covers job efficiency (extra workforce, its own pile that multiplies with
-  output, measured per job from the save, upkeep included), output of stations, starbases and the
-  strata outside jobs, construction costs (a year of what was paid), empire size with what it does
-  to tech, tradition and agenda cost, tradition cost, naval capacity and council agenda speed.
+  kind add up, so +10 % on top of +50 % is only +6.7 %, and −10 % upkeep on top of −20 % saves
+  12.5 %. For each kind it lists the bonuses that hold now; pick a typical value from the game
+  data, or enter your own, to see the change in resources a month, pops or days. Covered: research
+  speed and cost; job output per resource and job efficiency (its own pile, measured per job from
+  the save, with the upkeep it adds); the output of stations, starbases and strata; upkeep and
+  construction costs by category; empire size, with what it does to tech, tradition and agenda
+  cost; tradition cost and naval capacity; pop growth and assembly; stability, happiness and
+  amenities; and every build speed, council agendas included.
 
 ## [0.1.16] - 2026-11-14
 
