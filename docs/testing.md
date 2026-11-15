@@ -64,6 +64,11 @@ showed two queries. Measure the packaged path, not `vite dev`:
    `app` → `build/` runs it as a zip would.
 2. A consistent DB copy, WAL included: `VACUUM INTO '<copy>'` from a read-only `node:sqlite`
    connection. A copy of an older schema also runs the new migration, with its backup beside it.
+   **In the sandbox that open fails** ("unable to open database file", 2026-11-15) where the DB's
+   folder is not writable — the released zip's `~/.local/share/stellaris-empire-dashboard/` on
+   mkTuxedCachy; a WAL database needs its `-shm` beside it even to read. With the dashboard
+   stopped (no `-wal` file left) a plain `cp` of `dashboard.sqlite` is consistent; otherwise copy
+   all three files to `$TMPDIR` and `VACUUM INTO` from that copy.
 3. One command: start the launcher with `DASHBOARD_DB`, `STELLARIS_SAVE_DIR`,
    `STELLARIS_DATA_DB` (one of `data/*.sqlite`), `XDG_DATA_HOME=$TMPDIR/…` and a `PORT`; wait for
    `every campaign is up to date` in its log (**a catch-up re-reading saves makes requests ~1.5 s

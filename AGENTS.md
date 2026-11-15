@@ -22,7 +22,9 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
 - **Svelte 5 trims whitespace at the start and end of an element**, so a Prettier-wrapped
   `<span …>⏎ by {x}</span>` renders "by" glued to what precedes it (the about tab's credits,
   2026-11-01). The lint refuses `{' '}` (`svelte/no-useless-mustaches`): put the space in an
-  expression, ``<span>{` by ${x}`}</span>``.
+  expression, ``<span>{` by ${x}`}</span>``. A template literal without an expression
+  (``{` – nothing`}``) is refused too: with nothing to interpolate, use a margin (`ml-1`) instead
+  of the space (`Outcome.svelte`, 2026-11-15).
 - **A `{#snippet}` written directly inside a component's children becomes that component's prop**
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
