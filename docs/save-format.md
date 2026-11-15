@@ -6,6 +6,12 @@ Where each value sits in a save and how the game computes it. Read before readin
 
 **Contracts** (Planetforgers 2214.02.01, Proton): top-level `missions = { <id> = { mission="<key>" issuer operator location={ type=4 id=<system> } … } }` holds contracts and situation-log missions alike (star journals: `issuer=4294967295`), gaps as `<id>=none`; `contracts = { available = { ids } in_progress = { ids } }` says which are contracts. An offer has `days_left` and `operator=4294967295`, an accepted one `accepted_date` and `status=active`; an internal one (Eternal Chorus, Forever Cruise's) has operator = issuer while still offered. 18 contracts there, from 9 issuers.
 
+**Planet flags** (`planet.flags = { <flag>=<date> … }`, 2210.10.20): every flag the planet carries,
+`set_carrier_flag` ones assumed among them (seen: `colony_event`, `mechanical_species0`; a
+`perfect_organization` never seen). A timed flag's value is a block with `flag_days`
+(`timedFlags()`). Read whole as `Colony.flags` since READER 59, for `has_carrier_flag` /
+`has_planet_flag` in planet decisions.
+
 **For a shape not yet seen in our saves** (wars, trade deals, galactic market): the other parser,
 eliasdoehne/stellaris-dashboard (`stellarisdashboard/parsing/timeline.py`), reads many; a 4.0.1
 save at 2312 lives in chennin/stellaris-dashboard-test-saves (galactic market and GalCom, but

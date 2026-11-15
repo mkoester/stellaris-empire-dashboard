@@ -153,6 +153,22 @@ runs on the species tab (Living Standards: the two options' modifiers swapped, o
 strata — each colony's strata × its share of the pops, ≈), the traditions tab (traditions not
 taken in adopted trees, other trees' adoption, perks whose `potential`/`possible` is not false) and
 the tech tab (the cards on offer). Happiness per stratum (`pop_cat_*_happiness`) is not counted.
+**Colony what-ifs** (2026-11-15): a designation swap counts `pop_bonus_workforce_mult` (the nomad
+capital's +10 % on every job) and `worker_and_simple_drone_cat_bonus_workforce_mult` as output —
+before, the swap away showed only gains. "losing <current>" leaves out what every alternative of
+the family has at the same value (`ownModifiers()`: a capital's +5 stability and housing). Planet
+decisions answer `planet_crime` (`Colony.crime`) and `has_carrier_flag`/`has_planet_flag`
+(`Colony.flags`, READER 59) — Introduce Chaos no longer shows as (?). A one-time cost reads
+"costs … once". **The crime decisions** (`#lib/crime.ts`) are valued at the enforcers holding
+crime at 25 (what crime automation holds, under the 30 where Criminal Underworld may appear), so
+crime's engine-side stability penalty is the same either way: the campaign needs fewer enforcers
+(25 → 35 a job) and the freed workforce fills open jobs at the colony's average net output; the
+deal's criminals (200 + 3 per crime point) and the enforcers for its +50 % crime come out of other
+jobs. Not counted: the deal keeps a colony out of the crime events, and ending it costs −10
+stability for 5 years. The user's rule of thumb recommends the campaign wherever crime ≥ 10 and the
+colony has open jobs (`Recommendation.rule`, kept by `worthwhile()` whatever the estimate). Policy
+what-ifs say "then locked for 10 years" (`POLICY_YEARS`; the save keeps no change date). Game
+mechanics: `stellaris-modding-insights/docs/25-crime.md`.
 **Species rights** (species tab, `#lib/rights.ts`): `country.modules.standard_species_rights_module
 .primary = { species_index citizenship living_standard … }` for the founder species and
 `.species_rights = { { species_index … } … }` for every other (READER 51; before, other species had
