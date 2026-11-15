@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The start window names the dashboard's version and the game version beside the address.
+
 ### Security
 
 - The dashboard answers only under a local name (`localhost`, an IP address, a `.local` or

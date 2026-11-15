@@ -30,6 +30,7 @@ import { launcherPlaysets, loadModDescriptors, readLoadOrder } from './mods.ts';
 import { currentRequest } from './request.ts';
 import { viewedCampaign } from './settings.ts';
 import { campaignOf, watchSaves, type Watcher } from './watch.ts';
+import { versionLine } from '#lib/versions.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
 // companion mod, and one event bus for live updates.
@@ -203,6 +204,20 @@ export const getExplanations = (): Explanations => viewedData().explanations;
 
 /** The game version and build the game data comes from (`Cygnus v4.5.3 (7793)`), null if unknown. */
 export const dataVersion = () => viewedData().dataVersion;
+
+/**
+ * The packaged launcher's start line (`release/launcher.mjs`): this build and the head campaign's
+ * game version. Read once `start()` is done; before the folders are set there is no game data.
+ */
+export function startVersions(): string {
+	let game: string | null = null;
+	try {
+		game = dataVersion();
+	} catch {
+		// not started: /setup
+	}
+	return versionLine(__APP_VERSION__, game);
+}
 
 /** The mods the viewed campaign's game data includes ([] none), null when the data DB cannot tell. */
 export const dataMods = () => viewedData().dataMods;

@@ -9,6 +9,7 @@
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
+	import { gameVersionNumber } from '#lib/versions.ts';
 
 	let { data, children } = $props();
 
@@ -390,7 +391,7 @@
 			{#if data.gameVersion}<span
 					class="pb-1 text-[11px] text-gray-400"
 					title="the game version and build the game data was read from (an open beta shares its version with the release, not its build)"
-					>game {data.gameVersion.replace(/^\D*/, '')}</span
+					>game {gameVersionNumber(data.gameVersion)}</span
 				>{/if}
 			<!-- the difficulty and the dates alone on the right, also when they wrap onto a line of their own -->
 			{#if data.dates?.difficulty}<span class="ml-auto pb-1 text-[11px] text-gray-400"

@@ -79,7 +79,9 @@ async function serve(handler) {
 		lan ? '0.0.0.0' : '127.0.0.1'
 	);
 	const url = `http://127.0.0.1:${port}/`;
-	console.log(`Stellaris Empire Dashboard — ${url}`);
+	// the app's own bundle names its build and game version (`startVersions()`, hooks.server.ts)
+	const versions = globalThis[Symbol.for('stellaris-dashboard.startVersions')]?.();
+	console.log(`Stellaris Empire Dashboard${versions ? ` ${versions}` : ''} — ${url}`);
 	if (lan) console.log(`Also on this computer's network address, port ${port}.`);
 	console.log(win || mac ? 'Close this window to stop it.' : 'Press Ctrl+C to stop it.');
 	openBrowser(url);
