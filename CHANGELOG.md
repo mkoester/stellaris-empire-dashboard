@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.21] - 2026-11-15
+
+### Added
+
+- Planner suggestions mark ascension perks and tradition trees, include Wanderlust, collapse
+  duplicate ascension trees, and dim trees unavailable to the current empire. Planning a linked
+  ascension perk also plans its tree.
+
 ## [0.1.20] - 2026-11-15
 
 ### Added
