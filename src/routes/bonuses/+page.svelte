@@ -10,7 +10,13 @@
 		Research:
 			'Per field: speed (progress per point), output (points a month) and cost. Days are what is left on the tech in progress.',
 		'Job output':
-			'Per resource, every colony at the total it measurably gets now (its booked output ÷ its workforce’s base).',
+			'Job efficiency is extra workforce: its own pile, multiplied with the output pile, so it is worth more than an output bonus of the same size — but it raises the job’s upkeep too. Per resource below: every colony at the total it measurably gets now (its booked output ÷ its workforce’s base).',
+		'Other output':
+			'What stations, starbases, megastructures and the strata as such make (the budget’s income outside jobs), by economic category.',
+		Costs:
+			'What construction cost over the last year, a month on average (exact, from the save diffs). A cost bonus on top of others saves more than it says: −10 % on top of −20 % saves 12.5 %.',
+		'Empire size':
+			'Empire size by its parts, and what a change does to the costs that grow with it; tradition cost and naval capacity.',
 		Upkeep:
 			'By economic category: a bonus to a category reaches every budget source below it. What is paid now is the budget’s.',
 		Pops: 'Measured growth and assembly per colony, times the change of the pile.',

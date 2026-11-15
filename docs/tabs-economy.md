@@ -165,8 +165,48 @@ predicted`), its pile the colony's measured total (else counted), its targets it
   upgrades and modules, armies, blockers, megastructures, terraforming, colony development, planet
   decisions and excavation. What is queued now uses its base days (`GameData.buildDays`); otherwise
   the change of the time. Whether `progress_needed` already holds the speed is not known, so the
-  queue's own numbers are not used. Open: the in-game check of a ship's upkeep and a building's
-  time against the game's tooltips.
+  queue's own numbers are not used. Council agenda speed (`council_agenda_progress_speed`) uses
+  the agenda in Upcoming.
+- **Job efficiency** (`efficiency()`): extra workforce, its own pile. The output pile multiplies
+  it: output = (workforce + bonus) ÷ 100 × base × (1 + mults) (a 4.0 dev diary says so; our job
+  model agrees). It scales the job's upkeep too. Each job's pile is **measured**: the save's
+  `bonus_workforce` ÷ the workforce pops work. Throwaway Quentian Hegemony 2200.07: every job +10 %,
+  workers +15 %. Parts are each job's booked output share plus its upkeep (`jobResources`, per 100
+  workforce, before upkeep modifiers) as a negative amount. Key → jobs:
+  `pop_bonus_workforce_mult` all; `pop_cat_<stratum>_…` and
+  `worker_and_simple_drone_cat_…` / `specialist_and_complex_drone_cat_…` by `data.jobs[j].category`;
+  `<job>_jobs_…` and `pop_<job>_…` one job (`foundry_jobs` = Metallurgists: the job key is
+  `foundry`). A species' own (`robotic_pop_…`, `psionic_pop_…`) are not listed: the measured pile
+  holds them. **`researcher_jobs_bonus_workforce_mult` names a paragon background job no pop
+  works** (`researcher`, `possible = { always = no }`): open check 36.
+- **Other output** (`budgetCards('produces')`): budget sources that are not a job's (stations,
+  starbase modules, megastructures, `pop_category_*`, the country base), by economic category, as
+  upkeep. `categoryKey()` takes `<category>_<resource>_<side>_mult` only for a real resource
+  (`resourceInfo`): `country` prefixes every key, and `country_claim_influence_cost_mult` once
+  read as the country's "claim_influence".
+- **Costs** (`costs()`): `newConstruction()` (`#lib/spending.ts`, the construction items new in each
+  save, cost exact) over the last 360 days, a month on average. By kind: buildings
+  (`planet_building`, `planet_upgrade_building`), districts, zones (`planet_zones`, under
+  `planet_structures`), ships and colony ships (`starbase_shipyard_build_cost_mult`,
+  `ship_<size>_cost_mult`), starbase upgrades, modules and buildings, armies, blockers. Checked:
+  UNE 5 2245.01.01, one 300-mineral district in the year → −10 % = −2.5 minerals a month; a
+  1000-mineral zone → −8.3. Relative only: outposts, megastructures, terraforming, leaders, edicts,
+  resolutions, claims, resettlement.
+- **Empire size** (`empireSize()`): `empireSizeBreakdown()` (`#lib/empireSize.ts`) from `sizeInputs()`
+  (`server/empire.ts`, the empire tab's estimate). Four parts plus "all of it"
+  (`empire_size_mult`), scaled to the save's size above the floor. What a change does to tech
+  and tradition cost (+0.2 % a point above 100) and agenda cost (+0.1 %): `sizeCostChange()`.
+  UNE 5 at 146: −10 % from pops = −3.9 → tech cost −0.7 %.
+- **Tradition cost** on the next tradition in Upcoming (floor `TRADITION_COST_MIN` 0.25, not
+  applied); **naval capacity** (`country_naval_cap_mult`) on the companion mod's `sdash_nc`,
+  relative without it.
+- **Not piles, so not here:** districts, envoys, starbase and edict capacity, ascension perks,
+  `country_naval_cap_add` (flat). `bonus_pop_growth_mult` multiplies the flat Bonus Pop Growth
+  (clone vats, assemblers; the Budding trait's text: "stacks with other sources of Bonus Pop Growth"), not
+  logistic growth. Where the save books it is not established yet, so it is left out.
+- **Not yet:** ship combat (fire rate, damage, hull, armor, shields: no fleet power to apply them
+  to), habitability, housing, crime, amenities usage, diplomatic weight, ethic attraction.
+- Open: check 36 in `docs/open-checks.md`.
 
 **Jobs tab and the shared values** (`/jobs`, `#lib/unitCosts.ts` pure, `server/unitCosts.ts`; the
 user's asks 2026-10-22: "normalised costs for everything we produce" and "how well does each job

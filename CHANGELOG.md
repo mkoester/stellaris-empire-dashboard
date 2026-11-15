@@ -14,6 +14,10 @@ All notable changes to this project are documented here. The format follows
   happiness and amenities, and every build speed, it lists the bonuses that hold now. Pick a
   typical value from the game data, or enter your own, to see the change in resources a month, pops
   or days.
+- The bonuses tab also covers job efficiency (extra workforce, its own pile that multiplies with
+  output, measured per job from the save, upkeep included), output of stations, starbases and the
+  strata outside jobs, construction costs (a year of what was paid), empire size with what it does
+  to tech, tradition and agenda cost, tradition cost, naval capacity and council agenda speed.
 
 ## [0.1.16] - 2026-11-14
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { impact, realGain } from '#lib/bonusPiles.ts';
+	import { impact, realGain, sizeCostChange } from '#lib/bonusPiles.ts';
 	import { colorOf } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import type { Card } from '#lib/server/bonusPiles.ts';
@@ -76,7 +76,7 @@
 	);
 	const days = (n: number) => `${n <= 0 ? '−' : '+'}${fmt(Math.abs(n))} days`;
 	const amount = (res: string, n: number) =>
-		`${signed(n)} ${res === 'pops' ? 'pops' : pretty(res)} ${card.measure}`;
+		`${signed(n)} ${res === 'pops' ? 'pops' : pretty(res)}${card.measure ? ` ${card.measure}` : ''}`;
 </script>
 
 <div class="rounded border border-gray-200 p-2 dark:border-gray-800">
@@ -115,7 +115,8 @@
 		>
 			{#each card.presets as p, i (i)}
 				<option value={String(i)}
-					>{val(p.value)}{p.target ? ` ${pretty(p.target)}` : ''} — e.g. {p.example}{p.count > 1
+					>{val(p.value)}{p.target ? ` ${pretty(p.target.replace(/^(job|cat):/, ''))}` : ''} — e.g. {p.example}{p.count >
+					1
 						? ` (${p.count} sources)`
 						: ''}</option
 				>
@@ -143,6 +144,22 @@
 				{/each}
 			{/if}
 		</p>
+		{#if card.follow && result.totals.empire_size}
+			{@const f = card.follow}
+			{@const d = result.totals.empire_size}
+			<p class="text-sm tabular-nums">
+				{#if f.size <= f.base && f.size + d <= f.base}
+					<span class="text-gray-500"
+						>No cost effect: size {fmt(f.size)} stays under {f.base}, where costs start to grow.</span
+					>
+				{:else}
+					{f.penalties
+						.map((pen) => `${pen.label} ${pct(sizeCostChange(f.size, d, f.base, pen.per))}`)
+						.join(' · ')}
+					<span class="text-xs text-gray-500">(size {fmt(f.size)})</span>
+				{/if}
+			</p>
+		{/if}
 		{#if !result.each.length}
 			<p class="text-xs text-gray-500">Nothing it reaches right now.</p>
 		{:else if card.measure === 'days'}
@@ -155,7 +172,8 @@
 			<details class="text-xs">
 				<summary class="cursor-pointer text-gray-500">per part</summary>
 				<ul class="tabular-nums">
-					{#each result.each as p, i (i)}
+					<!-- a part it changes by less than 0.05 is left out -->
+					{#each result.each.filter((p) => p.change === null || Math.abs(p.change) >= 0.05) as p, i (i)}
 						<li>
 							{p.label}: {p.change === null ? pct(p.rel) : amount(p.resource ?? '', p.change)}
 						</li>

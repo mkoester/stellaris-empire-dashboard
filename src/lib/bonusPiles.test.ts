@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	categoryKey,
 	defaultPreset,
 	factor,
 	impact,
@@ -7,7 +8,8 @@ import {
 	partSum,
 	presets,
 	reaches,
-	realGain
+	realGain,
+	sizeCostChange
 } from './bonusPiles.ts';
 
 const only =
@@ -121,5 +123,38 @@ describe('defaultPreset', () => {
 		expect(defaultPreset([p(0.1, 1)], -1)).toBe(-1);
 		// a tie goes to the smaller: −15 % before a civic's −90 %
 		expect(defaultPreset([p(-0.9, 1), p(-0.15, 1)], -1)).toBe(1);
+	});
+});
+
+describe('sizeCostChange', () => {
+	it('counts only the points above the base', () => {
+		// 150 → 140: penalty 1.1 → 1.08
+		expect(sizeCostChange(150, -10, 100, 0.002)).toBeCloseTo(1.08 / 1.1 - 1);
+		expect(sizeCostChange(80, -10, 100, 0.002)).toBe(0);
+		expect(sizeCostChange(95, 10, 100, 0.002)).toBeCloseTo(0.01);
+	});
+});
+
+describe('categoryKey', () => {
+	const cats = {
+		planet_pops: 'planets',
+		planet_pops_organics: 'planet_pops',
+		planets: null,
+		country: null
+	};
+	const res = new Set(['food', 'influence']);
+	it('reads the longest category, then the resource', () => {
+		expect(categoryKey('planet_pops_upkeep_mult', 'upkeep', cats, res)).toEqual({
+			cat: 'planet_pops',
+			res: null
+		});
+		expect(categoryKey('planet_pops_organics_food_upkeep_mult', 'upkeep', cats, res)).toEqual({
+			cat: 'planet_pops_organics',
+			res: 'food'
+		});
+		expect(categoryKey('planets_cost_mult', 'upkeep', cats, res)).toBeNull();
+		expect(categoryKey('ships_upkeep_mult', 'upkeep', cats, res)).toBeNull();
+		// a category followed by anything but a resource is not that category's
+		expect(categoryKey('country_claim_influence_cost_mult', 'cost', cats, res)).toBeNull();
 	});
 });

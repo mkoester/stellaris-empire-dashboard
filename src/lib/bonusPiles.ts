@@ -109,7 +109,8 @@ const CHOICES = [
 
 /**
  * The typical values of a pile in the game data: every chosen source's unconditional modifier that
- * `match` takes, grouped by value and target, the `top` most common, by target and value. Each
+ * `match` takes, grouped by value and target, the `top` most common — those reaching everything
+ * first — sorted by target and value. Each
  * names one source that gives it, the earliest kind in `CHOICES` first (a tech before a building).
  */
 export function presets(
@@ -134,8 +135,14 @@ export function presets(
 			}
 		}
 	}
+	// the bonuses that reach everything first, then the targeted ones, each by how common
 	return [...by.values()]
-		.sort((a, b) => b.count - a.count || Math.abs(b.value) - Math.abs(a.value))
+		.sort(
+			(a, b) =>
+				Number(a.target !== null) - Number(b.target !== null) ||
+				b.count - a.count ||
+				Math.abs(b.value) - Math.abs(a.value)
+		)
 		.slice(0, top)
 		.sort((a, b) => (a.target ?? '').localeCompare(b.target ?? '') || a.value - b.value)
 		.map(({ value, target, example, count }) => ({ value, target, example, count }));
@@ -154,4 +161,33 @@ export function defaultPreset(list: Preset[], good: 1 | -1): number {
 			best = i;
 	});
 	return best;
+}
+
+/**
+ * What a change of empire size does to a cost that grows with it: +`per` for each point above
+ * `base` (EMPIRE_SIZE_TECH_COST_PENALTY and the like), as a share of the cost now.
+ */
+export function sizeCostChange(size: number, delta: number, base: number, per: number): number {
+	const penalty = (n: number) => 1 + Math.max(0, n - base) * per;
+	return penalty(size + delta) / penalty(size) - 1;
+}
+
+/**
+ * A `<category>_<side>_mult` or `<category>_<resource>_<side>_mult` key's category and resource:
+ * the longest category it starts with, followed by nothing or a resource; null for any other key
+ * (`country_claim_influence_cost_mult` is not the country's "claim_influence").
+ */
+export function categoryKey(
+	k: string,
+	side: string,
+	cats: Record<string, string | null>,
+	resources: Set<string>
+): { cat: string; res: string | null } | null {
+	const m = new RegExp(`^(\\w+)_${side}_mult$`).exec(k);
+	if (!m) return null;
+	if (m[1] in cats) return { cat: m[1], res: null };
+	const cat = Object.keys(cats)
+		.filter((c) => m[1].startsWith(`${c}_`) && resources.has(m[1].slice(c.length + 1)))
+		.sort((a, b) => b.length - a.length)[0];
+	return cat ? { cat, res: m[1].slice(cat.length + 1) } : null;
 }
