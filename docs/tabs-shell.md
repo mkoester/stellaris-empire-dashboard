@@ -124,7 +124,7 @@ the Pops (jobs) chart's `enslaved` line come from `Colony.speciesPops` (READER 5
 citizenship, `#lib/colonySpecies.ts` — **4.x has no slave stratum**: enslaved pops are `worker`,
 `specialist` or `civilian` (`slave_unemployment` only when jobless), so `employed` includes them),
 `map` (`/map`, the discovered galaxy, see below), `history` (below), `migration`, `expansion`
-(`/expansion`: the Expansion panel full-size, see below), `growth` (`/growth`, see below), `jobs` (`/jobs`, see below), `trade` (`/trade`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
+(`/expansion`: the Expansion panel full-size, see below), `growth` (`/growth`, see below), `jobs` (`/jobs`, see below), `bonuses` (`/bonuses`, what one more bonus is worth: `docs/tabs-economy.md`), `trade` (`/trade`, see below), `produce` (`/produce`, see below), `systems` (`/systems`, see below), `trade deals`
 (`/deals`: running and ended deals, their monthly resources, `#lib/deals.ts`), `market`
 (`/market`: prices over time and the standing orders, `#lib/market.ts`), `slave market`
 (`/slaves`, `#lib/slaveMarket.ts`: offers now and before, the mod's sales; shown where our policy

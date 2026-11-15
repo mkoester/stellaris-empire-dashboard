@@ -124,6 +124,50 @@ capital research +10 % (Pleased, `pop_pleased` +25 % workers and specialists, ne
 yet?), alloys and minerals more (flat building output?) — open check 31. "+10 % is" values one more bonus against the measured
 total (`realGain`).
 
+**Bonuses tab** (`/bonuses`; the user's ask 2026-11-15: "how big is the impact of a +x bonus
+to Y actually at this point in the game?"; `#lib/bonusPiles.ts` pure, `server/bonusPiles.ts`,
+`panels/BonusCard.svelte`). One card per pile. Each card shows the lines that hold now, a dropdown
+of typical values, "my own value…", and the result. Every pile works the same way: a bonus x
+changes what is measured now by (1 + pile + x) ÷ (1 + pile) (`factor()`), or by the inverse for
+a time a speed bonus shortens. −10 % upkeep on top of −20 % saves 12.5 %. A card's **parts** are
+what it acts on, each with its own pile and what is measured now (`base`; null: the change is shown
+relative only). A targeted bonus (an area, a resource, a ship size, a category) reaches only the
+parts that name it (`reaches()`).
+
+- **Presets** (`presets()`): every unconditional modifier the pile takes in the explanations of the
+  sources a player picks (tech, tradition, perk, civic, edict, policy, agenda, ethic, origin,
+  authority, resolution, trait, building, designation; static modifiers left out as one-offs). They
+  are ranked by how many sources give a value, the top 6 kept, each naming one source as an
+  example. The one shown first (`defaultPreset()`) is the most common one that helps (negative for
+  cost and upkeep), and the smaller on a tie.
+- **Research**: speed and cost from `researchBonuses()` (the tech tab's piles). Days are what is
+  left on the tech in progress (its due date in Upcoming). Without one the change is relative.
+- **Job output per resource**, research included (in the Research group): `outputModel()`, one part
+  per job on each colony. Its base is its share of the colony's booked output (`output ÷
+predicted`), its pile the colony's measured total (else counted), its targets its economic
+  category chain. So `planet_researchers_produces_mult` reaches researchers only. Checked
+  against the jobs tab's panel (2026-11-15, KhellZen 2210.01.01: food 101 at ×2.10, +10 % = +4.8).
+- **Upkeep by economic category**: `<category>_upkeep_mult` and `<category>_<resource>_upkeep_mult`
+  reach the category and every one below it, as output does (common/economic_categories README).
+  Budget sources are categories, so their expenses are the parts. There is one card per category
+  that has an upkeep bonus in the game data and expenses under it. The pile counts
+  `empireSources()` only: not a building's or a planet's own, nor the penalty over naval or
+  starbase capacity, so it carries ≈. No floor on upkeep mults in the defines; `TECH_COST_MIN`
+  (0.25) and `TRADITION_COST_MIN` exist but are not applied here.
+- **Pops**: `logistic_growth_mult` and `planet_pop_assembly_mult` on each colony's measured growth
+  and assembly (`growthData()`). The pile counts only the empire-wide sources, while the measured
+  rate holds every modifier, so it carries ≈.
+- **Wellbeing**: `planet_stability_add`, `pop_happiness` (not for a gestalt), `planet_amenities_add`
+  and `_mult` are flat, not a pile. They run through `whatIf()` (the colony what-ifs' chain), in the
+  page for any value.
+- **Speed**: buildings, ships (`starbase_shipyard_build_speed_mult`, plus a size's
+  `shipsize_<size>_build_speed_mult` and its class's `shipclass_<class>_build_speed_mult`), starbase
+  upgrades and modules, armies, blockers, megastructures, terraforming, colony development, planet
+  decisions and excavation. What is queued now uses its base days (`GameData.buildDays`); otherwise
+  the change of the time. Whether `progress_needed` already holds the speed is not known, so the
+  queue's own numbers are not used. Open: the in-game check of a ship's upkeep and a building's
+  time against the game's tooltips.
+
 **Jobs tab and the shared values** (`/jobs`, `#lib/unitCosts.ts` pure, `server/unitCosts.ts`; the
 user's asks 2026-10-22: "normalised costs for everything we produce" and "how well does each job
 perform on each colony, which colonies should be specialised"):

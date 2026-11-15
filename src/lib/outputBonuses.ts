@@ -89,5 +89,28 @@ export function jobOutput(
 	};
 }
 
-/** What one more bonus is really worth on top of a pile that sums to `sum`. */
-export const realGain = (bonus: number, sum: number) => bonus / (1 + sum);
+export { realGain } from './bonusPiles.ts';
+
+/**
+ * Each source once over a set of jobs (one colony's, or every colony's, for one resource): an add
+ * as written (per 100 workforce of its job), a mult weighted by its jobs' share of `base`, the
+ * output before multipliers. Biggest first.
+ */
+export function sourceTotals(
+	jobs: { workforce: number; base: number; add: number; lines: OutputLine[] }[],
+	base: number
+) {
+	const by = new Map<string, { name: string; kind: OutputLine['kind']; value: number }>();
+	for (const j of jobs) {
+		const w = base ? ((j.workforce / 100) * (j.base + j.add)) / base : 0;
+		for (const l of j.lines) {
+			const k = `${l.kind}:${l.ref}:${l.name}`;
+			const was = by.get(k) ?? { name: l.name, kind: l.kind, value: 0 };
+			by.set(k, {
+				...was,
+				value: l.kind === 'add' ? l.value * l.share : was.value + l.value * l.share * w
+			});
+		}
+	}
+	return [...by.values()].sort((a, b) => b.value - a.value);
+}

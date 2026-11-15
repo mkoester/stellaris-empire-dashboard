@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- A **bonuses** tab: what one more bonus is really worth at this point in the game. Bonuses of a
+  kind add up, so +10 % on top of +50 % is only +6.7 %. For research speed and cost, job output
+  per resource (research included), upkeep by category, pop growth and assembly, stability,
+  happiness and amenities, and every build speed, it lists the bonuses that hold now. Pick a
+  typical value from the game data, or enter your own, to see the change in resources a month, pops
+  or days.
+
 ## [0.1.16] - 2026-11-14
 
 ### Fixed

@@ -161,7 +161,7 @@ Each tab's notes are in one of these; read the one for the tab before working on
 - `docs/tabs-planner.md`: planner, trade-offs.
 - `docs/tabs-empire.md`: colonies, habitability, expansion, settle down / embark, milestones,
   council, government, nomads, situations, focus, traditions, tech, leaders, species, contacts.
-- `docs/tabs-economy.md`: trade, growth, pops charts, growth projection, job output bonuses, jobs,
+- `docs/tabs-economy.md`: trade, growth, pops charts, growth projection, job output bonuses, bonuses, jobs,
   produce, influence, contracts.
 - `docs/tabs-ethics.md`: ethics.
 - `docs/tabs-galaxy.md`: galaxy, subjects, history, map rings, fleets, starbases, systems, system

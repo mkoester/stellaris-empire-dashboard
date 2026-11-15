@@ -63,6 +63,11 @@
 			active: path === '/jobs'
 		},
 		{
+			name: 'bonuses',
+			href: node ? resolve(`/bonuses?node=${node}`) : resolve('/bonuses'),
+			active: path === '/bonuses'
+		},
+		{
 			name: 'produce',
 			href: node ? resolve(`/produce?node=${node}`) : resolve('/produce'),
 			active: path === '/produce'

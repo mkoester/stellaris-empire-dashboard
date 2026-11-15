@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { colorOf } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
-	import { realGain } from '#lib/outputBonuses.ts';
+	import { realGain, sourceTotals } from '#lib/outputBonuses.ts';
 	import type { outputModel } from '#lib/server/outputModel.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
@@ -16,23 +16,7 @@
 	const pct = (n: number) => `${n >= 0 ? '+' : '−'}${fmt(Math.abs(n) * 100)} %`;
 	// the multiplier one more +10 % works against: the measured one where there is one
 	const total = (r: Row) => r.measured ?? r.counted;
-	// each source once per resource, summed over the jobs it reaches, weighted by their base output
-	const lines = (r: Row) => {
-		const by = new Map<string, { name: string; kind: string; value: number }>();
-		for (const j of r.jobs) {
-			const w = r.base ? ((j.workforce / 100) * (j.base + j.add)) / r.base : 0;
-			for (const l of j.lines) {
-				const k = `${l.kind}:${l.ref}:${l.name}`;
-				const was = by.get(k) ?? { name: l.name, kind: l.kind, value: 0 };
-				// an add is per 100 workforce of its job: shown as written; a mult by its jobs' weight
-				by.set(k, {
-					...was,
-					value: l.kind === 'add' ? l.value * l.share : was.value + l.value * l.share * w
-				});
-			}
-		}
-		return [...by.values()].sort((a, b) => b.value - a.value);
-	};
+	const lines = (r: Row) => sourceTotals(r.jobs, r.base);
 	const columns: Column<Row>[] = [
 		{ id: 'resource', label: 'Resource', value: (r) => r.resource, cell: resource },
 		{ id: 'booked', label: 'Output', value: (r) => r.booked, cell: booked, right: true },
