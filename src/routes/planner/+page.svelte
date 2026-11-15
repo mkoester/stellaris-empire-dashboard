@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
+	import { keepList, recallList } from '#lib/browserStore.ts';
 	import { colorOf, tintColor } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
@@ -86,20 +88,12 @@
 	// research areas shown (per viewer); none picked: all
 	const AREA_KEY = 'planner:areas';
 	let areas = $state<string[]>([]);
-	$effect(() => {
-		try {
-			areas = JSON.parse(localStorage.getItem(AREA_KEY) ?? '[]');
-		} catch {
-			areas = [];
-		}
+	onMount(() => {
+		areas = recallList(AREA_KEY);
 	});
 	function toggleArea(a: string) {
 		areas = areas.includes(a) ? areas.filter((x) => x !== a) : [...areas, a];
-		try {
-			localStorage.setItem(AREA_KEY, JSON.stringify(areas));
-		} catch {
-			/* storage blocked: the filter lasts for the page */
-		}
+		keepList(AREA_KEY, areas);
 	}
 	const inArea = (r: { area?: string | null }) =>
 		!areas.length || !r.area || areas.includes(r.area);
@@ -155,20 +149,12 @@
 	// --- groups: folding (per viewer), dragging ------------------------------------------------
 	const FOLD_KEY = 'planner:folded';
 	let folded = $state<string[]>([]);
-	$effect(() => {
-		try {
-			folded = JSON.parse(localStorage.getItem(FOLD_KEY) ?? '[]');
-		} catch {
-			folded = [];
-		}
+	onMount(() => {
+		folded = recallList(FOLD_KEY);
 	});
 	function fold(id: string) {
 		folded = folded.includes(id) ? folded.filter((x) => x !== id) : [...folded, id];
-		try {
-			localStorage.setItem(FOLD_KEY, JSON.stringify(folded));
-		} catch {
-			/* storage blocked: folding lasts for the page */
-		}
+		keepList(FOLD_KEY, folded);
 	}
 	let dragging = $state<{ group: string; id: string } | null>(null);
 	let over = $state<string | null>(null);

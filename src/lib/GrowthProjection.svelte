@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { keep, recall } from './browserStore.ts';
 	import Chart from './Chart.svelte';
 	import type { GrowthRow } from './growth.ts';
 	import { projectColony, sumProjections, type Defines } from './growthProjection.ts';
@@ -17,20 +18,12 @@
 	const HORIZONS = [10, 25, 50, 75, 100, 150, 200];
 	const KEY = 'growthProjectionYears';
 	onMount(() => {
-		try {
-			const stored = Number(localStorage.getItem(KEY));
-			if (HORIZONS.includes(stored)) years = stored;
-		} catch {
-			/* storage unavailable */
-		}
+		const stored = Number(recall(KEY));
+		if (HORIZONS.includes(stored)) years = stored;
 	});
 	const pick = (h: number) => {
 		years = h;
-		try {
-			localStorage.setItem(KEY, String(h));
-		} catch {
-			/* storage unavailable */
-		}
+		keep(KEY, String(h));
 	};
 
 	let focus = $state<number | null>(null); // a colony's planet id; null: all rows summed

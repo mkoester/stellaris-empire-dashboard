@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { keep, recall } from '../browserStore.ts';
 	import BuildingName from '../BuildingName.svelte';
 	import DistrictName from '../DistrictName.svelte';
 	import { nameOf } from '../format.ts';
@@ -26,23 +27,13 @@
 	} = $props();
 
 	const VIEW_KEY = 'colonyDistrictsView';
-	const stored = (): 'layout' | 'table' => {
-		try {
-			return localStorage.getItem(VIEW_KEY) === 'table' ? 'table' : 'layout';
-		} catch {
-			return 'layout';
-		}
-	};
+	const stored = (): 'layout' | 'table' => (recall(VIEW_KEY) === 'table' ? 'table' : 'layout');
 	// the server renders the default; the viewer's choice is read once in the browser
 	let view = $state<'layout' | 'table'>('layout');
 	onMount(() => (view = stored()));
 	const pick = (v: 'layout' | 'table') => {
 		view = v;
-		try {
-			localStorage.setItem(VIEW_KEY, v);
-		} catch {
-			// private window or blocked storage: the choice lasts for this page only
-		}
+		keep(VIEW_KEY, v);
 	};
 
 	type Row = {
