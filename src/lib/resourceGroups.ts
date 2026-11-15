@@ -32,9 +32,11 @@ export function splitByGroup(flows: Resources): { name: string; flows: Resources
 	})).filter((g) => Object.keys(g.flows).length > 0);
 }
 
-// The Resources strip's order: basic and advanced first, unity and influence last, the rest
-// (strategic, rare, mod resources) alphabetically between. Research has its own chart.
+// The Resources strip's order: basic and advanced first, then the strategic ones (motes, gases,
+// crystals), the rest (rare, mod resources) alphabetically, unity and influence last. Research has
+// its own chart.
 const STRIP_FIRST = ['energy', 'minerals', 'food', 'consumer_goods', 'alloys', 'trade'];
+const STRATEGIC = GROUPS.find((g) => g.name === 'strategic')!.keys;
 const STRIP_LAST = ['unity', 'influence'];
 const RESEARCH = ['physics_research', 'society_research', 'engineering_research'];
 
@@ -46,6 +48,14 @@ export function stripOrder(keys: string[]): string[] {
 	const first = keys.includes(RESERVES)
 		? [RESERVES, ...STRIP_FIRST.filter((k) => k !== 'energy' && k !== 'minerals')]
 		: STRIP_FIRST;
-	const skip = new Set([...STRIP_FIRST, RESERVES, ...STRIP_LAST, ...RESEARCH]);
-	return [...first, ...[...new Set(keys)].filter((k) => !skip.has(k)).sort(), ...STRIP_LAST];
+	const skip = new Set([...STRIP_FIRST, RESERVES, ...STRATEGIC, ...STRIP_LAST, ...RESEARCH]);
+	return [
+		...first,
+		...STRATEGIC.filter((k) => keys.includes(k)),
+		...[...new Set(keys)].filter((k) => !skip.has(k)).sort(),
+		...STRIP_LAST
+	];
 }
+
+/** The strip's first row: basic and advanced resources (or a nomad's reserves); the rest go below. */
+export const inFirstRow = (key: string) => key === RESERVES || STRIP_FIRST.includes(key);

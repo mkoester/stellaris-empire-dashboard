@@ -43,9 +43,9 @@ const RESOURCES = [
 	'engineering_research',
 	'unity',
 	'trade',
-	'rare_crystals',
 	'volatile_motes',
-	'exotic_gases'
+	'exotic_gases',
+	'rare_crystals'
 ];
 // job and district words that stand for a resource
 const WORDS: [RegExp, string][] = [

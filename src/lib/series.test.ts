@@ -398,8 +398,8 @@ describe('resourceKeys', () => {
 			'consumer_goods',
 			'alloys',
 			'trade',
-			'exotic_gases',
 			'volatile_motes',
+			'exotic_gases',
 			'unity',
 			'influence'
 		]);
