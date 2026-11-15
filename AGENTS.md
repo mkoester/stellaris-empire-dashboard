@@ -129,7 +129,8 @@ Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --t
 
 **How it works:** `watch.ts` polls the save folder (first what changed since the last run, in mtime order — the head campaign's at once, the others' in the background — then every 2 s;
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
-`zip.ts` and queries the gamestate with jomini → `db.ts` places the snapshot in the save graph via
+`zip.ts` and queries the gamestate with jomini (the readings by domain are in `server/save/`,
+re-exported by `save.ts`; `toSnapshot()` is handed the campaign's game data, never a global) → `db.ts` places the snapshot in the save graph via
 `timeline.ts` and records it → `/api/events` tells open pages to reload. In parallel, `feed.ts`
 follows `game.log` from its current end and turns the mod's monthly lines into partial snapshots
 (stockpile and net income) of the campaign being played.

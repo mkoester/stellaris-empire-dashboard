@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Security
+
+- The dashboard answers only under a local name (`localhost`, an IP address, a `.local` or
+  dot-less name): a website that points its own domain at your computer can no longer pass as the
+  dashboard and read or change it.
+- With `--lan`, other devices on your network can still look and change the view, but the game
+  folders and deleting a game's history can only be changed on the computer the dashboard runs on.
+
+### Fixed
+
+- A save or month that could not be stored completely is no longer stored in part: merging a save
+  into its month, and reading a save again, now happen in one step.
+- A prescripted empire (United Nations of Earth, Commonwealth of Man, …) could show under its
+  internal name ("EMPIRE DESIGN humans1") in contacts, diplomacy and the maps for the first save
+  read after a start, and other empires' names could come from another game's mods. Saves still on
+  disk are read again.
+- An error while reading a game's saves again in the background can no longer stop the dashboard.
+- Correcting a save's parent on the timeline refuses a save of another game.
+
 ## [0.1.17] - 2026-11-15
 
 ### Added

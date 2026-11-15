@@ -1,19 +1,34 @@
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, renameSync, utimesSync, writeFileSync } from 'node:fs';
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	renameSync,
+	utimesSync,
+	writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { deleteCampaign, headCampaign, headId, history, nodes, openDb } from './db.ts';
 import { campaignOf, watchSaves, type Ingested } from './watch.ts';
+import { NO_READING_DATA, readSave, type ReadingData } from './save.ts';
 
 // A tiny but real save: zip of meta + gamestate in the game's text format, parsed by jomini.
-function writeSave(dir: string, name: string, date: string, randomCount: number, energy: number) {
+function writeSave(
+	dir: string,
+	name: string,
+	date: string,
+	randomCount: number,
+	energy: number,
+	country = ''
+) {
 	const work = mkdtempSync(join(tmpdir(), 'sav-'));
 	writeFileSync(join(work, 'meta'), `name="Test Empire"\ndate="${date}"\n`);
 	writeFileSync(
 		join(work, 'gamestate'),
 		`date="${date}"\ntick=1\nrandom_count=${randomCount}\nplayer={ { name="me" country=0 } }\n` +
-			`country={ 0={ num_sapient_pops=100 controlled_colonies={ 0 }\n` +
+			`country={ 0={ ${country} num_sapient_pops=100 controlled_colonies={ 0 }\n` +
 			`  modules={ standard_economy_module={ resources={ energy=${energy} } } } } }\n` +
 			`colony={ 0={ num_sapient_pops=100 final_designation="col_capital" } }\n`
 	);
@@ -37,6 +52,18 @@ describe('campaignOf', () => {
 });
 
 describe('watchSaves', () => {
+	it('names prescripted empires with the game data it is handed, whatever was read before', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'saves-'));
+		// the countries are named while the file is read
+		const file = writeSave(root, 'a.sav', '2200.01.01', 1, 10, 'name={ key="PRESCRIPTED_x" }');
+		const named = { prescriptedNames: { PRESCRIPTED_x: 'United Nations of X' }, entryEvents: [] };
+		const name = async (data: ReadingData) =>
+			(await readSave(readFileSync(file), data)).countries['0'].name;
+		expect(await name(named)).toBe('United Nations of X');
+		expect(await name(NO_READING_DATA)).not.toBe('United Nations of X');
+		expect(await name(named)).toBe('United Nations of X');
+	});
+
 	it('backfills existing saves in mtime order, then ingests new ones as they appear', async () => {
 		const root = mkdtempSync(join(tmpdir(), 'saves-'));
 		const camp = join(root, 'empire_1');
@@ -63,7 +90,7 @@ describe('watchSaves', () => {
 			expect(history(db, head).map((s) => s.stockpile.energy)).toEqual([10, 20, 30]);
 			expect(errors).toEqual([]);
 		} finally {
-			stop();
+			await stop();
 		}
 	});
 
@@ -87,7 +114,7 @@ describe('watchSaves', () => {
 			await until(() => nodes(db).length === 1);
 			expect(errors).toEqual([]);
 		} finally {
-			stop();
+			await stop();
 		}
 	});
 
@@ -109,7 +136,7 @@ describe('watchSaves', () => {
 			expect(errors).toHaveLength(1);
 			expect(nodes(db)).toEqual([]);
 		} finally {
-			stop();
+			await stop();
 		}
 	});
 
@@ -129,7 +156,7 @@ describe('watchSaves', () => {
 				},
 				reader: 'r1'
 			});
-			w.stop();
+			await w.stop();
 			return seen;
 		};
 		expect(await run()).toHaveLength(2);
@@ -150,7 +177,7 @@ describe('watchSaves', () => {
 		const quiet = { onIngest: () => {}, onError: () => {} };
 		const w1 = await watchSaves(db, root, { ...quiet, reader: 'r1' });
 		await w1.catchUp();
-		w1.stop();
+		await w1.stop();
 		const head = headId(db);
 
 		const reread: string[] = [];
@@ -169,7 +196,7 @@ describe('watchSaves', () => {
 			expect(headId(db)).toBe(head); // a re-read is no observation
 			expect(await w.refreshCampaign('empire_1')).toBe(0);
 		} finally {
-			w.stop();
+			await w.stop();
 		}
 	});
 
@@ -192,6 +219,7 @@ describe('watchSaves', () => {
 			reader: (c) => `r1:${data[c]}`,
 			prepare: (c) => {
 				prepared.push(`${c}:${data[c]}`);
+				return NO_READING_DATA;
 			}
 		});
 		try {
@@ -208,7 +236,7 @@ describe('watchSaves', () => {
 			expect(await w.reread('empire_1')).toBe(0); // read with it now
 			expect(await w.reread('empire_2')).toBe(0); // another campaign's data is unchanged
 		} finally {
-			w.stop();
+			await w.stop();
 		}
 	});
 });
@@ -263,7 +291,7 @@ describe('starting with several campaigns', () => {
 			expect(middle.map((n) => n.parentId)).toEqual([null, middle[0].id]);
 			expect(w.onDisk()).toEqual(new Set(['oldest', 'played', 'middle']));
 		} finally {
-			w.stop();
+			await w.stop();
 		}
 	});
 
@@ -272,7 +300,7 @@ describe('starting with several campaigns', () => {
 		const db = openDb(':memory:');
 		const w1 = await watchSaves(db, root, quiet);
 		await w1.catchUp();
-		w1.stop();
+		await w1.stop();
 		const before = nodes(db).length;
 		expect(headCampaign(db)).toBe('played');
 		// meanwhile the player went on in `oldest`, then in `played`, then in `middle`
@@ -294,7 +322,7 @@ describe('starting with several campaigns', () => {
 			expect(nodes(db).length).toBe(before + 3);
 			expect(headCampaign(db)).toBe('played');
 		} finally {
-			w.stop();
+			await w.stop();
 		}
 	});
 
@@ -318,7 +346,7 @@ describe('starting with several campaigns', () => {
 			await w.catchUp((c) => order.push(c));
 			expect(order).toEqual(['middle']); // nothing of `oldest` left
 		} finally {
-			w.stop();
+			await w.stop();
 		}
 	});
 
@@ -327,14 +355,14 @@ describe('starting with several campaigns', () => {
 		const db = openDb(':memory:');
 		const w1 = await watchSaves(db, root, { ...quiet, reader: 'r1' });
 		await w1.catchUp();
-		w1.stop();
+		await w1.stop();
 		deleteCampaign(db, 'oldest');
 		const w = await watchSaves(db, root, { ...quiet, reader: 'r2' });
 		try {
 			await w.catchUp();
 			expect(campaigns(db).sort()).toEqual(['middle', 'played']);
 		} finally {
-			w.stop();
+			await w.stop();
 		}
 	});
 });

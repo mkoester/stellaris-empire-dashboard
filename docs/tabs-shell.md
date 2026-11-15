@@ -283,13 +283,16 @@ with the game's map yet (`docs/open-checks.md` 27).
 The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
 panels by id (`EmpirePanel.svelte`);
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
-goes there and into `EmpirePanel`**. Settings are stored server-side in the `setting` table
+goes there and into `EmpirePanel`**. **A new profile setting is a key of `ProfileSettings` with its
+default and its parser in `SETTING_PARSERS`** (`#lib/profiles.ts`): the API, the stored profile and
+`setting('<key>')` on the server all follow from that table. Settings are stored server-side in the `setting` table
 (`PUT /api/settings`), which no migration touches. The theme (`system`/`light`/`dark`)
 is global; everything else (custom tabs, chart events, the colonies and expansion views, display options) lives
 in a **profile** (`#lib/profiles.ts`, `server/settings.ts`): rows `profiles`, `profile:<id>`,
 `activeProfile`, `campaignProfiles`. The profile in use is the **viewed** campaign's — the
-`?node=` one, else the head's (`viewedCampaign()`, via `getRequestEvent()`; API calls carry the
-page's `?node=`, `api()` in `#lib/settings.ts`) — else the last picked; picking one makes it the
+`?node=` one, else the head's (`campaignAt()`; the settings getters take the node from the request
+being answered, `requestedNode()` in `server/request.ts`, the one place that reads it unasked; API
+calls carry the page's `?node=`, `api()` in `#lib/settings.ts`) — else the last picked; picking one makes it the
 viewed campaign's. **Campaigns** (one per save folder) switch in the header's `game` dropdown,
 shown from two on: each is its tip node (`campaignTips()` in `#lib/timeline.ts`: the head for the
 one being played, else its last observed node), named after its latest save's empire

@@ -44,6 +44,21 @@ export default defineConfig(
 		}
 	},
 	{
+		// The two rules that need the types, for the code that runs unattended. A promise nobody
+		// waits for or catches ends the process when it rejects (Node's default); a `switch` over a
+		// union that misses a member does nothing for it, silently.
+		files: ['src/**/*.ts'],
+		ignores: ['**/*.svelte.ts'],
+		languageOptions: { parserOptions: { projectService: true } },
+		rules: {
+			'@typescript-eslint/no-floating-promises': 'error',
+			'@typescript-eslint/switch-exhaustiveness-check': [
+				'error',
+				{ considerDefaultExhaustiveForUnions: true }
+			]
+		}
+	},
+	{
 		// Override or add rule settings here, such as:
 		// 'svelte/button-has-type': 'error'
 		rules: {}

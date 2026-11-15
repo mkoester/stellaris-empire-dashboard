@@ -175,7 +175,7 @@ entering a system fires — the events of `on_entering_system_first_time`, `on_e
 `on_entering_system_fleet` that test star flags on the system (73 in 4.5.3: guardians, ruined
 megastructures, gateways, Helito's "Missing Orbitals" on `on_entering_system_fleet`, …). The save
 keeps star flags from galaxy generation (`galactic_object.<id>.flags`), so `systemEntries()`
-(`save.ts`, the events set at start by `setEntryEvents()`) lists the systems we entered
+(`save/country.ts`, handed the campaign's events by `toSnapshot()`'s `ReadingData`) lists the systems we entered
 (`visited_objects` and our own) whose flags match one — all of its flags, one of its `OR` flags,
 none forbidden (`entryEventsFor()`) — as `Snapshot.entryEvents` (READER 37). **A once-per-empire
 popup** (`once_flag`: the trigger wants a country flag unset, the event sets it — apoc.1

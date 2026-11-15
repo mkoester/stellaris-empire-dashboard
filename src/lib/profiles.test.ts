@@ -5,8 +5,12 @@ import {
 	DEFAULT_SETTINGS,
 	exportFile,
 	importFile,
+	parsePatch,
 	parseProfiles,
 	parseSettings,
+	parseStringMap,
+	parseStrings,
+	SETTING_PARSERS,
 	uniqueName
 } from './profiles.ts';
 
@@ -31,6 +35,33 @@ describe('parseSettings', () => {
 		expect(s.tabs).toEqual([{ id: 't1', name: 'mine', header: false, panels: ['jobs'] }]);
 		expect(s.display.colonyRowLine).toBe('thick');
 		expect(s.colonyView).toEqual({ ...DEFAULT_VIEW, mode: 'sector' });
+	});
+});
+
+describe('parsePatch', () => {
+	it('reads the settings named, and only those', () => {
+		expect(parsePatch({})).toEqual({});
+		expect(parsePatch(null)).toEqual({});
+		expect(parsePatch({ colonyView: { mode: 'sector' }, theme: 'dark', nope: 1 })).toEqual({
+			colonyView: { ...DEFAULT_VIEW, mode: 'sector' }
+		});
+	});
+	it('names the first setting that cannot be read', () => {
+		expect(parsePatch({ tabs: 'x' })).toEqual({ malformed: 'tabs' });
+		expect(parsePatch({ display: {}, chartEvents: [] })).toEqual({ malformed: 'chartEvents' });
+	});
+	it('knows every setting of a profile', () => {
+		expect(Object.keys(SETTING_PARSERS).sort()).toEqual(Object.keys(DEFAULT_SETTINGS).sort());
+	});
+});
+
+describe('stored lists and maps', () => {
+	it('drops what is not a string', () => {
+		expect(parseStrings(['a', 1, null, 'b'])).toEqual(['a', 'b']);
+		expect(parseStrings({ a: 1 })).toEqual([]);
+		expect(parseStringMap({ c1: 'p1', c2: 2 })).toEqual({ c1: 'p1' });
+		expect(parseStringMap(['p1'])).toEqual({});
+		expect(parseStringMap(undefined)).toEqual({});
 	});
 });
 
