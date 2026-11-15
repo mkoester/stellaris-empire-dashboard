@@ -217,6 +217,9 @@
 				title="The save cannot confirm all conditions">conditions uncertain</span
 			>{/if}
 		<WhatIfLine what={row.what} label="if changed now" showSmall emptyLabel="no modelled change" />
+		{#if row.rule}<span class="text-xs text-green-700 dark:text-green-500" title="a rule of thumb"
+				>recommended: {row.rule}</span
+			>{/if}
 		{#if row.kind === 'policy'}<span class="text-xs text-amber-600"
 				>then locked for {POLICY_YEARS} years</span
 			>{/if}
