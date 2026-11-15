@@ -355,6 +355,8 @@ export function councilSeats(
 			...r,
 			council,
 			classes: data.councilPositions[r.key]?.classes ?? [],
+			// which of the seat's classes holds it now (the ruler's seat takes several); null unknown
+			leaderClass: s.leaderRoster?.find((l) => l.id === r.leaderId)?.class ?? null,
 			// per level, and what that gives at the councilor level
 			effects: perLevel.map((m, i) => ({ perLevel: m, now: atLevel(perLevel, council)[i] })),
 			// the leader's traits while on the council (flat, not per level)

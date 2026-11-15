@@ -3,6 +3,7 @@ import {
 	agendaRows,
 	atLevel,
 	councilorBonus,
+	councilSeats,
 	launchDates,
 	edictRows,
 	factionRows,
@@ -232,6 +233,30 @@ describe('council seats', () => {
 			['councilor_ruler_democratic', 3, true],
 			['councilor_defense', 2, false]
 		]);
+	});
+
+	it('names the class of the leader holding a seat, from the roster', () => {
+		const s = {
+			...snap,
+			ruler: { id: 9, name: 'Ruler', level: 3 },
+			council: [
+				{ type: 'councilor_defense', leaderId: 1, leaderName: 'Eileen', leaderLevel: 2 },
+				{ type: 'councilor_gestalt_legion', leaderId: 2, leaderName: 'Gone', leaderLevel: 1 }
+			],
+			leaderRoster: [
+				{ id: 9, name: 'Ruler', class: 'commander' },
+				{ id: 1, name: 'Eileen', class: 'official' }
+			]
+		};
+		const rows = councilSeats(s, { councilPositions: positions, councilorSkill: {} }, {});
+		expect(rows.map((r) => r.leaderClass)).toEqual(['commander', 'official', null]);
+		expect(
+			councilSeats(
+				{ ...s, leaderRoster: null },
+				{ councilPositions: positions, councilorSkill: {} },
+				{}
+			)[0].leaderClass
+		).toBeNull();
 	});
 
 	it('scales the per-level modifiers', () => {

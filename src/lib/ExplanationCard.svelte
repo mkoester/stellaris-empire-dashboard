@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { formatModifierValue, modifierColor, modifierLabel } from './modifiers.ts';
+	import {
+		distinctModifiers,
+		formatModifierValue,
+		modifierColor,
+		modifierLabel
+	} from './modifiers.ts';
 	import type { Explanation, Modifier } from './types.ts';
 
 	let { explanation: e }: { explanation: Explanation } = $props();
@@ -7,7 +12,7 @@
 
 {#snippet list(mods: Modifier[])}
 	<ul class="space-y-0.5">
-		{#each mods as m, i (i)}
+		{#each distinctModifiers(mods) as m, i (i)}
 			<li class="flex items-baseline gap-1.5">
 				<span class="font-mono font-semibold {modifierColor(m)}">{formatModifierValue(m)}</span>
 				<span class="opacity-75">{modifierLabel(m)}</span>
