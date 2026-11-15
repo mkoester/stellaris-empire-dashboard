@@ -39,10 +39,11 @@ describe('antiCrime', () => {
 describe('crimeLords', () => {
 	it('takes criminal workforce past the unemployed, and enforcers for +50 % crime, from jobs', () => {
 		const e = crimeLords(colony);
-		expect(e.criminalsTaken).toBe(150);
+		// 200 + 3 per crime point at 25, less 50 unemployed
+		expect(e.criminalsTaken).toBe(225);
 		// 180 crime: 155 above 25 against 95 → 2.4 more jobs
 		expect(e.enforcersWith - e.enforcersWithout).toBeCloseTo(240);
-		expect(e.monthly.energy).toBeCloseTo(-0.05 * (150 + 240));
+		expect(e.monthly.energy).toBeCloseTo(-0.05 * (225 + 240));
 		expect(e.upkeep.consumer_goods).toBeCloseTo((4 * 240) / 400);
 	});
 	it('raises crime itself where it stays under the target', () => {
@@ -53,6 +54,8 @@ describe('crimeLords', () => {
 	});
 	it('takes no criminals from jobs where the unemployed fill them', () => {
 		expect(crimeLords({ ...colony, idle: 500 }).criminalsTaken).toBe(0);
+		// 12 crime → 18 under the deal: 254 criminals
+		expect(crimeLords({ ...colony, crime: 12, enforcers: 0, idle: 0 }).criminalsTaken).toBe(254);
 	});
 });
 

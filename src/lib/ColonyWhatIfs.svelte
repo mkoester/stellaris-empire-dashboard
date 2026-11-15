@@ -23,7 +23,7 @@
 		openJobs?: number; // the colony's open positions, workforce, for the pops automation frees
 	} = $props();
 
-	const CRIME_NOTE = `≈ valued at the enforcers it takes to hold crime at ${CRIME_TARGET}, what the game's crime automation holds (Criminal Underworld may appear from 30): an enforcer job takes 25 crime off, 35 during the campaign, which costs +2 energy each. Workforce no longer needed as enforcers is counted working open jobs at this colony's average net output; more enforcers come out of other jobs. Criminal jobs fill first and make nothing: their workforce comes from the unemployed, then from other jobs. Crime's own stability penalty is the same either way at the target; below it, it is not counted.`;
+	const CRIME_NOTE = `≈ valued at the enforcers it takes to hold crime at ${CRIME_TARGET}, what the game's crime automation holds (Criminal Underworld may appear from 30): an enforcer job takes 25 crime off, 35 during the campaign, which costs +2 energy each. Workforce no longer needed as enforcers is counted working open jobs at this colony's average net output; more enforcers come out of other jobs. Criminal jobs fill first and make nothing: their workforce comes from the unemployed, then from other jobs. Crime's own stability penalty is the same either way at the target; below it, it is not counted. Not counted either: the deal keeps the colony out of the yearly crime events (Criminal Underworld and what grows from it: −20 stability, −20 % output or trade for 10 years, killed pops, devastation), and ending it costs −10 stability for 5 years.`;
 </script>
 
 {#if (what && (what.designations.length || what.losing || what.decisions.length)) || automation?.options.length || automation?.barred === 'tankbound'}

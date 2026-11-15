@@ -158,10 +158,8 @@ export type DecisionWhatIf = {
 const ANTI_CRIME = 'decision_launch_anticrime_campaign';
 export const ANTI_CRIME_RULE = 'crime ≥ 10 and open jobs here';
 
-// the crime decisions' keys #lib/crime.ts models; the deal's criminals per crime point it cannot
-// (the unit is unmeasured)
-const PER_CRIME = 'job_criminal_per_crime';
-const CRIME_KEYS = new Set(['planet_crime_mult', 'job_criminal_add', PER_CRIME]);
+// the crime decisions' keys #lib/crime.ts models
+const CRIME_KEYS = new Set(['planet_crime_mult', 'job_criminal_add', 'job_criminal_per_crime']);
 
 /**
  * One colony's what-ifs: every designation of its family (`designationCandidates()`, ≈) and every
@@ -259,7 +257,7 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 			for (const [k, v] of Object.entries(b)) out[k] = (out[k] ?? 0) + v;
 			return Object.fromEntries(Object.entries(out).filter(([, v]) => Math.abs(v) > 1e-9));
 		};
-		const modelled = Object.keys(mods).filter((k) => CRIME_KEYS.has(k) && k !== PER_CRIME);
+		const modelled = Object.keys(mods).filter((k) => CRIME_KEYS.has(k));
 		return priced(
 			{
 				...w,
@@ -268,7 +266,6 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 				modelled: [...w.modelled, ...modelled].sort(),
 				unmodelled: [
 					...w.unmodelled,
-					...(PER_CRIME in mods ? [PER_CRIME] : []),
 					...(Math.abs(e.crimeWith - e.crimeWithout) > 0.05 ? ['crime_stability_penalty'] : [])
 				].sort()
 			},

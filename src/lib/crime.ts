@@ -9,7 +9,7 @@ import type { Resources } from './types.ts';
 //   costs each +2 energy (`job_enforcer_additional_modifiers.txt`, `anticrime_campaign`): 1/25 −
 //   1/35 of a job fewer per crime point, workforce that can fill open jobs.
 // - the Crime Lords deal (`crime_lord_deal`): +10 stability, crime +50 % (enforcers to match),
-//   +200 criminal workforce and more per crime point. Criminal jobs are filled before others and
+//   +200 criminal workforce and 3 more per crime point. Criminal jobs are filled before others and
 //   make nothing, so they take that workforce from the unemployed first, then from other jobs.
 
 // What the game's crime automation holds (`automate_crime_management`: +10 enforcer workforce
@@ -19,6 +19,9 @@ export const ENFORCER_CRIME = 25; // crime one enforcer job takes off
 export const CAMPAIGN_CRIME = 10; // more, during the campaign
 export const ENFORCER_STABILITY = 0.2;
 export const CRIME_LORDS_CRIMINALS = 200; // workforce (`job_criminal_add`)
+// `job_criminal_per_crime = 0.03`: jobs per crime point, so 3 workforce — the wiki's "+100
+// Criminal jobs per 33 Crime" (Crime page, verified for 4.5)
+export const CRIMINALS_PER_CRIME = 3;
 export const CRIME_LORDS_CRIME_MULT = 0.5;
 
 export type CrimeColony = {
@@ -94,7 +97,8 @@ export function crimeLords(c: CrimeColony): CrimeEffect {
 	const g = gross(c);
 	const more =
 		toTarget(g * (1 + CRIME_LORDS_CRIME_MULT), ENFORCER_CRIME) - toTarget(g, ENFORCER_CRIME);
-	const taken = Math.max(0, CRIME_LORDS_CRIMINALS - c.idle);
+	const crimeWith = Math.min(g * (1 + CRIME_LORDS_CRIME_MULT), CRIME_TARGET);
+	const taken = Math.max(0, CRIME_LORDS_CRIMINALS + CRIMINALS_PER_CRIME * crimeWith - c.idle);
 	return {
 		monthly: moved(c, -(taken + more)),
 		upkeep: enforcerUpkeep(c, more),
@@ -102,7 +106,7 @@ export function crimeLords(c: CrimeColony): CrimeEffect {
 		enforcersWithout: toTarget(g, ENFORCER_CRIME),
 		enforcersWith: toTarget(g * (1 + CRIME_LORDS_CRIME_MULT), ENFORCER_CRIME),
 		crimeWithout: Math.min(g, CRIME_TARGET),
-		crimeWith: Math.min(g * (1 + CRIME_LORDS_CRIME_MULT), CRIME_TARGET),
+		crimeWith,
 		criminalsTaken: taken
 	};
 }
