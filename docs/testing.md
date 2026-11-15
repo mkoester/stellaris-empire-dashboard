@@ -7,6 +7,20 @@ How to check a change end to end on a DB copy, replay a live month, read a save 
 4.0.1 save fails one); for an ad-hoc look at any save, a throwaway `src/lib/server/*.test.ts`
 calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — delete it after.
 
+**A change to the save reader that must not change its output is checked on real saves, old tree
+against new** (2026-11-15, the split of `save.ts`): `git archive develop src package.json | tar -x`
+into `$TMPDIR` with `node_modules` linked, then one Node script per tree that imports
+`src/lib/server/save.ts` and `gamedata.ts` (Node runs the `.ts` files as they are), reads the same
+saves with `loadGameData(<data DB>)` and writes each snapshot's JSON; `diff` them. Read each save
+alone _and_ after another: that comparison is what showed the old reader's names following the
+save read before, which no unit test could see (each sets its own state).
+
+**Tests of a server module that reads the process-wide state** (`getDb()`, `getGameData()`) set
+`globalThis.__stellarisDashboard` before a dynamic `import()` of the module — `planner.test.ts` is
+the pattern, with an in-memory DB and only the game data fields its goals read. This is also why
+vitest keeps one worker per file (`isolate`, its default): with shared workers that state would
+leak between test files.
+
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
 dev server ingests saves and moves the head). On the Linux game machine the one in use is
 `~/.local/share/stellaris-empire-dashboard-test/` (every campaign, the nomad Roaming Korinth

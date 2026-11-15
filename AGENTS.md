@@ -95,7 +95,10 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   new field stays at its `upgrade()` default until the save changes. **Two branches bump it
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
-  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40.
+  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
+  2026-11-15: `develop` and `feature/highway` both have 57** (prescripted names; the Ancient Highway
+  mod) — that merge takes 58, and conflicts in `save.ts`'s import block only (the highway's
+  `readHighway`/`unclaimable` import and one `world.ts` name).
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
   only — a released step has run on players' DBs). The version is SQLite's `user_version` (0.1.0's
   `state.schema = '15'` is taken over as 15); a new DB is the 0.1.0 tables plus every step, so each
@@ -114,7 +117,10 @@ console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
 
 Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`,
 `node_modules/.bin/vitest run`, `node_modules/.bin/prettier --check . && node_modules/.bin/eslint .`
-(why not `pnpm <script>`: "Sandbox notes").
+(why not `pnpm <script>`: "Sandbox notes"). ESLint reads the types for `src/**/*.ts` (floating
+promises, `switch` exhaustiveness) and takes about 35 s. **A promise started and left alone needs a
+`.catch`** — a rejection nobody handles ends the Node process — and a `switch` over a union names
+every member.
 
 - The procedure on a DB copy, replaying a live month, the real-save test, reading a save ad hoc,
   the throwaway games and their console commands ("Testing in a throwaway game"): `docs/testing.md`.
