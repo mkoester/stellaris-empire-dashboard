@@ -574,6 +574,20 @@ Recycling Campaign ≈ +2.1 consumer goods for 15 energy (base, no edict active)
 - **Send:** the screenshots before and after, and the date. Check: the pops' consumer goods upkeep
   fell by the estimate; the edict's upkeep in the budget against "pays".
 
+### 38. Crime decisions — colony what-ifs, recommendations (from 2026-11-15)
+
+**Assumed**: crime before enforcers = crime + 25 per enforcer job (an upper bound at crime 0);
+`planet_crime_mult` scales that gross crime; freed enforcer workforce works open jobs at the
+colony's average net output; criminal jobs fill from the unemployed first. Only the save checked:
+Selborne (Roaming Cyber Gang, 2210.10.20), crime 22.4, 0.36 enforcer jobs.
+
+- **Do:** on a colony with crime well above 25 (throwaway game, `effect add_modifier = { modifier
+= crime_wave days = 3600 }` on the planet), note both decisions' what-if lines; take the
+  campaign, let a month pass, lower the enforcer jobs' priority until crime sits near 25.
+- **Send:** the colony's crime, enforcer and criminal jobs and stability tooltip before and after.
+  Check: enforcer jobs needed against "hold it at 25"; the stability tooltip's crime line (the
+  engine-side penalty nothing in the files gives).
+
 ### 14. Storage, computed — resources panel (open task, 2026-10-24)
 
 Without companion mod 0.5.0 the resources panel's storage is ≈ the base. Compute it instead, with a

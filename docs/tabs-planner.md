@@ -146,7 +146,7 @@ rings (their `Station.level` not yet seen in a save), espionage (nothing in the 
 DB). **Other
 tabs**: `AddGoal.svelte` ("+ goal", ✓ once planned, from the layout's `plan.keys`) on the tech
 offers, traditions and perks, the colony page (districts up to their cap, queued buildings),
-expansion candidates, megastructure rows and the situations tab's first contacts, anomalies and
+expansion candidates, megastructure rows and the frontier tab's first contacts, anomalies and
 dig sites; the map's right-click (`GalaxyMap` `onsystemmenu`, left button only for pan and pick;
 `ContextMenu.svelte`; `GET /api/plan?node=&system=` → `systemGoals()`) and its `planned` layer.
 The tab bar's badge counts blocked wanted goals and avoided ones that happened (`planSummary()`,

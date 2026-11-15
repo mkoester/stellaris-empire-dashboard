@@ -153,6 +153,22 @@ runs on the species tab (Living Standards: the two options' modifiers swapped, o
 strata — each colony's strata × its share of the pops, ≈), the traditions tab (traditions not
 taken in adopted trees, other trees' adoption, perks whose `potential`/`possible` is not false) and
 the tech tab (the cards on offer). Happiness per stratum (`pop_cat_*_happiness`) is not counted.
+**Colony what-ifs** (2026-11-15): a designation swap counts `pop_bonus_workforce_mult` (the nomad
+capital's +10 % on every job) and `worker_and_simple_drone_cat_bonus_workforce_mult` as output —
+before, the swap away showed only gains. "losing <current>" leaves out what every alternative of
+the family has at the same value (`ownModifiers()`: a capital's +5 stability and housing). Planet
+decisions answer `planet_crime` (`Colony.crime`) and `has_carrier_flag`/`has_planet_flag`
+(`Colony.flags`, READER 59) — Introduce Chaos no longer shows as (?). A one-time cost reads
+"costs … once". **The crime decisions** (`#lib/crime.ts`) are valued at the enforcers holding
+crime at 25 (what crime automation holds, under the 30 where Criminal Underworld may appear), so
+crime's engine-side stability penalty is the same either way: the campaign needs fewer enforcers
+(25 → 35 a job) and the freed workforce fills open jobs at the colony's average net output; the
+deal's criminals (200 + 3 per crime point) and the enforcers for its +50 % crime come out of other
+jobs. Not counted: the deal keeps a colony out of the crime events, and ending it costs −10
+stability for 5 years. The user's rule of thumb recommends the campaign wherever crime ≥ 10 and the
+colony has open jobs (`Recommendation.rule`, kept by `worthwhile()` whatever the estimate). Policy
+what-ifs say "then locked for 10 years" (`POLICY_YEARS`; the save keeps no change date). Game
+mechanics: `stellaris-modding-insights/docs/25-crime.md`.
 **Species rights** (species tab, `#lib/rights.ts`): `country.modules.standard_species_rights_module
 .primary = { species_index citizenship living_standard … }` for the founder species and
 `.species_rights = { { species_index … } … }` for every other (READER 51; before, other species had
@@ -199,12 +215,30 @@ capital and migration are since READER 41), the trade tab's valuation of energy 
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
-**Situations tab** (`/situations`, `#lib/situations.ts` pure, readers in `server/world.ts`): first
+**Frontier tab** (`/frontier`; the situations tab until 2026-11-15 — renamed because situations and
+events are the game's own terms for one panel each, `/situations` redirects; `#lib/situations.ts` pure,
+readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,
+situations, a link to events | anomalies, dig sites, special projects), the first-contact map
+below them at full width (the user's ask, 2026-11-15): first
 contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
-an envoy); situations, anomalies, special projects (no progress in the save), dig sites, a link
-to events. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`:
-the outcome events' titles), as is `contactStations`: visited systems coloured by their
+an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
+with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
+events. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`,
+`digSiteSpoilers`): the **Outcome** column (the user's ask 2026-11-15, `#lib/outcomes.ts` pure,
+`Outcome.svelte`, `server/outcomes.ts`) — the data DB's `outcome` trees, a project's own tree
+filled in where an anomaly leads to it (`withProjects()`), as markers, the first rewards, and the
+whole tree on opening (its plain text as the tooltip). **Markers** (`markers()`): _known_ — no
+chance, no choice, no condition anywhere, projects included; _random_ — a random list with two
+branches or more; _choice_ — an event with two options open to one empire (conditional options
+count as one variant: "Study the orb." / "Eat the orb."); _depends_ — a conditional option, a
+weighted branch with conditions, or an `if` whose branches differ; _project_ — leads to a further
+special project; _later_ — something fires a year or more later (the Orb's explorer: ~100 years);
+_risk_ — a leader killed, a ship or fleet destroyed, resources taken, or a fleet not ours. Random
+branches show percentages, or weights where a branch has conditions (the Mineral Cluster: 0, or 1
+while the scientist lacks the trait the branch gives). The same text is the tooltip on the map tab,
+on the planner's anomaly and dig-site suggestions and on Upcoming's excavation rolls. An older data
+DB has no tree: the column falls back to the outcome events' titles. So is `contactStations` a switch: visited systems coloured by their
 station's owner, and every map's borders named — the save names it before communications, a
 spoiler. **Stations seen** (`Snapshot.stationsSeen`, `stationsSeen()` in `server/world.ts`): other
 empires' stations in the systems our fleets are in when the game saves (`fleet.<id>.movement_manager.coordinate.origin`),

@@ -224,13 +224,18 @@ stations seen, anomalies, dig sites, special projects, wormholes, gateways and L
 (`GalaxySystem.bypasses`), megastructures and their ruins (`*_ruined`) — each layer hidden by the
 profile's `mapFilter`, plus a table with what is worked on and how far (an envoy on a contact,
 an excavation running; stage, clues, days — anomalies and special projects carry no progress in
-the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). **Every
+the save), an anomaly's, project's or dig site's outcome as the tooltip of its name and of its
+system on the map (`MapMarker.tip`, behind the three outcome spoilers; the frontier tab's
+Outcome column has the same) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). **Every
 map's width** is the viewer's (`GalaxyMap`'s `width` buttons: normal, wide = the window's full width,
 wide + table = that with the page's table beside the map) — one localStorage key for all maps
 (`MAP_WIDTH_KEY`, `#lib/mapView.ts`). A page with a table of what its map shows (map: Found;
-systems; megastructures; situations: First contacts) defines it as a top-level snippet, passes it
+systems; megastructures; frontier: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
-filters stay above the map. Without `beside` (diplomacy, migration) the third button is not offered
+filters stay above the map. **A map that is the page's last element is as high as it is wide**,
+or reaches the window's bottom (the legend in sight) where that is more, until the viewer drags it
+(the user's ask, 2026-11-15): `square` where the page ends with it (the frontier tab), and every
+map in "wide + table", which only reached the window's bottom before. Without `beside` (diplomacy, migration) the third button is not offered
 and a stored `side` draws as wide. **Full window** (the user's ask 2026-11-02; `GalaxyMap`'s "⛶ full
 window" button, per viewer in localStorage `MAP_FULL_KEY`): the map lays itself over the whole
 browser window (`fixed`, `z-40` — below the context menu and popups, `z-50`), its toolbar on top,
@@ -311,7 +316,7 @@ defines the `dark:` variant on it. Canvases (uPlot) pick axis colours per draw a
 the tabs show what the game's own panels show — agendas, edicts, policies, council seats as the
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
-`factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
+`factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `digSiteSpoilers`, `contactStations`,
 `unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`. A new view of hidden information follows the same pattern
 (and in multiplayer and Ironman: "No cheats in multiplayer or Ironman").
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`

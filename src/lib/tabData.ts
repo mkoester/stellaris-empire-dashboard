@@ -104,7 +104,7 @@ const CHECKS: {
 		has: (s) => (s.subjects ?? []).length > 0 || (s.external ?? []).length > 0 || !!s.branchSites
 	},
 	{
-		tab: 'situations',
+		tab: 'frontier',
 		why: 'no situation, first contact, anomaly, special project or dig site yet',
 		known: (s) => s.situations !== null && s.situations !== undefined,
 		has: (s) =>

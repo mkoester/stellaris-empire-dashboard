@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ContractMarks from '#lib/ContractMarks.svelte';
+	import OutcomeCell from '#lib/Outcome.svelte';
 	import { resolve } from '$app/paths';
 	import { pretty } from '#lib/format.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
@@ -108,9 +109,10 @@
 		{ id: 'level', label: 'Level', value: (a) => a.level ?? null, right: true },
 		{
 			id: 'outcomes',
-			label: 'Leads to',
-			value: (a) => a.outcomes?.length ?? null,
-			cell: anomalyOutcomes
+			label: 'Outcome',
+			value: (a) => a.tree?.length ?? a.outcomes?.length ?? null,
+			cell: anomalyOutcomes,
+			title: 'what it leads to — hover a marker for its meaning, open the line for the whole tree'
 		}
 	];
 	const projectColumns: Column<Project>[] = [
@@ -124,25 +126,36 @@
 		{ id: 'days', label: 'Days', value: (p) => p.days || null, right: true },
 		{
 			id: 'outcomes',
-			label: 'Leads to',
-			value: (p) => p.outcomes?.length ?? null,
-			cell: projectOutcomes
+			label: 'Outcome',
+			value: (p) => p.tree?.length ?? p.outcomes?.length ?? null,
+			cell: projectOutcomes,
+			title: 'what it leads to — hover a marker for its meaning, open the line for the whole tree'
 		}
 	];
 	const digColumns: Column<Dig>[] = [
-		{
-			id: 'type',
-			label: 'Site',
-			value: (d) => pretty(d.type.replace(/^site_/, '')),
-			cell: digName
-		},
+		{ id: 'type', label: 'Site', value: (d) => d.name, cell: digName },
 		{ id: 'system', label: 'System', value: (d) => d.system },
 		{ id: 'difficulty', label: 'Difficulty', value: (d) => d.difficulty, right: true },
 		{ id: 'clues', label: 'Clues', value: (d) => d.clues, right: true },
 		{
+			id: 'chapter',
+			label: 'Chapter',
+			value: (d) => d.chapter ?? null,
+			cell: chapter,
+			right: true,
+			title: 'the next chapter, of how many'
+		},
+		{
 			id: 'excavating',
 			label: 'Excavated',
 			value: (d) => (d.excavating ? 'being excavated' : null)
+		},
+		{
+			id: 'outcome',
+			label: 'Outcome',
+			value: (d) => d.tree?.length ?? null,
+			cell: digOutcome,
+			title: 'what each chapter gives — open the line for the whole tree'
 		}
 	];
 </script>
@@ -171,16 +184,21 @@
 		kind="anomaly"
 		target={{ planet: a.planetId }}
 	/>{/snippet}
-{#snippet digName(d: Dig)}<b>{pretty(d.type.replace(/^site_/, ''))}</b><AddGoal
+{#snippet digName(d: Dig)}<b>{d.name}</b><AddGoal
 		kind="digsite"
 		target={{ planet: d.planetId }}
 	/>{/snippet}
-{#snippet anomalyOutcomes(a: Anomaly)}<span class="text-gray-500"
-		>{@render outcomes(a.outcomes)}</span
-	>{/snippet}
-{#snippet projectOutcomes(p: Project)}<span class="text-gray-500"
-		>{@render outcomes(p.outcomes)}</span
-	>{/snippet}
+{#snippet anomalyOutcomes(a: Anomaly)}{#if a.tree}<OutcomeCell tree={a.tree} />{:else}<span
+			class="text-gray-500">{@render outcomes(a.outcomes)}</span
+		>{/if}{/snippet}
+{#snippet projectOutcomes(p: Project)}{#if p.tree}<OutcomeCell tree={p.tree} />{:else}<span
+			class="text-gray-500">{@render outcomes(p.outcomes)}</span
+		>{/if}{/snippet}
+{#snippet chapter(d: Dig)}{d.chapter ?? '–'}{d.stages ? ` / ${d.stages}` : ''}{/snippet}
+{#snippet digOutcome(d: Dig)}{#if d.tree}<OutcomeCell
+			tree={d.tree}
+			chapter={d.chapter ?? null}
+		/>{/if}{/snippet}
 
 {#snippet territory(r: SeenRow)}{#if r.territory}<EmpireName
 			name={r.territory}
@@ -210,7 +228,7 @@
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
-	<h1 class="flex-1 text-2xl font-bold">Situations</h1>
+	<h1 class="flex-1 text-2xl font-bold">Frontier</h1>
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
 </header>
 
@@ -221,7 +239,73 @@
 {/if}
 
 <div class="flex flex-col gap-8">
-	{#if width !== 'side'}{@render contactTable()}{/if}
+	<!-- two columns where the window is wide: what is met on the left, what is studied on the right -->
+	<div class="grid items-start gap-8 xl:grid-cols-2">
+		<div class="flex min-w-0 flex-col gap-8">
+			{#if width !== 'side'}{@render contactTable()}{/if}
+
+			<Panel
+				title="Stations seen"
+				note="Other empires' stations in systems one of your fleets was in when the game saved (monthly autosaves catch only the fleets there at that moment), with their shipset. Unknown owners are guessed: one shipset within 3 jumps counts as one empire."
+			>
+				{#if data.seen.length}
+					<SortTable
+						rows={data.seen}
+						columns={seenColumns}
+						key={(r) => r.systemId}
+						link={(r) => r.systemId}
+						bind:hovered
+					/>
+				{:else}<p class="text-sm text-gray-500">
+						None yet: no fleet of yours has been at another empire's station when the game saved.
+					</p>{/if}
+			</Panel>
+
+			<Panel title="Situations" note="Progress runs to 100.">
+				{#if data.situations.length}
+					<SortTable rows={data.situations} columns={situationColumns} key={(r) => r.id} />
+				{:else}<p class="text-sm text-gray-500">None running.</p>{/if}
+			</Panel>
+
+			<Panel title="Events" note="The campaign's bigger events are in their own tab.">
+				<a class="text-sm hover:underline" href={resolve('/events')}>→ events</a>
+			</Panel>
+		</div>
+		<div class="flex min-w-0 flex-col gap-8">
+			<Panel
+				title="Anomalies"
+				note="Found and not yet researched. {data.opts.anomalySpoilers
+					? 'What each can lead to, followed through its events and the projects it starts.'
+					: 'What they can lead to: switch on the spoilers in ⚙.'}"
+			>
+				{#if data.anomalies.length}
+					<SortTable rows={data.anomalies} columns={anomalyColumns} key={(a) => a.planetId} />
+				{:else}<p class="text-sm text-gray-500">None waiting.</p>{/if}
+			</Panel>
+
+			<Panel
+				title="Dig sites"
+				note="Archaeological sites in systems you visited. {data.opts.digSiteSpoilers
+					? 'What each chapter gives; the next one is marked.'
+					: 'What their chapters give: switch on the spoilers in ⚙.'}"
+			>
+				{#if data.digSites.length}
+					<SortTable rows={data.digSites} columns={digColumns} key={(d) => d.id} />
+				{:else}<p class="text-sm text-gray-500">None found.</p>{/if}
+			</Panel>
+
+			<Panel
+				title="Special projects"
+				note="The save holds no progress for them. {data.opts.projectSpoilers
+					? 'What each leads to, followed through its events.'
+					: 'What they lead to: switch on the spoilers in ⚙.'}"
+			>
+				{#if data.projects.length}
+					<SortTable rows={data.projects} columns={projectColumns} key={(p) => p.id} />
+				{:else}<p class="text-sm text-gray-500">None on offer.</p>{/if}
+			</Panel>
+		</div>
+	</div>
 
 	<Panel
 		title="First contact map"
@@ -236,6 +320,7 @@
 			{titles}
 			focus={[{ label: 'contacts', points: open.flatMap((c) => byId.get(c.systemId) ?? []) }]}
 			heightKey="first-contact-map-height"
+			square
 			bind:width
 			beside={contactTable}
 			label="First contact map"
@@ -288,60 +373,5 @@
 				{/each}
 			</ul>
 		{/if}
-	</Panel>
-
-	<Panel
-		title="Stations seen"
-		note="Other empires' stations in systems one of your fleets was in when the game saved (monthly autosaves catch only the fleets there at that moment), with their shipset. Unknown owners are guessed: one shipset within 3 jumps counts as one empire."
-	>
-		{#if data.seen.length}
-			<SortTable
-				rows={data.seen}
-				columns={seenColumns}
-				key={(r) => r.systemId}
-				link={(r) => r.systemId}
-				bind:hovered
-			/>
-		{:else}<p class="text-sm text-gray-500">
-				None yet: no fleet of yours has been at another empire's station when the game saved.
-			</p>{/if}
-	</Panel>
-
-	<Panel title="Situations" note="Progress runs to 100.">
-		{#if data.situations.length}
-			<SortTable rows={data.situations} columns={situationColumns} key={(r) => r.id} />
-		{:else}<p class="text-sm text-gray-500">None running.</p>{/if}
-	</Panel>
-
-	<Panel
-		title="Anomalies"
-		note="Found and not yet researched. {data.opts.anomalySpoilers
-			? 'What each can lead to: the events of its outcomes.'
-			: 'What they can lead to: switch on the spoilers in ⚙.'}"
-	>
-		{#if data.anomalies.length}
-			<SortTable rows={data.anomalies} columns={anomalyColumns} key={(a) => a.planetId} />
-		{:else}<p class="text-sm text-gray-500">None waiting.</p>{/if}
-	</Panel>
-
-	<Panel
-		title="Special projects"
-		note="The save holds no progress for them. {data.opts.projectSpoilers
-			? 'What each leads to: the events of its outcome.'
-			: 'What they lead to: switch on the spoilers in ⚙.'}"
-	>
-		{#if data.projects.length}
-			<SortTable rows={data.projects} columns={projectColumns} key={(p) => p.id} />
-		{:else}<p class="text-sm text-gray-500">None on offer.</p>{/if}
-	</Panel>
-
-	<Panel title="Dig sites" note="Archaeological sites in systems you visited.">
-		{#if data.digSites.length}
-			<SortTable rows={data.digSites} columns={digColumns} key={(d) => d.id} />
-		{:else}<p class="text-sm text-gray-500">None found.</p>{/if}
-	</Panel>
-
-	<Panel title="Events" note="The campaign's bigger events are in their own tab.">
-		<a class="text-sm hover:underline" href={resolve('/events')}>→ events</a>
 	</Panel>
 </div>

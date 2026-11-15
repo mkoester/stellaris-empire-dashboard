@@ -146,7 +146,10 @@
 	const titles = $derived.by(() => {
 		const out: Record<number, string> = { ...why, ...claims?.titles };
 		for (const [id, list] of bySystem) {
-			const text = list.map((m) => `${m.label} (${m.detail}${m.done ? ', done' : ''})`).join('; ');
+			// what an anomaly, project or dig site leads to goes below its line (spoilers)
+			const text = list
+				.map((m) => `${m.label} (${m.detail}${m.done ? ', done' : ''})${m.tip ? `\n${m.tip}` : ''}`)
+				.join(list.some((m) => m.tip) ? '\n\n' : '; ');
 			out[id] = out[id] ? `${out[id]}; ${text}` : text;
 		}
 		return out;
@@ -154,7 +157,7 @@
 
 	const columns: Column<Marker>[] = [
 		{ id: 'layer', label: 'What', value: (r) => LAYER_INFO[r.layer].label, cell: what },
-		{ id: 'label', label: 'Name', value: (r) => r.label },
+		{ id: 'label', label: 'Name', value: (r) => r.label, cell: name },
 		{ id: 'system', label: 'System', value: (r) => byId.get(r.systemId)?.name ?? null },
 		{ id: 'detail', label: 'Detail', value: (r) => r.detail },
 		{
@@ -205,6 +208,10 @@
 			data.latest.date
 		)} mo{/if}{/snippet}
 {#snippet ongoing(r: Marker)}{r.ongoing ? '✓' : r.ongoing === false ? 'waiting' : '–'}{/snippet}
+{#snippet name(r: Marker)}{#if r.tip}<span
+			class="cursor-help underline decoration-dotted"
+			title={r.tip}>{r.label}</span
+		>{:else}{r.label}{/if}{/snippet}
 {#snippet what(r: Marker)}
 	<span style:color={LAYER_INFO[r.layer].color}>{LAYER_INFO[r.layer].symbol}</span>
 	{LAYER_INFO[r.layer].label}

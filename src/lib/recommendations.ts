@@ -8,11 +8,14 @@ export type Recommendation = {
 	planetId: number | null;
 	possible: boolean | null;
 	what: WhatIf;
+	rule?: string; // a rule of thumb that recommends it whatever the estimate says
 };
 
-/** Options with a positive trade or stability estimate, ordered by estimated trade value. */
+/** Options with a positive trade or stability estimate or a rule for them, by estimated trade value. */
 export function worthwhile(rows: Recommendation[]): Recommendation[] {
-	return rows.filter((r) => (r.what.net ?? 0) > 0 || (r.what.stability ?? 0) > 0).sort(rank);
+	return rows
+		.filter((r) => (r.what.net ?? 0) > 0 || (r.what.stability ?? 0) > 0 || r.rule)
+		.sort(rank);
 }
 
 /** Every estimated option for the panel's user-judged view, best trade estimate first. */

@@ -1,3 +1,4 @@
+import type { OutcomeNode } from './outcomes.ts';
 import type { ShipParts } from './designStats.ts';
 import type { JobAutomation } from './jobAutomation.ts';
 import type { StarbasePart } from './starbasePlanner.ts';
@@ -44,6 +45,7 @@ export type Colony = {
 	deposits: string[]; // deposit types on the planet, blockers included
 	planet: PlanetState | null; // null in older snapshots
 	timedFlags: TimedModifier[]; // the planet's timed flags (cooldowns of decisions …); since READER 21
+	flags?: string[] | null; // every flag on the planet (carrier flags included); since READER 59
 	buildQueue: QueueItem[];
 	buildSlots: number; // items the planet builds at once (queue `simultaneous`; >1 for wilderness, arkships, mods)
 	jobs: ColonyJob[];
@@ -794,6 +796,7 @@ export type DigSite = {
 	daysLeft: number | null; // to the excavation's next roll
 	lastRoll?: number | null; // `last_roll`; absent before READER 22
 	excavating: boolean;
+	chapter?: number | null; // the next chapter, 1-based (`index` + 1); absent before READER 58
 };
 
 /** A council seat: `council_positions.<id> = { country type leader }`. */
@@ -1355,6 +1358,9 @@ export type GameData = {
 		{ name: string; days: number | null; department: string | null; outcomes: Outcome[] }
 	>;
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
+	// what each leads to, followed down to the effects (`#lib/outcomes.ts`); empty on an older data DB
+	outcomeTrees: Record<'anomaly' | 'project' | 'dig_site', Record<string, OutcomeNode[]>>;
+	digSiteTypes: Record<string, { name: string; stages: number }>; // archaeological site types
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
 	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1
 	entryEvents: EntryEvent[]; // the popups a first entry into a system fires (system_entry_event)

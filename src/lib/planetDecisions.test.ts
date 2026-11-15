@@ -15,7 +15,9 @@ const planet: PlanetFacts = {
 	designation: 'col_mining',
 	planetClass: 'pc_desert',
 	pops: 4200,
-	capital: false
+	capital: false,
+	crime: 12,
+	flags: ['colony_event']
 };
 const tier = (lo: number, hi: number, cg: number) => ({
 	when: {
@@ -74,5 +76,40 @@ describe('decisions on a colony', () => {
 		const of = (k: string) => table[k] ?? {};
 		expect(decisionModifiers(luxuries, planet, of)).toEqual({ planet_amenities_mult: 0.25 });
 		expect(decisionModifiers(bleak, planet, of)).toEqual({ pop_happiness: 0.1 });
+	});
+});
+
+describe('planet crime and flags', () => {
+	const crime = { leaf: 'planet_crime', cmp: '>=', value: '10' };
+	const chaos = { leaf: 'has_carrier_flag', value: 'perfect_organization' };
+	const anticrime: PlanetDecision = {
+		key: 'decision_launch_anticrime_campaign',
+		name: 'Launch Anti-Crime Campaign',
+		costs: [{ when: null, cost: { unity: 250 } }],
+		potential: crime,
+		allow: null,
+		adds: [{ modifier: 'anticrime_campaign', days: -1 }],
+		removes: []
+	};
+	it('answers planet_crime against the threshold', () => {
+		expect(planetTrigger(crime, planet)).toEqual({ leaf: 'always', value: 'yes' });
+		expect(planetTrigger(crime, { ...planet, crime: 5 })).toEqual({ leaf: 'always', value: 'no' });
+		expect(decisionPossible(anticrime, { ...planet, crime: 5 }, facts)).toBe(false);
+		expect(decisionPossible(anticrime, planet, facts)).toBe(true);
+	});
+	it('leaves crime unknown in a save read without it', () => {
+		expect(planetTrigger(crime, { ...planet, crime: null })).toEqual(crime);
+	});
+	it('answers carrier and planet flags, unknown in a save read without them', () => {
+		expect(planetTrigger(chaos, planet)).toEqual({ leaf: 'always', value: 'no' });
+		expect(planetTrigger(chaos, { ...planet, flags: ['perfect_organization'] })).toEqual({
+			leaf: 'always',
+			value: 'yes'
+		});
+		expect(planetTrigger({ leaf: 'has_planet_flag', value: 'colony_event' }, planet)).toEqual({
+			leaf: 'always',
+			value: 'yes'
+		});
+		expect(planetTrigger(chaos, { ...planet, flags: null })).toEqual(chaos);
 	});
 });

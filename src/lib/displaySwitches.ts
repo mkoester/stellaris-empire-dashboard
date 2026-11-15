@@ -26,7 +26,7 @@ export const SWITCH_GROUPS = [
 	'Maps',
 	'Expansion',
 	'Government and ethics',
-	'Situations',
+	'Frontier',
 	'Diplomacy and trade',
 	'What-ifs'
 ] as const;
@@ -133,19 +133,25 @@ export const SWITCHES: Switch[] = [
 	},
 	{
 		key: 'anomalySpoilers',
-		group: 'Situations',
+		group: 'Frontier',
 		kind: 'spoiler',
 		label: 'Show what an anomaly can lead to'
 	},
 	{
 		key: 'projectSpoilers',
-		group: 'Situations',
+		group: 'Frontier',
 		kind: 'spoiler',
 		label: 'Show what a special project leads to'
 	},
 	{
+		key: 'digSiteSpoilers',
+		group: 'Frontier',
+		kind: 'spoiler',
+		label: 'Show what a dig site’s chapters give'
+	},
+	{
 		key: 'hiddenTimers',
-		group: 'Situations',
+		group: 'Frontier',
 		kind: 'spoiler',
 		label: 'Upcoming: show the timers of events in progress (when an event chain continues)',
 		tags: 'events'

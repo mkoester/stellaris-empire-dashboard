@@ -4,6 +4,13 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 
 ## Open (needs a running game on Linux)
 
+- **A dig site's chapter (2026-11-15)**: `DigSite.chapter` = the save's `index` + 1 is
+  **assumed** — every site seen so far reads `index=0`. Check after a chapter's event: the
+  frontier tab's Chapter column should read 2, and the Outcome's "← next" mark move with it.
+- **Outcome trees against the game (2026-11-15)**: the frontier tab's Outcome for an anomaly
+  or project should match what its event window offers when it completes (options, rewards). A
+  tree is built from the files (`stellaris-data-extraction` `extractor/outcomes.py`), so
+  conditions are known only as "depends", never evaluated.
 - **Tabs that did nothing when clicked, 0.1.17 on mkTuxedCachy (2026-11-15)**: every tab but
   `mods` and `about` gave no visible effect, then worked again a little later. The user then saw
   it only with two or more dashboard tabs open; closing all but one cured it. Explained: each page
@@ -17,7 +24,8 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   height only while a drag of the box's native resize edge is under way — it assumes a press on
   that edge fires `pointerdown` with the box itself as target (the svg covers the rest). If a
   dragged height is not kept after a reload, that assumption is the first suspect. Also check
-  "wide + table" with nothing stored ends at the window's bottom, the legend in sight.
+  that a map last on its page (the frontier tab's; every map in "wide + table") is square with
+  nothing stored — or reaches the window's bottom where that is more — and follows a resize.
 
 **The checks still owed from the 2026-10-22 session — what, how, which screenshot — are listed in
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech

@@ -838,7 +838,11 @@
 								<span class="flex-1"
 									><InfoPopup explanation={s.ref ? data.explain[s.ref] : undefined}
 										>{s.label}</InfoPopup
-									>{@render badges(s)}{#if s.why}<span class="text-xs text-gray-500">
+									>{@render badges(s)}{#if s.why}<span
+											class="text-xs text-gray-500"
+											class:cursor-help={s.tip}
+											title={s.tip ?? undefined}
+										>
 											· {s.why}</span
 										>{/if}</span
 								>

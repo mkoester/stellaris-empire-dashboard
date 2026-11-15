@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fmt, pretty } from '#lib/format.ts';
-	import type { AgendaRow, EdictRow } from '#lib/government.ts';
+	import { POLICY_YEARS, type AgendaRow, type EdictRow } from '#lib/government.ts';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { colorOf } from '#lib/colors.ts';
@@ -376,7 +376,9 @@
 											>{/each}
 										{#each p.options.filter((o) => data.whatIfs?.[`policy:${o.key}`]) as o (o.key)}
 											<div>
-												<WhatIfLine what={data.whatIfs?.[`policy:${o.key}`]} label={o.name} />
+												<WhatIfLine what={data.whatIfs?.[`policy:${o.key}`]} label={o.name} /><span
+													class="text-xs text-amber-600">then locked for {POLICY_YEARS} years</span
+												>
 											</div>
 										{/each}
 									</td>

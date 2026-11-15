@@ -147,9 +147,9 @@
 			active: path === '/ethics'
 		},
 		{
-			name: 'situations',
-			href: node ? resolve(`/situations?node=${node}`) : resolve('/situations'),
-			active: path === '/situations'
+			name: 'frontier',
+			href: node ? resolve(`/frontier?node=${node}`) : resolve('/frontier'),
+			active: path === '/frontier'
 		},
 		{
 			name: 'shroud',

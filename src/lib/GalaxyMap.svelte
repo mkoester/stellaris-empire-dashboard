@@ -57,6 +57,7 @@
 		extra = [],
 		focus = [],
 		heightKey,
+		square = false,
 		label = 'Galaxy map',
 		layer,
 		beside,
@@ -77,6 +78,8 @@
 		extra?: Point[];
 		focus?: { label: string; points: Point[] }[]; // "fit" buttons besides my empire / everything
 		heightKey: string; // localStorage key for the height
+		// the map is the page's last element: as high as it is wide, until the viewer drags it
+		square?: boolean;
 		label?: string;
 		layer?: Snippet<[(p: Point) => Point, number]>; // transform, scale (px per galaxy unit)
 		beside?: Snippet;
@@ -168,12 +171,16 @@
 
 	// The height is a per-viewer convenience, remembered in this browser once the viewer drags the
 	// box's bottom edge, so a new default reaches everyone else: one for the map in the page (normal,
-	// wide), one for "wide + table" (`<heightKey>-side`), which until then reaches the window's
-	// bottom like the table beside. Only a drag is kept — a mode switch or leaving the full window
+	// wide), one for "wide + table". Only a drag is kept — a mode switch or leaving the full window
 	// also changes the size, and once stored the full window's height in place of the chosen one.
+	// A map that is the page's last element (`square` in the page, and always in "wide + table") is
+	// by default as high as it is wide, or reaches the window's bottom where that is more (the
+	// user's ask 2026-11-15; "wide + table" only reached the bottom before). Those heights are
+	// stored under keys of their own (`<heightKey>-square`, `<heightKey>-side-square`): a height
+	// dragged before is not taken over.
 	const DEFAULT_H = 630;
 	let chosen: { page: number | null; side: number | null } = $state({ page: null, side: null });
-	let fillH = $state(DEFAULT_H);
+	let fillH = $state(0);
 	let outer = $state(0);
 	let box: HTMLElement | undefined = $state();
 	let column: HTMLElement | undefined = $state();
@@ -188,10 +195,16 @@
 	const full = $derived(!fullWindow && width !== 'normal' && vw > 0);
 	const side = $derived(width === 'side' && beside !== undefined);
 	const mode = $derived(side ? 'side' : 'page');
-	const keyOf = (m: 'page' | 'side') => (m === 'side' ? `${heightKey}-side` : heightKey);
-	const height = $derived(side ? (chosen.side ?? fillH) : (chosen.page ?? DEFAULT_H));
-	// "wide + table" with no height chosen: the box ends where the window does with the page at its
-	// top, the legend under it still in sight
+	const keyOf = (m: 'page' | 'side') =>
+		m === 'side' ? `${heightKey}-side-square` : square ? `${heightKey}-square` : heightKey;
+	let boxW = $state(0); // the box's width, border included, as its height is set
+	const last = $derived(side || square);
+	const lastH = $derived(Math.max(boxW > 0 ? boxW : DEFAULT_H, fillH));
+	const height = $derived(
+		side ? (chosen.side ?? lastH) : (chosen.page ?? (square ? lastH : DEFAULT_H))
+	);
+	// the height that ends the box where the window does with the page at its top, the legend
+	// under it still in sight
 	const fitFill = () => {
 		if (!box || !column) return;
 		const top = box.getBoundingClientRect().top + scrollY;
@@ -199,7 +212,7 @@
 		fillH = Math.max(200, Math.floor(innerHeight - top - below - GAP));
 	};
 	$effect(() => {
-		if (side && box && column) fitFill();
+		if (last && box && column) fitFill();
 	});
 	const remember = () => {
 		if (!resizing || fullWindow || !box) return;
@@ -254,7 +267,7 @@
 		const html = document.documentElement;
 		const measure = () => {
 			vw = html.clientWidth;
-			if (side) fitFill();
+			if (last) fitFill();
 		};
 		measure();
 		const ro = new ResizeObserver(measure);
@@ -393,7 +406,7 @@
 	onscroll={fitAside}
 	onresize={() => {
 		fitAside();
-		if (side) fitFill();
+		if (last) fitFill();
 	}}
 	onpointerup={endResize}
 	onpointercancel={endResize}
@@ -560,6 +573,7 @@
 					: 'resize-y'}"
 				style={fullWindow ? 'min-height: 200px' : `height: ${height}px; min-height: 200px`}
 				bind:clientWidth={w}
+				bind:offsetWidth={boxW}
 				bind:clientHeight={h}
 				bind:offsetHeight={outer}
 			>

@@ -99,6 +99,9 @@ function citizenshipFacts(s: Snapshot, slavery: string[]): Partial<Facts> {
 const unlocked = (by: string[], f: Facts) =>
 	by.length === 0 || by.some((k) => f.traditions.includes(k) || f.perks.includes(k));
 
+/** Years a policy stays locked once changed: the game's POLICY_YEARS (common/defines/00_defines.txt). */
+export const POLICY_YEARS = 10;
+
 export type PolicyRow = {
 	key: string;
 	name: string;

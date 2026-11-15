@@ -64,6 +64,7 @@ export type Upcoming = {
 	queuedAfter?: number; // construction: items still waiting when this one is done
 	fleetId?: number; // civilian ship rows
 	sub?: string; // what to show as the kind, where finer than `kind` (ships: the ship type)
+	tip?: string; // a tooltip on the detail: an excavation's chapters (behind the dig-site spoiler)
 	dismiss?: string; // a cooldown run out, something idle or a planned tech on offer: the id to dismiss it by (`timedOut()`, `idles()`, `plannedOnOffer()`)
 };
 
@@ -946,7 +947,14 @@ export function timedOut(
  * counts down to it (first contacts and dig sites both carry `last_roll`). The game reports what
  * a roll gives, so `act` is false.
  */
-export function rolls(latest: Pick<Snapshot, 'date' | 'firstContacts' | 'digSites'>): Upcoming[] {
+export function rolls(
+	latest: Pick<Snapshot, 'date' | 'firstContacts' | 'digSites'>,
+	// dig sites: the type's name, and what its chapters give (null: switched off or unknown)
+	site: {
+		name?: (type: string) => string | undefined;
+		tip?: (type: string, chapter: number | null) => string | null;
+	} = {}
+): Upcoming[] {
 	const at = (days: number) => fromDays(toDays(latest.date) + days);
 	const contacts = (latest.firstContacts ?? [])
 		.filter((c) => c.status === 'in_progress' && c.leaderId !== null && c.daysLeft !== null)
@@ -968,11 +976,12 @@ export function rolls(latest: Pick<Snapshot, 'date' | 'firstContacts' | 'digSite
 			months: s.daysLeft! / 30,
 			kind: 'roll' as const,
 			sub: 'excavation',
-			what: `Next excavation roll: ${pretty(s.type.replace(/^site_/, ''))}`,
-			detail: `${s.clues} clues · difficulty ${s.difficulty}`,
+			what: `Next excavation roll: ${site.name?.(s.type) ?? pretty(s.type.replace(/^site_/, ''))}`,
+			detail: `${s.chapter ? `chapter ${s.chapter} · ` : ''}${s.clues} clues · difficulty ${s.difficulty}`,
 			tint: 'roll',
 			exact: true,
-			act: false
+			act: false,
+			...((t) => (t ? { tip: t } : {}))(site.tip?.(s.type, s.chapter ?? null) ?? null)
 		}));
 	return [...contacts, ...sites];
 }

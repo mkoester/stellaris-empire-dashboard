@@ -10,6 +10,7 @@ import { idles, withIdleShips } from '#lib/idle.ts';
 import { plannedOnOffer } from '#lib/techOffers.ts';
 import { planSummary } from './planner.ts';
 import { display } from './settings.ts';
+import { outcomeTips } from './outcomes.ts';
 import { empireColors } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
@@ -68,7 +69,10 @@ export function branch(url: URL) {
 					...idle.rows,
 					...expiries(last, getGameData(), title, display().hiddenTimers),
 					...timedOut(saves, getGameData(), title, dismissed(db, campaign)),
-					...rolls(last),
+					...rolls(last, {
+						name: (type) => getGameData().digSiteTypes[type]?.name,
+						tip: outcomeTips(getGameData(), display()).digSite
+					}),
 					...plannedOnOffer(
 						saves,
 						new Map(planSummary(tip).wantedTechs),

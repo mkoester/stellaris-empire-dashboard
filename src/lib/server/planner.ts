@@ -1,3 +1,4 @@
+import { pretty } from '#lib/format.ts';
 import { facts } from '#lib/government.ts';
 import {
 	candidates,
@@ -59,6 +60,7 @@ import { headId, history, nodeById, nodes, planEvents } from './db.ts';
 import { pick } from './explain.ts';
 import { campaignGalaxy } from './mapSystems.ts';
 import { display } from './settings.ts';
+import { outcomeTips } from './outcomes.ts';
 import { colonyDetails } from './planets.ts';
 
 // The planner tab's data (#lib/planner/*): the plan at the node shown, each goal checked against
@@ -87,6 +89,7 @@ export type Suggestion = {
 	target: Target;
 	label: string;
 	why?: string;
+	tip?: string | null; // what an anomaly or dig site leads to (behind its spoiler switch)
 	unavailable?: boolean;
 	ref?: string | null; // a popup with its effects
 	badge?: string | null;
@@ -669,7 +672,10 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 			.map((g) => label('tradition', g.target, g.title ?? '', names))
 	);
 	const off = unavailable(ctx.latest);
-	const add = (kind: string, list: { target: Target; why?: string; unavailable?: boolean }[]) => {
+	const add = (
+		kind: string,
+		list: { target: Target; why?: string; tip?: string | null; unavailable?: boolean }[]
+	) => {
 		if (off.includes(kind)) return;
 		let n = 0;
 		for (const x of list) {
@@ -689,6 +695,7 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 				target: x.target,
 				label: label(kind, x.target, '', names),
 				why: x.why,
+				tip: x.tip ?? null,
 				unavailable: x.unavailable,
 				ref: KINDS[kind]?.ref?.(x.target) ?? null,
 				badge: badgeOf(kind, x.target, getGameData()),
@@ -703,6 +710,8 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 	};
 	const l = ctx.latest;
 	const d = ctx.data;
+	const all = getGameData();
+	const tips = outcomeTips(all, display());
 	add(
 		'survey',
 		(ctx.galaxy ?? [])
@@ -713,14 +722,16 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 		'anomaly',
 		(l.anomalies ?? []).map((a) => ({
 			target: { planet: a.planetId },
-			why: d.anomalyCategories[a.category]?.name
+			why: d.anomalyCategories[a.category]?.name,
+			tip: tips.anomaly(a.category)
 		}))
 	);
 	add(
 		'digsite',
 		(l.digSites ?? []).map((x) => ({
 			target: { planet: x.planetId },
-			why: `difficulty ${x.difficulty}`
+			why: `${all.digSiteTypes[x.type]?.name ?? pretty(x.type.replace(/^site_/, ''))}, difficulty ${x.difficulty}`,
+			tip: tips.digSite(x.type, x.chapter ?? null)
 		}))
 	);
 	add(

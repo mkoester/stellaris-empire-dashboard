@@ -22,6 +22,7 @@ import {
 	colonyFlows,
 	designationCandidates,
 	priced,
+	ownModifiers,
 	swapModifiers,
 	whatIf,
 	type ColonyInput,
@@ -30,6 +31,8 @@ import {
 	type WhatIf
 } from '#lib/whatIf.ts';
 import { edictPrices } from '#lib/whatIf.ts';
+import { CRIME_DECISIONS, crimeColony, type CrimeEffect } from '#lib/crime.ts';
+import { openJobs } from '#lib/jobs.ts';
 import type { Recommendation } from '#lib/recommendations.ts';
 import { colonyFee, feeInputs } from './logistics.ts';
 import { getExplanations, getGameData } from './app.ts';
@@ -137,7 +140,26 @@ export type DecisionWhatIf = {
 	cost: Resources | null;
 	months: number | null; // how long its modifier runs; null: for good
 	what: WhatIf;
+	// a crime decision (#lib/crime.ts): crime now, the enforcer workforce holding it at the target
+	// without and with it, criminal workforce it takes from other jobs
+	crime: {
+		now: number;
+		enforcersWithout: number; // workforce that holds crime at 0 without it
+		enforcersWith: number; // and with it
+		crimeWithout: number; // the crime it then settles at, without it and with it
+		crimeWith: number;
+		criminalsTaken: number;
+	} | null;
+	rule: string | null; // a rule of thumb recommending it (#lib/recommendations.ts)
 };
+
+// The user's rule of thumb (2026-11-15): with crime at 10 or more (the campaign's own threshold)
+// and open jobs on the colony, the campaign pays — enforcers freed fill those jobs.
+const ANTI_CRIME = 'decision_launch_anticrime_campaign';
+export const ANTI_CRIME_RULE = 'crime ≥ 10 and open jobs here';
+
+// the crime decisions' keys #lib/crime.ts models
+const CRIME_KEYS = new Set(['planet_crime_mult', 'job_criminal_add', 'job_criminal_per_crime']);
 
 /**
  * One colony's what-ifs: every designation of its family (`designationCandidates()`, ≈) and every
@@ -178,16 +200,30 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 	const allDesignations = Object.keys(explain)
 		.filter((k) => k.startsWith('designation:'))
 		.map((k) => k.slice('designation:'.length));
-	const designations: DesignationWhatIf[] = designationCandidates(
-		colony.designation,
-		allDesignations,
-		gestalt
-	).map((key) => {
+	const candidates = designationCandidates(colony.designation, allDesignations, gestalt);
+	const designations: DesignationWhatIf[] = candidates.map((key) => {
 		const what = run(
 			swapModifiers(data.designationModifiers[colony.designation], data.designationModifiers[key])
 		);
 		return { key, name: explain[`designation:${key}`]?.title ?? key, what, fee: feeAfter(what) };
 	});
+	// what the current designation alone brings, lost with any change: its modifiers less those
+	// every alternative has too (a capital's stability and housing)
+	const currentMods = ownModifiers(
+		data.designationModifiers[colony.designation],
+		candidates.map((k) => data.designationModifiers[k])
+	);
+	const losingWhat = Object.keys(currentMods).length
+		? run(swapModifiers(currentMods, undefined))
+		: null;
+	const losing: DesignationWhatIf | null = losingWhat
+		? {
+				key: colony.designation,
+				name: explain[`designation:${colony.designation}`]?.title ?? colony.designation,
+				what: losingWhat,
+				fee: feeAfter(losingWhat)
+			}
+		: null;
 
 	const f = facts(save, data.scriptedTriggers, {
 		shipKinds: data.shipKinds,
@@ -199,7 +235,9 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 		designation: colony.designation,
 		planetClass: colony.planetClass,
 		pops: colony.pops,
-		capital: isCapital(colony)
+		capital: isCapital(colony),
+		crime: colony.crime ?? null,
+		flags: colony.flags ?? null
 	};
 	const modifiersOf = (key: string) =>
 		Object.fromEntries(
@@ -207,6 +245,34 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 				typeof m.value === 'number' ? [[m.key, m.value]] : []
 			)
 		);
+	const crimeInputs = crimeColony(rows, colony.crime, openJobs(colony).open, colony.civilians);
+	// a crime decision: its modifiers, with what the crime model counts in place of the keys it
+	// models (valued at enforcers holding crime at the target)
+	const withCrime = (mods: Record<string, number>, e: CrimeEffect, price: Price) => {
+		const own = Object.fromEntries(Object.entries(mods).filter(([k]) => !CRIME_KEYS.has(k)));
+		if (e.stability) own.planet_stability_add = (own.planet_stability_add ?? 0) + e.stability;
+		const w = whatIf(own, flows, input, gestalt, rules, upkeep);
+		const sum = (a: Resources, b: Resources) => {
+			const out = { ...a };
+			for (const [k, v] of Object.entries(b)) out[k] = (out[k] ?? 0) + v;
+			return Object.fromEntries(Object.entries(out).filter(([, v]) => Math.abs(v) > 1e-9));
+		};
+		const modelled = Object.keys(mods).filter((k) => CRIME_KEYS.has(k));
+		return priced(
+			{
+				...w,
+				monthly: sum(w.monthly, e.monthly),
+				upkeep: sum(w.upkeep, e.upkeep),
+				modelled: [...w.modelled, ...modelled].sort(),
+				unmodelled: [
+					...w.unmodelled,
+					...(Math.abs(e.crimeWith - e.crimeWithout) > 0.05 ? ['crime_stability_penalty'] : [])
+				].sort()
+			},
+			price,
+			values
+		);
+	};
 	const decisions: DecisionWhatIf[] = data.planetDecisions
 		.filter((d) => d.key !== LUXURY_DECISION)
 		.flatMap((d) => {
@@ -215,6 +281,9 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 			const mods = decisionModifiers(d, planet, modifiersOf);
 			if (!Object.keys(mods).length) return [];
 			const days = d.adds[0]?.days ?? -1;
+			const price = { cost: decisionCost(d, planet, f) ?? {}, upkeep: {}, measured: false };
+			const effect =
+				d.key in CRIME_DECISIONS && crimeInputs ? CRIME_DECISIONS[d.key](crimeInputs) : null;
 			return [
 				{
 					key: d.key,
@@ -222,11 +291,25 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 					possible,
 					cost: decisionCost(d, planet, f),
 					months: days > 0 ? Math.round(days / 30) : null,
-					what: run(mods, { cost: decisionCost(d, planet, f) ?? {}, upkeep: {}, measured: false })
+					what: effect ? withCrime(mods, effect, price) : run(mods, price),
+					crime: effect
+						? {
+								now: crimeInputs!.crime,
+								enforcersWithout: effect.enforcersWithout,
+								enforcersWith: effect.enforcersWith,
+								crimeWithout: effect.crimeWithout,
+								crimeWith: effect.crimeWith,
+								criminalsTaken: effect.criminalsTaken
+							}
+						: null,
+					rule:
+						d.key === ANTI_CRIME && crimeInputs && crimeInputs.crime >= 10 && crimeInputs.open > 0
+							? ANTI_CRIME_RULE
+							: null
 				}
 			];
 		});
-	return { designations, decisions };
+	return { designations, losing, decisions };
 }
 
 /** A colony's upkeep inputs from its job rows: their inputs (negative flows), workforce, strata. */
@@ -414,7 +497,8 @@ export function recommendationOptions(b: Branch): Recommendation[] | null {
 				target: colony.name,
 				planetId: colony.planetId,
 				possible: d.possible,
-				what: d.what
+				what: d.what,
+				...(d.rule ? { rule: d.rule } : {})
 			});
 		const luxury = luxuryWhatIf(
 			colony,

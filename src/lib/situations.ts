@@ -10,7 +10,7 @@ import type {
 	GameData
 } from './types.ts';
 
-// The situations tab: first contacts (table and map), situations, anomalies, special projects and
+// The frontier tab: first contacts (table and map), situations, anomalies, special projects and
 // dig sites, from one save and the campaign's galaxy. Pure.
 
 /** Whole months from `from` to `to` (game dates, 30-day months). */

@@ -228,12 +228,18 @@ export function priced(what: WhatIf, price: Price | null, weights: Resources): W
 // out). Here only — the trade-offs tab's rules leave it out on purpose.
 // A designation's +15 % miners: extra workforce, so output (and upkeep, not counted) of that job.
 const COUNTRY = /^country_(\w+)_produces_mult$/;
+// Every pop's workforce (the nomad capital's +10 %) and a stratum's, the same way.
 const WORKFORCE = /^(\w+?)_jobs_bonus_workforce_mult$/;
+const WORKFORCE_GROUPS: Record<string, string[]> = {
+	pop_bonus_workforce_mult: ['jobs'],
+	worker_and_simple_drone_cat_bonus_workforce_mult: ['stratum:worker', 'stratum:simple_drone']
+};
 const changes = (mods: Record<string, number>): Change[] =>
 	Object.entries(mods).flatMap(([k, v]): Change[] => {
 		const base = { label: '', month: 0, pct: v, target: 'output' as const };
 		const c = k.match(COUNTRY);
 		if (c) return [{ ...base, groups: ['jobs'], resource: c[1] }];
+		if (WORKFORCE_GROUPS[k]) return [{ ...base, groups: WORKFORCE_GROUPS[k] }];
 		const w = k.match(WORKFORCE);
 		if (w) return [{ ...base, groups: [jobGroup(w[1])] }];
 		return changesOf('', 0, { [k]: v });
@@ -309,6 +315,18 @@ export function swapModifiers(
 	const out: Record<string, number> = { ...(to ?? {}) };
 	for (const [k, v] of Object.entries(from ?? {})) out[k] = (out[k] ?? 0) - v;
 	return Object.fromEntries(Object.entries(out).filter(([, v]) => Math.abs(v) > 1e-12));
+}
+
+/** `own`'s modifiers less those each of `others` has at the same value (none without others). */
+export function ownModifiers(
+	own: Record<string, number> | undefined,
+	others: (Record<string, number> | undefined)[]
+): Record<string, number> {
+	return Object.fromEntries(
+		Object.entries(own ?? {}).filter(
+			([k, v]) => !others.length || !others.every((o) => Math.abs((o?.[k] ?? 0) - v) < 1e-12)
+		)
+	);
 }
 
 /** A colony's output per group a modifier can target, from its job rows (output only, as `groupFlows()`). */

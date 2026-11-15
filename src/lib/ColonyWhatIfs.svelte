@@ -1,6 +1,6 @@
 <script lang="ts">
+	import { CRIME_TARGET } from './crime.ts';
 	import { fmt } from './format.ts';
-	import ResourceChips from './ResourceChips.svelte';
 	import type { ColonyAutomation, DecisionWhatIf, DesignationWhatIf } from './server/whatIfs.ts';
 	import AutomationLine from './AutomationLine.svelte';
 	import WhatIfLine from './WhatIfLine.svelte';
@@ -14,25 +14,39 @@
 		automation = null,
 		openJobs = 0
 	}: {
-		what: { designations: DesignationWhatIf[]; decisions: DecisionWhatIf[] } | null;
+		what: {
+			designations: DesignationWhatIf[];
+			losing: DesignationWhatIf | null; // the current designation's own benefits, lost with any change
+			decisions: DecisionWhatIf[];
+		} | null;
 		automation?: ColonyAutomation | null;
 		openJobs?: number; // the colony's open positions, workforce, for the pops automation frees
 	} = $props();
 
-	const negate = (r: Record<string, number>) =>
-		Object.fromEntries(Object.entries(r).map(([k, v]) => [k, -v]));
+	const CRIME_NOTE = `≈ valued at the enforcers it takes to hold crime at ${CRIME_TARGET}, what the game's crime automation holds (Criminal Underworld may appear from 30): an enforcer job takes 25 crime off, 35 during the campaign, which costs +2 energy each. Workforce no longer needed as enforcers is counted working open jobs at this colony's average net output; more enforcers come out of other jobs. Criminal jobs fill first and make nothing: their workforce comes from the unemployed, then from other jobs. Crime's own stability penalty is the same either way at the target; below it, it is not counted. Not counted either: the deal keeps the colony out of the yearly crime events (Criminal Underworld and what grows from it: −20 stability, −20 % output or trade for 10 years, killed pops, devastation), and ending it costs −10 stability for 5 years.`;
 </script>
 
-{#if (what && (what.designations.length || what.decisions.length)) || automation?.options.length || automation?.barred === 'tankbound'}
+{#if (what && (what.designations.length || what.losing || what.decisions.length)) || automation?.options.length || automation?.barred === 'tankbound'}
 	<section class="mb-4 rounded border border-gray-300 p-2 text-sm dark:border-gray-700">
 		<h2 class="mb-1 font-semibold">What-ifs — if taken now ≈</h2>
-		{#if what?.designations.length}
+		{#if what?.designations.length || what?.losing}
 			<h3
 				class="mt-1 text-xs font-semibold text-gray-500"
 				title="designations of the same kind as this one's: the game may still refuse one"
 			>
 				Designation
 			</h3>
+			{#if what.losing}
+				<div
+					title="what the current designation's own modifiers bring today: lost with any change, already counted in each line below"
+				>
+					<WhatIfLine
+						what={what.losing.what}
+						label={`losing ${what.losing.name}`}
+						emptyLabel="nothing the estimate counts"
+					/>
+				</div>
+			{/if}
 			{#each what.designations as d (d.key)}
 				<div>
 					<WhatIfLine what={d.what} label={d.name} />{#if Math.abs(d.fee) >= 0.01}<span
@@ -49,10 +63,10 @@
 				<div>
 					<WhatIfLine what={d.what} label={`${d.name}${d.possible === null ? ' (?)' : ''}`} /><span
 						class="text-xs text-gray-500"
-						>{`, lasts: ${d.months ? `${fmt(d.months / 12)} years` : 'for good'}${d.cost && Object.keys(d.cost).length ? ', costs: ' : ''}`}{#if d.cost && Object.keys(d.cost).length}<ResourceChips
-								flows={negate(d.cost)}
-							/>{/if}</span
-					>
+						>{`lasts: ${d.months ? `${fmt(d.months / 12)} years` : 'until ended'}`}</span
+					>{#if d.crime}<span class="ml-2 cursor-help text-xs text-gray-500" title={CRIME_NOTE}
+							>{`crime ${fmt(d.crime.now)}${Math.abs(d.crime.crimeWith - d.crime.crimeWithout) > 0.05 ? ` → ${fmt(d.crime.crimeWith)}` : ''}${d.crime.enforcersWith + d.crime.enforcersWithout >= 1 ? `, ${fmt(d.crime.enforcersWith / 100)} enforcer jobs hold it at ${CRIME_TARGET} instead of ${fmt(d.crime.enforcersWithout / 100)}` : ''}${d.crime.criminalsTaken >= 1 ? `, criminals take ${fmt(d.crime.criminalsTaken / 100)} jobs' workforce` : ''}`}</span
+						>{/if}
 				</div>
 			{/each}
 			<div class="mt-1 text-xs text-gray-500">

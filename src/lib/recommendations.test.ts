@@ -26,6 +26,11 @@ describe('recommendations', () => {
 		).toEqual([row('small trade', 0.2), row('stability', -3, 1)]);
 	});
 
+	it('keeps an option a rule of thumb recommends, whatever its estimate', () => {
+		const campaign = { ...row('campaign', -0.5), rule: 'crime ≥ 10 and open jobs here' };
+		expect(worthwhile([row('loss', -2), campaign])).toEqual([campaign]);
+	});
+
 	it('ranks every option for the user-judged view, with unpriced options after priced ones', () => {
 		expect(ranked([row('unpriced', null, 2), row('low', 1), row('high', 3)])).toEqual([
 			row('high', 3),
