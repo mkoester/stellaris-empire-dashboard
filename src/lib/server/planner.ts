@@ -9,6 +9,7 @@ import {
 	ARKSHIPS,
 	arkships,
 	areaOf,
+	ascensionOf,
 	autoGoals,
 	badgeOf,
 	check,
@@ -18,6 +19,9 @@ import {
 	orderResearch,
 	tintOf,
 	orderTraditions,
+	suggestionLimit,
+	suggestionVisible,
+	uniquePerks,
 	GROUPS,
 	groupOf,
 	KINDS,
@@ -71,6 +75,7 @@ export type GoalRow = Omit<Goal, 'added'> & {
 	since: Since | null;
 	manual: boolean;
 	badge: string | null; // a tech's tier, a tradition's place in its tree, a perk
+	ascension: boolean;
 	area: string | null; // a tech's research area
 	tint: string | null; // the badge's colour, a colors.ts key (research or focus area)
 	dependents: string[]; // the automatic goals only this one brings (removed with it, if wished)
@@ -82,8 +87,10 @@ export type Suggestion = {
 	target: Target;
 	label: string;
 	why?: string;
+	unavailable?: boolean;
 	ref?: string | null; // a popup with its effects
 	badge?: string | null;
+	ascension?: boolean;
 	area?: string | null;
 	tint?: string | null;
 };
@@ -97,6 +104,7 @@ export type HistoryRow = {
 	detail: string;
 	kind: string | null; // what it is about, for its badges
 	badge: string | null;
+	ascension: boolean;
 	area: string | null;
 	tint: string | null;
 	group: string | null;
@@ -193,6 +201,7 @@ function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
 		since,
 		manual: k?.manual ?? false,
 		badge: badgeOf(g.kind, g.target, getGameData()),
+		ascension: ascensionOf(g.kind, g.target, getGameData()),
 		area: areaOf(g.kind, g.target, getGameData()),
 		tint: tintOf(g.kind, g.target, getGameData()),
 		dependents: [],
@@ -373,20 +382,38 @@ function planWithNeeds(
 	const auto = autoGoals(
 		c.ctx.latest,
 		data,
-		wantedOf('tradition').map((g) => String(g.target.tradition))
+		wantedOf('tradition').map((g) => String(g.target.tradition)),
+		wantedOf('perk').map((g) => String(g.target.perk)),
+		(key) => {
+			const tree = data.traditionTrees[key];
+			return tree != null &&
+				c.ctx.possible(tree.potential ?? null) !== false &&
+				c.ctx.possible(tree.adoptPossible ?? null) !== false;
+		}
 	);
 	const needs = techsNeeded(wantedOf('tech').map((g) => String(g.target.tech)));
 	const plan = planAt(events, path, [...auto, ...needs]);
 	// what each added goal brings by itself
 	const fromSave = new Set(saved.map((g) => g.id));
-	const brings = [...wantedOf('tech'), ...wantedOf('tradition')]
+	const brings = [...wantedOf('tech'), ...wantedOf('tradition'), ...wantedOf('perk')]
 		.filter((g) => !g.auto)
 		.map((g): [string, Set<string>] => [
 			g.id,
 			new Set(
 				(g.kind === 'tech'
 					? techsNeeded([String(g.target.tech)])
-					: autoGoals(c.ctx.latest, data, [String(g.target.tradition)])
+					: autoGoals(
+							c.ctx.latest,
+							data,
+							g.kind === 'tradition' ? [String(g.target.tradition)] : [],
+							g.kind === 'perk' ? [String(g.target.perk)] : [],
+							(key) => {
+								const tree = data.traditionTrees[key];
+								return tree != null &&
+									c.ctx.possible(tree.potential ?? null) !== false &&
+									c.ctx.possible(tree.adoptPossible ?? null) !== false;
+							}
+						)
 				)
 					.map((x) => x.id)
 					.filter((id) => !fromSave.has(id) && plan.goals.get(id)?.auto)
@@ -434,6 +461,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 		label: string;
 		kind: string;
 		badge: string | null;
+		ascension: boolean;
 		area: string | null;
 		tint: string | null;
 		group: string;
@@ -450,6 +478,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 					label: label(kind, target, title, c.names),
 					kind,
 					badge: badgeOf(kind, target, getGameData()),
+					ascension: ascensionOf(kind, target, getGameData()),
 					area: areaOf(kind, target, getGameData()),
 					tint: tintOf(kind, target, getGameData()),
 					group: GROUPS.find((g) => g.id === groupOf(kind))?.name ?? '',
@@ -485,6 +514,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				detail: describe(e, labels),
 				kind: labels.get(e.goal)?.kind ?? null,
 				badge: labels.get(e.goal)?.badge ?? null,
+				ascension: labels.get(e.goal)?.ascension ?? false,
 				area: labels.get(e.goal)?.area ?? null,
 				tint: labels.get(e.goal)?.tint ?? null,
 				ref: labels.get(e.goal)?.ref ?? null,
@@ -502,6 +532,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 				avoid: r.polarity === 'avoid',
 				kind: r.kind,
 				badge: r.badge,
+				ascension: r.ascension,
 				area: r.area,
 				tint: r.tint,
 				ref: r.ref,
@@ -632,24 +663,41 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 	const { ctx, names } = c;
 	const have = new Set([...plan.goals.values()].map((g) => goalKey(g.kind, g.target, g.title)));
 	const out: Suggestion[] = [];
+	const plannedTraditionLabels = new Set(
+		[...plan.goals.values()]
+			.filter((g) => g.kind === 'tradition')
+			.map((g) => label('tradition', g.target, g.title ?? '', names))
+	);
 	const off = unavailable(ctx.latest);
-	const add = (kind: string, list: { target: Target; why?: string }[]) => {
+	const add = (kind: string, list: { target: Target; why?: string; unavailable?: boolean }[]) => {
 		if (off.includes(kind)) return;
 		let n = 0;
 		for (const x of list) {
-			if (n >= LIMIT) break;
+			if (n >= suggestionLimit(kind, LIMIT)) break;
+			const itemLabel = label(kind, x.target, '', names);
 			if (have.has(goalKey(kind, x.target))) continue;
-			if (check(kind, x.target, false, ctx).state === 'done') continue;
+			if (
+				kind === 'tradition' &&
+				ascensionOf(kind, x.target, d) &&
+				plannedTraditionLabels.has(itemLabel)
+			)
+				continue;
+			const status = check(kind, x.target, false, ctx);
+			if (status.state === 'done' || !suggestionVisible(kind, status.state)) continue;
 			out.push({
 				kind,
 				target: x.target,
 				label: label(kind, x.target, '', names),
 				why: x.why,
+				unavailable: x.unavailable,
 				ref: KINDS[kind]?.ref?.(x.target) ?? null,
 				badge: badgeOf(kind, x.target, getGameData()),
+				ascension: ascensionOf(kind, x.target, getGameData()),
 				area: areaOf(kind, x.target, getGameData()),
 				tint: tintOf(kind, x.target, getGameData())
 			});
+			if (kind === 'tradition' && ascensionOf(kind, x.target, d))
+				plannedTraditionLabels.add(itemLabel);
 			n++;
 		}
 	};
@@ -764,41 +812,53 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 			}))
 	);
 	const taken = new Set(l.traditions ?? []);
-	// the trees a planned or taken perk opens (The Flesh is Weak → Cybernetics)
-	add(
-		'tradition',
-		[...plan.goals.values()]
-			.filter((g) => g.kind === 'perk' && g.polarity === 'want')
-			.flatMap((g) =>
-				(d.perkTrees[String(g.target.perk)] ?? []).flatMap((tree) => {
-					const adopt = d.traditionTrees[tree]?.traditions.find((t) => t.role === 'adopt')?.key;
-					return adopt && !taken.has(adopt)
-						? [
-								{
-									target: { tradition: adopt },
-									why: `opened by ${d.perks[String(g.target.perk)] ?? g.target.perk}`
-								}
-							]
-						: [];
-				})
-			)
-	);
+	const treeState = (tree: (typeof d.traditionTrees)[string]) => {
+		const potential = ctx.possible(tree.potential ?? null);
+		const adopt = ctx.possible(tree.adoptPossible ?? null);
+		return potential === false || adopt === false
+			? false
+			: potential === null || adopt === null
+				? null
+				: true;
+	};
+	const treeChoices = Object.values(d.traditionTrees).filter((tree) => tree.ascension);
+	const treeByName = new Map<string, (typeof treeChoices)[number]>();
+	for (const tree of treeChoices) {
+		const previous = treeByName.get(tree.name);
+		const rank = (x: (typeof treeChoices)[number]) => {
+			if (x.traditions.some((t) => t.role === 'adopt' && taken.has(t.key))) return 3;
+			const state = treeState(x);
+			return state === true ? 2 : state === null ? 1 : 0;
+		};
+		if (!previous || rank(tree) > rank(previous)) treeByName.set(tree.name, tree);
+	}
 	add(
 		'tradition',
 		Object.values(d.traditionTrees).flatMap((tree) => {
 			const adopted = tree.traditions.some((t) => t.role === 'adopt' && taken.has(t.key));
+			const isAscension = Boolean(tree.ascension);
+			if (isAscension && treeByName.get(tree.name) !== tree) return [];
 			return tree.traditions
 				.filter(
 					(t) =>
 						(adopted ? t.role !== 'adopt' && t.role !== 'finish' : t.role === 'adopt') &&
 						!taken.has(t.key)
 				)
-				.map((t) => ({ target: { tradition: t.key }, why: tree.name }));
+				.map((t) => {
+					const unavailable = isAscension && !adopted && treeState(tree) === false;
+					return {
+						target: { tradition: t.key },
+						why: unavailable ? `${tree.name} · not currently available` : tree.name,
+						...(isAscension && !adopted ? { unavailable } : {})
+					};
+				});
 		})
 	);
 	add(
 		'perk',
-		Object.keys(d.perks)
+		uniquePerks(Object.keys(d.perks), d.perks, (key) =>
+			c.ctx.possible(d.perkRules[key]?.potential ?? null)
+		)
 			.filter((k) => !(l.ascensionPerks ?? []).includes(k))
 			.map((k) => ({ target: { perk: k } }))
 	);

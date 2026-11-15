@@ -621,6 +621,48 @@ export function traditionName(key: string, data: Pick<GameData, 'traditionTrees'
 	return pretty(key);
 }
 
+/** Whether a planned item belongs to an explicitly declared ascension path. */
+export function ascensionOf(
+	kind: string,
+	target: Target,
+	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'pathPerks'>>
+): boolean {
+	if (kind === 'perk') return data.pathPerks?.includes(String(target.perk)) ?? false;
+	if (kind === 'tradition')
+		return Object.values(data.traditionTrees).some(
+			(tree) => tree.ascension && tree.traditions.some((t) => t.key === target.tradition)
+		);
+	return false;
+}
+
+/** Keep one same-name perk, preferring the variant whose potential is known to apply. */
+export function uniquePerks(
+	keys: string[],
+	names: Record<string, string>,
+	potential: (key: string) => boolean | null
+): string[] {
+	const chosen = new Map<string, { key: string; rank: number; index: number }>();
+	keys.forEach((key, index) => {
+		const name = names[key] ?? key;
+		const state = potential(key);
+		const rank = state === true ? 2 : state === null ? 1 : 0;
+		const old = chosen.get(name);
+		if (!old) chosen.set(name, { key, rank, index });
+		else if (rank > old.rank) chosen.set(name, { key, rank, index: old.index });
+	});
+	return [...chosen.values()].sort((a, b) => a.index - b.index).map((x) => x.key);
+}
+
+/** Traditions and perks are complete lists; other suggestion kinds stay capped. */
+export function suggestionLimit(kind: string, limit = 12): number {
+	return kind === 'tradition' || kind === 'perk' ? Infinity : limit;
+}
+
+/** Potentially impossible perks stay plan-able by hand, but do not appear as suggestions. */
+export function suggestionVisible(kind: string, state: State): boolean {
+	return kind !== 'perk' || state !== 'blocked';
+}
+
 export const groupOf = (kind: string): Group => KINDS[kind]?.group ?? 'other';
 
 /** A goal's status for its polarity: an avoided goal that came true "happened". */
@@ -695,8 +737,10 @@ export const arkships = (s: Snapshot, type: string) =>
  */
 export function autoGoals(
 	s: Snapshot,
-	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'traditionPrereqs'>>,
-	wanted: string[] = []
+	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'traditionPrereqs' | 'perkTrees'>>,
+	wanted: string[] = [],
+	wantedPerks: string[] = [],
+	treeAvailable: (key: string) => boolean = () => true
 ): AutoGoal[] {
 	const picked = s.traditions ?? [];
 	const taken = new Set(picked);
@@ -713,6 +757,24 @@ export function autoGoals(
 	// taken ones first, in the order picked
 	for (const k of picked) add(k);
 	const want = new Set(wanted);
+	const perkAdoptions = new Set<string>();
+	const openedByPerks = [...(s.ascensionPerks ?? []), ...wantedPerks].flatMap(
+		(perk) => data.perkTrees?.[perk] ?? []
+	);
+	const openedTrees = new Map<string, string>();
+	for (const key of openedByPerks) {
+		const tree = data.traditionTrees[key];
+		if (!tree?.traditions.some((x) => x.role === 'adopt')) continue;
+		const sameName = openedTrees.get(tree.name);
+		if (!sameName || (treeAvailable(key) && !treeAvailable(sameName))) openedTrees.set(tree.name, key);
+	}
+	for (const key of openedTrees.values()) {
+		const adopt = data.traditionTrees[key].traditions.find((x) => x.role === 'adopt')?.key;
+		if (adopt) {
+			want.add(adopt);
+			perkAdoptions.add(adopt);
+		}
+	}
 	const prereqs = data.traditionPrereqs ?? {};
 	const needs = (k: string): string[] => [...(prereqs[k] ?? []).flatMap((p) => [...needs(p), p])];
 	for (const t of Object.values(data.traditionTrees)) {
@@ -728,7 +790,7 @@ export function autoGoals(
 			}
 	}
 	return [
-		...keys.filter((k) => !want.has(k) || taken.has(k)).map(goal),
+		...keys.filter((k) => !want.has(k) || taken.has(k) || perkAdoptions.has(k)).map(goal),
 		...(s.ascensionPerks ?? []).map((k) => ({
 			id: `auto-ap-${k}`,
 			kind: 'perk',

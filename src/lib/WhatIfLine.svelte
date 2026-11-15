@@ -49,7 +49,7 @@
 	const netNote = $derived(
 		what?.net == null
 			? ''
-			: `in trade a month, at the produce tab's values: ${signed(what.gained ?? 0)} from output and upkeep, ${signed(what.net - (what.gained ?? 0))} its own upkeep${
+			: `in trade a month, at the produce tab's values: ${signed(what.gained ?? 0)} from output and upkeep${what.netLabel ? ', with its one-time cost spread over 10 years' : `, ${signed(what.net - (what.gained ?? 0))} its own upkeep`}${
 					what.unmodelled.length ? '; the effects not counted are left out' : ''
 				}`
 	);
@@ -87,7 +87,7 @@
 				class="mr-3 cursor-help font-semibold whitespace-nowrap {what.net < 0
 					? 'text-red-600'
 					: 'text-green-600'}"
-				title={netNote}>net {signed(what.net)} trade/mo</span
+				title={netNote}>net {signed(what.net)} {what.netLabel ?? 'trade/mo'}</span
 			>{/if}{#if what.unmodelled.length}<span
 				class="cursor-help text-gray-500"
 				title={`effects the estimate leaves out: ${what.unmodelled.map(pretty).join(', ')}`}

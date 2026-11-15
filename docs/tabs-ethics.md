@@ -133,7 +133,12 @@ on today's job output scaled back by stability's share (`jobOutput()` from the j
 × 120 months. **Stability raises output, not upkeep** (the game's job tooltip 2026-10-31,
 `screenshot_2026-10-31_18-16-28`: physicists' "High Stability +30 %" under Produces, upkeep 5.16
 without it); job efficiency (`screenshot_…18-16-11`: +72 % → 344 of 200 workforce) is extra
-workforce and scales both. Not offered to gestalts, on a Nanotech World or while it runs.
+workforce and scales both. Not offered to gestalts, on a Nanotech World or while it runs. The
+colony panel also values the estimated monthly and 120-month output, the one-time Consumer Goods
+cost, and their net in trade using the current produce-tab weights. Empire recommendations include
+this decision per eligible colony; their net trade per month spreads its one-time cost evenly over
+those 120 months so the option can be ranked with recurring effects. These values keep today's
+colony state and job output fixed for the full duration.
 **What-ifs** (the profile's `whatIfs` switch, a **spoiler**, off by default — the user's ask
 2026-11-02: "more what-ifs like Distribute Luxury Goods, for edicts and policies, guarded by a
 setting"; it gates Distribute Luxury Goods' too; `#lib/whatIf.ts` pure, `server/whatIfs.ts`,

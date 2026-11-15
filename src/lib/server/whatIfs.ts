@@ -5,7 +5,7 @@ import {
 	zoneNeeded,
 	type AutomationOption
 } from '#lib/jobAutomation.ts';
-import { jobOutput } from '#lib/luxuries.ts';
+import { jobOutput, luxuryWhatIf, LUXURY_MONTHS } from '#lib/luxuries.ts';
 import type { GroupFlows } from '#lib/produce.ts';
 import { isCapital } from '#lib/colonyLogistics.ts';
 import { jobGroup } from '#lib/tradeoffs.ts';
@@ -38,6 +38,7 @@ import type { branch } from './branch.ts';
 import { groupFlows, upkeepInputs } from './produce.ts';
 
 import { valuesOf } from './unitCosts.ts';
+import { valueOf } from '#lib/value.ts';
 
 const LUXURY_DECISION = 'decision_planet_luxuries_boost';
 
@@ -415,6 +416,42 @@ export function recommendationOptions(b: Branch): Recommendation[] | null {
 				possible: d.possible,
 				what: d.what
 			});
+		const luxury = luxuryWhatIf(
+			colony,
+			jobOutput(b.jobs[colony.planetId] ?? []),
+			uncappedStability(
+				colony.stabilityAdd,
+				colony.stabilityMult,
+				colony.approval ?? colony.happiness,
+				inputs.gestalt,
+				inputs.rules
+			),
+			inputs.gestalt,
+			inputs.rules
+		);
+		if (luxury) {
+			const cost = { consumer_goods: luxury.cost };
+			const costTrade = valueOf(cost, inputs.values);
+			const gross = valueOf(luxury.monthly, inputs.values);
+			out.push({
+				kind: 'decision',
+				label: 'Distribute Luxury Goods',
+				target: colony.name,
+				planetId: colony.planetId,
+				possible: true,
+				what: {
+					monthly: luxury.monthly,
+					upkeep: {},
+					stability: luxury.stability,
+					modelled: ['planet_amenities_mult'],
+					unmodelled: [],
+					price: { cost, upkeep: {}, measured: false },
+					gained: gross,
+					net: gross - costTrade / LUXURY_MONTHS,
+					netLabel: 'trade/mo incl. 10-year cost'
+				}
+			});
+		}
 	}
 	return out;
 }
