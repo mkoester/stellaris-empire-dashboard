@@ -109,6 +109,7 @@ export type WhatIf = {
 	price?: Price; // what taking it costs (`priced()`)
 	net?: number | null; // trade a month: output − upkeep change − the price's upkeep, at our values
 	gained?: number; // trade a month: output + upkeep saved
+	netLabel?: string; // optional qualification for a non-monthly cost included in `net`
 };
 
 /** What taking it costs: once and a month; `measured` where the budget scaled the base values. */

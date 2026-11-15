@@ -4,7 +4,7 @@ import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { growthData } from '#lib/server/growth.ts';
 import { display, setting } from '#lib/server/settings.ts';
-import { colonyAutomation, colonyWhatIfs } from '#lib/server/whatIfs.ts';
+import { colonyAutomation, colonyWhatIfs, whatIfValues } from '#lib/server/whatIfs.ts';
 import { colonyBlockerHints, colonyDetails } from '#lib/server/planets.ts';
 import { openJobs } from '#lib/jobs.ts';
 import { colonyDaySeries, colonyPopSeries, colonySeries, xExtent } from '#lib/series.ts';
@@ -101,6 +101,7 @@ export function load({ url, params }) {
 					)
 				: null,
 		luxuriesUntil: colony?.planet?.modifiers.find((m) => m.key === LUXURY_MODIFIER)?.until ?? null,
+		tradeValues: whatIfValues(b),
 		// each building's data DB category, for its icon (#lib/icons/icons.ts)
 		buildingCategories: Object.fromEntries(
 			(colony?.districtList ?? [])
