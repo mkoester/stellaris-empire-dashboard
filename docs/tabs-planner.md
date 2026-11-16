@@ -38,8 +38,9 @@ ethic (blocked by `civicAuthority`), government type, free text (ticked by hand)
 outpost goal shows blocked) and offers instead **waystations** (4.5.3
 `megastructures/30_nomad_waystation.txt`: nomads only, one per system, an unowned system fully
 surveyed, an owned one intel on its owner's deposits; done = a station of ours whose level starts
-`waystation` — `starbase_level_waystation_<n>`, spelling as `stations()` strips it, **not yet seen
-in a save**) and **arkships** per type (civilian, science, military — `<type>_arkship_megastructure`
+`waystation` — `starbase_level_waystation_<n>`, spelling as `stations()` strips it; seen in
+`roamingcybergang` 2213.08, the AI nomads' 33) — the roaming tab adds them, a whole wayline at once,
+and their modules as `station_module` goals and **arkships** per type (civilian, science, military — `<type>_arkship_megastructure`
 in `megastructures/29_nomad_arkships.txt`; counted from `Snapshot.ships` sizes
 `<type>_arkship_tier_<n>`, any tier; a settled empire gets neither). **Goals the save implies**
 (`autoGoals()`, passed to `planAt()` as seeds with stable ids `auto-tr-<key>` / `auto-ap-<key>`):

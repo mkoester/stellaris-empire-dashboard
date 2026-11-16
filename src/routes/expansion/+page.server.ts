@@ -7,9 +7,18 @@ import { arkshipsOf, campaignGalaxy } from '#lib/server/mapSystems.ts';
 import { settleState } from '#lib/server/settle.ts';
 import { ROW_LINES } from '#lib/profiles.ts';
 import { settleOutcome, settleTargets } from '#lib/settle.ts';
+import { getExplanations } from '#lib/server/app.ts';
+import { pick } from '#lib/server/explain.ts';
+import { planSummary } from '#lib/server/planner.ts';
+import { territoriesOf, reveal } from '#lib/server/mapSystems.ts';
+import { waylinesOf } from '#lib/server/waylines.ts';
+import { ownOnMap } from '#lib/mapLayers.ts';
+import { mapView } from '#lib/situations.ts';
 
 // Where to expand next: surveyed planets nobody owns, within a chosen range of the borders. A nomad
-// settles instead (above them: what it needs, where, what happens); a settled empire may embark.
+// roams instead — the tab is "roaming" then: its waylines (where to put waystations, which
+// modules, whose space), and settling down (what it needs, where, what happens); a settled
+// empire may embark.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
@@ -20,7 +29,35 @@ export function load({ url }) {
 	const settle = settleState(b.snaps);
 	const save = b.snaps.findLast((x) => x.kind === 'save');
 	const shownSpecies = setting('expansionView').species ?? species[0]?.id ?? null;
+	const arkships = arkshipsOf(b.snaps);
+	const waylines =
+		settle?.mode === 'settle' && save
+			? waylinesOf(
+					save,
+					planSummary(b.tip).keys,
+					arkships.flatMap((a) => (a.systemId === null ? [] : [a.systemId]))
+				)
+			: null;
+	const g = waylines && save ? campaignGalaxy(save.campaign) : null;
 	return {
+		waylines,
+		// the map beside the waylines: as the map tab shows it
+		...(waylines && {
+			map: {
+				systems: mapView(g?.systems ?? [], reveal()),
+				territories: territoriesOf(b.snaps),
+				own: ownOnMap(b.latest),
+				arkships
+			},
+			explain: pick(
+				getExplanations(),
+				[
+					...waylines.sites.flatMap((s) => s.best.map((p) => p.key)),
+					...waylines.stations.flatMap((s) => [...s.modules, ...s.next.map((p) => p.key)]),
+					...waylines.waylines.flatMap((l) => l.modules.map((m) => m.key))
+				].map((k) => `module:${k}`)
+			)
+		}),
 		planets,
 		settle: settle && {
 			...settle,
@@ -30,7 +67,7 @@ export function load({ url }) {
 						targets: settleTargets(
 							planets,
 							campaignGalaxy(save.campaign)?.systems ?? [],
-							arkshipsOf(b.snaps),
+							arkships,
 							shownSpecies
 						),
 						outcome: settleOutcome(save)

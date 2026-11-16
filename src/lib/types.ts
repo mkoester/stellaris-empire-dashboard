@@ -263,6 +263,11 @@ export type Station = {
 	slots: number;
 	shipyard: { queue: QueueItem[]; slots: number } | null; // null: no shipyard module
 	arkship: boolean;
+	// a waystation's (READER 60): what it collected so far, how full (0…1, the game's monthly
+	// value, null before the first month) and whether a logistic ship is collecting it
+	stockpile?: Resources;
+	fill?: number | null;
+	collecting?: boolean;
 };
 
 /**
@@ -652,7 +657,8 @@ export type GalaxySystem = {
 	lanes: number[]; // hyperlanes to systems with a higher id
 	visited: boolean;
 	owned: boolean;
-	ownerId: number | null; // the station's owner, in a visited system
+	ownerId: number | null; // the primary station's owner, in a visited system (never a waystation's)
+	waystation?: number; // who owns the waystation here, in a visited system; READER 60
 	bodies: Body[] | null; // visited only
 	megastructures: string[]; // types, built or ruined, in a visited system
 	bypasses?: string[]; // wormholes, gateways, L-gates (`bypasses.<id>.type`) in a visited system; since 2026-10-18
@@ -1162,6 +1168,7 @@ export type GameData = {
 			// trade a month per unit a colony is short of it (`deficit_trade_conversion_mult`);
 			// absent from a data DB before extractor 2026-11-02
 			deficitTrade?: number | null;
+			marketValue?: number | null; // energy a unit is worth on the market at base price
 		}
 	>;
 	personalities: Record<string, { name: string; willingness: number | null }>;

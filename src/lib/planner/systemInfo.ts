@@ -1,4 +1,5 @@
 import type { CountryInfo, Explanation, GalaxySystem, GameData } from '#lib/types.ts';
+import { collectorOf } from '#lib/waylines.ts';
 
 // What an outpost or a waystation in a system would bring, for the planner's popups: the station
 // deposits (and for a waystation the module that collects each — 4.5.3
@@ -6,18 +7,11 @@ import type { CountryInfo, Explanation, GalaxySystem, GameData } from '#lib/type
 // civilisation to observe, anomalies, megastructures and wormholes. Only what the galaxy as shown
 // holds (`surveyView`): an unvisited system's contents are unknown. Pure.
 
-/** The waystation module that collects each resource. */
-const MODULE: Record<string, string> = {
-	energy: 'energy module',
-	minerals: 'mining module',
-	food: 'mining module',
-	consumer_goods: 'mining module',
-	alloys: 'mining module',
-	volatile_motes: 'refinery module',
-	exotic_gases: 'refinery module',
-	rare_crystals: 'refinery module'
-};
-const moduleOf = (resource: string) => MODULE[resource] ?? 'research module';
+/** The waystation module that collects a resource (#lib/waylines.ts `COLLECTS`). */
+const moduleOf = (resource: string) =>
+	(collectorOf(resource) ?? 'waystation_research_module')
+		.replace(/^waystation_/, '')
+		.replace(/_/g, ' ');
 
 type Data = Pick<GameData, 'costs' | 'depositCategories' | 'planetClasses' | 'resourceInfo'>;
 

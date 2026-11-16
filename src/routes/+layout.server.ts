@@ -105,7 +105,7 @@ export function load({ url }) {
 		head,
 		// the planner's goals at the node shown (for "+ goal" buttons) and how many need attention
 		plan: planSummary(shown),
-		// a nomad's expansion tab is "settle", dimmed (naming what is missing) until it can
+		// a nomad's expansion tab is "roaming": waylines, and settling down (what it still needs)
 		settle: settleTab(shown),
 		// tabs with nothing to show yet along the branch: dimmed, their title saying why
 		empty: emptyTabsAt(shown),

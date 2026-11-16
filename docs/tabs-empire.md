@@ -52,6 +52,33 @@ features and their district loss). Matched the game at 2207.03.10 (Alpha Centaur
 `@DISTRICTS_FROM_SR_DEPOSITS` (swamps and bogs: +3 farming). Its view (range, toggles, filters,
 sort, species) and both tables' row lines belong to the profile.
 
+**Roaming** (a nomad's expansion tab, renamed — the user's ask 2026-11-16: "instead of expand
+they need a waylines tab … where would I build waystations, which modules — only 2 slots at the
+start, so choose wisely —, where would I make best use of waylines, where might I get in trouble
+for collection with other empires"; the user chose one tab for waylines and settling, named
+"roaming"; `#lib/waylines.ts` pure, `server/waylines.ts`, `panels/Waylines.svelte`, above the
+Settle down panel). From the 4.5.4 files (sources in `waylines.ts`'s header): a waystation collects
+only its own system's station deposits, one module per resource group (`COLLECTS`, from each
+module's `collected_system_resources`), × 0.75 / 1 / 1.25 by tier, 2 / 4 / 6 slots; flat
+`starbase_collected_system_<r>_add` the empire qualifies for counts too (the Hydroponics Bay's
+food, ≈ the tier factor on it — `open-points.md`). **Waystations** — map and table: every visited
+system with a deposit a module collects, its best modules for the 2 slots of Waystation I, what they
+collect a month in energy at the market's base value (`marketValue`; rare resources without a
+market price count 20), jumps from our nearest waystation (the arkships before the first), the
+waylines it would extend or link, and whose space it is — another empire's without a Wayline
+Pact is ⚠ (their stations there collect 25 % less, −10 opinion each to −200, the Expel Nomads war
+goal), someone else's waystation ✕. "+ goal" plans a waystation or a module, "+ wayline (n)" the
+waystation and every one on the shortest way from our waylines (`chainTo`, past no one else's
+waystation). **Your waylines**: our waystations grouped by neighbouring systems (`networks()`, the
+same five groups as the save's `waystation_networks` for the AI nomads of 2213.08), planned ones
+in italics, each with its fill, stockpile and the best modules for its free slots; the wayline
+modules (any `waystation_network_*` modifier) it has and lacks; the collection point
+(`collectionPoint()`, fewest jumps to the rest — where a Logistics Hub, Waystations III, collects
+the whole line). **Unlicensed waystations**: per empire, ours in its space without a pact and the
+opinion they cost. Module popups (`module:<key>` explanations) list their station effects and,
+apart, those along the whole wayline. A waystation claims no space: since READER 60 neither a
+system's owner nor our systems count one (`stationOwner`, `ownSystems`).
+
 **Settle down / Embark** (the expansion tab, above the Expansion panel; the user's ask
 2026-11-01: "help to settle down as a nomadic empire" — "the other way is possible, too";
 `#lib/settle.ts` pure, `server/settle.ts`, `panels/SettleDown.svelte`). From 4.5.2's files:
@@ -340,3 +367,18 @@ saucer the map does not show).
   Caravaneers), pre-FTL civilisations (`primitive`), space fauna (leviathans and guardians
   included), marauders, other (factions, the Shroud, event countries). Names are `EmpireName`
   (map-colour swatch) with `EmpireBadges` (fallen, enclave, nomadic, … — shared with the trade tab).
+
+**Tech tree** (the tech tab, under Researching and On offer; the user's ask 2026-11-16: "tech
+tree plus the +/− want buttons", after androdawton's stellaris-tech-tree; `#lib/techTree.ts` pure,
+`TechTree.svelte`, `planner/WantButtons.svelte`). One field at a time; every tech the empire can
+still get — a `potential` the save rules out leaves it out (lists follow the playthrough), an
+unknown one stays. A column per step of prerequisites within the field, never left of the tech's
+tier (techs without a tier — events, Fallen Empires — by depth alone); rows by a few barycentre
+sweeps over prerequisites and what each leads to, so edges cross less. Dashed edges: one of an
+`OR` group; ↖: a prerequisite in another field (listed, not drawn). Colours: researched, being
+researched, on offer, within reach (`inReach()`), not yet; badges: want, later, avoid (the
+plan's `plannedTechs`, which carry their goal id since 2026-11-16 so the buttons can edit and
+remove). Hover: + want / − want, or switch and ✕ once planned. Click: what it needs and leads to,
+both clickable; "show" fades all but the techs within reach, the wanted ones with what they need,
+or the clicked tech's path. Tooltips are built from the tree's own data, not the `tech:`
+explanations, which would put ~650 popups on the page.

@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Nomads: the expansion tab is now **roaming** — where a waystation pays off (map and table:
+  what its best modules would collect, for the 2 slots of a new waystation), which waylines it
+  would extend or link, and whose space it is: another empire's without a Wayline Pact costs
+  opinion and gives them a war goal. Plan a waystation, a module, or a whole wayline from ours in
+  one click. Below: your waylines with each waystation's stockpile and what each wayline still
+  lacks, and the Settle down panel as before.
+- The tech tab has a **tech tree** per field: each tech by where it stands (researched, being
+  researched, on offer, within reach) and whether it is planned. Hover a tech for + want / − want;
+  click it to see what it needs and leads to, or fade everything but the techs within reach, the
+  wanted ones, or the clicked tech's path. Techs this empire can never get are left out.
+
+### Fixed
+
+- A system with only a nomad's waystation no longer shows that nomad as its owner on maps and
+  borders: waystations claim no space.
+
 ## [0.1.22] - 2026-11-15
 
 ### Changed

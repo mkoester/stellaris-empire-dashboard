@@ -98,9 +98,10 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
   shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
-  2026-11-15: `develop` and `feature/highway` both have 57** (prescripted names; the Ancient Highway
-  mod) — that merge takes 58, and conflicts in `save.ts`'s import block only (the highway's
-  `readHighway`/`unclaimable` import and one `world.ts` name).
+  2026-11-16: `develop` has 60 and `feature/highway` 57** (develop: prescripted names, dig-site
+  chapters, planet flags, waystations; the highway: the Ancient Highway mod) — that merge takes 61,
+  and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
+  in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
   only — a released step has run on players' DBs). The version is SQLite's `user_version` (0.1.0's
   `state.schema = '15'` is taken over as 15); a new DB is the 0.1.0 tables plus every step, so each
@@ -180,7 +181,7 @@ Each tab's notes are in one of these; read the one for the tab before working on
 - `docs/tabs-shell.md`: upcoming events, cooldowns and expiries, popups, tabs and settings, the
   `all` and custom tabs, the time window, colours.
 - `docs/tabs-planner.md`: planner, trade-offs.
-- `docs/tabs-empire.md`: colonies, habitability, expansion, settle down / embark, milestones,
+- `docs/tabs-empire.md`: colonies, habitability, expansion, roaming (a nomad's waylines), settle down / embark, milestones,
   council, government, nomads, frontier (formerly situations), focus, traditions, tech, leaders, species, contacts.
 - `docs/tabs-economy.md`: trade, growth, pops charts, growth projection, job output bonuses, bonuses, jobs,
   produce, influence, contracts.

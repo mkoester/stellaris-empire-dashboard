@@ -57,6 +57,9 @@ export function loadGameData(file: string): GameData {
 	const db = new DatabaseSync(file, { readOnly: true });
 	try {
 		const rows = <T>(sql: string) => db.prepare(sql).all() as T[];
+		const resourceColumns = new Set(
+			rows<{ name: string }>('PRAGMA table_info(strategic_resource)').map((c) => c.name)
+		);
 		// what an empire may hold that has modifiers `where` picks, as source (`tradition:<key>` —
 		// perks, edicts, policies too —, `civic:` — authorities too —, `origin:`, `tech:`,
 		// `modifier:`) → `group(modifier key)` → their sum
@@ -940,15 +943,18 @@ export function loadGameData(file: string): GameData {
 					max: number | null;
 					tradable: number;
 					deficit_trade: number | null;
+					market_amount: number | null;
+					market_price: number | null;
 				}>(
 					// the deficit fee since extractor 2026-11-02; an older data DB has none (null)
-					`SELECT key, name, ai_weight, ai_wants, max, tradable, ${
-						rows<{ name: string }>('PRAGMA table_info(strategic_resource)').some(
-							(c) => c.name === 'deficit_trade'
-						)
-							? 'deficit_trade'
-							: 'NULL AS deficit_trade'
-					} FROM strategic_resource`
+					// the market's base values since extractor 2026-10-22
+					`SELECT key, name, ai_weight, ai_wants, max, tradable, ${[
+						'deficit_trade',
+						'market_amount',
+						'market_price'
+					]
+						.map((c) => (resourceColumns.has(c) ? c : `NULL AS ${c}`))
+						.join(', ')} FROM strategic_resource`
 				).map((r) => [
 					r.key,
 					{
@@ -957,7 +963,9 @@ export function loadGameData(file: string): GameData {
 						aiWants: r.ai_wants,
 						max: r.max,
 						tradable: r.tradable === 1,
-						deficitTrade: r.deficit_trade
+						deficitTrade: r.deficit_trade,
+						// the market's base value of one unit, in energy (`market_price / market_amount`)
+						marketValue: r.market_amount && r.market_price ? r.market_price / r.market_amount : null
 					}
 				])
 			),
