@@ -14,7 +14,7 @@
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import { goalKey } from '#lib/planner/replay.ts';
 	import ResourceChips from '#lib/ResourceChips.svelte';
-	import type { Waylines, WayPick, WaySite } from '#lib/server/waylines.ts';
+	import type { Waylines, WayPick, WaySite, WayStation } from '#lib/server/waylines.ts';
 	import { newGoalId, planAction } from '#lib/settings.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
@@ -55,7 +55,14 @@
 	let tier = $state(1);
 	// how the map shows a site's value: the system's colour, or a green dot sized by it
 	let show = $state<'colour' | 'dots'>('colour');
-	const round = (v: number) => Math.round(v).toLocaleString();
+	// trade a month: always two decimals
+	const round = (v: number) =>
+		v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+	// a dot's radius in px: the smallest up to the baseline of 10 trade a month, the best site's
+	// 12 px; the area grows with what lies above the baseline
+	const BASELINE = 10;
+	const radius = (v: number) =>
+		2 + 10 * Math.sqrt(Math.max(0, v - BASELINE) / Math.max(best - BASELINE, 1));
 	const at = (s: WaySite) => s.byTier[tier - 1];
 
 	const LINE = '#0ea5e9';
@@ -129,26 +136,40 @@
 	// dots: area proportional to the value, the best site's 12 px across
 	const dots: MapDot[] = $derived(
 		show === 'dots'
-			? w.sites
-					.filter((s) => s.trouble.kind !== 'taken' && at(s).worth > 0)
-					.map((s) => ({
+			? [
+					...w.sites
+						.filter((s) => s.trouble.kind !== 'taken' && at(s).worth > 0)
+						.map((s) => ({
+							systemId: s.id,
+							r: radius(at(s).worth),
+							color: '#41ab5d',
+							title: `${s.name}: ${round(at(s).worth)} trade a month`
+						})),
+					// ours, in the wayline's colour, by what they collect now
+					...w.stations.map((s) => ({
 						systemId: s.id,
-						r: 2 + 10 * Math.sqrt(at(s).worth / Math.max(best, 1)),
-						color: '#41ab5d',
-						title: `${s.name}: ${round(at(s).worth)} trade a month`
+						r: radius(s.worth),
+						color: LINE,
+						title: `${s.name}: our waystation, ${round(s.worth)} trade a month`
 					}))
+				]
 			: []
 	);
 	// each site's trade a month, under its star
-	const labels: MapLabel[] = $derived(
-		w.sites
+	const labels: MapLabel[] = $derived([
+		...w.sites
 			.filter((s) => s.trouble.kind !== 'taken' && at(s).worth > 0)
 			.map((s) => ({
 				systemId: s.id,
 				text: round(at(s).worth),
 				title: `${s.name}: ${round(at(s).worth)} trade a month at Waystation ${'I'.repeat(tier)}`
-			}))
-	);
+			})),
+		...w.stations.map((s) => ({
+			systemId: s.id,
+			text: round(s.worth),
+			title: `${s.name}: our waystation, ${round(s.worth)} trade a month now`
+		}))
+	]);
 
 	function troubleText(s: WaySite): string {
 		switch (s.trouble.kind) {
@@ -191,6 +212,47 @@
 			busy = false;
 		}
 	}
+
+	let ownSort = $state({ column: 'worth', desc: true });
+	const ownColumns: Column<WayStation>[] = [
+		{ id: 'name', label: 'System', value: (r) => r.name },
+		{
+			id: 'line',
+			label: 'Wayline',
+			value: (r) => (r.line < 0 ? null : r.line + 1),
+			right: true,
+			title: 'its wayline, numbered as below'
+		},
+		{ id: 'tier', label: 'Tier', value: (r) => r.tier, right: true },
+		{
+			id: 'modules',
+			label: 'Modules',
+			value: (r) => r.modules.length,
+			cell: ownModules
+		},
+		{
+			id: 'worth',
+			label: 'Trade/mo',
+			value: (r) => r.worth || null,
+			cell: ownWorth,
+			right: true,
+			title: 'what its modules collect a month now, in trade'
+		},
+		{ id: 'fill', label: 'Full', value: (r) => r.fill, cell: ownFill, right: true },
+		{
+			id: 'stock',
+			label: 'Stockpile',
+			value: (r) => Object.values(r.stockpile).reduce((t, v) => t + v, 0) || null,
+			cell: ownStock
+		},
+		{
+			id: 'next',
+			label: `Free slots`,
+			value: (r) => r.free || null,
+			cell: ownNext,
+			title: 'the best modules for its free slots'
+		}
+	];
 
 	const columns: Column<WaySite>[] = [
 		{ id: 'name', label: 'System', value: (r) => r.name },
@@ -302,16 +364,56 @@
 		{/if}
 	{/if}
 {/snippet}
+{#snippet ownModules(r: WayStation)}{#each r.modules as m, i (`${m}-${i}`)}{#if i}<span
+				class="text-gray-400">+</span
+			>{/if}<InfoPopup explanation={explain(m)}>{explain(m)?.title ?? m}</InfoPopup
+		>{/each}{/snippet}
+{#snippet ownNext(r: WayStation)}{#each r.next as p (p.key)}{@render module(p)}<AddGoal
+			kind="station_module"
+			target={{ system: r.id, module: p.key }}
+			title="plan this module here"
+		/>{/each}{/snippet}
+{#snippet ownWorth(r: WayStation)}<span class="tabular-nums">{round(r.worth)}</span>{/snippet}
+{#snippet ownFill(r: WayStation)}{#if r.fill !== null}<span
+			class={r.fill > 0.8 ? 'text-amber-600' : ''}
+			title="how full its stockpile is (the game's monthly value){r.collecting
+				? '; a logistic ship is collecting it'
+				: ''}">{`${Math.round(r.fill * 100)} %${r.collecting ? ' ⇢' : ''}`}</span
+		>{/if}{/snippet}
+{#snippet ownStock(r: WayStation)}<ResourceChips flows={r.stockpile} />{/snippet}
 {#snippet table()}
-	<SortTable
-		rows={w.sites}
-		{columns}
-		key={(r) => r.id}
-		bind:sort
-		link={(r) => r.id}
-		bind:hovered
-		bind:selected
-	/>
+	<div class="flex flex-col gap-4">
+		<div>
+			<h3 class="mb-1 text-sm font-semibold" style:color={LINE}>
+				{`Our waystations (${w.stations.length})`}
+			</h3>
+			{#if w.stations.length}
+				<SortTable
+					rows={w.stations}
+					columns={ownColumns}
+					key={(r) => r.id}
+					bind:sort={ownSort}
+					link={(r) => r.id}
+					bind:hovered
+					bind:selected
+				/>
+			{:else}
+				<p class="text-sm text-gray-500">None yet.</p>
+			{/if}
+		</div>
+		<div>
+			<h3 class="mb-1 text-sm font-semibold">{`Sites (${w.sites.length})`}</h3>
+			<SortTable
+				rows={w.sites}
+				{columns}
+				key={(r) => r.id}
+				bind:sort
+				link={(r) => r.id}
+				bind:hovered
+				bind:selected
+			/>
+		</div>
+	</div>
 {/snippet}
 
 <div class="flex flex-col gap-6">
@@ -321,7 +423,7 @@
 			' / ×'
 		)} by tier ({TIER_SLOTS.join(
 			' / '
-		)} slots). Waystations in neighbouring systems form a wayline: a module’s wayline effects reach every system on it, and a Logistics Hub collects the whole line at one station. Green (or a dot sized by it), and the number under each star: what the best modules would collect, in trade a month, at the tier chosen above — a module needing a tech you lack is left out; 👁 a pre-FTL civilisation a Research Observatory would observe; ⚠ another empire’s space without a pact; ✕ someone else’s waystation; dashed: planned."
+		)} slots). Waystations in neighbouring systems form a wayline: a module’s wayline effects reach every system on it, and a Logistics Hub collects the whole line at one station. Blue: our waystations; green (or a dot sized by it — the smallest up to 10, the baseline), and the number under each star: what the best modules would collect, in trade a month, at the tier chosen above — a module needing a tech you lack is left out; 👁 a pre-FTL civilisation a Research Observatory would observe; ⚠ another empire’s space without a pact; ✕ someone else’s waystation; dashed: planned."
 	>
 		<div class="mb-2 flex flex-wrap items-center gap-1 text-sm">
 			<span class="text-gray-500">rate the sites for</span>

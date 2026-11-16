@@ -69,9 +69,11 @@ waylines it would extend or link, and whose space it is — another empire's wit
 Pact is ⚠ (their stations there collect 25 % less, −10 opinion each to −200, the Expel Nomads war
 goal), someone else's waystation ✕. "+ goal" plans a waystation or a module, "+ wayline (n)" the
 waystation and every one on the shortest way from our waylines (`chainTo`, past no one else's
-waystation). The value of each site, in trade a month (rounded; hover it for each module's share), also shows
-under its star, and the map shows it as the system's colour or, toggled, as a green dot whose area
-grows with it; research, unity and whatever else the market does not sell count at what a unit
+waystation). The value of each site, in trade a month (two decimals; hover it for each module's share), also
+shows under its star, and the map shows it as the system's colour or, toggled, as a green dot
+whose area grows with what lies above the baseline of 10 (the smallest dot up to it); our
+waystations are blue on the map, with what they collect now, and have a table of their own above
+the sites (both beside the map in "wide + table"); research, unity and whatever else the market does not sell count at what a unit
 costs us (`unitValues`: our own sources' running cost — about 1 trade a point in
 `roamingcybergang` 2213.08); a toggle rates the sites
 for Waystation I, II or III (2 / 4 / 6 slots, × 0.75 / 1 / 1.25 — tiers not yet researched say

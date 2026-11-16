@@ -65,6 +65,8 @@ export type WayStation = {
 	stockpile: Resources;
 	fill: number | null;
 	collecting: boolean;
+	worth: number; // what its modules collect a month now, in trade
+	line: number; // index of its wayline in `waylines`
 	next: WayPick[]; // for its free slots
 };
 
@@ -175,6 +177,8 @@ export function waylinesOf(
 			stockpile: s.stockpile ?? {},
 			fill: s.fill ?? null,
 			collecting: s.collecting ?? false,
+			worth: picks.filter((p) => p.built).reduce((t, p) => t + p.worth, 0),
+			line: lineOf(s.systemId!),
 			next: bestModules(picks, free).map(pick)
 		};
 	});
