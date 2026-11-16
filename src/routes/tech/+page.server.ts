@@ -2,7 +2,7 @@ import { error } from '@sveltejs/kit';
 import { techOffers } from '#lib/techOffers.ts';
 import { techTiers } from '#lib/techTiers.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
-import { branch } from '#lib/server/branch.ts';
+import { branch, withOptions } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { researchBonuses } from '#lib/server/researchBonuses.ts';
 import { sourceWhatIfs } from '#lib/server/whatIfs.ts';
@@ -12,16 +12,19 @@ export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
+	// at the head, the cards the companion mod logged on the 2nd (0.13.0) count as a reading — for
+	// the cards alone: it repeats the last save, which would read as no progress for rates
+	const carded = rest.isHead ? withOptions(snaps, snaps.at(-1)?.campaign ?? '') : snaps;
 	const techs = getGameData().techs;
 	const progress = snaps.findLast((s) => s.progress !== null)?.progress ?? null;
-	const latest = snaps.findLast((s) => s.techOptions !== null);
+	const latest = carded.findLast((s) => s.techOptions !== null);
 	const options = latest?.techOptions ?? {};
 	// progress of every queued tech; the permanent options (null: a save read before 2026-10-22)
 	const queued = Object.fromEntries((latest?.techQueued ?? []).map((q) => [q.tech, q.progress]));
 	const permanent = latest?.techPermanent ?? null;
 	// progress kept by techs switched away from (null: a save read before READER 49)
 	const kept = latest?.techKept ?? null;
-	const offers = techOffers(snaps).reverse();
+	const offers = techOffers(carded).reverse();
 	// stored research per field and how long it lasts: each month up to the monthly gain is used
 	const stocked = snaps.findLast((s) => s.techStored !== null);
 	const stored = Object.entries(stocked?.techStored ?? {})
@@ -40,6 +43,8 @@ export function load({ url }) {
 	});
 	return {
 		...rest,
+		// the date of the cards shown: the last save's, or the mod's 2nd of the month after it
+		optionsDate: latest?.date ?? null,
 		// ≈ what each card on offer would do once researched (a spoiler switch in ⚙)
 		whatIfs: sourceWhatIfs(
 			b,

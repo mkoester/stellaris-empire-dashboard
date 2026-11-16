@@ -104,4 +104,16 @@ describe('parsePlanRequest', () => {
 	])('refuses %s', (_, body) => {
 		expect(parsePlanRequest(body)).toBeNull();
 	});
+
+	it('takes later as a polarity, and nothing else new', () => {
+		const add = (polarity: string) =>
+			parsePlanRequest(
+				req({ goal: 'g', op: 'add', data: { kind: 'tech', target: { tech: 't' }, polarity } })
+			);
+		expect(add('later')?.changes[0].data.polarity).toBe('later');
+		expect(add('maybe')).toBeNull();
+		expect(
+			parsePlanRequest(req({ goal: 'g', op: 'edit', data: { polarity: 'later' } }))?.changes
+		).toEqual([{ goal: 'g', op: 'edit', data: { polarity: 'later' } }]);
+	});
 });

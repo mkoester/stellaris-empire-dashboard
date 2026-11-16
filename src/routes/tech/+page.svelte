@@ -92,8 +92,8 @@
 	</Panel>
 
 	<Panel
-		title="On offer"
-		note="The cards the game offers now, per field — redrawn once the field's current tech is done. ▶ being researched, ★ a permanent option (stays until researched), progress where a tech has some — ↺ kept from switching away (it stays with the tech, but the card does not: the next draw may drop it).{data.permanentKnown
+		title={data.optionsDate ? `On offer · ${data.optionsDate}` : 'On offer'}
+		note="The cards the game offers now, per field — as of the last save, or the 2nd of the month with the companion mod (0.13.0) — redrawn once the field's current tech is done. ▶ being researched, ★ a permanent option (stays until researched), progress where a tech has some — ↺ kept from switching away (it stays with the tech, but the card does not: the next draw may drop it).{data.permanentKnown
 			? ''
 			: ' Permanent options show from the next save on.'}{data.keptKnown
 			? ''

@@ -15,7 +15,13 @@ cannot move a change to another branch; changing the plan at an old node reaches
 branch below it (the page says how many). Goals of other branches missing here (by id, or by
 kind and target — `goalKey()`, free-text goals by their text) are offered to copy; one not
 possible here is copied **parked** ("a potential step to plan again", the user's ask). Each goal
-is **want or avoid**; an avoided goal that comes true shows "happened" in red. **Status**
+is **want, later or avoid**; an avoided goal that comes true shows "happened" in red. **Later**
+(the user's ask 2026-11-16: "I might want to delay some tech options, so a `-want` button"):
+wanted, but not yet — it counts as wanted everywhere (status, alerts, what a tech needs), and only
+Upcoming tells it apart: on offer, its row says to pick another card (`plannedOnOffer()`). The
+"− want" button on tech goals, shortcuts and potential goals sets it ("+ want" undoes it), ⏸ marks
+it; the add form offers "want it later". Stored as `polarity: 'later'` in `plan_event` (no
+migration: `planAt()` reads an unknown polarity as want, `parsePlanRequest()` refuses one). **Status**
 (`check()`): done, under way, open, no longer possible (blocked), unknown — against the branch's
 latest full save and the campaign's galaxy as the viewer may see it (`campaignGalaxy()`, spoilers
 respected); "since" walks back over the saves (`holdsSince()`, "by" where a save cannot tell —
@@ -118,7 +124,11 @@ tree first ("Cybernetics (adopt) · opened by The Flesh is Weak"). Nomads settle
 buttons on other tabs). Potential goals start folded, per group, their "+ want" and "⊘" (avoid)
 buttons at the left of each row, the row lit on hover. **Shortcuts** (the user's ask 2026-11-06:
 "techs almost every player would want, offered as shortcuts"; `#lib/planner/shortcuts.ts`,
-`shortcuts()` in `server/planner.ts`): bundles of techs above the potential goals — economy core,
+`shortcuts()` in `server/planner.ts`): bundles of techs above the potential goals — **nomads** (first; every tech has `potential =
+is_nomadic`, so only nomads see it; the user's ask 2026-11-16: "things I need rather fast, e.g.
+more logistic ships": logistic ships are capped by `nomadic_constructor_limit_add`, 2 from the
+start, +2 each from Waystations II and III, +1 per Logistics Hub waystation module — nothing else
+in the 4.5.4 files; then the arkship techs), economy core,
 research buildings (`tech_physics_1`, `tech_society_1`, `tech_engineering_1`: each field's lab),
 its second step, strategic resources, habitats and terraforming, military, late game — each tech
 with "+ want", each bundle with "+ add all"; prerequisites and tier gates follow via `techNeeds()`.

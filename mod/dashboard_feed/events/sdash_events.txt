@@ -22,6 +22,9 @@ country_event = {
 
 	immediate = {
 		sdash_roll_timeline = yes
+		# 0.13.0: the research options, the next day (events/sdash_tech_options.txt, generated) —
+		# the user's ask 2026-11-16: "check on every 2nd of a month which tech options are available"
+		country_event = { id = sdash.6 days = 1 }
 		# 0.11.0: a multiplayer game, where the dashboard turns every cheat off — before the month's
 		# end line, so the month carries it. Trigger from 4.5.3 triggers.log (scope all); the save's
 		# `player` block says it too, which serves a player without the mod.

@@ -68,6 +68,7 @@ The companion mod for the [url=https://github.com/mkoester/stellaris-empire-dash
 [*][b]Exact reload branches[/b] — which save you loaded, so going back in time starts the right branch instead of a guess.
 [*][b]Events as they happen[/b] — colonies, wars, battles, leader deaths, new rulers, spending.
 [*][b]Values the game does not save[/b] — your storage and other empires', and Galactic Community voting weight; without the mod the dashboard estimates them (marked ≈).
+[*][b]Research options every month[/b] — the cards on offer on the 2nd, so the dashboard points out a planned tech even when your autosaves are yearly.
 [/list]
 The dashboard works fully without the mod; this makes it exact and live.
 
@@ -104,6 +105,7 @@ What it adds to the dashboard
 • Exact reload branches — which save you loaded, so going back in time starts the right branch instead of a guess.
 • Events as they happen — colonies, wars, battles, leader deaths, new rulers, spending.
 • Values the game does not save — your storage and other empires', and Galactic Community voting weight; without the mod the dashboard estimates them (marked ≈).
+• Research options every month — the cards on offer on the 2nd, so the dashboard points out a planned tech even when your autosaves are yearly.
 The dashboard works fully without the mod; this makes it exact and live.
 
 How it works

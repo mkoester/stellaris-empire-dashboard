@@ -560,6 +560,23 @@ holds whatever it really does.
   (That job efficiency scales upkeep is confirmed: `docs/workspace-notes.md`, physicists
   2026-10-31.)
 
+### 39. Research options on the 2nd — Upcoming and tech tab, companion mod 0.13.0 (from 2026-11-16)
+
+`docs/companion-mod.md` ("Research options"). The mod asks `has_tech_option` for each of the 631
+techs of the 4.5.4 data DB on the 2nd of each month (`sdash.6`). Replayed on a DB copy only (Roaming
+Cyber Gang, node 460, 2026-11-16): Upcoming and the tech tab switched to the replayed list.
+Not seen in game yet:
+
+- **The lines come at all:** with mod 0.13.0 linked, play past a 2nd → `game.log` has
+  `SDASH|3|<date>.02|<run>|event|tech-option|…` lines and one `tech-options-end`; `error.log` has
+  no `sdash` line (a tech key the game does not know would show there).
+- **Same cards as the game:** compare the logged techs with the research screen on that day
+  (screenshot). Open: whether the tech **under research** is among them — the save's cards hold it,
+  and `withLiveOptions()` adds it when missing (else every 2nd would read as a new draw).
+- **Cost:** 631 trigger checks once a month — any hitch on the 2nd at full speed?
+- **Send:** the `SDASH` lines of one 2nd, the research screen of that day, and whether Upcoming
+  showed the "later" row for a tech planned with − want.
+
 ## C. Not in the game
 
 ### 37. Upkeep what-ifs and the net in trade — government, species, traditions, tech tabs (from 2026-11-15)

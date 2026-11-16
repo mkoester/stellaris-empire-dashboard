@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { plannedOnOffer, techOffers } from './techOffers.ts';
+import { plannedOnOffer, techOffers, withLiveOptions } from './techOffers.ts';
 import type { Snapshot } from './types.ts';
 
 const snap = (date: string, cards: string[], researching: string | null) =>
@@ -29,8 +29,8 @@ describe('techOffers', () => {
 describe('plannedOnOffer', () => {
 	const names = { a: { name: 'Alpha' }, b: { name: 'Beta' } };
 	const wanted = new Map([
-		['a', ''],
-		['b', 'needed for Gamma']
+		['a', { stance: 'want' as const, note: '' }],
+		['b', { stance: 'want' as const, note: 'needed for Gamma' }]
 	]);
 	const saves = [snap('2200.01.01', ['x', 'y'], 'x'), snap('2200.02.01', ['a', 'b', 'c'], 'c')];
 	const run = (s = saves, dismissed = new Set<string>()) =>
@@ -70,5 +70,46 @@ describe('plannedOnOffer', () => {
 		expect(run(again, new Set(['country:offer:a:2200.02.01']))[0].dismiss).toBe(
 			'country:offer:a:2200.04.01'
 		);
+	});
+
+	it('tells to pick another card for a tech planned for later or to avoid', () => {
+		const stances = new Map([
+			['a', { stance: 'later' as const, note: '' }],
+			['b', { stance: 'avoid' as const, note: '' }]
+		]);
+		const rows = plannedOnOffer(saves, stances, names, new Set());
+		expect(rows.map((r) => [r.what, r.sub, r.detail])).toEqual([
+			[
+				'Alpha',
+				'later',
+				'physics · on offer since 2200.02.01 · planned for later: pick another card for now'
+			],
+			[
+				'Beta',
+				'avoided tech',
+				'physics · on offer since 2200.02.01 · planned to avoid: pick another card'
+			]
+		]);
+	});
+});
+
+describe('withLiveOptions', () => {
+	const saves = [snap('2200.02.01', ['a', 'b'], 'a')];
+	const area = (t: string) => ({ a: 'physics', c: 'physics', s: 'society' })[t];
+
+	it("adds the mod's newer list as a reading after the last save, by field", () => {
+		const out = withLiveOptions(saves, { date: '2200.02.02', techs: ['c', 's'] }, area);
+		expect(out).toHaveLength(2);
+		expect(out[1].date).toBe('2200.02.02');
+		// the tech under research joins its field's cards, as in a save
+		expect(out[1].techOptions).toEqual({ physics: ['c', 'a'], society: ['s'] });
+		// the research under way is the last save's
+		expect(out[1].progress).toBe(saves[0].progress);
+	});
+
+	it('leaves the saves alone without a newer list', () => {
+		expect(withLiveOptions(saves, null, area)).toBe(saves);
+		expect(withLiveOptions(saves, { date: '2200.02.01', techs: ['c'] }, area)).toBe(saves);
+		expect(withLiveOptions(saves, { date: '2200.01.02', techs: ['c'] }, area)).toBe(saves);
 	});
 });

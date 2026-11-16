@@ -41,12 +41,14 @@ import {
 	otherBranches,
 	parked,
 	planAt,
+	wanted,
 	type Goal,
 	type Plan,
 	type PlanEvent,
 	type Target
 } from '#lib/planner/replay.ts';
 import { holdsSince, seenAlong, type Since } from '#lib/planner/status.ts';
+import type { Stance } from '#lib/techOffers.ts';
 import { SHORTCUTS, shortcutRows } from '#lib/planner/shortcuts.ts';
 import { systemInfo } from '#lib/planner/systemInfo.ts';
 import { techNeeds } from '#lib/planner/needs.ts';
@@ -259,7 +261,7 @@ function describe(e: PlanEvent, goals: Map<string, { label: string }>): HistoryR
 	switch (e.op) {
 		case 'add':
 			return [
-				d.polarity === 'avoid' ? 'avoid' : 'want',
+				typeof d.polarity === 'string' ? d.polarity : 'want',
 				d.parked ? 'parked' : '',
 				d.from ? 'copied from another branch' : ''
 			]
@@ -377,7 +379,7 @@ function planWithNeeds(
 	const researched = c.ctx.latest.progress?.researched ?? [];
 	const wantedOf = (kind: string) =>
 		[...first.goals.values()].filter(
-			(g) => g.kind === kind && !g.parked && g.polarity === 'want' && (kind === 'tech' || !g.auto)
+			(g) => g.kind === kind && !g.parked && wanted(g.polarity) && (kind === 'tech' || !g.auto)
 		);
 	const techsNeeded = (techs: string[]) =>
 		techNeeds(techs, researched, data.techs, data.techRequirements, c.ctx.possible);
@@ -389,9 +391,11 @@ function planWithNeeds(
 		wantedOf('perk').map((g) => String(g.target.perk)),
 		(key) => {
 			const tree = data.traditionTrees[key];
-			return tree != null &&
+			return (
+				tree != null &&
 				c.ctx.possible(tree.potential ?? null) !== false &&
-				c.ctx.possible(tree.adoptPossible ?? null) !== false;
+				c.ctx.possible(tree.adoptPossible ?? null) !== false
+			);
 		}
 	);
 	const needs = techsNeeded(wantedOf('tech').map((g) => String(g.target.tech)));
@@ -412,9 +416,11 @@ function planWithNeeds(
 							g.kind === 'perk' ? [String(g.target.perk)] : [],
 							(key) => {
 								const tree = data.traditionTrees[key];
-								return tree != null &&
+								return (
+									tree != null &&
 									c.ctx.possible(tree.potential ?? null) !== false &&
-									c.ctx.possible(tree.adoptPossible ?? null) !== false;
+									c.ctx.possible(tree.adoptPossible ?? null) !== false
+								);
 							}
 						)
 				)
@@ -967,7 +973,7 @@ type Summary = {
 	keys: string[];
 	alerts: number;
 	unavailable: string[];
-	wantedTechs: [string, string][]; // tech → its goal's note, for `plannedOnOffer()`
+	plannedTechs: [string, { stance: Stance; note: string }][]; // for `plannedOnOffer()`
 };
 
 let memo: { key: string; value: Summary } | null = null;
@@ -975,10 +981,10 @@ let memo: { key: string; value: Summary } | null = null;
 /**
  * For the tab bar and the "+ goal" buttons on every page: the plan's goal keys at the node shown,
  * and how many need attention — blocked, or avoided and happened; for the upcoming list the techs
- * wanted (their prerequisites included). Cached by tip and plan.
+ * planned, each with its stance (wanted ones' prerequisites included). Cached by tip and plan.
  */
 export function planSummary(tip: number | null): Summary {
-	const none: Summary = { keys: [], alerts: 0, unavailable: [], wantedTechs: [] };
+	const none: Summary = { keys: [], alerts: 0, unavailable: [], plannedTechs: [] };
 	if (tip === null) return none;
 	const db = getDb();
 	const node = nodeById(db, tip);
@@ -995,7 +1001,7 @@ export function planSummary(tip: number | null): Summary {
 			for (const g of goals) {
 				if (g.parked) continue;
 				const st = check(g.kind, g.target, g.checked, c.ctx).state;
-				if (st === 'blocked' && g.polarity === 'want') alerts++;
+				if (st === 'blocked' && wanted(g.polarity)) alerts++;
 				if (st === 'done' && g.polarity === 'avoid') alerts++;
 			}
 	}
@@ -1005,9 +1011,9 @@ export function planSummary(tip: number | null): Summary {
 			keys: goals.map((g) => goalKey(g.kind, g.target, g.title)),
 			alerts,
 			unavailable: c ? unavailable(c.ctx.latest) : [],
-			wantedTechs: goals
-				.filter((g) => g.kind === 'tech' && g.polarity === 'want' && !g.parked)
-				.map((g) => [String(g.target.tech), g.note])
+			plannedTechs: goals
+				.filter((g) => g.kind === 'tech' && !g.parked)
+				.map((g) => [String(g.target.tech), { stance: g.polarity, note: g.note }])
 		}
 	};
 	return memo.value;

@@ -126,11 +126,12 @@
 			} as Record<string, string[]>
 		)[r.state];
 	};
+	// `later` is wanted too, just not yet (#lib/planner/replay.ts)
 	const alert = (r: Row) =>
-		(r.polarity === 'want' && r.state === 'blocked') ||
+		(r.polarity !== 'avoid' && r.state === 'blocked') ||
 		(r.polarity === 'avoid' && r.state === 'done');
 	const finished = (r: Row) =>
-		(r.polarity === 'want' && r.state === 'done') ||
+		(r.polarity !== 'avoid' && r.state === 'done') ||
 		(r.polarity === 'avoid' && r.state === 'blocked');
 
 	// next up: per group the first goal not finished, warnings first
@@ -298,6 +299,15 @@
 		>{/if}
 {/snippet}
 
+<!-- − want: a tech planned for later (wanted, not yet; the user's ask 2026-11-16) -->
+{#snippet later(t: { kind: string; target: Target; label: string })}{#if t.kind === 'tech'}<button
+			type="button"
+			class="rounded border border-gray-300 px-1 text-xs text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+			title="add for later: want {t.label}, but not yet — Upcoming says to pick another card while it is on offer"
+			aria-label="later {t.label}"
+			onclick={() => addGoal(t.kind, t.target, 'later')}>− want</button
+		>{/if}{/snippet}
+
 {#snippet group(name: string | null)}{#if name}<span
 			class="mr-1 rounded bg-sky-50 px-1 text-[10px] text-sky-800 dark:bg-sky-950 dark:text-sky-200"
 			title="planner group">{name}</span
@@ -305,8 +315,14 @@
 
 {#snippet name(r: Row)}
 	<span class={r.polarity === 'avoid' ? 'text-red-700 dark:text-red-400' : ''}
-		>{#if r.polarity === 'avoid'}<span title="to avoid">⊘ </span>{/if}<InfoPopup
-			explanation={r.ref ? data.explain[r.ref] : undefined}>{r.label}</InfoPopup
+		>{#if r.polarity === 'avoid'}<span title="to avoid"
+				>⊘
+			</span>{:else if r.polarity === 'later'}<span
+				class="text-gray-500"
+				title="later: wanted, but not yet — Upcoming says to pick another card while it is on offer"
+				>⏸
+			</span>{/if}<InfoPopup explanation={r.ref ? data.explain[r.ref] : undefined}
+			>{r.label}</InfoPopup
 		>{@render badges(r)}</span
 	>
 {/snippet}
@@ -367,12 +383,23 @@
 			>
 		{/if}
 		<span class="flex gap-1 text-xs">
+			{#if r.kind === 'tech' && r.polarity !== 'avoid'}
+				<button
+					type="button"
+					class="text-gray-500 hover:text-current"
+					title={r.polarity === 'later'
+						? 'want it now again'
+						: 'later: still wanted, but not yet — Upcoming says to pick another card while it is on offer'}
+					onclick={() => op(r, 'edit', { polarity: r.polarity === 'later' ? 'want' : 'later' })}
+					>{r.polarity === 'later' ? '+ want' : '− want'}</button
+				>
+			{/if}
 			<button
 				type="button"
 				class="text-gray-500 hover:text-current"
-				title={r.polarity === 'want' ? 'switch to: avoid this' : 'switch to: want this'}
-				onclick={() => op(r, 'edit', { polarity: r.polarity === 'want' ? 'avoid' : 'want' })}
-				>{r.polarity === 'want' ? 'want' : 'avoid'} ⇄</button
+				title={r.polarity === 'avoid' ? 'switch to: want this' : 'switch to: avoid this'}
+				onclick={() => op(r, 'edit', { polarity: r.polarity === 'avoid' ? 'want' : 'avoid' })}
+				>{r.polarity} ⇄</button
 			>
 			<button
 				type="button"
@@ -605,6 +632,7 @@
 						bind:value={polarity}
 					>
 						<option value="want">want it</option>
+						<option value="later">want it later</option>
 						<option value="avoid">avoid it</option>
 					</select>
 				</label>
@@ -747,7 +775,7 @@
 		{#if data.shortcuts.length}
 			<Panel
 				title="Shortcuts"
-				note="Techs worth having in nearly every game, per bundle; what it needs first follows by itself. Researched, planned and impossible ones are left out."
+				note="Techs worth having in nearly every game, per bundle; what it needs first follows by itself. Researched, planned and impossible ones are left out. − want adds one for later: wanted, but not yet."
 			>
 				{#each data.shortcuts as s (s.id)}
 					{@const list = s.techs.filter(inArea)}
@@ -777,7 +805,7 @@
 									<li
 										class="flex items-baseline gap-2 rounded px-1 py-0.5 odd:bg-gray-50 hover:bg-sky-50 dark:odd:bg-gray-900 dark:hover:bg-sky-950"
 									>
-										<span class="flex w-24 shrink-0 gap-1">
+										<span class="flex w-32 shrink-0 gap-1">
 											<button
 												type="button"
 												class="rounded border border-sky-300 px-1 text-xs text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900"
@@ -785,6 +813,7 @@
 												aria-label="want {t.label}"
 												onclick={() => addGoal(t.kind, t.target, 'want')}>+ want</button
 											>
+											{@render later(t)}
 										</span>
 										<span class="flex-1"
 											><InfoPopup explanation={t.ref ? data.explain[t.ref] : undefined}
@@ -803,7 +832,7 @@
 
 		<Panel
 			title="Potential goals"
-			note="What the latest save suggests: + want adds it, ⊘ adds it as a goal to avoid."
+			note="What the latest save suggests: + want adds it, − want adds a tech for later (wanted, not yet), ⊘ adds it as a goal to avoid."
 		>
 			{#each suggestionsBy as g (g.id)}
 				<details class="mt-1">
@@ -819,7 +848,7 @@
 								class="flex items-baseline gap-2 rounded px-1 py-0.5 odd:bg-gray-50 hover:bg-sky-50 dark:odd:bg-gray-900 dark:hover:bg-sky-950"
 								class:opacity-50={s.unavailable}
 							>
-								<span class="flex w-24 shrink-0 gap-1">
+								<span class="flex w-32 shrink-0 gap-1">
 									<button
 										type="button"
 										class="rounded border border-sky-300 px-1 text-xs text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900"
@@ -827,6 +856,7 @@
 										aria-label="want {s.label}"
 										onclick={() => addGoal(s.kind, s.target, 'want')}>+ want</button
 									>
+									{@render later(s)}
 									<button
 										type="button"
 										class="rounded border border-red-300 px-1 text-xs text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"

@@ -1,23 +1,28 @@
 import { latestOf } from '#lib/latest.ts';
 import { expiries, rolls, timedOut, upcoming, toDays } from '#lib/events.ts';
 import { jobRows, jobSources, netFlows, withFlows, workedJobs } from '#lib/jobs.ts';
-import { getDb, getExplanations, getGameData } from './app.ts';
+import { getDb, getExplanations, getGameData, liveTechOptions } from './app.ts';
 import { headId, history, nodeById, nodes, type Db } from './db.ts';
 import { nodeParam } from './request.ts';
 import { pick } from './explain.ts';
 import { dismissed } from './campaigns.ts';
 import { idles, withIdleShips } from '#lib/idle.ts';
-import { plannedOnOffer } from '#lib/techOffers.ts';
+import { plannedOnOffer, withLiveOptions } from '#lib/techOffers.ts';
 import { planSummary } from './planner.ts';
 import { display } from './settings.ts';
 import { outcomeTips } from './outcomes.ts';
 import { empireColors } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
+import type { Snapshot } from '#lib/types.ts';
 
 /** The node a page shows: `?node=` when it exists, else the head; null before the first save. */
 export const shownNode = (db: Db, url: URL): number | null =>
 	nodeById(db, nodeParam(url))?.id ?? headId(db);
+
+/** The saves, with the research options the companion mod logged since the last one (0.13.0). */
+export const withOptions = (saves: Snapshot[], campaign: string): Snapshot[] =>
+	withLiveOptions(saves, liveTechOptions(campaign), (t) => getGameData().techs[t]?.area);
 
 /**
  * The branch a page shows: ending at ?node=<id>, or at the head (the state last seen from the
@@ -74,8 +79,9 @@ export function branch(url: URL) {
 						tip: outcomeTips(getGameData(), display()).digSite
 					}),
 					...plannedOnOffer(
-						saves,
-						new Map(planSummary(tip).wantedTechs),
+						// at the head, the cards the companion mod logged on the 2nd (0.13.0)
+						tip === headId(db) ? withOptions(saves, campaign) : saves,
+						new Map(planSummary(tip).plannedTechs),
 						getGameData().techs,
 						dismissed(db, campaign)
 					)
