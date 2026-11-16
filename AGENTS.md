@@ -177,6 +177,15 @@ sinks): hide what this empire will never use — a nomad never settles, a settle
 embarks, an origin, civic or authority it lacks —, grey what is not available _yet_ with the
 reason on hover, and grey a group's header when nothing in it is available.
 
+**Every value or worth is in trade** (the user's rule, 2026-11-16): `valueOf()` with
+`valuesOf(snaps)` (`#lib/value.ts`, `server/unitCosts.ts`) — the market's base price, else what a
+unit costs us. No energy-based or self-made weights; label it "trade", two decimals.
+
+**A page with plan buttons returns `tip`** (spread `branch()`'s fields, or `tip: b.tip`):
+`AddGoal`, `WantButtons` and the roaming tab's "+ wayline" render nothing without
+`page.data.tip`, silently — the roaming tab shipped that way in 0.1.23. A check of such a page
+counts the buttons in its HTML, not only its `__data.json`.
+
 Each tab's notes are in one of these; read the one for the tab before working on it:
 
 - `docs/tabs-shell.md`: upcoming events, cooldowns and expiries, popups, tabs and settings, the
