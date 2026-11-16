@@ -1168,7 +1168,6 @@ export type GameData = {
 			// trade a month per unit a colony is short of it (`deficit_trade_conversion_mult`);
 			// absent from a data DB before extractor 2026-11-02
 			deficitTrade?: number | null;
-			marketValue?: number | null; // energy a unit is worth on the market at base price
 		}
 	>;
 	personalities: Record<string, { name: string; willingness: number | null }>;

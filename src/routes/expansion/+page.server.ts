@@ -11,6 +11,7 @@ import { getExplanations } from '#lib/server/app.ts';
 import { pick } from '#lib/server/explain.ts';
 import { planSummary } from '#lib/server/planner.ts';
 import { territoriesOf, reveal } from '#lib/server/mapSystems.ts';
+import { valuesOf } from '#lib/server/unitCosts.ts';
 import { waylinesOf } from '#lib/server/waylines.ts';
 import { ownOnMap } from '#lib/mapLayers.ts';
 import { mapView } from '#lib/situations.ts';
@@ -35,7 +36,8 @@ export function load({ url }) {
 			? waylinesOf(
 					save,
 					planSummary(b.tip).keys,
-					arkships.flatMap((a) => (a.systemId === null ? [] : [a.systemId]))
+					arkships.flatMap((a) => (a.systemId === null ? [] : [a.systemId])),
+					valuesOf(b.snaps)
 				)
 			: null;
 	const g = waylines && save ? campaignGalaxy(save.campaign) : null;

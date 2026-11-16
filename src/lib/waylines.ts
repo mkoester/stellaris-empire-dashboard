@@ -81,7 +81,7 @@ export function waystationModules(
 		});
 }
 
-/** What a resource is worth, for ranking: the market's base value, 1 without one. */
+/** What one unit of a resource is worth in trade, for ranking (#lib/value.ts). */
 export type Worth = (resource: string) => number;
 
 /**

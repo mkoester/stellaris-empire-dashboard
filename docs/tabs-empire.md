@@ -63,8 +63,8 @@ module's `collected_system_resources`), × 0.75 / 1 / 1.25 by tier, 2 / 4 / 6 sl
 `starbase_collected_system_<r>_add` the empire qualifies for counts too (the Hydroponics Bay's
 food, ≈ the tier factor on it — `open-points.md`). **Waystations** — map and table: every visited
 system with a deposit a module collects, its best modules for the 2 slots of Waystation I, what they
-collect a month in energy at the market's base value (`marketValue`; rare resources without a
-market price count 20), jumps from our nearest waystation (the arkships before the first), the
+collect a month in trade (`valueOf` with `valuesOf`: the market's base price, else what a unit
+costs us — the systems, produce and trade-offs tabs' values), jumps from our nearest waystation (the arkships before the first), the
 waylines it would extend or link, and whose space it is — another empire's without a Wayline
 Pact is ⚠ (their stations there collect 25 % less, −10 opinion each to −200, the Expel Nomads war
 goal), someone else's waystation ✕. "+ goal" plans a waystation or a module, "+ wayline (n)" the

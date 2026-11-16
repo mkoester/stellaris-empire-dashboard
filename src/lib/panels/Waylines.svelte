@@ -71,7 +71,7 @@
 		Object.fromEntries(
 			w.sites.map((s) => [
 				s.id,
-				`${fmt(s.worth)} a month with ${s.best.map((p) => p.name).join(' + ') || 'nothing to collect'}${troubleText(s) ? ` — ${troubleText(s)}` : ''}`
+				`${fmt(s.worth)} trade a month with ${s.best.map((p) => p.name).join(' + ') || 'nothing to collect'}${troubleText(s) ? ` — ${troubleText(s)}` : ''}`
 			])
 		)
 	);
@@ -177,10 +177,11 @@
 		},
 		{
 			id: 'worth',
-			label: 'Worth/mo',
+			label: 'Trade/mo',
 			value: (r) => r.worth || null,
 			right: true,
-			title: 'what those modules collect a month, in energy at the market’s base prices'
+			title:
+				'what those modules collect a month, in trade: the market’s base prices, else what a unit costs us (the jobs tab)'
 		},
 		{
 			id: 'joins',

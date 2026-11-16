@@ -20,6 +20,7 @@ import {
 	type Trouble,
 	type Worth
 } from '#lib/waylines.ts';
+import { valueOf } from '#lib/value.ts';
 import { getGameData } from './app.ts';
 import { campaignGalaxy } from './mapSystems.ts';
 import { display } from './settings.ts';
@@ -29,12 +30,6 @@ import { display } from './settings.ts';
 // the viewer may see: the galaxy as discovered and surveyed (`campaignGalaxy`, `discovered`).
 
 const PLANNED = /^waystation:system=(\d+)$/;
-
-/** Rare resources have no market price; their AI weight (100) puts them above the strategic ones. */
-const worthOf =
-	(info: ReturnType<typeof getGameData>['resourceInfo']): Worth =>
-	(r) =>
-		info[r]?.marketValue ?? ((info[r]?.aiWeight ?? 0) >= 100 ? 20 : 1);
 
 export type WayPick = Pick<
 	ModulePick,
@@ -48,7 +43,7 @@ export type WaySite = {
 	name: string;
 	deposits: Resources; // base a month
 	best: WayPick[]; // for the free slots of a new tier-1 waystation, best first
-	worth: number; // what the best collectors bring a month, in energy at market base value
+	worth: number; // what the best collectors bring a month, in trade (#lib/value.ts)
 	trouble: Trouble;
 	owner: string | null; // the empire whose space it is, or holds the waystation
 	joins: number[]; // indexes of the waylines (ours and planned) it would join
@@ -86,7 +81,16 @@ const why = (p: ModulePick, names: Record<string, string>): string => {
 	return p.wayline ? 'its effects reach the whole wayline' : '';
 };
 
-export function waylinesOf(save: Snapshot, plannedKeys: string[], arkshipSystems: number[]) {
+/**
+ * `values`: one unit of each resource in trade — the market's base price, else what a unit costs
+ * us (`valuesOf`, the systems, produce and trade-offs tabs' values).
+ */
+export function waylinesOf(
+	save: Snapshot,
+	plannedKeys: string[],
+	arkshipSystems: number[],
+	values: Resources
+) {
 	const game = getGameData();
 	const g = campaignGalaxy(save.campaign);
 	if (!g) return null;
@@ -96,7 +100,7 @@ export function waylinesOf(save: Snapshot, plannedKeys: string[], arkshipSystems
 	const me = save.countryId ?? -1;
 	const f = facts(save, game.scriptedTriggers, { shipKinds: game.shipKinds });
 	const mods = waystationModules(game.starbaseParts, f);
-	const worth = worthOf(game.resourceInfo);
+	const worth: Worth = (r) => valueOf({ [r]: 1 }, values);
 	const resNames = Object.fromEntries(
 		Object.entries(game.resourceInfo).map(([k, v]) => [k, v.name])
 	);
