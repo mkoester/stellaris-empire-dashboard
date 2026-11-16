@@ -279,9 +279,36 @@ collected** (`uncollected()`):
 - **Rival slots**: 0.5 influence a rival (`common/diplomacy_economy`, valued at what a rival books
   now when there is one); slots 3 (`empire_base`) + 2 with the Animosity stance
   (`diplo_stance_animosity*` policy flag) + 1 with `tr_enmity_adopt`.
+  **Who can be declared a rival** (4.5.4 `diplomatic_actions/00_actions.txt` `action_make_rival`,
+  checked 2026-11-16 for the user's question): any of our opinion **of them** ≤ terrible (−750,
+  `OPINION_TERRIBLE`), **an envoy of ours harming relations with them** (`is_harming_relations_with`
+  — no need to wait for opinion to drop), war, a Supremacist or Animosity stance on either side,
+  their rivalry of us, a fallen empire either side, the Mirror Empire. **An insult does not
+  qualify**: `opinion_insult` (−200, decays 2 a month) sits on the insulted empire's opinion of us,
+  and the rule reads ours of them. Never for purifiers (other species), devouring swarms,
+  terminators (organics), assimilators, inward perfection, or against one's own subjects or
+  overlord. A rival books +0.5 influence: for an empire at its influence cap, the slots are no
+  help.
 - **Lost at the storage cap** (`lostAtCap()`): with companion mod's `storageMax`, the net while at
   it; without, a stockpile that did not move although the budget booked a gain (Planetforgers
   2214.01–02: 1000 both, +5.8 booked) — estimated; the unexplained row then says so.
+
+**Where influence can go** (`#lib/influenceSinks.ts` pure, the user's ask 2026-11-16: "this time
+I have too much influence; find all possible sinks"): every cost and upkeep naming influence in the
+4.5.4 files — a scan of every `cost`/`upkeep` block under `common/`, plus the defines' outpost,
+claim, branch office, capital, GalCom and agreement costs —, as base costs, grouped. **Hidden**
+what this empire cannot use in this playthrough (the user's rule: a nomad never settles, a settled
+empire never embarks): nomad-only (`is_nomadic` potentials: waystations, arkships, wayline pacts)
+or settled-only (outposts, claims, the capital, megastructures that must be inside the borders —
+gateway, ring world, orbital ring, habitat complex, Dyson gun; hyper relay, quantum catapult and
+cosmogenesis work at a waystation), and what needs an origin, civic or authority the empire lacks
+(branch offices: `auth_corporate`; the knights, wilderness, deep sleep, worldscaping, Inner
+Focus). **Greyed**, with the reason on hover: a tech or perk not yet had, no regular empire with
+communications (pacts, envoys, espionage, proxy wars, claims), the GalCom not founded or not a
+member, no Galactic Council, no subject; a group with nothing available greys its header too. Left out: the CFL trophy relics and Flash-Forge Hyper
+Relay (neither read from the save); the Imperial Council is always greyed (the emperor is not
+read). Roaming Cyber Gang 2213.08.02 (nomad, no communications with a regular empire): every
+pact greyed, the waystation and a new arkship open.
 
 **Contracts tab** (`/contracts`, `#lib/contracts.ts` pure, `server/contracts.ts`; the user's ask
 2026-11-07: contracts for nomadic and settled empires, a tab and on the maps). `Snapshot.contracts`

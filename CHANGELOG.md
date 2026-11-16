@@ -4,6 +4,43 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.23] - 2026-11-16
+
+### Added
+
+- Nomads: the expansion tab is now **roaming** — where a waystation pays off (map and table:
+  what its best modules would collect, for the 2 slots of a new waystation), which waylines it
+  would extend or link, and whose space it is: another empire's without a Wayline Pact costs
+  opinion and gives them a war goal. Plan a waystation, a module, or a whole wayline from ours in
+  one click. Below: your waylines with each waystation's stockpile and what each wayline still
+  lacks, and the Settle down panel as before. Each site's value in trade a month shows under its
+  star; rate the sites for Waystation I, II or III (2, 4 or 6 slots) to find the best spots for
+  later. A pre-FTL civilisation counts too: a Research Observatory there collects society
+  research by your interference policy.
+- The tech tab has a **tech tree** per field: each tech by where it stands (researched, being
+  researched, on offer, within reach) and whether it is planned. Hover a tech for + want / − want;
+  click it to see what it needs and leads to, or fade everything but the techs within reach, the
+  wanted ones, or the clicked tech's path. Techs this empire can never get are left out.
+- **− want** plans a tech for later: still wanted, not yet. While a tech planned for later — or
+  one to avoid — is on offer, Upcoming says to pick another card.
+- With the companion mod 0.13.0, the cards on offer are read on the 2nd of each month, so
+  Upcoming and the tech tab show this month's cards without waiting for the next autosave.
+- The planner has shortcuts for nomads: logistic ships, waystations, arkships (only nomads see
+  them).
+- The influence tab lists everywhere influence can go, at base cost: what this playthrough can
+  never use is hidden (nomad or settled, origin, civics, authority), what is not available yet is
+  greyed with the reason.
+- The frontier tab keeps finished anomalies, dig sites, special projects and situations below each
+  list, greyed, with the date last seen and their outcomes.
+
+### Fixed
+
+- A system with only a nomad's waystation no longer shows that nomad as its owner on maps and
+  borders: waystations claim no space.
+- Influence hints name the real conditions for a rival (a harm-relations envoy counts at once, an
+  insult does not), and with influence storage full a nomad is pointed to waystations and arkship
+  upgrades instead of claims and outposts.
+
 ## [0.1.22] - 2026-11-15
 
 ### Changed

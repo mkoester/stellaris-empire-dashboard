@@ -4,6 +4,14 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 
 ## Open (needs a running game on Linux)
 
+- **Waylines, our own (2026-11-16)**: the roaming tab was checked on the AI nomads' waystations
+  only — `roamingcybergang` had none of ours at 2213.08. After building the first: its tier,
+  modules, fill and stockpile against the waystation's own window, and a module's monthly
+  collection against the tab's number. **Assumed**: the tier factor (×0.75 at Waystation I)
+  applies to flat `starbase_collected_system_<r>_add` too (the Hydroponics Bay's food); the
+  wayline groups follow neighbouring systems (matched the save's `waystation_networks` for all
+  five AI waylines).
+
 - **A dig site's chapter (2026-11-15)**: `DigSite.chapter` = the save's `index` + 1 is
   **assumed** — every site seen so far reads `index=0`. Check after a chapter's event: the
   frontier tab's Chapter column should read 2, and the Outcome's "← next" mark move with it.

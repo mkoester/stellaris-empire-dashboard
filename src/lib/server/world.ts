@@ -52,9 +52,34 @@ export function stationOwner(
 	raw: Pick<RawSave, 'starbases' | 'ships' | 'fleetOwner'>,
 	system: Raw
 ): number | null {
+	return starbaseOwner(raw, system, false);
+}
+
+/**
+ * A nomad's waystation is a starbase of the system too, but not its primary one: it claims no
+ * space (4.5.4 `every_owned_nonprimary_starbase`). Before READER 60 the owner of a system with only
+ * a waystation read as the nomad — 33 systems of `roamingcybergang` 2213.08 listed `4294967295`
+ * (no primary starbase) before the waystation.
+ */
+export const isWaystation = (sb: Raw) => String(sb?.level ?? '').includes('waystation');
+
+/** Who owns the waystation in a system (one per system, whoever builds it), or null. */
+export function waystationOwner(
+	raw: Pick<RawSave, 'starbases' | 'ships' | 'fleetOwner'>,
+	system: Raw
+): number | null {
+	return starbaseOwner(raw, system, true);
+}
+
+function starbaseOwner(
+	raw: Pick<RawSave, 'starbases' | 'ships' | 'fleetOwner'>,
+	system: Raw,
+	waystation: boolean
+): number | null {
 	for (const sb of list(system?.starbases)) {
-		const ship = raw.ships[String(raw.starbases[String(sb)]?.station)];
-		const owner = raw.fleetOwner[String(ship?.fleet)];
+		const base = raw.starbases[String(sb)];
+		if (isWaystation(base) !== waystation) continue;
+		const owner = raw.fleetOwner[String(raw.ships[String(base?.station)]?.fleet)];
 		if (owner !== undefined) return owner;
 	}
 	return null;
@@ -176,6 +201,7 @@ export function galaxy(
 		.filter(([, s]) => starFlags(s).includes('lcluster1'))
 		.map(([id]) => Number(id));
 	const open = Object.keys(raw.globalFlags ?? {}).includes('lgates_activated_globally');
+	const waystationAt = (s: Raw) => waystationOwner(raw, s);
 	return Object.entries(raw.systems).flatMap(([key, s]) => {
 		if (!s || typeof s !== 'object') return [];
 		const id = Number(key);
@@ -193,6 +219,7 @@ export function galaxy(
 				visited: seen,
 				owned: own.has(id),
 				ownerId: seen ? stationOwner(raw, s) : null,
+				...(seen && waystationAt(s) !== null && { waystation: waystationAt(s)! }),
 				// every system's bodies: what a map may show of them is surveyView's choice
 				bodies: list(s.planet)
 					.map((p) => body(raw, p))

@@ -166,7 +166,16 @@ shipyard_build_queue station }` — **no owner field**; the country's are those 
   (`ship_design.<id>.{name, growth_stages[0].ship_size}`). Capital ships (titan, colossus,
   juggernaut) need a citadel with `capital_yards`, an arkship's `arkship_capital_shipyard`, or a
   finished Mega Shipyard, plus the tech (`*_possible_construction` in
-  `scripted_triggers/07_scripted_triggers_ships.txt`). Mega Shipyards: `megastructures.<id> =
+  `scripted_triggers/07_scripted_triggers_ships.txt`). **Waystations** (`roamingcybergang`
+  2213.08, the AI nomads' 33): starbases `level="starbase_level_waystation_<n>"
+type="swaystation_<kind>"`, `modules` only, `variables.waystation_collection_fill` (0…1, set
+  monthly by `nomads.9035`: the station's stockpile use, or its wayline's with a Logistics Hub) and
+  `flags.stockpile_being_collected_locally_by_logistic_ship` while a logistic ship collects it; the
+  stockpile is the station ship's `ships.<station>.resources`. A system with a waystation lists
+  `4294967295` (no primary starbase) or its owner's starbase first, then the waystation — it is
+  not the system's owner (READER 60). Waylines: top-level `waystation_networks.<i>.waystations = {
+<starbase ids> }` and per country `waystation_networks_manager = { waystation_networks = { <i> }
+connected_countries = { … } }`; every network was waystations one hyperlane apart. Mega Shipyards: `megastructures.<id> =
 { type owner }` — not yet seen in a save, so how its ship queue is located is a guess.
 - **Ship designs** (UNE 6 2208.01.01, 4.5.3; READER 53): the top-level `ship_design` is global
   (2389 entries, **no owner**); the player's saved designs are

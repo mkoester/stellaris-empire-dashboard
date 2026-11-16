@@ -10,6 +10,7 @@
 // Rivals (common/diplomacy_economy): 0.5 influence each, × `rivalries_influence_produces_mult`.
 // Slots: 3 (`empire_base`), +2 with the Animosity stance, +1 with Enmity adopted.
 
+import { nomadic } from './planner/kinds.ts';
 import { gameYear } from './series.ts';
 import type { Series, Unbooked } from './series.ts';
 import type { BudgetSource, Snapshot } from './types.ts';
@@ -100,7 +101,10 @@ export function uncollected(
 			out.push({
 				what: free === 1 ? 'a free rival slot' : `${free} free rival slots`,
 				amount: free * each,
-				how: 'declare a rival: needs terrible relations or a rivalry stance, and costs opinion',
+				// 4.5.4 `action_make_rival`: our opinion of them terrible (≤ −750), a harm-relations
+				// envoy on them, war, a Supremacist or Animosity stance on either side, their rivalry
+				// of us, or a fallen empire. An insult does not do it: it lowers their opinion of us.
+				how: 'declare a rival: needs your opinion of them terrible, an envoy harming relations with them, war, or a Supremacist or Animosity stance (theirs or yours) — an insult does not count',
 				estimated: rivals === 0
 			});
 	}
@@ -109,7 +113,11 @@ export function uncollected(
 		out.push({
 			what: 'storage full',
 			amount: lost.amount,
-			how: `the stockpile stays at ${lost.at}: spend influence (claims, outposts, decisions)`,
+			how: `the stockpile stays at ${lost.at}: spend influence (${
+				nomadic(s)
+					? 'waystations, arkship upgrades and modules, decisions'
+					: 'outposts, claims, decisions, megastructures'
+			})`,
 			estimated: lost.estimated
 		});
 	return out;

@@ -27,7 +27,11 @@ dev server ingests saves and moves the head). On the Linux game machine the one 
 included, 2026-10-31) — on mkTuxedCachy there is no `-test` folder, and the released zip's own
 `~/.local/share/stellaris-empire-dashboard/` is the one in use (2026-11-15); on the game machine
 it is stale since 2026-10-18
-(UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
+(UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. **Take the copy with
+`sqlite3 <db> ".backup '<copy>'"`** (consistent while the dashboard writes); **once the dashboard
+is closed, open the source as `file:<db>?immutable=1`**: with no `-shm` left, SQLite must create
+one beside the DB, which the sandbox cannot, and every open fails "unable to open database file"
+(2026-11-16). Or copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
 pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's

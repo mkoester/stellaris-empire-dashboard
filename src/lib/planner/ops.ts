@@ -1,5 +1,5 @@
 import { GROUPS, KINDS, validTarget } from './kinds.ts';
-import { OPS, type PlanOp } from './replay.ts';
+import { OPS, POLARITIES, type PlanOp } from './replay.ts';
 
 // What `POST /api/plan` accepts: the node the page shows and the changes made there, checked
 // before anything is stored (the log is replayed forever, so a malformed row would stay). Pure.
@@ -8,6 +8,7 @@ export type PlanChange = { goal: string; op: PlanOp; data: Record<string, unknow
 export type PlanRequest = { node: number; changes: PlanChange[] };
 
 const ID = /^[\w-]{1,64}$/;
+const polarity = (v: unknown) => (POLARITIES as readonly unknown[]).includes(v);
 const str = (v: unknown, max: number) => typeof v === 'string' && v.length <= max;
 
 function change(v: unknown): PlanChange | null {
@@ -28,7 +29,7 @@ function change(v: unknown): PlanChange | null {
 			if (!ID.test(goal) || typeof d.kind !== 'string' || !KINDS[d.kind]) return null;
 			const target = (d.target ?? {}) as Record<string, string | number>;
 			if (typeof target !== 'object' || !validTarget(d.kind, target)) return null;
-			if (d.polarity !== 'want' && d.polarity !== 'avoid') return null;
+			if (!polarity(d.polarity)) return null;
 			if (d.note !== undefined && !str(d.note, 2000)) return null;
 			if (d.title !== undefined && !str(d.title, 300)) return null;
 			if (KINDS[d.kind].manual && !(typeof d.title === 'string' && d.title.trim())) return null;
@@ -40,7 +41,7 @@ function change(v: unknown): PlanChange | null {
 		}
 		case 'edit': {
 			if (!ID.test(goal)) return null;
-			if (d.polarity !== undefined && d.polarity !== 'want' && d.polarity !== 'avoid') return null;
+			if (d.polarity !== undefined && !polarity(d.polarity)) return null;
 			if (d.note !== undefined && !str(d.note, 2000)) return null;
 			if (d.title !== undefined && !str(d.title, 300)) return null;
 			const out: Record<string, unknown> = {};

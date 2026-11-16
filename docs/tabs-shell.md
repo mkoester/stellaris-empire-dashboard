@@ -74,6 +74,9 @@ same cards), so a later draw offering it again is a new row; picking it in game 
 Checked 2026-11-06 on a DB copy (Yorphian Extractorate, node 533): no row before planning; rows for
 `tech_lasers_2` and `tech_bio_reactor` (on offer), none for `tech_physics_1` (being researched); ✕
 removed only its own row. Seen in game 2026-11-06 (the user): "2200.02.02 · now · Quantum Computing ✕ · ⚠ planned tech · physics · on offer since 2200.01.01".
+**A tech planned for later or to avoid** gets a row too (2026-11-16; `later`, "avoided tech":
+"pick another card"), and with companion mod 0.13.0 the rows follow the cards it logs on the 2nd
+of each month (`withLiveOptions()`, `docs/companion-mod.md` "Research options").
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;

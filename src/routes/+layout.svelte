@@ -329,13 +329,17 @@
 				<a class={tab(path === `/tab/${t.id}`)} href={tabHref(t.id)}>{t.name}</a>
 			{/each}
 			{#each fixed as t (t.name)}
-				{@const settle = t.name === 'expansion' && data.settle.nomad}
-				{@const dim =
-					settle && data.settle.blocked
-						? `not yet usable in game: settling needs ${data.settle.blocked}`
-						: data.empty[t.name] && `nothing to show yet: ${data.empty[t.name]}`}
-				<a class="{tab(t.active)} {dim ? 'opacity-50' : ''}" href={t.href} title={dim || undefined}
-					>{settle ? 'settle' : t.name}{#if t.name === 'planner' && data.plan.alerts}<span
+				<!-- a nomad's expansion is roaming: its waylines, and settling down one day -->
+				{@const roaming = t.name === 'expansion' && data.settle.nomad}
+				{@const dim = data.empty[t.name] && `nothing to show yet: ${data.empty[t.name]}`}
+				<a
+					class="{tab(t.active)} {dim ? 'opacity-50' : ''}"
+					href={t.href}
+					title={dim ||
+						(roaming
+							? `waylines and settling down${data.settle.blocked ? ` (settling needs ${data.settle.blocked})` : ''}`
+							: undefined)}
+					>{roaming ? 'roaming' : t.name}{#if t.name === 'planner' && data.plan.alerts}<span
 							class="ml-1 rounded bg-red-600 px-1 text-[11px] font-semibold text-white"
 							title="goals no longer possible, or avoided ones that happened"
 							>⚠ {data.plan.alerts}</span

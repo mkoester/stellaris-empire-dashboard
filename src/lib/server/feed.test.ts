@@ -235,6 +235,44 @@ describe('assembler', () => {
 		expect(() => parseLine('SDASH|2|2201.03.01|event|multiplayer|1')).toThrow(/malformed/);
 	});
 
+	it('gives the research options of a day once its end line comes (mod 0.13.0)', () => {
+		const add = assembler();
+		const out = feed(
+			add,
+			`SDASH|3|2201.03.02|7|event|tech-option|tech_lasers_1
+			SDASH|3|2201.03.02|7|event|tech-option|tech_space_mining_1
+			SDASH|3|2201.03.02|7|event|tech-options-end
+			SDASH|3|2201.04.02|7|event|tech-options-end
+			SDASH|3|2201.05.01|7|energy|6|1
+			SDASH|3|2201.05.01|7|end`
+		);
+		expect(out[0]).toEqual({
+			kind: 'tech-options',
+			date: '2201.03.02',
+			techs: ['tech_lasers_1', 'tech_space_mining_1']
+		});
+		// none on offer is a list too; neither is an event of the month
+		expect(out[1]).toEqual({ kind: 'tech-options', date: '2201.04.02', techs: [] });
+		expect((out[2] as { month: Month }).month.events).toEqual([]);
+		expect(() => parseLine('SDASH|3|2201.03.02|7|event|tech-option')).toThrow(/malformed/);
+	});
+
+	it('keeps no half list of research options over a load', () => {
+		const add = assembler();
+		const out = feed(
+			add,
+			`SDASH|3|2201.03.02|7|event|tech-option|tech_lasers_1
+			SDASH|3|2201.03.02|8|load|0
+			SDASH|3|2201.03.02|8|event|tech-option|tech_space_mining_1
+			SDASH|3|2201.03.02|8|event|tech-options-end`
+		);
+		expect(out.at(-1)).toEqual({
+			kind: 'tech-options',
+			date: '2201.03.02',
+			techs: ['tech_space_mining_1']
+		});
+	});
+
 	it('drops what happened after the last month once a save is loaded: that future was left', () => {
 		const add = assembler();
 		const out = feed(

@@ -73,7 +73,12 @@ type State = {
 	/** when the last save or month was recorded, and the last daily tick (ms): which came last */
 	recordedAt?: number;
 	lastTick?: { date: string; at: number };
+	/** the research options the companion mod logged last (0.13.0), for the campaign then played */
+	techOptions?: LiveTechOptions;
 };
+
+/** The research options on offer on a day, from the companion mod (on the 2nd of each month). */
+export type LiveTechOptions = { campaign: string; date: string; techs: string[] };
 const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
 const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter(), status: 'setup' });
 
@@ -375,6 +380,13 @@ function recorded(r: Recorded, source: string) {
  * mod when it came after the last save or month, else the head's date (`headDate`). By arrival,
  * not by date: after loading an older save, the older ticks are the latest data.
  */
+/**
+ * The research options the mod logged last for `campaign`, or null. Memory only: the next autosave
+ * holds them too, and a restart before it shows the save's until the next 2nd.
+ */
+export const liveTechOptions = (campaign: string): LiveTechOptions | null =>
+	state.techOptions?.campaign === campaign ? state.techOptions : null;
+
 export function lastDataDate(headDate: string | null): string | null {
 	const t = state.lastTick;
 	return t && t.at > (state.recordedAt ?? 0) ? t.date : headDate;
@@ -533,7 +545,14 @@ async function run() {
 				state.lastTick = { date: t.date, at: Date.now() };
 				updates.emit('tick', t satisfies Tick);
 			},
+			onTechOptions: (date, techs) => {
+				const campaign = headCampaign(store);
+				if (campaign === null) return;
+				state.techOptions = { campaign, date, techs };
+				updates.emit('update', 'refreshed'); // Upcoming and the tech tab show them
+			},
 			onLoad: (date, id) => {
+				state.techOptions = undefined; // the left future's
 				const campaign = headCampaign(store);
 				state.loadedFrom =
 					campaign === null || id === null ? null : loadedNode(store, campaign, date, id);
