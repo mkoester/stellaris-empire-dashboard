@@ -100,6 +100,13 @@
 		{ id: 'approach', label: 'Approach', value: (r) => r.approachName },
 		{ id: 'stage', label: 'Stage', value: (r) => r.stageName }
 	];
+	// below each list, what earlier saves had and the latest has not: finished, or lost
+	const lastSeen = <T extends { lastSeen: string }>(): Column<T> => ({
+		id: 'lastSeen',
+		label: 'Last seen',
+		value: (r) => r.lastSeen,
+		title: 'the last save that had it'
+	});
 	type Anomaly = (typeof data.anomalies)[number];
 	type Project = (typeof data.projects)[number];
 	type Dig = (typeof data.digSites)[number];
@@ -179,6 +186,10 @@
 	</Panel>
 {/snippet}
 
+{#snippet goneNote(n: number)}<p class="mt-3 mb-1 text-xs text-gray-500">
+		No longer in the save ({n}) — finished or lost, the save cannot tell. Kept for what they were
+		and where they led.
+	</p>{/snippet}
 {#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{/snippet}
 {#snippet anomalyName(a: Anomaly)}<b>{a.name}</b><AddGoal
 		kind="anomaly"
@@ -265,6 +276,16 @@
 				{#if data.situations.length}
 					<SortTable rows={data.situations} columns={situationColumns} key={(r) => r.id} />
 				{:else}<p class="text-sm text-gray-500">None running.</p>{/if}
+				{#if data.gone.situations.length}
+					{@render goneNote(data.gone.situations.length)}
+					<div class="opacity-60 transition-opacity hover:opacity-100">
+						<SortTable
+							rows={data.gone.situations}
+							columns={[...situationColumns, lastSeen()]}
+							key={(r) => r.id}
+						/>
+					</div>
+				{/if}
 			</Panel>
 
 			<Panel title="Events" note="The campaign's bigger events are in their own tab.">
@@ -281,6 +302,16 @@
 				{#if data.anomalies.length}
 					<SortTable rows={data.anomalies} columns={anomalyColumns} key={(a) => a.planetId} />
 				{:else}<p class="text-sm text-gray-500">None waiting.</p>{/if}
+				{#if data.gone.anomalies.length}
+					{@render goneNote(data.gone.anomalies.length)}
+					<div class="opacity-60 transition-opacity hover:opacity-100">
+						<SortTable
+							rows={data.gone.anomalies}
+							columns={[...anomalyColumns, lastSeen()]}
+							key={(a) => `${a.planetId}:${a.category}`}
+						/>
+					</div>
+				{/if}
 			</Panel>
 
 			<Panel
@@ -292,6 +323,16 @@
 				{#if data.digSites.length}
 					<SortTable rows={data.digSites} columns={digColumns} key={(d) => d.id} />
 				{:else}<p class="text-sm text-gray-500">None found.</p>{/if}
+				{#if data.gone.digSites.length}
+					{@render goneNote(data.gone.digSites.length)}
+					<div class="opacity-60 transition-opacity hover:opacity-100">
+						<SortTable
+							rows={data.gone.digSites}
+							columns={[...digColumns, lastSeen()]}
+							key={(d) => d.id}
+						/>
+					</div>
+				{/if}
 			</Panel>
 
 			<Panel
@@ -303,6 +344,16 @@
 				{#if data.projects.length}
 					<SortTable rows={data.projects} columns={projectColumns} key={(p) => p.id} />
 				{:else}<p class="text-sm text-gray-500">None on offer.</p>{/if}
+				{#if data.gone.projects.length}
+					{@render goneNote(data.gone.projects.length)}
+					<div class="opacity-60 transition-opacity hover:opacity-100">
+						<SortTable
+							rows={data.gone.projects}
+							columns={[...projectColumns, lastSeen()]}
+							key={(p) => p.id}
+						/>
+					</div>
+				{/if}
 			</Panel>
 		</div>
 	</div>

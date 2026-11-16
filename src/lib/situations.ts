@@ -7,11 +7,37 @@ import type {
 	GalaxySystem,
 	Relation,
 	SituationInfo,
-	GameData
+	GameData,
+	Snapshot
 } from './types.ts';
 
 // The frontier tab: first contacts (table and map), situations, anomalies, special projects and
 // dig sites, from one save and the campaign's galaxy. Pure.
+
+/**
+ * What the branch's earlier saves had and `latest` no longer has — finished, or lost: the save
+ * cannot tell (an anomaly researched, a dig site's last chapter, a project done or failed, a
+ * situation ended). The user's ask 2026-11-16: "some decisions come after I officially finished
+ * something like anomalies … keep them in the overview, at the bottom and greyed out". Each with
+ * its last reading and that save's date, newest first. Saves without the list (`pick` null) are
+ * skipped, and so is everything after `latest`.
+ */
+export function gone<T>(
+	saves: Snapshot[],
+	latest: Snapshot | undefined,
+	pick: (s: Snapshot) => T[] | null,
+	key: (t: T) => string | number
+): (T & { lastSeen: string })[] {
+	if (!latest) return [];
+	const seen = new Map<string | number, T & { lastSeen: string }>();
+	for (const s of saves) {
+		const list = pick(s);
+		if (list) for (const t of list) seen.set(key(t), { ...t, lastSeen: s.date });
+		if (s === latest) break;
+	}
+	for (const t of pick(latest) ?? []) seen.delete(key(t));
+	return [...seen.values()].sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
+}
 
 /** Whole months from `from` to `to` (game dates, 30-day months). */
 export const monthsBetween = (from: string, to: string) =>
@@ -102,10 +128,10 @@ export type SituationRow = SituationInfo & {
 	stageName: string | null;
 };
 
-export function situationRows(
-	situations: SituationInfo[],
+export function situationRows<S extends SituationInfo>(
+	situations: S[],
 	types: GameData['situationTypes']
-): SituationRow[] {
+): (S & SituationRow)[] {
 	return situations.map((s) => ({
 		...s,
 		name: types[s.type]?.name ?? s.type,

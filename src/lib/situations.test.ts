@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 import {
 	contactRows,
 	discovered,
+	gone,
 	mainNetwork,
 	mapView,
 	monthsBetween,
 	stationOwners,
 	surveyView
 } from './situations.ts';
-import type { FirstContact, GalaxySystem } from './types.ts';
+import type { FirstContact, GalaxySystem, Snapshot } from './types.ts';
 
 const sys = (id: number, lanes: number[], s: Partial<GalaxySystem> = {}): GalaxySystem => ({
 	id,
@@ -234,5 +235,39 @@ describe('mainNetwork', () => {
 			{ whole: false, stars: true }
 		).map((s) => s.id);
 		expect(shown).toEqual([1, 2, 3]);
+	});
+});
+
+describe('gone', () => {
+	type A = { planetId: number; category: string };
+	const save = (date: string, anomalies: A[] | null) =>
+		({ date, anomalies }) as unknown as Snapshot;
+	const pick = (s: Snapshot) => s.anomalies as A[] | null;
+	const key = (a: A) => `${a.planetId}:${a.category}`;
+
+	it('lists what earlier saves had and the latest has not, with its last date, newest first', () => {
+		const saves = [
+			save('2200.01.01', [{ planetId: 1, category: 'a' }]),
+			save('2200.02.01', [
+				{ planetId: 1, category: 'a' },
+				{ planetId: 2, category: 'b' }
+			]),
+			save('2200.03.01', null), // a reading without the list
+			save('2200.04.01', [{ planetId: 3, category: 'c' }])
+		];
+		expect(gone(saves, saves[3], pick, key)).toEqual([
+			{ planetId: 1, category: 'a', lastSeen: '2200.02.01' },
+			{ planetId: 2, category: 'b', lastSeen: '2200.02.01' }
+		]);
+	});
+
+	it('keeps what the latest still has, and stops at the latest', () => {
+		const saves = [
+			save('2200.01.01', [{ planetId: 1, category: 'a' }]),
+			save('2200.02.01', [{ planetId: 1, category: 'a' }]),
+			save('2200.03.01', [])
+		];
+		expect(gone(saves, saves[1], pick, key)).toEqual([]);
+		expect(gone(saves, undefined, pick, key)).toEqual([]);
 	});
 });

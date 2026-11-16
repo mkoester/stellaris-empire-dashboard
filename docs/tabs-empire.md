@@ -224,7 +224,12 @@ contacts as a table (age in months, difficulty, clues, stage, days left, envoy, 
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
 an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
 with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
-events. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`,
+events. **Gone, kept greyed** (the user's ask 2026-11-16: "some decisions come after I officially
+finished something like anomalies … keep them in the overview, at the bottom and greyed out"):
+below each of situations, anomalies, dig sites and special projects, what earlier saves of the
+branch had and the shown one no longer has (`gone()` in `#lib/situations.ts`; finished or lost —
+the save cannot tell), with "Last seen" and the same columns, Outcome included. Roaming Cyber Gang
+2213.08.02: 8 anomalies. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`,
 `digSiteSpoilers`): the **Outcome** column (the user's ask 2026-11-15, `#lib/outcomes.ts` pure,
 `Outcome.svelte`, `server/outcomes.ts`) — the data DB's `outcome` trees, a project's own tree
 filled in where an anomaly leads to it (`withProjects()`), as markers, the first rewards, and the
