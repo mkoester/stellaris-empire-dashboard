@@ -6,8 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Plan waystations on the roaming tab: a planned one moves from the sites into the waystations
+  table (in italics, with its planned modules and what it would collect), shows ⚑ and light blue on
+  the map, and its wayline dashed. Every "✓ planned" button has a ✕ beside it to take the plan out
+  again, on every tab.
+
 ### Fixed
 
+- The roaming tab's "+ goal" and "+ wayline" buttons did not show.
 - The home system counts as surveyed: its deposits show on the waylines tab (a nomad's starting
   system was missing there), on maps and in the planner's popups.
 

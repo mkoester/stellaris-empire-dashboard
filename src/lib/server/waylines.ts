@@ -30,6 +30,7 @@ import { display } from './settings.ts';
 // the viewer may see: the galaxy as discovered and surveyed (`campaignGalaxy`, `discovered`).
 
 const PLANNED = /^waystation:system=(\d+)$/;
+const PLANNED_MODULE = /^station_module:module=(\w+),system=(\d+)$/; // goalKey sorts the fields
 
 export type WayPick = Pick<
 	ModulePick,
@@ -49,7 +50,6 @@ export type WaySite = {
 	trouble: Trouble;
 	owner: string | null; // the empire whose space it is, or holds the waystation
 	joins: number[]; // indexes of the waylines (ours and planned) it would join
-	planned: boolean;
 	jumps: number | null; // from our nearest waystation or arkship
 	// the systems a wayline from ours (built or planned) needs on its way here; null: none to start
 	// from, or no way past others' waystations
@@ -65,9 +65,12 @@ export type WayStation = {
 	stockpile: Resources;
 	fill: number | null;
 	collecting: boolean;
-	worth: number; // what its modules collect a month now, in trade
+	worth: number; // what its modules collect a month now, in trade (planned: once built)
 	line: number; // index of its wayline in `waylines`
 	next: WayPick[]; // for its free slots
+	// planned, not built: a Waystation I with the modules planned for it (none planned: the best
+	// ones, `next`, count for its worth)
+	planned: boolean;
 };
 
 export type Wayline = {
@@ -179,9 +182,45 @@ export function waylinesOf(
 			collecting: s.collecting ?? false,
 			worth: picks.filter((p) => p.built).reduce((t, p) => t + p.worth, 0),
 			line: lineOf(s.systemId!),
-			next: bestModules(picks, free).map(pick)
+			next: bestModules(picks, free).map(pick),
+			planned: false
 		};
 	});
+	const plannedModules = (id: number) =>
+		plannedKeys.flatMap((k) => {
+			const m = PLANNED_MODULE.exec(k);
+			return m && Number(m[2]) === id ? [m[1]] : [];
+		});
+	for (const id of planned) {
+		const modules = plannedModules(id);
+		const free = Math.max(0, TIER_SLOTS[0] - modules.length);
+		const picks = modulePicks(
+			deposits(id),
+			mods,
+			f,
+			worth,
+			1,
+			modules,
+			onLine(lineOf(id)),
+			here(id)
+		);
+		const next = bestModules(picks, free);
+		const got = picks.filter((p) => p.built);
+		stations.push({
+			id,
+			name: byId.get(id)?.name ?? `system ${id}`,
+			tier: 1,
+			modules,
+			free,
+			stockpile: {},
+			fill: null,
+			collecting: false,
+			worth: (modules.length ? got : next).reduce((t, p) => t + p.worth, 0),
+			line: lineOf(id),
+			next: next.map(pick),
+			planned: true
+		});
+	}
 
 	const waylines: Wayline[] = lines.map((l, i) => {
 		const have = onLine(i);
@@ -219,7 +258,8 @@ export function waylinesOf(
 		galaxy.filter((s) => s.waystation !== undefined && s.waystation !== me).map((s) => s.id)
 	);
 	const sites: WaySite[] = galaxy.flatMap((s) => {
-		if (!s.bodies || ownIds.includes(s.id)) return [];
+		// ours and planned ones are in `stations`
+		if (!s.bodies || ownIds.includes(s.id) || planned.includes(s.id)) return [];
 		const dep = deposits(s.id);
 		const preFtl = preFtlOf(s.id);
 		const byTier = [1, 2, 3].map((tier) => {
@@ -229,11 +269,10 @@ export function waylinesOf(
 			);
 			return { best: best.map(pick), worth: best.reduce((t, p) => t + p.worth, 0) };
 		});
-		const isPlanned = planned.includes(s.id);
 		// a site needs something to collect — a deposit, a pre-FTL civilisation to observe: the
 		// Hydroponics Bay's flat food works anywhere
 		const something = preFtl !== null || Object.keys(dep).some((r) => collectorOf(r));
-		if (!isPlanned && (byTier[0].worth <= 0 || !something)) return [];
+		if (byTier[0].worth <= 0 || !something) return [];
 		const t = trouble(s, me, pacts);
 		return [
 			{
@@ -245,7 +284,6 @@ export function waylinesOf(
 				trouble: t,
 				owner: t.kind === 'none' ? null : countryName(t.ownerId),
 				joins: touches(next, lines, s.id),
-				planned: isPlanned,
 				jumps: jumps.get(s.id) ?? null,
 				chain: t.kind === 'taken' ? null : chainTo(next, [...ownIds, ...planned], s.id, taken)
 			}

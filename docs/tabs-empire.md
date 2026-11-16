@@ -83,7 +83,11 @@ per module and modifier — the Research Observatory's means a pre-FTL planet wi
 post (society research 2 / 3 / 4 / 5 by the interference policy, ∓ 2 by the favoured approach, the
 Galactic Community's pre-FTL resolutions), except its +2 energy, which needs a trade pact with that
 civilisation (not read: no). A site with a pre-FTL civilisation and no deposit counts too (👁 in
-the table; ≈ no one else's observation post there). **Your waylines**: our waystations grouped by neighbouring systems (`networks()`, the
+the table; ≈ no one else's observation post there). **Planned waystations** (the user's ask 2026-11-16): a `waystation` goal moves its system from the
+sites into the waystations table — italics, tier "planned", its `station_module` goals as modules
+(none: the best ones count for its worth), ✕ beside ✓ planned on each — and shows ⚑ and light blue
+on the map. "✓ planned" has a ✕ on every tab (`AddGoal`, the goal id from `planSummary().ids`).
+The roaming tab returns `tip` itself: without it (0.1.23) none of its plan buttons showed. **Your waylines**: our waystations grouped by neighbouring systems (`networks()`, the
 same five groups as the save's `waystation_networks` for the AI nomads of 2213.08), planned ones
 in italics, each with its fill, stockpile and the best modules for its free slots; the wayline
 modules (any `waystation_network_*` modifier) it has and lacks; the collection point
