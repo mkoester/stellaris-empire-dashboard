@@ -1,6 +1,10 @@
 import { error } from '@sveltejs/kit';
 import { techOffers } from '#lib/techOffers.ts';
-import { techTiers } from '#lib/techTiers.ts';
+import { facts } from '#lib/government.ts';
+import type { TreeTech } from '#lib/techTree.ts';
+import type { Snapshot } from '#lib/types.ts';
+import { inReach, techTiers } from '#lib/techTiers.ts';
+import { evaluate } from '#lib/triggers.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch, withOptions } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -84,6 +88,7 @@ export function load({ url }) {
 		offers: offers.map((o) => ({ ...o, cards: o.cards.map(tech) })),
 		researched: researched.map(tech).map((t) => ({ ...t, area: techs[t.key]?.area ?? '' })),
 		tiers: techTiers(researched, techs),
+		...techTree(snaps, researched),
 		bonuses: researchBonuses(snaps, getGameData(), getExplanations()),
 		explain: pick(
 			getExplanations(),
@@ -95,5 +100,40 @@ export function load({ url }) {
 				...(progress?.research ?? []).map((r) => r.tech)
 			].map((k) => `tech:${k}`)
 		)
+	};
+}
+
+/**
+ * The tech tree's input (#lib/techTree.ts): every tech this empire can still get — one whose
+ * `potential` the save rules out is left out (lists follow the playthrough, AGENTS.md), unknown
+ * ones stay — and what is within reach now.
+ */
+function techTree(snaps: Snapshot[], researched: string[]) {
+	const data = getGameData();
+	const save = snaps.findLast((s) => s.kind === 'save');
+	const f = save ? facts(save, data.scriptedTriggers, { shipKinds: data.shipKinds }) : null;
+	const possible = (p: Parameters<typeof evaluate>[0]) => (f ? evaluate(p, f) : null);
+	const done = new Set(researched);
+	const tree: TreeTech[] = Object.entries(data.techs).flatMap(([key, t]) => {
+		const req = data.techRequirements[key];
+		if (!done.has(key) && req && possible(req.potential) === false) return [];
+		return [
+			{
+				key,
+				name: t.name,
+				area: t.area,
+				tier: t.tier,
+				cost: t.cost,
+				category: t.category ?? null,
+				rare: req?.rare ?? t.rare ?? false,
+				dangerous: req?.dangerous ?? false,
+				needs: req?.prerequisites ?? [],
+				anyOf: req?.anyOf ?? []
+			}
+		];
+	});
+	return {
+		tree,
+		reach: inReach(researched, data.techs, data.techRequirements, possible)
 	};
 }

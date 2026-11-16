@@ -9,6 +9,7 @@
 	import Panel from '#lib/panels/Panel.svelte';
 	import ResearchBonuses from '#lib/panels/ResearchBonuses.svelte';
 	import ResearchTiers from '#lib/panels/ResearchTiers.svelte';
+	import TechTree from '#lib/TechTree.svelte';
 	import { AREAS } from '#lib/techTiers.ts';
 
 	let { data } = $props();
@@ -128,6 +129,23 @@
 			</tbody>
 		</table>
 	</Panel>
+
+	<div class="lg:col-span-2">
+		<Panel
+			title="Tech tree"
+			note="Every tech this empire can still get, per field: a column per step of prerequisites, never left of its tier; dashed lines are 'one of' prerequisites, ↖ one in another field, ★ rare, ⚠ dangerous. Hover a tech for + want / − want (what it needs follows by itself in the planner); click it for what it needs and leads to."
+		>
+			<TechTree
+				tree={data.tree}
+				researched={data.researched.map((t) => t.key)}
+				researching={data.queues.map((q) => q.key)}
+				onOffer={Object.values(data.options)
+					.flat()
+					.map((t) => t.key)}
+				reach={data.reach}
+			/>
+		</Panel>
+	</div>
 
 	{#if data.bonuses}
 		<div class="lg:col-span-2"><ResearchBonuses areas={data.bonuses} /></div>

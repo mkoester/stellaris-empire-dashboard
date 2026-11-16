@@ -973,7 +973,8 @@ type Summary = {
 	keys: string[];
 	alerts: number;
 	unavailable: string[];
-	plannedTechs: [string, { stance: Stance; note: string }][]; // for `plannedOnOffer()`
+	// for `plannedOnOffer()`, and the tech tree's want buttons (`goal`: its id, to edit or remove)
+	plannedTechs: [string, { stance: Stance; note: string; goal: string }][];
 };
 
 let memo: { key: string; value: Summary } | null = null;
@@ -1013,7 +1014,7 @@ export function planSummary(tip: number | null): Summary {
 			unavailable: c ? unavailable(c.ctx.latest) : [],
 			plannedTechs: goals
 				.filter((g) => g.kind === 'tech' && !g.parked)
-				.map((g) => [String(g.target.tech), { stance: g.polarity, note: g.note }])
+				.map((g) => [String(g.target.tech), { stance: g.polarity, note: g.note, goal: g.id }])
 		}
 	};
 	return memo.value;
