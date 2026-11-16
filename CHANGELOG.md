@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- The home system counts as surveyed: its deposits show on the waylines tab (a nomad's starting
+  system was missing there), on maps and in the planner's popups.
+
 ## [0.1.23] - 2026-11-16
 
 ### Added

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { body, claims, relations, stationsSeen, wormholeLinks } from './world.ts';
+import { body, claims, relations, stationsSeen, surveyedPlanets, wormholeLinks } from './world.ts';
 
 describe('stationsSeen', () => {
 	// shaped like 2207.03.01: fleets in `fleet.<id>.movement_manager.coordinate.origin`, a system's
@@ -165,5 +165,21 @@ describe('body', () => {
 			surveyed: true,
 			station: false
 		});
+	});
+	it('counts the home system surveyed: listed in surveyed_deposit_holders, not in surveyed_by', () => {
+		const raw = {
+			countryId: 0,
+			deposits: { '2': { type: 'd_minerals_2' } },
+			planets: { '2': { name: { key: 'NAME_Dutchen' }, planet_class: 'pc_broken', deposits: [2] } },
+			country: {
+				surveyed_deposit_holders: [
+					{ type: 0, id: 2 },
+					{ type: 2, id: 7 }
+				]
+			}
+		};
+		expect(body(raw, 2)?.surveyed).toBe(false);
+		expect(body(raw, 2, surveyedPlanets(raw))?.surveyed).toBe(true);
+		expect([...surveyedPlanets(raw)]).toEqual([2]);
 	});
 });
