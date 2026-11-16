@@ -170,6 +170,11 @@ The tabs show what the game's own panels show. Everything beyond that is a profi
 (`Display`), off by default and labelled as a spoiler or as cheating (the list and the story:
 `docs/tabs-shell.md`).
 
+**Lists of options follow the playthrough** (the user's rule, 2026-11-16, the influence tab's
+sinks): hide what this empire will never use — a nomad never settles, a settled empire never
+embarks, an origin, civic or authority it lacks —, grey what is not available _yet_ with the
+reason on hover, and grey a group's header when nothing in it is available.
+
 Each tab's notes are in one of these; read the one for the tab before working on it:
 
 - `docs/tabs-shell.md`: upcoming events, cooldowns and expiries, popups, tabs and settings, the
@@ -218,7 +223,9 @@ branch points: `docs/companion-mod.md`. Read it before changing the mod or `feed
   0.2.0 to 0.10.0 (`error.log`: "attempted to execute an event on an unsupported scope", no
   `sdash_` in the line — grep `Event: sdash` too).
 
-It changes the checksum: no achievements while enabled. **Publishing** (Steam Workshop and Paradox
+**`events/sdash_tech_options.txt` is generated** from the data DB
+(`scripts/gen-tech-options.mjs`, mod 0.13.0): re-run it after a game update, with the mod's other
+re-diffs. It changes the checksum: no achievements while enabled. **Publishing** (Steam Workshop and Paradox
 Mods, through the launcher): `mod/PUBLISHING.md` — store copy, thumbnail source, published IDs.
 Register it on Linux with
 `scripts/link-mod.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace
