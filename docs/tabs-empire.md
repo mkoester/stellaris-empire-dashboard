@@ -69,7 +69,15 @@ waylines it would extend or link, and whose space it is — another empire's wit
 Pact is ⚠ (their stations there collect 25 % less, −10 opinion each to −200, the Expel Nomads war
 goal), someone else's waystation ✕. "+ goal" plans a waystation or a module, "+ wayline (n)" the
 waystation and every one on the shortest way from our waylines (`chainTo`, past no one else's
-waystation). **Your waylines**: our waystations grouped by neighbouring systems (`networks()`, the
+waystation). The value of each site, in trade a month, also shows under its star; a toggle rates the sites
+for Waystation I, II or III (2 / 4 / 6 slots, × 0.75 / 1 / 1.25 — tiers not yet researched say
+"later"), with the modules the empire has today. **Pre-FTL civilisations**: the extraction keeps
+a `solar_system = { … }` condition as an opaque leaf, so `SOLAR_SYSTEM` in `waylines.ts` answers it
+per module and modifier — the Research Observatory's means a pre-FTL planet without an observation
+post (society research 2 / 3 / 4 / 5 by the interference policy, ∓ 2 by the favoured approach, the
+Galactic Community's pre-FTL resolutions), except its +2 energy, which needs a trade pact with that
+civilisation (not read: no). A site with a pre-FTL civilisation and no deposit counts too (👁 in
+the table; ≈ no one else's observation post there). **Your waylines**: our waystations grouped by neighbouring systems (`networks()`, the
 same five groups as the save's `waystation_networks` for the AI nomads of 2213.08), planned ones
 in italics, each with its fill, stockpile and the best modules for its free slots; the wayline
 modules (any `waystation_network_*` modifier) it has and lacks; the collection point

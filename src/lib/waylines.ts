@@ -106,6 +106,29 @@ export function siteDeposits(
 	return out;
 }
 
+/** What a site holds beyond its deposits, for the module conditions that look into the system. */
+export type Here = { preFtl: boolean }; // a planet of a pre-FTL civilisation
+
+/**
+ * The extraction keeps a `solar_system = { … }` block as an opaque leaf; per module, what that
+ * block asks (4.5.4 00_waystation_modules.txt). The Research Observatory's ask is a pre-FTL
+ * planet without an observation post — society research by the interference policy, 2 / 3 / 4 /
+ * 5, ∓ 2 with the favoured approach (`favored_insights`, `favored_mission`), and the Galactic
+ * Community's pre-FTL resolutions — except for its +2 energy, which asks for a trade pact with
+ * that civilisation (`preftl_nomad_trade_pact` on its planet): not read, so no. Whether someone
+ * else has an observation post there the save does not tell us: assumed not.
+ */
+const SOLAR_SYSTEM: Record<string, (h: Here, modifier: string) => boolean> = {
+	waystation_research_module: (h, modifier) =>
+		modifier !== 'starbase_collected_system_energy_add' && h.preFtl
+};
+
+function atSite(t: Trigger | null, answer: boolean | undefined): Trigger | null {
+	if (t === null || answer === undefined) return t;
+	if (!('leaf' in t)) return { op: t.op, args: t.args.map((a) => atSite(a, answer) ?? T) };
+	return t.leaf === 'solar_system' ? (answer ? T : F) : t;
+}
+
 export type ModulePick = {
 	key: string;
 	name: string;
@@ -114,6 +137,7 @@ export type ModulePick = {
 	wayline: boolean; // has modifiers along the whole wayline
 	maybe: boolean; // the save cannot tell whether the empire may build it
 	built: boolean;
+	preFtl: boolean; // collects from observing a pre-FTL civilisation (≈ no observation post there)
 };
 
 /**
@@ -130,19 +154,24 @@ export function modulePicks(
 	worth: Worth,
 	tier: number,
 	built: string[] = [],
-	onLine: Set<string> = new Set()
+	onLine: Set<string> = new Set(),
+	here: Here = { preFtl: false }
 ): ModulePick[] {
 	const factor = TIER_FACTOR[tier - 1] ?? 1;
 	const out: ModulePick[] = [];
 	for (const { part, available } of modules) {
 		const collects: Resources = {};
 		for (const r of COLLECTS[part.key] ?? []) if (deposits[r]) collects[r] = deposits[r] * factor;
+		let preFtl = false;
 		for (const m of part.modifiers) {
 			const flat = /^starbase_collected_system_(\w+)_add$/.exec(m.key);
 			if (!flat || m.scope !== 'station') continue;
-			if (evaluate(atWaystation(m.when), f) !== true) continue;
+			const answer = SOLAR_SYSTEM[part.key]?.(here, m.key);
+			if (evaluate(atSite(atWaystation(m.when), answer), f) !== true) continue;
 			collects[flat[1]] = (collects[flat[1]] ?? 0) + m.value * factor;
+			if (answer && JSON.stringify(m.when).includes('"solar_system"')) preFtl = true;
 		}
+		for (const [r, v] of Object.entries(collects)) if (v <= 0) delete collects[r];
 		const wayline = part.modifiers.some((m) => m.scope.startsWith('waystation_network'));
 		const value = Object.entries(collects).reduce((t, [r, v]) => t + v * worth(r), 0);
 		if (value <= 0 && !(wayline && !onLine.has(part.key))) continue;
@@ -153,7 +182,8 @@ export function modulePicks(
 			worth: value,
 			wayline,
 			maybe: available === null,
-			built: built.includes(part.key)
+			built: built.includes(part.key),
+			preFtl
 		});
 	}
 	return out.sort((a, b) => b.worth - a.worth || Number(a.wayline) - Number(b.wayline));

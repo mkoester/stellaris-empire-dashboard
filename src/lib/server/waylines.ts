@@ -42,8 +42,10 @@ export type WaySite = {
 	id: number;
 	name: string;
 	deposits: Resources; // base a month
-	best: WayPick[]; // for the free slots of a new tier-1 waystation, best first
-	worth: number; // what the best collectors bring a month, in trade (#lib/value.ts)
+	// per tier (index 0…2: Waystation I–III, 2 / 4 / 6 slots): the best modules for a new waystation
+	// of that tier, best first, and what they collect a month in trade (#lib/value.ts)
+	byTier: { best: WayPick[]; worth: number }[];
+	preFtl: string | null; // the pre-FTL civilisation a Research Observatory here would observe
 	trouble: Trouble;
 	owner: string | null; // the empire whose space it is, or holds the waystation
 	joins: number[]; // indexes of the waylines (ours and planned) it would join
@@ -77,7 +79,8 @@ const why = (p: ModulePick, names: Record<string, string>): string => {
 	const got = Object.entries(p.collects)
 		.map(([r, v]) => `${v.toFixed(1)} ${names[r] ?? r.replace(/_/g, ' ')}`)
 		.join(', ');
-	if (got) return `collects ${got} a month`;
+	if (got)
+		return `collects ${got} a month${p.preFtl ? ' (with the society research from observing the pre-FTL civilisation here, ≈ if no one has an observation post there)' : ''}`;
 	return p.wayline ? 'its effects reach the whole wayline' : '';
 };
 
@@ -120,6 +123,15 @@ export function waylinesOf(
 	);
 	const countryName = (id: number) =>
 		save.countries?.find((c) => c.id === id)?.name ?? `empire ${id}`;
+	// a pre-FTL civilisation in the system: its name (#lib/waylines.ts `SOLAR_SYSTEM`)
+	const preFtlOf = (id: number) => {
+		for (const b of byId.get(id)?.bodies ?? []) {
+			const c = save.countries?.find((x) => x.id === b.ownerId);
+			if (c?.type === 'primitive') return c.name;
+		}
+		return null;
+	};
+	const here = (id: number) => ({ preFtl: preFtlOf(id) !== null });
 	const deposits = (id: number) =>
 		siteDeposits(byId.get(id)!, {
 			depositCategory: game.depositCategory,
@@ -151,7 +163,8 @@ export function waylinesOf(
 			worth,
 			tier,
 			s.modules,
-			onLine(lineOf(s.systemId!))
+			onLine(lineOf(s.systemId!)),
+			here(s.systemId!)
 		);
 		return {
 			id: s.systemId!,
@@ -204,20 +217,27 @@ export function waylinesOf(
 	const sites: WaySite[] = galaxy.flatMap((s) => {
 		if (!s.bodies || ownIds.includes(s.id)) return [];
 		const dep = deposits(s.id);
-		const picks = modulePicks(dep, mods, f, worth, 1);
-		const best = bestModules(picks, TIER_SLOTS[0]);
-		const value = best.reduce((t, p) => t + p.worth, 0);
+		const preFtl = preFtlOf(s.id);
+		const byTier = [1, 2, 3].map((tier) => {
+			const best = bestModules(
+				modulePicks(dep, mods, f, worth, tier, [], new Set(), { preFtl: preFtl !== null }),
+				TIER_SLOTS[tier - 1]
+			);
+			return { best: best.map(pick), worth: best.reduce((t, p) => t + p.worth, 0) };
+		});
 		const isPlanned = planned.includes(s.id);
-		// a site needs a deposit to collect: the Hydroponics Bay's flat food works anywhere
-		if (!isPlanned && (value <= 0 || !Object.keys(dep).some((r) => collectorOf(r)))) return [];
+		// a site needs something to collect — a deposit, a pre-FTL civilisation to observe: the
+		// Hydroponics Bay's flat food works anywhere
+		const something = preFtl !== null || Object.keys(dep).some((r) => collectorOf(r));
+		if (!isPlanned && (byTier[0].worth <= 0 || !something)) return [];
 		const t = trouble(s, me, pacts);
 		return [
 			{
 				id: s.id,
 				name: s.name,
 				deposits: dep,
-				best: best.map(pick),
-				worth: value,
+				byTier,
+				preFtl,
 				trouble: t,
 				owner: t.kind === 'none' ? null : countryName(t.ownerId),
 				joins: touches(next, lines, s.id),
@@ -237,7 +257,7 @@ export function waylinesOf(
 	return {
 		stations,
 		waylines,
-		sites: sites.sort((a, b) => b.worth - a.worth),
+		sites: sites.sort((a, b) => b.byTier[0].worth - a.byTier[0].worth),
 		unlicensed: unlicensedBy,
 		pacts: [...pacts].map(countryName),
 		hub: researched.has('tech_waystation_3'),

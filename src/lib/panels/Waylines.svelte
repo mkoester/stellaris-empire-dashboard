@@ -4,7 +4,7 @@
 	import { fmt } from '#lib/format.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import InfoPopup from '#lib/InfoPopup.svelte';
-	import MapLines, { type MapLine, type MapMark } from '#lib/MapLines.svelte';
+	import MapLines, { type MapLabel, type MapLine, type MapMark } from '#lib/MapLines.svelte';
 	import type { MapWidth } from '#lib/mapView.ts';
 	import type { OwnOnMap } from '#lib/mapLayers.ts';
 	import AddGoal from '#lib/planner/AddGoal.svelte';
@@ -47,6 +47,9 @@
 	let selected: number | null = $state(null);
 	let sort = $state({ column: 'worth', desc: true });
 	let busy = $state(false);
+	// which waystation tier the sites are rated for: now (I, 2 slots) or later (II: 4, III: 6)
+	let tier = $state(1);
+	const at = (s: WaySite) => s.byTier[tier - 1];
 
 	const LINE = '#0ea5e9';
 	const byId = $derived(new Map(map.systems.map((s) => [s.id, s])));
@@ -56,14 +59,14 @@
 	const keys = $derived((page.data.plan?.keys as string[] | undefined) ?? []);
 	const plannedWay = (id: number) => keys.includes(goalKey('waystation', { system: id }));
 
-	const best = $derived(w.sites.length ? w.sites[0].worth : 0);
+	const best = $derived(Math.max(0, ...w.sites.map((s) => at(s).worth)));
 	const tone = (v: number) =>
 		['#e5f5e0', '#a1d99b', '#41ab5d', '#006d2c'][
 			Math.min(3, Math.floor((v / Math.max(best, 1)) * 4))
 		];
 	const fill = $derived(
 		Object.fromEntries([
-			...w.sites.filter((s) => s.trouble.kind !== 'taken').map((s) => [s.id, tone(s.worth)]),
+			...w.sites.filter((s) => s.trouble.kind !== 'taken').map((s) => [s.id, tone(at(s).worth)]),
 			...w.stations.map((s) => [s.id, LINE])
 		])
 	);
@@ -71,7 +74,11 @@
 		Object.fromEntries(
 			w.sites.map((s) => [
 				s.id,
-				`${fmt(s.worth)} trade a month with ${s.best.map((p) => p.name).join(' + ') || 'nothing to collect'}${troubleText(s) ? ` — ${troubleText(s)}` : ''}`
+				`${fmt(at(s).worth)} trade a month with ${
+					at(s)
+						.best.map((p) => p.name)
+						.join(' + ') || 'nothing to collect'
+				}${s.preFtl ? `, observing ${s.preFtl}` : ''}${troubleText(s) ? ` — ${troubleText(s)}` : ''}`
 			])
 		)
 	);
@@ -86,7 +93,7 @@
 	);
 	const marks: MapMark[] = $derived([
 		...w.sites
-			.filter((s) => s.trouble.kind === 'unlicensed' && s.worth > 0)
+			.filter((s) => s.trouble.kind === 'unlicensed' && at(s).worth > 0)
 			.map((s) => ({
 				systemId: s.id,
 				symbol: '⚠',
@@ -109,6 +116,17 @@
 				: []
 		)
 	]);
+
+	// each site's trade a month, under its star
+	const labels: MapLabel[] = $derived(
+		w.sites
+			.filter((s) => s.trouble.kind !== 'taken' && at(s).worth > 0)
+			.map((s) => ({
+				systemId: s.id,
+				text: fmt(at(s).worth),
+				title: `${s.name}: ${fmt(at(s).worth)} trade a month at Waystation ${'I'.repeat(tier)}`
+			}))
+	);
 
 	function troubleText(s: WaySite): string {
 		switch (s.trouble.kind) {
@@ -170,15 +188,18 @@
 		},
 		{
 			id: 'best',
-			label: `Best ${TIER_SLOTS[0]} modules`,
-			value: (r) => r.best.map((p) => p.name).join(' + ') || null,
+			label: 'Best modules',
+			value: (r) =>
+				at(r)
+					.best.map((p) => p.name)
+					.join(' + ') || null,
 			cell: bestCell,
-			title: `for the ${TIER_SLOTS[0]} slots of a new waystation, at ×${TIER_FACTOR[0]} collection (Waystation I)`
+			title: 'for the slots of a waystation of the chosen tier, at its collection factor'
 		},
 		{
 			id: 'worth',
 			label: 'Trade/mo',
-			value: (r) => r.worth || null,
+			value: (r) => at(r).worth || null,
 			right: true,
 			title:
 				'what those modules collect a month, in trade: the market’s base prices, else what a unit costs us (the jobs tab)'
@@ -206,13 +227,17 @@
 	>
 {/snippet}
 {#snippet depositsCell(r: WaySite)}<ResourceChips flows={r.deposits} />{/snippet}
-{#snippet bestCell(r: WaySite)}{#each r.best as p, i (p.key)}{#if i}<span class="text-gray-400"
+{#snippet bestCell(r: WaySite)}{#each at(r).best as p, i (p.key)}{#if i}<span class="text-gray-400"
 				>+</span
 			>{/if}{@render module(p)}<AddGoal
 			kind="station_module"
 			target={{ system: r.id, module: p.key }}
 			title="plan this module here"
-		/>{/each}{/snippet}
+		/>{/each}{#if r.preFtl}<span
+			class="ml-1 text-xs text-gray-500"
+			title="a Research Observatory here observes {r.preFtl}: society research by your interference policy (≈ if no one has an observation post there)"
+			>👁 pre-FTL</span
+		>{/if}{/snippet}
 {#snippet spaceCell(r: WaySite)}
 	{#if r.trouble.kind !== 'none'}
 		<span
@@ -266,8 +291,24 @@
 			' / ×'
 		)} by tier ({TIER_SLOTS.join(
 			' / '
-		)} slots). Waystations in neighbouring systems form a wayline: a module’s wayline effects reach every system on it, and a Logistics Hub collects the whole line at one station. Green: what the best modules would collect; ⚠ another empire’s space without a pact; ✕ someone else’s waystation; dashed: planned."
+		)} slots). Waystations in neighbouring systems form a wayline: a module’s wayline effects reach every system on it, and a Logistics Hub collects the whole line at one station. Green, and the number under each star: what the best modules would collect, in trade a month, at the tier chosen above — a module needing a tech you lack is left out; 👁 a pre-FTL civilisation a Research Observatory would observe; ⚠ another empire’s space without a pact; ✕ someone else’s waystation; dashed: planned."
 	>
+		<div class="mb-2 flex flex-wrap items-center gap-1 text-sm">
+			<span class="text-gray-500">rate the sites for</span>
+			{#each [1, 2, 3] as t (t)}
+				<button
+					type="button"
+					class="rounded px-2 py-0.5 {t === tier
+						? 'bg-sky-600 text-white'
+						: 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'}"
+					title={`Waystation ${'I'.repeat(t)}: ${TIER_SLOTS[t - 1]} slots, ×${TIER_FACTOR[t - 1]} collection${w.tiers.includes(t) ? '' : ` — needs Waystations ${'I'.repeat(t)} first`}`}
+					onclick={() => (tier = t)}
+					>{`${'I'.repeat(t)} · ${TIER_SLOTS[t - 1]} slots`}{w.tiers.includes(t)
+						? ''
+						: ' (later)'}</button
+				>
+			{/each}
+		</div>
 		<GalaxyMap
 			systems={map.systems}
 			{fill}
@@ -275,7 +316,10 @@
 			focus={[
 				{
 					label: 'best sites',
-					points: w.sites.slice(0, 10).flatMap((s) => byId.get(s.id) ?? [])
+					points: [...w.sites]
+						.sort((a, b) => at(b).worth - at(a).worth)
+						.slice(0, 10)
+						.flatMap((s) => byId.get(s.id) ?? [])
 				}
 			]}
 			heightKey="waylines-map-height"
@@ -288,8 +332,8 @@
 			bind:width
 			beside={table}
 		>
-			{#snippet layer(at)}
-				<MapLines {lines} {marks} {at} place={byId} />
+			{#snippet layer(atMap)}
+				<MapLines {lines} {marks} {labels} at={atMap} place={byId} />
 			{/snippet}
 		</GalaxyMap>
 		{#if width !== 'side'}{@render table()}{/if}

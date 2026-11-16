@@ -13,7 +13,10 @@ All notable changes to this project are documented here. The format follows
   would extend or link, and whose space it is: another empire's without a Wayline Pact costs
   opinion and gives them a war goal. Plan a waystation, a module, or a whole wayline from ours in
   one click. Below: your waylines with each waystation's stockpile and what each wayline still
-  lacks, and the Settle down panel as before.
+  lacks, and the Settle down panel as before. Each site's value in trade a month shows under its
+  star; rate the sites for Waystation I, II or III (2, 4 or 6 slots) to find the best spots for
+  later. A pre-FTL civilisation counts too: a Research Observatory there collects society
+  research by your interference policy.
 - The tech tab has a **tech tree** per field: each tech by where it stands (researched, being
   researched, on offer, within reach) and whether it is planned. Hover a tech for + want / − want;
   click it to see what it needs and leads to, or fade everything but the techs within reach, the

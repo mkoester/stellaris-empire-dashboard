@@ -183,6 +183,41 @@ describe('modulePicks', () => {
 	});
 });
 
+describe('pre-FTL observation', () => {
+	// waystation_research_module's pre-FTL society research (4.5.4), as the data DB holds it
+	const preFtl = (flag: string, value: number) => ({
+		scope: 'station',
+		key: 'starbase_collected_system_society_research_add',
+		value,
+		when: and(and(leaf('is_nomadic'), leaf('has_policy_flag', flag)), leaf('solar_system', 'scope'))
+	});
+	const research = part(
+		'waystation_research_module',
+		and(leaf('exists', 'owner'), leaf('is_waystation_starbase')),
+		[
+			preFtl('interference_not_allowed', 2),
+			preFtl('interference_active', 4),
+			// a trade pact with the pre-FTL civilisation: the save does not tell
+			{
+				scope: 'station',
+				key: 'starbase_collected_system_energy_add',
+				value: 2,
+				when: leaf('solar_system', 'scope')
+			}
+		]
+	);
+	const f = { ...facts(), policyFlags: ['interference_active'] };
+	const mods = waystationModules({ waystation_research_module: research }, f);
+	it('collects society research where a pre-FTL civilisation lives, by the policy', () => {
+		const [p] = modulePicks({}, mods, f, worth, 1, [], new Set(), { preFtl: true });
+		expect(p.collects).toEqual({ society_research: 3 }); // 4 × 0.75
+		expect(p.preFtl).toBe(true);
+	});
+	it('collects nothing from it elsewhere', () => {
+		expect(modulePicks({}, mods, f, worth, 1)).toEqual([]);
+	});
+});
+
 describe('networks', () => {
 	// 1 - 2 - 3 - 4 - 5, and 3 - 6
 	const next = neighbours([sys(1, [2]), sys(2, [3]), sys(3, [4, 6]), sys(4, [5]), sys(5, [])]);

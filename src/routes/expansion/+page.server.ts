@@ -54,7 +54,7 @@ export function load({ url }) {
 			explain: pick(
 				getExplanations(),
 				[
-					...waylines.sites.flatMap((s) => s.best.map((p) => p.key)),
+					...waylines.sites.flatMap((s) => s.byTier.flatMap((t) => t.best.map((p) => p.key))),
 					...waylines.stations.flatMap((s) => [...s.modules, ...s.next.map((p) => p.key)]),
 					...waylines.waylines.flatMap((l) => l.modules.map((m) => m.key))
 				].map((k) => `module:${k}`)
