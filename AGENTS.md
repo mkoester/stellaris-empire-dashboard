@@ -98,8 +98,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
   shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
-  2026-11-16: `develop` has 60 and `feature/highway` 57** (develop: prescripted names, dig-site
-  chapters, planet flags, waystations; the highway: the Ancient Highway mod) — that merge takes 61,
+  2026-11-16: `develop` has 61 and `feature/highway` 57** (develop: prescripted names, dig-site
+  chapters, planet flags, waystations, the home system surveyed; the highway: the Ancient Highway
+  mod) — that merge takes 62,
   and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
   in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append

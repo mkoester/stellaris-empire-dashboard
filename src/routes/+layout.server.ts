@@ -60,7 +60,12 @@ export function load({ url }) {
 			head: null,
 			gameVersion: null,
 			dates: null,
-			plan: { keys: [] as string[], alerts: 0, unavailable: [] as string[] },
+			plan: {
+				keys: [] as string[],
+				ids: {} as Record<string, string>,
+				alerts: 0,
+				unavailable: [] as string[]
+			},
 			settle: { nomad: false, blocked: null as string | null },
 			empty: {} as Record<string, string>,
 			quadrants: null as { view: QuadrantView; inner: number; outer: number } | null

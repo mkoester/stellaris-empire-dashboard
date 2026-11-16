@@ -194,6 +194,7 @@ template } … } … required_component … }`, `role` (screen, gunship; absent 
 - Map positions: `galactic_object.<id>.coordinate = { x y }` — the game draws **x growing to the
   left** and y growing down (2207.03: Alpha Centauri x 11 west of Sol x −6, Sirius x −30 east);
   `#lib/mapView.ts` flips x.
+- Surveyed: `country.surveyed_deposit_holders = { { type=0 id=<planet> } }` holds every planet whose `surveyed_by` names us **plus the home system's**, which name no one (`roamingcybergang` 2213.09.02: 145 = 135 + 10); `Body.surveyed` reads both since READER 61.
 - Expansion: `country.surveyed_deposit_holders = { { type=0 id=<planet> } }`; systems
   `galactic_object.<id> = { name planet hyperlane = { to length } colonies }`. The game's list
   differs from the class rule (`pc_barren` is `colonizable = no`, yet Mars is offered — terraforming).

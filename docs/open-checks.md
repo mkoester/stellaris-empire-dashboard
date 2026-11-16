@@ -565,7 +565,15 @@ holds whatever it really does.
 `docs/companion-mod.md` ("Research options"). The mod asks `has_tech_option` for each of the 631
 techs of the 4.5.4 data DB on the 2nd of each month (`sdash.6`). Replayed on a DB copy only (Roaming
 Cyber Gang, node 460, 2026-11-16): Upcoming and the tech tab switched to the replayed list.
-Not seen in game yet:
+**Seen in game 2026-11-16** (Roaming Cyber Gang, 2213.09.02, Research options+ on: up to 6 cards):
+17 `tech-option` lines and one `tech-options-end`, no `sdash` line in `error.log`; physics 5 and
+society 6 matched the research screen card for card (bio-ship names: Fusion Metabolism = Fusion
+Power), engineering 6 by count; the tech under research (Ceramo-Metal Materials) is among the
+logged cards. Still open: the cost on the 2nd at full speed, and Upcoming's "later" row.
+
+- **After a researched tech** (`sdash.7`, added after that check): the day after a tech finishes,
+  `game.log` has one list (`tech-option` lines and one `tech-options-end`), dated that day, with the
+  field's new cards; two techs finishing on one day still log one list.
 
 - **The lines come at all:** with mod 0.13.0 linked, play past a 2nd → `game.log` has
   `SDASH|3|<date>.02|<run>|event|tech-option|…` lines and one `tech-options-end`; `error.log` has

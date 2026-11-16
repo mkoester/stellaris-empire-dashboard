@@ -85,9 +85,24 @@ function starbaseOwner(
 	return null;
 }
 
+/**
+ * The planets we surveyed: `country.surveyed_deposit_holders` (`{ type=0 id=<planet> }`) — every
+ * planet `surveyed_by` names, plus the home system's, which the game counts as surveyed without
+ * naming us on them (`roamingcybergang` 2213.09.02: 145 = 135 + the 10 bodies of Dar-Hesh;
+ * before READER 61 those read as unsurveyed and the waylines tab left Dar-Hesh out).
+ */
+export function surveyedPlanets(raw: Pick<RawSave, 'country'>): Set<number> {
+	return new Set(
+		items(raw.country?.surveyed_deposit_holders)
+			.filter((h) => num(h?.type) === 0)
+			.map((h) => Number(h.id))
+	);
+}
+
 export function body(
 	raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>,
-	id: number
+	id: number,
+	surveyed: Set<number> = new Set()
 ): Body | null {
 	const p = raw.planets[String(id)];
 	if (!p || typeof p !== 'object') return null;
@@ -106,7 +121,7 @@ export function body(
 			.filter((t): t is string => typeof t === 'string' && t !== 'none'),
 		anomaly: typeof p.anomaly === 'string' ? p.anomaly : null,
 		dist: Math.hypot(num(p.coordinate?.x), num(p.coordinate?.y)),
-		surveyed: list(p.surveyed_by).includes(raw.countryId),
+		surveyed: surveyed.has(id) || list(p.surveyed_by).includes(raw.countryId),
 		// a mining or research station orbits it (`shipclass_orbital_station` = the ship's id)
 		station: p.shipclass_orbital_station !== undefined
 	};
@@ -202,6 +217,7 @@ export function galaxy(
 		.map(([id]) => Number(id));
 	const open = Object.keys(raw.globalFlags ?? {}).includes('lgates_activated_globally');
 	const waystationAt = (s: Raw) => waystationOwner(raw, s);
+	const surveyed = surveyedPlanets(raw);
 	return Object.entries(raw.systems).flatMap(([key, s]) => {
 		if (!s || typeof s !== 'object') return [];
 		const id = Number(key);
@@ -222,7 +238,7 @@ export function galaxy(
 				...(seen && waystationAt(s) !== null && { waystation: waystationAt(s)! }),
 				// every system's bodies: what a map may show of them is surveyView's choice
 				bodies: list(s.planet)
-					.map((p) => body(raw, p))
+					.map((p) => body(raw, p, surveyed))
 					.filter((b) => b !== null),
 				megastructures: seen ? (megas.get(id) ?? []) : [],
 				wormholes: wormholes.get(id) ?? [],

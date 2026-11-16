@@ -971,6 +971,8 @@ export function plannedSystems(snaps: Snapshot[], tip: number): Record<number, s
 
 type Summary = {
 	keys: string[];
+	ids: Record<string, string>; // goal key → its goal's id, so a "+ goal" button can take it out
+
 	alerts: number;
 	unavailable: string[];
 	// for `plannedOnOffer()`, and the tech tree's want buttons (`goal`: its id, to edit or remove)
@@ -985,7 +987,7 @@ let memo: { key: string; value: Summary } | null = null;
  * planned, each with its stance (wanted ones' prerequisites included). Cached by tip and plan.
  */
 export function planSummary(tip: number | null): Summary {
-	const none: Summary = { keys: [], alerts: 0, unavailable: [], plannedTechs: [] };
+	const none: Summary = { keys: [], ids: {}, alerts: 0, unavailable: [], plannedTechs: [] };
 	if (tip === null) return none;
 	const db = getDb();
 	const node = nodeById(db, tip);
@@ -1010,6 +1012,7 @@ export function planSummary(tip: number | null): Summary {
 		key,
 		value: {
 			keys: goals.map((g) => goalKey(g.kind, g.target, g.title)),
+			ids: Object.fromEntries(goals.map((g) => [goalKey(g.kind, g.target, g.title), g.id])),
 			alerts,
 			unavailable: c ? unavailable(c.ctx.latest) : [],
 			plannedTechs: goals

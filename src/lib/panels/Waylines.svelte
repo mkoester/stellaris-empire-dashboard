@@ -66,6 +66,8 @@
 	const at = (s: WaySite) => s.byTier[tier - 1];
 
 	const LINE = '#0ea5e9';
+	const PLANNED = '#7dd3fc'; // a planned waystation: the wayline's colour, lighter
+	const what = (s: WayStation) => (s.planned ? 'planned waystation, once built' : 'our waystation');
 	const byId = $derived(new Map(map.systems.map((s) => [s.id, s])));
 	const name = (id: number) => byId.get(id)?.name ?? `system ${id}`;
 	const explain = (key: string) =>
@@ -83,7 +85,7 @@
 			...(show === 'colour'
 				? w.sites.filter((s) => s.trouble.kind !== 'taken').map((s) => [s.id, tone(at(s).worth)])
 				: []),
-			...w.stations.map((s) => [s.id, LINE])
+			...w.stations.map((s) => [s.id, s.planned ? PLANNED : LINE])
 		])
 	);
 	const titles = $derived(
@@ -108,6 +110,14 @@
 		}))
 	);
 	const marks: MapMark[] = $derived([
+		...w.stations
+			.filter((s) => s.planned)
+			.map((s) => ({
+				systemId: s.id,
+				symbol: '⚑',
+				color: LINE,
+				title: `${s.name}: a waystation is planned here`
+			})),
 		...w.sites
 			.filter((s) => s.trouble.kind === 'unlicensed' && at(s).worth > 0)
 			.map((s) => ({
@@ -145,12 +155,12 @@
 							color: '#41ab5d',
 							title: `${s.name}: ${round(at(s).worth)} trade a month`
 						})),
-					// ours, in the wayline's colour, by what they collect now
+					// ours, in the wayline's colour (planned ones lighter), by what they collect
 					...w.stations.map((s) => ({
 						systemId: s.id,
 						r: radius(s.worth),
-						color: LINE,
-						title: `${s.name}: our waystation, ${round(s.worth)} trade a month`
+						color: s.planned ? PLANNED : LINE,
+						title: `${s.name}: ${what(s)}, ${round(s.worth)} trade a month`
 					}))
 				]
 			: []
@@ -167,7 +177,7 @@
 		...w.stations.map((s) => ({
 			systemId: s.id,
 			text: round(s.worth),
-			title: `${s.name}: our waystation, ${round(s.worth)} trade a month now`
+			title: `${s.name}: ${what(s)}, ${round(s.worth)} trade a month`
 		}))
 	]);
 
@@ -215,7 +225,13 @@
 
 	let ownSort = $state({ column: 'worth', desc: true });
 	const ownColumns: Column<WayStation>[] = [
-		{ id: 'name', label: 'System', value: (r) => r.name },
+		{
+			id: 'name',
+			label: 'System',
+			value: (r) => r.name,
+			cell: ownName,
+			title: 'planned ones in italics: ✕ takes the plan out'
+		},
 		{
 			id: 'line',
 			label: 'Wayline',
@@ -223,7 +239,12 @@
 			right: true,
 			title: 'its wayline, numbered as below'
 		},
-		{ id: 'tier', label: 'Tier', value: (r) => r.tier, right: true },
+		{
+			id: 'tier',
+			label: 'Tier',
+			value: (r) => (r.planned ? 'planned' : r.tier),
+			right: true
+		},
 		{
 			id: 'modules',
 			label: 'Modules',
@@ -367,7 +388,12 @@
 {#snippet ownModules(r: WayStation)}{#each r.modules as m, i (`${m}-${i}`)}{#if i}<span
 				class="text-gray-400">+</span
 			>{/if}<InfoPopup explanation={explain(m)}>{explain(m)?.title ?? m}</InfoPopup
-		>{/each}{/snippet}
+		>{#if r.planned}<AddGoal
+				kind="station_module"
+				target={{ system: r.id, module: m }}
+			/>{/if}{/each}{/snippet}
+{#snippet ownName(r: WayStation)}<span class={r.planned ? 'italic' : ''}>{r.name}</span
+	>{#if r.planned}<AddGoal kind="waystation" target={{ system: r.id }} />{/if}{/snippet}
 {#snippet ownNext(r: WayStation)}{#each r.next as p (p.key)}{@render module(p)}<AddGoal
 			kind="station_module"
 			target={{ system: r.id, module: p.key }}
@@ -385,7 +411,7 @@
 	<div class="flex flex-col gap-4">
 		<div>
 			<h3 class="mb-1 text-sm font-semibold" style:color={LINE}>
-				{`Our waystations (${w.stations.length})`}
+				{`Our waystations (${w.stations.filter((s) => !s.planned).length} built, ${w.stations.filter((s) => s.planned).length} planned)`}
 			</h3>
 			{#if w.stations.length}
 				<SortTable
@@ -423,7 +449,7 @@
 			' / ×'
 		)} by tier ({TIER_SLOTS.join(
 			' / '
-		)} slots). Waystations in neighbouring systems form a wayline: a module’s wayline effects reach every system on it, and a Logistics Hub collects the whole line at one station. Blue: our waystations; green (or a dot sized by it — the smallest up to 10, the baseline), and the number under each star: what the best modules would collect, in trade a month, at the tier chosen above — a module needing a tech you lack is left out; 👁 a pre-FTL civilisation a Research Observatory would observe; ⚠ another empire’s space without a pact; ✕ someone else’s waystation; dashed: planned."
+		)} slots). Waystations in neighbouring systems form a wayline: a module’s wayline effects reach every system on it, and a Logistics Hub collects the whole line at one station. Blue: our waystations, light blue with ⚑ the planned ones (✕ beside ✓ planned takes a plan out); green (or a dot sized by it — the smallest up to 10, the baseline), and the number under each star: what the best modules would collect, in trade a month, at the tier chosen above — a module needing a tech you lack is left out; 👁 a pre-FTL civilisation a Research Observatory would observe; ⚠ another empire’s space without a pact; ✕ someone else’s waystation; dashed: planned."
 	>
 		<div class="mb-2 flex flex-wrap items-center gap-1 text-sm">
 			<span class="text-gray-500">rate the sites for</span>
@@ -511,7 +537,15 @@
 						{#each l.systems as id (id)}
 							{@const st = w.stations.find((s) => s.id === id)}
 							<li>
-								{#if st}
+								{#if st?.planned}
+									<span class="italic">{st.name}</span>
+									<span class="text-gray-500">planned</span>
+									<AddGoal kind="waystation" target={{ system: id }} />
+									{#each st.modules as m (m)}<span class="ml-1"
+											><InfoPopup explanation={explain(m)}>{explain(m)?.title ?? m}</InfoPopup
+											></span
+										>{/each}
+								{:else if st}
 									<span class="font-medium">{st.name}</span>
 									<span class="text-gray-500">{`tier ${st.tier}`}</span>
 									{#each st.modules as m (m)}<span class="ml-1"

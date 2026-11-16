@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.24] - 2026-11-16
+
+### Added
+
+- Plan waystations on the roaming tab: a planned one moves from the sites into the waystations
+  table (in italics, with its planned modules and what it would collect), shows ⚑ and light blue on
+  the map, and its wayline dashed. Every "✓ planned" button has a ✕ beside it to take the plan out
+  again, on every tab.
+- The companion mod (0.13.0) also reads the research options the day after a tech is researched,
+  when its field draws new cards — not only on the 2nd of the month.
+
+### Fixed
+
+- The roaming tab's "+ goal" and "+ wayline" buttons did not show.
+- The home system counts as surveyed: its deposits show on the waylines tab (a nomad's starting
+  system was missing there), on maps and in the planner's popups.
+
 ## [0.1.23] - 2026-11-16
 
 ### Added

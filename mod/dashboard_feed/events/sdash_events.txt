@@ -23,8 +23,9 @@ country_event = {
 	immediate = {
 		sdash_roll_timeline = yes
 		# 0.13.0: the research options, the next day (events/sdash_tech_options.txt, generated) —
-		# the user's ask 2026-11-16: "check on every 2nd of a month which tech options are available"
-		country_event = { id = sdash.6 days = 1 }
+		# the user's ask 2026-11-16: "check on every 2nd of a month which tech options are available";
+		# also after each researched tech (sdash.7)
+		sdash_queue_tech_options = yes
 		# 0.11.0: a multiplayer game, where the dashboard turns every cheat off — before the month's
 		# end line, so the month carries it. Trigger from 4.5.3 triggers.log (scope all); the save's
 		# `player` block says it too, which serves a player without the mod.
@@ -534,5 +535,23 @@ pop_group_event = {
 		export_trigger_value_to_variable = { trigger = pop_group_size variable = sdash_ss_tmp }
 		From = { set_variable = { which = sdash_ss value = prev.sdash_ss_tmp } }
 		log = "SDASH|2|[GetDate]|event|slave-sold|[Root.GetSpeciesName]|[From.sdash_ss]|[From.GetName]|[FromFrom.GetName]"
+	}
+}
+
+# 0.13.0: a tech researched (on_tech_increased) — its field draws new cards ("Whenever we finish
+# researching a Technology, up to N new options will be generated", 4.5.4 SELECT_TECHNOLOGY_DESC),
+# so the options are logged the next day: on the day itself it is not known whether the game has
+# drawn them before or after the on_action. Also fires for techs an event grants.
+country_event = {
+	id = sdash.7
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		is_ai = no
+	}
+
+	immediate = {
+		sdash_queue_tech_options = yes
 	}
 }

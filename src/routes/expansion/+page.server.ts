@@ -42,6 +42,8 @@ export function load({ url }) {
 			: null;
 	const g = waylines && save ? campaignGalaxy(save.campaign) : null;
 	return {
+		// the node shown: the "+ goal", "+ wayline" and ✕ buttons plan at it
+		tip: b.tip,
 		waylines,
 		// the map beside the waylines: as the map tab shows it
 		...(waylines && {
