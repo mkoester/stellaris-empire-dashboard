@@ -5,6 +5,7 @@
 	import { followGame } from '#lib/live.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
+	import { SINK_GROUPS, type SinkGroup, type SinkRow } from '#lib/influenceSinks.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -14,6 +15,13 @@
 	const month = $derived(
 		data.budget ? resourceBudget(data.budget, 'influence', (s) => data.labels[s] ?? s) : null
 	);
+	// per group, the available sinks first
+	const sinkGroups = $derived.by(() => {
+		const by = new Map<SinkGroup, SinkRow[]>();
+		for (const r of data.sinks) by.set(r.group, [...(by.get(r.group) ?? []), r]);
+		for (const rows of by.values()) rows.sort((a, b) => Number(!!a.blocked) - Number(!!b.blocked));
+		return [...by];
+	});
 	const missed = $derived(data.uncollected.reduce((t, u) => t + u.amount, 0));
 	type Row = NonNullable<typeof month>['rows'][number] & { i: number };
 	const columns: Column<Row>[] = [
@@ -73,6 +81,48 @@
 				{#if data.max !== null}Stockpile {fmt(data.stockpile ?? 0)} of {fmt(data.max)}.{/if}
 			</p>
 		{/if}
+	</section>
+
+	<!-- where influence can go: what this empire can use in this playthrough; greyed, not yet -->
+	<section class="rounded border border-gray-300 p-2 lg:col-span-2 dark:border-gray-700">
+		<h2 class="mb-1 font-semibold">Where influence can go</h2>
+		<p class="mb-2 text-xs text-gray-500">
+			Base costs from the game files; modifiers change them. Left out: what this empire cannot use
+			in this playthrough{data.sinksNomad
+				? ' (as a nomad: settling down, outposts, claims, megastructures inside borders)'
+				: ' (settled: waystations and arkships)'}. Greyed: not available yet — hover for why.
+		</p>
+		<div class="grid gap-x-6 gap-y-3 sm:grid-cols-2 xl:grid-cols-3">
+			{#each sinkGroups as [group, rows] (group)}
+				<div>
+					<!-- nothing in the group available yet: its header greyed too -->
+					<h3
+						class="text-sm font-semibold"
+						class:opacity-50={rows.every((r) => r.blocked)}
+						title={rows.every((r) => r.blocked) ? 'nothing here is available yet' : undefined}
+					>
+						{SINK_GROUPS[group]}
+					</h3>
+					<ul class="text-sm">
+						{#each rows as r (r.id)}
+							<li
+								class="flex items-baseline gap-2"
+								class:opacity-50={r.blocked}
+								title={r.blocked ?? undefined}
+							>
+								<span class="flex-1"
+									>{r.name}{#if r.note}<span class="text-xs text-gray-500">{` · ${r.note}`}</span
+										>{/if}{#if r.blocked}<span class="text-xs text-gray-500"
+											>{` · ${r.blocked}`}</span
+										>{/if}</span
+								>
+								<span class="shrink-0 tabular-nums">{r.cost}</span>
+							</li>
+						{/each}
+					</ul>
+				</div>
+			{/each}
+		</div>
 	</section>
 
 	{#key data.tip}
