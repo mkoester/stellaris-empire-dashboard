@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.23] - 2026-11-16
 
 ### Added
 
@@ -21,11 +21,25 @@ All notable changes to this project are documented here. The format follows
   researched, on offer, within reach) and whether it is planned. Hover a tech for + want / − want;
   click it to see what it needs and leads to, or fade everything but the techs within reach, the
   wanted ones, or the clicked tech's path. Techs this empire can never get are left out.
+- **− want** plans a tech for later: still wanted, not yet. While a tech planned for later — or
+  one to avoid — is on offer, Upcoming says to pick another card.
+- With the companion mod 0.13.0, the cards on offer are read on the 2nd of each month, so
+  Upcoming and the tech tab show this month's cards without waiting for the next autosave.
+- The planner has shortcuts for nomads: logistic ships, waystations, arkships (only nomads see
+  them).
+- The influence tab lists everywhere influence can go, at base cost: what this playthrough can
+  never use is hidden (nomad or settled, origin, civics, authority), what is not available yet is
+  greyed with the reason.
+- The frontier tab keeps finished anomalies, dig sites, special projects and situations below each
+  list, greyed, with the date last seen and their outcomes.
 
 ### Fixed
 
 - A system with only a nomad's waystation no longer shows that nomad as its owner on maps and
   borders: waystations claim no space.
+- Influence hints name the real conditions for a rival (a harm-relations envoy counts at once, an
+  insult does not), and with influence storage full a nomad is pointed to waystations and arkship
+  upgrades instead of claims and outposts.
 
 ## [0.1.22] - 2026-11-15
 
