@@ -3,7 +3,7 @@ import { ethicDistance, federationPenalty, profile } from './ethics.ts';
 import type { CountryInfo, DiploCountry, EthicAxis, Relation, WarSides } from './types.ts';
 
 // The diplomacy tab: what we know of every empire and of the relations between them, as our intel
-// shows them — or everything, with the `diplomacyAll` cheat. Pure.
+// shows them — or everything, with the `diplomacyAll` spoiler. Pure.
 //
 // Intel (0–100 per country, `intel_manager`) gives a level per category, 4.5.2
 // `common/intel_levels/00_intel_levels.txt`; what each level reveals is
@@ -417,11 +417,11 @@ function factsOf(s: DiploSnap): Fact[] {
 	});
 }
 
-/** Our intel level on each country in a save: everything on us, and with the cheat. */
-function levelsAt(s: DiploSnap, us: number, cheat: boolean) {
+/** Our intel level on each country in a save: everything on us, and on everyone with the spoiler. */
+function levelsAt(s: DiploSnap, us: number, all: boolean) {
 	const intel = new Map((s.intel ?? []).map((i) => [i.countryId, i.intel]));
 	return (id: number, category: IntelCategory) =>
-		cheat || id === us ? Infinity : levelOf(intel.get(id) ?? 0, category);
+		all || id === us ? Infinity : levelOf(intel.get(id) ?? 0, category);
 }
 
 /** A change of an empire's ethics our intel saw: somewhen after `after`, by `by`. */
@@ -430,16 +430,16 @@ export type EthicsChange = { from: string[]; to: string[]; after: string; by: st
 /**
  * Every change of ethics along the saves, per country, as our intel saw them: two readings in a
  * row that differ (with saves our intel did not reach between them, the change lies somewhere in
- * that gap). With `cheat`, every save's truth.
+ * that gap). With `all`, every save's truth.
  */
-export function ethicsHistory(snaps: DiploSnap[], cheat: boolean): Record<number, EthicsChange[]> {
+export function ethicsHistory(snaps: DiploSnap[], all: boolean): Record<number, EthicsChange[]> {
 	const steps = snaps.filter((s) => s.diplomacy !== null && s.intel !== null);
 	const us = steps.at(-1)?.countryId ?? 0;
 	const seen = new Map<number, { ethics: string[]; date: string }>();
 	const out: Record<number, EthicsChange[]> = {};
 	const same = (a: string[], b: string[]) => a.length === b.length && a.every((e) => b.includes(e));
 	for (const s of steps) {
-		const level = levelsAt(s, us, cheat);
+		const level = levelsAt(s, us, all);
 		for (const c of s.countries ?? []) {
 			if (level(c.id, NEEDS.gov[0]) < NEEDS.gov[1]) continue;
 			const before = seen.get(c.id);
@@ -459,18 +459,18 @@ export function ethicsHistory(snaps: DiploSnap[], cheat: boolean): Record<number
 /**
  * What we know at the latest save: each fact as last seen while our intel showed it. A fact our
  * intel shows now is current (or gone); one it no longer shows keeps its last reading, stale.
- * With `cheat`, the latest save's truth.
+ * With `all`, the latest save's truth.
  */
 export function diplomacyView(
 	snaps: DiploSnap[],
 	flagColors: Record<string, string>,
-	cheat: boolean
+	all: boolean
 ): Diplomacy | null {
 	const steps = snaps.filter((s) => s.diplomacy !== null && s.intel !== null);
 	const latest = steps.at(-1);
 	if (!latest) return null;
 	const us = latest.countryId ?? 0;
-	const levels = (s: DiploSnap) => levelsAt(s, us, cheat);
+	const levels = (s: DiploSnap) => levelsAt(s, us, all);
 	const canSee = (level: ReturnType<typeof levels>, f: Omit<Fact, 'value'>) => {
 		// their opinion of us: the game always shows it
 		if (f.kind === 'opinion' && f.b === us) return true;
@@ -481,7 +481,7 @@ export function diplomacyView(
 	};
 
 	const memory = new Map<string, { fact: Fact; asOf: string; present: boolean }>();
-	for (const s of cheat ? [latest] : steps) {
+	for (const s of all ? [latest] : steps) {
 		const level = levels(s);
 		const now = new Map(factsOf(s).map((f) => [keyOf(f), f]));
 		for (const [k, f] of now)
@@ -496,12 +496,12 @@ export function diplomacyView(
 		return m ? { value: m.fact.value, asOf: m.asOf, stale: m.asOf < latest.date } : null;
 	};
 
-	// nodes: us and every country we have contact with — everything with the cheat
+	// nodes: us and every country we have contact with — everything with the spoiler
 	const ours = new Map((latest.relations ?? []).map((r) => [r.countryId, r]));
 	const info = new Map((latest.countries ?? []).map((c) => [c.id, c]));
 	const intel = new Map((latest.intel ?? []).map((i) => [i.countryId, i.intel]));
 	const shown = (latest.diplomacy ?? []).filter(
-		(c) => cheat || c.id === us || ours.get(c.id)?.contact
+		(c) => all || c.id === us || ours.get(c.id)?.contact
 	);
 	const ids = new Set(shown.map((c) => c.id));
 	const edges: DiploEdge[] = [

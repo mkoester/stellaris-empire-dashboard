@@ -10,15 +10,15 @@ import { display, setting } from '#lib/server/settings.ts';
 
 // Every empire we know and the relations between them, as our intel shows them — what it no
 // longer shows marked unverified since it last did (#lib/diplomacy.ts); everything with the
-// `diplomacyAll` cheat. Hidden facts never leave the server.
+// `diplomacyAll` spoiler. Hidden facts never leave the server.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	const data = getGameData();
 	const opts = display(); // once per request
-	const cheat = opts.diplomacyAll;
-	const d = view(snaps, data.flagColors, cheat);
+	const all = opts.diplomacyAll;
+	const d = view(snaps, data.flagColors, all);
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const g = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const byId = new Map(g.map((x) => [x.id, x]));
@@ -36,7 +36,7 @@ export function load({ url }) {
 	const onMap = new Set(shown.map((x) => x.id));
 	return {
 		...rest,
-		cheat,
+		all,
 		contractMarks: contractMarksAt(snaps, opts),
 		diplomacy: d,
 		capitals, // empire → its capital system, where our intel knows it
@@ -60,7 +60,7 @@ export function load({ url }) {
 				Object.entries(data.defines).filter(([k]) => k.startsWith('FEDERATION_'))
 			)
 		},
-		ethicsHistory: ethicsHistory(snaps, cheat),
+		ethicsHistory: ethicsHistory(snaps, all),
 		authorities: data.authorities,
 		explain: pick(
 			getExplanations(),

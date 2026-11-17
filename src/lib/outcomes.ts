@@ -1,13 +1,30 @@
 import { fmt, pretty } from './format.ts';
+import { describe, evaluate, type Facts, type Trigger } from './triggers.ts';
 
 // What anomalies, special projects and dig-site chapters lead to: the effect trees of the data
 // DB's `outcome` table (stellaris-data-extraction `extractor/outcomes.py` documents the node
 // kinds), the markers that say what kind of outcome it is, and their text. Pure.
 
 type Named = { k: string; name: string | null };
-// w_if: a conditional branch's weight while its conditions hold (data DBs since the outcome tree)
-export type Branch = { w: number; cond: boolean; w_if?: number; e: OutcomeNode[] };
-export type Option = { name: string | null; cond: boolean; e: OutcomeNode[] };
+// w_if: a conditional branch's weight while its conditions hold (data DBs since the outcome tree).
+// `c`: the condition on our empire (data DBs since 2026-11-17), read by `resolve()`, which drops it
+// and marks `off` what this empire cannot get (`why`: the condition, readable).
+export type Branch = {
+	w: number;
+	cond: boolean;
+	w_if?: number;
+	c?: Trigger;
+	off?: boolean;
+	e: OutcomeNode[];
+};
+export type Option = {
+	name: string | null;
+	cond: boolean;
+	c?: Trigger;
+	off?: boolean;
+	why?: string;
+	e: OutcomeNode[];
+};
 export type OutcomeNode =
 	| { t: 'res'; r: string; n: number; scaled?: boolean }
 	| { t: 'months'; r: string; n?: number; min?: number; max?: number }
@@ -20,12 +37,21 @@ export type OutcomeNode =
 	| { t: 'fleet'; mine: boolean }
 	| { t: 'note'; text: string }
 	| { t: 'random'; b: Branch[] }
-	| { t: 'if'; b: OutcomeNode[][]; else: boolean }
+	| {
+			t: 'if';
+			b: OutcomeNode[][];
+			else: boolean;
+			c?: (Trigger | null)[];
+			taken?: (boolean | null)[];
+	  }
 	| {
 			t: 'event';
 			id: string;
 			title: string | null;
 			delay?: number;
+			c?: Trigger;
+			off?: boolean;
+			why?: string;
 			e: OutcomeNode[];
 			o: Option[];
 	  }
@@ -95,8 +121,160 @@ export function withProjects(
 	return go(tree, seen);
 }
 
+// Conditions whose answer stays as it is through an event chain: what the empire is. Anything
+// else (a flag, a tech, a modifier) the chain itself may bring, so its absence now is no answer.
+const STABLE = new Set([
+	'always',
+	'has_ethic',
+	'has_civic',
+	'has_valid_civic',
+	'has_origin',
+	'has_authority',
+	'has_government',
+	'host_has_dlc',
+	'is_country_type',
+	'is_gestalt',
+	'is_machine_empire',
+	'is_hive_empire',
+	'is_individual_machine',
+	'is_megacorp',
+	'is_homicidal',
+	'is_nomadic',
+	'is_wilderness_empire',
+	'is_democratic_authority',
+	'is_oligarchic_authority',
+	'is_imperial_authority',
+	'is_dictatorial_authority'
+]);
+const ETHIC =
+	/^is_(fanatic_)?[a-z]+ist$|^is_xeno(phile|phobe)$|^is_egalitarian$|^is_authoritarian$/;
+
+/** Whether a condition holds for this empire through the chain: `evaluate()`, except that a
+ * condition the chain may still bring about (a flag, a tech) is unknown while it is false. */
+export function holds(t: Trigger, f: Facts): boolean | null {
+	if ('leaf' in t) {
+		const v = evaluate(t, f);
+		return v === false && !STABLE.has(t.leaf) && !ETHIC.test(t.leaf) ? null : v;
+	}
+	const vals = t.args.map((a) => holds(a, f));
+	const all = vals.includes(false) ? false : vals.includes(null) ? null : true;
+	if (t.op === 'not') return all === null ? null : !all;
+	if (t.op === 'and') return all;
+	return vals.includes(true) ? true : vals.includes(null) ? null : false;
+}
+
+/** A tree read against this empire: options and events it cannot get `off` (with `why`),
+ * a conditional branch's weight settled where its condition is known, an `if` chain's `taken`
+ * branches. The conditions are dropped; without them (an older data DB) nothing changes. */
+export function resolve(
+	tree: OutcomeNode[],
+	f: Facts,
+	names: Record<string, string> = {}
+): OutcomeNode[] {
+	const gate = <T extends { c?: Trigger }>(x: T) => {
+		const { c, ...rest } = x;
+		if (!c) return rest;
+		return holds(c, f) === false ? { ...rest, off: true, why: describe(c, names) } : rest;
+	};
+	const go = (list: OutcomeNode[]): OutcomeNode[] =>
+		list.map((n): OutcomeNode => {
+			switch (n.t) {
+				case 'event':
+					return { ...gate(n), e: go(n.e), o: n.o.map((o) => ({ ...gate(o), e: go(o.e) })) };
+				case 'random':
+					return {
+						...n,
+						b: n.b.map((b) => {
+							const { c, ...rest } = b;
+							const ok = c ? holds(c, f) : null;
+							const settled =
+								ok === null ? rest : { w: ok ? (b.w_if ?? b.w) : b.w, cond: false, e: rest.e };
+							return {
+								...settled,
+								e: go(b.e),
+								...(settled.w === 0 && !settled.cond ? { off: true } : {})
+							};
+						})
+					};
+				case 'if': {
+					const { c, ...rest } = n;
+					const own = n.b.map((_, i) => {
+						const lim = c?.[i];
+						if (lim) return holds(lim, f);
+						return n.else && i === n.b.length - 1 ? true : null; // else: holds if reached
+					});
+					// a branch is taken when every earlier one is not and its own limit holds
+					const taken: (boolean | null)[] = [];
+					let reached: boolean | null = true;
+					for (const v of own) {
+						taken.push(reached === false || v === false ? false : reached && v ? true : null);
+						reached = reached === false || v === true ? false : v === null ? null : reached;
+					}
+					return { ...rest, b: n.b.map(go), ...(c ? { taken } : {}) };
+				}
+				case 'later':
+				case 'chapter':
+					return { ...n, e: go(n.e) };
+				case 'project':
+					return n.sub ? { ...n, sub: go(n.sub) } : n;
+				default:
+					return n;
+			}
+		});
+	return go(tree);
+}
+
+/** A resolved tree with what this empire cannot get left out: `off` events, options and branches,
+ * the `if` branches not taken, a settled branch or taken `if` branch in its node's place. */
+export function prune(tree: OutcomeNode[]): OutcomeNode[] {
+	const go = (list: OutcomeNode[]): OutcomeNode[] =>
+		list.flatMap((n): OutcomeNode[] => {
+			switch (n.t) {
+				case 'event':
+					return n.off
+						? []
+						: [
+								{
+									...n,
+									e: go(n.e),
+									o: n.o.filter((o) => !o.off).map((o) => ({ ...o, e: go(o.e) }))
+								}
+							];
+				case 'random': {
+					const b = n.b.filter((x) => !x.off).map((x) => ({ ...x, e: go(x.e) }));
+					if (b.length === 1 && !b[0].cond) return b[0].e;
+					return b.some((x) => x.e.length) ? [{ ...n, b }] : [];
+				}
+				case 'if': {
+					const t = n.taken;
+					const at = t?.indexOf(true) ?? -1;
+					if (at >= 0) return go(n.b[at]);
+					if (!t) return [{ ...n, b: n.b.map(go) }];
+					const keep = n.b.map((_, i) => i).filter((i) => t[i] !== false);
+					if (!keep.some((i) => n.b[i].length)) return [];
+					return [
+						{
+							...n,
+							b: keep.map((i) => go(n.b[i])),
+							taken: keep.map((i) => t[i]),
+							else: n.else && keep.includes(n.b.length - 1)
+						}
+					];
+				}
+				case 'later':
+				case 'chapter':
+					return [{ ...n, e: go(n.e) }];
+				case 'project':
+					return [n.sub ? { ...n, sub: go(n.sub) } : n];
+				default:
+					return [n];
+			}
+		});
+	return go(tree);
+}
+
 /** Every node of a tree, depth first, into projects' `sub`. */
-function* nodes(list: OutcomeNode[]): Generator<OutcomeNode> {
+export function* nodes(list: OutcomeNode[]): Generator<OutcomeNode> {
 	for (const n of list) {
 		yield n;
 		switch (n.t) {

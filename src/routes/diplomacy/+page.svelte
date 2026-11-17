@@ -154,7 +154,7 @@
 			g.value.civics.map((k) => nameOf(data.names, k)).join(', ')
 		].flatMap((text) => (text ? [{ text, stale: g.stale }] : []));
 	};
-	// the legend lists what our intel knows of (every empire with the cheat): an ethic once for
+	// the legend lists what our intel knows of (every empire with the spoiler): an ethic once for
 	// both its variants, every authority; civics and origins only those of empires on the graph
 	const known = $derived((d?.nodes ?? []).filter((n) => !n.us));
 	const onGraph = $derived(nodes.filter((n) => !n.us));
@@ -396,8 +396,8 @@
 	</p>
 {:else}
 	<p class="mb-3 text-sm text-gray-500">
-		{#if data.cheat}<span class="text-red-600"
-				>Cheat on (⚙): every empire and relation, whatever our intel.</span
+		{#if data.all}<span class="text-amber-600"
+				>Spoiler on (⚙): every empire and relation, beyond what our intel shows.</span
 			>
 		{:else}What our intel shows: an empire's government from intel 10, its rivals and federation
 			from 20, its pacts and opinions from 50 — through either side of a pact. Subjects and wars

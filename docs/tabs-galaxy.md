@@ -71,9 +71,9 @@ once we have communications with it, the owner of any system we have visited, gu
 others' discoveries nor battles we did not fight. Before the first save read only colonies are
 known (by `colonize_date`; before 2200 — homeworlds, pre-FTLs at "2016.05.09" — read as
 2200.01.01), and a system whose colony predates that save counts as its owner's since then. A
-change between two saves is dated "≤" the later one. The `historyAll` cheat shows everything.
+change between two saves is dated "≤" the later one. The `historyAll` spoiler (`intel`: off in multiplayer and Ironman) shows everything.
 Checked 2026-11-01 on a DB copy (Roaming Korinth, 2207.02): known now us, Vivisandia Vestige and
-Skull Clan — 10 colonies, 9 claims, 2 communications; with the cheat 80 and 100. **Open:** when a
+Skull Clan — 10 colonies, 9 claims, 2 communications; with the spoiler 80 and 100. **Open:** when a
 guardian was first discovered (the user's ask) is not read — its system is not tied to the flag;
 arkship colonies (nomads') are not in the reading, which reads planets.
 
@@ -292,7 +292,7 @@ walks the branch's saves: a fact keeps its reading from the last save whose inte
 if that save showed it gone, else **"unverified since"** that date when the intel no longer shows
 it. Snapshots keep relations only among the diplomatic kinds (empires, fallen, enclaves, traders,
 marauders) and with communications (`Snapshot.diplomacy`, `intel`, `allWars`, READER 14). The
-`diplomacyAll` cheat (⚙) is the latest save's truth; the route strips nothing else, since the
+`diplomacyAll` spoiler (⚙, `intel`) is the latest save's truth; the route strips nothing else, since the
 model never passes hidden facts. 2214.01.01: 47 countries, 113 relations shown of 141, 115
 opinions of 228.
 **Ethics** (the user's ask 2026-10-27, `#lib/ethics.ts` pure): what government intel shows, as

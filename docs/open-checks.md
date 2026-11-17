@@ -39,7 +39,10 @@ run-out cooldown dismissed on a reloaded branch. Still open:
 4. **Engine cooldowns left**: a federation law change (its timers sit on the federation, not read
    yet), the jump drive (`jump_drive_cooldown`).
 5. **Rolls**: an envoy on a first contact and a science ship on a dig site — the next roll's date
-   against `days_left`, and the cycle after a roll (`last_roll`).
+   against `days_left`, and the cycle after a roll (`last_roll`). The frontier tab's dig-site
+   time (`#lib/frontierTime.ts`) assumes a roll every 90 days (`ARCHAEOLOGICAL_SITE_DISCOVERY_DAYS`),
+   the skill bonus = the scientist's level, and clues reset per chapter: the game's breakthrough
+   tooltip ("current score before dice roll") and the days between two rolls settle all three.
 6. **Days per jump**: a military fleet and a science ship over a known number of jumps, with a
    manual save each few days — calibrates `DEFAULT_DAYS_PER_JUMP` (10, a placeholder).
 
@@ -571,9 +574,11 @@ society 6 matched the research screen card for card (bio-ship names: Fusion Meta
 Power), engineering 6 by count; the tech under research (Ceramo-Metal Materials) is among the
 logged cards. Still open: the cost on the 2nd at full speed, and Upcoming's "later" row.
 
-- **After a researched tech** (`sdash.7`, added after that check): the day after a tech finishes,
-  `game.log` has one list (`tech-option` lines and one `tech-options-end`), dated that day, with the
-  field's new cards; two techs finishing on one day still log one list.
+- **After a researched tech** (`sdash.7`): **seen in game 2026-11-17** — Specialized Combat
+  Computers finished on 2214.01.02, the day the month's list was logged (the flag set by `sdash.1`
+  on the 1st did not block it); 2214.01.03 logged one list of 18 cards with physics' six new ones,
+  equal card for card to the save of 2214.01.04 in all three fields. Still open: two techs
+  finishing on one day log one list.
 
 - **The lines come at all:** with mod 0.13.0 linked, play past a 2nd → `game.log` has
   `SDASH|3|<date>.02|<run>|event|tech-option|…` lines and one `tech-options-end`; `error.log` has

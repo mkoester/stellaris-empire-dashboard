@@ -116,6 +116,26 @@ export function techCostFactor(
 	return 1 + perTier * (tier ?? 1);
 }
 
+/** What a tech costs this empire now: its base cost × the technology slider × the empire-size
+ * penalty × the difficulty's per-tier factor, rounded down; null without a base cost or progress. */
+export function techCost(
+	key: string,
+	s: Pick<Snapshot, 'progress' | 'empireSize'>,
+	data: Pick<GameData, 'techs' | 'defines'>
+): number | null {
+	const tech = data.techs[key];
+	const p = s.progress;
+	if (!tech?.cost || !p) return null;
+	const d = data.defines;
+	return Math.floor(
+		tech.cost *
+			p.costSettings.technology *
+			sizePenalty(s.empireSize, d.EMPIRE_SIZE_TECH_COST_PENALTY, d) *
+			techCostFactor(tech.tier, p.costSettings, d.TECH_COST_DIFFICULTY_SCALE_MULT) +
+			1e-9
+	);
+}
+
 // ── Game calendar: 12 months of 30 days ────────────────────────────────────
 
 export function toDays(date: string): number {
@@ -259,14 +279,8 @@ export function upcoming(
 
 	for (const r of p.research) {
 		const tech = data.techs[r.tech];
-		if (!tech?.cost) continue;
-		const cost = Math.floor(
-			tech.cost *
-				p.costSettings.technology *
-				sizePenalty(latest.empireSize, d.EMPIRE_SIZE_TECH_COST_PENALTY, d) *
-				techCostFactor(tech.tier, p.costSettings, d.TECH_COST_DIFFICULTY_SCALE_MULT) +
-				1e-9
-		);
+		const cost = techCost(r.tech, latest, data);
+		if (!tech || cost === null) continue;
 		const rate =
 			researchRate(r.tech, latest, earlier) ?? latest.income?.[`${r.area}_research`] ?? 0;
 		const when = due(latest.date, cost - r.progress, rate);

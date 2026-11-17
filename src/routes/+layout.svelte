@@ -2,6 +2,7 @@
 	import './layout.css';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { pageTitle } from '#lib/pageTitle.ts';
 	import { page } from '$app/state';
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
@@ -238,6 +239,7 @@
 		}
 	];
 	const fixed = $derived(tabsAt(node));
+	const title = $derived(pageTitle(path, fixed, data.tabs));
 	const tabHref = (id: string) =>
 		node ? resolve(`/tab/[id]?node=${node}`, { id }) : resolve('/tab/[id]', { id });
 	const tab = (active: boolean) =>
@@ -314,7 +316,7 @@
 </script>
 
 <svelte:head>
-	<title>Empire dashboard</title>
+	<title>{title}</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 

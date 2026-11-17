@@ -85,7 +85,7 @@
 	<h1 class="text-xl font-semibold">History</h1>
 	<p class="max-w-3xl text-sm text-gray-500">
 		{#if data.all}
-			Everything the saves hold (cheat: ⚙ → History).
+			Everything the saves hold (spoiler: ⚙ → History).
 		{:else}
 			What we know: our own history, that of the empires we have communications with now — all of
 			it, back to the start —, the owners of systems we have been to, guardians' falls (common

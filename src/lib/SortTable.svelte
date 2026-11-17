@@ -11,6 +11,7 @@
 	// makes a row click pick its system (again: unpick); a system picked elsewhere marks its row and
 	// scrolls it into view. `rowClass` sets a row apart (a reference row, say), `rowStyle` styles it
 	// (a row in its event's colour). `below` adds a full-width line under each row (details).
+	// `anchor` marks a row (`data-anchor`) for a link elsewhere on the page to scroll to.
 	let {
 		rows,
 		columns,
@@ -21,7 +22,8 @@
 		selected = $bindable(),
 		rowClass,
 		rowStyle,
-		below
+		below,
+		anchor
 	}: {
 		rows: T[];
 		columns: Column<T>[];
@@ -33,6 +35,7 @@
 		rowClass?: (r: T) => string;
 		rowStyle?: (r: T) => string;
 		below?: Snippet<[T]>;
+		anchor?: (r: T) => string;
 	} = $props();
 
 	// an unknown column (`''`) keeps the rows in their given order until a header is clicked
@@ -83,6 +86,7 @@
 						: (rowClass?.(r) ?? '')} {selectable ? 'cursor-pointer' : ''}"
 				style={rowStyle?.(r)}
 				data-system={sys}
+				data-anchor={anchor?.(r)}
 				onpointerenter={link ? () => (hovered = sys) : undefined}
 				onpointerleave={link ? () => (hovered = null) : undefined}
 				onclick={selectable ? () => pick(sys) : undefined}
