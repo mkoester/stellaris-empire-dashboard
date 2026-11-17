@@ -245,7 +245,8 @@ function estimate(snaps: Snapshot[], c: Ctx, list: GoalRow[]) {
 		})),
 		world,
 		rates,
-		max
+		max,
+		display().planOrder
 	);
 	for (const r of list)
 		if (r.state !== 'done' && r.polarity !== 'avoid') r.cost = est.get(r.id) ?? null;

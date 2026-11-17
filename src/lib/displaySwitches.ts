@@ -40,6 +40,14 @@ export const SWITCHES: Switch[] = [
 		note: 'exploratory: estimates from your budget, with knobs for upcoming techs and traditions'
 	},
 	{
+		key: 'planOrder',
+		group: 'Tabs',
+		kind: 'normal',
+		label: 'Planner: also time each goal in plan order',
+		note: 'when it is paid for and built with the wanted goals above it paid first',
+		tags: 'cost income estimate'
+	},
+	{
 		key: 'historyAll',
 		group: 'Tabs',
 		kind: 'spoiler',

@@ -53,6 +53,7 @@ export type Display = {
 	factionTypes: boolean; // ethics tab: faction types of our ethics, before any has formed (cheating)
 	allFactionTypes: boolean; // … and those of ethics we do not hold (cheating)
 	tradeoffs: boolean; // the trade-offs tab: where to spend scarce resources (exploratory)
+	planOrder: boolean; // planner: each goal's times with the goals above it paid first
 	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, beyond our intel (spoiler)
 	historyAll: boolean; // history tab: every empire's history, beyond what we know (spoiler)
@@ -86,6 +87,7 @@ export const DEFAULT_DISPLAY: Display = {
 	factionTypes: false,
 	allFactionTypes: false,
 	tradeoffs: false,
+	planOrder: false,
 	whatIfs: false,
 	tradeIntel: false,
 	diplomacyAll: false,
@@ -172,6 +174,7 @@ export function parseDisplay(v: unknown): Display {
 		factionTypes: o.factionTypes === true,
 		allFactionTypes: o.allFactionTypes === true,
 		tradeoffs: o.tradeoffs === true,
+		planOrder: o.planOrder === true,
 		tradeIntel: o.tradeIntel === true,
 		diplomacyAll: o.diplomacyAll === true,
 		historyAll: o.historyAll === true,

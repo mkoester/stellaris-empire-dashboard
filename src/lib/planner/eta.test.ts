@@ -23,6 +23,11 @@ describe('incomeRates', () => {
 });
 
 describe('eta', () => {
+	it('times each resource on its own: in stock, waiting, never', () => {
+		expect(
+			eta({ alloys: 10, food: 100, unity: 5 }, { alloys: 20, food: 40 }, { food: 20 }, {}).each
+		).toEqual({ alloys: 0, food: 3, unity: null });
+	});
 	it('waits for the slowest resource, short of what is in stock', () => {
 		expect(
 			eta(
@@ -31,21 +36,28 @@ describe('eta', () => {
 				{ alloys: 60, influence: 10 },
 				{}
 			)
-		).toEqual({ months: 10, binding: 'alloys', overCap: [] });
+		).toEqual({
+			months: 10,
+			binding: 'alloys',
+			overCap: [],
+			each: { alloys: 10, influence: 5 }
+		});
 	});
 	it('never, without income or above storage', () => {
 		expect(eta({ unity: 10 }, {}, { unity: -1 }, {}).months).toBeNull();
 		expect(eta({ alloys: 20000 }, {}, { alloys: 100 }, { alloys: 15000 })).toEqual({
 			months: null,
 			binding: 'alloys',
-			overCap: ['alloys']
+			overCap: ['alloys'],
+			each: { alloys: null }
 		});
 	});
 	it('is 0 when everything is in stock', () => {
 		expect(eta({ alloys: 10 }, { alloys: 10 }, {}, {})).toEqual({
 			months: 0,
 			binding: null,
-			overCap: []
+			overCap: [],
+			each: { alloys: 0 }
 		});
 	});
 });
@@ -66,6 +78,14 @@ describe('costRows', () => {
 		kind: 'district',
 		target: { planet: 1, district: 'district_mining', count },
 		queued
+	});
+	it('lists what each resource needs and when it is there, without plan order when off', () => {
+		const rates = { now: { minerals: 100 }, avg: { minerals: 50 }, months: 6 };
+		const rows = costRows([goal('a', 1), goal('b', 1)], w, rates, {}, false);
+		expect(rows.get('a')?.resources).toEqual([
+			{ resource: 'minerals', need: 300, have: 0, now: 3, avg: 6 }
+		]);
+		expect(rows.get('b')?.ordered).toBeNull();
 	});
 	it('times each goal alone and, in plan order, after the queued ones above it', () => {
 		const rates = { now: { minerals: 100 }, avg: { minerals: 50 }, months: 6 };

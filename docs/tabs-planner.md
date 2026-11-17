@@ -174,7 +174,11 @@ what it still costs, **start** (the stockpile holds the cost) and **built** (sta
 days), each at this month's net and at the **mean net of the last N game months** (⚙ "Planner: mean
 income", default 6, `incomeWindow`). A second pair, **in plan order**, pays the queued goals above it
 first (wanted or later, not done, blocked or parked; page order, groups top to bottom) out of the same
-stockpile and income, so its time is that of their sum with its own.
+stockpile and income, so its time is that of their sum with its own — behind the ⚙ switch
+`planOrder` ("Planner: also time each goal in plan order", off by default; the user 2026-11-17).
+The line highlights **start at this month's net**; the mean's time stays grey beside it. The
+tooltip lists every resource needed: amount, what is in stock, and when it is there at either income
+(`CostRow.resources`, from `eta().each`).
 
 - **Costs:** the data DB's base costs, before modifiers, so always ≈. Arkships: the ones still
   missing × `<type>_arkship_megastructure`; megastructures: every stage after the one in the system

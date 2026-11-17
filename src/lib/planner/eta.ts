@@ -38,20 +38,29 @@ export function incomeRates(snaps: Snapshot[], window: number): Rates {
 	return { now: latest.balance, avg, months: months.length };
 }
 
-/** Months until `cost` is in the stockpile at `rate`; null: never (no income, or over storage). */
-export type Eta = { months: number | null; binding: string | null; overCap: string[] };
+/**
+ * Months until `cost` is in the stockpile at `rate`, in all and per resource (0: in stock); null:
+ * never (no income, or over storage).
+ */
+export type Eta = {
+	months: number | null;
+	binding: string | null;
+	overCap: string[];
+	each: Record<string, number | null>;
+};
 
 export function eta(cost: Resources, stock: Resources, rate: Resources, max: Resources): Eta {
 	let months = 0;
 	let binding: string | null = null;
 	const overCap = Object.keys(cost).filter((r) => max[r] !== undefined && cost[r] > max[r]);
+	const each: Eta['each'] = {};
 	for (const [r, need] of Object.entries(cost)) {
 		const short = need - (stock[r] ?? 0);
-		if (short <= 0) continue;
-		const m = (rate[r] ?? 0) > 0 ? short / rate[r] : Infinity;
+		const m = short <= 0 ? 0 : (rate[r] ?? 0) > 0 ? short / rate[r] : Infinity;
+		each[r] = m === Infinity || overCap.includes(r) ? null : m;
 		if (m > months) [months, binding] = [m, r];
 	}
-	return { months: overCap.length || months === Infinity ? null : months, binding, overCap };
+	return { months: overCap.length || months === Infinity ? null : months, binding, overCap, each };
 }
 
 /** A goal's two times, from one income: paid (start) and built (finish). */
@@ -60,6 +69,14 @@ export type CostRow = {
 	cost: Resources;
 	days: number | null; // base build days
 	overCap: string[];
+	// each resource: what it needs, what is in stock, and when it is there at either income
+	resources: {
+		resource: string;
+		need: number;
+		have: number;
+		now: number | null;
+		avg: number | null;
+	}[];
 	alone: { now: When; avg: When };
 	ordered: { now: When; avg: When } | null; // with the wants above it paid first
 };
@@ -85,7 +102,8 @@ export function costRows(
 	goals: Planned[],
 	w: CostWorld,
 	rates: Rates,
-	max: Resources
+	max: Resources,
+	ordered = true // also the plan-order times (a display switch, off by default)
 ): Map<string, CostRow> {
 	const out = new Map<string, CostRow>();
 	const stock = w.latest.stockpile;
@@ -101,14 +119,22 @@ export function costRows(
 		});
 		const sum = addResources(before, c.cost);
 		const alone = both(c.cost, max);
-		const overCap = eta(c.cost, stock, rates.now, max).overCap;
+		const [now, avg] = [eta(c.cost, stock, rates.now, max), eta(c.cost, stock, rates.avg, max)];
+		const overCap = now.overCap;
 		out.set(g.id, {
 			cost: c.cost,
 			days: c.days,
 			overCap,
+			resources: Object.entries(c.cost).map(([resource, need]) => ({
+				resource,
+				need,
+				have: stock[resource] ?? 0,
+				now: now.each[resource],
+				avg: avg.each[resource]
+			})),
 			alone,
 			// the first queued goal's plan-order time is its own
-			ordered: g.queued && ahead > 0 ? (overCap.length ? alone : both(sum, {})) : null
+			ordered: ordered && g.queued && ahead > 0 ? (overCap.length ? alone : both(sum, {})) : null
 		});
 		if (g.queued) [before, ahead] = [sum, ahead + 1];
 	}
