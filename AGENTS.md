@@ -183,6 +183,8 @@ communications stays on the server. `branch()`'s `latest` goes to every page as
 `pageLatest()` (`#lib/contacts.ts`: only ourselves and those we talk to, no galaxy-wide
 `history`, `diplomacy` or `allWars`); `empireColors()` and contact rows hold real names only once we talk. Check a change
 by grepping every tab's HTML and `__data.json` on a DB copy for an open contact's real name.
+Never show an empire by its id: one without a known name is "unknown empire", and a save-made
+name built from other empires' names (a war's) only where every one of them is known.
 
 **Every value or worth is in trade** (the user's rule, 2026-11-16): `valueOf()` with
 `valuesOf(snaps)` (`#lib/value.ts`, `server/unitCosts.ts`) — the market's base price, else what a
