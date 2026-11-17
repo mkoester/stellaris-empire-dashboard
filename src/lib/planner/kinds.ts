@@ -737,7 +737,8 @@ export const arkships = (s: Snapshot, type: string) =>
  */
 export function autoGoals(
 	s: Snapshot,
-	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'traditionPrereqs' | 'perkTrees'>>,
+	data: Pick<GameData, 'traditionTrees'> &
+		Partial<Pick<GameData, 'traditionPrereqs' | 'perkTrees'>>,
 	wanted: string[] = [],
 	wantedPerks: string[] = [],
 	treeAvailable: (key: string) => boolean = () => true
@@ -766,7 +767,8 @@ export function autoGoals(
 		const tree = data.traditionTrees[key];
 		if (!tree?.traditions.some((x) => x.role === 'adopt')) continue;
 		const sameName = openedTrees.get(tree.name);
-		if (!sameName || (treeAvailable(key) && !treeAvailable(sameName))) openedTrees.set(tree.name, key);
+		if (!sameName || (treeAvailable(key) && !treeAvailable(sameName)))
+			openedTrees.set(tree.name, key);
 	}
 	for (const key of openedTrees.values()) {
 		const adopt = data.traditionTrees[key].traditions.find((x) => x.role === 'adopt')?.key;
