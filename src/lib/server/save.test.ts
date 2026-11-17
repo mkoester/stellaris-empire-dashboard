@@ -1865,6 +1865,15 @@ describe('helpers', () => {
 			).toBe('Trans-Yorphid');
 			expect(
 				displayName({
+					key: 'AofB',
+					variables: [
+						{ key: '1', value: { key: 'Pact' } },
+						{ key: '2', value: { key: 'Fellnoll' } }
+					]
+				})
+			).toBe('Pact of Fellnoll');
+			expect(
+				displayName({
 					key: '$base$ $affix$',
 					variables: [
 						{ key: 'affix', value: { key: 'Variatus' } },

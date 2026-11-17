@@ -241,22 +241,26 @@ export const shown = (rows: ContactRow[], v: ContactView) =>
 
 /**
  * The latest snapshot as every page gets it: the countries it may know of in full (ourselves and
- * those we talk to), and no galaxy-wide history (the history tab reads it on the server). The
- * others' real names, ethics and civics stay on the server, or the page data spoils a first
- * contact (the user's ask 2026-11-17).
+ * those we talk to), and nothing galaxy-wide — the history reading, every empire's relations
+ * (`diplomacy`) and wars (`allWars`); the tabs that need them read them on the server. Page data
+ * is visible to the viewer: anything more spoils a first contact (the user's ask 2026-11-17).
  */
-export const knownCountries = <
+export const pageLatest = <
 	S extends {
 		countries: CountryInfo[] | null;
 		relations: Relation[] | null;
 		countryId: number | null;
 		history?: unknown;
+		diplomacy?: unknown;
+		allWars?: unknown;
 	}
 >(
 	s: S
 ): S => ({
 	...s,
 	...('history' in s ? { history: null } : {}),
+	...('diplomacy' in s ? { diplomacy: null } : {}),
+	...('allWars' in s ? { allWars: null } : {}),
 	countries:
 		s.countries?.filter(
 			(c) =>

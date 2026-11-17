@@ -352,7 +352,8 @@ export type Diplomacy = {
 	nodes: DiploNode[];
 	edges: DiploEdge[];
 	opinions: Record<string, Known<number>>; // `${from}:${to}`: from's opinion of to
-	wars: WarSides[];
+	// a war's own name only where every side is shown: the save makes it of their own names
+	wars: (Omit<WarSides, 'name'> & { name: string | null })[];
 };
 
 /** The saves the tab reads: those with the galaxy's diplomacy (READER 14 on). */
@@ -534,7 +535,8 @@ export function diplomacyView(
 		const type = i?.type ?? '';
 		return {
 			id: c.id,
-			name: c.id === us ? 'us' : (ours.get(c.id)?.name ?? i?.name ?? String(c.id)),
+			// never an id (the user's ask 2026-11-17): a country the save names nowhere we read
+			name: c.id === us ? 'us' : (ours.get(c.id)?.name ?? i?.name ?? 'unknown empire'),
 			type,
 			kind: kindOf(type),
 			color: flagColors[i?.flagColor ?? ''] ?? null,
@@ -558,6 +560,8 @@ export function diplomacyView(
 			).size
 		};
 	});
+	// shown by a name: a war's own name is made of theirs
+	const named = new Set(nodes.filter((n) => n.name !== 'unknown empire').map((n) => n.id));
 	const opinions = Object.fromEntries(
 		known
 			.filter((m) => m.fact.kind === 'opinion' && ids.has(m.fact.a) && ids.has(m.fact.b!))
@@ -571,7 +575,10 @@ export function diplomacyView(
 		nodes,
 		edges: edges.filter((e) => ids.has(e.from) && ids.has(e.to)),
 		opinions,
-		wars
+		wars: wars.map((w) => ({
+			...w,
+			name: [...w.attackers, ...w.defenders].every((id) => named.has(id)) ? w.name : null
+		}))
 	};
 }
 

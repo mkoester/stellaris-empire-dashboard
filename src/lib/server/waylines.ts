@@ -127,7 +127,7 @@ export function waylinesOf(
 			.map((r) => r.countryId)
 	);
 	const countryName = (id: number) =>
-		save.countries?.find((c) => c.id === id)?.name ?? `empire ${id}`;
+		save.countries?.find((c) => c.id === id)?.name ?? 'unknown empire';
 	// a pre-FTL civilisation in the system: its name (#lib/waylines.ts `SOLAR_SYSTEM`)
 	const preFtlOf = (id: number) => {
 		for (const b of byId.get(id)?.bodies ?? []) {

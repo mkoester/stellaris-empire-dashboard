@@ -86,6 +86,14 @@ export function displayName(name: Raw): string {
 			displayName(name.variables.find((x: Raw) => x?.key === k)?.value)
 		);
 	}
+	// Name templates with numbered parts (4.5 localisation, `common/random_names/00_empire_names.txt`):
+	// `AofB` = "$1$ of $2$" — "Pact of Fellnoll", read as "AofB Pact Fellnoll" before 2026-11-17.
+	const template = NAME_TEMPLATES[key];
+	if (template && Array.isArray(name?.variables)) {
+		return template.replace(/\$(\w+)\$/g, (_, k: string) =>
+			displayName(name.variables.find((x: Raw) => x?.key === k)?.value)
+		);
+	}
 	// Name parts with a part inside — faction names, `{<names_1> {<names_2>}}` (4.5.2
 	// common/random_names/00_pop_faction_names.txt): the outer part's own words come first.
 	// `Council` + `of_Scientific_Betterment` → "Council of Scientific Betterment". Name-part keys
@@ -123,6 +131,13 @@ export function resources(obj: Raw): Resources {
 
 // FirstContact-MeaningfulLabels' types, as its localisation names them
 // (`fc_meaningful_labels/localisation/english/fc_labels_l_english.yml`): change both together.
+// Templates an empire's name is made with (4.5 `localisation/english`, the `AofB` block).
+const NAME_TEMPLATES: Record<string, string> = {
+	AofB: '$1$ of $2$', // "Empire of Sol"
+	AofBpfx: '$1$ $2$', // its ship-prefix form
+	AassocB: '$1$ $2$' // "Omega Initiative"
+};
+
 const FC_LABELS: Record<string, string> = {
 	drones: 'Mining Drones',
 	fauna: 'Space Fauna',

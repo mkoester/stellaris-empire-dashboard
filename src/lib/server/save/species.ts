@@ -168,7 +168,7 @@ export function slaveMarket(
 						? '?'
 						: seller === raw.countryId
 							? raw.empireName
-							: displayName(c?.name) || `empire ${seller}`
+							: displayName(c?.name) || 'unknown empire'
 			}
 		];
 	});

@@ -242,8 +242,7 @@ export function cooldowns(
 		return until
 			? [
 					{
-						country:
-							displayName(raw.countryBlocks?.[String(a.country)]?.name) || `empire ${a.country}`,
+						country: displayName(raw.countryBlocks?.[String(a.country)]?.name) || 'unknown empire',
 						until
 					}
 				]

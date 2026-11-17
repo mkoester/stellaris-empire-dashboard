@@ -138,8 +138,7 @@ export function knownHistory(
 	});
 
 	const events: HistoryEvent[] = [];
-	const name = (id: number | null) =>
-		id === null ? '?' : (names[id] ?? (all ? `empire ${id}` : 'an unknown empire'));
+	const name = (id: number | null) => (id === null ? '?' : (names[id] ?? 'an unknown empire'));
 	for (const c of changes) {
 		if (c.initial || !showChange(c)) continue;
 		const base = { date: c.date, exact: c.exact, systemId: c.systemId };

@@ -54,6 +54,8 @@
 	);
 	const ids = $derived(new Set(nodes.map((n) => n.id)));
 	const byId = $derived(new Map(nodes.map((n) => [n.id, n])));
+	// every empire the view knows, filtered out or not: for naming (wars)
+	const named = $derived(new Map((d?.nodes ?? []).map((n) => [n.id, n])));
 	const systemById = $derived(new Map(data.systems.map((s) => [s.id, s])));
 	const edges = $derived(
 		(d?.edges ?? []).filter(
@@ -130,7 +132,9 @@
 			.flatMap((k) => (k?.stale ? [k.asOf] : []))
 			.sort()[0] ?? null;
 	const opinionOf = (from: number, to: number) => d?.opinions[`${from}:${to}`] ?? null;
-	const name = (id: number | null) => (id === null ? '–' : (byId.get(id)?.name ?? `empire ${id}`));
+	// an empire not shown: never its id (the user's ask 2026-11-17)
+	const name = (id: number | null) =>
+		id === null ? '–' : (named.get(id)?.name ?? 'unknown empire');
 
 	// --- map
 	const pos = $derived(new Map(data.systems.map((s) => [s.id, s])));
@@ -842,7 +846,7 @@
 							? 'opacity-30'
 							: ''}
 					>
-						<b>{w.name}</b>
+						{#if w.name}<b>{w.name}</b>{/if}
 						<span class="text-gray-500">since {w.start ?? '?'}</span>:
 						{w.attackers.map(name).join(', ')} against {w.defenders.map(name).join(', ')}
 					</li>

@@ -178,7 +178,7 @@ export function planCtx(snaps: Snapshot[]): Ctx | null {
 			latest.expansion?.find((e) => e.planetId === id)?.name ??
 			latest.anomalies?.find((a) => a.planetId === id)?.planet ??
 			`planet ${id}`,
-		country: (id) => countryNames.get(id) ?? `empire ${id}`
+		country: (id) => countryNames.get(id) ?? 'unknown empire'
 	};
 	return { ctx, names, saves };
 }

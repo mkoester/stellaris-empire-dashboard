@@ -3,7 +3,7 @@ import {
 	agreementName,
 	combatLog,
 	contactTable,
-	knownCountries,
+	pageLatest,
 	kindOf,
 	parseContactView,
 	proposalDates,
@@ -103,7 +103,7 @@ describe('contacts', () => {
 			countries: [c(1), c(2), c(3)],
 			relations: [rel(2, { communications: true }), rel(3, { communications: false })]
 		};
-		expect(knownCountries(s).countries?.map((x) => x.id)).toEqual([1, 2]);
+		expect(pageLatest(s).countries?.map((x) => x.id)).toEqual([1, 2]);
 	});
 
 	it('sorts country types into kinds', () => {

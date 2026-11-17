@@ -98,9 +98,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
   shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
-  2026-11-17: `develop` has 62 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
-  chapters, planet flags, waystations, the home system surveyed; the highway: the Ancient Highway
-  mod) — that merge takes 63,
+  2026-11-17: `develop` has 63 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
+  chapters, planet flags, waystations, the home system surveyed, name templates; the highway: the
+  Ancient Highway mod) — that merge takes 64,
   and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
   in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
@@ -180,8 +180,8 @@ reason on hover, and grey a group's header when nothing in it is available.
 **Page data is visible to the viewer, not only what a page renders** (the user's ask 2026-11-17,
 "don't spoil any first contact"): another empire's real name, type, ethics or civics before
 communications stays on the server. `branch()`'s `latest` goes to every page as
-`knownCountries()` (`#lib/contacts.ts`: only ourselves and those we talk to, no galaxy-wide
-`history`); `empireColors()` and contact rows hold real names only once we talk. Check a change
+`pageLatest()` (`#lib/contacts.ts`: only ourselves and those we talk to, no galaxy-wide
+`history`, `diplomacy` or `allWars`); `empireColors()` and contact rows hold real names only once we talk. Check a change
 by grepping every tab's HTML and `__data.json` on a DB copy for an open contact's real name.
 
 **Every value or worth is in trade** (the user's rule, 2026-11-16): `valueOf()` with

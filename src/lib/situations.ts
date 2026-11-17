@@ -114,7 +114,7 @@ export function stationOwners(
 		const c = countries.find((x) => x.id === id);
 		return {
 			countryId: id,
-			name: relations.find((r) => r.countryId === id)?.name ?? c?.name ?? String(id),
+			name: relations.find((r) => r.countryId === id)?.name ?? c?.name ?? 'unknown empire',
 			type: c?.type ?? null,
 			shipset: c?.shipset ?? null,
 			color: CATEGORICAL[(i + 1) % CATEGORICAL.length] ?? OTHER,
