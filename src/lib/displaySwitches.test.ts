@@ -54,7 +54,7 @@ describe('effectiveDisplay', () => {
 		expect(e.anomalySpoilers).toBe(true);
 		expect(e.unknownStars).toBe(true);
 	});
-	it('the intel spoilers: the map and contact reveals and pact intel', () => {
+	it('the intel spoilers: the map and contact reveals, pact intel, diplomacy and history', () => {
 		expect(
 			SWITCHES.filter((s) => s.intel)
 				.map((s) => s.key)
@@ -62,6 +62,8 @@ describe('effectiveDisplay', () => {
 		).toEqual([
 			'contactStations',
 			'contractSpoilers',
+			'diplomacyAll',
+			'historyAll',
 			'lgates',
 			'pactIntel',
 			'surveyAll',

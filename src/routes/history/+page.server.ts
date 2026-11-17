@@ -7,7 +7,7 @@ import { display } from '#lib/server/settings.ts';
 
 // The galaxy's known history since 2200 along the branch (#lib/history.ts): who held which
 // system when, and the events, as far as the branch's latest save lets us know them; the
-// `historyAll` cheat shows everything.
+// `historyAll` spoiler shows everything.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');

@@ -42,8 +42,9 @@ export const SWITCHES: Switch[] = [
 	{
 		key: 'historyAll',
 		group: 'Tabs',
-		kind: 'cheat',
-		label: 'History: every empire’s systems, colonies and wars, whatever you know of them',
+		kind: 'spoiler',
+		intel: true,
+		label: 'History: every empire’s systems, colonies and wars, beyond what you know of them',
 		note: 'the tab shows your own history, that of empires you talk to, and what you saw yourself'
 	},
 	{
@@ -159,9 +160,10 @@ export const SWITCHES: Switch[] = [
 	{
 		key: 'diplomacyAll',
 		group: 'Diplomacy and trade',
-		kind: 'cheat',
-		label: 'Diplomacy: every empire and every relation between them, whatever our intel shows',
-		note: 'the game shows what your intel on each empire reveals'
+		kind: 'spoiler',
+		intel: true,
+		label: 'Diplomacy: every empire and every relation between them, beyond what your intel shows',
+		note: 'the game shows what your intel on each empire reveals; more intel reveals the rest'
 	},
 	{
 		key: 'pactIntel',

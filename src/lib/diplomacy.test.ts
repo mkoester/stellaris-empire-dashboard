@@ -130,7 +130,7 @@ describe('diplomacyView', () => {
 		expect(pacts(d)).toEqual([]);
 	});
 
-	it('shows everything with the cheat', () => {
+	it('shows everything with the spoiler', () => {
 		const d = diplomacyView([snap('2210.01.01', { 1: 0, 2: 0 })], colors, true)!;
 		expect(d.nodes.map((n) => n.id)).toEqual([0, 1, 2, 3, 4]);
 		expect(pacts(d)).toHaveLength(1);
