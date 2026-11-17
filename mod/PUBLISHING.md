@@ -41,7 +41,9 @@ dashboard_feed/thumbnail.png`) stay out of the upload.
 
 First uploaded 2026-10-24 (0.5.0). `remote_file_id` (Steam) is in `descriptor.mod`; the Paradox
 id only in the launcher's DB (`mods.remotePdxId`). **A first Workshop upload is Hidden**: set the
-visibility to Public on the item's page (Owner Controls) — the launcher does not.
+visibility to Public on the item's page (Owner Controls) — the launcher does not. **The first upload
+from another machine made a new item** (2026-11-17: `3841118861`, deleted; why is unknown): after
+uploading from a machine for the first time, check `remote_file_id` is still `3826360023`.
 
 **0.10.1, 2026-11-01 08:40 UTC, from `develop`** — an exception to "upload from `main`" (the user's
 call: `develop` differed from `main` only in the mod and docs, not worth a dashboard release);
