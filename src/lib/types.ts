@@ -348,6 +348,9 @@ export type QueueItem = {
  * Where an observation came from: a parsed save (complete) or the companion mod's monthly
  * game.log lines (stockpile and net income only — the other fields are null/empty).
  */
+/** A country flag an outcome sets (data DB `outcome.flags_json`); `ch`: a dig site's chapter. */
+export type OutcomeFlag = { k: string; ch?: number };
+
 export type SourceKind = 'save' | 'log';
 
 /** A static modifier on the empire or a planet (events, agendas, features …); `until` null = permanent. */
@@ -1381,6 +1384,9 @@ export type GameData = {
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
 	// what each leads to, followed down to the effects (`#lib/outcomes.ts`); empty on an older data DB
 	outcomeTrees: Record<'anomaly' | 'project' | 'dig_site', Record<string, OutcomeNode[]>>;
+	// the country flags each sets on the way (`ch`: a dig site's chapter), for telling a finished one
+	// from a lost one (`#lib/inferDone.ts`); empty on a data DB before 2026-11-17
+	outcomeFlags: Record<'anomaly' | 'project' | 'dig_site', Record<string, OutcomeFlag[]>>;
 	digSiteTypes: Record<string, { name: string; stages: number }>; // archaeological site types
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
 	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1

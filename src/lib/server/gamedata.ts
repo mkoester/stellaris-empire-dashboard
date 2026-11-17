@@ -8,6 +8,7 @@ import type {
 	Costs,
 	GameData,
 	MegaStage,
+	OutcomeFlag,
 	Resources,
 	Specialists
 } from '#lib/types.ts';
@@ -486,14 +487,27 @@ export function loadGameData(file: string): GameData {
 				const has = (t: string) =>
 					rows(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = '${t}'`).length > 0;
 				const trees: GameData['outcomeTrees'] = { anomaly: {}, project: {}, dig_site: {} };
+				const flags: GameData['outcomeFlags'] = { anomaly: {}, project: {}, dig_site: {} };
+				// flags_json since the data DB of 2026-11-17: a player's zip may bundle an older one
+				const withFlags =
+					has('outcome') &&
+					rows<{ name: string }>('PRAGMA table_info(outcome)').some((c) => c.name === 'flags_json');
 				if (has('outcome'))
-					for (const r of rows<{ kind: string; key: string; tree_json: string }>(
-						'SELECT kind, key, tree_json FROM outcome'
+					for (const r of rows<{
+						kind: string;
+						key: string;
+						tree_json: string;
+						flags_json: string | null;
+					}>(
+						`SELECT kind, key, tree_json, ${withFlags ? 'flags_json' : 'NULL AS flags_json'} FROM outcome`
 					))
-						if (r.kind === 'anomaly' || r.kind === 'project' || r.kind === 'dig_site')
+						if (r.kind === 'anomaly' || r.kind === 'project' || r.kind === 'dig_site') {
 							trees[r.kind][r.key] = JSON.parse(r.tree_json) as OutcomeNode[];
+							if (r.flags_json) flags[r.kind][r.key] = JSON.parse(r.flags_json) as OutcomeFlag[];
+						}
 				return {
 					outcomeTrees: trees,
+					outcomeFlags: flags,
 					digSiteTypes: has('dig_site')
 						? Object.fromEntries(
 								rows<{ key: string; name: string | null; stages: number }>(

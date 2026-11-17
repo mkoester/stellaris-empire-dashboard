@@ -15,6 +15,7 @@ import { anomalyDays } from '#lib/ships.ts';
 import { techCost } from '#lib/events.ts';
 import { nowTable, prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
+import { inferDone, uniqueMarks, type Evidence } from '#lib/inferDone.ts';
 import type { AnomalyInfo, DigSite, ProjectInfo } from '#lib/types.ts';
 
 // The frontier tab (the situations tab until 2026-11-15): first contacts and stations seen,
@@ -23,7 +24,8 @@ import type { AnomalyInfo, DigSite, ProjectInfo } from '#lib/types.ts';
 // and that one no longer has follows each list, greyed (`gone()`: finished or lost).
 // Outcomes and other empires' stations only with their display switches (spoilers). Outcomes are
 // read against the empire (`resolve()`: what it cannot get greyed), and what the open ones can
-// still bring is summed (`gainRows()`, "Still to gain").
+// still bring is summed (`gainRows()`, "Still to gain"). A gone anomaly, project or dig site is
+// marked finished where the save has an effect only it gives (`inferDone()`).
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
@@ -134,6 +136,20 @@ export function load({ url }) {
 						} satisfies Time),
 			tree
 		};
+	};
+	// what the save has that only one anomaly, project or dig site gives: it got that far
+	const marks = uniqueMarks(data.outcomeTrees, data.outcomeFlags);
+	const colonies = s?.colonies ?? [];
+	const evidence: Evidence = {
+		flags: new Set(s?.countryFlags ?? []),
+		modifiers: new Set([
+			...(s?.countryModifiers ?? []).map((m) => m.key),
+			...colonies.flatMap((c) => c.planet?.modifiers.map((m) => m.key) ?? [])
+		]),
+		deposits: new Map([
+			...galaxy.flatMap((g) => (g.bodies ?? []).map((b) => [b.id, new Set(b.deposits)] as const)),
+			...colonies.map((c) => [c.planetId, new Set(c.deposits)] as const)
+		])
 	};
 	// each with the date of the last save that had it
 	const dated =
@@ -251,19 +267,34 @@ export function load({ url }) {
 				s,
 				(x) => x.anomalies,
 				(a) => `${a.planetId}:${a.category}`
-			).map(dated(anomaly)),
+			)
+				.map(dated(anomaly))
+				.map((a) => ({
+					...a,
+					inferred: inferDone(marks.get(`anomaly:${a.category}`), evidence, a.planetId)
+				})),
 			projects: gone(
 				snaps,
 				s,
 				(x) => x.specialProjects,
 				(p) => p.id
-			).map(dated(project)),
+			)
+				.map(dated(project))
+				.map((p) => ({
+					...p,
+					inferred: inferDone(marks.get(`project:${p.key}`), evidence, p.planetId)
+				})),
 			digSites: gone(
 				snaps,
 				s,
 				(x) => x.digSites,
 				(d) => d.id
-			).map(dated(dig))
+			)
+				.map(dated(dig))
+				.map((d) => ({
+					...d,
+					inferred: inferDone(marks.get(`dig_site:${d.type}`), evidence, d.planetId, d.stages)
+				}))
 		}
 	};
 }

@@ -40,6 +40,7 @@ const data: GameData = {
 	projects: {},
 	anomalyCategories: {},
 	outcomeTrees: { anomaly: {}, project: {}, dig_site: {} },
+	outcomeFlags: { anomaly: {}, project: {}, dig_site: {} },
 	digSiteTypes: {},
 	actionTimers: {},
 	councilPositions: {},

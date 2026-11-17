@@ -274,7 +274,20 @@ finished something like anomalies … keep them in the overview, at the bottom a
 below each of situations, anomalies, dig sites and special projects, what earlier saves of the
 branch had and the shown one no longer has (`gone()` in `#lib/situations.ts`; finished or lost —
 the save cannot tell), with "Last seen" and the same columns, Outcome included. Roaming Cyber Gang
-2213.08.02: 8 anomalies. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`,
+2213.08.02: 8 anomalies. **Hidden until asked for, newest first** (the user's ask 2026-11-17): a
+checkbox per panel, "also no longer in the save (n)", off on every load; the table starts sorted by
+Last seen, descending. **≈ finished, inferred** (the same ask; `#lib/inferDone.ts` pure): a
+Status column on gone anomalies, projects and dig sites says `≈ finished` (a dig site `≈ chapter n
+done` short of its last) where the save has an effect only that one source gives —
+`uniqueMarks()` over every outcome tree: the country flags its events set (data DB
+`outcome.flags_json`, extraction since 2026-11-17; read only where `PRAGMA table_info` has it, so
+an older data DB infers from the rest), the modifiers and deposits in its tree. Checked against the
+save the gone lists compare with: `countryFlags`; `countryModifiers` and colonies' planet
+modifiers; deposits on the source's own planet (`campaignGalaxy` bodies, colonies). The tooltip
+names the evidence. Techs never count (research gives them too); ship and uncolonised-planet
+modifiers are not in the save reading. DB copy 2026-11-17: 1 of 14 gone anomalies
+(Interference, flag `lcluster_clue_sonic`) — the rest give only resources and research, which
+leave nothing to find. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`,
 `digSiteSpoilers`): the **Outcome** column (the user's ask 2026-11-15, `#lib/outcomes.ts` pure,
 `Outcome.svelte`, `server/outcomes.ts`) — the data DB's `outcome` trees, a project's own tree
 filled in where an anomaly leads to it (`withProjects()`), as markers, the first rewards, and the
