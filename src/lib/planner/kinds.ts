@@ -1,6 +1,6 @@
 import { colonyActiveBuildings } from '#lib/buildings.ts';
 import { MEGA_RULES, stagePrefix } from '#lib/megastructures.ts';
-import { counted, wanderlustName } from '#lib/wanderlust.ts';
+import { counted, countsFor, outlook, wanderlustName } from '#lib/wanderlust.ts';
 import type { GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
 import type { AutoGoal, Target } from './replay.ts';
 import type { Trigger } from '#lib/triggers.ts';
@@ -170,10 +170,13 @@ export const KINDS: Record<string, Kind> = {
 		check: (t, c) => {
 			const w = c.latest.wanderlust;
 			if (!w) return { state: 'unknown', why: 'no Wanderlust perk' };
-			const cat = w.categories.find((x) => x.key === s(t, 'category'));
+			const cat = outlook(w, c.galaxy ?? []).find((x) => x.key === s(t, 'category'));
 			if (w.complete || cat?.done) return { state: 'done' };
 			if (!cat) return { state: 'unknown' };
-			return { state: cat.seen > 0 ? 'progress' : 'open', why: `${cat.seen} of ${cat.count}` };
+			return {
+				state: cat.seen > 0 ? 'progress' : 'open',
+				why: `${cat.seen} of ${cat.count}, ${cat.open} found to visit${cat.finishable ? ': enough to finish' : ''}`
+			};
 		}
 	},
 	wanderlust_visit: {
@@ -185,7 +188,9 @@ export const KINDS: Record<string, Kind> = {
 		check: (t, c) => {
 			if (!c.latest.wanderlust) return { state: 'unknown', why: 'no Wanderlust perk' };
 			const at = counted(c.latest.wanderlust, n(t, 'system'));
-			return at ? { state: 'done', why: `counted ${at}` } : { state: 'open' };
+			if (at) return { state: 'done', why: `counted ${at}` };
+			const key = countsFor(sys(c, n(t, 'system'))?.wanderlust ?? []);
+			return { state: 'open', why: key ? wanderlustName(key) : undefined };
 		}
 	},
 	outpost: {

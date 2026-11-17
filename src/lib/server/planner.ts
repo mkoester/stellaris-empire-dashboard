@@ -58,7 +58,7 @@ import { AREAS, inReach } from '#lib/techTiers.ts';
 import { discovered, jumpsFromBorder } from '#lib/situations.ts';
 import { evaluate } from '#lib/triggers.ts';
 import type { Explanation, Snapshot } from '#lib/types.ts';
-import { WANDERLUST } from '#lib/wanderlust.ts';
+import { WANDERLUST, counted, countsFor, outlook, wanderlustName } from '#lib/wanderlust.ts';
 import { getDb, getExplanations, getGameData } from './app.ts';
 import { headId, history, nodeById, nodes, planEvents } from './db.ts';
 import { pick } from './explain.ts';
@@ -791,9 +791,14 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 	);
 	add(
 		'wanderlust',
-		(l.wanderlust?.categories ?? [])
-			.filter((x) => !x.done)
-			.map((x) => ({ target: { category: x.key }, why: `${x.seen} of ${x.count}` }))
+		// the ones we can finish with what we found first
+		(l.wanderlust ? outlook(l.wanderlust, ctx.galaxy ?? []) : [])
+			.filter((x) => x.need > 0)
+			.sort((a, b) => Number(b.finishable) - Number(a.finishable))
+			.map((x) => ({
+				target: { category: x.key },
+				why: `${x.seen} of ${x.count}, ${x.open} found${x.finishable ? ': enough to finish' : ''}`
+			}))
 	);
 	add(
 		'outpost',
@@ -1000,8 +1005,18 @@ export function systemGoals(snaps: Snapshot[], systemId: number): Suggestion[] {
 	for (const k of MEGA_KINDS)
 		if (ctx.megaFit(k, systemId))
 			out.push({ kind: 'megastructure', target: { system: systemId, structure: k } });
-	if (ctx.latest.wanderlust && s?.wanderlust?.length)
-		out.push({ kind: 'wanderlust_visit', target: { system: systemId }, why: 'to avoid' });
+	// a target the arkship has not counted yet, for a category not done (it counts for one only);
+	// in a system not visited only with the spoiler ("Map: every Wanderlust target")
+	const w = ctx.latest.wanderlust;
+	const known = s?.visited || s?.owned || display().wanderlustAll;
+	const key = known ? countsFor(s?.wanderlust ?? []) : null;
+	const cat = w?.categories.find((x) => x.key === key);
+	if (w && key && !w.complete && !cat?.done && !counted(w, systemId))
+		out.push({
+			kind: 'wanderlust_visit',
+			target: { system: systemId },
+			why: wanderlustName(key)
+		});
 	return out.map((x) => ({ ...x, label: label(x.kind, x.target, '', names) }));
 }
 

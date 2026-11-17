@@ -47,6 +47,18 @@ in `megastructures/29_nomad_arkships.txt`; counted from `Snapshot.ships` sizes
 every tradition of each adopted tree — taken ones show done with their date and land in the
 history's "reached" list, the rest are the tree's remaining picks — and every perk taken; they
 can be ordered, noted and removed (a removal sticks), and give way to the same goal added by hand.
+**Wanderlust** (the user's ask 2026-11-17: prioritise categories, pick targets on the map, see
+what was found; `outlook()` in `#lib/wanderlust.ts`). Per category: counted / needed, **found**
+(targets in systems visited or owned — never a spoiler), still open = found − counted (every
+counted system is one we entered, so this needs no `visited_by_nomad` flag) and **finishable**
+when the open ones cover what is missing. A system flagged twice counts for its first category
+only (`countsFor()`: nomads.4720 tests the flags with else_if). The category goal says it ("1 of
+2, 1 found to visit: enough to finish"), the suggestions list finishable categories first, the
+map's Wanderlust line underlines them; the map's right-click offers an arkship visit as a _want_
+for a target not yet counted whose category is not done (an unvisited one only with the spoiler).
+The chain does not end at the fourth category: the perk's second modifier comes at four done (a
+category with no targets in the galaxy counts as done), and every category keeps paying out until
+all eight end it (`complete_nomad_exploration_effect`).
 **Popups** (`explanations()`): the game data's for techs, traditions, perks, buildings and
 civics; a Wanderlust category its reward, the static modifier `<category>_modifier` (4.5.3
 `missions/01_missions_nomads.txt`); focus cards built here (`focuscard:`: requirement, progress
