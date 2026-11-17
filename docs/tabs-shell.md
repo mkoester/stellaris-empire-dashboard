@@ -332,14 +332,14 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `digSiteSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`. A new view of hidden information follows the same pattern
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyMet`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`. A new view of hidden information follows the same pattern
 (and in multiplayer and Ironman: "No cheats in multiplayer or Ironman").
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
 `normal`, `spoiler` (what the game hides until found) or `cheat` (what it never tells a player;
 `habitatsAlways` now one). Found includes more intel or exploring: what a higher intel level would
-show is a spoiler with `intel`, not a cheat (`diplomacyAll`, `historyAll` since 2026-11-17); a cheat
-is what no intel level shows (`pactAll`: another empire's techs) —, a left-hand section list and a search over all of it. Two gates,
+show is a spoiler with `intel`, not a cheat (`diplomacyAll`, `historyMet`); a cheat
+is what no intel level shows (`pactAll`: another empire's techs; `historyAll`: empires never met) —, a left-hand section list and a search over all of it. Two gates,
 `showSpoilers` / `showCheats` (off by default; a profile from before them starts with a gate on
 when it had one of its switches on), list those kinds; **hidden also means off**:
 `display()` (`server/settings.ts`) returns `effectiveDisplay()`, the stored values kept, so

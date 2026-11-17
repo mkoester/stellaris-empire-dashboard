@@ -177,6 +177,13 @@ sinks): hide what this empire will never use — a nomad never settles, a settle
 embarks, an origin, civic or authority it lacks —, grey what is not available _yet_ with the
 reason on hover, and grey a group's header when nothing in it is available.
 
+**Page data is visible to the viewer, not only what a page renders** (the user's ask 2026-11-17,
+"don't spoil any first contact"): another empire's real name, type, ethics or civics before
+communications stays on the server. `branch()`'s `latest` goes to every page as
+`knownCountries()` (`#lib/contacts.ts`: only ourselves and those we talk to, no galaxy-wide
+`history`); `empireColors()` and contact rows hold real names only once we talk. Check a change
+by grepping every tab's HTML and `__data.json` on a DB copy for an open contact's real name.
+
 **Every value or worth is in trade** (the user's rule, 2026-11-16): `valueOf()` with
 `valuesOf(snaps)` (`#lib/value.ts`, `server/unitCosts.ts`) — the market's base price, else what a
 unit costs us. No energy-based or self-made weights; label it "trade", two decimals.

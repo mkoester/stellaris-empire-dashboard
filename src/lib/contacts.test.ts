@@ -3,6 +3,7 @@ import {
 	agreementName,
 	combatLog,
 	contactTable,
+	knownCountries,
 	kindOf,
 	parseContactView,
 	proposalDates,
@@ -59,6 +60,50 @@ describe('contacts', () => {
 		expect(shown(rows, { ...view, kinds: ['other'] }).map((r) => r.countryId)).toEqual([
 			16777220, 20
 		]);
+	});
+
+	it('tells nothing of what a contact is before communications', () => {
+		const fauna = {
+			id: 30,
+			name: 'Cutholoids',
+			type: 'cutholoids',
+			shipset: null,
+			flagColor: 'green',
+			ethics: [],
+			authority: null,
+			civics: [],
+			governmentType: null,
+			origin: null
+		};
+		const [quiet] = contactTable([rel(30, { communications: false })], [fauna], []);
+		expect(quiet.country).toBeNull();
+		expect(quiet.flagColor).toBe('green');
+		// shown whatever kinds are picked: its kind is not known yet
+		const view = { ...parseContactView({}), communicationsOnly: false };
+		expect(shown([quiet], view).length).toBe(1);
+		const [talking] = contactTable([rel(30, { communications: true })], [fauna], []);
+		expect(talking.country?.name).toBe('Cutholoids');
+		expect(shown([talking], view)).toEqual([]);
+	});
+
+	it('keeps only ourselves and those we talk to for the page', () => {
+		const c = (id: number) => ({
+			id,
+			name: `c${id}`,
+			type: 'default',
+			shipset: null,
+			ethics: [],
+			authority: null,
+			civics: [],
+			governmentType: null,
+			origin: null
+		});
+		const s = {
+			countryId: 1,
+			countries: [c(1), c(2), c(3)],
+			relations: [rel(2, { communications: true }), rel(3, { communications: false })]
+		};
+		expect(knownCountries(s).countries?.map((x) => x.id)).toEqual([1, 2]);
 	});
 
 	it('sorts country types into kinds', () => {

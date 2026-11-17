@@ -118,9 +118,9 @@
 {#snippet name(r: ContactRow)}
 	<EmpireName
 		name={r.name}
-		color={data.flagColors[r.country?.flagColor ?? ''] ?? null}
-		kind={kindOf(r.country?.type ?? '')}
-		nomadic={data.nomads.includes(r.countryId)}
+		color={data.flagColors[r.flagColor ?? ''] ?? null}
+		kind={r.country ? kindOf(r.country.type) : null}
+		nomadic={!!r.country && data.nomads.includes(r.countryId)}
 	/>{#if r.hostile}<span class="text-red-600"> · hostile</span>{/if}
 {/snippet}
 {#snippet comms(r: ContactRow)}{r.communications ? '✓' : '–'}{/snippet}

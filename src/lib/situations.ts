@@ -73,14 +73,17 @@ export function contactRows(
 ): ContactRow[] {
 	const byId = new Map(galaxy.map((s) => [s.id, s]));
 	const jumps = jumpsFromBorder(galaxy);
+	const talks = (id: number) => relations.find((r) => r.countryId === id)?.communications ?? false;
 	return contacts.map((c) => ({
 		...c,
 		system: byId.get(c.systemId)?.name ?? String(c.systemId),
 		months: monthsBetween(c.date, date),
 		jumps: jumps.get(c.systemId) ?? null,
-		communications: relations.find((r) => r.countryId === c.countryId)?.communications ?? false,
+		communications: talks(c.countryId),
 		stations: galaxy.filter((s) => s.ownerId === c.countryId).length,
-		country: countries.find((x) => x.id === c.countryId) ?? null
+		// what it is only once we talk: the page has no business with it before (the user's ask
+		// 2026-11-17: no first contact spoiled)
+		country: talks(c.countryId) ? (countries.find((x) => x.id === c.countryId) ?? null) : null
 	}));
 }
 

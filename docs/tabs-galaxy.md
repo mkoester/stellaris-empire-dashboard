@@ -63,15 +63,22 @@ systems claimed, taken or lost, communications opened, guardians slain, wars). E
 `Snapshot.history` (READER 43, ~5 KB: `historyReading()` in `server/world.ts` — every system's
 station owner, every planet colony with its `colonize_date` and system, the guardian kill flags,
 names); `knownHistory()` diffs them along the branch. **What we know is decided at the branch's
-latest save and applied to the whole past** (the user's rule): our own history, all of an empire's
-once we have communications with it, the owner of any system we have visited, guardians' falls
+latest save and applied to the whole past** (the user's rules; 2026-11-17: "only what I know
+about empires, depending on my own intel, and only for empires I met"): our own history; of an
+empire we met (a relation), its systems from military intel 1 ("Location of Starbases") and its
+colonies from economy intel 1 ("Low Intel on Colonies") — both intel 30, the two categories' levels
+being equal at every value (`common/intel_levels`) —, its wars from diplomacy intel 1 (intel 20);
+of an empire not met nothing (it is "an unknown empire" where it takes a system from one we know),
+named as we know them (relations: the pre-communications name until we talk; the save's own names
+only with the cheat — a real name in the page data spoiled first contacts); guardians' falls
 (common knowledge — the flags `killed_guardian`, `horror_killed`, `killed_wraith`,
 `tiyanki_killed`, `killed_hatchling`, global `toxic_god_killed`, `guardians_zanaam_destroyed`:
-**none seen in a save yet**), wars with a side we know (public, as on the diplomacy tab); not
+**none seen in a save yet**), wars with a side we know (named by the save only where we know every side: its name is made of
+theirs); not
 others' discoveries nor battles we did not fight. Before the first save read only colonies are
 known (by `colonize_date`; before 2200 — homeworlds, pre-FTLs at "2016.05.09" — read as
 2200.01.01), and a system whose colony predates that save counts as its owner's since then. A
-change between two saves is dated "≤" the later one. The `historyAll` spoiler (`intel`: off in multiplayer and Ironman) shows everything.
+change between two saves is dated "≤" the later one. The `historyMet` spoiler shows everything about the empires we met, the `historyAll` cheat everything about every empire by its own name (both `intel`: off in multiplayer and Ironman; the user's split, 2026-11-17).
 Checked 2026-11-01 on a DB copy (Roaming Korinth, 2207.02): known now us, Vivisandia Vestige and
 Skull Clan — 10 colonies, 9 claims, 2 communications; with the spoiler 80 and 100. **Open:** when a
 guardian was first discovered (the user's ask) is not read — its system is not tied to the flag;
