@@ -16,7 +16,9 @@ All notable changes to this project are documented here. The format follows
   bring this empire, summed: for sure and expected, the resources' worth in trade.
 - Frontier: "Still to gain" shows where each reward comes from as badges (anomaly, project, dig
   site; hover for their names and how long each takes), how certain it is (sure, likely,
-  possible), and the popup of a tech, modifier or trait on its name.
+  possible), and the popup of a tech, modifier or trait on its name. Each source shows how long it
+  takes; tech progress shows the tech's tier, area, cost to you and what the progress is worth in
+  research.
 - Frontier: how long each open anomaly, special project and dig site takes — an anomaly by your
   best scientist's level, a ship's project its days, a research project ≈ its cost at your
   research in that field, a dig site ≈ the expected rolls of its remaining chapters.

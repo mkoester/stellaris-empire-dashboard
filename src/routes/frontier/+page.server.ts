@@ -12,6 +12,7 @@ import { facts } from '#lib/government.ts';
 import { gainRows } from '#lib/outcomeGains.ts';
 import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
 import { anomalyDays } from '#lib/ships.ts';
+import { techCost } from '#lib/events.ts';
 import { prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
 import type { AnomalyInfo, DigSite, ProjectInfo } from '#lib/types.ts';
@@ -143,6 +144,7 @@ export function load({ url }) {
 	const digSites = (s?.digSites ?? []).map(dig);
 	const techNames = Object.fromEntries(Object.entries(data.techs).map(([k, v]) => [k, v.name]));
 	// what the open ones can still bring, as far as their spoilers are on
+	const researched = new Set(save?.progress?.researched ?? []);
 	const gains = gainRows(
 		[
 			...anomalies.map((a) => ({
@@ -167,7 +169,21 @@ export function load({ url }) {
 		].flatMap((x) => (x.tree ? [{ ...x, tree: prune(x.tree) }] : [])),
 		{ income: save?.income ?? null, values },
 		techNames
-	);
+	).map((g) => {
+		const k = g.key.slice(5);
+		const t = g.kind === 'tech' ? data.techs[k] : undefined;
+		return t
+			? {
+					...g,
+					tech: {
+						tier: t.tier,
+						cost: save ? techCost(k, save, data) : null,
+						area: t.area,
+						researched: researched.has(k)
+					}
+				}
+			: g;
+	});
 	return {
 		...rest,
 		gains,

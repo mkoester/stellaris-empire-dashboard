@@ -133,8 +133,8 @@
 	const KINDS = Object.keys(SOURCE_COLORS) as GainSource['kind'][];
 	const byKind = (g: GainRow) =>
 		[...g.sources].sort((a, b) => KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind));
-	const sourceTitle = (s: GainSource) =>
-		`${s.kind}${s.time ? `, ${s.time.approx ? '≈ ' : ''}${daysText(s.time.days)}` : ''}`;
+	const sourceTime = (s: GainSource) =>
+		s.time ? `${s.time.approx ? '≈ ' : ''}${daysText(s.time.days)}` : null;
 	const timeColumn = <T extends { time: Time | null }>(title: string): Column<T> => ({
 		id: 'time',
 		label: 'Time',
@@ -301,7 +301,9 @@
 				class="rounded border px-1 text-[11px] leading-4"
 				style:color={SOURCE_COLORS[s.kind]}
 				style:border-color={SOURCE_COLORS[s.kind]}
-				title={sourceTitle(s)}>{s.name}</span
+				title="{s.kind}: {s.time ? 'how long it takes, as in its table' : 'no time known'}"
+				>{s.name}{#if sourceTime(s)}<span class="ml-1 opacity-75">· {sourceTime(s)}</span
+					>{/if}</span
 			>{/each}</span
 	>{/snippet}
 {#snippet gainLabel(g: GainRow)}{#if g.ref}<InfoPopup ref={g.ref}>{g.label}</InfoPopup
@@ -357,10 +359,19 @@
 			<ul class="space-y-0.5 text-sm">
 				{#each data.gains.filter((g) => g.kind !== 'res') as g (g.key)}
 					<li>
-						{g.kind === 'tech' ? `+${fmt(g.exp * 100)} % ` : ''}{@render gainLabel(g)}{g.kind ===
-						'xp'
-							? ` +${fmt(g.exp)}`
-							: ''}
+						{g.kind === 'tech' ? `+${fmt(g.exp * 100)} % ` : ''}{@render gainLabel(
+							g
+						)}{#if g.tech}<span
+								class="ml-1 text-xs text-gray-500"
+								class:line-through={g.tech.researched}
+								title={g.tech.researched
+									? 'already researched: the progress is lost'
+									: 'its cost to you now, and what the expected progress is worth'}
+								>{g.tech.tier !== null ? `tier ${g.tech.tier} · ` : ''}{g.tech.area}{g.tech.cost !==
+								null
+									? ` · ${fmt(g.tech.cost)} · ≈ ${fmt(g.tech.cost * g.exp)} research`
+									: ''}{g.tech.researched ? ' · researched' : ''}</span
+							>{/if}{g.kind === 'xp' ? ` +${fmt(g.exp)}` : ''}
 						{@render badge(certainty(g))}
 						{@render from(g)}
 					</li>

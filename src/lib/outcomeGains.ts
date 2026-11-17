@@ -148,6 +148,9 @@ export type GainRow = {
 	exp: number;
 	approx: boolean; // rests on months of income or a scaled amount
 	sources: GainSource[];
+	// tech progress: the tech's tier, what it costs us now (#lib/events.ts techCost) and its area;
+	// `researched`: progress on it is wasted
+	tech?: { tier: number | null; cost: number | null; area: string; researched: boolean };
 };
 
 /** Rewards of several sources summed, each with the names of the sources that give it. `names`:
