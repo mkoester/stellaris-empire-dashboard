@@ -204,10 +204,32 @@ export function gainRows(
 			rows.set(key, r);
 		}
 	}
-	const order = { res: 0, tech: 1, xp: 2, item: 3 };
-	return [...rows.values()].sort(
-		(a, b) => order[a.kind] - order[b.kind] || a.label.localeCompare(b.label)
-	);
+	return sorted([...rows.values()]);
+}
+
+const ORDER = { res: 0, tech: 1, xp: 2, item: 3 };
+const sorted = (rows: GainRow[]) =>
+	rows.sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || a.label.localeCompare(b.label));
+
+/** Rows of several lists (one per kind of source) as one: amounts summed, sources joined. */
+export function mergeGainRows(lists: GainRow[][]): GainRow[] {
+	const out = new Map<string, GainRow>();
+	for (const g of lists.flat()) {
+		const r = out.get(g.key);
+		out.set(
+			g.key,
+			r
+				? {
+						...r,
+						sure: r.sure + g.sure,
+						exp: r.exp + g.exp,
+						approx: r.approx || g.approx,
+						sources: [...r.sources, ...g.sources]
+					}
+				: g
+		);
+	}
+	return sorted([...out.values()]);
 }
 
 /** The resources a tree gives as months of income or scaled: estimates. */

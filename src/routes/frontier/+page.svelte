@@ -4,7 +4,8 @@
 	import { resolve } from '$app/paths';
 	import { fmt, pretty } from '#lib/format.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
-	import type { GainRow, GainSource } from '#lib/outcomeGains.ts';
+	import { mergeGainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
+	import { colorOf } from '#lib/colors.ts';
 	import { valueOf } from '#lib/value.ts';
 	import { daysText, type Time } from '#lib/frontierTime.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
@@ -115,14 +116,47 @@
 		title: 'the last save that had it'
 	});
 	// "Still to gain": the resources' worth in trade, sure and expected
-	const gainRes = $derived(data.gains.filter((g) => g.kind === 'res'));
+	// the filters: which kinds of source count, and sure (something on every path) or possible
+	let fromKinds = $state<Record<GainSource['kind'], boolean>>({
+		anomaly: true,
+		project: true,
+		'dig site': true
+	});
+	let certain = $state({ sure: true, possible: true });
+	const shownGains = $derived(
+		mergeGainRows(
+			(Object.keys(fromKinds) as GainSource['kind'][])
+				.filter((k) => fromKinds[k])
+				.map((k) => data.gains[k])
+		).filter((g) => (g.sure > 0 ? certain.sure : certain.possible))
+	);
+	const anyGains = $derived(Object.values(data.gains).some((l) => l.length));
+	const gainRes = $derived(shownGains.filter((g) => g.kind === 'res'));
 	const worth = (which: 'sure' | 'exp') =>
 		valueOf(Object.fromEntries(gainRes.map((g) => [g.key.slice(4), g[which]])), data.values);
 	const trade = (g: GainRow) => valueOf({ [g.key.slice(4)]: g.exp }, data.values);
 	const spoilersOn = $derived(
 		data.opts.anomalySpoilers || data.opts.projectSpoilers || data.opts.digSiteSpoilers
 	);
-	const greyed = (r: { closed: boolean }) => (r.closed ? 'opacity-50' : '');
+	// a source chip hovered in "Still to gain": its rewards and its row in its table light up
+	let lit = $state<string | null>(null); // `${kind}:${name}`
+	const HIGHLIGHT = 'bg-yellow-100 dark:bg-yellow-900/40';
+	const isLit = (kind: GainSource['kind'], name: string) => lit === `${kind}:${name}`;
+	const fromLit = (g: GainRow) => g.sources.some((s) => isLit(s.kind, s.name));
+	// a chip's click: to its row in its table, lit for a moment after the pointer has left
+	const anchorOf = (kind: GainSource['kind']) => (r: { name: string }) => `${kind}:${r.name}`;
+	let held: ReturnType<typeof setTimeout> | undefined;
+	function jump(s: GainSource) {
+		const a = `${s.kind}:${s.name}`;
+		document
+			.querySelector(`[data-anchor="${CSS.escape(a)}"]`)
+			?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		clearTimeout(held);
+		lit = a;
+		held = setTimeout(() => (lit = null), 2000);
+	}
+	const rowOf = (kind: GainSource['kind']) => (r: { name: string; closed?: boolean }) =>
+		`${r.closed ? 'opacity-50' : ''} ${isLit(kind, r.name) ? HIGHLIGHT : ''}`;
 	// a badge per kind of source, in its own colour
 	const SOURCE_COLORS: Record<GainSource['kind'], string> = {
 		anomaly: '#14b8a6',
@@ -298,9 +332,20 @@
 	>{/snippet}
 {#snippet from(g: GainRow)}<span class="inline-flex flex-wrap gap-1 align-middle"
 		>{#each byKind(g) as s (`${s.kind}:${s.name}`)}<span
-				class="rounded border px-1 text-[11px] leading-4"
+				class="cursor-pointer rounded border px-1 text-[11px] leading-4 {isLit(s.kind, s.name)
+					? 'font-semibold ' + HIGHLIGHT
+					: ''}"
 				style:color={SOURCE_COLORS[s.kind]}
 				style:border-color={SOURCE_COLORS[s.kind]}
+				role="button"
+				tabindex="0"
+				onpointerenter={() => {
+					clearTimeout(held);
+					lit = `${s.kind}:${s.name}`;
+				}}
+				onpointerleave={() => (lit = null)}
+				onclick={() => jump(s)}
+				onkeydown={(e) => e.key === 'Enter' && jump(s)}
 				title="{s.kind}: {s.time ? 'how long it takes, as in its table' : 'no time known'}"
 				>{s.name}{#if sourceTime(s)}<span class="ml-1 opacity-75">· {sourceTime(s)}</span
 					>{/if}</span
@@ -314,15 +359,25 @@
 		title="Still to gain"
 		note="What the open anomalies, special projects and dig sites' next chapters can still bring this empire, as far as their spoilers are on. Sure: on every path. Expected: chance by its odds, a condition the save cannot answer as even odds, and at a choice the option worth most in trade. Greyed outcomes do not count; ≈ rests on months of your current income."
 	>
-		{#if data.gains.length}
+		{#if anyGains}
 			<p class="mb-2 text-sm">
 				Resources worth <b class="tabular-nums">{worth('sure').toFixed(2)}</b> trade for sure,
 				<b class="tabular-nums">{worth('exp').toFixed(2)}</b> expected.
-				<span class="ml-2 text-xs text-gray-500"
-					>From:{#each KINDS as k (k)}<span class="ml-1" style:color={SOURCE_COLORS[k]}>{k}</span
+			</p>
+			<div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+				<span
+					>Show:<label class="ml-1" style:color="#1baf7a"
+						><input type="checkbox" bind:checked={certain.sure} /> sure</label
+					><label class="ml-2" style:color="#eda100"
+						><input type="checkbox" bind:checked={certain.possible} /> possible</label
+					></span
+				>
+				<span
+					>From:{#each KINDS as k (k)}<label class="ml-2" style:color={SOURCE_COLORS[k]}
+							><input type="checkbox" bind:checked={fromKinds[k]} /> {k}</label
 						>{/each}</span
 				>
-			</p>
+			</div>
 			{#if gainRes.length}
 				<table class="mb-3 text-sm">
 					<thead
@@ -339,7 +394,7 @@
 					>
 					<tbody>
 						{#each gainRes as g (g.key)}
-							<tr
+							<tr class={fromLit(g) ? HIGHLIGHT : ''}
 								><td class="pr-4">{@render gainLabel(g)}</td><td
 									class="pr-4 text-right tabular-nums"
 									style:color={g.sure > 0 ? '#1baf7a' : undefined}
@@ -357,8 +412,8 @@
 				</table>
 			{/if}
 			<ul class="space-y-0.5 text-sm">
-				{#each data.gains.filter((g) => g.kind !== 'res') as g (g.key)}
-					<li>
+				{#each shownGains.filter((g) => g.kind !== 'res') as g (g.key)}
+					<li class={fromLit(g) ? HIGHLIGHT : ''}>
 						{g.kind === 'tech' ? `+${fmt(g.exp * 100)} % ` : ''}{@render gainLabel(
 							g
 						)}{#if g.tech}<span
@@ -367,8 +422,9 @@
 								title={g.tech.researched
 									? 'already researched: the progress is lost'
 									: 'its cost to you now, and what the expected progress is worth'}
-								>{g.tech.tier !== null ? `tier ${g.tech.tier} · ` : ''}{g.tech.area}{g.tech.cost !==
-								null
+								>{g.tech.tier !== null ? `tier ${g.tech.tier} · ` : ''}<span
+									style:color={colorOf(`${g.tech.area}_research`)}>{g.tech.area}</span
+								>{g.tech.cost !== null
 									? ` · ${fmt(g.tech.cost)} · ≈ ${fmt(g.tech.cost * g.exp)} research`
 									: ''}{g.tech.researched ? ' · researched' : ''}</span
 							>{/if}{g.kind === 'xp' ? ` +${fmt(g.exp)}` : ''}
@@ -454,7 +510,8 @@
 						rows={data.anomalies}
 						columns={anomalyColumns}
 						key={(a) => a.planetId}
-						rowClass={greyed}
+						rowClass={rowOf('anomaly')}
+						anchor={anchorOf('anomaly')}
 					/>
 				{:else}<p class="text-sm text-gray-500">None waiting.</p>{/if}
 				{#if data.gone.anomalies.length}
@@ -476,7 +533,13 @@
 					: 'What their chapters give: switch on the spoilers in ⚙.'}"
 			>
 				{#if data.digSites.length}
-					<SortTable rows={data.digSites} columns={digColumns} key={(d) => d.id} />
+					<SortTable
+						rows={data.digSites}
+						columns={digColumns}
+						key={(d) => d.id}
+						rowClass={rowOf('dig site')}
+						anchor={anchorOf('dig site')}
+					/>
 				{:else}<p class="text-sm text-gray-500">None found.</p>{/if}
 				{#if data.gone.digSites.length}
 					{@render goneNote(data.gone.digSites.length)}
@@ -501,7 +564,8 @@
 						rows={data.projects}
 						columns={projectColumns}
 						key={(p) => p.id}
-						rowClass={greyed}
+						rowClass={rowOf('project')}
+						anchor={anchorOf('project')}
 					/>
 				{:else}<p class="text-sm text-gray-500">None on offer.</p>{/if}
 				{#if data.gone.projects.length}

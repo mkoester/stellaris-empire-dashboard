@@ -9,7 +9,7 @@ import { display } from '#lib/server/settings.ts';
 import { outcomeTrees } from '#lib/server/outcomes.ts';
 import { valuesOf } from '#lib/server/unitCosts.ts';
 import { facts } from '#lib/government.ts';
-import { gainRows } from '#lib/outcomeGains.ts';
+import { gainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
 import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
 import { anomalyDays } from '#lib/ships.ts';
 import { techCost } from '#lib/events.ts';
@@ -145,31 +145,29 @@ export function load({ url }) {
 	const techNames = Object.fromEntries(Object.entries(data.techs).map(([k, v]) => [k, v.name]));
 	// what the open ones can still bring, as far as their spoilers are on
 	const researched = new Set(save?.progress?.researched ?? []);
-	const gains = gainRows(
-		[
-			...anomalies.map((a) => ({
-				name: a.name,
-				kind: 'anomaly' as const,
-				tree: a.tree,
-				time: a.time
-			})),
-			...projects.map((p) => ({
-				name: p.name,
-				kind: 'project' as const,
-				tree: p.tree,
-				time: p.time
-			})),
-			...digSites.map((d) => ({
-				name: d.name,
-				kind: 'dig site' as const,
-				time: d.time,
-				tree: d.tree,
-				next: d.chapter
-			}))
-		].flatMap((x) => (x.tree ? [{ ...x, tree: prune(x.tree) }] : [])),
-		{ income: save?.income ?? null, values },
-		techNames
-	).map((g) => {
+	type Source = Parameters<typeof gainRows>[0][number];
+	const all: Source[] = [
+		...anomalies.map((a) => ({
+			name: a.name,
+			kind: 'anomaly' as const,
+			tree: a.tree,
+			time: a.time
+		})),
+		...projects.map((p) => ({
+			name: p.name,
+			kind: 'project' as const,
+			tree: p.tree,
+			time: p.time
+		})),
+		...digSites.map((d) => ({
+			name: d.name,
+			kind: 'dig site' as const,
+			time: d.time,
+			tree: d.tree,
+			next: d.chapter
+		}))
+	].flatMap((x) => (x.tree ? [{ ...x, tree: prune(x.tree) }] : []));
+	const withTech = (g: GainRow): GainRow => {
 		const k = g.key.slice(5);
 		const t = g.kind === 'tech' ? data.techs[k] : undefined;
 		return t
@@ -183,7 +181,18 @@ export function load({ url }) {
 					}
 				}
 			: g;
-	});
+	};
+	// one list per kind of source, merged on the page as its filters say (`mergeGainRows()`)
+	const gains = Object.fromEntries(
+		(['anomaly', 'project', 'dig site'] as const).map((kind) => [
+			kind,
+			gainRows(
+				all.filter((x) => x.kind === kind),
+				{ income: save?.income ?? null, values },
+				techNames
+			).map(withTech)
+		])
+	) as Record<GainSource['kind'], GainRow[]>;
 	return {
 		...rest,
 		gains,

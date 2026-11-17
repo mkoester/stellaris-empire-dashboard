@@ -18,7 +18,9 @@ All notable changes to this project are documented here. The format follows
   site; hover for their names and how long each takes), how certain it is (sure, likely,
   possible), and the popup of a tech, modifier or trait on its name. Each source shows how long it
   takes; tech progress shows the tech's tier, area, cost to you and what the progress is worth in
-  research.
+  research, its area in the field's colour. Filters for sure / possible and for each kind of
+  source (the sums follow them); hovering a source highlights everything it gives and its row in
+  its table, and clicking it jumps there.
 - Frontier: how long each open anomaly, special project and dig site takes — an anomaly by your
   best scientist's level, a ship's project its days, a research project ≈ its cost at your
   research in that field, a dig site ≈ the expected rolls of its remaining chapters.

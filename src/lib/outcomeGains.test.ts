@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gainRows, gains } from './outcomeGains.ts';
+import { gainRows, gains, mergeGainRows } from './outcomeGains.ts';
 import type { OutcomeNode } from './outcomes.ts';
 
 const ctx = { income: { physics_research: 100 }, values: { energy: 1, alloys: 4 } };
@@ -83,5 +83,28 @@ describe('gainRows', () => {
 			['Tech X', 0.25, false, ['A'], 'tech:tech_x']
 		]);
 		expect(rows[0].sources.map((s) => s.kind)).toEqual(['anomaly', 'project']);
+	});
+});
+
+describe('mergeGainRows', () => {
+	it('sums a reward over the lists, joins its sources, keeps the order', () => {
+		const row = (key: string, kind: 'res' | 'item', sure: number, name: string) => ({
+			key,
+			kind,
+			label: key,
+			ref: null,
+			sure,
+			exp: sure + 1,
+			approx: false,
+			sources: [{ name, kind: 'anomaly' as const }]
+		});
+		const m = mergeGainRows([
+			[row('item:x', 'item', 0, 'A')],
+			[row('res:energy', 'res', 2, 'B'), row('item:x', 'item', 1, 'C')]
+		]);
+		expect(m.map((r) => [r.key, r.sure, r.exp, r.sources.map((s) => s.name)])).toEqual([
+			['res:energy', 2, 3, ['B']],
+			['item:x', 1, 3, ['A', 'C']]
+		]);
 	});
 });

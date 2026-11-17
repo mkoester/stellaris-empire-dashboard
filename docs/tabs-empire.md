@@ -300,7 +300,12 @@ Each reward names its sources, one chip each in its kind's colour (anomaly, proj
 with how long it takes, as in its table; the user's ask 2026-11-17: kinds alone hid which one gives it), a certainty badge (sure; likely ≥ 50 %; possible) and the popup of a tech, modifier,
 trait or deposit (`GainRow.ref`, `effectRef()`). Tech progress names the tech's tier, area, its
 cost to us now (`techCost()` in `#lib/events.ts`, shared with Upcoming's research) and the
-expected progress in research; a tech already researched is struck through (the progress is lost). **Time** (the user's ask 2026-11-17,
+expected progress in research, its area in the field's colour; a tech already researched is struck
+through (the progress is lost). **Filters** (the user's ask 2026-11-17): sure / possible, and which
+kinds of source count — the route sends one `gainRows()` list per kind and the page merges the
+ticked ones (`mergeGainRows()`), so the amounts and totals follow the filter. Hovering a source
+chip highlights every reward it gives and its row in its table (matched by kind and name);
+clicking it scrolls to that row (`SortTable`'s `anchor`, `data-anchor`), lit for 2 s. **Time** (the user's ask 2026-11-17,
 `#lib/frontierTime.ts`): each table's Time column, before speed bonuses, with our best scientist
 on a science ship (`civilianShips`, max `leaderLevel`): an anomaly by
 SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS (`anomalyDays()`, shared with the ships' order totals); a
