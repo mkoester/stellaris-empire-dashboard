@@ -10,6 +10,7 @@
 		type SlaveMarketMode
 	} from '#lib/profiles.ts';
 	import { MAX_POP_WINDOW, windowMonths, windowStrip, type PopWindow } from '#lib/popWindow.ts';
+	import { MAX_INCOME_WINDOW } from '#lib/planner/eta.ts';
 	import { MAX_RINGS, SECTOR_COUNTS, type QuadrantView, type SectorCount } from '#lib/quadrants.ts';
 	import { campaignAction, profileAction, putSettings } from '#lib/settings.ts';
 
@@ -38,6 +39,7 @@
 		['display', 'Display'],
 		['quadrants', 'Map rings and quadrants'],
 		['popWindow', 'Pops charts'],
+		['incomeWindow', 'Planner: mean income'],
 		['games', 'Games'],
 		['folders', 'Folders']
 	] as const;
@@ -63,6 +65,7 @@
 		act(() => putSettings({ popWindow: { ...data.popWindow, ...patch } }));
 	const strip = $derived(windowStrip(data.popWindow));
 	const MONTH_CHOICES = Array.from({ length: MAX_POP_WINDOW + 1 }, (_, i) => i);
+	const INCOME_CHOICES = Array.from({ length: MAX_INCOME_WINDOW }, (_, i) => i + 1);
 
 	const act = async (f: () => Promise<unknown>) => {
 		failure = '';
@@ -402,6 +405,24 @@
 						data.popWindow.back / 2 +
 						' months.'}
 			</p>
+		</section>
+		<section id="incomeWindow" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Planner: mean income</h2>
+			<p class="mb-1 text-gray-500">
+				The planner times each goal twice: at this month's net income and at its mean over the last
+				months. The net is the budget's, so one-time spending (construction, edicts, decisions) is
+				never in it.
+			</p>
+			<label class="block"
+				>months
+				<select
+					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+					value={String(data.incomeWindow)}
+					onchange={(e) => act(() => putSettings({ incomeWindow: Number(e.currentTarget.value) }))}
+				>
+					{#each INCOME_CHOICES as n (n)}<option value={String(n)}>{n}</option>{/each}
+				</select></label
+			>
 		</section>
 		<section id="games" class="scroll-mt-4">
 			<h2 class="mb-1 text-xl font-semibold">Games</h2>

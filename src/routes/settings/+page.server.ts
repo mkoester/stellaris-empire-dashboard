@@ -19,6 +19,7 @@ export function load({ url }) {
 		display: active.settings.display,
 		quadrants: active.settings.quadrants,
 		popWindow: active.settings.popWindow,
+		incomeWindow: active.settings.incomeWindow,
 		campaign: campaignAt(db, nodeParam(url)),
 		noCheats: viewedNoCheats(db),
 		campaigns: campaignsOf(db),

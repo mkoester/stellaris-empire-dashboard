@@ -47,7 +47,9 @@ import {
 	type PlanEvent,
 	type Target
 } from '#lib/planner/replay.ts';
+import { costRows, incomeRates, type CostRow } from '#lib/planner/eta.ts';
 import { holdsSince, seenAlong, type Since } from '#lib/planner/status.ts';
+import { storageRows } from '#lib/storage.ts';
 import type { Stance } from '#lib/techOffers.ts';
 import { SHORTCUTS, shortcutRows } from '#lib/planner/shortcuts.ts';
 import { systemInfo } from '#lib/planner/systemInfo.ts';
@@ -61,7 +63,7 @@ import { getDb, getExplanations, getGameData } from './app.ts';
 import { headId, history, nodeById, nodes, planEvents } from './db.ts';
 import { pick } from './explain.ts';
 import { campaignGalaxy } from './mapSystems.ts';
-import { display } from './settings.ts';
+import { display, setting } from './settings.ts';
 import { outcomeTips } from './outcomes.ts';
 import { colonyDetails } from './planets.ts';
 
@@ -83,6 +85,7 @@ export type GoalRow = Omit<Goal, 'added'> & {
 	area: string | null; // a tech's research area
 	tint: string | null; // the badge's colour, a colors.ts key (research or focus area)
 	dependents: string[]; // the automatic goals only this one brings (removed with it, if wished)
+	cost: CostRow | null; // what it still costs and when it is paid and built (#lib/planner/eta.ts)
 	added: { nodeId: number; at: string; date: string | null };
 };
 export type Option = { value: string | number; label: string };
@@ -210,7 +213,48 @@ function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
 		area: areaOf(g.kind, g.target, getGameData()),
 		tint: tintOf(g.kind, g.target, getGameData()),
 		dependents: [],
+		cost: null,
 		added: { ...g.added, date: dates.get(g.added.nodeId) ?? null }
+	};
+}
+
+/**
+ * Fills in each row's cost and times (in the page's order, parked ones last and never in the plan
+ * order) and returns the incomes used: this month's net and the mean over the profile's window.
+ */
+function estimate(snaps: Snapshot[], c: Ctx, list: GoalRow[]) {
+	const data = getGameData();
+	const now = snaps.at(-1)!;
+	const window = setting('incomeWindow');
+	const rates = incomeRates(snaps, window);
+	const shipset = c.ctx.latest.shipset;
+	const world = {
+		latest: { ...c.ctx.latest, stockpile: now.stockpile },
+		galaxy: c.ctx.galaxy,
+		data,
+		bio: shipset ? (data.shipKinds[shipset]?.includes('bio_ship') ?? null) : null
+	};
+	const storage = storageRows(now.stockpile, now.storageMax, data.resourceInfo);
+	const max = Object.fromEntries(storage.map((r) => [r.resource, r.max]));
+	const est = costRows(
+		list.map((r) => ({
+			id: r.id,
+			kind: r.kind,
+			target: r.target,
+			queued: !r.parked && r.polarity !== 'avoid' && r.state !== 'done' && r.state !== 'blocked'
+		})),
+		world,
+		rates,
+		max
+	);
+	for (const r of list)
+		if (r.state !== 'done' && r.polarity !== 'avoid') r.cost = est.get(r.id) ?? null;
+	return {
+		window,
+		months: rates.months,
+		now: rates.now,
+		avg: rates.avg,
+		exactStorage: storage.every((r) => r.exact)
 	};
 }
 
@@ -463,6 +507,9 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 	const parkedRows = parked(plan)
 		.map(toRow)
 		.filter((r) => r !== null);
+	const income = c
+		? estimate(snaps, c, [...GROUPS.flatMap((g) => rows[g.id]), ...parkedRows])
+		: null;
 	// labels for the history, from every goal ever added on this branch
 	// what each history entry is about, for its label and badges: every goal ever added on this
 	// branch, and the automatic ones (they have no add of their own)
@@ -510,6 +557,7 @@ export function plannerPage(snaps: Snapshot[], tip: number) {
 	const otherRows = c ? others.map((g) => ({ ...row(g, c, dates), tips: g.tips })) : [];
 	return {
 		groups: GROUPS.map((g) => ({ ...g, goals: rows[g.id] })),
+		income,
 		parked: parkedRows,
 		others: otherRows,
 		history: plan.history

@@ -167,6 +167,34 @@ leaf 363): goals stayed on their branch, each offered on the other, a bad body 4
 another campaign 409, every touched tab 200. Drag, the right-click menu and the buttons need a
 browser — not seen yet.
 
+**When a goal is paid for and built** (`#lib/planner/cost.ts`, `#lib/planner/eta.ts`, the user's ask
+2026-11-17: "how long it takes me to gather all the resources to build another planned arkship, some
+megastructure, etc."). Every open goal of a kind with a known cost shows a line under its status:
+what it still costs, **start** (the stockpile holds the cost) and **built** (start + its base build
+days), each at this month's net and at the **mean net of the last N game months** (⚙ "Planner: mean
+income", default 6, `incomeWindow`). A second pair, **in plan order**, pays the queued goals above it
+first (wanted or later, not done, blocked or parked; page order, groups top to bottom) out of the same
+stockpile and income, so its time is that of their sum with its own.
+
+- **Costs:** the data DB's base costs, before modifiers, so always ≈. Arkships: the ones still
+  missing × `<type>_arkship_megastructure`; megastructures: every stage after the one in the system
+  (`stageChain()`, numbered stages along `upgrade_from`; ruins and restorations are not planned);
+  waystation, outpost, starbase levels (each level up to the wanted one), modules, starbase
+  buildings, districts (the ones still missing) and buildings. The bio-ship variant from the shipset
+  (`shipKinds` has `bio_ship`: half the alloys, the rest as food); unknown shipset → the regular cost.
+  Megastructure costs need extractor 2026-11-17 (`megastructure`, `megastructure_resource`); an older
+  data DB has neither, and those goals show no line.
+- **One-time spending is out by construction:** the net is the budget's (`balance`), which books
+  recurring flows only; construction, edicts and decisions move the stockpile, not the net
+  (`unbooked()` in `#lib/series.ts` is what the budget does not explain). The mean takes each game
+  month's last reading once.
+- **Never:** no income of a needed resource, or the cost above its storage ("exceeds storage" —
+  megastructures are paid up front; storage exact with the companion mod, else the base estimate of
+  `#lib/storage.ts`). The plan-order sum is not held against storage: it is paid as it goes.
+- Checked 2026-11-17 on Roaming Cybergang (bio shipset, 2215.01): a Scientific Arkship 500 influence,
+  5000 alloys, 17 500 food; start (17 500 − 2752 food) / 163.43 a month = 90 months, matching the
+  page.
+
 **Trade-offs tab** (`/tradeoffs`, behind the profile's `tradeoffs` switch in ⚙ — exploratory, the
 user's ask 2026-10-22: "when to spend scarce resources on what"; `#lib/tradeoffs.ts` pure,
 inputs from `server/tradeoffs.ts`): what can be built now — stations at surveyed deposits in our

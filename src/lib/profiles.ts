@@ -11,6 +11,7 @@ import { DEFAULT_STARBASE_VIEW, parseStarbaseView, type StarbaseView } from './s
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
 import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
 import { DEFAULT_POP_WINDOW, parsePopWindow, type PopWindow } from './popWindow.ts';
+import { DEFAULT_INCOME_WINDOW, parseIncomeWindow } from './planner/eta.ts';
 import { DEFAULT_QUADRANT_VIEW, parseQuadrantView, type QuadrantView } from './quadrants.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
@@ -112,6 +113,7 @@ export type ProfileSettings = {
 	mapFilter: MapFilter;
 	quadrants: QuadrantView; // every map's rings and sectors
 	popWindow: PopWindow; // the months the Pops charts' mean takes in
+	incomeWindow: number; // the months the planner's mean income takes in
 	display: Display;
 };
 export type ProfileInfo = { id: string; name: string };
@@ -131,6 +133,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	produceView: DEFAULT_PRODUCE_VIEW,
 	quadrants: DEFAULT_QUADRANT_VIEW,
 	popWindow: DEFAULT_POP_WINDOW,
+	incomeWindow: DEFAULT_INCOME_WINDOW,
 	mapFilter: DEFAULT_MAP_FILTER,
 	display: DEFAULT_DISPLAY
 };
@@ -202,6 +205,7 @@ export const SETTING_PARSERS: {
 	mapFilter: parseMapFilter,
 	quadrants: parseQuadrantView,
 	popWindow: parsePopWindow,
+	incomeWindow: parseIncomeWindow,
 	display: parseDisplay
 };
 const SETTING_KEYS = Object.keys(SETTING_PARSERS) as (keyof ProfileSettings)[];

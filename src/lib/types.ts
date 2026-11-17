@@ -1118,6 +1118,12 @@ export type TimelineNode = {
 /** Base cost, upkeep and output of a thing the game builds (data DB, before modifiers). */
 export type Costs = { cost: Resources; upkeep: Resources; produces: Resources };
 
+/** A megastructure stage: the stages it is upgraded from, its cost by `country_uses_bio_ships`. */
+export type MegaStage = {
+	from: string[];
+	cost: Partial<Record<'any' | 'bio' | 'regular', Resources>>;
+};
+
 /** What a player does that runs on a timer (data DB `action_timer.action_kind`). */
 export type ActionKind =
 	| 'decision'
@@ -1149,7 +1155,10 @@ export type GameData = {
 	>;
 	districtJobs: Record<string, Record<string, number>>; // district → job → positions (pops)
 	buildingJobs: Record<string, Record<string, number>>;
-	buildDays: Record<string, number>; // districts, ship sizes, buildings: base days
+	buildDays: Record<string, number>; // districts, ship sizes, buildings, megastructures: base days
+	// megastructure stages (extractor 2026-11-17; empty before): the stages each is upgraded from
+	// and its build cost per bio-ship variant (`any` paid by all, plus `bio` or `regular`)
+	megastructures: Record<string, MegaStage>;
 	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
 	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
 	shipParts: ShipParts; // ship sizes, sections, components (extractor 2026-11-09; empty before)

@@ -2,7 +2,15 @@ import { DatabaseSync } from 'node:sqlite';
 import { attractionSources } from '#lib/ethicSources.ts';
 import { parseTrigger } from '#lib/triggers.ts';
 import type { OutcomeNode } from '#lib/outcomes.ts';
-import type { ActionKind, CapEffect, Costs, GameData, Resources, Specialists } from '#lib/types.ts';
+import type {
+	ActionKind,
+	CapEffect,
+	Costs,
+	GameData,
+	MegaStage,
+	Resources,
+	Specialists
+} from '#lib/types.ts';
 import { NO_SHIP_PARTS, type ShipParts } from '#lib/designStats.ts';
 import {
 	automationBuildingsOf,
@@ -897,6 +905,20 @@ export function loadGameData(file: string): GameData {
 					r.days
 				])
 			),
+			megastructures: megastructureStages(
+				rows<{ name: string }>(
+					"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'megastructure_resource'"
+				).length
+					? {
+							stages: rows<{ key: string; upgrade_from: string | null }>(
+								'SELECT key, upgrade_from FROM megastructure'
+							),
+							costs: rows<{ key: string; resource: string; ships: string; amount: number }>(
+								"SELECT key, resource, ships, amount FROM megastructure_resource WHERE kind = 'cost'"
+							)
+						}
+					: { stages: [], costs: [] }
+			),
 			depositCategory: Object.fromEntries(
 				rows<{ key: string; category: string | null }>('SELECT key, category FROM deposit').map(
 					(r) => [r.key, r.category]
@@ -1068,6 +1090,26 @@ export function byKind(rows: unknown[]): Record<string, Costs> {
 		if (r.kind === 'cost' || r.kind === 'upkeep' || r.kind === 'produces')
 			c[r.kind][r.resource] = r.amount;
 	}
+	return out;
+}
+
+/** The data DB's `megastructure` and `megastructure_resource` rows → stage → MegaStage. */
+export function megastructureStages(rows: {
+	stages: { key: string; upgrade_from: string | null }[];
+	costs: { key: string; resource: string; ships: string; amount: number }[];
+}): Record<string, MegaStage> {
+	const out: Record<string, MegaStage> = {};
+	const stage = (key: string) => {
+		if (!Object.hasOwn(out, key)) out[key] = { from: [], cost: {} };
+		return out[key];
+	};
+	for (const r of rows.stages) {
+		const st = stage(r.key);
+		if (r.upgrade_from) st.from.push(r.upgrade_from);
+	}
+	for (const r of rows.costs)
+		if (r.ships === 'any' || r.ships === 'bio' || r.ships === 'regular')
+			(stage(r.key).cost[r.ships] ??= {})[r.resource] = r.amount;
 	return out;
 }
 

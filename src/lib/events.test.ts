@@ -101,6 +101,7 @@ const data: GameData = {
 	districtJobs: {},
 	buildingJobs: {},
 	buildDays: {},
+	megastructures: {},
 	depositCategory: {},
 	buildingCategory: {},
 	shipParts: { sizes: {}, sections: {}, components: {} },
