@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, type Snippet } from 'svelte';
+	import { flushSync, onMount, type Snippet } from 'svelte';
 	import { keep, recall } from './browserStore.ts';
 	import { page } from '$app/state';
 	import { autoRings, crossReach, ringRadii, sectors as sectorLines } from './quadrants.ts';
@@ -174,17 +174,17 @@
 	// wide), one for "wide + table". Only a drag is kept — a mode switch or leaving the full window
 	// also changes the size, and once stored the full window's height in place of the chosen one.
 	// A map that is the page's last element (`square` in the page, and always in "wide + table") is
-	// by default as high as it is wide, or reaches the window's bottom where that is more (the
-	// user's ask 2026-11-15; "wide + table" only reached the bottom before). Those heights are
+	// by default as high as it is wide where the window has room for that, else it reaches the
+	// window's bottom (the user's asks 2026-11-15 and 2026-11-17: square on a window too low for it
+	// pushed the legend out of sight). Those heights are
 	// stored under keys of their own (`<heightKey>-square`, `<heightKey>-side-square`): a height
 	// dragged before is not taken over.
 	const DEFAULT_H = 630;
 	let chosen: { page: number | null; side: number | null } = $state({ page: null, side: null });
 	let fillH = $state(0);
-	let outer = $state(0);
 	let box: HTMLElement | undefined = $state();
+	let root: HTMLElement | undefined = $state();
 	let column: HTMLElement | undefined = $state();
-	let resizing = false;
 	let w = $state(0);
 	let h = $state(0);
 	// The width is one choice for every map, per viewer: in the page, the browser's full width
@@ -199,31 +199,71 @@
 		m === 'side' ? `${heightKey}-side-square` : square ? `${heightKey}-square` : heightKey;
 	let boxW = $state(0); // the box's width, border included, as its height is set
 	const last = $derived(side || square);
-	const lastH = $derived(Math.max(boxW > 0 ? boxW : DEFAULT_H, fillH));
-	const height = $derived(
-		side ? (chosen.side ?? lastH) : (chosen.page ?? (square ? lastH : DEFAULT_H))
+	const lastH = $derived(
+		boxW > 0 && fillH > 0 ? Math.min(boxW, fillH) : boxW > 0 ? boxW : DEFAULT_H
 	);
-	// the height that ends the box where the window does with the page at its top, the legend
-	// under it still in sight
+	let dragH: number | null = $state(null); // while the bottom edge is dragged
+	const height = $derived(
+		dragH ?? (side ? (chosen.side ?? lastH) : (chosen.page ?? (square ? lastH : DEFAULT_H)))
+	);
+	// the room the window has for the box: the whole map in sight, its controls above and its
+	// legend below, once scrolled to
 	const fitFill = () => {
-		if (!box || !column) return;
-		const top = box.getBoundingClientRect().top + scrollY;
-		const below = column.getBoundingClientRect().bottom - box.getBoundingClientRect().bottom;
-		fillH = Math.max(200, Math.floor(innerHeight - top - below - GAP));
+		if (!box || !column || !root) return;
+		const b = box.getBoundingClientRect();
+		const above = b.top - root.getBoundingClientRect().top;
+		const below = column.getBoundingClientRect().bottom - b.bottom;
+		fillH = Math.max(200, Math.floor(innerHeight - above - below - 2 * GAP));
 	};
 	$effect(() => {
-		if (last && box && column) fitFill();
+		if (last && box && column && root) fitFill();
 	});
-	const remember = () => {
-		if (!resizing || fullWindow || !box) return;
-		const px = box.offsetHeight;
-		if (px === 0 || px === height) return;
-		chosen = { ...chosen, [mode]: px };
-		keep(keyOf(mode), String(px));
+	// The bottom edge is a handle of its own, not the browser's resize corner: near the window's
+	// bottom the drag scrolls the page along, the map growing into the room it makes (the user's
+	// ask 2026-11-17: a map at the page's end could only grow to the window's edge per drag).
+	const EDGE = 48; // px from the window's bottom where the page starts to scroll
+	let grab = 0; // the pointer's distance above the box's bottom edge when pressed
+	let pointerY = 0;
+	let startH = 0;
+	let scrolling = 0; // the requestAnimationFrame of the scroll-along
+	const fitDrag = () => {
+		if (box) dragH = Math.max(200, Math.round(pointerY + grab - box.getBoundingClientRect().top));
+	};
+	const scrollAlong = () => {
+		const into = pointerY - (innerHeight - EDGE);
+		if (dragH === null || into <= 0) {
+			scrolling = 0;
+			return;
+		}
+		const step = Math.ceil(Math.min(into, EDGE) / 3); // faster the deeper into the edge
+		dragH += step;
+		flushSync(); // the page is longer now: room to scroll into
+		scrollBy(0, step);
+		scrolling = requestAnimationFrame(scrollAlong);
+	};
+	const startResize = (e: PointerEvent) => {
+		if (!box) return;
+		e.preventDefault();
+		(e.currentTarget as Element).setPointerCapture(e.pointerId);
+		grab = box.getBoundingClientRect().bottom - e.clientY;
+		pointerY = e.clientY;
+		dragH = startH = box.offsetHeight;
+	};
+	const moveResize = (e: PointerEvent) => {
+		if (dragH === null) return;
+		pointerY = e.clientY;
+		fitDrag();
+		if (!scrolling) scrolling = requestAnimationFrame(scrollAlong);
 	};
 	const endResize = () => {
-		remember();
-		resizing = false;
+		if (dragH === null) return;
+		cancelAnimationFrame(scrolling);
+		scrolling = 0;
+		if (dragH !== startH) {
+			chosen = { ...chosen, [mode]: dragH };
+			keep(keyOf(mode), String(dragH));
+		}
+		dragH = null;
 	};
 	// The table beside reaches the window's bottom, whatever the map's height, and scrolls on its
 	// own; it sticks below the window's top edge once the page scrolls past it. Its table's header
@@ -273,10 +313,6 @@
 		const ro = new ResizeObserver(measure);
 		ro.observe(html);
 		return () => ro.disconnect();
-	});
-	// while the edge is dragged; once more when it is let go, should the last size come after
-	$effect(() => {
-		if (outer > 0) remember();
 	});
 
 	// null = everything fitted, following the size; set by zoom, drag and the focus buttons
@@ -408,8 +444,6 @@
 		fitAside();
 		if (last) fitFill();
 	}}
-	onpointerup={endResize}
-	onpointercancel={endResize}
 	onkeydown={(e) => {
 		if (fullWindow && e.key === 'Escape') setFullWindow(false);
 	}}
@@ -472,6 +506,7 @@
 <!-- full width: centred on the window, as `main` is (mx-auto), whatever its max width -->
 <!-- the whole window: fixed over the page, below its menus and popups (z-50) -->
 <div
+	bind:this={root}
 	class={fullWindow
 		? 'fixed inset-0 z-40 flex flex-col bg-white p-3 dark:bg-gray-950'
 		: full
@@ -561,21 +596,15 @@
 				: ''}"
 	>
 		<div class="min-w-0 {fullWindow ? 'flex h-full min-h-0 flex-col' : ''}" bind:this={column}>
-			<!-- a press on the box itself is on its resize edge: the svg covers the rest -->
 			<div
 				bind:this={box}
-				role="presentation"
-				onpointerdown={(e) => {
-					if (e.target === e.currentTarget) resizing = true;
-				}}
-				class="w-full overflow-hidden rounded border border-gray-200 dark:border-gray-800 {fullWindow
+				class="relative w-full overflow-hidden rounded border border-gray-200 dark:border-gray-800 {fullWindow
 					? 'min-h-0 flex-1'
-					: 'resize-y'}"
+					: ''}"
 				style={fullWindow ? 'min-height: 200px' : `height: ${height}px; min-height: 200px`}
 				bind:clientWidth={w}
 				bind:offsetWidth={boxW}
 				bind:clientHeight={h}
-				bind:offsetHeight={outer}
 			>
 				{#if w > 0 && h > 0}
 					<svg
@@ -808,6 +837,27 @@
 							>
 						{/if}
 					</svg>
+				{/if}
+				{#if !fullWindow}
+					<!-- the bottom edge: drag to resize; near the window's bottom the page scrolls along -->
+					<div
+						class="group absolute inset-x-0 bottom-0 flex h-2.5 cursor-ns-resize touch-none items-end justify-center"
+						role="separator"
+						aria-orientation="horizontal"
+						aria-label="map height"
+						title="drag to change the map's height"
+						onpointerdown={startResize}
+						onpointermove={moveResize}
+						onpointerup={endResize}
+						onpointercancel={endResize}
+					>
+						<span
+							class="mb-0.5 h-1 w-10 rounded-full bg-gray-300 group-hover:bg-gray-500 dark:bg-gray-700 dark:group-hover:bg-gray-500 {dragH !==
+							null
+								? 'bg-gray-500'
+								: ''}"
+						></span>
+					</div>
 				{/if}
 			</div>
 			{@render swatches()}

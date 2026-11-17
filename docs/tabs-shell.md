@@ -235,10 +235,16 @@ wide + table = that with the page's table beside the map) — one localStorage k
 (`MAP_WIDTH_KEY`, `#lib/mapView.ts`). A page with a table of what its map shows (map: Found;
 systems; megastructures; frontier: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
-filters stay above the map. **A map that is the page's last element is as high as it is wide**,
-or reaches the window's bottom (the legend in sight) where that is more, until the viewer drags it
-(the user's ask, 2026-11-15): `square` where the page ends with it (the frontier tab), and every
-map in "wide + table", which only reached the window's bottom before. Without `beside` (diplomacy, migration) the third button is not offered
+filters stay above the map. **A map that is the page's last element is as high as it is wide
+where the window has room for that**, else as high as the window allows with its controls and
+legend in sight once scrolled to (`fitFill()`), until the viewer drags it (the user's asks,
+2026-11-15 and 2026-11-17 — square, or the window's bottom where that was more, pushed the legend
+out of a low window): `square` where the page ends with it (the frontier tab), and every map in
+"wide + table". **The height is dragged at the box's bottom edge** (a handle of its own, not the
+browser's `resize-y` corner, 2026-11-17): within 48px of the window's bottom the page scrolls
+along and the map grows into the room that makes, so a map at the page's end grows in one drag
+(the user's ask: before, it grew only to the window's edge per drag). A drag that changed the
+height is stored on release. Without `beside` (diplomacy, migration) the third button is not offered
 and a stored `side` draws as wide. **Full window** (the user's ask 2026-11-02; `GalaxyMap`'s "⛶ full
 window" button, per viewer in localStorage `MAP_FULL_KEY`): the map lays itself over the whole
 browser window (`fixed`, `z-40` — below the context menu and popups, `z-50`), its toolbar on top,
