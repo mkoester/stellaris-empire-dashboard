@@ -89,6 +89,15 @@ describe('diplomacyView', () => {
 	const pacts = (d: ReturnType<typeof diplomacyView>) =>
 		d!.edges.filter((e) => e.kind === 'defensive_pact');
 
+	it('a war with an empire not met goes without its name, made of theirs', () => {
+		const war = (defenders: number[]) => ({
+			...snap('2210.01.01', { 1: 10, 2: 10 }),
+			allWars: [{ id: 'w', name: 'C1 - C3 War', start: null, attackers: [1], defenders }]
+		});
+		expect(diplomacyView([war([3])], colors, false)!.wars[0].name).toBeNull();
+		expect(diplomacyView([war([2])], colors, false)!.wars[0].name).toBe('C1 - C3 War');
+	});
+
 	it('shows a pact through either side at diplomacy level 2', () => {
 		const d = diplomacyView([snap('2210.01.01', { 1: 10, 2: 50, 4: 10 })], colors, false)!;
 		expect(d.nodes.map((n) => n.id)).toEqual([0, 1, 2, 4]); // 3 not met

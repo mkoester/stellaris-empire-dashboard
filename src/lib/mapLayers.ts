@@ -1,4 +1,4 @@
-import { pretty } from './format.ts';
+import { contactStage, pretty } from './format.ts';
 import { parseMapMode, type MapMode } from './mapModes.ts';
 import { NOMAD_ECONOMY } from './nomad.ts';
 import { shipLabel } from './ships.ts';
@@ -68,6 +68,12 @@ export type MapShips = (typeof MAP_SHIPS)[number];
 // `mode`: what colours the borders or systems (#lib/mapModes.ts)
 export type MapFilter = { hidden: MapLayer[]; ships: MapShips; mode: MapMode };
 export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], ships: 'off', mode: 'empire' };
+
+// a contact's stage by its number, if it has one (`contactStage()`)
+const stageOf = (stage: string) => {
+	const n = contactStage(stage);
+	return n === null ? '' : `stage ${n}, `;
+};
 
 export function parseMapFilter(v: unknown): MapFilter {
 	const o = (v && typeof v === 'object' ? v : {}) as Partial<MapFilter>;
@@ -274,7 +280,7 @@ export function mapMarkers(p: {
 				: {
 						done: false,
 						ongoing: c.leaderId !== null, // an envoy on it
-						progress: `${pretty(c.stage)}, ${c.clues} clues${days(c.daysLeft)}`
+						progress: `${stageOf(c.stage)}${c.clues} clues${days(c.daysLeft)}`
 					})
 		})),
 		...p.seen.map((s) => ({

@@ -348,6 +348,9 @@ export type QueueItem = {
  * Where an observation came from: a parsed save (complete) or the companion mod's monthly
  * game.log lines (stockpile and net income only — the other fields are null/empty).
  */
+/** A country flag an outcome sets (data DB `outcome.flags_json`); `ch`: a dig site's chapter. */
+export type OutcomeFlag = { k: string; ch?: number };
+
 export type SourceKind = 'save' | 'log';
 
 /** A static modifier on the empire or a planet (events, agendas, features …); `until` null = permanent. */
@@ -1118,6 +1121,12 @@ export type TimelineNode = {
 /** Base cost, upkeep and output of a thing the game builds (data DB, before modifiers). */
 export type Costs = { cost: Resources; upkeep: Resources; produces: Resources };
 
+/** A megastructure stage: the stages it is upgraded from, its cost by `country_uses_bio_ships`. */
+export type MegaStage = {
+	from: string[];
+	cost: Partial<Record<'any' | 'bio' | 'regular', Resources>>;
+};
+
 /** What a player does that runs on a timer (data DB `action_timer.action_kind`). */
 export type ActionKind =
 	| 'decision'
@@ -1149,7 +1158,10 @@ export type GameData = {
 	>;
 	districtJobs: Record<string, Record<string, number>>; // district → job → positions (pops)
 	buildingJobs: Record<string, Record<string, number>>;
-	buildDays: Record<string, number>; // districts, ship sizes, buildings: base days
+	buildDays: Record<string, number>; // districts, ship sizes, buildings, megastructures: base days
+	// megastructure stages (extractor 2026-11-17; empty before): the stages each is upgraded from
+	// and its build cost per bio-ship variant (`any` paid by all, plus `bio` or `regular`)
+	megastructures: Record<string, MegaStage>;
 	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
 	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
 	shipParts: ShipParts; // ship sizes, sections, components (extractor 2026-11-09; empty before)
@@ -1372,6 +1384,9 @@ export type GameData = {
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
 	// what each leads to, followed down to the effects (`#lib/outcomes.ts`); empty on an older data DB
 	outcomeTrees: Record<'anomaly' | 'project' | 'dig_site', Record<string, OutcomeNode[]>>;
+	// the country flags each sets on the way (`ch`: a dig site's chapter), for telling a finished one
+	// from a lost one (`#lib/inferDone.ts`); empty on a data DB before 2026-11-17
+	outcomeFlags: Record<'anomaly' | 'project' | 'dig_site', Record<string, OutcomeFlag[]>>;
 	digSiteTypes: Record<string, { name: string; stages: number }>; // archaeological site types
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
 	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1

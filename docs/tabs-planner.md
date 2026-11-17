@@ -47,6 +47,18 @@ in `megastructures/29_nomad_arkships.txt`; counted from `Snapshot.ships` sizes
 every tradition of each adopted tree — taken ones show done with their date and land in the
 history's "reached" list, the rest are the tree's remaining picks — and every perk taken; they
 can be ordered, noted and removed (a removal sticks), and give way to the same goal added by hand.
+**Wanderlust** (the user's ask 2026-11-17: prioritise categories, pick targets on the map, see
+what was found; `outlook()` in `#lib/wanderlust.ts`). Per category: counted / needed, **found**
+(targets in systems visited or owned — never a spoiler), still open = found − counted (every
+counted system is one we entered, so this needs no `visited_by_nomad` flag) and **finishable**
+when the open ones cover what is missing. A system flagged twice counts for its first category
+only (`countsFor()`: nomads.4720 tests the flags with else_if). The category goal says it ("1 of
+2, 1 found to visit: enough to finish"), the suggestions list finishable categories first, the
+map's Wanderlust line underlines them; the map's right-click offers an arkship visit as a _want_
+for a target not yet counted whose category is not done (an unvisited one only with the spoiler).
+The chain does not end at the fourth category: the perk's second modifier comes at four done (a
+category with no targets in the galaxy counts as done), and every category keeps paying out until
+all eight end it (`complete_nomad_exploration_effect`).
 **Popups** (`explanations()`): the game data's for techs, traditions, perks, buildings and
 civics; a Wanderlust category its reward, the static modifier `<category>_modifier` (4.5.3
 `missions/01_missions_nomads.txt`); focus cards built here (`focuscard:`: requirement, progress
@@ -166,6 +178,38 @@ viewer (localStorage). Checked 2026-10-31 on a DB copy (Roaming Korinth, head #3
 leaf 363): goals stayed on their branch, each offered on the other, a bad body 400, a node of
 another campaign 409, every touched tab 200. Drag, the right-click menu and the buttons need a
 browser — not seen yet.
+
+**When a goal is paid for and built** (`#lib/planner/cost.ts`, `#lib/planner/eta.ts`, the user's ask
+2026-11-17: "how long it takes me to gather all the resources to build another planned arkship, some
+megastructure, etc."). Every open goal of a kind with a known cost shows a line under its status:
+what it still costs, **start** (the stockpile holds the cost) and **built** (start + its base build
+days), each at this month's net and at the **mean net of the last N game months** (⚙ "Planner: mean
+income", default 6, `incomeWindow`). A second pair, **in plan order**, pays the queued goals above it
+first (wanted or later, not done, blocked or parked; page order, groups top to bottom) out of the same
+stockpile and income, so its time is that of their sum with its own — behind the ⚙ switch
+`planOrder` ("Planner: also time each goal in plan order", off by default; the user 2026-11-17).
+The line highlights **start at this month's net**; the mean's time stays grey beside it. The
+tooltip lists every resource needed: amount, what is in stock, and when it is there at either income
+(`CostRow.resources`, from `eta().each`).
+
+- **Costs:** the data DB's base costs, before modifiers, so always ≈. Arkships: the ones still
+  missing × `<type>_arkship_megastructure`; megastructures: every stage after the one in the system
+  (`stageChain()`, numbered stages along `upgrade_from`; ruins and restorations are not planned);
+  waystation, outpost, starbase levels (each level up to the wanted one), modules, starbase
+  buildings, districts (the ones still missing) and buildings. The bio-ship variant from the shipset
+  (`shipKinds` has `bio_ship`: half the alloys, the rest as food); unknown shipset → the regular cost.
+  Megastructure costs need extractor 2026-11-17 (`megastructure`, `megastructure_resource`); an older
+  data DB has neither, and those goals show no line.
+- **One-time spending is out by construction:** the net is the budget's (`balance`), which books
+  recurring flows only; construction, edicts and decisions move the stockpile, not the net
+  (`unbooked()` in `#lib/series.ts` is what the budget does not explain). The mean takes each game
+  month's last reading once.
+- **Never:** no income of a needed resource, or the cost above its storage ("exceeds storage" —
+  megastructures are paid up front; storage exact with the companion mod, else the base estimate of
+  `#lib/storage.ts`). The plan-order sum is not held against storage: it is paid as it goes.
+- Checked 2026-11-17 on Roaming Cybergang (bio shipset, 2215.01): a Scientific Arkship 500 influence,
+  5000 alloys, 17 500 food; start (17 500 − 2752 food) / 163.43 a month = 90 months, matching the
+  page.
 
 **Trade-offs tab** (`/tradeoffs`, behind the profile's `tradeoffs` switch in ⚙ — exploratory, the
 user's ask 2026-10-22: "when to spend scarce resources on what"; `#lib/tradeoffs.ts` pure,

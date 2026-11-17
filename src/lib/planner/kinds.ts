@@ -1,6 +1,7 @@
+import { contactStage } from '#lib/format.ts';
 import { colonyActiveBuildings } from '#lib/buildings.ts';
-import { MEGA_RULES } from '#lib/megastructures.ts';
-import { counted, wanderlustName } from '#lib/wanderlust.ts';
+import { MEGA_RULES, stagePrefix } from '#lib/megastructures.ts';
+import { counted, countsFor, outlook, wanderlustName } from '#lib/wanderlust.ts';
 import type { GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
 import type { AutoGoal, Target } from './replay.ts';
 import type { Trigger } from '#lib/triggers.ts';
@@ -170,10 +171,13 @@ export const KINDS: Record<string, Kind> = {
 		check: (t, c) => {
 			const w = c.latest.wanderlust;
 			if (!w) return { state: 'unknown', why: 'no Wanderlust perk' };
-			const cat = w.categories.find((x) => x.key === s(t, 'category'));
+			const cat = outlook(w, c.galaxy ?? []).find((x) => x.key === s(t, 'category'));
 			if (w.complete || cat?.done) return { state: 'done' };
 			if (!cat) return { state: 'unknown' };
-			return { state: cat.seen > 0 ? 'progress' : 'open', why: `${cat.seen} of ${cat.count}` };
+			return {
+				state: cat.seen > 0 ? 'progress' : 'open',
+				why: `${cat.seen} of ${cat.count}, ${cat.open} found to visit${cat.finishable ? ': enough to finish' : ''}`
+			};
 		}
 	},
 	wanderlust_visit: {
@@ -185,7 +189,9 @@ export const KINDS: Record<string, Kind> = {
 		check: (t, c) => {
 			if (!c.latest.wanderlust) return { state: 'unknown', why: 'no Wanderlust perk' };
 			const at = counted(c.latest.wanderlust, n(t, 'system'));
-			return at ? { state: 'done', why: `counted ${at}` } : { state: 'open' };
+			if (at) return { state: 'done', why: `counted ${at}` };
+			const key = countsFor(sys(c, n(t, 'system'))?.wanderlust ?? []);
+			return { state: 'open', why: key ? wanderlustName(key) : undefined };
 		}
 	},
 	outpost: {
@@ -350,7 +356,7 @@ export const KINDS: Record<string, Kind> = {
 		check: (t, c) => {
 			const x = sys(c, n(t, 'system'));
 			if (!x) return { state: 'unknown' };
-			const there = x.megastructures.filter((m) => m.startsWith(s(t, 'structure')));
+			const there = x.megastructures.filter((m) => m.startsWith(stagePrefix(s(t, 'structure'))));
 			if (there.some((m) => !m.endsWith('_ruined')) && x.owned)
 				return {
 					state: there.some((m) => /_(0|1)$/.test(m)) ? 'progress' : 'done',
@@ -540,7 +546,11 @@ export const KINDS: Record<string, Kind> = {
 			}
 			if (f.status === 'finished') return { state: 'done' };
 			if (f.status === 'aborted') return { state: 'blocked', why: 'aborted' };
-			return { state: f.leaderId !== null ? 'progress' : 'open', why: `stage ${f.stage}` };
+			const stage = contactStage(f.stage);
+			return {
+				state: f.leaderId !== null ? 'progress' : 'open',
+				why: stage === null ? 'in progress' : `stage ${stage}`
+			};
 		}
 	},
 	identity: {
@@ -737,7 +747,8 @@ export const arkships = (s: Snapshot, type: string) =>
  */
 export function autoGoals(
 	s: Snapshot,
-	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'traditionPrereqs' | 'perkTrees'>>,
+	data: Pick<GameData, 'traditionTrees'> &
+		Partial<Pick<GameData, 'traditionPrereqs' | 'perkTrees'>>,
 	wanted: string[] = [],
 	wantedPerks: string[] = [],
 	treeAvailable: (key: string) => boolean = () => true
@@ -766,7 +777,8 @@ export function autoGoals(
 		const tree = data.traditionTrees[key];
 		if (!tree?.traditions.some((x) => x.role === 'adopt')) continue;
 		const sameName = openedTrees.get(tree.name);
-		if (!sameName || (treeAvailable(key) && !treeAvailable(sameName))) openedTrees.set(tree.name, key);
+		if (!sameName || (treeAvailable(key) && !treeAvailable(sameName)))
+			openedTrees.set(tree.name, key);
 	}
 	for (const key of openedTrees.values()) {
 		const adopt = data.traditionTrees[key].traditions.find((x) => x.role === 'adopt')?.key;

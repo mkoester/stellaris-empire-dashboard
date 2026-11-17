@@ -1831,6 +1831,23 @@ describe('helpers', () => {
 				variables: [{ key: 'NAME', value: { key: 'NAME_Alpha_Centauri' } }]
 			})
 		).toBe('Alpha Centauri Prime');
+		// FirstContact-MeaningfulLabels: the contact's name, its type in parentheses (roaming
+		// cybergang 2215.03.03)
+		expect(
+			displayName({
+				key: 'fc_label_drones',
+				variables: [
+					{
+						key: 'event_target:fc_label_who.GetName',
+						value: { key: 'NAME_Mineral_Extraction_Operation' }
+					}
+				]
+			})
+		).toBe('Mineral Extraction Operation (Mining Drones)');
+		// a type the dashboard does not know yet: its key
+		expect(
+			displayName({ key: 'fc_label_newtype', variables: [{ key: 'x', value: { key: 'Foo' } }] })
+		).toBe('Foo (newtype)');
 	});
 
 	it('fills a modified species’ inline template, prescripted names first', () => {
@@ -1846,6 +1863,15 @@ describe('helpers', () => {
 					]
 				})
 			).toBe('Trans-Yorphid');
+			expect(
+				displayName({
+					key: 'AofB',
+					variables: [
+						{ key: '1', value: { key: 'Pact' } },
+						{ key: '2', value: { key: 'Fellnoll' } }
+					]
+				})
+			).toBe('Pact of Fellnoll');
 			expect(
 				displayName({
 					key: '$base$ $affix$',

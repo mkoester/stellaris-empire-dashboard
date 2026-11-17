@@ -17,12 +17,15 @@ const reading = (
 		[9, 'Nine']
 	]
 });
-const input = (
-	date: string,
-	h: HistoryReading,
-	communications: number[],
-	visited: number[] = [1]
-): HistoryInput => ({ date, history: h, communications, visited, wars: [] });
+// we met 7 and have intel 30 on it: its systems, colonies and wars
+const input = (date: string, h: HistoryReading, communications: number[]): HistoryInput => ({
+	date,
+	history: h,
+	communications,
+	wars: [],
+	met: [7],
+	intel: [[7, 30]]
+});
 
 const inputs = [
 	input(
@@ -85,15 +88,53 @@ describe('knownHistory', () => {
 			['communications', '2211.01.01', 7]
 		]);
 	});
-	it('a stranger’s system shows where we have been', () => {
-		const been = knownHistory(
-			inputs.map((x) => ({ ...x, visited: [1, 3] })),
+	it('a stranger stays unknown, even met, below its intel', () => {
+		expect(ownersAt(h.changes, '2211.06.01').has(3)).toBe(false);
+		const metNine = inputs.map((x) => ({
+			...x,
+			met: [7, 9],
+			intel: [[7, 30]] as [number, number][]
+		}));
+		expect(ownersAt(knownHistory(metNine, 0).changes, '2211.06.01').has(3)).toBe(false);
+		// the spoiler: everything about the empires we met
+		expect(ownersAt(knownHistory(metNine, 0, 'met').changes, '2211.06.01').get(3)).toBe(9);
+	});
+	it('too little intel hides a met empire’s systems', () => {
+		const low = knownHistory(
+			inputs.map((x) => ({ ...x, intel: [[7, 20]] as [number, number][] })),
 			0
 		);
-		expect(ownersAt(been.changes, '2211.06.01').get(3)).toBe(9);
+		expect(ownersAt(low.changes, '2211.06.01').has(2)).toBe(false);
+		expect(low.known.sort()).toEqual([0, 7]); // its wars, from diplomacy 1
+	});
+	it('names a stranger as we know it, its own name only with the cheat', () => {
+		const met = inputs.map((x) => ({
+			...x,
+			names: [[9, 'Nine Aliens']] as [number, string][]
+		}));
+		expect(knownHistory(met, 0).names[9]).toBe('Nine Aliens');
+		expect(knownHistory(inputs, 0).names[9]).toBeUndefined();
+		expect(knownHistory(met, 0, 'all').names[9]).toBe('Nine');
+	});
+	it('a war with a stranger in it goes without its name, made of their own names', () => {
+		const war = {
+			id: 'w1',
+			name: 'Seven-Nine War',
+			start: '2210.06.01',
+			attackers: [7],
+			defenders: [9]
+		};
+		const at = (all: boolean) =>
+			knownHistory(
+				inputs.map((x) => ({ ...x, wars: [war] })),
+				0,
+				all ? 'all' : 'known'
+			).events.find((e) => e.kind === 'war')?.text;
+		expect(at(false)).not.toContain('Seven-Nine War');
+		expect(at(true)).toContain('Seven-Nine War');
 	});
 	it('the cheat shows everything', () => {
-		const everything = knownHistory(inputs, 0, true);
+		const everything = knownHistory(inputs, 0, 'all');
 		expect(ownersAt(everything.changes, '2211.06.01').get(3)).toBe(9);
 		expect(everything.events.filter((e) => e.kind === 'colony')).toHaveLength(3);
 	});

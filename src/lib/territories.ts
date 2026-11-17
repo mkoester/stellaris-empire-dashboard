@@ -133,7 +133,7 @@ export function territories(p: {
 	const talking = new Set(p.relations.filter((r) => r.communications).map((r) => r.countryId));
 	const known = (id: number) => id === p.ownId || p.spoiler || talking.has(id);
 	const name = (id: number) =>
-		p.relations.find((r) => r.countryId === id)?.name ?? country(id)?.name ?? String(id);
+		p.relations.find((r) => r.countryId === id)?.name ?? country(id)?.name ?? 'unknown empire';
 
 	const byOwner = new Map<number, number[]>();
 	const unknown: number[] = [];

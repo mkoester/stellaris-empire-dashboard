@@ -5,12 +5,14 @@ import { DEFAULT_MIGRATION_VIEW, parseMigrationView, type MigrationView } from '
 import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from './expansion.ts';
 import { anyOn } from './displaySwitches.ts';
 import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
+import { parseMapFit, parseMapWidth, type MapFit, type MapWidth } from './mapView.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { DEFAULT_CONTRACT_VIEW, parseContractView, type ContractView } from './contracts.ts';
 import { DEFAULT_STARBASE_VIEW, parseStarbaseView, type StarbaseView } from './starbases.ts';
 import { DEFAULT_SYSTEM_VIEW, parseSystemView, type SystemView } from './systems.ts';
 import { DEFAULT_PRODUCE_VIEW, parseProduceView, type ProduceView } from './produce.ts';
 import { DEFAULT_POP_WINDOW, parsePopWindow, type PopWindow } from './popWindow.ts';
+import { DEFAULT_INCOME_WINDOW, parseIncomeWindow } from './planner/eta.ts';
 import { DEFAULT_QUADRANT_VIEW, parseQuadrantView, type QuadrantView } from './quadrants.ts';
 import { parseChartEvents, parseTabs, type ChartEvents, type CustomTab } from './settings.ts';
 
@@ -33,6 +35,8 @@ export type Display = {
 	colonyRowLine: RowLine;
 	expansionRowLine: RowLine;
 	slaveMarket: SlaveMarketMode; // the slave market tab where slavery is not allowed
+	mapFit: MapFit; // what a map shows when a page opens
+	mapWidth: MapWidth; // a map's width until a browser's width button picks one
 	showSpoilers: boolean; // ⚙ lists the spoiler switches; off, they are off (#lib/displaySwitches.ts)
 	showCheats: boolean; // likewise the cheats
 	habitatsAlways: boolean; // habitat sites before habitats can be built (cheat)
@@ -52,9 +56,11 @@ export type Display = {
 	factionTypes: boolean; // ethics tab: faction types of our ethics, before any has formed (cheating)
 	allFactionTypes: boolean; // … and those of ethics we do not hold (cheating)
 	tradeoffs: boolean; // the trade-offs tab: where to spend scarce resources (exploratory)
+	planOrder: boolean; // planner: each goal's times with the goals above it paid first
 	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, beyond our intel (spoiler)
-	historyAll: boolean; // history tab: every empire's history, beyond what we know (spoiler)
+	historyMet: boolean; // history tab: everything about the empires we met, beyond our intel (spoiler)
+	historyAll: boolean; // history tab: every empire's history, by its own name (cheat)
 	pactIntel: boolean; // pacts tab: what intel shows of partners — tech counts, trade at economy intel 3 (spoiler)
 	subjectNumbers: boolean; // subjects tab: a subject's power, fleet, size and pops as numbers (cheat)
 	pactAll: boolean; // pacts tab: partners' techs and trade whatever our intel, tech hints (cheat)
@@ -66,6 +72,8 @@ export const DEFAULT_DISPLAY: Display = {
 	colonyRowLine: 'medium',
 	expansionRowLine: 'medium',
 	slaveMarket: 'mine',
+	mapFit: 'explored',
+	mapWidth: 'normal',
 	showSpoilers: false,
 	showCheats: false,
 	habitatsAlways: false,
@@ -85,9 +93,11 @@ export const DEFAULT_DISPLAY: Display = {
 	factionTypes: false,
 	allFactionTypes: false,
 	tradeoffs: false,
+	planOrder: false,
 	whatIfs: false,
 	tradeIntel: false,
 	diplomacyAll: false,
+	historyMet: false,
 	historyAll: false,
 	pactIntel: false,
 	subjectNumbers: false,
@@ -112,6 +122,7 @@ export type ProfileSettings = {
 	mapFilter: MapFilter;
 	quadrants: QuadrantView; // every map's rings and sectors
 	popWindow: PopWindow; // the months the Pops charts' mean takes in
+	incomeWindow: number; // the months the planner's mean income takes in
 	display: Display;
 };
 export type ProfileInfo = { id: string; name: string };
@@ -131,6 +142,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	produceView: DEFAULT_PRODUCE_VIEW,
 	quadrants: DEFAULT_QUADRANT_VIEW,
 	popWindow: DEFAULT_POP_WINDOW,
+	incomeWindow: DEFAULT_INCOME_WINDOW,
 	mapFilter: DEFAULT_MAP_FILTER,
 	display: DEFAULT_DISPLAY
 };
@@ -148,6 +160,8 @@ export function parseDisplay(v: unknown): Display {
 			o.slaveMarket && o.slaveMarket in SLAVE_MARKET_MODES
 				? o.slaveMarket
 				: DEFAULT_DISPLAY.slaveMarket,
+		mapFit: parseMapFit(o.mapFit),
+		mapWidth: parseMapWidth(o.mapWidth),
 		// a profile from before the gates keeps what it had on
 		showSpoilers: typeof o.showSpoilers === 'boolean' ? o.showSpoilers : anyOn(o, 'spoiler'),
 		showCheats: typeof o.showCheats === 'boolean' ? o.showCheats : anyOn(o, 'cheat'),
@@ -169,8 +183,10 @@ export function parseDisplay(v: unknown): Display {
 		factionTypes: o.factionTypes === true,
 		allFactionTypes: o.allFactionTypes === true,
 		tradeoffs: o.tradeoffs === true,
+		planOrder: o.planOrder === true,
 		tradeIntel: o.tradeIntel === true,
 		diplomacyAll: o.diplomacyAll === true,
+		historyMet: o.historyMet === true,
 		historyAll: o.historyAll === true,
 		pactIntel: o.pactIntel === true,
 		subjectNumbers: o.subjectNumbers === true,
@@ -202,6 +218,7 @@ export const SETTING_PARSERS: {
 	mapFilter: parseMapFilter,
 	quadrants: parseQuadrantView,
 	popWindow: parsePopWindow,
+	incomeWindow: parseIncomeWindow,
 	display: parseDisplay
 };
 const SETTING_KEYS = Object.keys(SETTING_PARSERS) as (keyof ProfileSettings)[];

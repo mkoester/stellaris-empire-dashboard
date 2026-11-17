@@ -153,7 +153,7 @@ export function migration(
 			planetId: Number(planetId),
 			name: displayName(p.name),
 			ownerId: Number(p.owner),
-			owner: own ? raw.empireName : (raw.countryNames[String(p.owner)] ?? `empire ${p.owner}`),
+			owner: own ? raw.empireName : (raw.countryNames[String(p.owner)] ?? 'unknown empire'),
 			own,
 			system: displayName(sys?.name),
 			x: num(sys?.coordinate?.x),

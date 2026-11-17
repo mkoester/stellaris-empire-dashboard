@@ -13,7 +13,6 @@
 	const KNOWN = ['migration_access', 'commercial_pact', 'research_agreement'];
 	const others = $derived(data.types.filter((t) => !KNOWN.includes(t.key)));
 	const typeOf = (key: string) => data.types.find((t) => t.key === key);
-	const gate = $derived(data.pactAll ? null : data.pactIntel ? 'intel' : 'none');
 </script>
 
 {#snippet upkeep(key: string)}
@@ -156,14 +155,6 @@
 					{/if}
 				</tbody>
 			</table>
-			{#if gate !== null && c.shares.some((s) => s.trade === null)}
-				<p class="mt-1 text-xs text-gray-500">
-					A partner's trade shows {gate === 'intel'
-						? 'at economy intel level 3 (intel 90)'
-						: 'with the pacts intel spoiler (⚙), at economy intel level 3 (intel 90)'} — or with the pacts
-					cheat.
-				</p>
-			{/if}
 		</section>
 	{/if}
 

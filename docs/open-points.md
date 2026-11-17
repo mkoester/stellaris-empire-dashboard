@@ -28,12 +28,12 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   Fixed for 0.1.19: one stream for the whole browser (SharedWorker `#lib/eventsWorker.ts`, hub
   in `#lib/live.ts`). Still to confirm in the browser: 3+ tabs click through, DevTools shows one
   `/api/events`.
-- **Map heights, 0.1.19 (2026-11-15), unchecked in a browser**: `GalaxyMap.svelte` stores a
-  height only while a drag of the box's native resize edge is under way — it assumes a press on
-  that edge fires `pointerdown` with the box itself as target (the svg covers the rest). If a
-  dragged height is not kept after a reload, that assumption is the first suspect. Also check
-  that a map last on its page (the frontier tab's; every map in "wide + table") is square with
-  nothing stored — or reaches the window's bottom where that is more — and follows a resize.
+- **Map heights, unchecked in a browser (2026-11-17)**: `GalaxyMap.svelte`'s bottom-edge handle
+  (pointer capture, `scrollAlong()`): drag a map at the page's end (the frontier tab) down past the
+  window's bottom in one go — the page should scroll along and the map follow; the height should
+  survive a reload; a click on the handle without a drag stores nothing. Also check that a map last
+  on its page (the frontier tab's; every map in "wide + table") is square with nothing stored on a
+  tall window, and on a low one ends with its legend in sight once scrolled to.
 
 **The checks still owed from the 2026-10-22 session — what, how, which screenshot — are listed in
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech

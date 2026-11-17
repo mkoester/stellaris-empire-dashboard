@@ -265,7 +265,8 @@ events are the game's own terms for one panel each, `/situations` redirects; `#l
 readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,
 situations, a link to events | anomalies, dig sites, special projects), the first-contact map
 below them at full width (the user's ask, 2026-11-15): first
-contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
+contacts as a table (age in months, difficulty, clues, stage — its number alone, `contactStage()`:
+the game's stage keys name the contact's kind and way, spoilers, the user's ask 2026-11-17 —, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
 an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
 with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
@@ -274,7 +275,20 @@ finished something like anomalies … keep them in the overview, at the bottom a
 below each of situations, anomalies, dig sites and special projects, what earlier saves of the
 branch had and the shown one no longer has (`gone()` in `#lib/situations.ts`; finished or lost —
 the save cannot tell), with "Last seen" and the same columns, Outcome included. Roaming Cyber Gang
-2213.08.02: 8 anomalies. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`,
+2213.08.02: 8 anomalies. **Hidden until asked for, newest first** (the user's ask 2026-11-17): a
+checkbox per panel, "also no longer in the save (n)", off on every load; the table starts sorted by
+Last seen, descending. **≈ finished, inferred** (the same ask; `#lib/inferDone.ts` pure): a
+Status column on gone anomalies, projects and dig sites says `≈ finished` (a dig site `≈ chapter n
+done` short of its last) where the save has an effect only that one source gives —
+`uniqueMarks()` over every outcome tree: the country flags its events set (data DB
+`outcome.flags_json`, extraction since 2026-11-17; read only where `PRAGMA table_info` has it, so
+an older data DB infers from the rest), the modifiers and deposits in its tree. Checked against the
+save the gone lists compare with: `countryFlags`; `countryModifiers` and colonies' planet
+modifiers; deposits on the source's own planet (`campaignGalaxy` bodies, colonies). The tooltip
+names the evidence. Techs never count (research gives them too); ship and uncolonised-planet
+modifiers are not in the save reading. DB copy 2026-11-17: 1 of 14 gone anomalies
+(Interference, flag `lcluster_clue_sonic`) — the rest give only resources and research, which
+leave nothing to find. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`,
 `digSiteSpoilers`): the **Outcome** column (the user's ask 2026-11-15, `#lib/outcomes.ts` pure,
 `Outcome.svelte`, `server/outcomes.ts`) — the data DB's `outcome` trees, a project's own tree
 filled in where an anomaly leads to it (`withProjects()`), as markers, the first rewards, and the
@@ -290,7 +304,13 @@ absent (Shattered Frontier's hostile reply hangs on a flag its own dialog sets).
 events and options with the condition on hover, `if` branches not `taken`, a weighted branch
 settled at 0; `prune()` leaves them out of markers, summary and gains, and a row with nothing
 left is greyed. An older data DB has no `c`: nothing greys. A dig site's chapters before the next
-one are greyed as done. **Still to gain** (`#lib/outcomeGains.ts`, the user's ask 2026-11-17),
+one are greyed as done. **What a reward comes to now** (`Now`, `outcomeNow()`; the user's ask
+2026-11-17), in the tree, its summary and every tooltip (map, planner, upcoming): months of income
+"≈ +543 now" (`monthsNow()`, the latest save's gross income, clamped — the same as Still to gain),
+its "(min …, max …)" greyed; tech progress "≈ 165 physics, 3.6 months of ours" (the share × the
+tech's cost at the save's cost factors, `techCost()`; the time at our research in that field,
+none for a tech researched). The page gets the techs as a table (`nowTable()`, every tech the
+outcome trees give progress in): a function does not serialise. **Still to gain** (`#lib/outcomeGains.ts`, the user's ask 2026-11-17),
 above the anomalies while one of the three spoilers is on: the pruned trees of the open
 anomalies, projects and dig sites (from the next chapter) summed per reward — _sure_ on every
 path, _expected_ by the odds (an unsettled `if` as even odds); at an event's options the one

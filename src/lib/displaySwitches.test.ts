@@ -19,6 +19,8 @@ describe('SWITCHES', () => {
 					'colonyRowLine',
 					'expansionRowLine',
 					'slaveMarket',
+					'mapFit',
+					'mapWidth',
 					'showSpoilers',
 					'showCheats'
 				].includes(k)
@@ -64,8 +66,10 @@ describe('effectiveDisplay', () => {
 			'contractSpoilers',
 			'diplomacyAll',
 			'historyAll',
+			'historyMet',
 			'lgates',
 			'pactIntel',
+			'subjectNumbers',
 			'surveyAll',
 			'wholeGalaxy',
 			'wormholePairs'

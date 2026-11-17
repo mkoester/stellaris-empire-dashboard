@@ -10,8 +10,8 @@ import { idles, withIdleShips } from '#lib/idle.ts';
 import { plannedOnOffer, withLiveOptions } from '#lib/techOffers.ts';
 import { planSummary } from './planner.ts';
 import { display } from './settings.ts';
-import { outcomeTips } from './outcomes.ts';
-import { empireColors } from '#lib/contacts.ts';
+import { outcomeNow, outcomeTips } from './outcomes.ts';
+import { empireColors, pageLatest } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
 import type { Snapshot } from '#lib/types.ts';
@@ -76,7 +76,7 @@ export function branch(url: URL) {
 					...timedOut(saves, getGameData(), title, dismissed(db, campaign)),
 					...rolls(last, {
 						name: (type) => getGameData().digSiteTypes[type]?.name,
-						tip: outcomeTips(getGameData(), display()).digSite
+						tip: outcomeTips(getGameData(), display(), outcomeNow(last, getGameData())).digSite
 					}),
 					...plannedOnOffer(
 						// at the head, the cards the companion mod logged on the 2nd (0.13.0)
@@ -114,7 +114,8 @@ export function branch(url: URL) {
 		tip,
 		isHead: tip === headId(db),
 		snaps,
-		latest: latestOf(snaps),
+		// sent to every page: only the countries it may know of (server code reads `snaps`)
+		latest: pageLatest(latestOf(snaps)),
 		guessedLinks: path(nodes(db), tip).filter((n) => n.ambiguous).length
 	};
 }

@@ -7,7 +7,13 @@ import type { Display } from './profiles.ts';
 
 export type SwitchKey = Exclude<
 	keyof Display,
-	'colonyRowLine' | 'expansionRowLine' | 'slaveMarket' | 'showSpoilers' | 'showCheats'
+	| 'colonyRowLine'
+	| 'expansionRowLine'
+	| 'slaveMarket'
+	| 'mapFit'
+	| 'mapWidth'
+	| 'showSpoilers'
+	| 'showCheats'
 >;
 export type SwitchKind = 'normal' | 'spoiler' | 'cheat';
 export type Switch = {
@@ -40,12 +46,29 @@ export const SWITCHES: Switch[] = [
 		note: 'exploratory: estimates from your budget, with knobs for upcoming techs and traditions'
 	},
 	{
-		key: 'historyAll',
+		key: 'planOrder',
+		group: 'Tabs',
+		kind: 'normal',
+		label: 'Planner: also time each goal in plan order',
+		note: 'when it is paid for and built with the wanted goals above it paid first',
+		tags: 'cost income estimate'
+	},
+	{
+		key: 'historyMet',
 		group: 'Tabs',
 		kind: 'spoiler',
 		intel: true,
-		label: 'History: every empire’s systems, colonies and wars, beyond what you know of them',
-		note: 'the tab shows your own history, that of empires you talk to, and what you saw yourself'
+		label: 'History: everything about the empires you met, beyond your intel on them',
+		note: 'without it: their systems and colonies from intel 30, their wars from intel 20'
+	},
+	{
+		key: 'historyAll',
+		group: 'Tabs',
+		// the game never tells anyone another empire's whole past (the user's ask 2026-11-17)
+		kind: 'cheat',
+		intel: true,
+		label: 'History: every empire’s systems, colonies and wars, met or not, by its own name',
+		note: 'the game never shows anyone that'
 	},
 	{
 		key: 'unknownStars',
@@ -170,15 +193,16 @@ export const SWITCHES: Switch[] = [
 		group: 'Diplomacy and trade',
 		kind: 'spoiler',
 		intel: true,
-		label:
-			'Pacts: what your intel shows of each partner — its techs per area, its trade at high intel',
+		label: 'Pacts: what your intel shows of each research partner — its techs per area',
 		note: 'the game shows them on the empire’s intel screen, not what a pact comes to',
 		tags: 'research agreement commercial pact intel'
 	},
 	{
 		key: 'subjectNumbers',
 		group: 'Diplomacy and trade',
-		kind: 'cheat',
+		// a spoiler since 2026-11-17 (the user's ask): another empire's numbers, off where cheats are
+		kind: 'spoiler',
+		intel: true,
 		label:
 			'Subjects: each subject’s military, economy and tech power, fleet, size and pops as numbers',
 		note: 'the game compares them only as Inferior, Equivalent or Superior',
@@ -188,8 +212,7 @@ export const SWITCHES: Switch[] = [
 		key: 'pactAll',
 		group: 'Diplomacy and trade',
 		kind: 'cheat',
-		label:
-			'Pacts: which techs each research partner has, what each commercial pact brings, and which tech to pick',
+		label: 'Pacts: which techs each research partner has, and which tech to pick',
 		note: 'no intel level lists another empire’s techs',
 		tags: 'research agreement commercial pact tech hints'
 	},

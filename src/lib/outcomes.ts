@@ -1,5 +1,6 @@
 import { fmt, pretty } from './format.ts';
 import { describe, evaluate, type Facts, type Trigger } from './triggers.ts';
+import type { Resources } from './types.ts';
 
 // What anomalies, special projects and dig-site chapters lead to: the effect trees of the data
 // DB's `outcome` table (stellaris-data-extraction `extractor/outcomes.py` documents the node
@@ -383,20 +384,101 @@ export function duration(days: number): string {
 	return `${days} day${days === 1 ? '' : 's'}`;
 }
 
-/** One effect as a line, or null for nodes with structure (events, branches) or nothing to say. */
-export function effectText(n: OutcomeNode): string | null {
+type Months = Extract<OutcomeNode, { t: 'months' }>;
+
+/**
+ * What a months-of-income reward comes to at this gross monthly income: months × income (a loss
+ * counts as none), within its min and max; null when the months or the income are unknown.
+ */
+export function monthsNow(n: Months, income: Resources | null | undefined): number | null {
+	const per = income?.[n.r];
+	if (per === undefined || n.n === undefined) return null;
+	return Math.min(Math.max(n.n * Math.max(per, 0), n.min ?? 0), n.max ?? Infinity);
+}
+
+/**
+ * What rewards come to for this empire now, for the ≈ after them: `income` its gross monthly
+ * income; `tech(key)` the tech's cost at our current cost factors, its field and what we research
+ * in that field a month — null for a tech researched or unknown.
+ */
+export type Now = {
+	income: Resources | null;
+	tech?: (key: string) => { cost: number; area: string; perMonth: number | null } | null;
+};
+
+type TechNow = ReturnType<NonNullable<Now['tech']>>;
+/** `Now` as data, for a page: the techs looked up beforehand. */
+export type NowTable = { income: Resources | null; techs: Record<string, TechNow> };
+
+/** The techs these trees give progress in, looked up once, for a page (a function does not serialise). */
+export function nowTable(now: Now, trees: OutcomeNode[][]): NowTable {
+	const techs: Record<string, TechNow> = {};
+	for (const tree of trees)
+		for (const n of nodes(tree))
+			if (n.t === 'tech' && n.p !== undefined && !(n.k in techs))
+				techs[n.k] = now.tech?.(n.k) ?? null;
+	return { income: now.income, techs };
+}
+
+export const fromTable = (t: NowTable): Now => ({
+	income: t.income,
+	tech: (k) => t.techs[k] ?? null
+});
+
+/**
+ * A tech progress reward as research: its share of the tech's cost, and the days our own research
+ * in its field takes to make that much; null without the data.
+ */
+export function techNow(n: Extract<OutcomeNode, { t: 'tech' }>, now?: Now | null) {
+	const t = n.p !== undefined ? now?.tech?.(n.k) : null;
+	if (!t || n.p === undefined) return null;
+	const points = n.p * t.cost;
+	return { points, area: t.area, days: t.perMonth ? (points / t.perMonth) * 30 : null };
+}
+
+/**
+ * A months-of-income reward in three parts, for the frontier to grey the bounds: the reward, what
+ * it comes to now (" ≈ +540 now", an estimate on this month's income, '' without one) and the
+ * bounds (" (min 30)", or '').
+ */
+export function monthsParts(n: Months, now?: Now | null) {
+	const income = now?.income;
+	const bounds = [
+		n.min !== undefined ? `min ${fmt(n.min)}` : null,
+		n.max !== undefined && n.max < NO_MAX ? `max ${fmt(n.max)}` : null
+	].filter(Boolean);
+	const amount = monthsNow(n, income);
+	return {
+		main: `${n.n !== undefined ? `${n.n} months of` : 'months of'} ${resource(n.r)} income`,
+		now: amount === null ? '' : ` ≈ +${fmt(Math.round(amount))} now`,
+		bounds: bounds.length ? ` (${bounds.join(', ')})` : ''
+	};
+}
+
+/** " ≈ 312 physics, 2.5 months of ours": a tech progress reward as research now, or ''. */
+export function techNowText(n: Extract<OutcomeNode, { t: 'tech' }>, now?: Now | null): string {
+	const t = techNow(n, now);
+	if (!t) return '';
+	const days = t.days !== null ? `, ${duration(Math.max(1, Math.round(t.days)))} of ours` : '';
+	return ` ≈ ${fmt(Math.round(t.points))} ${t.area}${days}`;
+}
+
+/**
+ * One effect as a line, or null for nodes with structure (events, branches) or nothing to say;
+ * `now` adds what a months-of-income or tech progress reward comes to for us now (≈).
+ */
+export function effectText(n: OutcomeNode, now?: Now | null): string | null {
 	switch (n.t) {
 		case 'res':
 			return `${n.n > 0 ? '+' : ''}${fmt(n.n)} ${resource(n.r)}${n.scaled ? ' (scaled)' : ''}`;
 		case 'months': {
-			const bounds = [
-				n.min !== undefined ? `min ${fmt(n.min)}` : null,
-				n.max !== undefined && n.max < NO_MAX ? `max ${fmt(n.max)}` : null
-			].filter(Boolean);
-			return `${n.n !== undefined ? `${n.n} months of` : 'months of'} ${resource(n.r)} income${bounds.length ? ` (${bounds.join(', ')})` : ''}`;
+			const m = monthsParts(n, now);
+			return `${m.main}${m.now}${m.bounds}`;
 		}
 		case 'tech':
-			return n.p !== undefined ? `+${pct(n.p)} ${name(n)}` : `tech ${name(n)}`;
+			return n.p !== undefined
+				? `+${pct(n.p)} ${name(n)}${techNowText(n, now)}`
+				: `tech ${name(n)}`;
 		case 'option':
 			return `${name(n)} as research option`;
 		case 'deposit':
@@ -467,11 +549,11 @@ export function displayList(list: OutcomeNode[]): OutcomeNode[] {
 }
 
 /** The distinct rewards anywhere in a tree, as text — the one-line summary. */
-export function rewards(tree: OutcomeNode[]): string[] {
+export function rewards(tree: OutcomeNode[], now?: Now | null): string[] {
 	const out: string[] = [];
 	for (const n of nodes(tree)) {
 		if (n.t === 'note' || n.t === 'ref' || n.t === 'project') continue;
-		const t = effectText(n);
+		const t = effectText(n, now);
 		if (t && !out.includes(t)) out.push(t);
 	}
 	return out;
@@ -481,7 +563,11 @@ const MAX_LINES = 40;
 
 /** A tree as indented plain text with its markers first — for tooltips (`title`), where markup
  * cannot go. Long trees are cut after MAX_LINES lines. */
-export function outcomeText(tree: OutcomeNode[], chapter: number | null = null): string {
+export function outcomeText(
+	tree: OutcomeNode[],
+	chapter: number | null = null,
+	now?: Now | null
+): string {
 	const lines: string[] = [
 		markers(tree)
 			.map((m) => MARKERS[m].label)
@@ -540,7 +626,7 @@ export function outcomeText(tree: OutcomeNode[], chapter: number | null = null):
 				if (n.sub) list(n.sub, depth + 1);
 				break;
 			default: {
-				const t = effectText(n);
+				const t = effectText(n, now);
 				if (t) add(depth, t);
 			}
 		}

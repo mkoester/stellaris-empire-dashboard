@@ -218,6 +218,26 @@ describe('goal checks', () => {
 		expect(state('wanderlust_visit', { system: 6 }, ctx(save()))).toBe('unknown');
 	});
 
+	it('a Wanderlust category says what we found to visit, and when it is enough', () => {
+		const s = save({
+			wanderlust: {
+				categories: [{ key: 'enclave', seen: 1, count: 2, done: false }],
+				visits: [],
+				complete: false
+			}
+		});
+		const g = (n: number) =>
+			Array.from({ length: n }, (_, i) => ({ id: i, visited: true, wanderlust: ['enclave'] }));
+		const at = (n: number) => ({ ...ctx(s), galaxy: g(n) as never });
+		expect(check('wanderlust', { category: 'enclave' }, false, at(1))).toEqual({
+			state: 'progress',
+			why: '1 of 2, 0 found to visit'
+		});
+		expect(check('wanderlust', { category: 'enclave' }, false, at(2))?.why).toBe(
+			'1 of 2, 1 found to visit: enough to finish'
+		);
+	});
+
 	it('civic: held, or blocked by an authority it needs', () => {
 		const s = save({ government: ['auth_democratic', 'civic_x'] });
 		expect(state('identity', { key: 'civic_x' }, ctx(s))).toBe('done');

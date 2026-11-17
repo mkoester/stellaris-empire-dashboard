@@ -21,9 +21,9 @@ import { evaluate } from '#lib/triggers.ts';
 import { xExtent } from '#lib/series.ts';
 
 // What each pact gives, per type and partner (#lib/pacts.ts). What the game shows a player stays
-// plain; partners' tech counts and, at economy intel 3, their trade need the `pactIntel` spoiler;
-// their techs, every partner's trade and the tech hints the `pactAll` cheat. Nothing else of a
-// partner leaves the server.
+// plain, and what each commercial pact brings, always (the user's ask 2026-11-17); partners' tech
+// counts need the `pactIntel` spoiler, their techs and the tech hints the `pactAll` cheat. Nothing
+// else of a partner leaves the server.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
@@ -51,10 +51,9 @@ export function load({ url }) {
 	const partnersOf = (key: string) => types.find((t) => t.key === key)?.partners ?? [];
 	const intel = new Map((latest.intel ?? []).map((i) => [i.countryId, i.intel]));
 	const ai = new Map((latest.aiIntel ?? []).map((a) => [a.countryId, a]));
-	const intelLevel = (id: number, category: 'economy' | 'technology') =>
-		levelOf(intel.get(id) ?? 0, category);
+	const intelLevel = (id: number, category: 'technology') => levelOf(intel.get(id) ?? 0, category);
 
-	// commercial pacts: the booked total, split by partner where we may know its trade
+	// commercial pacts: the booked total, split by partner
 	const commercialTotal =
 		latest.budget?.find((s) => s.source === 'commercial_pacts')?.income.trade ?? 0;
 	const commercial = partnersOf('commercial_pact').length
@@ -62,8 +61,7 @@ export function load({ url }) {
 				commercialTotal,
 				partnersOf('commercial_pact').map((p) => {
 					const a = ai.get(p.countryId);
-					const shown = d.pactAll || (d.pactIntel && intelLevel(p.countryId, 'economy') >= 3);
-					return { countryId: p.countryId, base: a && shown ? tradeBase(a) : null };
+					return { countryId: p.countryId, base: a ? tradeBase(a) : null };
 				})
 			)
 		: null;

@@ -4,6 +4,46 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.26] - 2026-11-17
+
+### Added
+
+- Planner: when each goal can be started and when it is built — the cost still to pay, at this
+  month's net income (highlighted) and at the mean of the last months (a setting, default 6;
+  one-time spending left out). The tooltip lists each resource needed with its stock and when it
+  is there. A display switch times goals in plan order, paying the goals above first.
+  Megastructure costs need a data DB from this release.
+- Wanderlust: the map and the planner show each category's counted / needed targets, the ones
+  found in visited systems and whether they would finish it; the map's right-click offers an
+  arkship visit as a want, not only an avoid.
+- Outcomes: months of income show what they come to now ("≈ +N now"); tech progress shows its
+  research points and how long your own research would take.
+- Frontier: a checkbox per panel hides what is gone from the save, newest first; a Status column
+  marks a source ≈ finished where the save has a flag, modifier or deposit only it gives.
+- Maps: square where the window has room, else as high as it allows. Drag the bottom edge past
+  the window edge to grow a map at the end of a page in one drag.
+- Settings: a default map fit (explored) and width; what the browser keeps for itself (width,
+  dragged heights) is listed, each with a reset.
+
+### Changed
+
+- History shows only the empires you have met, as far as your intel goes (systems and colonies
+  from intel 30, wars from 20), named as you know them. A spoiler switch shows everything about
+  met empires; everything about all empires is a cheat now.
+- Subject numbers are an intel spoiler. What each commercial pact brings is always shown; the
+  pact switches only cover research partners' techs.
+
+### Fixed
+
+- First contacts were spoiled: stage names gave away the contact's kind (now its stage number),
+  and pages and the contacts tab carried names, types and galaxy history before you talk.
+- Empire names: name templates are filled in ("Pact of Fellnoll"), an empire never shows as an
+  id ("unknown empire" instead), and a war keeps its save name only where every side is known.
+  Names events give (e.g. "False Asteroid") are read with a data DB from this release.
+- FirstContact-MeaningfulLabels contacts read "Voidworms (Space Fauna)", not "fc label fauna
+  Voidworms".
+- Planner: Arc Furnace, Stellar Cannon and Sentry Array goals never read as built.
+
 ## [0.1.25] - 2026-11-17
 
 ### Added

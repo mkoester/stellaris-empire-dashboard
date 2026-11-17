@@ -10,6 +10,8 @@
 	import { AREAS } from '#lib/techTiers.ts';
 	import { moved, type Polarity, type Target } from '#lib/planner/replay.ts';
 	import { newGoalId, planAction } from '#lib/settings.ts';
+	import { fmt, pretty } from '#lib/format.ts';
+	import { formatMonths, type CostRow, type When } from '#lib/planner/eta.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -244,6 +246,30 @@
 	let showOrders = $state(false); // reordering clutters the history: hidden unless asked for
 	const sinceText = (s: { date: string; exact: boolean } | null) =>
 		s ? `${s.exact ? 'since' : 'by'} ${s.date}` : '';
+	// the cost line's tooltip: which resource each time waits for, the build days, the incomes
+	const costTip = (c: CostRow) => {
+		const inc = data.income;
+		return [
+			'Base cost and build time from the game files, before modifiers (≈).',
+			`start: when the stockpile holds the cost; built: start + ${c.days === null ? 'unknown' : `${fmt(c.days)} days`} of building`,
+			`now: at this month's net; avg: at the mean net of the last ${inc?.months ?? 0} of ${inc?.window ?? 0} months, one-time spending not in it (⚙ to change the months)`,
+			'',
+			'each resource: needed (in stock) — there at now / avg',
+			...c.resources.map(
+				(x) =>
+					`${pretty(x.resource)}: ${fmt(x.need)} (${fmt(x.have)}) — ${c.overCap.includes(x.resource) ? 'exceeds storage' : `${formatMonths(x.now)} / ${formatMonths(x.avg)}`}`
+			),
+			...(c.ordered
+				? [
+						'',
+						'in plan order: the wanted goals above it paid first, from the same stockpile and income'
+					]
+				: []),
+			...(inc && !inc.exactStorage
+				? ['storage: estimated (the companion mod exports it exactly)']
+				: [])
+		].join('\n');
+	};
 </script>
 
 {#snippet status(r: Row)}
@@ -251,6 +277,22 @@
 	<span class="rounded px-1.5 py-0.5 text-[11px] whitespace-nowrap {cls}">{text}</span>
 	{#if r.why}<span class="text-xs text-gray-500">{r.why}</span>{/if}
 	{#if r.since}<span class="text-xs text-gray-500">{sinceText(r.since)}</span>{/if}
+	{#if r.cost}{@render costLine(r.cost)}{/if}
+{/snippet}
+
+{#snippet costLine(c: CostRow)}
+	{@const pair = (w: { now: When; avg: When }, k: 'start' | 'finish') =>
+		`${formatMonths(w.now[k])} (avg ${formatMonths(w.avg[k])})`}
+	{@const costs = Object.entries(c.cost)
+		.map(([r, v]) => `${fmt(v)} ${pretty(r)}`)
+		.join(', ')}
+	<span class="basis-full pl-1 text-xs text-gray-500" title={costTip(c)}
+		>{#if c.overCap.length}{`≈ ${costs}`}<span class="ml-1 text-red-600"
+				>{`exceeds storage: ${c.overCap.map(pretty).join(', ')}`}</span
+			>{:else}{`≈ ${costs} · `}<span class="font-semibold text-gray-900 dark:text-gray-100"
+				>{`start ${formatMonths(c.alone.now.start)}`}</span
+			>{` (avg ${formatMonths(c.alone.avg.start)}) · built ${c.days === null ? '?' : pair(c.alone, 'finish')}`}{#if c.ordered}{` · in plan order: start ${pair(c.ordered, 'start')}, built ${c.days === null ? '?' : pair(c.ordered, 'finish')}`}{/if}{/if}</span
+	>
 {/snippet}
 
 {#snippet badges(r: {

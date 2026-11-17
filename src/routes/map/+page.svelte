@@ -286,13 +286,21 @@
 {#if data.wanderlust && on('wanderlust')}
 	<p
 		class="mb-3 text-sm"
-		title="the arkship counts a target system once, on entering it; the game asks for 80 % of each category's systems"
+		title="the arkship counts a target system once, on entering it; the game asks for 80 % of each category's systems. counted / needed · found: the targets in systems we visited or own. Bold: the found ones not yet counted are enough to finish it"
 	>
 		<span style:color={LAYER_INFO.wanderlust.color}>{LAYER_INFO.wanderlust.symbol}</span>
 		Wanderlust{#if data.wanderlust.complete}: every category explored{:else}:
-			{#each data.wanderlust.categories as c, i (c.key)}{i ? ' · ' : ''}<span
-					class={c.done ? 'text-green-700 dark:text-green-500' : ''}
-					>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ''}</span
+			{#each data.wanderlustOutlook ?? [] as c, i (c.key)}{i ? ' · ' : ''}<span
+					class={c.done
+						? 'text-green-700 dark:text-green-500'
+						: c.finishable
+							? 'font-semibold underline decoration-2'
+							: ''}
+					style:text-decoration-color={c.finishable ? LAYER_INFO.wanderlust.color : undefined}
+					title={c.done
+						? 'done'
+						: `${c.need} more to visit; ${c.open} found and not yet counted${c.finishable ? ': enough to finish it' : ''}`}
+					>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ` (${c.found} found)`}</span
 				>{/each}{/if}
 	</p>
 {/if}

@@ -115,6 +115,15 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	}
 };
 
+/**
+ * The prefix of a structure's stage keys in the game (`<prefix>_<n>`, a system's `megastructures`),
+ * where it differs from the rule's name: 17_orbital_arc_furnace.txt, 31_dyson_gun.txt, 02_spy_orb.txt.
+ */
+export const stagePrefix = (kind: string) =>
+	({ arc_furnace: 'orbital_arc_furnace', stellar_cannon: 'dyson_gun', sentry_array: 'spy_orb' })[
+		kind
+	] ?? kind;
+
 /** The tab's view, the profile's: structure, systems shown, fitting only, the system picked. */
 export type MegaView = {
 	kind: Kind;

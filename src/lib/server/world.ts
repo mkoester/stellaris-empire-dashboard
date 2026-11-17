@@ -527,7 +527,7 @@ export function claims(
 	raw: Pick<RawSave, 'systems' | 'countryId' | 'countries' | 'starbases' | 'ships' | 'fleetOwner'>,
 	own: Set<number>
 ): Claim[] {
-	const name = (id: number) => raw.countries[String(id)]?.name ?? `empire ${id}`;
+	const name = (id: number) => raw.countries[String(id)]?.name ?? 'unknown empire';
 	return Object.entries(raw.systems).flatMap(([id, s]) =>
 		items(s?.claims).flatMap((c) => {
 			const claimant = Number(c?.owner);
@@ -611,7 +611,7 @@ export function historyReading(
 	const ids = new Set([...owners.map(([, o]) => o), ...colonies.map(([, o]) => o)]);
 	const names: [number, string][] = [...ids].map((id) => [
 		id,
-		displayName(raw.countryBlocks[String(id)]?.name) || `empire ${id}`
+		displayName(raw.countryBlocks[String(id)]?.name) || 'unknown empire'
 	]);
 	return { owners, colonies, guardians, names };
 }

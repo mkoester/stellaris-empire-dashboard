@@ -84,12 +84,14 @@
 <div class="space-y-4">
 	<h1 class="text-xl font-semibold">History</h1>
 	<p class="max-w-3xl text-sm text-gray-500">
-		{#if data.all}
-			Everything the saves hold (spoiler: ⚙ → History).
+		{#if data.mode === 'all'}
+			Everything the saves hold, about every empire (cheat: ⚙ → History).
 		{:else}
-			What we know: our own history, that of the empires we have communications with now — all of
-			it, back to the start —, the owners of systems we have been to, guardians' falls (common
-			knowledge) and wars of empires we know.
+			What we know: our own history and, of the empires we met, {data.mode === 'met'
+				? 'everything (spoiler: ⚙ → History)'
+				: 'what our intel on each shows — their systems and colonies from intel 30, their wars from intel 20'}
+			— back to the start, as of the latest save; guardians' falls (common knowledge). Empires we have
+			not met stay unknown.
 			{#if knownNames.length > 1}Known now: {knownNames.join(', ')}.{/if}
 		{/if}
 		Before {data.history.start || 'the first save read'} only colonies (by their colonisation date) are

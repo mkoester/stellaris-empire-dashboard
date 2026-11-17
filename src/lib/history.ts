@@ -1,27 +1,35 @@
 // The known history of the galaxy since 2200 (the history tab): who held which system when,
 // colonies founded, communications opened, guardians slain, wars — filtered by what we know.
 // **What we know** is decided at the branch's latest save and applied to the whole past (the
-// user's rule, 2026-11-01: "the more empires we establish communication with, the more history
-// can be shown even in retrospective"):
+// user's rules, 2026-11-01: "the more empires we establish communication with, the more history
+// can be shown even in retrospective"; 2026-11-17: only empires we met, as far as our intel on
+// each goes — `common/intel_categories`, levels by `levelOf()`):
 // - our own history, always;
-// - an empire's systems and colonies once we have communications with it — all of them, back to
-//   the start;
-// - a system's owner where we have been ourselves (visited, at any time), whoever it was;
-// - a guardian's fall: common knowledge;
-// - a war where one side is an empire we know (wars are public, as on the diplomacy tab).
+// - an empire we met (a relation): its systems with military intel 1 ("Location of Starbases";
+//   economy 4, "High Intel on Systems", comes later) and its colonies with economy intel 1 ("Low
+//   Intel on Colonies") — military and economy levels are the same at every intel value
+//   (00_intel_levels.txt), so both from intel 30; its wars with diplomacy intel 1 (intel 20);
+// - an empire not met: nothing; where it takes a system from one we know it is "an unknown
+//   empire";
+// - a guardian's fall: common knowledge, its slayer named as above.
 // Not known: what others found (surveys, anomalies) and battles we did not fight.
-// `all` (a cheat) shows everything.
+// Modes: `known` (the default), `met` (a spoiler: everything about the empires we met), `all` (a
+// cheat: everything about every empire, by its own name).
 // Before the first save read only colonies with their `colonize_date` are known; a system whose
 // colony predates that save counts as its owner's since the colony's date.
+import { levelOf } from './diplomacy.ts';
 import type { HistoryReading, WarSides } from './types.ts';
+
+export type HistoryMode = 'known' | 'met' | 'all';
 
 export type HistoryInput = {
 	date: string;
 	history: HistoryReading;
 	communications: number[]; // countries we had communications with at this save
-	visited: number[]; // systems we had visited (or held)
 	wars: WarSides[];
 	names?: [number, string][]; // more names: ours, those we talk to (relations)
+	met?: number[]; // countries we have a relation with: met
+	intel?: [number, number][]; // our intel on each (0–100)
 };
 
 export type OwnerChange = {
@@ -60,19 +68,35 @@ const GUARDIAN_TEXT: Record<string, string> = {
 	guardians_zanaam_destroyed: 'Zanaam fell'
 };
 
-/** The branch's history as far as we know it at its latest save, or all of it with `all`. */
-export function knownHistory(inputs: HistoryInput[], us: number, all = false): History {
+/** The branch's history as far as we know it at its latest save (`mode`, see above). */
+export function knownHistory(
+	inputs: HistoryInput[],
+	us: number,
+	mode: HistoryMode = 'known'
+): History {
+	const all = mode === 'all';
 	const readings = inputs.filter((x) => x.history);
+	// the names we know them by (pre-communications until we talk); the save's own names of every
+	// country only with `all` — they would spoil a first contact (the user's ask 2026-11-17)
 	const names: Record<number, string> = {};
 	for (const r of readings)
-		for (const [id, n] of [...(r.names ?? []), ...r.history.names]) names[id] = n;
+		for (const [id, n] of all ? [...(r.names ?? []), ...r.history.names] : (r.names ?? []))
+			names[id] = n;
 	const last = readings.at(-1);
 	if (!last) return { changes: [], events: [], names, known: [], start: '' };
-	const known = new Set([us, ...last.communications]);
-	const visited = new Set(last.visited);
-	const knows = (country: number | null) => all || (country !== null && known.has(country));
-	const showChange = (c: OwnerChange) =>
-		all || knows(c.from) || knows(c.to) || visited.has(c.systemId);
+	const met = new Set([...(last.met ?? []), ...last.communications]);
+	const intel = new Map(last.intel ?? []);
+	// what we know of a country: everything of ourselves (and with `all`), of one we met by the
+	// intel category's level (everything with `met`), nothing of a stranger
+	const level = (country: number | null, at: (intel: number) => boolean) =>
+		all ||
+		country === us ||
+		(country !== null && met.has(country) && (mode === 'met' || at(intel.get(country) ?? 0)));
+	const systemsOf = (c: number | null) => level(c, (i) => levelOf(i, 'economy') >= 1);
+	const coloniesOf = systemsOf; // economy 1 too
+	const knows = (c: number | null) => level(c, (i) => levelOf(i, 'diplomacy') >= 1);
+	const known = new Set([us, ...[...met].filter((c) => systemsOf(c) || knows(c))]);
+	const showChange = (c: OwnerChange) => systemsOf(c.from) || systemsOf(c.to);
 
 	// owners: the first save's as of the colonies' dates where they predate it, then each change
 	const first = readings[0];
@@ -114,7 +138,7 @@ export function knownHistory(inputs: HistoryInput[], us: number, all = false): H
 	});
 
 	const events: HistoryEvent[] = [];
-	const name = (id: number | null) => (id === null ? '?' : (names[id] ?? `empire ${id}`));
+	const name = (id: number | null) => (id === null ? '?' : (names[id] ?? 'an unknown empire'));
 	for (const c of changes) {
 		if (c.initial || !showChange(c)) continue;
 		const base = { date: c.date, exact: c.exact, systemId: c.systemId };
@@ -146,7 +170,7 @@ export function knownHistory(inputs: HistoryInput[], us: number, all = false): H
 		for (const [planet, owner, date, system] of r.history.colonies) {
 			if (seen.has(planet)) continue;
 			seen.add(planet);
-			if (!knows(owner) && !visited.has(system)) continue;
+			if (!coloniesOf(owner)) continue;
 			events.push({
 				date: date ?? r.date,
 				exact: date !== null,
@@ -157,11 +181,11 @@ export function knownHistory(inputs: HistoryInput[], us: number, all = false): H
 			});
 		}
 	// communications: the first save with them, ours always known
-	const met = new Set<number>();
+	const talked = new Set<number>();
 	for (const r of readings)
 		for (const id of r.communications)
-			if (!met.has(id)) {
-				met.add(id);
+			if (!talked.has(id)) {
+				talked.add(id);
 				if (r !== first)
 					events.push({
 						date: r.date,
@@ -196,7 +220,8 @@ export function knownHistory(inputs: HistoryInput[], us: number, all = false): H
 				kind: 'war',
 				countryId: w.attackers[0] ?? null,
 				systemId: null,
-				text: `${w.name}: ${w.attackers.map(name).join(', ')} against ${w.defenders.map(name).join(', ')}`
+				// the save's war name is made of the sides' own names: only where we know them all
+				text: `${[...w.attackers, ...w.defenders].every(knows) ? `${w.name}: ` : ''}${w.attackers.map(name).join(', ')} against ${w.defenders.map(name).join(', ')}`
 			});
 
 	events.sort((a, b) => a.date.localeCompare(b.date));

@@ -35,3 +35,20 @@ export function recallList(key: string, store: () => Store = browser): string[] 
 
 export const keepList = (key: string, list: string[], store: () => Store = browser) =>
 	keep(key, JSON.stringify(list), store);
+
+type Keys = Pick<Storage, 'key' | 'length' | 'removeItem'>;
+const keys = (): Keys => localStorage;
+
+/** Forgets every kept key `test` picks (⚙'s resets): how many were kept. */
+export function forget(test: (key: string) => boolean, store: () => Keys = keys): number {
+	try {
+		const s = store();
+		const found = Array.from({ length: s.length }, (_, i) => s.key(i)).filter(
+			(k): k is string => k !== null && test(k)
+		);
+		for (const k of found) s.removeItem(k);
+		return found.length;
+	} catch {
+		return 0;
+	}
+}

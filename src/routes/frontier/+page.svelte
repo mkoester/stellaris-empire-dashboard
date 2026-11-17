@@ -1,8 +1,9 @@
 <script lang="ts">
 	import ContractMarks from '#lib/ContractMarks.svelte';
 	import OutcomeCell from '#lib/Outcome.svelte';
+	import { fromTable } from '#lib/outcomes.ts';
 	import { resolve } from '$app/paths';
-	import { fmt, pretty } from '#lib/format.ts';
+	import { contactStage, fmt, pretty } from '#lib/format.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { mergeGainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
 	import { colorOf } from '#lib/colors.ts';
@@ -19,8 +20,10 @@
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 	import type { Outcome } from '#lib/types.ts';
+	import type { Inferred } from '#lib/inferDone.ts';
 
 	let { data } = $props();
+	const pageNow = $derived(fromTable(data.now));
 	let width: MapWidth = $state('normal'); // "wide + table": the contacts table goes beside the map
 	followGame(() => data.isHead);
 
@@ -75,7 +78,7 @@
 		},
 		{ id: 'difficulty', label: 'Diff.', value: (r) => r.difficulty, right: true, cell: difficulty },
 		{ id: 'clues', label: 'Clues', value: (r) => r.clues, right: true },
-		{ id: 'stage', label: 'Stage', value: (r) => r.stage, cell: stage },
+		{ id: 'stage', label: 'Stage', value: (r) => contactStage(r.stage), cell: stage, right: true },
 		{
 			id: 'daysLeft',
 			label: 'Days',
@@ -108,7 +111,18 @@
 		{ id: 'approach', label: 'Approach', value: (r) => r.approachName },
 		{ id: 'stage', label: 'Stage', value: (r) => r.stageName }
 	];
-	// below each list, what earlier saves had and the latest has not: finished, or lost
+	// below each list, what earlier saves had and the latest has not: finished, or lost; hidden
+	// until asked for, newest first
+	let showGone = $state({ situations: false, anomalies: false, digSites: false, projects: false });
+	const byLastSeen = { column: 'lastSeen', desc: true };
+	// finished, as far as an effect only it gives is in the save (`inferDone()`)
+	const inferred = <T extends { inferred: Inferred | null }>(): Column<T> => ({
+		id: 'inferred',
+		label: 'Status',
+		value: (r) => (r.inferred ? (r.inferred.status === 'finished' ? 2 : 1) : null),
+		cell: inferredCell,
+		title: '≈ inferred: the save has an effect only this one gives'
+	});
 	const lastSeen = <T extends { lastSeen: string }>(): Column<T> => ({
 		id: 'lastSeen',
 		label: 'Last seen',
@@ -253,7 +267,7 @@
 {#snippet contactTable()}
 	<Panel
 		title="First contacts"
-		note="Envoy ✉: someone is working on it. Jumps from our border along hyperlanes (bypasses not counted). Stages are the game's internal names."
+		note="Envoy ✉: someone is working on it. Jumps from our border along hyperlanes (bypasses not counted). Stage: its number alone (the game's names for them are spoilers)."
 	>
 		<label class="mb-2 flex items-center gap-1 text-sm"
 			><input type="checkbox" bind:checked={showDone} /> also finished and aborted</label
@@ -269,10 +283,23 @@
 	</Panel>
 {/snippet}
 
-{#snippet goneNote(n: number)}<p class="mt-3 mb-1 text-xs text-gray-500">
-		No longer in the save ({n}) — finished or lost, the save cannot tell. Kept for what they were
-		and where they led.
+{#snippet goneToggle(k: keyof typeof showGone, n: number)}<label
+		class="mt-3 flex items-center gap-1 text-sm text-gray-500"
+		><input type="checkbox" bind:checked={showGone[k]} /> also no longer in the save ({n})</label
+	>{/snippet}
+{#snippet goneNote(inferring: boolean)}<p class="mt-1 mb-1 text-xs text-gray-500">
+		Finished or lost: the save cannot tell{inferring
+			? '; ≈ finished where the save has an effect only that one gives'
+			: ''}. Kept for what they were and where they led.
 	</p>{/snippet}
+{#snippet inferredCell(r: { inferred: Inferred | null })}{#if r.inferred}<span
+			class="text-green-700 dark:text-green-400"
+			title="inferred: the save has {r.inferred.by.join(', ')}, which only this one gives"
+			>≈ {r.inferred.status === 'finished'
+				? 'finished'
+				: `chapter ${r.inferred.chapter} done`}</span
+		>{:else}<span class="text-gray-500" title="finished or lost: the save cannot tell">–</span
+		>{/if}{/snippet}
 {#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{/snippet}
 {#snippet anomalyName(a: Anomaly)}<b>{a.name}</b><AddGoal
 		kind="anomaly"
@@ -282,16 +309,19 @@
 		kind="digsite"
 		target={{ planet: d.planetId }}
 	/>{/snippet}
-{#snippet anomalyOutcomes(a: Anomaly)}{#if a.tree}<OutcomeCell tree={a.tree} />{:else}<span
-			class="text-gray-500">{@render outcomes(a.outcomes)}</span
-		>{/if}{/snippet}
-{#snippet projectOutcomes(p: Project)}{#if p.tree}<OutcomeCell tree={p.tree} />{:else}<span
-			class="text-gray-500">{@render outcomes(p.outcomes)}</span
-		>{/if}{/snippet}
+{#snippet anomalyOutcomes(a: Anomaly)}{#if a.tree}<OutcomeCell
+			tree={a.tree}
+			now={pageNow}
+		/>{:else}<span class="text-gray-500">{@render outcomes(a.outcomes)}</span>{/if}{/snippet}
+{#snippet projectOutcomes(p: Project)}{#if p.tree}<OutcomeCell
+			tree={p.tree}
+			now={pageNow}
+		/>{:else}<span class="text-gray-500">{@render outcomes(p.outcomes)}</span>{/if}{/snippet}
 {#snippet chapter(d: Dig)}{d.chapter ?? '–'}{d.stages ? ` / ${d.stages}` : ''}{/snippet}
 {#snippet digOutcome(d: Dig)}{#if d.tree}<OutcomeCell
 			tree={d.tree}
 			chapter={d.chapter ?? null}
+			now={pageNow}
 		/>{/if}{/snippet}
 
 {#snippet territory(r: SeenRow)}{#if r.territory}<EmpireName
@@ -308,7 +338,7 @@
 {/snippet}
 {#snippet difficulty(r: ContactRow)}<span style:color={hard(r.difficulty)}>{r.difficulty}</span
 	>{/snippet}
-{#snippet stage(r: ContactRow)}{pretty(r.stage)}{r.status === 'in_progress'
+{#snippet stage(r: ContactRow)}{contactStage(r.stage) ?? '–'}{r.status === 'in_progress'
 		? ''
 		: ` (${pretty(r.status)})`}{/snippet}
 {#snippet days(r: ContactRow)}{r.status === 'in_progress' && r.daysLeft !== null
@@ -482,14 +512,18 @@
 					<SortTable rows={data.situations} columns={situationColumns} key={(r) => r.id} />
 				{:else}<p class="text-sm text-gray-500">None running.</p>{/if}
 				{#if data.gone.situations.length}
-					{@render goneNote(data.gone.situations.length)}
-					<div class="opacity-60 transition-opacity hover:opacity-100">
-						<SortTable
-							rows={data.gone.situations}
-							columns={[...situationColumns, lastSeen()]}
-							key={(r) => r.id}
-						/>
-					</div>
+					{@render goneToggle('situations', data.gone.situations.length)}
+					{#if showGone.situations}
+						{@render goneNote(false)}
+						<div class="opacity-60 transition-opacity hover:opacity-100">
+							<SortTable
+								rows={data.gone.situations}
+								columns={[...situationColumns, lastSeen()]}
+								key={(r) => r.id}
+								sort={byLastSeen}
+							/>
+						</div>
+					{/if}
 				{/if}
 			</Panel>
 
@@ -515,14 +549,18 @@
 					/>
 				{:else}<p class="text-sm text-gray-500">None waiting.</p>{/if}
 				{#if data.gone.anomalies.length}
-					{@render goneNote(data.gone.anomalies.length)}
-					<div class="opacity-60 transition-opacity hover:opacity-100">
-						<SortTable
-							rows={data.gone.anomalies}
-							columns={[...anomalyColumns, lastSeen()]}
-							key={(a) => `${a.planetId}:${a.category}`}
-						/>
-					</div>
+					{@render goneToggle('anomalies', data.gone.anomalies.length)}
+					{#if showGone.anomalies}
+						{@render goneNote(true)}
+						<div class="opacity-60 transition-opacity hover:opacity-100">
+							<SortTable
+								rows={data.gone.anomalies}
+								columns={[...anomalyColumns, inferred(), lastSeen()]}
+								key={(a) => `${a.planetId}:${a.category}`}
+								sort={byLastSeen}
+							/>
+						</div>
+					{/if}
 				{/if}
 			</Panel>
 
@@ -542,14 +580,18 @@
 					/>
 				{:else}<p class="text-sm text-gray-500">None found.</p>{/if}
 				{#if data.gone.digSites.length}
-					{@render goneNote(data.gone.digSites.length)}
-					<div class="opacity-60 transition-opacity hover:opacity-100">
-						<SortTable
-							rows={data.gone.digSites}
-							columns={[...digColumns, lastSeen()]}
-							key={(d) => d.id}
-						/>
-					</div>
+					{@render goneToggle('digSites', data.gone.digSites.length)}
+					{#if showGone.digSites}
+						{@render goneNote(true)}
+						<div class="opacity-60 transition-opacity hover:opacity-100">
+							<SortTable
+								rows={data.gone.digSites}
+								columns={[...digColumns, inferred(), lastSeen()]}
+								key={(d) => d.id}
+								sort={byLastSeen}
+							/>
+						</div>
+					{/if}
 				{/if}
 			</Panel>
 
@@ -569,14 +611,18 @@
 					/>
 				{:else}<p class="text-sm text-gray-500">None on offer.</p>{/if}
 				{#if data.gone.projects.length}
-					{@render goneNote(data.gone.projects.length)}
-					<div class="opacity-60 transition-opacity hover:opacity-100">
-						<SortTable
-							rows={data.gone.projects}
-							columns={[...projectColumns, lastSeen()]}
-							key={(p) => p.id}
-						/>
-					</div>
+					{@render goneToggle('projects', data.gone.projects.length)}
+					{#if showGone.projects}
+						{@render goneNote(true)}
+						<div class="opacity-60 transition-opacity hover:opacity-100">
+							<SortTable
+								rows={data.gone.projects}
+								columns={[...projectColumns, inferred(), lastSeen()]}
+								key={(p) => p.id}
+								sort={byLastSeen}
+							/>
+						</div>
+					{/if}
 				{/if}
 			</Panel>
 		</div>
