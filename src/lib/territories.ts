@@ -32,9 +32,16 @@ export function mergeSightings(
 	return [...bySystem.values()].sort((a, b) => a.systemId - b.systemId);
 }
 
-/** The stations seen, for a table: no owner id, only the territory (known, guessed) they fall in. */
-export function seenRows(seen: SeenStation[], ts: Territory[], name: (id: number) => string) {
+/** The stations seen, for a table: no owner id, only the territory (known, guessed) they fall in,
+ * and whether its owner is an empire we have communications with (`talking`). */
+export function seenRows(
+	seen: SeenStation[],
+	ts: Territory[],
+	name: (id: number) => string,
+	talking: ReadonlySet<number> = new Set()
+) {
 	return seen.map((s) => ({
+		talking: talking.has(s.ownerId),
 		systemId: s.systemId,
 		system: name(s.systemId),
 		shipset: shipsetName(s.shipset),
