@@ -10,6 +10,8 @@ import { outcomeTrees } from '#lib/server/outcomes.ts';
 import { valuesOf } from '#lib/server/unitCosts.ts';
 import { facts } from '#lib/government.ts';
 import { gainRows } from '#lib/outcomeGains.ts';
+import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
+import { anomalyDays } from '#lib/ships.ts';
 import { prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
 import type { AnomalyInfo, DigSite, ProjectInfo } from '#lib/types.ts';
@@ -35,6 +37,15 @@ export function load({ url }) {
 	// nothing this empire can get from it: greyed in its table
 	const closed = (tree: OutcomeNode[] | null) => !!tree?.length && !prune(tree).length;
 	const values = valuesOf(snaps);
+	// how long each takes, before speed bonuses: with our best scientist on a science ship
+	const sci = Math.max(
+		...(save?.civilianShips ?? [])
+			.filter((c) => c.kind === 'science_ship' && c.leaderLevel !== null)
+			.map((c) => c.leaderLevel!),
+		-Infinity
+	);
+	const scientist = Number.isFinite(sci) ? sci : null;
+	const withScientist = `your best scientist on a science ship (level ${scientist ?? '?'}), before speed bonuses`;
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const galaxy = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const nameOf = new Map(galaxy.map((g) => [g.id, g.name]));
@@ -58,6 +69,14 @@ export function load({ url }) {
 			system: system(a.systemId),
 			name: cat?.name ?? a.category,
 			level: cat?.level ?? null,
+			time:
+				cat?.level != null && scientist !== null
+					? ({
+							days: anomalyDays(cat.level, scientist),
+							approx: false,
+							note: `level ${cat.level} anomaly, ${withScientist}`
+						} satisfies Time)
+					: null,
 			outcomes: opts.anomalySpoilers ? (cat?.outcomes ?? []) : null,
 			tree
 		};
@@ -71,18 +90,50 @@ export function load({ url }) {
 			system: system(p.systemId),
 			name: info?.name ?? p.key,
 			department: info?.department ?? null,
-			days: info?.days ?? null,
+			time: projectTime(info),
 			outcomes: opts.projectSpoilers ? (info?.outcomes ?? []) : null,
 			tree
 		};
 	};
-	const dig = (d: DigSite) => ({
-		...d,
-		system: system(d.systemId),
-		name: data.digSiteTypes[d.type]?.name ?? pretty(d.type.replace(/^site_/, '')),
-		stages: data.digSiteTypes[d.type]?.stages ?? null,
-		tree: read(trees.digSite(d.type))
-	});
+	const projectTime = (info: (typeof data.projects)[string] | undefined): Time | null => {
+		if (info?.days)
+			return { days: info.days, approx: false, note: 'a ship’s project, before speed bonuses' };
+		const days = info?.cost ? researchDays(info.cost, info.department, save?.income ?? null) : null;
+		return days === null
+			? null
+			: {
+					days,
+					approx: true,
+					note: `${info!.cost} research at your current monthly ${pretty(info!.department ?? '')}; the field halts meanwhile`
+				};
+	};
+	const dig = (d: DigSite) => {
+		const tree = read(trees.digSite(d.type));
+		const next = d.chapter ?? 1;
+		// the remaining chapters' difficulties where the tree knows them, else the next one's
+		const later = (tree ?? []).flatMap((n) =>
+			n.t === 'chapter' && n.n > next && n.difficulty !== null ? [n.difficulty] : []
+		);
+		const days =
+			scientist === null
+				? null
+				: digDays(scientist, [d.difficulty, ...later], d.clues, d.excavating ? d.daysLeft : null);
+		return {
+			...d,
+			system: system(d.systemId),
+			name: data.digSiteTypes[d.type]?.name ?? pretty(d.type.replace(/^site_/, '')),
+			stages: data.digSiteTypes[d.type]?.stages ?? null,
+			time:
+				days === null
+					? null
+					: ({
+							days,
+							approx: true,
+							note: `expected, ${later.length ? `chapters ${next}–${next + later.length}` : `chapter ${next}`}: a roll every 90 days, d10 + skill + clues − difficulty, 14 finishes; ${withScientist}`
+						} satisfies Time),
+			tree
+		};
+	};
 	// each with the date of the last save that had it
 	const dated =
 		<T, R>(row: (t: T) => R) =>
@@ -94,9 +145,25 @@ export function load({ url }) {
 	// what the open ones can still bring, as far as their spoilers are on
 	const gains = gainRows(
 		[
-			...anomalies.map((a) => ({ name: `${a.name} (anomaly)`, tree: a.tree })),
-			...projects.map((p) => ({ name: `${p.name} (project)`, tree: p.tree })),
-			...digSites.map((d) => ({ name: `${d.name} (dig site)`, tree: d.tree, next: d.chapter }))
+			...anomalies.map((a) => ({
+				name: a.name,
+				kind: 'anomaly' as const,
+				tree: a.tree,
+				time: a.time
+			})),
+			...projects.map((p) => ({
+				name: p.name,
+				kind: 'project' as const,
+				tree: p.tree,
+				time: p.time
+			})),
+			...digSites.map((d) => ({
+				name: d.name,
+				kind: 'dig site' as const,
+				time: d.time,
+				tree: d.tree,
+				next: d.chapter
+			}))
 		].flatMap((x) => (x.tree ? [{ ...x, tree: prune(x.tree) }] : [])),
 		{ income: save?.income ?? null, values },
 		techNames
@@ -107,7 +174,12 @@ export function load({ url }) {
 		values,
 		territories,
 		contractMarks: contractMarksAt(snaps, opts),
-		seen: seenRows(mergeSightings(snaps), territories, system),
+		seen: seenRows(
+			mergeSightings(snaps),
+			territories,
+			system,
+			new Set((s?.relations ?? []).filter((r) => r.communications).map((r) => r.countryId))
+		),
 		seenAt: s?.date ?? null,
 		opts,
 		contacts: s

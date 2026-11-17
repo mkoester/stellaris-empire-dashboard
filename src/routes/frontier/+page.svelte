@@ -3,8 +3,10 @@
 	import OutcomeCell from '#lib/Outcome.svelte';
 	import { resolve } from '$app/paths';
 	import { fmt, pretty } from '#lib/format.ts';
-	import type { GainRow } from '#lib/outcomeGains.ts';
+	import InfoPopup from '#lib/InfoPopup.svelte';
+	import type { GainRow, GainSource } from '#lib/outcomeGains.ts';
 	import { valueOf } from '#lib/value.ts';
+	import { daysText, type Time } from '#lib/frontierTime.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import type { MapWidth } from '#lib/mapView.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
@@ -22,6 +24,9 @@
 	followGame(() => data.isHead);
 
 	let showDone = $state(false);
+	let showTalking = $state(false); // stations of empires we have communications with
+	const seen = $derived(data.seen.filter((r) => showTalking || !r.talking));
+	const talking = $derived(data.seen.filter((r) => r.talking).length);
 	let contactSort = $state({ column: 'difficulty', desc: true });
 	let hovered: number | null = $state(null); // a system, on the map or a contact's row
 
@@ -118,6 +123,43 @@
 		data.opts.anomalySpoilers || data.opts.projectSpoilers || data.opts.digSiteSpoilers
 	);
 	const greyed = (r: { closed: boolean }) => (r.closed ? 'opacity-50' : '');
+	// a badge per kind of source, in its own colour
+	const SOURCE_COLORS: Record<GainSource['kind'], string> = {
+		anomaly: '#14b8a6',
+		project: '#6366f1',
+		'dig site': '#d97706'
+	};
+	const byKind = (g: GainRow) =>
+		(Object.keys(SOURCE_COLORS) as GainSource['kind'][])
+			.map((kind) => ({
+				kind,
+				// each source with how long it takes
+				names: g.sources
+					.filter((s) => s.kind === kind)
+					.map((s) =>
+						s.time ? `${s.name} (${s.time.approx ? '≈ ' : ''}${daysText(s.time.days)})` : s.name
+					)
+			}))
+			.filter((x) => x.names.length);
+	const timeColumn = <T extends { time: Time | null }>(title: string): Column<T> => ({
+		id: 'time',
+		label: 'Time',
+		value: (r) => r.time?.days ?? null,
+		cell: time,
+		right: true,
+		title
+	});
+	// a reward's certainty: on every path, likely (half the paths or more), or possible
+	const certainty = (g: GainRow) =>
+		g.sure > 0
+			? { label: 'sure', color: '#1baf7a', title: 'on every path you can take' }
+			: g.kind === 'item' && g.exp >= 0.5
+				? { label: `likely ${Math.round(g.exp * 100)} %`, color: '#3b82f6', title: 'by the odds' }
+				: {
+						label: g.kind === 'item' ? `possible ${Math.round(g.exp * 100)} %` : 'possible',
+						color: '#eda100',
+						title: 'only on some paths: chance, a choice or a condition'
+					};
 	type Anomaly = (typeof data.anomalies)[number];
 	type Project = (typeof data.projects)[number];
 	type Dig = (typeof data.digSites)[number];
@@ -125,6 +167,7 @@
 		{ id: 'name', label: 'Anomaly', value: (a) => a.name, cell: anomalyName },
 		{ id: 'where', label: 'Where', value: (a) => `${a.planet}, ${a.system}` },
 		{ id: 'level', label: 'Level', value: (a) => a.level ?? null, right: true },
+		timeColumn<Anomaly>('days a science ship takes on it'),
 		{
 			id: 'outcomes',
 			label: 'Outcome',
@@ -141,7 +184,7 @@
 			label: 'Department',
 			value: (p) => (p.department ? pretty(p.department.replace(/_technology$/, '')) : null)
 		},
-		{ id: 'days', label: 'Days', value: (p) => p.days || null, right: true },
+		timeColumn<Project>('a ship’s project: its days; a research one: its cost at your research'),
 		{
 			id: 'outcomes',
 			label: 'Outcome',
@@ -163,6 +206,7 @@
 			right: true,
 			title: 'the next chapter, of how many'
 		},
+		timeColumn<Dig>('expected time to excavate what is left'),
 		{
 			id: 'excavating',
 			label: 'Excavated',
@@ -249,6 +293,26 @@
 	{#if list}{list.map((o) => o.name ?? o.event).join(' · ') || '–'}{/if}
 {/snippet}
 
+{#snippet time(r: { time: Time | null })}{#if r.time}<span title={r.time.note}
+			>{r.time.approx ? '≈ ' : ''}{daysText(r.time.days)}</span
+		>{:else}–{/if}{/snippet}
+{#snippet badge(b: { label: string; color: string; title: string })}<span
+		class="rounded border px-1 text-[11px] leading-4 whitespace-nowrap"
+		style:color={b.color}
+		style:border-color={b.color}
+		title={b.title}>{b.label}</span
+	>{/snippet}
+{#snippet from(g: GainRow)}<span class="inline-flex flex-wrap gap-1 align-middle"
+		>{#each byKind(g) as b (b.kind)}<span
+				class="rounded border px-1 text-[11px] leading-4"
+				style:color={SOURCE_COLORS[b.kind]}
+				style:border-color={SOURCE_COLORS[b.kind]}
+				title={b.names.join('\n')}>{b.kind}{b.names.length > 1 ? ` ×${b.names.length}` : ''}</span
+			>{/each}</span
+	>{/snippet}
+{#snippet gainLabel(g: GainRow)}{#if g.ref}<InfoPopup ref={g.ref}>{g.label}</InfoPopup
+		>{:else}{g.label}{/if}{/snippet}
+
 {#snippet stillToGain()}
 	<Panel
 		title="Still to gain"
@@ -263,18 +327,29 @@
 				<table class="mb-3 text-sm">
 					<thead
 						><tr class="border-b border-gray-300 text-left dark:border-gray-700"
-							><th class="pr-4">Resource</th><th class="pr-4 text-right">Sure</th><th
-								class="pr-4 text-right">Expected</th
-							><th class="text-right" title="the expected amount in trade">Trade</th></tr
+							><th class="pr-4">Resource</th><th
+								class="pr-4 text-right"
+								style:color="#1baf7a"
+								title="on every path you can take">Sure</th
+							><th class="pr-4 text-right">Expected</th><th
+								class="pr-4 text-right"
+								title="the expected amount in trade">Trade</th
+							><th>From</th></tr
 						></thead
 					>
 					<tbody>
 						{#each gainRes as g (g.key)}
-							<tr title={g.sources.join('\n')}
-								><td class="pr-4">{g.label}</td><td class="pr-4 text-right tabular-nums"
+							<tr
+								><td class="pr-4">{@render gainLabel(g)}</td><td
+									class="pr-4 text-right tabular-nums"
+									style:color={g.sure > 0 ? '#1baf7a' : undefined}
 									>{g.approx ? '≈ ' : ''}{fmt(g.sure)}</td
-								><td class="pr-4 text-right tabular-nums">{g.approx ? '≈ ' : ''}{fmt(g.exp)}</td><td
-									class="text-right tabular-nums">{trade(g).toFixed(2)}</td
+								><td
+									class="pr-4 text-right tabular-nums"
+									style:color={g.sure > 0 ? undefined : '#eda100'}
+									>{g.approx ? '≈ ' : ''}{fmt(g.exp)}</td
+								><td class="pr-4 text-right tabular-nums">{trade(g).toFixed(2)}</td><td
+									>{@render from(g)}</td
 								></tr
 							>
 						{/each}
@@ -283,18 +358,13 @@
 			{/if}
 			<ul class="space-y-0.5 text-sm">
 				{#each data.gains.filter((g) => g.kind !== 'res') as g (g.key)}
-					<li title={g.sources.join('\n')}>
-						{g.kind === 'tech' ? `+${fmt(g.exp * 100)} % ${g.label}` : g.label}{g.kind === 'xp'
+					<li>
+						{g.kind === 'tech' ? `+${fmt(g.exp * 100)} % ` : ''}{@render gainLabel(g)}{g.kind ===
+						'xp'
 							? ` +${fmt(g.exp)}`
 							: ''}
-						<span class="text-gray-500"
-							>{g.sure > 0
-								? 'sure'
-								: `possible${g.kind === 'item' && g.exp < 1 ? ` (${Math.round(g.exp * 100)} %)` : ''}`}{g
-								.sources.length > 1
-								? ` · ${g.sources.length} sources`
-								: ` · ${g.sources[0]}`}</span
-						>
+						{@render badge(certainty(g))}
+						{@render from(g)}
 					</li>
 				{/each}
 			</ul>
@@ -321,17 +391,23 @@
 
 			<Panel
 				title="Stations seen"
-				note="Other empires' stations in systems one of your fleets was in when the game saved (monthly autosaves catch only the fleets there at that moment), with their shipset. Unknown owners are guessed: one shipset within 3 jumps counts as one empire."
+				note="Other empires' stations in systems one of your fleets was in when the game saved (monthly autosaves catch only the fleets there at that moment), with their shipset. Unknown owners are guessed: one shipset within 3 jumps counts as one empire. Empires you have communications with are hidden: their territory is on the map."
 			>
-				{#if data.seen.length}
+				{#if talking}<label class="mb-2 flex items-center gap-1 text-sm"
+						><input type="checkbox" bind:checked={showTalking} /> also empires you have
+						communications with ({talking})</label
+					>{/if}
+				{#if seen.length}
 					<SortTable
-						rows={data.seen}
+						rows={seen}
 						columns={seenColumns}
 						key={(r) => r.systemId}
 						link={(r) => r.systemId}
 						bind:hovered
 					/>
-				{:else}<p class="text-sm text-gray-500">
+				{:else if data.seen.length}<p class="text-sm text-gray-500">
+						Only stations of empires you have communications with.
+					</p>{:else}<p class="text-sm text-gray-500">
 						None yet: no fleet of yours has been at another empire's station when the game saved.
 					</p>{/if}
 			</Panel>

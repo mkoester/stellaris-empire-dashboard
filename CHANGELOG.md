@@ -14,6 +14,14 @@ All notable changes to this project are documented here. The format follows
   site's done chapters are greyed. Needs a data DB from this release.
 - Frontier: "Still to gain" — what the open anomalies, special projects and dig sites can still
   bring this empire, summed: for sure and expected, the resources' worth in trade.
+- Frontier: "Still to gain" shows where each reward comes from as badges (anomaly, project, dig
+  site; hover for their names and how long each takes), how certain it is (sure, likely,
+  possible), and the popup of a tech, modifier or trait on its name.
+- Frontier: how long each open anomaly, special project and dig site takes — an anomaly by your
+  best scientist's level, a ship's project its days, a research project ≈ its cost at your
+  research in that field, a dig site ≈ the expected rolls of its remaining chapters.
+- Frontier: stations of empires you have communications with are hidden from "Stations seen"
+  (their territory is on the map); a switch shows them again.
 - The window title names the tab: "Colonies - Empire Dashboard (Stellaris)".
 
 ### Changed

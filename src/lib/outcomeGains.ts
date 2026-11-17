@@ -1,5 +1,5 @@
 import { pretty } from './format.ts';
-import { effectText, nodes, type OutcomeNode } from './outcomes.ts';
+import { effectRef, effectText, nodes, type OutcomeNode } from './outcomes.ts';
 import type { Resources } from './types.ts';
 import { valueOf } from './value.ts';
 
@@ -131,21 +131,29 @@ export function gains(tree: OutcomeNode[], ctx: GainContext): Bag {
 	return list(tree);
 }
 
+/** Where a reward comes from: an open anomaly, special project or dig site. */
+export type GainSource = {
+	name: string;
+	kind: 'anomaly' | 'project' | 'dig site';
+	time?: { days: number; approx: boolean } | null; // how long it takes (#lib/frontierTime.ts)
+};
+
 /** One line of the summary: a reward with its amounts and where it comes from. */
 export type GainRow = {
 	key: string;
 	kind: 'res' | 'tech' | 'xp' | 'item';
 	label: string;
+	ref: string | null; // its popup (`tech:`, `modifier:` …), where the dashboard has a card
 	sure: number;
 	exp: number;
 	approx: boolean; // rests on months of income or a scaled amount
-	sources: string[];
+	sources: GainSource[];
 };
 
 /** Rewards of several sources summed, each with the names of the sources that give it. `names`:
  * tech keys → names. Resources first, then tech progress, experience, the rest by label. */
 export function gainRows(
-	sources: { name: string; tree: OutcomeNode[]; next?: number | null }[],
+	sources: (GainSource & { tree: OutcomeNode[]; next?: number | null })[],
 	ctx: Omit<GainContext, 'next'>,
 	names: Record<string, string> = {}
 ): GainRow[] {
@@ -153,6 +161,12 @@ export function gainRows(
 	for (const s of sources) {
 		const bag = gains(s.tree, { ...ctx, next: s.next ?? null });
 		const approx = hasApprox(s.tree);
+		const refs = new Map<string, string>();
+		for (const n of nodes(s.tree)) {
+			const k = leaf(n, ctx)?.[0];
+			const ref = effectRef(n);
+			if (k && ref) refs.set(k, ref);
+		}
 		for (const [key, v] of bag) {
 			if (v.exp <= 0 && v.sure <= 0) continue;
 			const kind = key.startsWith('res:')
@@ -173,6 +187,7 @@ export function gainRows(
 							: kind === 'xp'
 								? 'leader experience'
 								: key.slice(5),
+				ref: refs.get(key) ?? null,
 				sure: 0,
 				exp: 0,
 				approx: false,
@@ -181,7 +196,8 @@ export function gainRows(
 			r.sure += v.sure;
 			r.exp += v.exp;
 			r.approx ||= kind === 'res' && approx.has(key.slice(4));
-			if (!r.sources.includes(s.name)) r.sources.push(s.name);
+			if (!r.sources.some((x) => x.name === s.name && x.kind === s.kind))
+				r.sources.push({ name: s.name, kind: s.kind, time: s.time ?? null });
 			rows.set(key, r);
 		}
 	}

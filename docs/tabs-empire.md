@@ -295,7 +295,22 @@ above the anomalies while one of the three spoilers is on: the pruned trees of t
 anomalies, projects and dig sites (from the next chapter) summed per reward — _sure_ on every
 path, _expected_ by the odds (an unsettled `if` as even odds); at an event's options the one
 worth most in trade; projects an outcome leads to count; months of income from the latest save's
-gross income, clamped, ≈. The resources' worth in trade (`valuesOf()`), sure and expected. Checked
+gross income, clamped, ≈. The resources' worth in trade (`valuesOf()`), sure and expected.
+Each reward carries badges for its sources' kinds (anomaly, project, dig site — names and times
+on hover), a certainty badge (sure; likely ≥ 50 %; possible) and the popup of a tech, modifier,
+trait or deposit (`GainRow.ref`, `effectRef()`). **Time** (the user's ask 2026-11-17,
+`#lib/frontierTime.ts`): each table's Time column, before speed bonuses, with our best scientist
+on a science ship (`civilianShips`, max `leaderLevel`): an anomaly by
+SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS (`anomalyDays()`, shared with the ships' order totals); a
+ship's project its `days_to_research`; a research project ≈ its `cost` (data DBs since
+2026-11-17) at the gross monthly research of its department, which halts meanwhile; a dig site ≈
+the expected rolls of its remaining chapters (`expectedRolls()`: a d10 + skill + clues −
+difficulty, 14 finishes, 11–13 +2 clues, 6–10 +1, `standard_archaeological_site_on_roll_failed_case`;
+the next chapter from its clues and `days_left`, later chapters' difficulties from the tree, so
+only the next one without the spoiler) — its assumptions are open check A5.
+**Stations seen hides empires we have communications with** (the user's ask 2026-11-17;
+`SeenRow.talking` from the latest save's relations, the owner id stays on the server): their
+territory is on the map; a checkbox shows them again. Checked
 2026-11-17 on a DB copy: 52 nodes greyed (origin Evolutionary Predators, civic Determined
 Exterminator …), 8913 trade sure, 11509 expected. **Markers** (`markers()`): _known_ — no
 chance, no choice, no condition anywhere, projects included; _random_ — a random list with two

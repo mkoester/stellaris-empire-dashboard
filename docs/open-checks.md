@@ -39,7 +39,10 @@ run-out cooldown dismissed on a reloaded branch. Still open:
 4. **Engine cooldowns left**: a federation law change (its timers sit on the federation, not read
    yet), the jump drive (`jump_drive_cooldown`).
 5. **Rolls**: an envoy on a first contact and a science ship on a dig site — the next roll's date
-   against `days_left`, and the cycle after a roll (`last_roll`).
+   against `days_left`, and the cycle after a roll (`last_roll`). The frontier tab's dig-site
+   time (`#lib/frontierTime.ts`) assumes a roll every 90 days (`ARCHAEOLOGICAL_SITE_DISCOVERY_DAYS`),
+   the skill bonus = the scientist's level, and clues reset per chapter: the game's breakthrough
+   tooltip ("current score before dice roll") and the days between two rolls settle all three.
 6. **Days per jump**: a military fleet and a science ship over a known number of jumps, with a
    manual save each few days — calibrates `DEFAULT_DAYS_PER_JUMP` (10, a placeholder).
 

@@ -434,13 +434,24 @@ export function loadGameData(file: string): GameData {
 					key: string;
 					name: string | null;
 					days: number | null;
+					cost: number | null;
 					department: string | null;
 					outcomes_json: string | null;
-				}>('SELECT key, name, days, department, outcomes_json FROM special_project').map((r) => [
+				}>(
+					// cost: data DBs since 2026-11-17
+					`SELECT key, name, days, ${
+						rows<{ name: string }>('PRAGMA table_info(special_project)').some(
+							(c) => c.name === 'cost'
+						)
+							? 'cost'
+							: 'NULL AS cost'
+					}, department, outcomes_json FROM special_project`
+				).map((r) => [
 					r.key,
 					{
 						name: r.name ?? r.key,
 						days: r.days,
+						cost: r.cost || null, // 0: a ship's project
 						department: r.department,
 						outcomes: jsonList(r.outcomes_json)
 					}

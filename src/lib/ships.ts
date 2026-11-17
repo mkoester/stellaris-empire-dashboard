@@ -50,6 +50,12 @@ const ANOMALY_DAYS = [
 	20, 24, 30, 35, 45, 55, 65, 80, 100, 120, 180, 300, 540, 720, 1080, 1440, 2160, 2880, 5760
 ];
 
+/** Days a scientist of `level` takes on an anomaly of `anomaly` level, before speed bonuses. */
+export function anomalyDays(anomaly: number, level: number): number {
+	const i = 9 + anomaly - level; // equal levels sit in the middle
+	return ANOMALY_DAYS[Math.min(Math.max(i, 0), ANOMALY_DAYS.length - 1)];
+}
+
 /** What an order counts up to; `levels` are anomaly category levels from the game data. */
 export function orderTotal(
 	o: ShipOrder,
@@ -61,8 +67,7 @@ export function orderTotal(
 	if (o.kind === 'research_anomaly') {
 		const anomaly = o.anomaly ? levels[o.anomaly] : null;
 		if (anomaly == null || ship.leaderLevel === null) return null;
-		const i = 9 + anomaly - ship.leaderLevel; // equal levels sit in the middle
-		return ANOMALY_DAYS[Math.min(Math.max(i, 0), ANOMALY_DAYS.length - 1)];
+		return anomalyDays(anomaly, ship.leaderLevel);
 	}
 	return null;
 }

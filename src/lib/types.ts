@@ -1361,7 +1361,13 @@ export type GameData = {
 	>;
 	projects: Record<
 		string,
-		{ name: string; days: number | null; department: string | null; outcomes: Outcome[] }
+		{
+			name: string;
+			days: number | null; // a ship's or fleet's project
+			cost?: number | null; // research, halting its field meanwhile; data DBs since 2026-11-17
+			department: string | null;
+			outcomes: Outcome[];
+		}
 	>;
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
 	// what each leads to, followed down to the effects (`#lib/outcomes.ts`); empty on an older data DB

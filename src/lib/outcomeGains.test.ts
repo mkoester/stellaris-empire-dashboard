@@ -66,15 +66,22 @@ describe('gainRows', () => {
 	it('sums sources, names them, resources first, months marked ≈', () => {
 		const rows = gainRows(
 			[
-				{ name: 'A', tree: [res('energy', 10), { t: 'tech', k: 'tech_x', name: 'X', p: 0.25 }] },
-				{ name: 'B', tree: [{ t: 'months', r: 'energy', n: 1 }] }
+				{
+					name: 'A',
+					kind: 'anomaly',
+					tree: [res('energy', 10), { t: 'tech', k: 'tech_x', name: 'X', p: 0.25 }]
+				},
+				{ name: 'B', kind: 'project', tree: [{ t: 'months', r: 'energy', n: 1 }] }
 			],
 			{ income: { energy: 5 }, values: {} },
 			{ tech_x: 'Tech X' }
 		);
-		expect(rows.map((r) => [r.label, r.exp, r.approx, r.sources])).toEqual([
-			['energy', 15, true, ['A', 'B']],
-			['Tech X', 0.25, false, ['A']]
+		expect(
+			rows.map((r) => [r.label, r.exp, r.approx, r.sources.map((s) => s.name), r.ref])
+		).toEqual([
+			['energy', 15, true, ['A', 'B'], null],
+			['Tech X', 0.25, false, ['A'], 'tech:tech_x']
 		]);
+		expect(rows[0].sources.map((s) => s.kind)).toEqual(['anomaly', 'project']);
 	});
 });
