@@ -3,13 +3,17 @@ import {
 	branchLabels,
 	displayList,
 	effectText,
+	holds,
 	isChoice,
 	markers,
+	prune,
+	resolve,
 	outcomeText,
 	rewards,
 	withProjects,
 	type OutcomeNode
 } from './outcomes.ts';
+import type { Facts, Trigger } from './triggers.ts';
 
 // Shaped like the 4.5 extraction's trees: Gravity Assist Studies (one tech progress), A Cold
 // Discovery (ICY_FLOWERS_CAT: a choice, one option starting BOTANICAL_GARDEN_PROJECT, 50/50).
@@ -167,5 +171,105 @@ describe('text', () => {
 		expect(outcomeText(site, 2)).toBe(
 			'known\nChapter 1 (difficulty 2)\n  +50 minor artifacts\nChapter 2 (difficulty 3) ← next'
 		);
+	});
+});
+
+// The Intemporal Orb's options (4.5 extraction, with conditions): "Eat the orb." is a Devouring
+// Swarm's alone; an `if` on a xenophile; a branch weighted by a flag the chain may set.
+const us: Facts = {
+	countryType: 'default',
+	government: ['auth_democratic', 'ethic_xenophile', 'civic_idealistic_foundation'],
+	origin: 'origin_default',
+	governmentType: null,
+	dlcs: null,
+	policyFlags: [],
+	countryFlags: [],
+	traditions: [],
+	perks: [],
+	techs: [],
+	atWar: false,
+	situations: 0,
+	nomadic: false
+};
+const swarm: Trigger = { leaf: 'has_valid_civic', value: 'civic_hive_devouring_swarm' };
+const orb: OutcomeNode[] = [
+	{
+		t: 'event',
+		id: 'anomaly.7105',
+		title: 'The Orb',
+		e: [],
+		o: [
+			{
+				name: 'Study the orb.',
+				cond: true,
+				c: { op: 'not', args: [swarm] },
+				e: [{ t: 'xp', n: 1 }]
+			},
+			{ name: 'Eat the orb.', cond: true, c: swarm, e: [{ t: 'res', r: 'food', n: 500 }] }
+		]
+	},
+	{
+		t: 'if',
+		b: [[{ t: 'res', r: 'unity', n: 10 }], [{ t: 'res', r: 'energy', n: 10 }]],
+		else: true,
+		c: [{ leaf: 'has_ethic', value: 'ethic_xenophile' }, null]
+	},
+	{
+		t: 'random',
+		b: [
+			{
+				w: 0,
+				cond: true,
+				w_if: 1,
+				c: { leaf: 'has_country_flag', value: 'x' },
+				e: [{ t: 'res', r: 'alloys', n: 1 }]
+			},
+			{ w: 1, cond: false, e: [{ t: 'res', r: 'minerals', n: 1 }] }
+		]
+	}
+];
+
+describe('holds', () => {
+	it('a flag the chain may still set is unknown while absent, an ethic is not', () => {
+		expect(holds({ leaf: 'has_country_flag', value: 'x' }, us)).toBe(null);
+		expect(holds({ leaf: 'has_ethic', value: 'ethic_xenophobe' }, us)).toBe(false);
+		expect(holds({ op: 'not', args: [swarm] }, us)).toBe(true);
+	});
+});
+
+describe('resolve and prune', () => {
+	const r = resolve(orb, us);
+	it('marks what this empire cannot take, with why, and drops the conditions', () => {
+		const ev = r[0] as Extract<OutcomeNode, { t: 'event' }>;
+		expect(ev.o.map((o) => !!o.off)).toEqual([false, true]);
+		expect(ev.o[1].why).toContain('devouring swarm');
+		expect(JSON.stringify(r)).not.toContain('"c":');
+		expect((r[1] as Extract<OutcomeNode, { t: 'if' }>).taken).toEqual([true, false]);
+	});
+	it('an unknown condition leaves the branch as it was', () => {
+		expect((r[2] as Extract<OutcomeNode, { t: 'random' }>).b[0].cond).toBe(true);
+	});
+	it('prune keeps what is left: one option, the taken if branch in place', () => {
+		const p = prune(r);
+		expect((p[0] as Extract<OutcomeNode, { t: 'event' }>).o.map((o) => o.name)).toEqual([
+			'Study the orb.'
+		]);
+		expect(p[1]).toEqual({ t: 'res', r: 'unity', n: 10 });
+		expect(markers(p)).not.toContain('choice');
+	});
+	it('a settled weight of 0 turns its branch off', () => {
+		const known = resolve(
+			[
+				{
+					t: 'random',
+					b: [{ w: 0, cond: true, w_if: 1, c: { leaf: 'has_ethic', value: 'e' }, e: [] }]
+				}
+			],
+			us
+		);
+		expect((known[0] as Extract<OutcomeNode, { t: 'random' }>).b[0].off).toBe(true);
+	});
+	it('without conditions (an older data DB) nothing changes', () => {
+		expect(prune(resolve(gravity, us))).toEqual(gravity);
 	});
 });

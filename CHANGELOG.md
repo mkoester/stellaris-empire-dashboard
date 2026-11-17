@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Frontier: every level of an outcome folds on its own, with a short summary of what is inside.
+  What your empire can never get (an option for another origin or civic, a branch your ethics rule
+  out) is greyed, with the reason on hover, and left out of the markers and the summary; a dig
+  site's done chapters are greyed. Needs a data DB from this release.
+- Frontier: "Still to gain" — what the open anomalies, special projects and dig sites can still
+  bring this empire, summed: for sure and expected, the resources' worth in trade.
+- The window title names the tab: "Colonies - Empire Dashboard (Stellaris)".
+
+### Changed
+
+- The History and Diplomacy switches "beyond what you know" are spoilers now, not cheats: the
+  game reveals both through intel and exploring. Still off in multiplayer and Ironman. Where
+  spoilers are hidden and cheats shown, they now read as off until spoilers are shown.
+
 ## [0.1.24] - 2026-11-16
 
 ### Added

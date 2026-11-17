@@ -2,7 +2,9 @@
 	import ContractMarks from '#lib/ContractMarks.svelte';
 	import OutcomeCell from '#lib/Outcome.svelte';
 	import { resolve } from '$app/paths';
-	import { pretty } from '#lib/format.ts';
+	import { fmt, pretty } from '#lib/format.ts';
+	import type { GainRow } from '#lib/outcomeGains.ts';
+	import { valueOf } from '#lib/value.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import type { MapWidth } from '#lib/mapView.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
@@ -107,6 +109,15 @@
 		value: (r) => r.lastSeen,
 		title: 'the last save that had it'
 	});
+	// "Still to gain": the resources' worth in trade, sure and expected
+	const gainRes = $derived(data.gains.filter((g) => g.kind === 'res'));
+	const worth = (which: 'sure' | 'exp') =>
+		valueOf(Object.fromEntries(gainRes.map((g) => [g.key.slice(4), g[which]])), data.values);
+	const trade = (g: GainRow) => valueOf({ [g.key.slice(4)]: g.exp }, data.values);
+	const spoilersOn = $derived(
+		data.opts.anomalySpoilers || data.opts.projectSpoilers || data.opts.digSiteSpoilers
+	);
+	const greyed = (r: { closed: boolean }) => (r.closed ? 'opacity-50' : '');
 	type Anomaly = (typeof data.anomalies)[number];
 	type Project = (typeof data.projects)[number];
 	type Dig = (typeof data.digSites)[number];
@@ -238,6 +249,59 @@
 	{#if list}{list.map((o) => o.name ?? o.event).join(' · ') || '–'}{/if}
 {/snippet}
 
+{#snippet stillToGain()}
+	<Panel
+		title="Still to gain"
+		note="What the open anomalies, special projects and dig sites' next chapters can still bring this empire, as far as their spoilers are on. Sure: on every path. Expected: chance by its odds, a condition the save cannot answer as even odds, and at a choice the option worth most in trade. Greyed outcomes do not count; ≈ rests on months of your current income."
+	>
+		{#if data.gains.length}
+			<p class="mb-2 text-sm">
+				Resources worth <b class="tabular-nums">{worth('sure').toFixed(2)}</b> trade for sure,
+				<b class="tabular-nums">{worth('exp').toFixed(2)}</b> expected.
+			</p>
+			{#if gainRes.length}
+				<table class="mb-3 text-sm">
+					<thead
+						><tr class="border-b border-gray-300 text-left dark:border-gray-700"
+							><th class="pr-4">Resource</th><th class="pr-4 text-right">Sure</th><th
+								class="pr-4 text-right">Expected</th
+							><th class="text-right" title="the expected amount in trade">Trade</th></tr
+						></thead
+					>
+					<tbody>
+						{#each gainRes as g (g.key)}
+							<tr title={g.sources.join('\n')}
+								><td class="pr-4">{g.label}</td><td class="pr-4 text-right tabular-nums"
+									>{g.approx ? '≈ ' : ''}{fmt(g.sure)}</td
+								><td class="pr-4 text-right tabular-nums">{g.approx ? '≈ ' : ''}{fmt(g.exp)}</td><td
+									class="text-right tabular-nums">{trade(g).toFixed(2)}</td
+								></tr
+							>
+						{/each}
+					</tbody>
+				</table>
+			{/if}
+			<ul class="space-y-0.5 text-sm">
+				{#each data.gains.filter((g) => g.kind !== 'res') as g (g.key)}
+					<li title={g.sources.join('\n')}>
+						{g.kind === 'tech' ? `+${fmt(g.exp * 100)} % ${g.label}` : g.label}{g.kind === 'xp'
+							? ` +${fmt(g.exp)}`
+							: ''}
+						<span class="text-gray-500"
+							>{g.sure > 0
+								? 'sure'
+								: `possible${g.kind === 'item' && g.exp < 1 ? ` (${Math.round(g.exp * 100)} %)` : ''}`}{g
+								.sources.length > 1
+								? ` · ${g.sources.length} sources`
+								: ` · ${g.sources[0]}`}</span
+						>
+					</li>
+				{/each}
+			</ul>
+		{:else}<p class="text-sm text-gray-500">Nothing left that this empire can get.</p>{/if}
+	</Panel>
+{/snippet}
+
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Frontier</h1>
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.latest.date}</span>
@@ -293,6 +357,7 @@
 			</Panel>
 		</div>
 		<div class="flex min-w-0 flex-col gap-8">
+			{#if spoilersOn}{@render stillToGain()}{/if}
 			<Panel
 				title="Anomalies"
 				note="Found and not yet researched. {data.opts.anomalySpoilers
@@ -300,7 +365,12 @@
 					: 'What they can lead to: switch on the spoilers in ⚙.'}"
 			>
 				{#if data.anomalies.length}
-					<SortTable rows={data.anomalies} columns={anomalyColumns} key={(a) => a.planetId} />
+					<SortTable
+						rows={data.anomalies}
+						columns={anomalyColumns}
+						key={(a) => a.planetId}
+						rowClass={greyed}
+					/>
 				{:else}<p class="text-sm text-gray-500">None waiting.</p>{/if}
 				{#if data.gone.anomalies.length}
 					{@render goneNote(data.gone.anomalies.length)}
@@ -342,7 +412,12 @@
 					: 'What they lead to: switch on the spoilers in ⚙.'}"
 			>
 				{#if data.projects.length}
-					<SortTable rows={data.projects} columns={projectColumns} key={(p) => p.id} />
+					<SortTable
+						rows={data.projects}
+						columns={projectColumns}
+						key={(p) => p.id}
+						rowClass={greyed}
+					/>
 				{:else}<p class="text-sm text-gray-500">None on offer.</p>{/if}
 				{#if data.gone.projects.length}
 					{@render goneNote(data.gone.projects.length)}

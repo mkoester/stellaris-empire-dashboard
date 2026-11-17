@@ -278,7 +278,26 @@ the save cannot tell), with "Last seen" and the same columns, Outcome included. 
 `digSiteSpoilers`): the **Outcome** column (the user's ask 2026-11-15, `#lib/outcomes.ts` pure,
 `Outcome.svelte`, `server/outcomes.ts`) — the data DB's `outcome` trees, a project's own tree
 filled in where an anomaly leads to it (`withProjects()`), as markers, the first rewards, and the
-whole tree on opening (its plain text as the tooltip). **Markers** (`markers()`): _known_ — no
+whole tree on opening (its plain text as the tooltip), **every level folding on its own**
+(an event, option, branch, chapter, project; open at the first level and where only effects
+follow; the user's ask 2026-11-17). **What this empire cannot get is greyed** (the same ask):
+the data DB's conditions (`c`, extraction since 2026-11-17: an event's `trigger`, an option's
+conditions, an `if` chain's limits, a weighted branch's modifier — in a ship event only its
+`owner = { … }` part) read by `resolve()` against `facts()` of the latest save, three-valued:
+`holds()` takes a false answer only from what the empire _is_ (ethics, civics, origin,
+authority, DLC, gestalt…) — a flag, tech or modifier the chain may still bring is unknown while
+absent (Shattered Frontier's hostile reply hangs on a flag its own dialog sets). Greyed: `off`
+events and options with the condition on hover, `if` branches not `taken`, a weighted branch
+settled at 0; `prune()` leaves them out of markers, summary and gains, and a row with nothing
+left is greyed. An older data DB has no `c`: nothing greys. A dig site's chapters before the next
+one are greyed as done. **Still to gain** (`#lib/outcomeGains.ts`, the user's ask 2026-11-17),
+above the anomalies while one of the three spoilers is on: the pruned trees of the open
+anomalies, projects and dig sites (from the next chapter) summed per reward — _sure_ on every
+path, _expected_ by the odds (an unsettled `if` as even odds); at an event's options the one
+worth most in trade; projects an outcome leads to count; months of income from the latest save's
+gross income, clamped, ≈. The resources' worth in trade (`valuesOf()`), sure and expected. Checked
+2026-11-17 on a DB copy: 52 nodes greyed (origin Evolutionary Predators, civic Determined
+Exterminator …), 8913 trade sure, 11509 expected. **Markers** (`markers()`): _known_ — no
 chance, no choice, no condition anywhere, projects included; _random_ — a random list with two
 branches or more; _choice_ — an event with two options open to one empire (conditional options
 count as one variant: "Study the orb." / "Eat the orb."); _depends_ — a conditional option, a

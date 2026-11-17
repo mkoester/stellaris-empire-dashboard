@@ -7,6 +7,10 @@ import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display } from '#lib/server/settings.ts';
 import { outcomeTrees } from '#lib/server/outcomes.ts';
+import { valuesOf } from '#lib/server/unitCosts.ts';
+import { facts } from '#lib/government.ts';
+import { gainRows } from '#lib/outcomeGains.ts';
+import { prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
 import type { AnomalyInfo, DigSite, ProjectInfo } from '#lib/types.ts';
 
@@ -14,7 +18,9 @@ import type { AnomalyInfo, DigSite, ProjectInfo } from '#lib/types.ts';
 // situations, anomalies, dig sites and special projects, at the branch's latest save that has
 // them, with the first-contact map over the campaign's galaxy. What earlier saves of the branch had
 // and that one no longer has follows each list, greyed (`gone()`: finished or lost).
-// Outcomes and other empires' stations only with their display switches (spoilers).
+// Outcomes and other empires' stations only with their display switches (spoilers). Outcomes are
+// read against the empire (`resolve()`: what it cannot get greyed), and what the open ones can
+// still bring is summed (`gainRows()`, "Still to gain").
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
@@ -22,6 +28,13 @@ export function load({ url }) {
 	const data = getGameData();
 	const opts = display();
 	const trees = outcomeTrees(data, opts);
+	const save = snaps.findLast((x) => x.kind === 'save') ?? null;
+	const f = save ? facts(save, data.scriptedTriggers, { shipKinds: data.shipKinds }) : null;
+	const read = (tree: OutcomeNode[] | null) =>
+		tree && f ? resolve(tree, f, data.identityNames) : tree;
+	// nothing this empire can get from it: greyed in its table
+	const closed = (tree: OutcomeNode[] | null) => !!tree?.length && !prune(tree).length;
+	const values = valuesOf(snaps);
 	const s = snaps.findLast((x) => x.firstContacts !== null);
 	const galaxy = s ? (campaignGalaxy(s.campaign)?.systems ?? []) : [];
 	const nameOf = new Map(galaxy.map((g) => [g.id, g.name]));
@@ -38,25 +51,29 @@ export function load({ url }) {
 	const territories = territoriesOf(snaps);
 	const anomaly = (a: AnomalyInfo) => {
 		const cat = data.anomalyCategories[a.category];
+		const tree = read(trees.anomaly(a.category));
 		return {
+			closed: closed(tree),
 			...a,
 			system: system(a.systemId),
 			name: cat?.name ?? a.category,
 			level: cat?.level ?? null,
 			outcomes: opts.anomalySpoilers ? (cat?.outcomes ?? []) : null,
-			tree: trees.anomaly(a.category)
+			tree
 		};
 	};
 	const project = (p: ProjectInfo) => {
 		const info = data.projects[p.key];
+		const tree = read(trees.project(p.key));
 		return {
+			closed: closed(tree),
 			...p,
 			system: system(p.systemId),
 			name: info?.name ?? p.key,
 			department: info?.department ?? null,
 			days: info?.days ?? null,
 			outcomes: opts.projectSpoilers ? (info?.outcomes ?? []) : null,
-			tree: trees.project(p.key)
+			tree
 		};
 	};
 	const dig = (d: DigSite) => ({
@@ -64,14 +81,30 @@ export function load({ url }) {
 		system: system(d.systemId),
 		name: data.digSiteTypes[d.type]?.name ?? pretty(d.type.replace(/^site_/, '')),
 		stages: data.digSiteTypes[d.type]?.stages ?? null,
-		tree: trees.digSite(d.type)
+		tree: read(trees.digSite(d.type))
 	});
 	// each with the date of the last save that had it
 	const dated =
 		<T, R>(row: (t: T) => R) =>
 		(t: T & { lastSeen: string }) => ({ ...row(t), lastSeen: t.lastSeen });
+	const anomalies = (s?.anomalies ?? []).map(anomaly);
+	const projects = (s?.specialProjects ?? []).map(project);
+	const digSites = (s?.digSites ?? []).map(dig);
+	const techNames = Object.fromEntries(Object.entries(data.techs).map(([k, v]) => [k, v.name]));
+	// what the open ones can still bring, as far as their spoilers are on
+	const gains = gainRows(
+		[
+			...anomalies.map((a) => ({ name: `${a.name} (anomaly)`, tree: a.tree })),
+			...projects.map((p) => ({ name: `${p.name} (project)`, tree: p.tree })),
+			...digSites.map((d) => ({ name: `${d.name} (dig site)`, tree: d.tree, next: d.chapter }))
+		].flatMap((x) => (x.tree ? [{ ...x, tree: prune(x.tree) }] : [])),
+		{ income: save?.income ?? null, values },
+		techNames
+	);
 	return {
 		...rest,
+		gains,
+		values,
 		territories,
 		contractMarks: contractMarksAt(snaps, opts),
 		seen: seenRows(mergeSightings(snaps), territories, system),
@@ -95,9 +128,9 @@ export function load({ url }) {
 		),
 		owners: opts.contactStations ? owners : [],
 		situations: situationRows(s?.situations ?? [], data.situationTypes),
-		anomalies: (s?.anomalies ?? []).map(anomaly),
-		projects: (s?.specialProjects ?? []).map(project),
-		digSites: (s?.digSites ?? []).map(dig),
+		anomalies,
+		projects,
+		digSites,
 		// no longer in the save: finished, or lost — kept for what they were (and their outcomes)
 		gone: {
 			situations: situationRows(
