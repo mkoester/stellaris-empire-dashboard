@@ -59,7 +59,8 @@ export type Display = {
 	planOrder: boolean; // planner: each goal's times with the goals above it paid first
 	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, beyond our intel (spoiler)
-	historyAll: boolean; // history tab: every empire's history, beyond what we know (spoiler)
+	historyMet: boolean; // history tab: everything about the empires we met, beyond our intel (spoiler)
+	historyAll: boolean; // history tab: every empire's history, by its own name (cheat)
 	pactIntel: boolean; // pacts tab: what intel shows of partners — tech counts, trade at economy intel 3 (spoiler)
 	subjectNumbers: boolean; // subjects tab: a subject's power, fleet, size and pops as numbers (cheat)
 	pactAll: boolean; // pacts tab: partners' techs and trade whatever our intel, tech hints (cheat)
@@ -96,6 +97,7 @@ export const DEFAULT_DISPLAY: Display = {
 	whatIfs: false,
 	tradeIntel: false,
 	diplomacyAll: false,
+	historyMet: false,
 	historyAll: false,
 	pactIntel: false,
 	subjectNumbers: false,
@@ -184,6 +186,7 @@ export function parseDisplay(v: unknown): Display {
 		planOrder: o.planOrder === true,
 		tradeIntel: o.tradeIntel === true,
 		diplomacyAll: o.diplomacyAll === true,
+		historyMet: o.historyMet === true,
 		historyAll: o.historyAll === true,
 		pactIntel: o.pactIntel === true,
 		subjectNumbers: o.subjectNumbers === true,

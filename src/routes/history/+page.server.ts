@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { knownHistory, months } from '#lib/history.ts';
+import { knownHistory, months, type HistoryMode } from '#lib/history.ts';
 import { CATEGORICAL } from '#lib/migration.ts';
 import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, mapSystems } from '#lib/server/mapSystems.ts';
@@ -7,19 +7,22 @@ import { display } from '#lib/server/settings.ts';
 
 // The galaxy's known history since 2200 along the branch (#lib/history.ts): who held which
 // system when, and the events, as far as the branch's latest save lets us know them; the
-// `historyAll` spoiler shows everything.
+// `historyMet` spoiler shows everything about the empires we met, the `historyAll` cheat everything.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	const saves = snaps.filter((s) => s.kind === 'save' && s.history);
+	const { historyAll, historyMet } = display();
+	const mode: HistoryMode = historyAll ? 'all' : historyMet ? 'met' : 'known';
 	const latest = saves.at(-1);
 	const history = knownHistory(
 		saves.map((s) => ({
 			date: s.date,
 			history: s.history!,
 			communications: (s.relations ?? []).filter((r) => r.communications).map((r) => r.countryId),
-			visited: (s.knownSystems ?? []).map((k) => k.id),
+			met: (s.relations ?? []).map((r) => r.countryId),
+			intel: (s.intel ?? []).map((i) => [i.countryId, i.intel] as [number, number]),
 			wars: s.allWars ?? [],
 			names: [
 				...(s.countryId === null ? [] : [[s.countryId, s.empireName] as [number, string]]),
@@ -27,7 +30,7 @@ export function load({ url }) {
 			]
 		})),
 		latest?.countryId ?? -1,
-		display().historyAll
+		mode
 	);
 	// the map: what the other maps show, plus every system the history names, faint
 	const base = mapSystems(snaps);
@@ -56,6 +59,6 @@ export function load({ url }) {
 		months: latest ? months(latest.date) : [],
 		systems: [...base, ...extra],
 		colors,
-		all: display().historyAll
+		mode
 	};
 }

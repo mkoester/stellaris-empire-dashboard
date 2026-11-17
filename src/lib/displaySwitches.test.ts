@@ -66,6 +66,7 @@ describe('effectiveDisplay', () => {
 			'contractSpoilers',
 			'diplomacyAll',
 			'historyAll',
+			'historyMet',
 			'lgates',
 			'pactIntel',
 			'surveyAll',
