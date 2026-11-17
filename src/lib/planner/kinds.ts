@@ -1,5 +1,5 @@
 import { colonyActiveBuildings } from '#lib/buildings.ts';
-import { MEGA_RULES } from '#lib/megastructures.ts';
+import { MEGA_RULES, stagePrefix } from '#lib/megastructures.ts';
 import { counted, wanderlustName } from '#lib/wanderlust.ts';
 import type { GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
 import type { AutoGoal, Target } from './replay.ts';
@@ -350,7 +350,7 @@ export const KINDS: Record<string, Kind> = {
 		check: (t, c) => {
 			const x = sys(c, n(t, 'system'));
 			if (!x) return { state: 'unknown' };
-			const there = x.megastructures.filter((m) => m.startsWith(s(t, 'structure')));
+			const there = x.megastructures.filter((m) => m.startsWith(stagePrefix(s(t, 'structure'))));
 			if (there.some((m) => !m.endsWith('_ruined')) && x.owned)
 				return {
 					state: there.some((m) => /_(0|1)$/.test(m)) ? 'progress' : 'done',
