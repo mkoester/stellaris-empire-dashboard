@@ -193,15 +193,16 @@ export const SWITCHES: Switch[] = [
 		group: 'Diplomacy and trade',
 		kind: 'spoiler',
 		intel: true,
-		label:
-			'Pacts: what your intel shows of each partner — its techs per area, its trade at high intel',
+		label: 'Pacts: what your intel shows of each research partner — its techs per area',
 		note: 'the game shows them on the empire’s intel screen, not what a pact comes to',
 		tags: 'research agreement commercial pact intel'
 	},
 	{
 		key: 'subjectNumbers',
 		group: 'Diplomacy and trade',
-		kind: 'cheat',
+		// a spoiler since 2026-11-17 (the user's ask): another empire's numbers, off where cheats are
+		kind: 'spoiler',
+		intel: true,
 		label:
 			'Subjects: each subject’s military, economy and tech power, fleet, size and pops as numbers',
 		note: 'the game compares them only as Inferior, Equivalent or Superior',
@@ -211,8 +212,7 @@ export const SWITCHES: Switch[] = [
 		key: 'pactAll',
 		group: 'Diplomacy and trade',
 		kind: 'cheat',
-		label:
-			'Pacts: which techs each research partner has, what each commercial pact brings, and which tech to pick',
+		label: 'Pacts: which techs each research partner has, and which tech to pick',
 		note: 'no intel level lists another empire’s techs',
 		tags: 'research agreement commercial pact tech hints'
 	},
