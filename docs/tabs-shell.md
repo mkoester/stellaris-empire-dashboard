@@ -232,7 +232,13 @@ system on the map (`MapMarker.tip`, behind the three outcome spoilers; the front
 Outcome column has the same) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). **Every
 map's width** is the viewer's (`GalaxyMap`'s `width` buttons: normal, wide = the window's full width,
 wide + table = that with the page's table beside the map) — one localStorage key for all maps
-(`MAP_WIDTH_KEY`, `#lib/mapView.ts`). A page with a table of what its map shows (map: Found;
+(`MAP_WIDTH_KEY`, `#lib/mapView.ts`). Until a browser's buttons pick one, a map opens at ⚙'s **Map width**
+(`Display.mapWidth`, per profile, default normal; the layout's `mapDefaults`), and it opens fitted
+to ⚙'s **A map opens fitted to** (`mapFit`: explored — the default —, my empire, everything;
+everything where that set is empty), following the size; the "everything" button follows it too
+(the user's ask, 2026-11-17). ⚙ shows what this browser keeps of its own — its width pick, how many
+map heights were dragged — each with a reset (`forget()` in `#lib/browserStore.ts`), so a default
+can take effect again. A page with a table of what its map shows (map: Found;
 systems; megastructures; frontier: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
 filters stay above the map. **A map that is the page's last element is as high as it is wide

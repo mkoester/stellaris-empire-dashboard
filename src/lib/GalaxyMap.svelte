@@ -302,7 +302,8 @@
 			return px > 0 ? Math.max(200, px) : null;
 		};
 		chosen = { page: stored('page'), side: stored('side') };
-		width = parseMapWidth(recall(MAP_WIDTH_KEY));
+		// this browser's pick, else ⚙'s default width
+		width = parseMapWidth(recall(MAP_WIDTH_KEY), page.data.mapDefaults?.width);
 		fullWindow = recall(MAP_FULL_KEY) === '1';
 		const html = document.documentElement;
 		const measure = () => {
@@ -315,11 +316,11 @@
 		return () => ro.disconnect();
 	});
 
-	// null = everything fitted, following the size; set by zoom, drag and the focus buttons
+	// null = the start fitted (⚙'s map fit), following the size; set by zoom, drag and the focus
+	// buttons
 	let view: View | null = $state(null);
 	const size = $derived({ w, h });
 	const whole = $derived(fit([...systems, ...extra], size));
-	const v = $derived(view ?? whole);
 	const kMin = $derived(whole.k / 2);
 	const at = (p: Point) => toScreen(v, size, p);
 
@@ -363,6 +364,14 @@
 		})
 	);
 	const explored = $derived(systems.filter((s) => s.known !== false));
+	// what a page opens on (⚙ Display, per profile: explored, my empire or everything), following
+	// the size; "everything" picked follows it too; an empty set shows everything
+	let all = $state(false);
+	const startFit = $derived(page.data.mapDefaults?.fit ?? 'explored');
+	const opening = $derived(
+		all || startFit === 'everything' ? [] : startFit === 'empire' ? home.points : explored
+	);
+	const v = $derived(view ?? (opening.length ? fit(opening, size) : whole));
 	// at least close enough to tell the capital's neighbours apart (~100px between systems)
 	const toCapital = (c: Point) => (view = { cx: c.x, cy: c.y, k: Math.max(v.k, 5) });
 	/** Centres a system, zoomed in as for the capital (a page's search uses it). */
@@ -548,7 +557,13 @@
 				onclick={() => (view = fit(f.points, size))}>{f.label}</button
 			>
 		{/each}
-		<button class={button} onclick={() => (view = null)}>everything</button>
+		<button
+			class={button}
+			onclick={() => {
+				view = null;
+				all = true;
+			}}>everything</button
+		>
 		<span class="ml-2 text-gray-500">zoom</span>
 		<button class={button} onclick={() => zoomBy(1.5)} aria-label="zoom in">+</button>
 		<button class={button} onclick={() => zoomBy(1 / 1.5)} aria-label="zoom out">−</button>

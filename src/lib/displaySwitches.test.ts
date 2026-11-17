@@ -19,6 +19,8 @@ describe('SWITCHES', () => {
 					'colonyRowLine',
 					'expansionRowLine',
 					'slaveMarket',
+					'mapFit',
+					'mapWidth',
 					'showSpoilers',
 					'showCheats'
 				].includes(k)

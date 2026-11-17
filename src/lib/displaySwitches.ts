@@ -7,7 +7,13 @@ import type { Display } from './profiles.ts';
 
 export type SwitchKey = Exclude<
 	keyof Display,
-	'colonyRowLine' | 'expansionRowLine' | 'slaveMarket' | 'showSpoilers' | 'showCheats'
+	| 'colonyRowLine'
+	| 'expansionRowLine'
+	| 'slaveMarket'
+	| 'mapFit'
+	| 'mapWidth'
+	| 'showSpoilers'
+	| 'showCheats'
 >;
 export type SwitchKind = 'normal' | 'spoiler' | 'cheat';
 export type Switch = {
