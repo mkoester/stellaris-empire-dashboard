@@ -1,3 +1,4 @@
+import { contactStage } from '#lib/format.ts';
 import { colonyActiveBuildings } from '#lib/buildings.ts';
 import { MEGA_RULES, stagePrefix } from '#lib/megastructures.ts';
 import { counted, countsFor, outlook, wanderlustName } from '#lib/wanderlust.ts';
@@ -545,7 +546,11 @@ export const KINDS: Record<string, Kind> = {
 			}
 			if (f.status === 'finished') return { state: 'done' };
 			if (f.status === 'aborted') return { state: 'blocked', why: 'aborted' };
-			return { state: f.leaderId !== null ? 'progress' : 'open', why: `stage ${f.stage}` };
+			const stage = contactStage(f.stage);
+			return {
+				state: f.leaderId !== null ? 'progress' : 'open',
+				why: stage === null ? 'in progress' : `stage ${stage}`
+			};
 		}
 	},
 	identity: {

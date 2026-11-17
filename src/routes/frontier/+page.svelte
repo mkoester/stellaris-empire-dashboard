@@ -3,7 +3,7 @@
 	import OutcomeCell from '#lib/Outcome.svelte';
 	import { fromTable } from '#lib/outcomes.ts';
 	import { resolve } from '$app/paths';
-	import { fmt, pretty } from '#lib/format.ts';
+	import { contactStage, fmt, pretty } from '#lib/format.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { mergeGainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
 	import { colorOf } from '#lib/colors.ts';
@@ -78,7 +78,7 @@
 		},
 		{ id: 'difficulty', label: 'Diff.', value: (r) => r.difficulty, right: true, cell: difficulty },
 		{ id: 'clues', label: 'Clues', value: (r) => r.clues, right: true },
-		{ id: 'stage', label: 'Stage', value: (r) => r.stage, cell: stage },
+		{ id: 'stage', label: 'Stage', value: (r) => contactStage(r.stage), cell: stage, right: true },
 		{
 			id: 'daysLeft',
 			label: 'Days',
@@ -267,7 +267,7 @@
 {#snippet contactTable()}
 	<Panel
 		title="First contacts"
-		note="Envoy ✉: someone is working on it. Jumps from our border along hyperlanes (bypasses not counted). Stages are the game's internal names."
+		note="Envoy ✉: someone is working on it. Jumps from our border along hyperlanes (bypasses not counted). Stage: its number alone (the game's names for them are spoilers)."
 	>
 		<label class="mb-2 flex items-center gap-1 text-sm"
 			><input type="checkbox" bind:checked={showDone} /> also finished and aborted</label
@@ -338,7 +338,7 @@
 {/snippet}
 {#snippet difficulty(r: ContactRow)}<span style:color={hard(r.difficulty)}>{r.difficulty}</span
 	>{/snippet}
-{#snippet stage(r: ContactRow)}{pretty(r.stage)}{r.status === 'in_progress'
+{#snippet stage(r: ContactRow)}{contactStage(r.stage) ?? '–'}{r.status === 'in_progress'
 		? ''
 		: ` (${pretty(r.status)})`}{/snippet}
 {#snippet days(r: ContactRow)}{r.status === 'in_progress' && r.daysLeft !== null

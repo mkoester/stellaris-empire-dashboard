@@ -11,7 +11,7 @@
 		type ContactRow,
 		type ContactView
 	} from '#lib/contacts.ts';
-	import { nameOf, pretty } from '#lib/format.ts';
+	import { contactStage, nameOf, pretty } from '#lib/format.ts';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import SubjectCards from '#lib/SubjectCards.svelte';
 	import type { Battle, Claim, Combat } from '#lib/types.ts';
@@ -75,7 +75,7 @@
 		firstContact: {
 			id: 'firstContact',
 			label: 'First contact',
-			value: (r) => r.firstContact?.stage ?? null,
+			value: (r) => (r.firstContact ? contactStage(r.firstContact.stage) : null),
 			cell: fc
 		}
 	};
@@ -124,9 +124,9 @@
 	/>{#if r.hostile}<span class="text-red-600"> · hostile</span>{/if}
 {/snippet}
 {#snippet comms(r: ContactRow)}{r.communications ? '✓' : '–'}{/snippet}
-{#snippet fc(r: ContactRow)}{r.firstContact
-		? `${pretty(r.firstContact.stage)}, ${r.firstContact.clues} clues`
-		: '–'}{/snippet}
+{#snippet fc(r: ContactRow)}{#if r.firstContact}{@const n = contactStage(
+			r.firstContact.stage
+		)}{n === null ? '' : `stage ${n}, `}{r.firstContact.clues} clues{:else}–{/if}{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Contacts</h1>

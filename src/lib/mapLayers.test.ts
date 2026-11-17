@@ -98,7 +98,7 @@ describe('mapMarkers', () => {
 			}
 		];
 		const [m] = mapMarkers({ ...none, galaxy: [sys(1)], contacts });
-		expect([m.ongoing, m.progress]).toEqual([true, 'first contact stage 2, 3 clues, 42 days left']);
+		expect([m.ongoing, m.progress]).toEqual([true, 'stage 2, 3 clues, 42 days left']);
 	});
 });
 

@@ -265,7 +265,8 @@ events are the game's own terms for one panel each, `/situations` redirects; `#l
 readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,
 situations, a link to events | anomalies, dig sites, special projects), the first-contact map
 below them at full width (the user's ask, 2026-11-15): first
-contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
+contacts as a table (age in months, difficulty, clues, stage — its number alone, `contactStage()`:
+the game's stage keys name the contact's kind and way, spoilers, the user's ask 2026-11-17 —, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
 an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
 with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
