@@ -129,18 +129,12 @@
 		project: '#6366f1',
 		'dig site': '#d97706'
 	};
+	// each source by name, in its kind's colour; its kind and how long it takes on hover
+	const KINDS = Object.keys(SOURCE_COLORS) as GainSource['kind'][];
 	const byKind = (g: GainRow) =>
-		(Object.keys(SOURCE_COLORS) as GainSource['kind'][])
-			.map((kind) => ({
-				kind,
-				// each source with how long it takes
-				names: g.sources
-					.filter((s) => s.kind === kind)
-					.map((s) =>
-						s.time ? `${s.name} (${s.time.approx ? '≈ ' : ''}${daysText(s.time.days)})` : s.name
-					)
-			}))
-			.filter((x) => x.names.length);
+		[...g.sources].sort((a, b) => KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind));
+	const sourceTitle = (s: GainSource) =>
+		`${s.kind}${s.time ? `, ${s.time.approx ? '≈ ' : ''}${daysText(s.time.days)}` : ''}`;
 	const timeColumn = <T extends { time: Time | null }>(title: string): Column<T> => ({
 		id: 'time',
 		label: 'Time',
@@ -303,11 +297,11 @@
 		title={b.title}>{b.label}</span
 	>{/snippet}
 {#snippet from(g: GainRow)}<span class="inline-flex flex-wrap gap-1 align-middle"
-		>{#each byKind(g) as b (b.kind)}<span
+		>{#each byKind(g) as s (`${s.kind}:${s.name}`)}<span
 				class="rounded border px-1 text-[11px] leading-4"
-				style:color={SOURCE_COLORS[b.kind]}
-				style:border-color={SOURCE_COLORS[b.kind]}
-				title={b.names.join('\n')}>{b.kind}{b.names.length > 1 ? ` ×${b.names.length}` : ''}</span
+				style:color={SOURCE_COLORS[s.kind]}
+				style:border-color={SOURCE_COLORS[s.kind]}
+				title={sourceTitle(s)}>{s.name}</span
 			>{/each}</span
 	>{/snippet}
 {#snippet gainLabel(g: GainRow)}{#if g.ref}<InfoPopup ref={g.ref}>{g.label}</InfoPopup
@@ -322,6 +316,10 @@
 			<p class="mb-2 text-sm">
 				Resources worth <b class="tabular-nums">{worth('sure').toFixed(2)}</b> trade for sure,
 				<b class="tabular-nums">{worth('exp').toFixed(2)}</b> expected.
+				<span class="ml-2 text-xs text-gray-500"
+					>From:{#each KINDS as k (k)}<span class="ml-1" style:color={SOURCE_COLORS[k]}>{k}</span
+						>{/each}</span
+				>
 			</p>
 			{#if gainRes.length}
 				<table class="mb-3 text-sm">

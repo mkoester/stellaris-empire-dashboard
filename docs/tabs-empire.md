@@ -296,8 +296,8 @@ anomalies, projects and dig sites (from the next chapter) summed per reward — 
 path, _expected_ by the odds (an unsettled `if` as even odds); at an event's options the one
 worth most in trade; projects an outcome leads to count; months of income from the latest save's
 gross income, clamped, ≈. The resources' worth in trade (`valuesOf()`), sure and expected.
-Each reward carries badges for its sources' kinds (anomaly, project, dig site — names and times
-on hover), a certainty badge (sure; likely ≥ 50 %; possible) and the popup of a tech, modifier,
+Each reward names its sources, one chip each in its kind's colour (anomaly, project, dig site;
+the kind and its time on hover; the user's ask 2026-11-17: kinds alone hid which one gives it), a certainty badge (sure; likely ≥ 50 %; possible) and the popup of a tech, modifier,
 trait or deposit (`GainRow.ref`, `effectRef()`). **Time** (the user's ask 2026-11-17,
 `#lib/frontierTime.ts`): each table's Time column, before speed bonuses, with our best scientist
 on a science ship (`civilianShips`, max `leaderLevel`): an anomaly by
