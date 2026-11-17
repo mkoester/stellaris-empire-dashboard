@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.25] - 2026-11-17
 
 ### Added
 
@@ -13,14 +13,12 @@ All notable changes to this project are documented here. The format follows
   out) is greyed, with the reason on hover, and left out of the markers and the summary; a dig
   site's done chapters are greyed. Needs a data DB from this release.
 - Frontier: "Still to gain" — what the open anomalies, special projects and dig sites can still
-  bring this empire, summed: for sure and expected, the resources' worth in trade.
-- Frontier: "Still to gain" shows where each reward comes from as badges (anomaly, project, dig
-  site; hover for their names and how long each takes), how certain it is (sure, likely,
-  possible), and the popup of a tech, modifier or trait on its name. Each source shows how long it
-  takes; tech progress shows the tech's tier, area, cost to you and what the progress is worth in
-  research, its area in the field's colour. Filters for sure / possible and for each kind of
-  source (the sums follow them); hovering a source highlights everything it gives and its row in
-  its table, and clicking it jumps there.
+  bring this empire, summed: for sure and expected, the resources' worth in trade. Each reward
+  names its sources (coloured by kind, with how long each takes) and how certain it is (sure,
+  likely, possible); techs, modifiers and traits open their popup. Tech progress shows the tech's
+  tier, area, cost to you and what the progress is worth in research. Filters for sure / possible
+  and for each kind of source (the sums follow them); hovering a source highlights everything it
+  gives and its row further down, clicking it jumps there.
 - Frontier: how long each open anomaly, special project and dig site takes — an anomaly by your
   best scientist's level, a ship's project its days, a research project ≈ its cost at your
   research in that field, a dig site ≈ the expected rolls of its remaining chapters.
