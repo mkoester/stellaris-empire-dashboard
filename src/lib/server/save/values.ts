@@ -72,6 +72,13 @@ export function displayName(name: Raw): string {
 		const part = (k: string) => displayName(name.variables.find((x: Raw) => x?.key === k)?.value);
 		return `${part('1')} - ${part('2')} ${part('3')}`;
 	}
+	// Our FirstContact-MeaningfulLabels mod names a contact site `fc_label_<type>` with the
+	// contact's own name as its variable: "Voidworms (Space Fauna)".
+	const fc = /^fc_label_(\w+)$/.exec(key);
+	if (fc && Array.isArray(name?.variables)) {
+		const inner = name.variables.map((v: Raw) => displayName(v.value)).filter(Boolean);
+		return `${inner.join(' ')} (${FC_LABELS[fc[1]] ?? fc[1]})`;
+	}
 	// Inline templates: `$affix$$base$` (a modified species: base "Yorphid", affix "Trans-" →
 	// "Trans-Yorphid"), `$base$ $affix$` — each `$k$` filled by the variable keyed k.
 	if (/\$\w+\$/.test(key) && Array.isArray(name?.variables)) {
@@ -113,6 +120,20 @@ export function resources(obj: Raw): Resources {
 	for (const [k, v] of Object.entries(obj ?? {})) if (typeof v === 'number') out[k] = v;
 	return out;
 }
+
+// FirstContact-MeaningfulLabels' types, as its localisation names them
+// (`fc_meaningful_labels/localisation/english/fc_labels_l_english.yml`): change both together.
+const FC_LABELS: Record<string, string> = {
+	drones: 'Mining Drones',
+	fauna: 'Space Fauna',
+	artisans: 'Artisan Troupe',
+	merchants: 'Trader Enclave',
+	scholars: 'Curator Order',
+	enclave: 'Alien Enclave',
+	marauders: 'Marauders',
+	caravaneers: 'Caravaneers',
+	drifters: 'Unaligned Vessels'
+};
 
 const COLONY_SUFFIX = [
 	'Prime',
