@@ -290,7 +290,13 @@ absent (Shattered Frontier's hostile reply hangs on a flag its own dialog sets).
 events and options with the condition on hover, `if` branches not `taken`, a weighted branch
 settled at 0; `prune()` leaves them out of markers, summary and gains, and a row with nothing
 left is greyed. An older data DB has no `c`: nothing greys. A dig site's chapters before the next
-one are greyed as done. **Still to gain** (`#lib/outcomeGains.ts`, the user's ask 2026-11-17),
+one are greyed as done. **What a reward comes to now** (`Now`, `outcomeNow()`; the user's ask
+2026-11-17), in the tree, its summary and every tooltip (map, planner, upcoming): months of income
+"≈ +543 now" (`monthsNow()`, the latest save's gross income, clamped — the same as Still to gain),
+its "(min …, max …)" greyed; tech progress "≈ 165 physics, 3.6 months of ours" (the share × the
+tech's cost at the save's cost factors, `techCost()`; the time at our research in that field,
+none for a tech researched). The page gets the techs as a table (`nowTable()`, every tech the
+outcome trees give progress in): a function does not serialise. **Still to gain** (`#lib/outcomeGains.ts`, the user's ask 2026-11-17),
 above the anomalies while one of the three spoilers is on: the pruned trees of the open
 anomalies, projects and dig sites (from the next chapter) summed per reward — _sure_ on every
 path, _expected_ by the odds (an unsettled `if` as even odds); at an event's options the one

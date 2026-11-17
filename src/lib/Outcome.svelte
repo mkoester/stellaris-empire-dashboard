@@ -11,6 +11,8 @@
 		ifLabel,
 		isChoice,
 		markers,
+		monthsParts,
+		type Now,
 		outcomeText,
 		prune,
 		rewards,
@@ -21,12 +23,17 @@
 	// rewards, and the whole tree on opening (`#lib/outcomes.ts`), every level folding on its own.
 	// What this empire cannot get (`off`, a branch not `taken`; `resolve()`) is greyed and folded,
 	// and left out of the markers and the summary. `chapter`: a dig site's next one — the ones
-	// before it are done, greyed.
-	let { tree, chapter = null }: { tree: OutcomeNode[]; chapter?: number | null } = $props();
+	// before it are done, greyed. `now`: what months of income and tech progress come to for us
+	// now (≈, `Now` in #lib/outcomes.ts).
+	let {
+		tree,
+		chapter = null,
+		now = null
+	}: { tree: OutcomeNode[]; chapter?: number | null; now?: Now | null } = $props();
 
 	const open = $derived(prune(tree));
 	const kinds = $derived(markers(open));
-	const summary = $derived(rewards(open));
+	const summary = $derived(rewards(open, now));
 	const SHOWN = 3;
 	const NOT_OURS = 'not for your empire';
 
@@ -34,7 +41,7 @@
 	const STRUCTURED = new Set(['event', 'random', 'if', 'later', 'chapter', 'project']);
 	const flat = (l: OutcomeNode[]) => l.every((n) => !STRUCTURED.has(n.t));
 	const brief = (l: OutcomeNode[]) => {
-		const r = rewards(prune(l));
+		const r = rewards(prune(l), now);
 		return r.length ? ` — ${r.slice(0, 2).join(' · ')}${r.length > 2 ? ' …' : ''}` : '';
 	};
 </script>
@@ -46,10 +53,13 @@
 {/snippet}
 
 {#snippet leaf(n: OutcomeNode)}
-	{@const text = effectText(n)}
+	{@const text = effectText(n, now)}
 	{@const ref = effectRef(n)}
-	{#if text}{#if ref}<InfoPopup {ref}>{text}</InfoPopup>{:else if n.t === 'note'}<i>{text}</i
-			>{:else}{text}{/if}{/if}
+	{#if n.t === 'months'}{@const m = monthsParts(n, now)}{m.main}{#if m.now}<span
+				title="≈ at this month's gross income">{m.now}</span
+			>{/if}<span class="text-gray-400">{m.bounds}</span>{:else if text}{#if ref}<InfoPopup {ref}
+				>{text}</InfoPopup
+			>{:else if n.t === 'note'}<i>{text}</i>{:else}{text}{/if}{/if}
 {/snippet}
 
 <!-- a foldable level: its heading, a short summary of what is in it, its body -->
@@ -173,7 +183,7 @@
 	{/each}
 </span>
 <details class="inline-block align-top">
-	<summary class="cursor-pointer text-gray-500" title={outcomeText(open, chapter)}
+	<summary class="cursor-pointer text-gray-500" title={outcomeText(open, chapter, now)}
 		>{summary.slice(0, SHOWN).join(' · ') ||
 			(open.length ? 'nothing that shows' : NOT_OURS)}{summary.length > SHOWN
 			? ` · +${summary.length - SHOWN} more`

@@ -64,7 +64,7 @@ import { headId, history, nodeById, nodes, planEvents } from './db.ts';
 import { pick } from './explain.ts';
 import { campaignGalaxy } from './mapSystems.ts';
 import { display, setting } from './settings.ts';
-import { outcomeTips } from './outcomes.ts';
+import { outcomeNow, outcomeTips } from './outcomes.ts';
 import { colonyDetails } from './planets.ts';
 
 // The planner tab's data (#lib/planner/*): the plan at the node shown, each goal checked against
@@ -766,7 +766,7 @@ function suggestions(c: Ctx, plan: Plan): Suggestion[] {
 	const l = ctx.latest;
 	const d = ctx.data;
 	const all = getGameData();
-	const tips = outcomeTips(all, display());
+	const tips = outcomeTips(all, display(), outcomeNow(l, all));
 	add(
 		'survey',
 		(ctx.galaxy ?? [])

@@ -1,5 +1,5 @@
 import { pretty } from './format.ts';
-import { effectRef, effectText, nodes, type OutcomeNode } from './outcomes.ts';
+import { effectRef, effectText, monthsNow, nodes, type OutcomeNode } from './outcomes.ts';
 import type { Resources } from './types.ts';
 import { valueOf } from './value.ts';
 
@@ -37,10 +37,8 @@ function leaf(n: OutcomeNode, ctx: GainContext): [string, number] | null {
 		case 'res':
 			return [`res:${n.r}`, n.n];
 		case 'months': {
-			const per = ctx.income?.[n.r];
-			if (per === undefined || n.n === undefined) return [`item:${effectText(n)}`, 1];
-			const raw = n.n * Math.max(per, 0);
-			return [`res:${n.r}`, Math.min(Math.max(raw, n.min ?? 0), n.max ?? Infinity)];
+			const now = monthsNow(n, ctx.income);
+			return now === null ? [`item:${effectText(n)}`, 1] : [`res:${n.r}`, now];
 		}
 		case 'tech':
 			return n.p !== undefined ? [`tech:${n.k}`, n.p] : [`item:${effectText(n)}`, 1];

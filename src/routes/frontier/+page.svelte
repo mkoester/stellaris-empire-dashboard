@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ContractMarks from '#lib/ContractMarks.svelte';
 	import OutcomeCell from '#lib/Outcome.svelte';
+	import { fromTable } from '#lib/outcomes.ts';
 	import { resolve } from '$app/paths';
 	import { fmt, pretty } from '#lib/format.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
@@ -21,6 +22,7 @@
 	import type { Outcome } from '#lib/types.ts';
 
 	let { data } = $props();
+	const pageNow = $derived(fromTable(data.now));
 	let width: MapWidth = $state('normal'); // "wide + table": the contacts table goes beside the map
 	followGame(() => data.isHead);
 
@@ -282,16 +284,19 @@
 		kind="digsite"
 		target={{ planet: d.planetId }}
 	/>{/snippet}
-{#snippet anomalyOutcomes(a: Anomaly)}{#if a.tree}<OutcomeCell tree={a.tree} />{:else}<span
-			class="text-gray-500">{@render outcomes(a.outcomes)}</span
-		>{/if}{/snippet}
-{#snippet projectOutcomes(p: Project)}{#if p.tree}<OutcomeCell tree={p.tree} />{:else}<span
-			class="text-gray-500">{@render outcomes(p.outcomes)}</span
-		>{/if}{/snippet}
+{#snippet anomalyOutcomes(a: Anomaly)}{#if a.tree}<OutcomeCell
+			tree={a.tree}
+			now={pageNow}
+		/>{:else}<span class="text-gray-500">{@render outcomes(a.outcomes)}</span>{/if}{/snippet}
+{#snippet projectOutcomes(p: Project)}{#if p.tree}<OutcomeCell
+			tree={p.tree}
+			now={pageNow}
+		/>{:else}<span class="text-gray-500">{@render outcomes(p.outcomes)}</span>{/if}{/snippet}
 {#snippet chapter(d: Dig)}{d.chapter ?? '–'}{d.stages ? ` / ${d.stages}` : ''}{/snippet}
 {#snippet digOutcome(d: Dig)}{#if d.tree}<OutcomeCell
 			tree={d.tree}
 			chapter={d.chapter ?? null}
+			now={pageNow}
 		/>{/if}{/snippet}
 
 {#snippet territory(r: SeenRow)}{#if r.territory}<EmpireName

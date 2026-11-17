@@ -3,6 +3,9 @@ import {
 	branchLabels,
 	displayList,
 	effectText,
+	fromTable,
+	monthsParts,
+	nowTable,
 	holds,
 	isChoice,
 	markers,
@@ -115,6 +118,37 @@ describe('text', () => {
 		expect(effectText({ t: 'modifier', k: 'flagellating_movement', name: null, days: -1 })).toBe(
 			'flagellating movement (permanent)'
 		);
+	});
+
+	it('what months of income and tech progress come to now', () => {
+		const now = {
+			income: { society_research: 40 },
+			tech: (k: string) => (k === 'tech_x' ? { cost: 1200, area: 'physics', perMonth: 100 } : null)
+		};
+		// 12 × 40 = 480 is above the min; the bounds come apart, for the frontier to grey
+		expect(monthsParts(months(12, 250) as never, now)).toEqual({
+			main: '12 months of society research income',
+			now: ' ≈ +480 now',
+			bounds: ' (min 250)'
+		});
+		expect(effectText(months(5, 250), now)).toBe(
+			'5 months of society research income ≈ +250 now (min 250)'
+		);
+		// 25 % of 1200 = 300 physics, 3 months of our 100 a month
+		const tech: OutcomeNode = { t: 'tech', k: 'tech_x', name: 'X', p: 0.25 };
+		expect(effectText(tech, now)).toBe('+25 % X ≈ 300 physics, 3 months of ours');
+		expect(effectText({ ...tech, k: 'tech_y' }, now)).toBe('+25 % X');
+		expect(effectText(tech)).toBe('+25 % X');
+	});
+
+	it('a page gets the techs as a table', () => {
+		const tech: OutcomeNode = { t: 'tech', k: 'tech_x', name: 'X', p: 0.5 };
+		const t = nowTable(
+			{ income: null, tech: () => ({ cost: 100, area: 'society', perMonth: null }) },
+			[[{ t: 'random', b: [{ w: 1, cond: false, e: [tech] }] } as OutcomeNode]]
+		);
+		expect(t.techs).toEqual({ tech_x: { cost: 100, area: 'society', perMonth: null } });
+		expect(effectText(tech, fromTable(t))).toBe('+50 % X ≈ 50 society');
 	});
 
 	it('percentages, or weights where a branch has conditions', () => {

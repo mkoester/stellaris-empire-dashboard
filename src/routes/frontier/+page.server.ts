@@ -6,14 +6,14 @@ import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display } from '#lib/server/settings.ts';
-import { outcomeTrees } from '#lib/server/outcomes.ts';
+import { outcomeNow, outcomeTrees } from '#lib/server/outcomes.ts';
 import { valuesOf } from '#lib/server/unitCosts.ts';
 import { facts } from '#lib/government.ts';
 import { gainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
 import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
 import { anomalyDays } from '#lib/ships.ts';
 import { techCost } from '#lib/events.ts';
-import { prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
+import { nowTable, prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
 import type { AnomalyInfo, DigSite, ProjectInfo } from '#lib/types.ts';
 
@@ -197,6 +197,13 @@ export function load({ url }) {
 		...rest,
 		gains,
 		values,
+		// what months of income and tech progress come to now (#lib/Outcome.svelte); a function
+		// does not serialise, so its techs go along as a table
+		now: nowTable(outcomeNow(save, data), [
+			...Object.values(data.outcomeTrees.anomaly),
+			...Object.values(data.outcomeTrees.project),
+			...Object.values(data.outcomeTrees.dig_site)
+		]),
 		territories,
 		contractMarks: contractMarksAt(snaps, opts),
 		seen: seenRows(

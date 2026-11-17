@@ -10,7 +10,7 @@ import { idles, withIdleShips } from '#lib/idle.ts';
 import { plannedOnOffer, withLiveOptions } from '#lib/techOffers.ts';
 import { planSummary } from './planner.ts';
 import { display } from './settings.ts';
-import { outcomeTips } from './outcomes.ts';
+import { outcomeNow, outcomeTips } from './outcomes.ts';
 import { empireColors } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
@@ -76,7 +76,7 @@ export function branch(url: URL) {
 					...timedOut(saves, getGameData(), title, dismissed(db, campaign)),
 					...rolls(last, {
 						name: (type) => getGameData().digSiteTypes[type]?.name,
-						tip: outcomeTips(getGameData(), display()).digSite
+						tip: outcomeTips(getGameData(), display(), outcomeNow(last, getGameData())).digSite
 					}),
 					...plannedOnOffer(
 						// at the head, the cards the companion mod logged on the 2nd (0.13.0)
