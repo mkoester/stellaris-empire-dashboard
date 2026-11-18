@@ -157,11 +157,13 @@ set, capital among capitals, gestalt ones for gestalts — the game's `potential
 triggers the save cannot answer, so ≈), each with the deficit fee's change; and every planet
 decision not ruled out (data DB `decision`, extractor 2026-11-02, `#lib/planetDecisions.ts`: the
 planet's own leaves — `has_modifier`, `has_designation`, `is_planet_class`, `is_capital`,
-`pop_amount` — answered there, the country's by `#lib/triggers.ts`, "(?)" otherwise) that adds a
+`pop_amount`, `is_artificial` (data DB `planet_class.artificial`, extractor 2026-11-18; older:
+climate `artificial`) — answered there, the country's by `#lib/triggers.ts`, "(?)" otherwise) that adds a
 static modifier (its explanation's modifiers) or removes one the planet has, with its cost tier and
 duration. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01, UNE 2202.08.01): every page
 200; switch off → none shown, on → shown, spoilers hidden → off again. Not compared with the game
-(`docs/open-checks.md` 28).
+(`docs/open-checks.md` 28). Until 2026-11-18 `is_artificial` was left open, so a nomad's arkship
+was offered Mastery of Nature as "conditions uncertain" (the user's Selborne, 2217.05).
 **District automation** (the user's ask 2026-11-12; `#lib/jobAutomation.ts` pure,
 `colonyAutomation()` / `automationRanking()` in `server/whatIfs.ts`, `AutomationLine.svelte`, the
 colonies tab's `AutomationRanking.svelte`): per colony the next building of each automation line —

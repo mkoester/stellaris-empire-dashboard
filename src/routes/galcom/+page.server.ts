@@ -10,6 +10,7 @@ import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { setting } from '#lib/server/settings.ts';
+import { empireSwaps } from '#lib/swaps.ts';
 
 /**
  * What the save tells about another empire, for the conditions of its AI's vote: its identity;
@@ -69,6 +70,7 @@ export function load({ url }) {
 			: [];
 	// our diplomatic weight, part by part as the game's tooltip: every modifier source we hold
 	const explanations = getExplanations();
+	const swaps = empireSwaps(save, data); // a nomad's variants of traditions and perks
 	const weight =
 		save && galcom && save.score
 			? diploWeight(
@@ -81,8 +83,8 @@ export function load({ url }) {
 					},
 					[
 						...galcom.passed.map((r) => `resolution:${r.type}`),
-						...(save.traditions ?? []).map((t) => `tradition:${t}`),
-						...(save.ascensionPerks ?? []).map((p) => `perk:${p}`),
+						...(save.traditions ?? []).map((t) => `tradition:${swaps.shown(t)}`),
+						...(save.ascensionPerks ?? []).map((p) => `perk:${swaps.shown(p)}`),
 						...(save.government ?? []).flatMap((k) => [
 							`civic:${k}`,
 							`ethic:${k}`,

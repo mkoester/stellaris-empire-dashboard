@@ -1269,6 +1269,7 @@ export type GameData = {
 			ideal: boolean;
 			standard: boolean;
 			climate: string | null;
+			artificial?: boolean; // is_artificial_planet: arkship, habitats, ring segments
 		}
 	>;
 	names: Record<string, string>; // display names of buildings, deposits, districts, zones, starbase modules and buildings
@@ -1331,6 +1332,7 @@ export type GameData = {
 		}
 	>;
 	perks: Record<string, string>; // ascension perk names
+	traditionSwaps: Record<string, import('./swaps.ts').Swap[]>; // tradition or perk → its swaps
 	pathPerks?: string[]; // path perks from `00_ascension_paths.txt`; absent on older data DBs
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
 	setupScenarios: Record<string, Record<string, number>>; // galaxy size → save key → its default (`setup_scenario`, extractor 0.1.16)

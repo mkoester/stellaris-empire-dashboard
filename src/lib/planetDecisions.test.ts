@@ -14,6 +14,7 @@ const planet: PlanetFacts = {
 	modifiers: ['bleak_planet'],
 	designation: 'col_mining',
 	planetClass: 'pc_desert',
+	artificial: false,
 	pops: 4200,
 	capital: false,
 	crime: 12,
@@ -54,6 +55,34 @@ describe('planetTrigger', () => {
 			cmp: '>',
 			value: '0'
 		});
+	});
+});
+
+describe('an arkship', () => {
+	// 4.5.4 `decisions/02_special_decisions.txt`: Mastery of Nature asks `is_artificial = no`;
+	// the arkship's class pc_ark is artificial (the user's Selborne, 2026-11-18)
+	const mastery: PlanetDecision = {
+		key: 'decision_mastery_of_nature',
+		name: 'Mastery of Nature',
+		costs: [],
+		potential: {
+			op: 'and',
+			args: [
+				{ leaf: 'is_artificial', value: 'no' },
+				{ op: 'not', args: [{ leaf: 'has_modifier', value: 'mastery_of_nature' }] }
+			]
+		},
+		allow: null,
+		adds: [{ modifier: 'mastery_of_nature', days: -1 }],
+		removes: []
+	};
+	it('rules out a decision for natural planets', () => {
+		const ark = { ...planet, planetClass: 'pc_ark', artificial: true };
+		expect(decisionPossible(mastery, ark, facts)).toBe(false);
+		expect(decisionPossible(mastery, planet, facts)).toBe(true);
+	});
+	it('leaves it open when the class is unknown', () => {
+		expect(decisionPossible(mastery, { ...planet, artificial: null }, facts)).toBeNull();
 	});
 });
 

@@ -205,27 +205,36 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, trait_points, max_traits FROM species_archetype'
 				).map((r) => [r.key, { points: r.trait_points ?? 0, maxTraits: r.max_traits ?? 0 }])
 			),
-			planetClasses: Object.fromEntries(
-				rows<{
-					key: string;
-					name: string | null;
-					colonizable: number;
-					ideal: number;
-					is_standard: number;
-					climate: string | null;
-				}>('SELECT key, name, colonizable, ideal, is_standard, climate FROM planet_class').map(
-					(r) => [
+			// `artificial` (extractor 2026-11-18; an older data DB: the climate `artificial`, which
+			// misses the crystal habitat and the warden guardian)
+			planetClasses: (() => {
+				const hasArtificial = rows<{ name: string }>('PRAGMA table_info(planet_class)').some(
+					(c) => c.name === 'artificial'
+				);
+				return Object.fromEntries(
+					rows<{
+						key: string;
+						name: string | null;
+						colonizable: number;
+						ideal: number;
+						is_standard: number;
+						climate: string | null;
+						artificial: number | null;
+					}>(
+						`SELECT key, name, colonizable, ideal, is_standard, climate, ${hasArtificial ? 'artificial' : 'NULL AS artificial'} FROM planet_class`
+					).map((r) => [
 						r.key,
 						{
 							name: r.name ?? r.key,
 							colonizable: r.colonizable === 1,
 							ideal: r.ideal === 1,
 							standard: r.is_standard === 1,
-							climate: r.climate
+							climate: r.climate,
+							artificial: r.artificial === null ? r.climate === 'artificial' : r.artificial === 1
 						}
-					]
-				)
-			),
+					])
+				);
+			})(),
 			// Blockers are named "Blocker Sprawling Slums" in the data; the game shows "Sprawling Slums".
 			names: Object.fromEntries(
 				rows<{ key: string; name: string }>(
@@ -713,6 +722,24 @@ export function loadGameData(file: string): GameData {
 					{ potential: parseTrigger(r.potential_json), possible: parseTrigger(r.possible_json) }
 				])
 			),
+			// tradition swaps (#lib/swaps.ts), per owner in the game's order
+			traditionSwaps: rows<{
+				id: string;
+				owner_key: string;
+				name: string | null;
+				trigger_json: string | null;
+				inherit_effects: number;
+			}>(
+				'SELECT id, owner_key, name, trigger_json, inherit_effects FROM tradition_swap ORDER BY owner_key, sort_order'
+			).reduce<GameData['traditionSwaps']>((out, r) => {
+				(out[r.owner_key] ??= []).push({
+					id: r.id,
+					name: r.name,
+					trigger: parseTrigger(r.trigger_json),
+					inherit: r.inherit_effects === 1
+				});
+				return out;
+			}, {}),
 			perks: Object.fromEntries(
 				rows<{ key: string; name: string | null }>('SELECT key, name FROM ascension_perk').map(
 					(r) => [r.key, r.name ?? r.key]

@@ -234,6 +234,7 @@ export function colonyWhatIfs(b: Branch, colony: Colony) {
 		modifiers: colony.planet?.modifiers.map((m) => m.key) ?? [],
 		designation: colony.designation,
 		planetClass: colony.planetClass,
+		artificial: data.planetClasses[colony.planetClass]?.artificial ?? null,
 		pops: colony.pops,
 		capital: isCapital(colony),
 		crime: colony.crime ?? null,
@@ -409,13 +410,17 @@ export const explainedModifiers = (id: string): Record<string, number> =>
  * What taking each source would do now (`<kind>:<key>` ids, their explanations' modifiers),
  * keyed by id; null where the what-ifs are off or the branch has no save with a budget.
  */
-export function sourceWhatIfs(b: Branch, ids: string[]): Record<string, WhatIf> | null {
+export function sourceWhatIfs(
+	b: Branch,
+	ids: string[],
+	as: (id: string) => string = (id) => id // the id whose explanation counts (a swap's)
+): Record<string, WhatIf> | null {
 	if (!display().whatIfs) return null;
 	const i = whatIfInputs(b);
 	if (!i) return null;
 	return Object.fromEntries(
 		ids.flatMap((id) => {
-			const w = whatIfOf(explainedModifiers(id), i);
+			const w = whatIfOf(explainedModifiers(as(id)), i);
 			return w ? [[id, w]] : [];
 		})
 	);

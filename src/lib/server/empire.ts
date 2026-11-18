@@ -11,6 +11,7 @@ import { storageRows } from '#lib/storage.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { recommendationOptions } from './whatIfs.ts';
 import { pick } from './explain.ts';
+import { empireSwaps, swapExplanations } from '#lib/swaps.ts';
 import { expansionOf, expansionRows, habitatData, speciesChoices } from './expansion.ts';
 import { colonyBlockerHints } from './planets.ts';
 import { display, setting } from './settings.ts';
@@ -62,16 +63,20 @@ export function empireData(url: URL) {
 		empty: false as const,
 		...rest,
 		// Popup texts for what the page names: traits, edicts, research, agenda, jobs.
-		explain: pick(getExplanations(), [
-			...(latest.species ?? []).flatMap((s) => s.traits.map((t) => `trait:${t}`)),
-			...(latest.edicts ?? []).map((e) => `edict:${e}`),
-			...b.upcoming.flatMap((e) => (e.ref ? [e.ref] : [])),
-			...b.empireJobs.map((j) => `job:${j.type}`),
-			...(latest.traditions ?? []).map((k) => `tradition:${k}`),
-			...(latest.ascensionPerks ?? []).map((k) => `perk:${k}`),
-			...modifiers.map((m) => `modifier:${m.key}`),
-			...(government?.rows.flatMap((r) => r.items.map((i) => i.id)) ?? [])
-		]),
+		explain: swapExplanations(
+			pick(getExplanations(), [
+				...(latest.species ?? []).flatMap((s) => s.traits.map((t) => `trait:${t}`)),
+				...(latest.edicts ?? []).map((e) => `edict:${e}`),
+				...b.upcoming.flatMap((e) => (e.ref ? [e.ref] : [])),
+				...b.empireJobs.map((j) => `job:${j.type}`),
+				...(latest.traditions ?? []).map((k) => `tradition:${k}`),
+				...(latest.ascensionPerks ?? []).map((k) => `perk:${k}`),
+				...modifiers.map((m) => `modifier:${m.key}`),
+				...(government?.rows.flatMap((r) => r.items.map((i) => i.id)) ?? [])
+			]),
+			getExplanations(),
+			empireSwaps(latest, getGameData())
+		),
 		government,
 		recommendations: recommendationOptions(b),
 		// what each civilian ship's current order counts to (anomalies need the game data's levels)
@@ -200,11 +205,12 @@ export function sizeInputs(s: Snapshot, all: Record<string, Explanation>) {
 		speciesSizeMult(of((traits.get(id) ?? []).map((t) => `trait:${t}`)))
 	);
 	if (!parts) return null;
+	const swaps = empireSwaps(s, getGameData()); // a nomad's variants (#lib/swaps.ts)
 	const ids = [
 		...(s.government ?? []).flatMap((k) => [`civic:${k}`, `ethic:${k}`, `authority:${k}`]),
 		...(s.origin ? [`origin:${s.origin}`] : []),
-		...(s.traditions ?? []).map((k) => `tradition:${k}`),
-		...(s.ascensionPerks ?? []).map((k) => `perk:${k}`),
+		...(s.traditions ?? []).map((k) => `tradition:${swaps.shown(k)}`),
+		...(s.ascensionPerks ?? []).map((k) => `perk:${swaps.shown(k)}`),
 		...(s.progress?.researched ?? []).map((k) => `tech:${k}`),
 		...(s.countryModifiers ?? []).map((m) => `modifier:${m.key}`),
 		...(s.situations?.some((x) => x.type === NOMAD_ECONOMY) ? ['modifier:nomadic_empire'] : [])
