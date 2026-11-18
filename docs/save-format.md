@@ -385,6 +385,11 @@ migration_access waystation_pact … }` (`=yes`; the last two are the migration 
   later that month) holds that payout as `current_month`, `last_month` the one before (2207.04.01:
   `last_month` = 2207.03.10's `current_month`). Stockpile change between two monthly autosaves =
   the later one's balance, to the cent, unless something was paid outside it.
+- **Edicts' unity upkeep is booked only beyond the Edict Fund**: the fund pays it first, and the
+  save holds no fund total (2217.06.01: Farming Subsidies' 30 active, no `edicts` source at all).
+  Its modifiers come from companion mod 0.14.0 (`sdash_ef_add`/`_mult`, `#lib/edictFund.ts`). Read
+  booked ÷ base as a discount and the fund skews it — booked = k × base − fund. Diplomatic upkeep
+  is booked per pact type and carries its multipliers (Isolationist: a guarantee 1 for 0.5).
 - **One-off spending is booked nowhere**: construction, station builds, event rewards, one-off
   market trades, edicts, … show only as a stockpile change. `unbooked()` = change since the last
   snapshot before the latest's month start − that month's payout, per day with the mod's ticks;
@@ -500,7 +505,8 @@ date days_left difficulty clues stage status }` (`leader=4294967295`: none; `sta
   in_progress / finished / aborted; stages have no localisation). Relations
   `country.relations_manager.relation = { country contact communications hostile
 relation_current trust threat border_range pre_communications_name }` (`border_range`
-  2147483647: not bordering; pacts as flags, see "Pacts are flags" above). Situations `situations.situations.<id> = { country
+  2147483647: not bordering — a nomad's with every empire, 2217.06.01; pacts as flags, see "Pacts
+  are flags" above). Situations `situations.situations.<id> = { country
 type progress last_month_progress approach stage }`. Anomalies: `country.events.anomalies =
 { <planet ids> }`, category in `planets.planet.<id>.anomaly`. Special projects
   `country.events.special_project = { id special_project carrier = { type=planet reference } }`,

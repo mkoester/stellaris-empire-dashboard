@@ -177,6 +177,11 @@ sinks): hide what this empire will never use — a nomad never settles, a settle
 embarks, an origin, civic or authority it lacks —, grey what is not available _yet_ with the
 reason on hover, and grey a group's header when nothing in it is available.
 
+**A tradition or perk is the empire's variant** (data DB `tradition_swap`, `#lib/swaps.ts`; the
+user's report 2026-11-18: a nomad's Mastery of Nature unlocks no decision): show it through
+`swapExplanations()`, and sum a held tradition's or perk's modifiers under `empireSwaps(s,
+data).source(key)` — the owner's key reads the settled empire's effects.
+
 **Page data is visible to the viewer, not only what a page renders** (the user's ask 2026-11-17,
 "don't spoil any first contact"): another empire's real name, type, ethics or civics before
 communications stays on the server. `branch()`'s `latest` goes to every page as
