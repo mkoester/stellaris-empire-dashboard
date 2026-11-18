@@ -342,7 +342,7 @@
 	const GIFT_AMOUNT = 1000;
 	const giftable = $derived(data.tradable.filter((r) => r in data.model.worth));
 	// per 1,000 units, or per as much as 1,000 trade is worth of it (which resource buys most for the money)
-	let giftPer: 'units' | 'trade' = $state('units');
+	let giftPer: 'units' | 'trade' = $state('trade');
 	const giftUnits = (r: string) =>
 		giftPer === 'units' ? GIFT_AMOUNT : GIFT_AMOUNT / (data.unitValue[r] || 1);
 	const giftFor = (e: Empire, r: string) =>
@@ -365,10 +365,11 @@
 		}))
 	]);
 	let giftSort = $state({ column: 'name', desc: false });
-	// gifts never buy less than nothing: against 0
+	// per empire, which resource buys it the most (the user's ask 2026-11-18); never less than
+	// nothing: against 0
 	const giftScales = $derived(
-		Object.fromEntries(
-			giftable.map((r) => [r, scaleOf([0, ...data.empires.map((e) => giftFor(e, r))], 0)])
+		new Map(
+			data.empires.map((e) => [e.countryId, scaleOf([0, ...giftable.map((r) => giftFor(e, r))], 0)])
 		)
 	);
 
@@ -468,7 +469,7 @@
 {/snippet}
 {#snippet giftBuys(e: Empire, r: string)}
 	{@const v = giftFor(e, r)}
-	{@const t = tone(v, giftScales[r])}
+	{@const t = tone(v, giftScales.get(e.countryId) ?? null)}
 	<span class={v === 0 ? 'text-gray-400' : t.cls} style:color={t.color}
 		>{v === null ? '–' : `+${fmt(v)}`}</span
 	>
@@ -711,10 +712,10 @@
 					GIFT_AMOUNT
 				)} trade is worth to us (its market base price, else what a unit costs us; the header shows how many): which resource buys the most for the same value. Its worth to them at their willingness, as the trade screen's acceptance shows it (measured: that figure or one less) — 'Favorable Trade Deal', at most {data
 					.opinionModifiers[GIFT]?.max ??
-					100} (so less where earlier gifts are left; it fades by 2 a year, on the first gift's anniversary). An empire whose storage of the resource is full takes it for nothing (seen at the fallen empires). Every attitude takes gifts, rivals and unfriendly ones too: a way to mend one that refuses trades. Orange to green the more it buys (the column's best in bold); grey: +0."
+					100} (so less where earlier gifts are left; it fades by 2 a year, on the first gift's anniversary). An empire whose storage of the resource is full takes it for nothing (seen at the fallen empires). Every attitude takes gifts, rivals and unfriendly ones too: a way to mend one that refuses trades. Per empire, orange to green the more a resource buys (its best in bold); grey: +0."
 			>
 				<div class="mb-3 flex gap-1 text-sm">
-					{#each [['units', `per ${fmt(GIFT_AMOUNT)} units`], ['trade', `per ${fmt(GIFT_AMOUNT)} trade of it`]] as [mode, label] (mode)}
+					{#each [['trade', `per ${fmt(GIFT_AMOUNT)} trade of it`], ['units', `per ${fmt(GIFT_AMOUNT)} units`]] as [mode, label] (mode)}
 						<button
 							class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {giftPer ===
 							mode

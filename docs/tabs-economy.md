@@ -20,8 +20,8 @@ afford it", and per empire and resource whether it is short (under a third of it
 (over three quarters). The estimates rest on stockpile and income, so the route sends them with
 either switch (both barred in multiplayer and Ironman) and strips them with neither; a profile that
 had the old switch on gets both. The price and gift tables colour each value against the market's
-row (gifts: against +0): plain the same, orange → green the better (the column's best bold), grey
-worse. The gift table counts per 1,000 units or per 1,000 trade of each resource (`valuesOf()`),
+row: plain the same, orange → green the better (the column's best bold), grey worse; gifts per
+empire against +0 (its best resource bold, +0 grey). The gift table counts per 1,000 trade of each resource (`valuesOf()`; the default) or per 1,000 units,
 to see which resource buys the most opinion for the same value. **Estimated**: the AI's valuation is engine code;
 measured 2026-10-23 on three empires (one fallen) and gifts to 13 more
 (`docs/trade-calibration.md` → What we know; every tooltip line is a case in `aiTrade.test.ts`): the
