@@ -172,6 +172,10 @@ The tabs show what the game's own panels show. Everything beyond that is a profi
 (`Display`), off by default and labelled as a spoiler or as cheating (the list and the story:
 `docs/tabs-shell.md`).
 
+**A tab is dimmed by the rule its page shows rows by** (`#lib/tabData.ts` calls the page's own
+predicate, e.g. `whyOf()`): a separate "has data" test drifted — the contracts tab was greyed for
+a nomad while listing two offers (the user's report 2026-11-18).
+
 **Lists of options follow the playthrough** (the user's rule, 2026-11-16, the influence tab's
 sinks): hide what this empire will never use — a nomad never settles, a settled empire never
 embarks, an origin, civic or authority it lacks —, grey what is not available _yet_ with the
@@ -186,7 +190,9 @@ data).source(key)` — the owner's key reads the settled empire's effects.
 "don't spoil any first contact"): another empire's real name, type, ethics or civics before
 communications stays on the server. `branch()`'s `latest` goes to every page as
 `pageLatest()` (`#lib/contacts.ts`: only ourselves and those we talk to, no galaxy-wide
-`history`, `diplomacy` or `allWars`); `empireColors()` and contact rows hold real names only once we talk. Check a change
+`history`, `diplomacy`, `allWars` or `contracts` — a new galaxy-wide field that names other
+empires is dropped there too: `contracts` reached every page with its issuers' names until
+2026-11-18); `empireColors()` and contact rows hold real names only once we talk. Check a change
 by grepping every tab's HTML and `__data.json` on a DB copy for an open contact's real name.
 Never show an empire by its id: one without a known name is "unknown empire", and a save-made
 name built from other empires' names (a war's) only where every one of them is known.
