@@ -82,6 +82,7 @@ const data: GameData = {
 	traditionTrees: {},
 	perks: {},
 	traditionSwaps: {},
+	edictFund: {},
 	precursors: {},
 	setupScenarios: {},
 	contractTypes: {},

@@ -42,10 +42,13 @@
 		Object.fromEntries(Object.entries(what?.price?.upkeep ?? {}).map(([k, v]) => [k, -v]))
 	);
 	const priceNote = $derived(
-		what?.price?.measured
+		(what?.price?.measured
 			? 'its base cost and upkeep × what the budget books for the active edicts over their base (empire size, upkeep modifiers)'
-			: 'base values, before multipliers (empire size raises an edict’s)'
+			: 'base values, before multipliers (empire size raises an edict’s)') +
+			(what?.price?.note ? `; unity upkeep after the ${what.price.note}` : '')
 	);
+	// what the price rests on: measured, the edict fund estimated, or base values
+	const priceTag = $derived(what?.price?.measured ? '' : what?.price?.note ? ' (≈)' : ' (base)');
 	const netNote = $derived(
 		what?.net == null
 			? ''
@@ -75,13 +78,13 @@
 				class="mr-3 whitespace-nowrap {what.stability < 0 ? 'text-red-600' : 'text-green-600'}"
 				>{pts(what.stability)} stability</span
 			>{/if}{#if big(what.price?.upkeep)}<span class="mr-1 text-gray-500" title={priceNote}
-				>{`${Object.values(pays).some((v) => v > 0) ? 'saves' : 'pays'}${what.price?.measured ? '' : ' (base)'}`}</span
+				>{`${Object.values(pays).some((v) => v > 0) ? 'saves' : 'pays'}${priceTag}`}</span
 			><ResourceChips flows={pays} />{/if}{#if big(what.price?.cost)}<span
 				class="mr-3 whitespace-nowrap text-red-600"
 				title={`a one-time cost you pay: ${priceNote}`}
 				>{`costs ${Object.entries(what.price?.cost ?? {})
 					.map(([k, v]) => `${amount(v)} ${pretty(k)}`)
-					.join(', ')} once${what.price?.measured ? '' : ' (base)'}`}</span
+					.join(', ')} once${priceTag}`}</span
 			>{/if}{#if what.net != null && Math.abs(what.net) >= threshold}<span
 				class="mr-3 cursor-help font-semibold whitespace-nowrap {what.net < 0
 					? 'text-red-600'

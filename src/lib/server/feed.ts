@@ -289,6 +289,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		starbases: null,
 		navalUsed: null,
 		navalMax: null,
+		edictFund: null,
 		envoys: null,
 		marketOrders: [],
 		market: null,

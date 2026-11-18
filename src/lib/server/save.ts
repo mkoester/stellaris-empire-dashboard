@@ -338,7 +338,7 @@ function query(jomini: Jomini, zip: Uint8Array): RawSave {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '64'; // 64: every contact's techs we lack (research agreement advice); 63: name templates (`AofB`: "Pact of Fellnoll"); 62: FirstContact-MeaningfulLabels' contact names ("Voidworms (fauna)"); 61: the home system's bodies count as surveyed (surveyed_deposit_holders); 60: waystations' stockpile and fill, a waystation no longer owns its system (nor makes it ours); 59: every planet flag (carrier flags for planet decisions); 58: dig sites' chapter; 57: prescripted empires' names where countries are named while the file is read (they followed the save read before); 56: the save's player count (multiplayer only from two players); 55: subjects' renegotiation dates, stance and numbers; 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '65'; // 65: the Edict Fund's modifiers (companion mod 0.14.0); 64: every contact's techs we lack (research agreement advice); 63: name templates (`AofB`: "Pact of Fellnoll"); 62: FirstContact-MeaningfulLabels' contact names ("Voidworms (fauna)"); 61: the home system's bodies count as surveyed (surveyed_deposit_holders); 60: waystations' stockpile and fill, a waystation no longer owns its system (nor makes it ours); 59: every planet flag (carrier flags for planet decisions); 58: dig sites' chapter; 57: prescripted empires' names where countries are named while the file is read (they followed the save read before); 56: the save's player count (multiplayer only from two players); 55: subjects' renegotiation dates, stance and numbers; 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 /**
  * What reading a save takes from the game data: the prescripted empires' names (data DB
@@ -381,6 +381,7 @@ function snapshot(raw: RawSave, campaign: string, entryEvents: EntryEvent[]): Sn
 				: null,
 		navalUsed: numOrNull(raw.country?.used_naval_capacity),
 		navalMax: numOrNull(raw.country?.variables?.sdash_nc), // companion mod 0.6.0
+		edictFund: edictFundOf(raw.country?.variables), // companion mod 0.14.0
 		envoys: envoys(ownLeaders(raw)),
 		leaders: countBy(ownLeaders(raw).map((l) => String(l.class))),
 		ships: shipCounts(raw),
@@ -726,4 +727,14 @@ export function hops(systems: Record<string, Raw>, start: Raw): Map<number, numb
 		frontier = next;
 	}
 	return out;
+}
+
+/**
+ * The Edict Fund's modifiers companion mod 0.14.0 exports (`sdash_ef_add`, `sdash_ef_mult`); null
+ * without them. A variable the game leaves out when 0 reads as 0 once the other is there.
+ */
+export function edictFundOf(variables: Raw): { add: number; mult: number } | null {
+	const add = numOrNull(variables?.sdash_ef_add);
+	const mult = numOrNull(variables?.sdash_ef_mult);
+	return add === null && mult === null ? null : { add: add ?? 0, mult: mult ?? 0 };
 }

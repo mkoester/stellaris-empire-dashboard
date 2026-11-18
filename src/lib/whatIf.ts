@@ -1,6 +1,7 @@
 import { changeGain, type GroupFlows } from './produce.ts';
 import { changesOf, jobGroup, type Change } from './tradeoffs.ts';
 import type { Colony, Resources } from './types.ts';
+import { fundNote, unityUpkeep, type FundState } from './edictFund.ts';
 import { valueOf } from './value.ts';
 import {
 	amenities,
@@ -113,7 +114,7 @@ export type WhatIf = {
 };
 
 /** What taking it costs: once and a month; `measured` where the budget scaled the base values. */
-export type Price = { cost: Resources; upkeep: Resources; measured: boolean };
+export type Price = { cost: Resources; upkeep: Resources; measured: boolean; note?: string };
 
 const add = (into: Resources, from: Resources, k = 1) => {
 	for (const [r, v] of Object.entries(from)) into[r] = (into[r] ?? 0) + v * k;
@@ -190,28 +191,51 @@ type EdictCost = { cost?: Resources | null; upkeep?: Resources | null };
  * `edicts_upkeep_mult`: the budget's `edicts` expenses over the active edicts' base upkeep give
  * that factor per resource (`measured`), applied to the cost too (≈). Without an active edict
  * of that resource, base values. An active edict's price is what cancelling it saves.
+ * Unity upkeep goes through the Edict Fund where `fund` is given (#lib/edictFund.ts): only what
+ * the fund does not cover is paid, or saved.
  */
 export function edictPrices(
 	rows: { key: string; active: unknown; cost: EdictCost }[],
-	booked: Resources | undefined
+	booked: Resources | undefined,
+	fund: FundState | null = null
 ): Record<string, Price> {
 	const base: Resources = {};
 	for (const r of rows.filter((r) => r.active)) add(base, r.cost.upkeep ?? {});
-	const factor = (k: string) => (booked && base[k] > 0 ? (booked[k] ?? 0) / base[k] : null);
+	const factor = (k: string) =>
+		fund && k === 'unity'
+			? fund.measured
+				? fund.k
+				: null
+			: booked && base[k] > 0
+				? (booked[k] ?? 0) / base[k]
+				: null;
 	const scale = (res: Resources) =>
 		Object.fromEntries(Object.entries(res).map(([k, v]) => [k, v * (factor(k) ?? 1)]));
 	return Object.fromEntries(
 		rows.map((r) => {
 			const all = { ...(r.cost.cost ?? {}), ...(r.cost.upkeep ?? {}) };
-			const measured = Object.keys(all).every((k) => factor(k) !== null);
+			const measured =
+				Object.keys(all).every((k) => factor(k) !== null) &&
+				(!fund || !('unity' in all) || fund.fund.exact);
 			const upkeep = scale(r.cost.upkeep ?? {});
+			const unity = r.cost.upkeep?.unity;
+			const withFund = (u: Resources) =>
+				fund && unity !== undefined
+					? { ...u, unity: unityUpkeep(unity, Boolean(r.active), fund) }
+					: u;
 			const price: Price = r.active
 				? {
 						cost: {},
-						upkeep: Object.fromEntries(Object.entries(upkeep).map(([k, v]) => [k, -v])),
-						measured
+						upkeep: withFund(Object.fromEntries(Object.entries(upkeep).map(([k, v]) => [k, -v]))),
+						measured,
+						...(fund && unity !== undefined && { note: fundNote(fund) })
 					}
-				: { cost: scale(r.cost.cost ?? {}), upkeep, measured };
+				: {
+						cost: scale(r.cost.cost ?? {}),
+						upkeep: withFund(upkeep),
+						measured,
+						...(fund && unity !== undefined && { note: fundNote(fund) })
+					};
 			return [r.key, price];
 		})
 	);

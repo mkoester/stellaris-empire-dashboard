@@ -9,7 +9,9 @@ import { jobOutput, luxuryWhatIf, LUXURY_MONTHS } from '#lib/luxuries.ts';
 import type { GroupFlows } from '#lib/produce.ts';
 import { isCapital } from '#lib/colonyLogistics.ts';
 import { jobGroup } from '#lib/tradeoffs.ts';
-import { edictRows, facts, policyRows } from '#lib/government.ts';
+import { councilSeats, edictRows, facts, policyRows } from '#lib/government.ts';
+import { estimateFund, fundOf, fundState, type FundState } from '#lib/edictFund.ts';
+import { empireSwaps } from '#lib/swaps.ts';
 import {
 	decisionCost,
 	decisionModifiers,
@@ -398,6 +400,40 @@ export function automationRanking(b: Branch, top = 10): AutomationRank[] {
 		.slice(0, top);
 }
 
+/**
+ * The Edict Fund against the active edicts (#lib/edictFund.ts): exact from companion mod 0.14.0,
+ * else ≈ from what the empire holds; null without a budget.
+ */
+export function edictFundFor(
+	save: Snapshot,
+	rows: { active: unknown; cost: { upkeep?: Resources | null } }[]
+): FundState | null {
+	if (!save.budget) return null;
+	const data = getGameData();
+	const swaps = empireSwaps(save, data);
+	const held = [
+		'modifier:empire_base',
+		...[...(save.traditions ?? []), ...(save.ascensionPerks ?? [])].map(
+			(k) => `tradition:${swaps.source(k)}`
+		),
+		...(save.edicts ?? []).map((k) => `tradition:${k}`),
+		...Object.values(save.policies ?? {}).map((k) => `tradition:${k}`),
+		...(save.government ?? []).map((k) => `civic:${k}`),
+		...(save.origin ? [`origin:${save.origin}`] : []),
+		...(save.progress?.researched ?? []).map((k) => `tech:${k}`),
+		...(save.countryModifiers ?? []).map((m) => `modifier:${m.key}`)
+	];
+	const seats = councilSeats(save, data, getExplanations()).flatMap((r) =>
+		r.effects.map((e) => e.now)
+	);
+	const fund = save.edictFund
+		? { amount: fundOf(save.edictFund.add, save.edictFund.mult), exact: true }
+		: { amount: estimateFund(held, data.edictFund, seats), exact: false };
+	const base = rows.filter((r) => r.active).reduce((n, r) => n + (r.cost.upkeep?.unity ?? 0), 0);
+	const booked = save.budget.find((x) => x.source === 'edicts')?.expenses.unity ?? 0;
+	return fundState(fund, base, booked);
+}
+
 /** A source's numeric modifiers from its explanation (`tradition:<key>`, `perk:<key>`, …). */
 export const explainedModifiers = (id: string): Record<string, number> =>
 	Object.fromEntries(
@@ -445,7 +481,11 @@ export function recommendationOptions(b: Branch): Recommendation[] | null {
 	const edicts = edictRows(data.edicts, save, f).filter(
 		(e) => e.active || (e.unlocked && e.possible === true)
 	);
-	const prices = edictPrices(edicts, save.budget?.find((x) => x.source === 'edicts')?.expenses);
+	const prices = edictPrices(
+		edicts,
+		save.budget?.find((x) => x.source === 'edicts')?.expenses,
+		edictFundFor(save, edicts)
+	);
 	for (const e of edicts) {
 		const mods = data.edictModifiers[e.key];
 		const what = whatIfOf(

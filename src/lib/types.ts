@@ -416,6 +416,9 @@ export type Snapshot = {
 	starbases: { used: number; capacity: number } | null;
 	navalUsed: number | null;
 	navalMax: number | null;
+	// the Edict Fund's modifiers, `country_edict_fund_add` / `_mult`: companion mod 0.14.0
+	// exports them (`sdash_ef_add`, `sdash_ef_mult`), else null (#lib/edictFund.ts); READER 65
+	edictFund: { add: number; mult: number } | null;
 	envoys: { used: number; total: number } | null;
 	marketOrders: MarketOrder[]; // standing monthly buy/sell orders
 	market: Market | null; // null from the mod feed and in older snapshots
@@ -1457,6 +1460,7 @@ export type GameData = {
 	};
 
 	// council seats; modifiers (per leader level) are the `seat:<key>` explanations
+	edictFund: Record<string, { add?: number; mult?: number }>; // `bySource` keys → fund modifiers
 	councilPositions: Record<
 		string,
 		{ name: string; civic: string | null; classes: string[]; possible: Trigger | null }

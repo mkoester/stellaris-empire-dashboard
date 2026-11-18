@@ -239,6 +239,12 @@ describe('toSnapshot', () => {
 		expect(s.navalMax).toBeNull(); // without companion mod 0.6.0
 	});
 
+	it('reads the Edict Fund companion mod 0.14.0 exports (sdash_ef_add, sdash_ef_mult)', () => {
+		expect(s.edictFund).toBeNull();
+		const withMod = { ...raw, country: { ...raw.country, variables: { sdash_ef_add: 65 } } };
+		expect(toSnapshot(withMod, 'camp', NO_READING_DATA).edictFund).toEqual({ add: 65, mult: 0 });
+	});
+
 	it('reads the naval capacity companion mod 0.6.0 exports (sdash_nc)', () => {
 		const withMod = { ...raw, country: { ...raw.country, variables: { sdash_nc: 40 } } };
 		expect(toSnapshot(withMod, 'camp', NO_READING_DATA).navalMax).toBe(40);

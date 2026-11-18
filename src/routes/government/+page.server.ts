@@ -13,7 +13,7 @@ import { branch } from '#lib/server/branch.ts';
 import { identity } from '#lib/server/empire.ts';
 import { pick } from '#lib/server/explain.ts';
 import { display } from '#lib/server/settings.ts';
-import { whatIfInputs, whatIfOf } from '#lib/server/whatIfs.ts';
+import { edictFundFor, whatIfInputs, whatIfOf } from '#lib/server/whatIfs.ts';
 import { edictPrices, swapModifiers, type WhatIf } from '#lib/whatIf.ts';
 
 // The game's government screen: identity, council and agendas, policies, edicts (factions: the
@@ -63,7 +63,8 @@ export function load({ url }) {
 	if (inputs) {
 		const prices = edictPrices(
 			edicts,
-			inputs.save.budget?.find((x) => x.source === 'edicts')?.expenses
+			inputs.save.budget?.find((x) => x.source === 'edicts')?.expenses,
+			edictFundFor(inputs.save, edicts)
 		);
 		for (const e of edicts) {
 			const mods = data.edictModifiers[e.key];

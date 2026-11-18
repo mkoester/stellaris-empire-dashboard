@@ -610,6 +610,11 @@ export function loadGameData(file: string): GameData {
 					   WHERE modifier_key = 'councilor_skill_add'`
 				).map((r) => [r.owner, r.value])
 			),
+			// the Edict Fund's modifiers by source (#lib/edictFund.ts' estimate without the mod)
+			edictFund: bySource(
+				"modifier_key IN ('country_edict_fund_add', 'country_edict_fund_mult')",
+				(k) => (k.endsWith('_mult') ? 'mult' : 'add')
+			),
 			leaderCap: bySource(LEADER_CAP, (k) => k.replace(/^country_(\w+)_cap_add$/, '$1')),
 			// `leaders_cost_mult` (every class: `leader`), `leader_<class>s_cost_mult`
 			leaderCost: bySource(LEADER_COST, (k) =>
