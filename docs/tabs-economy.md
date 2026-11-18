@@ -337,7 +337,9 @@ factor `nomadic_contract_value_mult` is not read, so the scaled amounts and the 
 opinion on failure. Arkships: jumps from each along the known lanes (the graph the Beyond column
 uses), nearest first; **no days** — a jump's duration is not read (`docs/open-checks.md` 32). A
 contract without projects (Diplomatic Support: the AI's travel project only, a player gets points
-of interest) counts as an arkship's job. `pageLatest()` drops `contracts`: the galaxy's list names
+of interest) counts as an arkship's job. `arkship_branches` (Colony Startup only, 4.5.x) changes
+the _issuer's_ colony bonus, not our reward: `branchLine()` says so and names what our nearest
+arkship would give (`COLONY_SUPPORT`, hand-copied from the game files — re-check on updates). `pageLatest()` drops `contracts`: the galaxy's list names
 issuers we never met (it reached every page until 2026-11-18).
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's

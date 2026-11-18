@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { graph } from './galaxyGraph.ts';
 import {
 	arkshipKind,
+	branchLine,
 	contractBonus,
 	contractDetail,
 	contractLine,
@@ -298,6 +299,15 @@ describe('contractDetail', () => {
 		};
 		const d = contractDetail(row, raid, dctx());
 		expect(d.partial.map((l) => l.amount)).toEqual([8250, 1650]);
+	});
+});
+
+describe('branchLine', () => {
+	it('names what the nearest arkship gives the issuer, and that our reward does not change', () => {
+		expect(branchLine([{ name: 'Selborne', kind: 'military', capital: true, jumps: 3 }])).toBe(
+			"The issuer's colony gets a bonus by the type of arkship that does it — your reward is the same. Selborne (military): +1 alloys per colonist job."
+		);
+		expect(branchLine([])).not.toContain('(');
 	});
 });
 

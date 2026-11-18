@@ -3,7 +3,13 @@
 	import ContractMarks from '#lib/ContractMarks.svelte';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
-	import { CONTRACT_RANGES, KIND_INFO, WHY_LABEL } from '#lib/contracts.ts';
+	import {
+		branchLine,
+		COLONY_SUPPORT,
+		CONTRACT_RANGES,
+		KIND_INFO,
+		WHY_LABEL
+	} from '#lib/contracts.ts';
 	import { followGame } from '#lib/live.ts';
 	import type { MapWidth } from '#lib/mapView.ts';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -131,11 +137,16 @@
 				<dd>
 					{d.description ?? '–'}
 					{#each d.projects as p (p.key)}<div>
-							{p.name}: {p.days ?? '?'} days, needs {p.needs.join(', ') ||
-								'nothing named'}{p.arkshipBranches
-								? ' — the outcome depends on the arkship type'
-								: ''}
-						</div>{/each}
+							{p.name}: {p.days ?? '?'} days, needs {p.needs.join(', ') || 'nothing named'}
+						</div>
+						{#if p.arkshipBranches}<div
+								class="text-gray-500"
+								title={(['science', 'military', 'civilian'] as const)
+									.map((k) => `${k}: ${COLONY_SUPPORT[k]}`)
+									.join('\n')}
+							>
+								{branchLine(d.arkships)}
+							</div>{/if}{/each}
 					{#if d.steps && d.steps > 1}<div>{d.steps} steps, one project each</div>{/if}
 					{#if d.missingTechs.length}<div class="text-amber-600">
 							needs {d.missingTechs.join(', ')}, not researched

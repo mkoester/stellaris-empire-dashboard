@@ -185,6 +185,27 @@ export function contractMarks(
 
 export type ArkshipKind = 'science' | 'military' | 'civilian';
 
+/**
+ * What the issuer's colony gets for 10 years from Colony Startup, by the type of arkship that did
+ * the project (4.5.x `nomad_contract_colony_support_*`: their colonist jobs' extra output, from
+ * `inline_scripts/output/colony_support_contract_*`; all three also +50 % building speed, −25 %
+ * building cost, +10 % pop growth and assembly). Our reward is the same either way. Re-check on
+ * game updates: the only project that branches on the arkship (`special_project.arkship_branches`).
+ */
+export const COLONY_SUPPORT: Record<ArkshipKind, string> = {
+	science: '+1 physics, engineering and society research per colonist job',
+	military: '+1 alloys per colonist job',
+	civilian: '+1 consumer goods per colonist job and +100 amenities (a gestalt: the amenities only)'
+};
+
+/** The line for a project that branches on the arkship type, naming what ours would give. */
+export function branchLine(arkships: ArkshipFit[]): string {
+	const ours = arkships[0];
+	return `The issuer's colony gets a bonus by the type of arkship that does it — your reward is the same.${
+		ours ? ` ${ours.name} (${ours.kind}): ${COLONY_SUPPORT[ours.kind]}.` : ''
+	}`;
+}
+
 /** An arkship's type from its size (`military_arkship_tier_1`, `military_arkship_champions_forge`). */
 export function arkshipKind(size: string): ArkshipKind {
 	return size.startsWith('science_')
