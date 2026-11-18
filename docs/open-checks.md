@@ -676,7 +676,15 @@ Mictor Continuity ≈ −32 (commercial). **The game said −13** for Mishar's c
 sum is now read as an upper bound: only ≤ 0 greys a row. First suspect: the opinion term, +182 (0.4
 × their `relation_current` of us, 454) — without it the sum is ≈ −24. The same dialog showed the
 upkeep 0.40 influence (base 0.25: Isolationist +100 %, the nomad ruler −5 % a level), now measured
-from the budget (`pactUpkeep()`).
+from the budget (`pactUpkeep()`). **The tooltip lists no terms at low intel** ("Since we do not
+have enough intel, we can only speculate as to their reasons.", screenshot `2026_11_18_2.png`; our
+intel on Mishar 11 in the manual save `2217.07.01.sav`), so the term breakdown on the pacts tab is
+more than the game shows (behind the `pactAdvice` spoiler). That save: their `relation_current`
+of us 454 (the opinion, confirmed 2026-10-19), honorbound_warriors (commercial −20), cordial; and
+**a research agreement signed with them** between the 09:45 autosave and it (the model: ≈ +134) —
+so the missing ≈ −170 is not a term every pact shares (distance, stance), but the commercial
+pact's own: its trade terms, or an engine term for commercial pacts only. A research agreement
+lifts our intel to at least 30 (`INTEL_FROM_RESEARCH_AGREEMENT`): hover again a month later.
 
 - **Do:** in the nomad campaign (or any), open Diplomacy → propose a research agreement and a
   commercial pact to two or three empires; hover the acceptance.
