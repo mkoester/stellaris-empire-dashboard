@@ -276,7 +276,9 @@ holds a pact.
   2026-11-18: "build the research agreement recommendation as well as a commercial pact
   recommendation, grey out the ones which are not yet available because they won't accept, but
   keep them in their ranked position"): every empire we talk to without the pact, ranked by what it
-  brings a month in trade (`valuesOf`) less the 0.25 influence upkeep. Research: +25 % of our output
+  brings a month in trade (`valuesOf`) less its influence upkeep (`pactUpkeep()`: the kind's booked
+  upkeep per partner, else base × another pact type's booked over base, else base — Isolationist
+  doubles it, 2217.07.01). Research: +25 % of our output
   per area on the share (by cost) of the techs in progress and on the cards that they have and no
   partner already gives — every contact's `techsWeLack` since READER 64, `theyLackCount` for the
   acceptance; on 2217.06.01 "every tech in reach" (128, rare and arcane ones included) diluted a
@@ -286,7 +288,8 @@ holds a pact.
   (`*_acceptance`) and attitudes (`alliance`/`coexist`, extractor 2026-11-18; older data DB:
   unknown, "?"). Hidden: what is never possible — our or their purifier, inward-perfection, swarm
   or terminator civics, a research agreement with anything but a regular empire. The acceptance is
-  ≈ and uncalibrated: `docs/open-checks.md` 10.
+  an upper bound — the game showed −13 where it read +156 —, so only a sum at or below 0 greys a
+  row; a positive one shows as "≤": `docs/open-checks.md` 10.
 
 The route sends a partner's data only as far as the switches allow. `levelOf()` covers the economy
 and technology categories too (`INTEL_LEVELS`, 00_intel_levels.txt: both move together).

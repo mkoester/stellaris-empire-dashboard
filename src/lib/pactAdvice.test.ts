@@ -3,6 +3,7 @@ import {
 	acceptance,
 	advise,
 	commercialGain,
+	pactUpkeep,
 	requirements,
 	researchGain,
 	type Other,
@@ -104,7 +105,7 @@ describe('acceptance', () => {
 		const a = acceptance('research', other(), us, data);
 		expect(a.terms.map((t) => t.value)).toEqual([-50, 40, 50, 50, -30, -10, -6]);
 		expect(a.total).toBeCloseTo(44);
-		expect(a.accepts).toBe(true);
+		expect(a.accepts).toBeNull(); // an upper bound: the game showed −13 where this read +156
 	});
 	it('sums the commercial pact terms on the shares passed on', () => {
 		// they give 10 % of 100 (trade less pacts' trade): −5; they get 10 % of 80: +8
@@ -230,5 +231,29 @@ describe('advise', () => {
 				0.25
 			)
 		).toEqual([]);
+	});
+});
+
+describe('pactUpkeep', () => {
+	const type = (key: string, upkeep: number, n = 1) => ({
+		key: key as never,
+		name: key,
+		partners: Array.from({ length: n }, (_, i) => ({ countryId: i, name: `p${i}` })),
+		upkeep,
+		gain: {}
+	});
+	it('takes the kind’s own booking per partner', () => {
+		expect(pactUpkeep('commercial', [type('commercial_pact', 0.8, 2)])).toEqual({
+			amount: 0.4,
+			from: 'own'
+		});
+	});
+	it('scales the base by another type’s booking (Roaming Korinth 2217.07.01: Isolationist)', () => {
+		// a guarantee booked 1 for 0.5: ×2 → 0.50 (the game offered 0.40: the ruler's nomad discount)
+		expect(pactUpkeep('commercial', [type('guarantee', 1)])).toEqual({
+			amount: 0.5,
+			from: 'other'
+		});
+		expect(pactUpkeep('research', [])).toEqual({ amount: 0.25, from: 'base' });
 	});
 });

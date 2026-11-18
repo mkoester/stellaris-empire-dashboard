@@ -16,8 +16,8 @@ import { getGameData } from '#lib/server/app.ts';
 import {
 	advise,
 	commercialGain,
+	pactUpkeep,
 	researchGain,
-	PACT_UPKEEP,
 	type Other,
 	type Us
 } from '#lib/pactAdvice.ts';
@@ -37,7 +37,7 @@ import { xExtent } from '#lib/series.ts';
 // (#lib/pactAdvice.ts) needs the `pactAdvice` spoiler: ranked by what each brings, greyed where
 // the game would refuse it now; only names, the ≈ value and the reasons leave the server.
 type Advice = {
-	upkeep: number;
+	upkeep: Record<'research' | 'commercial', ReturnType<typeof pactUpkeep>>;
 	research: AdviceRow[] | null;
 	commercial: AdviceRow[] | null;
 };
@@ -225,8 +225,12 @@ export function load({ url }) {
 				total: x.acceptance.total,
 				accepts: x.acceptance.accepts
 			})) ?? null;
+		const upkeep = {
+			research: pactUpkeep('research', types),
+			commercial: pactUpkeep('commercial', types)
+		};
 		return {
-			upkeep: PACT_UPKEEP,
+			upkeep,
 			research: progress
 				? row(
 						advise(
@@ -239,7 +243,7 @@ export function load({ url }) {
 									? researchGain(o.ai.techsWeLack, next, covered, info, monthly)
 									: null,
 							worth,
-							PACT_UPKEEP
+							upkeep.research.amount
 						)
 					)
 				: null,
@@ -251,7 +255,7 @@ export function load({ url }) {
 					data,
 					(o) => ({ trade: commercialGain(o.ai) }),
 					worth,
-					PACT_UPKEEP
+					upkeep.commercial.amount
 				)
 			)
 		};

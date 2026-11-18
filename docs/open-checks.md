@@ -590,6 +590,19 @@ logged cards. Still open: the cost on the 2nd at full speed, and Upcoming's "lat
 - **Send:** the `SDASH` lines of one 2nd, the research screen of that day, and whether Upcoming
   showed the "later" row for a tech planned with − want.
 
+### 40. The Edict Fund — government tab and recommendations, companion mod 0.14.0 (from 2026-11-18)
+
+The edict what-ifs pay unity upkeep only beyond the fund's room (`#lib/edictFund.ts`). Assumed:
+the fund is `country_edict_fund_add` × (1 + `country_edict_fund_mult`); it pays the upkeep after
+`edict_size_effect` and `edicts_upkeep_mult`; the budget's `edicts` unity is what goes beyond it.
+Without the mod: the estimate leaves out jobs (bureaucrats and priests under some civics).
+
+- **Do:** with mod 0.14.0, in the nomad campaign, open Government → Edicts and hover the Edict
+  Fund; enact an edict that fits in it, save, then one that does not, save.
+- **Send:** the fund tooltip (total and its lines) and both saves. Check: `sdash_ef_add` /
+  `sdash_ef_mult` against the tooltip, the fund against the dashboard's popup, and the second
+  save's booked `edicts` unity against the what-if's "pays".
+
 ## C. Not in the game
 
 ### 37. Upkeep what-ifs and the net in trade — government, species, traditions, tech tabs (from 2026-11-15)
@@ -658,11 +671,17 @@ the AI accepts above 0; "no border" (`border_range` 2147483647, a nomad's with e
 distance term; the commercial "collected trade value" is the 10 % share each side passes on, not the
 whole trade; the attitude term is 100 for `alliance`, else 50 for `coexist`. Roaming Korinth
 2217.06.01 read Mishar Pact ≈ +133 (research) / +156 (commercial), Pact of Fellnoll ≈ −50 / −3,
-Mictor Continuity ≈ −32 (commercial).
+Mictor Continuity ≈ −32 (commercial). **The game said −13** for Mishar's commercial pact on
+2217.07.01 (screenshot `2026_11_18_1.png`, the proposal dialog; the model ≈ +158 that day), so the
+sum is now read as an upper bound: only ≤ 0 greys a row. First suspect: the opinion term, +182 (0.4
+× their `relation_current` of us, 454) — without it the sum is ≈ −24. The same dialog showed the
+upkeep 0.40 influence (base 0.25: Isolationist +100 %, the nomad ruler −5 % a level), now measured
+from the budget (`pactUpkeep()`).
 
 - **Do:** in the nomad campaign (or any), open Diplomacy → propose a research agreement and a
   commercial pact to two or three empires; hover the acceptance.
-- **Send:** a screenshot of each acceptance tooltip, and the save of that day. Check each term
+- **Send:** a screenshot of each acceptance tooltip — hovered, so its terms show — and the save of
+  that day. Check each term
   against the tab's popup (Accept column), and a distant settled empire's border distance term.
 
 ### 9. After the answers come in

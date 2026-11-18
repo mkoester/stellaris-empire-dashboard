@@ -1,4 +1,4 @@
-import { COMMERCIAL_SHARE, RESEARCH_SPEED, tradeBase } from './pacts.ts';
+import { COMMERCIAL_SHARE, RESEARCH_SPEED, tradeBase, type PactType } from './pacts.ts';
 import type { AiIntel, GameData, Relation } from './types.ts';
 
 // Whom to offer a research agreement or a commercial pact (the user's ask 2026-11-18): every
@@ -21,13 +21,45 @@ import type { AiIntel, GameData, Relation } from './types.ts';
 //   they would get (0 … 100) — read as the 10 % share each side passes on (an assumption: the
 //   define says "collected trade value").
 // - `common/personalities`: `research_agreement_acceptance` / `commercial_pact_acceptance`.
-// The engine may add terms the files do not name: every acceptance is ≈ (docs/open-checks.md).
+// The engine adds terms the files do not name (2217.07.01: −13 in game where these summed to
+// +156): every acceptance is an upper bound, ≈ (docs/open-checks.md 10).
 
 export type PactKind = 'research' | 'commercial';
 
 export const BASE_ACCEPTANCE = -50;
 /** Influence a month either pact costs, before modifiers (00_diplomacy_economy.txt). */
 export const PACT_UPKEEP = 0.25;
+/** Each pact type's base influence upkeep (00_diplomacy_economy.txt, 4.5.4). */
+const BASE_UPKEEP: Record<string, number> = {
+	migration_access: 0.25,
+	commercial_pact: 0.25,
+	research_agreement: 0.25,
+	non_aggression_pledge: 0.25,
+	defensive_pact: 1,
+	guarantee: 0.5
+};
+
+export type Upkeep = { amount: number; from: 'own' | 'other' | 'base' };
+
+/**
+ * What one more pact of the kind costs in influence a month, measured from the budget: the kind's
+ * booked upkeep per partner where we hold one; else the factor of another pact type we hold
+ * (booked over base: `diplomacy_upkeep_mult` and the like apply to all — Roaming Korinth
+ * 2217.07.01, Isolationist +100 %: a guarantee booked 1 for 0.5, a commercial pact offered at
+ * 0.40, the ruler's nomad −5 % a level on commercial pacts on top, which only the kind's own
+ * booking shows); else the base. A federation's free pacts book nothing, which reads low.
+ */
+export function pactUpkeep(kind: PactKind, types: PactType[]): Upkeep {
+	const own = types.find((t) => t.key === FLAG[kind]);
+	if (own && own.upkeep > 0) return { amount: own.upkeep / own.partners.length, from: 'own' };
+	const other = types.find((t) => BASE_UPKEEP[t.key] && t.upkeep > 0);
+	if (other)
+		return {
+			amount: PACT_UPKEEP * (other.upkeep / (BASE_UPKEEP[other.key] * other.partners.length)),
+			from: 'other'
+		};
+	return { amount: PACT_UPKEEP, from: 'base' };
+}
 const FLAG: Record<PactKind, string> = {
 	research: 'research_agreement',
 	commercial: 'commercial_pact'
@@ -82,7 +114,10 @@ export type Term = { label: string; value: number | null }; // null: not known
 export type Acceptance = {
 	terms: Term[];
 	total: number | null; // null: a term other than the distance is unknown
-	accepts: boolean | null; // null: cannot tell
+	// false: refuses; null: cannot tell. Never true: the sum is an upper bound — the game showed
+	// −13 for a commercial pact this read as +156 (Roaming Korinth 2217.07.01, Mishar Pact), so
+	// terms the files do not name pull it down, and only a sum at or below 0 decides
+	accepts: false | null;
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -168,7 +203,7 @@ export function acceptance(
 	return {
 		terms,
 		total: open.length ? null : known,
-		accepts: !open.length ? known > 0 : onlyDistance && known <= 0 ? false : null
+		accepts: (!open.length || onlyDistance) && known <= 0 ? false : null
 	};
 }
 
