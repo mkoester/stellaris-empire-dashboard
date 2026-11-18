@@ -8,6 +8,7 @@
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
 	import InfoPopup from '#lib/InfoPopup.svelte';
+	import BackToTop from '#lib/BackToTop.svelte';
 	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
 	import { gameVersionNumber } from '#lib/versions.ts';
@@ -461,3 +462,5 @@
 		{@render children()}
 	{/if}
 </main>
+
+<BackToTop />
