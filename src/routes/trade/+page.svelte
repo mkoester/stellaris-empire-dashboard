@@ -296,6 +296,9 @@
 				priceMode === 'offer' ? p.prices[r].receive : (p.prices[r].pay ?? null),
 			cell: priceCell,
 			color: colorOf(r),
+			// a nomad keeps its energy and minerals: nothing to offer
+			faded: priceMode === 'offer' && !canGive(r, data.weNomadic),
+			title: canGive(r, data.weNomadic) ? undefined : 'a nomad cannot give it',
 			right: true
 		}))
 	]);
@@ -361,6 +364,8 @@
 			value: (e: Empire) => giftFor(e, r),
 			cell: giftBuys,
 			color: colorOf(r),
+			faded: !canGive(r, data.weNomadic),
+			title: canGive(r, data.weNomadic) ? undefined : 'a nomad cannot give it',
 			right: true
 		}))
 	]);
@@ -369,7 +374,13 @@
 	// nothing: against 0
 	const giftScales = $derived(
 		new Map(
-			data.empires.map((e) => [e.countryId, scaleOf([0, ...giftable.map((r) => giftFor(e, r))], 0)])
+			data.empires.map((e) => [
+				e.countryId,
+				scaleOf(
+					[0, ...giftable.filter((r) => canGive(r, data.weNomadic)).map((r) => giftFor(e, r))],
+					0
+				)
+			])
 		)
 	);
 
@@ -469,7 +480,9 @@
 {/snippet}
 {#snippet giftBuys(e: Empire, r: string)}
 	{@const v = giftFor(e, r)}
-	{@const t = tone(v, giftScales.get(e.countryId) ?? null)}
+	{@const t = canGive(r, data.weNomadic)
+		? tone(v, giftScales.get(e.countryId) ?? null)
+		: { cls: '', color: null }}
 	<span class={v === 0 ? 'text-gray-400' : t.cls} style:color={t.color}
 		>{v === null ? '–' : `+${fmt(v)}`}</span
 	>
@@ -527,6 +540,7 @@
 	{@const x = p.prices[r]}
 	{@const pay = p.market ? null : tone(x.pay === null ? null : -x.pay, priceScales[r].pay)}
 	{@const receive = p.market ? null : tone(x.receive, priceScales[r].receive)}
+	{@const noGive = !canGive(r, data.weNomadic)}
 	{#if priceMode !== 'offer'}<span
 			class={pay?.cls}
 			style:color={pay?.color}
@@ -534,7 +548,7 @@
 		>{/if}{#if priceMode === 'both'}<span class="text-gray-400">
 			/
 		</span>{/if}{#if priceMode !== 'want'}<span
-			class={receive?.cls}
+			class="{receive?.cls ?? ''} {noGive && priceMode === 'both' ? 'opacity-40' : ''}"
 			style:color={receive?.color}
 			title="trade we receive per {resName(r)}">{x.receive === null ? '–' : fmt(x.receive)}</span
 		>{/if}

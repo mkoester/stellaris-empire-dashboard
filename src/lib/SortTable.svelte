@@ -61,7 +61,7 @@
 	<thead>
 		<tr class="border-b border-gray-300 dark:border-gray-700">
 			{#each columns as c (c.id)}
-				<th class="p-1 {c.right ? 'text-right' : ''}" title={c.title}>
+				<th class="p-1 {c.right ? 'text-right' : ''} {c.faded ? 'opacity-40' : ''}" title={c.title}>
 					<button
 						style:color={c.color}
 						class="cursor-pointer whitespace-nowrap hover:underline {sort.column === c.id
@@ -92,7 +92,7 @@
 				onclick={selectable ? () => pick(sys) : undefined}
 			>
 				{#each columns as c (c.id)}
-					<td class="p-1 {c.right ? 'text-right tabular-nums' : ''}">
+					<td class="p-1 {c.right ? 'text-right tabular-nums' : ''} {c.faded ? 'opacity-40' : ''}">
 						{#if c.cell}{@render c.cell(r, c.id)}{:else}{c.value(r) ?? '–'}{/if}
 					</td>
 				{/each}
