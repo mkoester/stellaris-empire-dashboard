@@ -246,9 +246,19 @@ export const SWITCHES: Switch[] = [
 	{
 		key: 'tradeIntel',
 		group: 'Diplomacy and trade',
+		// split from the stockpiles 2026-11-18 (the user's ask): the rates are a spoiler
+		kind: 'spoiler',
+		intel: true,
+		label: 'Trade: what other empires would trade, at what rate, and what a gift buys them',
+		note: 'the game shows it only as the acceptance of a deal you put together; estimated until calibrated (docs/trade-calibration.md)',
+		tags: 'gift opinion price market'
+	},
+	{
+		key: 'tradeStockpiles',
+		group: 'Diplomacy and trade',
 		kind: 'cheat',
-		label: 'Trade: other empires’ stockpiles and income, and what they would trade at what rate',
-		note: 'the game shows neither; estimated until calibrated (docs/trade-calibration.md)'
+		label: 'Trade: other empires’ stockpiles and income — what they spare, take and need',
+		note: 'the game never shows them'
 	},
 	{
 		key: 'whatIfs',

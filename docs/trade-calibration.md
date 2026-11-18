@@ -126,7 +126,7 @@ from tooltips (results below). Kept for its offer list.
 3. Give yourself plenty: `cash 50000`, `minerals 50000`, `alloys 20000`,
    `consumer_goods 20000`, `food 20000`, `resource volatile_motes 500` (forms: `docs/testing.md` → "Testing in a throwaway game").
 4. Start the dashboard against a **separate** DB (`DASHBOARD_DB=$TMPDIR/trade/dashboard.sqlite`)
-   with the trade tab's `tradeIntel` switch on (⚙), so each manual save shows the AIs' stockpiles.
+   with the trade tab's `tradeIntel` and `tradeStockpiles` switches on (⚙), so each manual save shows the AIs' stockpiles.
 5. Pick **three empires with different personalities** (the diplomacy screen names it), e.g. a
    trader (1.0), an explorer (0.9) and a hegemonist (0.8), all with a trading attitude
    (neutral, wary, receptive, cordial, friendly, …). Write their names below.

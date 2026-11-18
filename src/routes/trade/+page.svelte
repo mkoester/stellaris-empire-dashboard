@@ -17,7 +17,7 @@
 		terms,
 		wantPrice
 	} from '#lib/aiTrade.ts';
-	import { colorOf, scaleColor } from '#lib/colors.ts';
+	import { colorOf, gainColor, scaleColor } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -128,6 +128,21 @@
 			}))
 	]);
 	const market = $derived(marketRate(give, get, prices, fee));
+	// what rests on their stockpiles: only with the `tradeStockpiles` cheat
+	const stockpileColumns: Column<Offer>[] = $derived(
+		data.tradeStockpiles
+			? [
+					{
+						id: 'takes',
+						label: `They take ${resName(give)}`,
+						value: (o) => o.takes,
+						cell: offerTakes,
+						right: true
+					},
+					{ id: 'spare', label: 'They spare', value: (o) => o.spare, cell: offerSpare, right: true }
+				]
+			: []
+	);
 	const offerColumns: Column<Offer>[] = $derived([
 		{ id: 'name', label: 'Empire', value: (o) => o.name, cell: party },
 		{
@@ -144,14 +159,7 @@
 			cell: vsMarket,
 			right: true
 		},
-		{
-			id: 'takes',
-			label: `They take ${resName(give)}`,
-			value: (o) => o.takes,
-			cell: offerTakes,
-			right: true
-		},
-		{ id: 'spare', label: 'They spare', value: (o) => o.spare, cell: offerSpare, right: true },
+		...stockpileColumns,
 		{
 			id: 'perMonth',
 			label: 'They pay a month',
@@ -206,12 +214,16 @@
 			cell: monthlyVsMarket,
 			right: true
 		},
-		{
-			id: 'safe',
-			label: 'Can they afford it',
-			value: (o) => (o.monthsLeft === null ? Infinity : o.monthsLeft),
-			cell: monthlySafe
-		}
+		...(data.tradeStockpiles
+			? [
+					{
+						id: 'safe',
+						label: 'Can they afford it',
+						value: (o: MonthlyRow) => (o.monthsLeft === null ? Infinity : o.monthsLeft),
+						cell: monthlySafe
+					}
+				]
+			: [])
 	]);
 	let monthlySort = $state({ column: 'total', desc: true });
 
@@ -289,11 +301,52 @@
 	]);
 	let priceSort = $state({ column: 'name', desc: false });
 
+	// colour against a baseline, higher better: plain at it, grey below, orange → green up to the
+	// column's best, which is bold
+	type Scale = { base: number; best: number } | null;
+	const scaleOf = (vs: (number | null)[], base: number | null): Scale => {
+		const xs = vs.filter((v) => v !== null);
+		return xs.length ? { base: base ?? Math.min(...xs), best: Math.max(...xs) } : null;
+	};
+	const tone = (v: number | null, s: Scale) => {
+		if (v === null || s === null) return { cls: '', color: null };
+		const c = gainColor(v, s.base, s.best);
+		const bold = v === s.best && v > s.base ? 'font-bold' : '';
+		return c === 'worse' ? { cls: `text-gray-400 ${bold}`, color: null } : { cls: bold, color: c };
+	};
+	// per resource, against the market's row; without a market price, against the column's worst
+	// (paying: lower is better, so the scale runs on minus the price)
+	const priceScales = $derived(
+		Object.fromEntries(
+			priced.map((r) => {
+				const rows = priceRows.filter((p) => !p.market);
+				const pay = marketPay(r);
+				return [
+					r,
+					{
+						pay: scaleOf(
+							rows.map((p) => (p.prices[r].pay === null ? null : -p.prices[r].pay)),
+							pay === null ? null : -pay
+						),
+						receive: scaleOf(
+							rows.map((p) => p.prices[r].receive),
+							marketReceive(r)
+						)
+					}
+				];
+			})
+		)
+	);
+
 	// what a gift buys: opinion per empire, for 1000 of each resource — whatever the attitude
 	const GIFT_AMOUNT = 1000;
 	const giftable = $derived(data.tradable.filter((r) => r in data.model.worth));
+	// per 1,000 units, or per as much as 1,000 trade is worth of it (which resource buys most for the money)
+	let giftPer: 'units' | 'trade' = $state('units');
+	const giftUnits = (r: string) =>
+		giftPer === 'units' ? GIFT_AMOUNT : GIFT_AMOUNT / (data.unitValue[r] || 1);
 	const giftFor = (e: Empire, r: string) =>
-		giftOpinion(r, GIFT_AMOUNT, e, termsOf(e), data.resourceInfo, data.model, {
+		giftOpinion(r, giftUnits(r), e, termsOf(e), data.resourceInfo, data.model, {
 			max: data.opinionModifiers[GIFT]?.max ?? null,
 			current: gift(e) ?? 0
 		});
@@ -303,7 +356,8 @@
 		{ id: 'gift', label: 'Gift now', value: gift, cell: giftCell },
 		...giftable.map((r) => ({
 			id: r,
-			label: resName(r),
+			// in trade mode, how many units the 1,000 trade is
+			label: giftPer === 'units' ? resName(r) : `${resName(r)} ×${fmt(giftUnits(r))}`,
 			value: (e: Empire) => giftFor(e, r),
 			cell: giftBuys,
 			color: colorOf(r),
@@ -311,6 +365,12 @@
 		}))
 	]);
 	let giftSort = $state({ column: 'name', desc: false });
+	// gifts never buy less than nothing: against 0
+	const giftScales = $derived(
+		Object.fromEntries(
+			giftable.map((r) => [r, scaleOf([0, ...data.empires.map((e) => giftFor(e, r))], 0)])
+		)
+	);
 
 	// what they need and have to spare
 	const needColumns: Column<Empire>[] = $derived([
@@ -408,7 +468,10 @@
 {/snippet}
 {#snippet giftBuys(e: Empire, r: string)}
 	{@const v = giftFor(e, r)}
-	{v === null ? '–' : `+${fmt(v)}`}
+	{@const t = tone(v, giftScales[r])}
+	<span class={v === 0 ? 'text-gray-400' : t.cls} style:color={t.color}
+		>{v === null ? '–' : `+${fmt(v)}`}</span
+	>
 {/snippet}
 {#snippet opinionFrom(e: Empire)}
 	<span class="text-xs"
@@ -461,15 +524,17 @@
 	>{/snippet}
 {#snippet priceCell(p: PriceRow, r: string)}
 	{@const x = p.prices[r]}
-	{@const payBetter = !p.market && x.pay !== null && (marketPay(r) ?? Infinity) > x.pay}
-	{@const receiveBetter = !p.market && x.receive !== null && (marketReceive(r) ?? 0) < x.receive}
+	{@const pay = p.market ? null : tone(x.pay === null ? null : -x.pay, priceScales[r].pay)}
+	{@const receive = p.market ? null : tone(x.receive, priceScales[r].receive)}
 	{#if priceMode !== 'offer'}<span
-			class={payBetter ? 'text-green-600' : ''}
+			class={pay?.cls}
+			style:color={pay?.color}
 			title="trade we pay per {resName(r)}">{x.pay === null ? '–' : fmt(x.pay)}</span
 		>{/if}{#if priceMode === 'both'}<span class="text-gray-400">
 			/
 		</span>{/if}{#if priceMode !== 'want'}<span
-			class={receiveBetter ? 'text-green-600' : ''}
+			class={receive?.cls}
+			style:color={receive?.color}
 			title="trade we receive per {resName(r)}">{x.receive === null ? '–' : fmt(x.receive)}</span
 		>{/if}
 {/snippet}
@@ -518,9 +583,9 @@
 
 		{#if !data.tradeIntel}
 			<p class="text-sm text-gray-500">
-				What they have to spare, what they need and what they would give for what needs their
-				stockpiles, which the game does not show — switch on "Trade: other empires’ stockpiles" in ⚙
-				(cheating).
+				What they would give for what, and what a gift buys, the game shows only as the acceptance
+				of a deal you put together — switch on "Trade: what other empires would trade" in ⚙
+				(spoiler).
 			</p>
 		{:else}
 			<Panel
@@ -614,7 +679,7 @@
 
 			<Panel
 				title="What a resource costs in trade (estimated)"
-				note="Per empire and resource: the trade we would pay for one unit (I want — it gives the resource for our trade) and the trade we would get for one (I offer), from the same model as above; green where it beats the {marketName} market's row. – : it would not trade it (nothing to spare, a nomad's reserve, an attitude that refuses). Enclaves: their deal, in the energy we could sell instead."
+				note="Per empire and resource: the trade we would pay for one unit (I want — it gives the resource for our trade) and the trade we would get for one (I offer), from the same model as above. Against the {marketName} market's row: plain where it is the same, orange to green the better it is (green at the column's best, in bold), grey where it is worse. – : it would not trade it (nothing to spare, a nomad's reserve, an attitude that refuses). Enclaves: their deal, in the energy we could sell instead."
 			>
 				<div class="mb-3 flex gap-1 text-sm">
 					{#each [['want', 'I want — pay trade'], ['offer', 'I offer — receive trade'], ['both', 'both']] as [mode, label] (mode)}
@@ -642,10 +707,23 @@
 				title="What a gift buys (estimated)"
 				note="Opinion per empire for {fmt(
 					GIFT_AMOUNT
-				)} of each resource given: its worth to them at their willingness, as the trade screen's acceptance shows it (measured: that figure or one less) — 'Favorable Trade Deal', at most {data
+				)} of each resource given — or, per trade, for as much of it as {fmt(
+					GIFT_AMOUNT
+				)} trade is worth to us (its market base price, else what a unit costs us; the header shows how many): which resource buys the most for the same value. Its worth to them at their willingness, as the trade screen's acceptance shows it (measured: that figure or one less) — 'Favorable Trade Deal', at most {data
 					.opinionModifiers[GIFT]?.max ??
-					100} (so less where earlier gifts are left; it fades by 2 a year, on the first gift's anniversary). An empire whose storage of the resource is full takes it for nothing (seen at the fallen empires). Every attitude takes gifts, rivals and unfriendly ones too: a way to mend one that refuses trades."
+					100} (so less where earlier gifts are left; it fades by 2 a year, on the first gift's anniversary). An empire whose storage of the resource is full takes it for nothing (seen at the fallen empires). Every attitude takes gifts, rivals and unfriendly ones too: a way to mend one that refuses trades. Orange to green the more it buys (the column's best in bold); grey: +0."
 			>
+				<div class="mb-3 flex gap-1 text-sm">
+					{#each [['units', `per ${fmt(GIFT_AMOUNT)} units`], ['trade', `per ${fmt(GIFT_AMOUNT)} trade of it`]] as [mode, label] (mode)}
+						<button
+							class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {giftPer ===
+							mode
+								? 'bg-gray-200 dark:bg-gray-800'
+								: ''}"
+							onclick={() => (giftPer = mode as typeof giftPer)}>{label}</button
+						>
+					{/each}
+				</div>
 				<div class="overflow-x-auto">
 					<SortTable
 						rows={data.empires}
@@ -655,7 +733,14 @@
 					/>
 				</div>
 			</Panel>
+		{/if}
 
+		{#if !data.tradeStockpiles}
+			<p class="text-sm text-gray-500">
+				Their stockpiles — what they spare, take and need, and whether they can afford a monthly
+				deal — the game never shows: switch on "Trade: other empires’ stockpiles" in ⚙ (cheating).
+			</p>
+		{:else}
 			<Panel
 				title="What they need and have to spare"
 				note="Per empire and resource: ↑ short of it (under a third of its storage — it pays more), ↓ flush (over three quarters — it gives it cheaper), and the stockpile. A resource it holds less of than it wants is not on offer."
