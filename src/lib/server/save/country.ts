@@ -364,7 +364,8 @@ export function intelOf(
 	toUs: Raw,
 	us: number,
 	nomadic = false,
-	ourTechs: string[] | null = null
+	ourTechs: string[] | null = null,
+	researchPartner = false
 ): AiIntel {
 	const budget = c.budget?.current_month ?? {};
 	const pactTrade = budget.income?.commercial_pacts?.trade;
@@ -385,10 +386,12 @@ export function intelOf(
 		...(storageMax(c.variables) && { max: storageMax(c.variables)! }),
 		// what its commercial pacts bring it, so 10 % of the rest is what one with it brings us
 		...(typeof pactTrade === 'number' && { commercialPactTrade: pactTrade }),
-		// a research partner: the techs only one side has (READER 45)
+		// the techs only it has (READER 64, every empire we talk to: what a research agreement
+		// would bring) and how many of ours it lacks; a research partner's list too (READER 45)
 		...(ourTechs && {
 			techsWeLack: theirTechs.filter((t) => !ourTechs.includes(t)),
-			techsTheyLack: ourTechs.filter((t) => !theirTechs.includes(t))
+			theyLackCount: ourTechs.filter((t) => !theirTechs.includes(t)).length,
+			...(researchPartner && { techsTheyLack: ourTechs.filter((t) => !theirTechs.includes(t)) })
 		})
 	};
 }

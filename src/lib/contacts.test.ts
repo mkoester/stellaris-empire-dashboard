@@ -104,6 +104,8 @@ describe('contacts', () => {
 			relations: [rel(2, { communications: true }), rel(3, { communications: false })]
 		};
 		expect(pageLatest(s).countries?.map((x) => x.id)).toEqual([1, 2]);
+		// the galaxy's contracts name their issuers, met or not
+		expect(pageLatest({ ...s, contracts: [{ issuerName: 'Yibrak' }] }).contracts).toBeNull();
 	});
 
 	it('sorts country types into kinds', () => {

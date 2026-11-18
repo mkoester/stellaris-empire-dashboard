@@ -12,6 +12,7 @@ import {
 	upkeepFactors
 } from '#lib/leaders.ts';
 import { leaderSources } from '#lib/leaderSources.ts';
+import { empireSwaps } from '#lib/swaps.ts';
 import type { LeaderInfo } from '#lib/types.ts';
 import { empireHeld } from '#lib/wellbeingLevers.ts';
 import { getExplanations, getGameData } from '#lib/server/app.ts';
@@ -71,7 +72,7 @@ export function load({ url }) {
 		return fct === null || l.level === undefined ? null : leaderUpkeep(l.level, fct, ownMult);
 	};
 	const leaders = withRoles.map((l) => ({ ...l, upkeep: upkeep(l, own(l.self)) }));
-	const costs = s ? leaderCostFactors(s, data.leaderCost, seats) : null;
+	const costs = s ? leaderCostFactors(s, data.leaderCost, seats, empireSwaps(s, data)) : null;
 	// what acts on leaders besides their traits: traditions, perks, civics, techs, …
 	const sources = s ? leaderSources(explanations, empireHeld(s), f) : [];
 	const pool = (s?.leaderPool ?? []).map((p) => {

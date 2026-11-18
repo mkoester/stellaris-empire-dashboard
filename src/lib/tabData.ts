@@ -1,8 +1,10 @@
 // Which tabs have nothing to show yet along a branch: their names are dimmed in the tab bar, the
 // title saying why. Still links — the page explains itself.
+import { whyOf } from './contracts.ts';
 import { isGate } from './mapLayers.ts';
 import { KINDS, MEGA_RULES } from './megastructures.ts';
 import { PACT_TYPES } from './pacts.ts';
+import { nomadic } from './planner/kinds.ts';
 import type { GalaxySystem, Snapshot } from './types.ts';
 
 type Fields = Pick<
@@ -64,10 +66,20 @@ const CHECKS: {
 	},
 	{
 		tab: 'contracts',
-		why: 'no contract issued or taken by you yet',
+		why: 'no contract issued, taken or offered to you yet',
 		known: (s) => s.contracts !== null && s.contracts !== undefined,
-		has: (s) =>
-			(s.contracts ?? []).some((c) => c.issuer === s.countryId || c.operator === s.countryId)
+		// what the tab lists without a spoiler or cheat (#lib/contracts.ts): a nomad's offers count
+		has: (s) => {
+			if (s.countryId === null) return false;
+			const talking = new Set(
+				(s.relations ?? []).filter((r) => r.communications).map((r) => r.countryId)
+			);
+			const isNomad = nomadic(s);
+			return (s.contracts ?? []).some((c) => {
+				const why = whyOf(c, s.countryId as number, isNomad, talking, false);
+				return why === 'mine' || why === 'offered';
+			});
+		}
 	},
 	{
 		tab: 'galcom',

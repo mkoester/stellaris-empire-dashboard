@@ -13,7 +13,9 @@ version's `CHANGELOG.md` section.
    tag's `scripts/release-check` and fails on a stale dump or one from a game beta (prereleases
    skip it); tags before v0.1.6 have no such script, so pin a newer one.
 2. On `develop`, everything committed: in `CHANGELOG.md`, turn `Unreleased` into
-   `## [X.Y.Z] - <date>` (own commit) — the release notes come from that section.
+   `## [X.Y.Z] - <date>` (own commit) — the release notes come from that section. Feature
+   commits do not always add to it: write what is missing from `git log vX.Y.Z-1..develop`
+   (0.1.26 had no `Unreleased` at all, 2026-11-17).
 3. `git checkout main && git merge --ff-only origin/main && git merge --no-ff develop -m "Release
 vX.Y.Z (merge develop)"`, then `git tag vX.Y.Z`. The local `main` lags `origin/main` after a
    release tagged in a clone (step 4): on 2026-11-15 it still sat at v0.1.15, 7 commits behind.

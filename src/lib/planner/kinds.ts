@@ -719,7 +719,7 @@ export const sourceOf = (kind: string, field: string) => SOURCE[`${kind}.${field
  * docs/tabs-economy.md "Trade tab"). It claims no systems and settles no planets (the game's
  * `nomadic_gameplay_desc`): no outposts or colonies — waystations and arkships instead.
  */
-export const nomadic = (s: Snapshot) =>
+export const nomadic = (s: Pick<Snapshot, 'situations'>) =>
 	(s.situations ?? []).some((x) => x.type === 'situation_nomad_economy');
 
 /** Kinds that cannot apply to this empire at all, left out of the add form and the suggestions. */

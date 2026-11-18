@@ -5,6 +5,9 @@ import type { OutcomeNode } from '#lib/outcomes.ts';
 import type {
 	ActionKind,
 	CapEffect,
+	ContractProject,
+	ContractReward,
+	ContractType,
 	Costs,
 	GameData,
 	MegaStage,
@@ -66,6 +69,9 @@ export function loadGameData(file: string): GameData {
 	const db = new DatabaseSync(file, { readOnly: true });
 	try {
 		const rows = <T>(sql: string) => db.prepare(sql).all() as T[];
+		// a table's columns: what an older data DB lacks reads as unknown
+		const columnsOf = (table: string) =>
+			new Set(rows<{ name: string }>(`PRAGMA table_info(${table})`).map((c) => c.name));
 		// what an empire may hold that has modifiers `where` picks, as source (`tradition:<key>` —
 		// perks, edicts, policies too —, `civic:` — authorities too —, `origin:`, `tech:`,
 		// `modifier:`) → `group(modifier key)` → their sum
@@ -205,27 +211,34 @@ export function loadGameData(file: string): GameData {
 					'SELECT key, trait_points, max_traits FROM species_archetype'
 				).map((r) => [r.key, { points: r.trait_points ?? 0, maxTraits: r.max_traits ?? 0 }])
 			),
-			planetClasses: Object.fromEntries(
-				rows<{
-					key: string;
-					name: string | null;
-					colonizable: number;
-					ideal: number;
-					is_standard: number;
-					climate: string | null;
-				}>('SELECT key, name, colonizable, ideal, is_standard, climate FROM planet_class').map(
-					(r) => [
+			// `artificial` (extractor 2026-11-18; an older data DB: the climate `artificial`, which
+			// misses the crystal habitat and the warden guardian)
+			planetClasses: (() => {
+				const hasArtificial = columnsOf('planet_class').has('artificial');
+				return Object.fromEntries(
+					rows<{
+						key: string;
+						name: string | null;
+						colonizable: number;
+						ideal: number;
+						is_standard: number;
+						climate: string | null;
+						artificial: number | null;
+					}>(
+						`SELECT key, name, colonizable, ideal, is_standard, climate, ${hasArtificial ? 'artificial' : 'NULL AS artificial'} FROM planet_class`
+					).map((r) => [
 						r.key,
 						{
 							name: r.name ?? r.key,
 							colonizable: r.colonizable === 1,
 							ideal: r.ideal === 1,
 							standard: r.is_standard === 1,
-							climate: r.climate
+							climate: r.climate,
+							artificial: r.artificial === null ? r.climate === 'artificial' : r.artificial === 1
 						}
-					]
-				)
-			),
+					])
+				);
+			})(),
 			// Blockers are named "Blocker Sprawling Slums" in the data; the game shows "Sprawling Slums".
 			names: Object.fromEntries(
 				rows<{ key: string; name: string }>(
@@ -600,6 +613,11 @@ export function loadGameData(file: string): GameData {
 					   WHERE modifier_key = 'councilor_skill_add'`
 				).map((r) => [r.owner, r.value])
 			),
+			// the Edict Fund's modifiers by source (#lib/edictFund.ts' estimate without the mod)
+			edictFund: bySource(
+				"modifier_key IN ('country_edict_fund_add', 'country_edict_fund_mult')",
+				(k) => (k.endsWith('_mult') ? 'mult' : 'add')
+			),
 			leaderCap: bySource(LEADER_CAP, (k) => k.replace(/^country_(\w+)_cap_add$/, '$1')),
 			// `leaders_cost_mult` (every class: `leader`), `leader_<class>s_cost_mult`
 			leaderCost: bySource(LEADER_COST, (k) =>
@@ -713,6 +731,24 @@ export function loadGameData(file: string): GameData {
 					{ potential: parseTrigger(r.potential_json), possible: parseTrigger(r.possible_json) }
 				])
 			),
+			// tradition swaps (#lib/swaps.ts), per owner in the game's order
+			traditionSwaps: rows<{
+				id: string;
+				owner_key: string;
+				name: string | null;
+				trigger_json: string | null;
+				inherit_effects: number;
+			}>(
+				'SELECT id, owner_key, name, trigger_json, inherit_effects FROM tradition_swap ORDER BY owner_key, sort_order'
+			).reduce<GameData['traditionSwaps']>((out, r) => {
+				(out[r.owner_key] ??= []).push({
+					id: r.id,
+					name: r.name,
+					trigger: parseTrigger(r.trigger_json),
+					inherit: r.inherit_effects === 1
+				});
+				return out;
+			}, {}),
 			perks: Object.fromEntries(
 				rows<{ key: string; name: string | null }>('SELECT key, name FROM ascension_perk').map(
 					(r) => [r.key, r.name ?? r.key]
@@ -761,17 +797,7 @@ export function loadGameData(file: string): GameData {
 			contractTypes: rows<{ name: string }>(
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'contract'"
 			).length
-				? Object.fromEntries(
-						rows<{
-							key: string;
-							name: string | null;
-							category: string;
-							time_to_accept: number | null;
-						}>('SELECT key, name, category, time_to_accept FROM contract').map((r) => [
-							r.key,
-							{ name: r.name ?? r.key, category: r.category, timeToAccept: r.time_to_accept }
-						])
-					)
+				? contractTypes(rows, columnsOf)
 				: {},
 			// an older data DB may lack the table: unnamed then
 			precursors: rows<{ name: string }>(
@@ -1008,16 +1034,49 @@ export function loadGameData(file: string): GameData {
 					}
 				])
 			),
-			personalities: Object.fromEntries(
-				rows<{ key: string; name: string | null; trade_willingness: number | null }>(
-					'SELECT key, name, trade_willingness FROM personality'
-				).map((r) => [r.key, { name: r.name ?? r.key, willingness: r.trade_willingness }])
-			),
-			attitudes: Object.fromEntries(
-				rows<{ key: string; name: string | null; trade: number }>(
-					'SELECT key, name, trade FROM attitude'
-				).map((r) => [r.key, { name: r.name ?? r.key, trade: r.trade === 1 }])
-			),
+			// pact acceptance (extractor 2026-11-18; an older data DB has neither: unknown)
+			personalities: (() => {
+				const has = columnsOf('personality').has('research_agreement_acceptance');
+				return Object.fromEntries(
+					rows<{
+						key: string;
+						name: string | null;
+						trade_willingness: number | null;
+						ra: number | null;
+						cp: number | null;
+					}>(
+						`SELECT key, name, trade_willingness, ${has ? 'research_agreement_acceptance AS ra, commercial_pact_acceptance AS cp' : 'NULL AS ra, NULL AS cp'} FROM personality`
+					).map((r) => [
+						r.key,
+						{
+							name: r.name ?? r.key,
+							willingness: r.trade_willingness,
+							acceptance: has ? { research: r.ra ?? 0, commercial: r.cp ?? 0 } : null
+						}
+					])
+				);
+			})(),
+			attitudes: (() => {
+				const has = columnsOf('attitude').has('alliance');
+				return Object.fromEntries(
+					rows<{
+						key: string;
+						name: string | null;
+						trade: number;
+						alliance: number | null;
+						coexist: number | null;
+					}>(
+						`SELECT key, name, trade, ${has ? 'alliance, coexist' : 'NULL AS alliance, NULL AS coexist'} FROM attitude`
+					).map((r) => [
+						r.key,
+						{
+							name: r.name ?? r.key,
+							trade: r.trade === 1,
+							...(has && { alliance: r.alliance === 1, coexist: r.coexist === 1 })
+						}
+					])
+				);
+			})(),
 			opinionModifiers: Object.fromEntries(
 				rows<{ key: string; name: string | null; max: number | null; decay: number | null }>(
 					'SELECT key, name, max, decay FROM opinion_modifier'
@@ -1186,6 +1245,75 @@ function traditionTrees(
 }
 
 /** A tradition tree is an ascension path when its availability trigger names one. */
+type ContractRowDb = {
+	key: string;
+	name: string | null;
+	category: string;
+	time_to_accept: number | null;
+	time_to_complete: number | null;
+	event_chain: string | null;
+	steps: number | null;
+	reward_json: string | null;
+	failed_opinion: number | null;
+	operator_techs_json: string | null;
+	description: string | null;
+};
+
+/** Contracts by key, with their projects joined by event chain (data DBs since 2026-11-18). */
+function contractTypes(
+	rows: <T>(sql: string) => T[],
+	columnsOf: (table: string) => Set<string>
+): Record<string, ContractType> {
+	const detailed = columnsOf('contract').has('reward_json');
+	const list = rows<ContractRowDb>(
+		detailed
+			? 'SELECT key, name, category, time_to_accept, time_to_complete, event_chain, steps, reward_json, failed_opinion, operator_techs_json, description FROM contract'
+			: 'SELECT key, name, category, time_to_accept, NULL AS time_to_complete, NULL AS event_chain, NULL AS steps, NULL AS reward_json, NULL AS failed_opinion, NULL AS operator_techs_json, NULL AS description FROM contract'
+	);
+	const byChain = new Map<string, ContractProject[]>();
+	if (detailed && columnsOf('special_project').has('event_chain'))
+		for (const p of rows<{
+			key: string;
+			name: string | null;
+			days: number | null;
+			event_chain: string;
+			requirements_json: string | null;
+			arkship_branches: number;
+		}>(
+			'SELECT key, name, days, event_chain, requirements_json, arkship_branches FROM special_project WHERE event_chain IS NOT NULL ORDER BY key'
+		))
+			byChain.set(p.event_chain, [
+				...(byChain.get(p.event_chain) ?? []),
+				{
+					key: p.key,
+					name: p.name ?? p.key,
+					days: p.days,
+					requirements: p.requirements_json
+						? (JSON.parse(p.requirements_json) as Record<string, unknown>)
+						: {},
+					arkshipBranches: p.arkship_branches === 1
+				}
+			]);
+	return Object.fromEntries(
+		list.map((r) => [
+			r.key,
+			{
+				name: r.name ?? r.key,
+				category: r.category,
+				timeToAccept: r.time_to_accept,
+				detailed,
+				timeToComplete: r.time_to_complete,
+				description: r.description,
+				steps: r.steps,
+				reward: r.reward_json ? (JSON.parse(r.reward_json) as ContractReward) : null,
+				failedOpinion: r.failed_opinion,
+				operatorTechs: r.operator_techs_json ? (JSON.parse(r.operator_techs_json) as string[]) : [],
+				projects: r.event_chain ? (byChain.get(r.event_chain) ?? []) : []
+			}
+		])
+	);
+}
+
 export function hasAscensionPath(trigger: ReturnType<typeof parseTrigger>): boolean {
 	if (!trigger) return false;
 	if ('leaf' in trigger) return /^has_\w+_ascension$/.test(trigger.leaf);

@@ -98,9 +98,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
   shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
-  2026-11-17: `develop` has 63 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
-  chapters, planet flags, waystations, the home system surveyed, name templates; the highway: the
-  Ancient Highway mod) — that merge takes 64,
+  2026-11-18: `develop` has 66 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
+  chapters, planet flags, waystations, the home system surveyed, name templates, every contact's tech
+  gap, the Edict Fund, contracts completed; the highway: the Ancient Highway mod) — that merge takes 67,
   and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
   in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
@@ -176,6 +176,11 @@ The tabs show what the game's own panels show. Everything beyond that is a profi
 sinks): hide what this empire will never use — a nomad never settles, a settled empire never
 embarks, an origin, civic or authority it lacks —, grey what is not available _yet_ with the
 reason on hover, and grey a group's header when nothing in it is available.
+
+**A tradition or perk is the empire's variant** (data DB `tradition_swap`, `#lib/swaps.ts`; the
+user's report 2026-11-18: a nomad's Mastery of Nature unlocks no decision): show it through
+`swapExplanations()`, and sum a held tradition's or perk's modifiers under `empireSwaps(s,
+data).source(key)` — the owner's key reads the settled empire's effects.
 
 **Page data is visible to the viewer, not only what a page renders** (the user's ask 2026-11-17,
 "don't spoil any first contact"): another empire's real name, type, ethics or civics before

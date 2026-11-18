@@ -253,6 +253,7 @@ export const pageLatest = <
 		history?: unknown;
 		diplomacy?: unknown;
 		allWars?: unknown;
+		contracts?: unknown;
 	}
 >(
 	s: S
@@ -261,6 +262,8 @@ export const pageLatest = <
 	...('history' in s ? { history: null } : {}),
 	...('diplomacy' in s ? { diplomacy: null } : {}),
 	...('allWars' in s ? { allWars: null } : {}),
+	// every contract in the galaxy, issuers we never met by name: the contracts tab sends its own rows
+	...('contracts' in s ? { contracts: null } : {}),
 	countries:
 		s.countries?.filter(
 			(c) =>

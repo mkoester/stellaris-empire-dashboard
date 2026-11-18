@@ -433,6 +433,29 @@ export function loadExplanations(file: string): Explanations {
 				text: p.tooltip,
 				facts: []
 			};
+		// their swaps (#lib/swaps.ts), under `<kind>:<swap id>`: the swap's name and text, its
+		// own modifiers or, inheriting, the owner's — never the owner's text (Mastery of
+		// Nature's "Unlocks Decision" is not a nomad's)
+		for (const s of rows<{
+			id: string;
+			owner_key: string;
+			name: string | null;
+			description: string | null;
+			tooltip: string | null;
+			inherit_effects: number;
+		}>('SELECT id, owner_key, name, description, tooltip, inherit_effects FROM tradition_swap')) {
+			const kind = out[`perk:${s.owner_key}`] ? 'perk' : 'tradition';
+			const owner = out[`${kind}:${s.owner_key}`];
+			if (!owner) continue;
+			const inherit = s.inherit_effects === 1;
+			out[`${kind}:${s.id}`] = {
+				title: s.name ?? owner.title,
+				description: s.description ?? owner.description,
+				modifiers: inherit ? owner.modifiers : (ownedMods.get(s.id) ?? []),
+				text: s.tooltip ?? (inherit ? owner.text : null),
+				facts: []
+			};
+		}
 
 		const jobMods = grouped(
 			'SELECT job_key AS owner, modifier AS key, value FROM job_modifier ORDER BY sort_order'

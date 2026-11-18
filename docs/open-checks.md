@@ -339,6 +339,13 @@ it cannot accept (`possible_operator`: already on the same contract, a tech, out
   contract icons on the galaxy map in systems that are not yours.
 - **Send:** the screenshots and the date. Check: the contracts tab's rows without spoilers (the
   normal view should show exactly the game's).
+- **Details (from 2026-11-18):** Roaming Cyber Gang 2218.12.01 offers Colony Startup (Pact of
+  Fellnoll) and Diplomatic Support (Mishar Pact). **Do:** open each offer, hover its reward; order
+  Selborne toward the contract's system and read the arrival estimate. **Check:** reward 750 trade
+  - 150 society research + 50 influence, and 1750 trade + 350 unity + 50 influence (0 contracts
+    completed: ×1 — a higher figure in game is `nomadic_contract_value_mult`, then drop or fit the
+    ≈); "Colony Startup" 180 days, any arkship; the ETA against "3 jumps" decides whether the tab can
+    give days.
 
 ### 33. Design stats and the starbase list — fleets and starbases tabs (from 2026-11-09)
 
@@ -590,6 +597,19 @@ logged cards. Still open: the cost on the 2nd at full speed, and Upcoming's "lat
 - **Send:** the `SDASH` lines of one 2nd, the research screen of that day, and whether Upcoming
   showed the "later" row for a tech planned with − want.
 
+### 40. The Edict Fund — government tab and recommendations, companion mod 0.14.0 (from 2026-11-18)
+
+The edict what-ifs pay unity upkeep only beyond the fund's room (`#lib/edictFund.ts`). Assumed:
+the fund is `country_edict_fund_add` × (1 + `country_edict_fund_mult`); it pays the upkeep after
+`edict_size_effect` and `edicts_upkeep_mult`; the budget's `edicts` unity is what goes beyond it.
+Without the mod: the estimate leaves out jobs (bureaucrats and priests under some civics).
+
+- **Do:** with mod 0.14.0, in the nomad campaign, open Government → Edicts and hover the Edict
+  Fund; enact an edict that fits in it, save, then one that does not, save.
+- **Send:** the fund tooltip (total and its lines) and both saves. Check: `sdash_ef_add` /
+  `sdash_ef_mult` against the tooltip, the fund against the dashboard's popup, and the second
+  save's booked `edicts` unity against the what-if's "pays".
+
 ## C. Not in the game
 
 ### 37. Upkeep what-ifs and the net in trade — government, species, traditions, tech tabs (from 2026-11-15)
@@ -651,6 +671,33 @@ pact −50). Most inputs are in the save (opinion, attitude, pacts, rivals, rela
 strength need work); the engine may add terms the files do not show, as the trade valuation did.
 **Calibrate like trade:** the diplomacy screen's acceptance tooltip per action at a few empires,
 against the formula — the files are a starting point, not the answer.
+
+**Built for research agreements and commercial pacts (2026-11-18, `#lib/pactAdvice.ts`, the pacts
+tab's "Pacts to offer" behind the `pactAdvice` spoiler) — uncalibrated.** Assumed, each to check:
+the AI accepts above 0; "no border" (`border_range` 2147483647, a nomad's with everyone) adds no
+distance term; the commercial "collected trade value" is the 10 % share each side passes on, not the
+whole trade; the attitude term is 100 for `alliance`, else 50 for `coexist`. Roaming Korinth
+2217.06.01 read Mishar Pact ≈ +133 (research) / +156 (commercial), Pact of Fellnoll ≈ −50 / −3,
+Mictor Continuity ≈ −32 (commercial). **The game said −13** for Mishar's commercial pact on
+2217.07.01 (screenshot `2026_11_18_1.png`, the proposal dialog; the model ≈ +158 that day), so the
+sum is now read as an upper bound: only ≤ 0 greys a row. First suspect: the opinion term, +182 (0.4
+× their `relation_current` of us, 454) — without it the sum is ≈ −24. The same dialog showed the
+upkeep 0.40 influence (base 0.25: Isolationist +100 %, the nomad ruler −5 % a level), now measured
+from the budget (`pactUpkeep()`). **The tooltip lists no terms at low intel** ("Since we do not
+have enough intel, we can only speculate as to their reasons.", screenshot `2026_11_18_2.png`; our
+intel on Mishar 11 in the manual save `2217.07.01.sav`), so the term breakdown on the pacts tab is
+more than the game shows (behind the `pactAdvice` spoiler). That save: their `relation_current`
+of us 454 (the opinion, confirmed 2026-10-19), honorbound_warriors (commercial −20), cordial; and
+**a research agreement signed with them** between the 09:45 autosave and it (the model: ≈ +134) —
+so the missing ≈ −170 is not a term every pact shares (distance, stance), but the commercial
+pact's own: its trade terms, or an engine term for commercial pacts only. A research agreement
+lifts our intel to at least 30 (`INTEL_FROM_RESEARCH_AGREEMENT`): hover again a month later.
+
+- **Do:** in the nomad campaign (or any), open Diplomacy → propose a research agreement and a
+  commercial pact to two or three empires; hover the acceptance.
+- **Send:** a screenshot of each acceptance tooltip — hovered, so its terms show — and the save of
+  that day. Check each term
+  against the tab's popup (Accept column), and a distant settled empire's border distance term.
 
 ### 9. After the answers come in
 

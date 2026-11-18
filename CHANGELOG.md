@@ -4,6 +4,31 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.27] - 2026-11-18
+
+### Added
+
+- Pacts to offer: every empire you talk to without a research agreement or commercial pact,
+  ranked by what the pact brings a month in trade, greyed with the reason where the game would not
+  allow it or the AI would refuse. The upkeep is the one your budget shows; acceptance is an upper
+  bound until calibrated. Behind a spoiler switch.
+- Edicts: what-ifs pay unity upkeep only beyond the Edict Fund — exact with companion mod 0.14.0,
+  else a lower-bound estimate (≈).
+- A back-to-top button on every tab.
+- Contracts: per contract what to do (its projects, their days and what they need), the reward
+  in resources and in trade, scaled by the contracts you completed, the opinion lost on failure,
+  and how many jumps each of your arkships is from it. A Reward, Work and Nearest arkship column.
+  Needs a data DB from this release.
+
+### Fixed
+
+- Nomads: traditions and perks show the nomad variant in popups, effects and their sums; no
+  Mastery of Nature decision on an arkship.
+- Contracts: page data no longer carries every contract in the galaxy, whose issuers you may not
+  have met.
+- Contracts: the tab is no longer greyed for a nomad that has only offers from empires it talks
+  to — it counted only contracts you issued or took.
+
 ## [0.1.26] - 2026-11-17
 
 ### Added

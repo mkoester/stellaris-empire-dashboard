@@ -322,6 +322,25 @@ empire sees what it issued; the spoiler adds others' contracts up to `contractVi
 beyond the border (`jumpsFromBorder()` over discovered lanes — Planetforgers 2214.02.01: 32 of 129
 visited systems reachable, so most contracts need range "anywhere"), the cheat everything.
 What the game shows a settled empire of others' contracts is not known (`docs/open-checks.md` 32).
+The tab bar dims the tab by the same rule (`tabData.ts` uses `whyOf()`, without spoilers): a
+nomad's offers from empires it talks to count — before, only issued or taken ones did, and Roaming
+Cyber Gang 2218.12.01 (two offers listed) had the tab greyed (the user's report 2026-11-18).
+**Details per contract** (the user's ask 2026-11-18: what to do, what it costs, how long, which
+arkship): `contractDetail()` from the data DB's `contract` (`description` with `{issuer}` /
+`{system}` filled, `steps`, `reward_json`, `failed_opinion`, `operator_techs_json`) and the
+`special_project`s of its `event_chain` (days, `requirements_json` — `carries_colony` is an arkship
+—, `arkship_branches`); `detailed: false` with an older data DB, the line says so. The reward is
+`contract_scaling_reward_effect` × `contract_bonus_value` (+10 % per `country.variables.
+contract_completed`, `Snapshot.contractsCompleted`, READER 66) plus unscaled influence; the other
+factor `nomadic_contract_value_mult` is not read, so the scaled amounts and the trade total carry
+≈ (a lower bound). Cost to the operator: no resources — the arkship's time, and the issuer's
+opinion on failure. Arkships: jumps from each along the known lanes (the graph the Beyond column
+uses), nearest first; **no days** — a jump's duration is not read (`docs/open-checks.md` 32). A
+contract without projects (Diplomatic Support: the AI's travel project only, a player gets points
+of interest) counts as an arkship's job. `arkship_branches` (Colony Startup only, 4.5.x) changes
+the _issuer's_ colony bonus, not our reward: `branchLine()` says so and names what our nearest
+arkship would give (`COLONY_SUPPORT`, hand-copied from the game files — re-check on updates). `pageLatest()` drops `contracts`: the galaxy's list names
+issuers we never met (it reached every page until 2026-11-18).
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
 name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the

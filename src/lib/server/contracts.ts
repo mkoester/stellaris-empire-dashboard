@@ -1,10 +1,13 @@
 // The contracts the player may see at a branch, for the contracts tab and every map's layer.
 import {
+	contractDetail,
 	contractMarks,
 	contractRows,
+	type ContractDetail,
 	type ContractMark,
 	type ContractRow
 } from '#lib/contracts.ts';
+import { graph } from '#lib/galaxyGraph.ts';
 import { nomadic } from '#lib/planner/kinds.ts';
 import type { Display } from '#lib/profiles.ts';
 import { discovered, jumpsFromBorder } from '#lib/situations.ts';
@@ -12,9 +15,10 @@ import type { Snapshot } from '#lib/types.ts';
 import { getGameData } from './app.ts';
 import { campaignGalaxy } from './mapSystems.ts';
 import { setting } from './settings.ts';
+import { valuesOf } from './unitCosts.ts';
 
 export type ContractsAt = {
-	rows: ContractRow[];
+	rows: (ContractRow & { detail: ContractDetail })[];
 	known: boolean; // a save of the branch was read with contracts (READER 52)
 	nomadic: boolean;
 	date: string | null; // of that save
@@ -29,29 +33,49 @@ export function contractsAt(snaps: Snapshot[], shown: Display): ContractsAt {
 	if (!s?.contracts || s.countryId === null)
 		return { rows: [], known: false, nomadic: false, date: null, systemNames: {}, range };
 	const systems = campaignGalaxy(s.campaign)?.systems ?? [];
+	const known = discovered(systems, { whole: shown.wholeGalaxy, stars: shown.unknownStars });
 	const isNomad = nomadic(s);
+	const data = getGameData();
 	const rows = contractRows(s.contracts, {
 		me: s.countryId,
 		nomadic: isNomad,
 		talking: new Set((s.relations ?? []).filter((r) => r.communications).map((r) => r.countryId)),
 		// along the lanes we know, as the systems and megastructures tabs count beyond the border
-		jumps: jumpsFromBorder(
-			discovered(systems, { whole: shown.wholeGalaxy, stars: shown.unknownStars })
-		),
+		jumps: jumpsFromBorder(known),
 		range,
 		spoilers: shown.contractSpoilers,
 		all: shown.contractsAll,
-		types: getGameData().contractTypes
+		types: data.contractTypes
 	});
 	const used = new Set(rows.map((r) => r.systemId));
+	const names = Object.fromEntries(
+		systems.filter((x) => used.has(x.id)).map((x) => [x.id, x.name])
+	);
+	// the latest save's: a month from the feed alone carries none of these
+	const save = snaps.findLast((x) => x.kind === 'save') ?? s;
+	const detailCtx = {
+		completed: save.contractsCompleted,
+		researched: new Set(save.progress?.researched ?? []),
+		arkships: save.arkships ?? [],
+		lanes: graph(
+			known.flatMap((x) => x.lanes.map((to): [number, number] => [x.id, to])),
+			[]
+		),
+		values: valuesOf(snaps),
+		techName: (k: string) => data.techs[k]?.name ?? k
+	};
 	return {
-		rows,
+		rows: rows.map((r) => ({
+			...r,
+			detail: contractDetail(r, data.contractTypes[r.key], {
+				...detailCtx,
+				systemName: r.systemId === null ? null : (names[r.systemId] ?? null)
+			})
+		})),
 		known: true,
 		nomadic: isNomad,
 		date: s.date,
-		systemNames: Object.fromEntries(
-			systems.filter((x) => used.has(x.id)).map((x) => [x.id, x.name])
-		),
+		systemNames: names,
 		range
 	};
 }

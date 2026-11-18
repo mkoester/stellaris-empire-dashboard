@@ -13,6 +13,11 @@
 	const KNOWN = ['migration_access', 'commercial_pact', 'research_agreement'];
 	const others = $derived(data.types.filter((t) => !KNOWN.includes(t.key)));
 	const typeOf = (key: string) => data.types.find((t) => t.key === key);
+	const UPKEEP_FROM = {
+		own: 'what the budget books for the ones we hold',
+		other: 'the base × what the budget books for another pact type over its base',
+		base: 'the base, before modifiers'
+	};
 </script>
 
 {#snippet upkeep(key: string)}
@@ -24,6 +29,76 @@
 	{/if}
 {/snippet}
 
+{#snippet offers(
+	title: string,
+	upkeep: NonNullable<typeof data.advice>['upkeep']['research'],
+	what: string,
+	rows: NonNullable<typeof data.advice>['research']
+)}
+	<div>
+		<h3 class="text-sm font-semibold">{title}</h3>
+		<p class="mb-1 text-xs text-gray-500">
+			{`${what}; upkeep ${upkeep.from === 'own' ? '' : '≈ '}${fmt(upkeep.amount)} influence a month (${UPKEEP_FROM[upkeep.from]})`}
+		</p>
+		{#if rows === null}
+			<p class="text-sm text-gray-500">Never for this empire, or not read yet.</p>
+		{:else if rows.length === 0}
+			<p class="text-sm text-gray-500">No one left to offer it to.</p>
+		{:else}
+			<table class="text-left text-sm tabular-nums">
+				<thead>
+					<tr class="text-gray-500">
+						<th class="p-1">#</th>
+						<th class="p-1">Empire</th>
+						<th class="p-1 text-right">Gain a month</th>
+						<th class="p-1 text-right" title="what it brings less its upkeep, in trade">Worth</th>
+						<th class="p-1 text-right" title="their acceptance, ≈">Accept</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each rows as r, i (r.countryId)}
+						<tr
+							class={r.available ? '' : 'text-gray-500 opacity-60'}
+							title={r.why.length ? r.why.join('\n') : undefined}
+						>
+							<td class="p-1">{i + 1}</td>
+							<td class="p-1"
+								><EmpireName name={r.name} />{#if r.why.length}<span class="ml-1 text-xs"
+										>· {r.why[0]}</span
+									>{/if}</td
+							>
+							<td class="p-1 text-right"
+								>{Object.entries(r.gain)
+									.map(([k, v]) => `${fmt(v)} ${pretty(k.replace('_research', ''))}`)
+									.join(', ') || '—'}</td
+							>
+							<td class="p-1 text-right">≈ {fmt(r.value)}</td>
+							<td class="p-1 text-right"
+								><InfoPopup
+									explanation={{
+										title: `${r.name}: acceptance ≈`,
+										description: null,
+										modifiers: [],
+										text: r.terms
+											.map((t) => `${t.label}: ${t.value === null ? '?' : signed(t.value)}`)
+											.join('\n'),
+										facts: []
+									}}
+									>{r.total !== null
+										? `${r.total > 0 ? '≤ ' : ''}${signed(r.total)}`
+										: r.accepts === false
+											? '< 0'
+											: '?'}</InfoPopup
+								></td
+							>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		{/if}
+	</div>
+{/snippet}
+
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Pacts</h1>
 	<span class="shrink-0 text-2xl font-bold tabular-nums">{data.asOf ?? data.latest.date}</span>
@@ -32,8 +107,39 @@
 {#if data.types.length === 0}
 	<p class="text-gray-500">No pact with another empire yet.</p>
 {/if}
+{#if !data.pactAdvice}
+	<p class="mb-2 text-xs text-gray-500">
+		Whom to offer a research agreement or a commercial pact shows with the switch in ⚙ (spoiler).
+	</p>
+{/if}
 
 <div class="space-y-4">
+	{#if data.advice}
+		<section class="rounded border border-gray-300 p-2 dark:border-gray-700">
+			<h2 class="mb-1 font-semibold">Pacts to offer</h2>
+			<p class="mb-2 text-xs text-gray-500">
+				Every empire we talk to without the pact yet, by what it would bring a month in trade, less
+				its influence upkeep. Grey: the game would not let us propose it now, or they would refuse
+				(hover for why) — kept in place to show what it would be worth. The acceptance sums the
+				terms the game files name, an upper bound: the engine adds more (a commercial pact read ≤
+				+156 showed −13 in game), so only a sum at or below 0 greys a row.
+			</p>
+			<div class="grid gap-4 lg:grid-cols-2">
+				{@render offers(
+					'Research agreements',
+					data.advice.upkeep.research,
+					'+25 % research on the techs in progress and the cards on offer that they have and no research partner already gives',
+					data.advice.research
+				)}
+				{@render offers(
+					'Commercial pacts',
+					data.advice.upkeep.commercial,
+					'10 % of their trade production, not taken from them',
+					data.advice.commercial
+				)}
+			</div>
+		</section>
+	{/if}
 	{#if data.abroad.length}
 		<section class="rounded border border-gray-300 p-2 dark:border-gray-700">
 			<h2 class="mb-1 font-semibold">Our species abroad</h2>

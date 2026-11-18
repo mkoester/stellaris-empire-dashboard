@@ -49,6 +49,28 @@ describe('emptyTabs', () => {
 		expect(emptyTabs([moved, blank()]).migration).toBeUndefined();
 	});
 
+	it('a nomad sees offers from empires it talks to: the contracts tab counts them', () => {
+		const offer = { id: 8, issuer: 5, operator: null, state: 'offered' };
+		const nomad = (communications: boolean) =>
+			blank({
+				contracts: [offer] as unknown as Snapshot['contracts'],
+				situations: [{ type: 'situation_nomad_economy' }] as Snapshot['situations'],
+				relations: [
+					{ countryId: 5, contact: true, communications, agreements: [] }
+				] as unknown as Snapshot['relations']
+			});
+		expect(emptyTabs([nomad(true)]).contracts).toBeUndefined();
+		expect(emptyTabs([nomad(false)]).contracts).toBeDefined();
+		// a settled empire is offered nothing: another empire's offer stays behind the spoiler
+		const settled = blank({
+			contracts: [offer] as unknown as Snapshot['contracts'],
+			relations: [
+				{ countryId: 5, contact: true, communications: true, agreements: [] }
+			] as unknown as Snapshot['relations']
+		});
+		expect(emptyTabs([settled]).contracts).toBeDefined();
+	});
+
 	it('a pact undims the pacts tab, an embassy does not', () => {
 		const rel = (agreements: string[]) =>
 			blank({ relations: [{ contact: true, agreements }] as unknown as Snapshot['relations'] });

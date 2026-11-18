@@ -1,4 +1,5 @@
 import { describe, evaluate, type Facts, type Trigger } from './triggers.ts';
+import { NO_SWAPS, type SwapLookup } from './swaps.ts';
 import type { Explanation, GameData, LeaderInfo, Modifier, Snapshot } from './types.ts';
 
 const GESTALT = ['auth_hive_mind', 'auth_machine_intelligence'];
@@ -278,12 +279,13 @@ const BASE_LEADER_CAP = 3; // `@base_leader_cap`, common/leader_classes/00_base_
  * traditions, perks, edicts, policies, civics, the origin, technologies, timed and static modifiers.
  */
 /** What the save shows the empire holding, as `bySource` keys (#lib/server/gamedata.ts). */
-function heldSources(s: Snapshot): string[] {
+function heldSources(s: Snapshot, swaps: SwapLookup): string[] {
 	return [
 		...new Set([
-			...[...(s.traditions ?? []), ...(s.ascensionPerks ?? []), ...(s.edicts ?? [])].map(
-				(k) => `tradition:${k}`
+			...[...(s.traditions ?? []), ...(s.ascensionPerks ?? [])].map(
+				(k) => `tradition:${swaps.source(k)}`
 			),
+			...(s.edicts ?? []).map((k) => `tradition:${k}`),
 			...Object.values(s.policies ?? {}).map((k) => `tradition:${k}`),
 			...(s.government ?? []).map((k) => `civic:${k}`),
 			...(s.origin ? [`origin:${s.origin}`] : []),
@@ -294,8 +296,12 @@ function heldSources(s: Snapshot): string[] {
 }
 
 /** Per class: what the held sources add for it (`map[source][class]` + `map[source].leader`). */
-const perClass = (s: Snapshot, map: Record<string, Record<string, number>>) => {
-	const held = heldSources(s);
+const perClass = (
+	s: Snapshot,
+	map: Record<string, Record<string, number>>,
+	swaps: SwapLookup = NO_SWAPS
+) => {
+	const held = heldSources(s, swaps);
 	return (cls: string) =>
 		held.reduce((n, k) => n + (map[k]?.[cls] ?? 0) + (map[k]?.leader ?? 0), 0);
 };
@@ -321,9 +327,10 @@ export const baseLeaderCost = (level: number) =>
 export function leaderCostFactors(
 	s: Snapshot,
 	cost: GameData['leaderCost'],
-	seats: { effects: { now: Modifier }[] }[] = []
+	seats: { effects: { now: Modifier }[] }[] = [],
+	swaps: SwapLookup = NO_SWAPS // a nomad's variants of traditions and perks (#lib/swaps.ts)
 ): Record<string, number> {
-	const add = perClass(s, cost);
+	const add = perClass(s, cost, swaps);
 	const seat = (cls: string) =>
 		seats
 			.flatMap((x) => x.effects.map((e) => e.now))

@@ -395,7 +395,14 @@ saucer the map does not show).
 - **traditions**: the active effects in two tables, traditions and perks (`totalEffects()`,
   `EffectTotals.svelte`, shared with the Government panel; text-only effects listed apart), every
   adopted tree in full with each tradition's effects (not yet active ones grey), the other trees,
-  every perk (taken first, conditions not checked).
+  every perk (taken first, conditions not checked). **Each tradition and perk as this empire's
+  variant** (data DB `tradition_swap`, `#lib/swaps.ts`, the user's report 2026-11-18): a nomad's
+  Mastery of Nature raises harvest output and unlocks no decision, Expansion's Colonization Fever
+  is Arkship Armada. The first swap whose trigger holds; its name, text and modifiers (the owner's
+  where it `inherit_effects`) under `<kind>:<swap id>` in the explanations. The same lookup feeds
+  the empire tab's popups and size estimate, district caps, the galcom tab's diplomatic weight and
+  leader recruitment cost (the sums any swap's modifiers reach, checked 2026-11-18 in the 4.5.4 data);
+  councilor skill and the other `tradition:` sums still read the owner's.
 - **tech**: the three queues with due dates (`events.ts`), the cards on offer **now**
   (`tech_status.alternatives`; the game redraws a field's cards once its tech is done) with ▶ the
   one being researched, ★ the permanent options and the progress of queued ones, ↺ that of techs

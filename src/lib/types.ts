@@ -323,8 +323,9 @@ export type AiIntel = {
 	income: Resources; // per month, gross (the cap on what it pays a month); {} before READER 12
 	max?: Resources; // storage, exact: companion mod 0.5.0's sdash_m_<res>; absent without it
 	commercialPactTrade?: number; // trade its own commercial pacts bring it (READER 45)
-	techsWeLack?: string[]; // a research partner's techs we do not have (READER 45)
-	techsTheyLack?: string[]; // ours it does not have (READER 45)
+	techsWeLack?: string[]; // its techs we do not have (READER 45 research partners, 64 everyone)
+	theyLackCount?: number; // how many of ours it does not have (READER 64)
+	techsTheyLack?: string[]; // ours it does not have: research partners only (READER 45)
 };
 
 /** A trader enclave we talk to; `kind` 1 XuraCorp, 2 Riggans, 3 Muutagan (#lib/aiTrade.ts). */
@@ -415,6 +416,9 @@ export type Snapshot = {
 	starbases: { used: number; capacity: number } | null;
 	navalUsed: number | null;
 	navalMax: number | null;
+	// the Edict Fund's modifiers, `country_edict_fund_add` / `_mult`: companion mod 0.14.0
+	// exports them (`sdash_ef_add`, `sdash_ef_mult`), else null (#lib/edictFund.ts); READER 65
+	edictFund: { add: number; mult: number } | null;
 	envoys: { used: number; total: number } | null;
 	marketOrders: MarketOrder[]; // standing monthly buy/sell orders
 	market: Market | null; // null from the mod feed and in older snapshots
@@ -485,6 +489,8 @@ export type Snapshot = {
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	contracts: Contract[] | null; // every Nomads contract in the galaxy, offered or accepted; READER 52
+	// contracts we completed (`country.variables.contract_completed`, the reward's scaling); READER 66
+	contractsCompleted: number | null;
 	// From the save's `meta`; null from the mod feed and in older snapshots.
 	gameVersion: string | null; // e.g. "Cygnus v4.5.2"
 	dlcs: string[] | null; // DLCs active in this save (`required_dlcs`), by name
@@ -1072,6 +1078,34 @@ export type ContractType = {
 	name: string;
 	category: string; // e.g. resource_contract, science_contract_internal, crew_resource_contract_special
 	timeToAccept: number | null; // days an offer stays open
+	// the rest: data DBs since 2026-11-18 (`detailed`); null / [] with an older one
+	detailed: boolean;
+	timeToComplete: number | null; // days to finish once accepted; null: no limit
+	description: string | null; // what the operator does; {issuer} and {system} to fill in
+	steps: number | null; // progress needed (Espionage Support 2: two projects)
+	reward: ContractReward | null;
+	failedOpinion: number | null; // the issuer's opinion of us on failure or cancel
+	operatorTechs: string[]; // techs the operator needs
+	projects: ContractProject[]; // the special projects of its event chain
+};
+
+/** What a contract pays its operator on success (data DB `contract.reward_json`). */
+export type ContractReward = {
+	// × contract_bonus_value; the first the full reward, a second one a partial success's
+	scaled: { trade: number | null; resource: string | null; amount: number | null }[];
+	cruise: number | null; // Forever Cruise's trade, × its own bonus
+	fixed: Record<string, number>; // not scaled: the influence for the opinion gained
+	trust: number | null;
+	opinion: number | null;
+};
+
+/** A special project a contract's operator does (data DB `special_project` by `event_chain`). */
+export type ContractProject = {
+	key: string;
+	name: string;
+	days: number | null;
+	requirements: Record<string, unknown>; // {carries_colony: 1}: an arkship
+	arkshipBranches: boolean; // the outcome differs by arkship type
 };
 
 /**
@@ -1182,8 +1216,20 @@ export type GameData = {
 			deficitTrade?: number | null;
 		}
 	>;
-	personalities: Record<string, { name: string; willingness: number | null }>;
-	attitudes: Record<string, { name: string; trade: boolean }>;
+	personalities: Record<
+		string,
+		{
+			name: string;
+			willingness: number | null;
+			// added to a pact's acceptance; null: an older data DB
+			acceptance?: { research: number; commercial: number } | null;
+		}
+	>;
+	// alliance / coexist: the behaviours pact acceptance reads; absent on an older data DB
+	attitudes: Record<
+		string,
+		{ name: string; trade: boolean; alliance?: boolean; coexist?: boolean }
+	>;
 	opinionModifiers: Record<string, { name: string; max: number | null; decay: number | null }>; // per level: outpost, starport …
 	edictModifiers: Record<string, Record<string, number>>; // edict → modifier → value
 	policyModifiers: Record<string, Record<string, number>>; // policy option → modifier → value
@@ -1269,6 +1315,7 @@ export type GameData = {
 			ideal: boolean;
 			standard: boolean;
 			climate: string | null;
+			artificial?: boolean; // is_artificial_planet: arkship, habitats, ring segments
 		}
 	>;
 	names: Record<string, string>; // display names of buildings, deposits, districts, zones, starbase modules and buildings
@@ -1331,6 +1378,7 @@ export type GameData = {
 		}
 	>;
 	perks: Record<string, string>; // ascension perk names
+	traditionSwaps: Record<string, import('./swaps.ts').Swap[]>; // tradition or perk → its swaps
 	pathPerks?: string[]; // path perks from `00_ascension_paths.txt`; absent on older data DBs
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
 	setupScenarios: Record<string, Record<string, number>>; // galaxy size → save key → its default (`setup_scenario`, extractor 0.1.16)
@@ -1442,6 +1490,7 @@ export type GameData = {
 	};
 
 	// council seats; modifiers (per leader level) are the `seat:<key>` explanations
+	edictFund: Record<string, { add?: number; mult?: number }>; // `bySource` keys → fund modifiers
 	councilPositions: Record<
 		string,
 		{ name: string; civic: string | null; classes: string[]; possible: Trigger | null }

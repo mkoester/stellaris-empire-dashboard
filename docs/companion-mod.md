@@ -47,6 +47,12 @@ shows format 2.
   `screenshot_2026-10-31_09-25-00`, `-09`): `sdash_stab_add=33.35` = the tooltip's lines but
   approval (10 + 5.6 + 17.7); the page's 110.9 = the tooltip's sum with approval unrounded (95.8 %
   → +27.5, shown "+27").
+- **Edict Fund** (0.14.0, the user's question 2026-11-18: "when below edict fund this costs
+  nothing — is this respected?"): no log line — each month `export_modifier_to_variable` exports
+  our `country_edict_fund_add` and `country_edict_fund_mult` into `sdash_ef_add` / `sdash_ef_mult`
+  (country variables), read as `Snapshot.edictFund` (READER 65). The edict what-ifs charge unity
+  upkeep only beyond the fund's room (`#lib/edictFund.ts`); without the mod the fund is ≈, a lower
+  bound from what the empire holds. In game: `docs/open-checks.md` 40.
 - **Research options** (0.13.0, the user's ask 2026-11-16: "check on every 2nd of a month which
   tech options are available"): the monthly `sdash.1` schedules `sdash.6` a day ahead, and so does
   `sdash.7` on `on_tech_increased` — a field draws its new cards when one of its techs is researched
