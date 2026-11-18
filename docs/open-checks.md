@@ -339,6 +339,13 @@ it cannot accept (`possible_operator`: already on the same contract, a tech, out
   contract icons on the galaxy map in systems that are not yours.
 - **Send:** the screenshots and the date. Check: the contracts tab's rows without spoilers (the
   normal view should show exactly the game's).
+- **Details (from 2026-11-18):** Roaming Cyber Gang 2218.12.01 offers Colony Startup (Pact of
+  Fellnoll) and Diplomatic Support (Mishar Pact). **Do:** open each offer, hover its reward; order
+  Selborne toward the contract's system and read the arrival estimate. **Check:** reward 750 trade
+  - 150 society research + 50 influence, and 1750 trade + 350 unity + 50 influence (0 contracts
+    completed: ×1 — a higher figure in game is `nomadic_contract_value_mult`, then drop or fit the
+    ≈); "Colony Startup" 180 days, any arkship; the ETA against "3 jumps" decides whether the tab can
+    give days.
 
 ### 33. Design stats and the starbase list — fleets and starbases tabs (from 2026-11-09)
 

@@ -1,14 +1,34 @@
 import { describe, expect, it } from 'vitest';
+import { graph } from './galaxyGraph.ts';
 import {
+	arkshipKind,
+	contractBonus,
+	contractDetail,
 	contractLine,
 	contractRows,
 	contractSystems,
 	inRange,
 	kindOf,
 	parseContractView,
-	type ContractContext
+	type ContractContext,
+	type DetailContext
 } from './contracts.ts';
-import type { Contract } from './types.ts';
+import type { Arkship, Contract, ContractType } from './types.ts';
+
+// a contract type as an older data DB gives it: no details
+const plain = (name: string, category: string, timeToAccept: number | null): ContractType => ({
+	name,
+	category,
+	timeToAccept,
+	detailed: false,
+	timeToComplete: null,
+	description: null,
+	steps: null,
+	reward: null,
+	failedOpinion: null,
+	operatorTechs: [],
+	projects: []
+});
 
 const c = (o: Partial<Contract> & Pick<Contract, 'id'>): Contract => ({
 	key: 'contract_colony_startup',
@@ -63,21 +83,9 @@ const ctx = (o: Partial<ContractContext>): ContractContext => ({
 	spoilers: false,
 	all: false,
 	types: {
-		contract_colony_startup: {
-			name: 'Colony Startup',
-			category: 'diplomacy_contract',
-			timeToAccept: 1800
-		},
-		contract_raid_planet_small: {
-			name: 'Raid Planet',
-			category: 'military_contract',
-			timeToAccept: 1800
-		},
-		contract_eternal_chorus: {
-			name: 'Eternal Chorus',
-			category: 'science_contract_internal',
-			timeToAccept: null
-		}
+		contract_colony_startup: plain('Colony Startup', 'diplomacy_contract', 1800),
+		contract_raid_planet_small: plain('Raid Planet', 'military_contract', 1800),
+		contract_eternal_chorus: plain('Eternal Chorus', 'science_contract_internal', null)
 	},
 	...o
 });
@@ -172,5 +180,137 @@ describe('contractLine', () => {
 		expect(line(1)).toBe('diplomacy contract by Vel');
 		expect(line(4)).toBe('diplomacy contract by Vel, taken by Riggan · cheat');
 		expect(line(6)).toBe('internal science contract of Korinth');
+	});
+});
+
+// Colony Startup as the data DB of 2026-11-18 has it (4.5.x 02_contracts.txt)
+const STARTUP: ContractType = {
+	...plain('Colony Startup', 'diplomacy_contract', 1800),
+	detailed: true,
+	description: 'Help {issuer} get this colony in {system} running.',
+	steps: 1,
+	reward: {
+		scaled: [{ trade: 750, resource: 'society_research', amount: 150 }],
+		cruise: null,
+		fixed: { influence: 50 },
+		trust: 5,
+		opinion: 50
+	},
+	failedOpinion: -125,
+	operatorTechs: ['tech_x'],
+	projects: [
+		{
+			key: 'CONTRACT_COLONY_STARTUP_PROJECT',
+			name: 'Colony Startup',
+			days: 180,
+			requirements: { carries_colony: 1 },
+			arkshipBranches: true
+		}
+	]
+};
+
+const ark = (o: Partial<Arkship>): Arkship => ({
+	shipId: 0,
+	colonyId: 0,
+	name: 'Selborne',
+	size: 'military_arkship_tier_1',
+	tier: 1,
+	planetSize: 9,
+	systemId: 1,
+	capital: true,
+	...o
+});
+
+describe('contractDetail', () => {
+	// lanes 1-2-3-10, and 4 off on its own
+	const lanes = graph(
+		[
+			[1, 2],
+			[2, 3],
+			[3, 10]
+		],
+		[]
+	);
+	const row = contractRows([c({ id: 1 })], ctx({ me: 1, nomadic: true }))[0];
+	const dctx = (o: Partial<DetailContext> = {}): DetailContext => ({
+		completed: 0,
+		researched: new Set(),
+		arkships: [
+			ark({}),
+			ark({ name: 'Arden', size: 'science_arkship_tier_2', systemId: 3, capital: false }),
+			ark({ name: 'Lost', systemId: 4, capital: false })
+		],
+		lanes,
+		values: { society_research: 1, influence: 1, trade: 1 },
+		systemName: 'Ulmar',
+		techName: (k) => `T:${k}`,
+		...o
+	});
+
+	it('says what to do, what it pays and which arkship is nearest', () => {
+		const d = contractDetail(row, STARTUP, dctx());
+		expect(d.description).toBe('Help Vel get this colony in Ulmar running.');
+		expect(d.reward).toEqual([
+			{ resource: 'trade', amount: 750, scaled: true },
+			{ resource: 'society_research', amount: 150, scaled: true },
+			{ resource: 'influence', amount: 50, scaled: false }
+		]);
+		expect(d.trade).toBe(950);
+		expect(d.projects[0].needs).toEqual(['an arkship']);
+		expect(d.needsArkship).toBe(true);
+		expect(d.arkshipBranches).toBe(true);
+		expect(d.missingTechs).toEqual(['T:tech_x']);
+		expect(d.arkships.map((a) => [a.name, a.kind, a.jumps])).toEqual([
+			['Arden', 'science', 1],
+			['Selborne', 'military', 3],
+			['Lost', 'military', null]
+		]);
+	});
+
+	it('scales the trade and resource by completed contracts, not the fixed influence', () => {
+		const d = contractDetail(row, STARTUP, dctx({ completed: 5, researched: new Set(['tech_x']) }));
+		expect(d.bonus).toBe(1.5);
+		expect(d.reward.map((l) => l.amount)).toEqual([1125, 225, 50]);
+		expect(d.missingTechs).toEqual([]);
+	});
+
+	it('an older data DB: no details, the arkships still placed', () => {
+		const d = contractDetail(row, plain('Colony Startup', 'diplomacy_contract', 1800), dctx());
+		expect(d.detailed).toBe(false);
+		expect(d.reward).toEqual([]);
+		expect(d.trade).toBeNull();
+		expect(d.arkships[0].jumps).toBe(1);
+	});
+
+	it('a second scaled reward is the partial success', () => {
+		const raid: ContractType = {
+			...STARTUP,
+			reward: {
+				scaled: [
+					{ trade: 12500, resource: 'alloys', amount: 2500 },
+					{ trade: 8250, resource: 'alloys', amount: 1650 }
+				],
+				cruise: null,
+				fixed: {},
+				trust: 15,
+				opinion: 150
+			}
+		};
+		const d = contractDetail(row, raid, dctx());
+		expect(d.partial.map((l) => l.amount)).toEqual([8250, 1650]);
+	});
+});
+
+describe('contractBonus / arkshipKind', () => {
+	it('+10 % per contract completed, 1 to 50', () => {
+		expect(contractBonus(null)).toBe(1);
+		expect(contractBonus(0)).toBe(1);
+		expect(contractBonus(12)).toBeCloseTo(2.2);
+		expect(contractBonus(1000)).toBe(50);
+	});
+	it('the type from the size', () => {
+		expect(arkshipKind('military_arkship_champions_forge')).toBe('military');
+		expect(arkshipKind('science_arkship_tier_3')).toBe('science');
+		expect(arkshipKind('civilian_arkship_tier_1')).toBe('civilian');
 	});
 });

@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Contracts: per contract what to do (its projects, their days and what they need), the reward
+  in resources and in trade, scaled by the contracts you completed, the opinion lost on failure,
+  and how many jumps each of your arkships is from it. A Reward, Work and Nearest arkship column.
+  Needs a data DB from this release.
+
+### Fixed
+
+- Contracts: page data no longer carries every contract in the galaxy, whose issuers you may not
+  have met.
+- Contracts: the tab is no longer greyed for a nomad that has only offers from empires it talks
+  to — it counted only contracts you issued or took.
+
 ## [0.1.26] - 2026-11-17
 
 ### Added

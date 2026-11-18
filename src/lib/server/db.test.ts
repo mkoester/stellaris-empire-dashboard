@@ -113,6 +113,7 @@ const snap = (date: string, fingerprint: string, energy = 0): Snapshot => ({
 	warLostDate: null,
 	tradeDeals: null,
 	contracts: null,
+	contractsCompleted: null,
 	gameVersion: null,
 	dlcs: null,
 	mods: null,

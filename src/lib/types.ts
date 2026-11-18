@@ -489,6 +489,8 @@ export type Snapshot = {
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	contracts: Contract[] | null; // every Nomads contract in the galaxy, offered or accepted; READER 52
+	// contracts we completed (`country.variables.contract_completed`, the reward's scaling); READER 66
+	contractsCompleted: number | null;
 	// From the save's `meta`; null from the mod feed and in older snapshots.
 	gameVersion: string | null; // e.g. "Cygnus v4.5.2"
 	dlcs: string[] | null; // DLCs active in this save (`required_dlcs`), by name
@@ -1076,6 +1078,34 @@ export type ContractType = {
 	name: string;
 	category: string; // e.g. resource_contract, science_contract_internal, crew_resource_contract_special
 	timeToAccept: number | null; // days an offer stays open
+	// the rest: data DBs since 2026-11-18 (`detailed`); null / [] with an older one
+	detailed: boolean;
+	timeToComplete: number | null; // days to finish once accepted; null: no limit
+	description: string | null; // what the operator does; {issuer} and {system} to fill in
+	steps: number | null; // progress needed (Espionage Support 2: two projects)
+	reward: ContractReward | null;
+	failedOpinion: number | null; // the issuer's opinion of us on failure or cancel
+	operatorTechs: string[]; // techs the operator needs
+	projects: ContractProject[]; // the special projects of its event chain
+};
+
+/** What a contract pays its operator on success (data DB `contract.reward_json`). */
+export type ContractReward = {
+	// × contract_bonus_value; the first the full reward, a second one a partial success's
+	scaled: { trade: number | null; resource: string | null; amount: number | null }[];
+	cruise: number | null; // Forever Cruise's trade, × its own bonus
+	fixed: Record<string, number>; // not scaled: the influence for the opinion gained
+	trust: number | null;
+	opinion: number | null;
+};
+
+/** A special project a contract's operator does (data DB `special_project` by `event_chain`). */
+export type ContractProject = {
+	key: string;
+	name: string;
+	days: number | null;
+	requirements: Record<string, unknown>; // {carries_colony: 1}: an arkship
+	arkshipBranches: boolean; // the outcome differs by arkship type
 };
 
 /**

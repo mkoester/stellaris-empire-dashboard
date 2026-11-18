@@ -76,6 +76,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	warLostDate: null,
 	tradeDeals: null,
 	contracts: null,
+	contractsCompleted: null,
 	gameVersion: null,
 	dlcs: null,
 	mods: null,
