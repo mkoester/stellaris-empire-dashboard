@@ -1098,11 +1098,16 @@ describe('intelOf, a pact partner (READER 45)', () => {
 			tech_status: { technology: ['tech_a', 'tech_b', 'tech_c'] },
 			budget: { current_month: { income: { commercial_pacts: { trade: 48.66 } } } }
 		};
-		expect(intelOf(1, c, {}, 0, false, ['tech_a', 'tech_d'])).toMatchObject({
+		expect(intelOf(1, c, {}, 0, false, ['tech_a', 'tech_d'], true)).toMatchObject({
 			commercialPactTrade: 48.66,
 			techsWeLack: ['tech_b', 'tech_c'],
+			theyLackCount: 1,
 			techsTheyLack: ['tech_d']
 		});
+		// anyone else we talk to: what it has, and only how many of ours it lacks (READER 64)
+		const other = intelOf(1, c, {}, 0, false, ['tech_a', 'tech_d']);
+		expect(other).toMatchObject({ techsWeLack: ['tech_b', 'tech_c'], theyLackCount: 1 });
+		expect(other).not.toHaveProperty('techsTheyLack');
 		expect(intelOf(1, c, {}, 0)).not.toHaveProperty('techsWeLack');
 	});
 });

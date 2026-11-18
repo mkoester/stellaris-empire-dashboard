@@ -66,6 +66,9 @@ export function loadGameData(file: string): GameData {
 	const db = new DatabaseSync(file, { readOnly: true });
 	try {
 		const rows = <T>(sql: string) => db.prepare(sql).all() as T[];
+		// a table's columns: what an older data DB lacks reads as unknown
+		const columnsOf = (table: string) =>
+			new Set(rows<{ name: string }>(`PRAGMA table_info(${table})`).map((c) => c.name));
 		// what an empire may hold that has modifiers `where` picks, as source (`tradition:<key>` —
 		// perks, edicts, policies too —, `civic:` — authorities too —, `origin:`, `tech:`,
 		// `modifier:`) → `group(modifier key)` → their sum
@@ -208,9 +211,7 @@ export function loadGameData(file: string): GameData {
 			// `artificial` (extractor 2026-11-18; an older data DB: the climate `artificial`, which
 			// misses the crystal habitat and the warden guardian)
 			planetClasses: (() => {
-				const hasArtificial = rows<{ name: string }>('PRAGMA table_info(planet_class)').some(
-					(c) => c.name === 'artificial'
-				);
+				const hasArtificial = columnsOf('planet_class').has('artificial');
 				return Object.fromEntries(
 					rows<{
 						key: string;
@@ -1035,16 +1036,49 @@ export function loadGameData(file: string): GameData {
 					}
 				])
 			),
-			personalities: Object.fromEntries(
-				rows<{ key: string; name: string | null; trade_willingness: number | null }>(
-					'SELECT key, name, trade_willingness FROM personality'
-				).map((r) => [r.key, { name: r.name ?? r.key, willingness: r.trade_willingness }])
-			),
-			attitudes: Object.fromEntries(
-				rows<{ key: string; name: string | null; trade: number }>(
-					'SELECT key, name, trade FROM attitude'
-				).map((r) => [r.key, { name: r.name ?? r.key, trade: r.trade === 1 }])
-			),
+			// pact acceptance (extractor 2026-11-18; an older data DB has neither: unknown)
+			personalities: (() => {
+				const has = columnsOf('personality').has('research_agreement_acceptance');
+				return Object.fromEntries(
+					rows<{
+						key: string;
+						name: string | null;
+						trade_willingness: number | null;
+						ra: number | null;
+						cp: number | null;
+					}>(
+						`SELECT key, name, trade_willingness, ${has ? 'research_agreement_acceptance AS ra, commercial_pact_acceptance AS cp' : 'NULL AS ra, NULL AS cp'} FROM personality`
+					).map((r) => [
+						r.key,
+						{
+							name: r.name ?? r.key,
+							willingness: r.trade_willingness,
+							acceptance: has ? { research: r.ra ?? 0, commercial: r.cp ?? 0 } : null
+						}
+					])
+				);
+			})(),
+			attitudes: (() => {
+				const has = columnsOf('attitude').has('alliance');
+				return Object.fromEntries(
+					rows<{
+						key: string;
+						name: string | null;
+						trade: number;
+						alliance: number | null;
+						coexist: number | null;
+					}>(
+						`SELECT key, name, trade, ${has ? 'alliance, coexist' : 'NULL AS alliance, NULL AS coexist'} FROM attitude`
+					).map((r) => [
+						r.key,
+						{
+							name: r.name ?? r.key,
+							trade: r.trade === 1,
+							...(has && { alliance: r.alliance === 1, coexist: r.coexist === 1 })
+						}
+					])
+				);
+			})(),
 			opinionModifiers: Object.fromEntries(
 				rows<{ key: string; name: string | null; max: number | null; decay: number | null }>(
 					'SELECT key, name, max, decay FROM opinion_modifier'

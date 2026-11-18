@@ -198,6 +198,16 @@ export const SWITCHES: Switch[] = [
 		tags: 'research agreement commercial pact intel'
 	},
 	{
+		key: 'pactAdvice',
+		group: 'Diplomacy and trade',
+		kind: 'spoiler',
+		intel: true,
+		label:
+			'Pacts: whom to offer a research agreement or commercial pact, ranked by what it brings, and who would accept',
+		note: 'the game shows the acceptance only when you propose, and no intel level lists another empire’s techs',
+		tags: 'research agreement commercial pact recommendation acceptance'
+	},
+	{
 		key: 'subjectNumbers',
 		group: 'Diplomacy and trade',
 		// a spoiler since 2026-11-17 (the user's ask): another empire's numbers, off where cheats are

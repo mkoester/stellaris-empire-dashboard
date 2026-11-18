@@ -323,8 +323,9 @@ export type AiIntel = {
 	income: Resources; // per month, gross (the cap on what it pays a month); {} before READER 12
 	max?: Resources; // storage, exact: companion mod 0.5.0's sdash_m_<res>; absent without it
 	commercialPactTrade?: number; // trade its own commercial pacts bring it (READER 45)
-	techsWeLack?: string[]; // a research partner's techs we do not have (READER 45)
-	techsTheyLack?: string[]; // ours it does not have (READER 45)
+	techsWeLack?: string[]; // its techs we do not have (READER 45 research partners, 64 everyone)
+	theyLackCount?: number; // how many of ours it does not have (READER 64)
+	techsTheyLack?: string[]; // ours it does not have: research partners only (READER 45)
 };
 
 /** A trader enclave we talk to; `kind` 1 XuraCorp, 2 Riggans, 3 Muutagan (#lib/aiTrade.ts). */
@@ -1182,8 +1183,20 @@ export type GameData = {
 			deficitTrade?: number | null;
 		}
 	>;
-	personalities: Record<string, { name: string; willingness: number | null }>;
-	attitudes: Record<string, { name: string; trade: boolean }>;
+	personalities: Record<
+		string,
+		{
+			name: string;
+			willingness: number | null;
+			// added to a pact's acceptance; null: an older data DB
+			acceptance?: { research: number; commercial: number } | null;
+		}
+	>;
+	// alliance / coexist: the behaviours pact acceptance reads; absent on an older data DB
+	attitudes: Record<
+		string,
+		{ name: string; trade: boolean; alliance?: boolean; coexist?: boolean }
+	>;
 	opinionModifiers: Record<string, { name: string; max: number | null; decay: number | null }>; // per level: outpost, starport …
 	edictModifiers: Record<string, Record<string, number>>; // edict → modifier → value
 	policyModifiers: Record<string, Record<string, number>>; // policy option → modifier → value

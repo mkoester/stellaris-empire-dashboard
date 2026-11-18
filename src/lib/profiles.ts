@@ -62,6 +62,7 @@ export type Display = {
 	historyMet: boolean; // history tab: everything about the empires we met, beyond our intel (spoiler)
 	historyAll: boolean; // history tab: every empire's history, by its own name (cheat)
 	pactIntel: boolean; // pacts tab: what intel shows of partners — tech counts, trade at economy intel 3 (spoiler)
+	pactAdvice: boolean; // pacts tab: whom to offer a research agreement or commercial pact, ranked (spoiler)
 	subjectNumbers: boolean; // subjects tab: a subject's power, fleet, size and pops as numbers (cheat)
 	pactAll: boolean; // pacts tab: partners' techs and trade whatever our intel, tech hints (cheat)
 	contractSpoilers: boolean; // contracts: offers from issuers we do not talk to (nomad), others' near our border (settled) (spoiler)
@@ -100,6 +101,7 @@ export const DEFAULT_DISPLAY: Display = {
 	historyMet: false,
 	historyAll: false,
 	pactIntel: false,
+	pactAdvice: false,
 	subjectNumbers: false,
 	pactAll: false,
 	contractSpoilers: false,
@@ -189,6 +191,7 @@ export function parseDisplay(v: unknown): Display {
 		historyMet: o.historyMet === true,
 		historyAll: o.historyAll === true,
 		pactIntel: o.pactIntel === true,
+		pactAdvice: o.pactAdvice === true,
 		subjectNumbers: o.subjectNumbers === true,
 		pactAll: o.pactAll === true,
 		contractSpoilers: o.contractSpoilers === true,

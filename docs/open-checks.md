@@ -652,6 +652,19 @@ strength need work); the engine may add terms the files do not show, as the trad
 **Calibrate like trade:** the diplomacy screen's acceptance tooltip per action at a few empires,
 against the formula — the files are a starting point, not the answer.
 
+**Built for research agreements and commercial pacts (2026-11-18, `#lib/pactAdvice.ts`, the pacts
+tab's "Pacts to offer" behind the `pactAdvice` spoiler) — uncalibrated.** Assumed, each to check:
+the AI accepts above 0; "no border" (`border_range` 2147483647, a nomad's with everyone) adds no
+distance term; the commercial "collected trade value" is the 10 % share each side passes on, not the
+whole trade; the attitude term is 100 for `alliance`, else 50 for `coexist`. Roaming Korinth
+2217.06.01 read Mishar Pact ≈ +133 (research) / +156 (commercial), Pact of Fellnoll ≈ −50 / −3,
+Mictor Continuity ≈ −32 (commercial).
+
+- **Do:** in the nomad campaign (or any), open Diplomacy → propose a research agreement and a
+  commercial pact to two or three empires; hover the acceptance.
+- **Send:** a screenshot of each acceptance tooltip, and the save of that day. Check each term
+  against the tab's popup (Accept column), and a distant settled empire's border distance term.
+
 ### 9. After the answers come in
 
 - Growth (capacity done): add "what +1 district / a cleared blocker / a medical building / an

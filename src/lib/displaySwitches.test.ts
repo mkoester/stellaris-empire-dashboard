@@ -68,6 +68,7 @@ describe('effectiveDisplay', () => {
 			'historyAll',
 			'historyMet',
 			'lgates',
+			'pactAdvice',
 			'pactIntel',
 			'subjectNumbers',
 			'surveyAll',
