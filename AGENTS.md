@@ -179,7 +179,10 @@ a nomad while listing two offers (the user's report 2026-11-18).
 **Lists of options follow the playthrough** (the user's rule, 2026-11-16, the influence tab's
 sinks): hide what this empire will never use — a nomad never settles, a settled empire never
 embarks, an origin, civic or authority it lacks —, grey what is not available _yet_ with the
-reason on hover, and grey a group's header when nothing in it is available.
+reason on hover, and grey a group's header when nothing in it is available. A table column out of
+reach for this empire fades (`Column.faded` in `SortTable`, with the reason as its `title`) and
+drops out of the row's colour scale — a nomad's energy and minerals in the trade tab's offer and
+gift tables (2026-11-18).
 
 **A tradition or perk is the empire's variant** (data DB `tradition_swap`, `#lib/swaps.ts`; the
 user's report 2026-11-18: a nomad's Mastery of Nature unlocks no decision): show it through

@@ -370,3 +370,8 @@ browser: the interactions are unchecked here.
 events after the game's text colours. Charts and the upcoming list both use them. **Districts**
 take theirs from the data DB (`district.color`, the border of the game's grid-box icon), shown as
 a swatch and tinted name by `DistrictName.svelte`; pages get them as `colors` next to `names`.
+**Two value scales:** `scaleColor()` runs red → green between a column's worst and best (no
+baseline: willingness, opinion, trust); `gainColor()` compares against a baseline — plain at it,
+grey below, orange → green above up to the best, which the caller sets bold (the trade tab's prices
+against the market, gifts against +0; the user's ask 2026-11-18). Scale along whatever the reader
+compares: the price table per resource, the gift table per empire (which resource buys it most).
