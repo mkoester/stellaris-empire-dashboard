@@ -62,6 +62,20 @@ only the `SDASH|` part), fetch `__data.json`, then copy the next autosave in and
 save merges into the log month's node (same id, same tip). 2026-10-25: every state rendered 200
 server-side; a browser-side error needs a browser, which the sandbox cannot start.
 
+## The page check: open tasks (the user's, 2026-11-19)
+
+`scripts/check-pages.mjs` (`AGENTS.md`, "Checking a change") runs only on a player's real dashboard
+DB for now, so its result depends on whose DB and which campaigns.
+
+- [ ] **A test DB**: a small dashboard DB in the repo (or built by a script from throwaway-game
+      saves) that covers the page variants — a settled empire with colonies, a nomad, a custom tab
+      (`/tab/[id]` is never reached today), a multiplayer or Ironman campaign — so the check runs the
+      same for everyone and in CI.
+  - [ ] **Keep it up to date**: a migration (`MIGRATIONS` in `db.ts`) or a `READER` bump must
+        bring it along — decide how (regenerate from its saves, or migrate it on open and commit).
+- [ ] **Run it before a release, not on every change**, if it stays slow (about 2 min for 450
+      pages, 2026-11-19): a step in `RELEASE.md` (or the release workflow, once the test DB exists).
+
 ## Measuring a page
 
 How 0.1.18's speed-up was found (2026-11-15): reading the code suggested a warm-up, the profile

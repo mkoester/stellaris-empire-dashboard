@@ -135,8 +135,11 @@ scripts/check-pages.mjs --db <dashboard.sqlite> --data <stellaris.sqlite>` (`pnp
 the same arguments). It copies the DB, renders each campaign's newest node on every route, with the
 switches as stored and all on, and fails on a non-200 or on anything the server warns while
 rendering — Svelte's dev-only `node_invalid_placement_ssr` (a `<ul>` from a component inside a
-`<p>`) is only logged, so svelte-check and vitest never see it. About 2 min for five campaigns (450 pages);
+`<p>`) is only logged, so svelte-check and vitest never see it. Its `<p>` location can name the
+wrong file (`Panel.svelte:576`, an 18-line file, for a `<p>` on `/expansion`, 2026-11-19): find the
+page by the check, not by the message. About 2 min for five campaigns (450 pages);
 narrow with `--campaign <part>` / `--route /path`. Hydration warnings need a browser: not covered.
+Open: a test DB and running it before releases (`docs/testing.md`, "The page check").
 
 - The procedure on a DB copy, replaying a live month, the real-save test, reading a save ad hoc,
   the throwaway games and their console commands ("Testing in a throwaway game"): `docs/testing.md`.
