@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.28] - 2026-11-19
 
 ### Added
 
@@ -18,6 +18,16 @@ All notable changes to this project are documented here. The format follows
   get badges for the kinds of reward they hold: physics, society and engineering research,
   research options, resources, a fleet, a leader offered or granted, leader experience, traits
   and more. Still to gain lists research options on their own rows.
+
+### Changed
+
+- Trade: prices and gifts are coloured against the market — plain at the market price, orange to
+  green the better (the best in bold), grey the worse. Gifts are coloured per empire, so each row
+  shows which resource buys that empire the most, and count per 1,000 trade of each resource by
+  default.
+- Trade: a nomad's energy and minerals fade in the offer and gift tables (a nomad keeps them).
+- Trade: the rates, prices and gifts are a spoiler switch now; other empires' stockpiles moved to
+  a cheat switch of their own, switched on for profiles that had the old one.
 
 ## [0.1.27] - 2026-11-18
 
