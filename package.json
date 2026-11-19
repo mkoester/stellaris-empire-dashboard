@@ -17,6 +17,7 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:pages": "node scripts/check-pages.mjs",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"lint": "prettier --check . && eslint .",

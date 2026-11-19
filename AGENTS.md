@@ -130,6 +130,14 @@ promises, `switch` exhaustiveness) and takes about 35 s. **A promise started and
 `.catch`** — a rejection nobody handles ends the Node process — and a `switch` over a union names
 every member.
 
+**A change to a page or a component checks every page's server render**: `node
+scripts/check-pages.mjs --db <dashboard.sqlite> --data <stellaris.sqlite>` (`pnpm check:pages` with
+the same arguments). It copies the DB, renders each campaign's newest node on every route, with the
+switches as stored and all on, and fails on a non-200 or on anything the server warns while
+rendering — Svelte's dev-only `node_invalid_placement_ssr` (a `<ul>` from a component inside a
+`<p>`) is only logged, so svelte-check and vitest never see it. About 2 min for five campaigns (450 pages);
+narrow with `--campaign <part>` / `--route /path`. Hydration warnings need a browser: not covered.
+
 - The procedure on a DB copy, replaying a live month, the real-save test, reading a save ad hoc,
   the throwaway games and their console commands ("Testing in a throwaway game"): `docs/testing.md`.
   Read it before any end-to-end or in-game check.
