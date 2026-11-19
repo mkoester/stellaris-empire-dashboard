@@ -1,7 +1,7 @@
 <script lang="ts">
 	import ContractMarks from '#lib/ContractMarks.svelte';
 	import OutcomeCell from '#lib/Outcome.svelte';
-	import { fromTable } from '#lib/outcomes.ts';
+	import { fromTable, techMarkFlags } from '#lib/outcomes.ts';
 	import { resolve } from '$app/paths';
 	import { contactStage, fmt, pretty } from '#lib/format.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
@@ -448,16 +448,18 @@
 							g
 						)}{#if g.tech}<span
 								class="ml-1 text-xs text-gray-500"
-								class:line-through={g.tech.researched}
-								title={g.tech.researched
-									? 'already researched: the progress is lost'
+								class:line-through={g.tech.researched || (g.kind === 'option' && g.tech.permanent)}
+								title={g.kind === 'option'
+									? 'its tier, area and cost to you now'
 									: 'its cost to you now, and what the expected progress is worth'}
 								>{g.tech.tier !== null ? `tier ${g.tech.tier} · ` : ''}<span
 									style:color={colorOf(`${g.tech.area}_research`)}>{g.tech.area}</span
 								>{g.tech.cost !== null
-									? ` · ${fmt(g.tech.cost)} · ≈ ${fmt(g.tech.cost * g.exp)} research`
-									: ''}{g.tech.researched ? ' · researched' : ''}</span
-							>{/if}{g.kind === 'xp' ? ` +${fmt(g.exp)}` : ''}
+									? ` · ${fmt(g.tech.cost)}${g.kind === 'tech' ? ` · ≈ ${fmt(g.tech.cost * g.exp)} research` : ''}`
+									: ''}</span
+							>{#each techMarkFlags(g.tech, g.kind === 'option' ? 'option' : 'progress') as f (f.label)}<span
+									class="ml-1">{@render badge(f)}</span
+								>{/each}{/if}{g.kind === 'xp' ? ` +${fmt(g.exp)}` : ''}
 						{@render badge(certainty(g))}
 						{@render from(g)}
 					</li>

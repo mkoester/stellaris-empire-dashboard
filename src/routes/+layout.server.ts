@@ -33,6 +33,8 @@ import {
 } from '#lib/server/settings.ts';
 import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
+import { updateAvailable } from '#lib/server/updates.ts';
+import type { Release } from '#lib/updates.ts';
 import { shownNode } from '#lib/server/branch.ts';
 import { settleTab } from '#lib/server/settle.ts';
 import { slaveTab } from '#lib/server/slaveTab.ts';
@@ -61,6 +63,7 @@ export function load({ url }) {
 			feed: null,
 			head: null,
 			gameVersion: null,
+			update: null as Release | null,
 			dates: null,
 			plan: {
 				keys: [] as string[],
@@ -125,6 +128,8 @@ export function load({ url }) {
 		})(),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
+		// a newer release on GitHub (`server/updates.ts`; release builds only)
+		update: updateAvailable(),
 		// the viewed campaign's own game data (its mods) still being extracted: pages show older data
 		extracting: (() => {
 			const d = campaignDataState();

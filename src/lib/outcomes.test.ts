@@ -12,9 +12,14 @@ import {
 	prune,
 	resolve,
 	outcomeText,
+	rewardBadges,
 	rewards,
+	techFlags,
+	techMarkFlags,
 	withProjects,
-	type OutcomeNode
+	type Now,
+	type OutcomeNode,
+	type TechMark
 } from './outcomes.ts';
 import type { Facts, Trigger } from './triggers.ts';
 
@@ -305,5 +310,113 @@ describe('resolve and prune', () => {
 	});
 	it('without conditions (an older data DB) nothing changes', () => {
 		expect(prune(resolve(gravity, us))).toEqual(gravity);
+	});
+});
+
+describe('tech standing', () => {
+	const mark = (m: Partial<TechMark>): TechMark => ({
+		area: 'physics',
+		researched: false,
+		permanent: false,
+		plan: null,
+		...m
+	});
+	const labels = (m: Partial<TechMark>, kind: 'option' | 'progress' | 'grant') =>
+		techMarkFlags(mark(m), kind).map((f) => f.label);
+
+	it('researched outranks everything else', () => {
+		expect(
+			labels({ researched: true, permanent: true, plan: { stance: 'want', note: '' } }, 'option')
+		).toEqual(['researched']);
+	});
+
+	it('a permanent option makes another one useless, but not progress', () => {
+		expect(labels({ permanent: true }, 'option')).toEqual(['already an option']);
+		expect(labels({ permanent: true }, 'progress')).toEqual(['permanent option']);
+	});
+
+	it('says how it meets the plan', () => {
+		expect(labels({ plan: { stance: 'want', note: '' } }, 'option')).toEqual(['planned']);
+		expect(
+			labels({ plan: { stance: 'want', note: 'needed for Mega-Engineering' } }, 'progress')
+		).toEqual(['helps your plan']);
+		expect(labels({ plan: { stance: 'later', note: '' } }, 'grant')).toEqual(['planned later']);
+		expect(labels({ plan: { stance: 'avoid', note: '' } }, 'option')).toEqual(['avoided']);
+		expect(labels({}, 'option')).toEqual([]);
+	});
+
+	it('reaches a page through the table, and the tooltip text', () => {
+		const opt: OutcomeNode = { t: 'option', k: 'tech_x', name: 'X' };
+		const t = nowTable(
+			{ income: null, mark: (k) => (k === 'tech_x' ? mark({ permanent: true }) : null) },
+			[[opt]]
+		);
+		const now = fromTable(t);
+		expect(techFlags(opt, now).map((f) => f.label)).toEqual(['already an option']);
+		expect(techFlags(opt)).toEqual([]);
+		expect(outcomeText([opt], null, now).split('\n')[1]).toBe(
+			'X as research option [already an option]'
+		);
+	});
+});
+
+describe('rewardBadges', () => {
+	const now: Now = {
+		income: null,
+		mark: (k) => ({
+			area: k === 'tech_e' ? 'engineering' : null,
+			researched: false,
+			permanent: false,
+			plan: null
+		})
+	};
+	const labels = (tree: OutcomeNode[]) => rewardBadges(tree, now).map((b) => b.label);
+
+	it('research by field first, then options, resources and the rest', () => {
+		expect(
+			labels([
+				{ t: 'res', r: 'minerals', n: 100 },
+				{ t: 'tech', k: 'tech_e', name: 'E', p: 0.2 },
+				months(6, 50),
+				{ t: 'option', k: 'tech_o', name: 'O' },
+				{ t: 'fleet', mine: true },
+				{ t: 'xp', n: 100 },
+				{ t: 'trait', k: 'leader_trait_a', name: 'Spark of Genius' },
+				{ t: 'relic', k: 'r_x', name: null }
+			])
+		).toEqual([
+			'society',
+			'engineering',
+			'research option',
+			'minerals',
+			'fleet',
+			'leader xp',
+			'trait Spark of Genius',
+			'relic'
+		]);
+	});
+
+	it('leaves out losses and fleets that are not ours; counts several traits', () => {
+		expect(
+			labels([
+				{ t: 'res', r: 'energy', n: -50 },
+				{ t: 'fleet', mine: false },
+				{ t: 'trait', k: 'a', name: 'A' },
+				{ t: 'trait', k: 'b', name: 'B' }
+			])
+		).toEqual(['2 traits']);
+	});
+
+	it('a leader behind a choice is offered, otherwise granted', () => {
+		const ev = (o: OutcomeNode[][]): OutcomeNode => ({
+			t: 'event',
+			id: 'e.1',
+			title: null,
+			e: [],
+			o: o.map((e, i) => ({ name: String(i), cond: false, e }))
+		});
+		expect(labels([ev([[{ t: 'leader' }], []])])).toEqual(['leader offered']);
+		expect(labels([ev([[{ t: 'leader' }]])])).toEqual(['leader granted']);
+		expect(labels([ev([[{ t: 'leader' }], []]), { t: 'leader' }])).toEqual(['leader granted']);
 	});
 });

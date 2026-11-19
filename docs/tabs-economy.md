@@ -11,11 +11,18 @@ whether war bars a deal is open, `docs/open-checks.md` 6) —
 with what the diplomacy screen shows: personality and its `trade_willingness`, attitude towards
 us (one that does not trade refuses everything: data DB `attitude.trade`), their opinion of us
 with its modifiers, trust, our deals, a gift's "Favorable Trade Deal" (data DB `opinion_modifier`:
-+1 a point, max 100, decay 2 — a year, on the first gift's anniversary, seen 2202.06.01). With the **`tradeIntel`**
-spoiler (cheating — their stockpiles and income; the route strips them otherwise): the deal
++1 a point, max 100, decay 2 — a year, on the first gift's anniversary, seen 2202.06.01). Two switches since
+2026-11-18 (the user's ask; one cheat before): the **`tradeIntel`** spoiler (`intel`) shows the deal
 finder (we give X, for Y: per empire the most Y it would give per X, against selling X and buying
-Y on the market with the fee) and per empire and resource whether it is short (under a third of
-its storage) or flush (over three quarters). **Estimated**: the AI's valuation is engine code;
+Y on the market with the fee), what a resource costs in trade and what a gift buys; the
+**`tradeStockpiles`** cheat their stockpiles — the finder's "They take", "They spare" and "Can they
+afford it", and per empire and resource whether it is short (under a third of its storage) or flush
+(over three quarters). The estimates rest on stockpile and income, so the route sends them with
+either switch (both barred in multiplayer and Ironman) and strips them with neither; a profile that
+had the old switch on gets both. The price and gift tables colour each value against the market's
+row: plain the same, orange → green the better (the column's best bold), grey worse; gifts per
+empire against +0 (its best resource bold, +0 grey). The gift table counts per 1,000 trade of each resource (`valuesOf()`; the default) or per 1,000 units,
+to see which resource buys the most opinion for the same value. **Estimated**: the AI's valuation is engine code;
 measured 2026-10-23 on three empires (one fallen) and gifts to 13 more
 (`docs/trade-calibration.md` → What we know; every tooltip line is a case in `aiTrade.test.ts`): the
 acceptance is our side's worth × the AI's willingness minus its side's, linear in the amount

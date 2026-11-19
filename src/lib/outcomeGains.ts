@@ -1,5 +1,12 @@
 import { pretty } from './format.ts';
-import { effectRef, effectText, monthsNow, nodes, type OutcomeNode } from './outcomes.ts';
+import {
+	effectRef,
+	effectText,
+	monthsNow,
+	nodes,
+	type OutcomeNode,
+	type TechMark
+} from './outcomes.ts';
 import type { Resources } from './types.ts';
 import { valueOf } from './value.ts';
 
@@ -31,7 +38,8 @@ const SKIPPED = new Set([
 	'species'
 ]);
 
-/** A reward's key: `res:<resource>`, `tech:<key>` (progress), `xp`, else `item:<text>`. */
+/** A reward's key: `res:<resource>`, `tech:<key>` (progress; the tech itself as 100 %),
+ * `option:<key>` (a research option), `xp`, else `item:<text>`. */
 function leaf(n: OutcomeNode, ctx: GainContext): [string, number] | null {
 	switch (n.t) {
 		case 'res':
@@ -41,7 +49,9 @@ function leaf(n: OutcomeNode, ctx: GainContext): [string, number] | null {
 			return now === null ? [`item:${effectText(n)}`, 1] : [`res:${n.r}`, now];
 		}
 		case 'tech':
-			return n.p !== undefined ? [`tech:${n.k}`, n.p] : [`item:${effectText(n)}`, 1];
+			return [`tech:${n.k}`, n.p ?? 1];
+		case 'option':
+			return [`option:${n.k}`, 1];
 		case 'xp':
 			return ['xp', n.n];
 		case 'fleet':
@@ -139,16 +149,23 @@ export type GainSource = {
 /** One line of the summary: a reward with its amounts and where it comes from. */
 export type GainRow = {
 	key: string;
-	kind: 'res' | 'tech' | 'xp' | 'item';
+	kind: 'res' | 'tech' | 'option' | 'xp' | 'item';
 	label: string;
 	ref: string | null; // its popup (`tech:`, `modifier:` …), where the dashboard has a card
 	sure: number;
 	exp: number;
 	approx: boolean; // rests on months of income or a scaled amount
 	sources: GainSource[];
-	// tech progress: the tech's tier, what it costs us now (#lib/events.ts techCost) and its area;
-	// `researched`: progress on it is wasted
-	tech?: { tier: number | null; cost: number | null; area: string; researched: boolean };
+	// tech progress or a research option: the tech's tier, what it costs us now (#lib/events.ts
+	// techCost), its area and standing (`TechMark` in #lib/outcomes.ts) — researched: wasted
+	tech?: {
+		tier: number | null;
+		cost: number | null;
+		area: string;
+		researched: boolean;
+		permanent: boolean;
+		plan: TechMark['plan'];
+	};
 };
 
 /** Rewards of several sources summed, each with the names of the sources that give it. `names`:
@@ -170,13 +187,7 @@ export function gainRows(
 		}
 		for (const [key, v] of bag) {
 			if (v.exp <= 0 && v.sure <= 0) continue;
-			const kind = key.startsWith('res:')
-				? 'res'
-				: key.startsWith('tech:')
-					? 'tech'
-					: key === 'xp'
-						? 'xp'
-						: 'item';
+			const kind = key === 'xp' ? 'xp' : (KINDS.find((k) => key.startsWith(`${k}:`)) ?? 'item');
 			const r = rows.get(key) ?? {
 				key,
 				kind,
@@ -185,9 +196,11 @@ export function gainRows(
 						? pretty(key.slice(4))
 						: kind === 'tech'
 							? (names[key.slice(5)] ?? pretty(key.slice(5)))
-							: kind === 'xp'
-								? 'leader experience'
-								: key.slice(5),
+							: kind === 'option'
+								? `${names[key.slice(7)] ?? pretty(key.slice(7))} as research option`
+								: kind === 'xp'
+									? 'leader experience'
+									: key.slice(5),
 				ref: refs.get(key) ?? null,
 				sure: 0,
 				exp: 0,
@@ -205,7 +218,8 @@ export function gainRows(
 	return sorted([...rows.values()]);
 }
 
-const ORDER = { res: 0, tech: 1, xp: 2, item: 3 };
+const KINDS = ['res', 'tech', 'option'] as const;
+const ORDER = { res: 0, tech: 1, option: 2, xp: 3, item: 4 };
 const sorted = (rows: GainRow[]) =>
 	rows.sort((a, b) => ORDER[a.kind] - ORDER[b.kind] || a.label.localeCompare(b.label));
 

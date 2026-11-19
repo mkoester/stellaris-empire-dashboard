@@ -31,17 +31,17 @@ describe('SWITCHES', () => {
 });
 
 describe('effectiveDisplay', () => {
-	const on = { ...DEFAULT_DISPLAY, wormholePairs: true, tradeIntel: true, unknownStars: true };
+	const on = { ...DEFAULT_DISPLAY, wormholePairs: true, tradeStockpiles: true, unknownStars: true };
 	it('hidden spoilers and cheats are off, the rest as stored', () => {
 		const e = effectiveDisplay(on);
 		expect(e.wormholePairs).toBe(false);
-		expect(e.tradeIntel).toBe(false);
+		expect(e.tradeStockpiles).toBe(false);
 		expect(e.unknownStars).toBe(true);
 	});
 	it('shown, they are as stored', () => {
 		const e = effectiveDisplay({ ...on, showSpoilers: true, showCheats: true });
 		expect(e.wormholePairs).toBe(true);
-		expect(e.tradeIntel).toBe(true);
+		expect(e.tradeStockpiles).toBe(true);
 	});
 	it('without cheats (multiplayer, Ironman) every cheat and intel spoiler is off; other spoilers as stored', () => {
 		const all = Object.fromEntries(SWITCHES.map((s) => [s.key, true]));
@@ -72,6 +72,7 @@ describe('effectiveDisplay', () => {
 			'pactIntel',
 			'subjectNumbers',
 			'surveyAll',
+			'tradeIntel',
 			'wholeGalaxy',
 			'wormholePairs'
 		]);
@@ -94,17 +95,25 @@ describe('listed', () => {
 	const shown = { showSpoilers: true, showCheats: false };
 	it('hides kinds not shown', () => {
 		expect(listed(sw('lgates'), shown, '')).toBe(true);
-		expect(listed(sw('tradeIntel'), shown, '')).toBe(false);
+		expect(listed(sw('tradeStockpiles'), shown, '')).toBe(false);
 	});
 	it('without cheats lists neither cheats nor intel spoilers', () => {
 		const all = { showSpoilers: true, showCheats: true };
 		expect(listed(sw('lgates'), all, '', true)).toBe(false);
-		expect(listed(sw('tradeIntel'), all, '', true)).toBe(false);
+		expect(listed(sw('tradeStockpiles'), all, '', true)).toBe(false);
 		expect(listed(sw('anomalySpoilers'), all, '', true)).toBe(true);
 	});
 	it('matches every word of the query in label, note, group, tags or kind', () => {
 		expect(listed(sw('wanderlustAll'), shown, 'nomads map')).toBe(true);
 		expect(listed(sw('lgates'), shown, 'spoiler l-cluster')).toBe(true);
 		expect(listed(sw('lgates'), shown, 'trade')).toBe(false);
+	});
+});
+
+describe('the trade switch split (2026-11-18)', () => {
+	it('a profile with the old switch on keeps the stockpiles', () => {
+		expect(parseDisplay({ tradeIntel: true }).tradeStockpiles).toBe(true);
+		expect(parseDisplay({ tradeIntel: true, tradeStockpiles: false }).tradeStockpiles).toBe(false);
+		expect(parseDisplay({}).tradeStockpiles).toBe(false);
 	});
 });

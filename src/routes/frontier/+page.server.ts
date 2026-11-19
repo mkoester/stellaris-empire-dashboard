@@ -7,6 +7,7 @@ import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display } from '#lib/server/settings.ts';
 import { outcomeNow, outcomeTrees } from '#lib/server/outcomes.ts';
+import { planSummary } from '#lib/server/planner.ts';
 import { valuesOf } from '#lib/server/unitCosts.ts';
 import { facts } from '#lib/government.ts';
 import { gainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
@@ -183,9 +184,14 @@ export function load({ url }) {
 			next: d.chapter
 		}))
 	].flatMap((x) => (x.tree ? [{ ...x, tree: prune(x.tree) }] : []));
+	// the plan's techs, wanted ones' prerequisites included: what an outcome helps with
+	const planned = new Map(
+		planSummary(b.tip).plannedTechs.map(([k, v]) => [k, { stance: v.stance, note: v.note }])
+	);
+	const permanent = new Set(save?.techPermanent ?? []);
 	const withTech = (g: GainRow): GainRow => {
-		const k = g.key.slice(5);
-		const t = g.kind === 'tech' ? data.techs[k] : undefined;
+		const k = g.key.slice(g.key.indexOf(':') + 1);
+		const t = g.kind === 'tech' || g.kind === 'option' ? data.techs[k] : undefined;
 		return t
 			? {
 					...g,
@@ -193,7 +199,9 @@ export function load({ url }) {
 						tier: t.tier,
 						cost: save ? techCost(k, save, data) : null,
 						area: t.area,
-						researched: researched.has(k)
+						researched: researched.has(k),
+						permanent: permanent.has(k),
+						plan: planned.get(k) ?? null
 					}
 				}
 			: g;
@@ -215,7 +223,7 @@ export function load({ url }) {
 		values,
 		// what months of income and tech progress come to now (#lib/Outcome.svelte); a function
 		// does not serialise, so its techs go along as a table
-		now: nowTable(outcomeNow(save, data), [
+		now: nowTable(outcomeNow(save, data, planned), [
 			...Object.values(data.outcomeTrees.anomaly),
 			...Object.values(data.outcomeTrees.project),
 			...Object.values(data.outcomeTrees.dig_site)

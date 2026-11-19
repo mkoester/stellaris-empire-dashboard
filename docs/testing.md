@@ -32,8 +32,11 @@ it is stale since 2026-10-18
 is closed, open the source as `file:<db>?immutable=1`**: with no `-shm` left, SQLite must create
 one beside the DB, which the sandbox cannot, and every open fails "unable to open database file"
 (2026-11-16). Or copy `dashboard.sqlite*` (WAL files included) to a
-temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
-pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
+temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir (or a copy of
+one campaign's folder, so a READER bump re-reads only that campaign — it then logs "cannot read
+the launcher's playsets" on every read: no launcher DB beside the copy, harmless, 2026-11-18), then request
+pages and `/__data.json` with curl (to only read what the copy holds, point `STELLARIS_SAVE_DIR` at an
+empty folder: nothing is ingested, the head stays) and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
 `data` with `unflatten` from `node_modules/.pnpm/devalue@*/node_modules/devalue/index.js` (a
 `node --experimental-strip-types` script can import the pure `src/lib/*.ts` to recompute from it).

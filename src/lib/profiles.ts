@@ -57,7 +57,8 @@ export type Display = {
 	allFactionTypes: boolean; // … and those of ethics we do not hold (cheating)
 	tradeoffs: boolean; // the trade-offs tab: where to spend scarce resources (exploratory)
 	planOrder: boolean; // planner: each goal's times with the goals above it paid first
-	tradeIntel: boolean; // trade tab: other empires' stockpiles and income, what they would trade (cheating)
+	tradeIntel: boolean; // trade tab: what other empires would trade, at what rate, what a gift buys (spoiler)
+	tradeStockpiles: boolean; // trade tab: other empires' stockpiles and income (cheat)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, beyond our intel (spoiler)
 	historyMet: boolean; // history tab: everything about the empires we met, beyond our intel (spoiler)
 	historyAll: boolean; // history tab: every empire's history, by its own name (cheat)
@@ -97,6 +98,7 @@ export const DEFAULT_DISPLAY: Display = {
 	planOrder: false,
 	whatIfs: false,
 	tradeIntel: false,
+	tradeStockpiles: false,
 	diplomacyAll: false,
 	historyMet: false,
 	historyAll: false,
@@ -187,6 +189,9 @@ export function parseDisplay(v: unknown): Display {
 		tradeoffs: o.tradeoffs === true,
 		planOrder: o.planOrder === true,
 		tradeIntel: o.tradeIntel === true,
+		// one switch until 2026-11-18: a profile that had it on keeps the stockpiles too
+		tradeStockpiles:
+			typeof o.tradeStockpiles === 'boolean' ? o.tradeStockpiles : o.tradeIntel === true,
 		diplomacyAll: o.diplomacyAll === true,
 		historyMet: o.historyMet === true,
 		historyAll: o.historyAll === true,

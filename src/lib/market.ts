@@ -213,3 +213,52 @@ export function feeSeries(history: Snapshot[]): Series {
 		}
 	};
 }
+
+// How a price recovers after trading, fitted on the internal market of Roaming Cyber Gang
+// (2221–2223, 4.5.x; the user's ask 2026-11-19 after buying 1000 food). Per day the fluctuation
+// moves back toward 0 by RECOVER_ABOVE + RECOVER_PER × f above the base price (0.018519 =
+// 400 % / 21600 days; at 0.62, 18.8, 19.2 and 19.8 % it reproduces the saves to 4 digits) and by
+// RECOVER_BELOW below it (−0.36 → −0.32316 in 12 days); under MARKET_FLUCTUATION_EPSILON it snaps to
+// 0. A monthly order moves it on the 1st by 2 (INTERNAL_MARKET_FLUCTUATION_MULT) × amount ÷
+// `market_amount` % — × MARKET_FLUCTUATION_ABOVE_BASE_PRICE 1 buying, × _BELOW_ 0.3 selling (42
+// food +0.84, 6 motes −0.36). Together they give the buy limit: 42 energy adds 0.84, and a month's
+// recovery (0.0185 × 29 days) brings that under 0.3 by the next 1st. The defines'
+// MARKET_DAYS_TO_BASE_PRICE × INTERNAL_MARKET_DAYS_TO_BASE_PRICE (5400 days from +400 %) would
+// recover 4× faster than seen. The galactic market: trades move it ½ as much and it recovers 3×
+// faster (the internal multipliers), not fitted, and every member trades on it.
+const RECOVER_ABOVE = 400 / 21600;
+const RECOVER_PER = 0.000297;
+const RECOVER_BELOW = 0.00307;
+const EPSILON = 0.3;
+const IMPACT = { buy: 1, sell: -0.3 };
+const DAY_LIMIT = 360 * 100;
+
+/**
+ * When the price of `resource`, now `fluctuation` % off base on day `day` (`toDays()`), is back to
+ * normal with these standing orders: the first day it snaps to 0. `days` null when that is no
+ * later than the next month's trade (the orders' own monthly swing), `never` when the orders push
+ * it further each month than it recovers.
+ */
+export function priceRecovery(
+	resource: string,
+	fluctuation: number,
+	day: number,
+	orders: MarketOrder[],
+	galactic = false
+): { days: number | null; never: boolean } {
+	const amount = MARKET_AMOUNT[resource];
+	const speed = galactic ? 3 : 1;
+	const monthly = orders
+		.filter((o) => o.resource === resource && amount !== undefined)
+		.reduce((s, o) => s + ((galactic ? 1 : 2) * IMPACT[o.kind] * o.amount) / amount, 0);
+	let f = fluctuation;
+	const nextTrade = (Math.floor(day / 30) + 1) * 30;
+	for (let d = day + 1; d <= day + DAY_LIMIT; d++) {
+		const step =
+			speed * (f > 0 ? RECOVER_ABOVE + RECOVER_PER * f : RECOVER_BELOW - RECOVER_PER * f);
+		f = f > 0 ? Math.max(0, f - step) : Math.min(0, f + step);
+		if (Math.abs(f) < EPSILON) return { days: d <= nextTrade ? null : d - day, never: false };
+		if (d % 30 === 0) f += monthly;
+	}
+	return { days: null, never: true };
+}

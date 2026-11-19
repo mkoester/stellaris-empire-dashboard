@@ -310,7 +310,21 @@ one are greyed as done. **What a reward comes to now** (`Now`, `outcomeNow()`; t
 its "(min …, max …)" greyed; tech progress "≈ 165 physics, 3.6 months of ours" (the share × the
 tech's cost at the save's cost factors, `techCost()`; the time at our research in that field,
 none for a tech researched). The page gets the techs as a table (`nowTable()`, every tech the
-outcome trees give progress in): a function does not serialise. **Still to gain** (`#lib/outcomeGains.ts`, the user's ask 2026-11-17),
+outcome trees give progress in): a function does not serialise. **Where a tech stands, and what kind of reward** (the user's ask
+2026-11-19: does a research option help my plan, is it researched, is it already a permanent
+option): every tech reward and research option carries chips (`techFlags()` / `techMarkFlags()`,
+`TechMark` from `outcomeNow()`): _researched_ (wasted; outranks the rest), _already an option_
+(`techPermanent`: a further one adds nothing) or _permanent option_ beside progress, and the plan's
+goal — _planned_, _helps your plan_ (a wanted tech's prerequisite, `planSummary().plannedTechs`,
+note "needed for …" on hover), _planned later_, _avoided_; the tooltip text appends them as
+`[label]`. Only the frontier passes the plan: the map, planner and upcoming tooltips show researched
+and permanent alone. Beside the markers, tinted, **reward badges** (`rewardBadges()`, on the pruned
+tree): physics / society / engineering (research points, months of research income, tech progress,
+a tech), research option, each resource, fleet (ours), _leader offered_ (only behind a choice's
+option) or _granted_, leader xp, trait(s) by name, then relic, specimen, deposit, modifier, new
+pops, megastructure, planet changes. Still to gain lists research options as rows of their own
+(`option:<tech>`, struck through when researched or already permanent) and a tech given outright
+as +100 % of it. **Still to gain** (`#lib/outcomeGains.ts`, the user's ask 2026-11-17),
 above the anomalies while one of the three spoilers is on: the pruned trees of the open
 anomalies, projects and dig sites (from the next chapter) summed per reward — _sure_ on every
 path, _expected_ by the odds (an unsettled `if` as even odds); at an event's options the one

@@ -13,6 +13,7 @@
 	import { MAX_INCOME_WINDOW } from '#lib/planner/eta.ts';
 	import { MAX_RINGS, SECTOR_COUNTS, type QuadrantView, type SectorCount } from '#lib/quadrants.ts';
 	import { campaignAction, profileAction, putSettings } from '#lib/settings.ts';
+	import { MAX_UPDATE_HOURS } from '#lib/updates.ts';
 	import { forget, recall } from '#lib/browserStore.ts';
 	import {
 		MAP_FITS,
@@ -73,6 +74,7 @@
 		['popWindow', 'Pops charts'],
 		['incomeWindow', 'Planner: mean income'],
 		['games', 'Games'],
+		['updates', 'Updates'],
 		['folders', 'Folders']
 	] as const;
 
@@ -527,6 +529,39 @@
 					{/each}
 				</tbody>
 			</table>
+		</section>
+		<section id="updates" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Updates</h2>
+			<p class="mb-1 text-gray-500">
+				Asks GitHub for the latest release at start and then every few hours; a newer one shows next
+				to the version in the tab bar. 0 never asks. Only a release build asks.
+			</p>
+			<label class="block"
+				>every
+				<input
+					type="number"
+					min="0"
+					max={MAX_UPDATE_HOURS}
+					step="1"
+					class="w-16 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+					value={data.updates.hours}
+					onchange={(e) => {
+						const h = Number(e.currentTarget.value);
+						if (Number.isFinite(h) && h >= 0 && h <= MAX_UPDATE_HOURS)
+							act(() => putSettings({ updateHours: h }));
+					}}
+				/>
+				hours</label
+			>
+			<p class="mt-1 text-gray-500">
+				{#if !data.updates.release}This build (v{__APP_VERSION__}) is not a release: it never asks.{:else if data.updates.checkedAt === null}Not
+					asked yet.{:else}Last asked {new Date(data.updates.checkedAt).toLocaleString()}: {data
+						.updates.error
+						? `failed (${data.updates.error})`
+						: data.updates.latest
+							? `latest is v${data.updates.latest.version}`
+							: 'no release found'}.{/if}
+			</p>
 		</section>
 		<section id="folders" class="scroll-mt-4">
 			<h2 class="mb-1 text-xl font-semibold">Folders</h2>

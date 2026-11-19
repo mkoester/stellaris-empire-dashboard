@@ -4,6 +4,31 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.28] - 2026-11-19
+
+### Added
+
+- Upcoming: when a market price is back to normal after trading more than a month recovers (≈,
+  fitted on real saves); the monthly swing of orders within the limit gives no row, orders beyond
+  it a "keeps rising" one.
+- Checks GitHub for a newer release at start and every 3 hours (⚙ Updates: the interval, 0 never
+  checks); a newer one shows as a link next to the version in the tab bar. Release builds only.
+- Frontier: tech rewards and research options say whether the tech is researched, already a
+  permanent research option, or in your plan (also as a prerequisite of a planned tech). Outcomes
+  get badges for the kinds of reward they hold: physics, society and engineering research,
+  research options, resources, a fleet, a leader offered or granted, leader experience, traits
+  and more. Still to gain lists research options on their own rows.
+
+### Changed
+
+- Trade: prices and gifts are coloured against the market — plain at the market price, orange to
+  green the better (the best in bold), grey the worse. Gifts are coloured per empire, so each row
+  shows which resource buys that empire the most, and count per 1,000 trade of each resource by
+  default.
+- Trade: a nomad's energy and minerals fade in the offer and gift tables (a nomad keeps them).
+- Trade: the rates, prices and gifts are a spoiler switch now; other empires' stockpiles moved to
+  a cheat switch of their own, switched on for profiles that had the old one.
+
 ## [0.1.27] - 2026-11-18
 
 ### Added
