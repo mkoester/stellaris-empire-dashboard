@@ -134,7 +134,8 @@ describe('arkships on the circle', () => {
 		tier,
 		planetSize,
 		systemId: null,
-		capital: false
+		capital: false,
+		cargo: []
 	});
 	const arks = [ark(7, 'Beta', 1), ark(2, 'Alpha', 2, 6), ark(9, 'Gamma', 2, 12)];
 

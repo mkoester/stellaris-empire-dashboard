@@ -1,3 +1,4 @@
+import { addGameDays } from '#lib/series.ts';
 import type { Resources } from '#lib/types.ts';
 
 // The small readers every part of the save reading shares: jomini's untyped values as numbers,
@@ -9,6 +10,15 @@ export type Raw = any;
 
 /** A save flag, `x=yes` (parsed as true, or the string when the parser leaves it). */
 export const isYes = (v: Raw) => v === true || v === 'yes';
+
+const FLAG_HOURS_2200 = 62808000; // a flag's value is the hour it was set, +24 a day
+/** The day a flag was set, from its value (`x=63029520`, or `{ flag_date }` for a timed one). */
+export const flagDate = (v: Raw): string | null => {
+	const h = typeof v === 'number' ? v : typeof v?.flag_date === 'number' ? v.flag_date : null;
+	return h === null || h < FLAG_HOURS_2200
+		? null
+		: addGameDays('2200.01.01', Math.floor((h - FLAG_HOURS_2200) / 24));
+};
 
 export const countBy = (keys: string[]): Record<string, number> =>
 	keys.reduce<Record<string, number>>((acc, k) => ({ ...acc, [k]: (acc[k] ?? 0) + 1 }), {});

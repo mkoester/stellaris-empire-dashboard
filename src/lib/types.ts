@@ -283,7 +283,11 @@ export type Arkship = {
 	planetSize: number;
 	systemId: number | null;
 	capital: boolean; // the capital colony's carrier
+	cargo: ArkshipCargo[]; // a contract's passengers aboard (READER 67; [] before)
 };
+
+/** A contract's fleet flag on an arkship's fleet (`CONTRACT_CARGO`), and the day it was set. */
+export type ArkshipCargo = { flag: string; since: string | null };
 
 /** A Mega Shipyard; `stage` from its type (mega_shipyard_0…3, _restored). */
 export type MegaShipyard = {

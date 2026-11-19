@@ -181,6 +181,37 @@ export function contractMarks(
 	}));
 }
 
+// ── Who is aboard which arkship ───────────────────────────────────────────────────────────────
+
+/**
+ * Contracts that put passengers on one of our arkships, marked by a fleet flag on its fleet (4.5.x
+ * `events/nomads_events_1.txt`): Diplomatic Support's pickup (nomads.3036, on entering the pickup
+ * system — at random among our arkships there), Prisoner Disposal (nomads.3050), the Sightseeing
+ * Tour (nomads.3060). The game's own panels never say which arkship it is. The flag names no
+ * contract, but a nomad can hold only one of each at a time (`possible_operator`:
+ * `already_doing_same_contract`, `common/missions/missions/02_contracts.txt`), so the contract's
+ * key is enough. Re-check on game updates.
+ */
+export const CONTRACT_CARGO: Record<string, { flag: string; who: string }> = {
+	contract_diplomatic_support: { flag: 'carrying_delegates', who: 'the delegates' },
+	contract_prisoner_disposal: { flag: 'transporting_prisoners', who: 'the prisoners' },
+	contract_sightseeing_tour: { flag: 'sightseeing_tour_arkship', who: 'the tourists' }
+};
+export const CARGO_FLAGS = new Set(Object.values(CONTRACT_CARGO).map((c) => c.flag));
+
+export type Aboard = { name: string; who: string; since: string | null };
+
+/** The arkship that carries this contract's passengers: only for an active contract of ours. */
+export function aboardOf(r: ContractRow, arkships: Arkship[]): Aboard | null {
+	const cargo = CONTRACT_CARGO[r.key];
+	if (!cargo || r.why !== 'mine' || r.state !== 'active') return null;
+	for (const a of arkships) {
+		const hit = a.cargo.find((c) => c.flag === cargo.flag);
+		if (hit) return { name: a.name, who: cargo.who, since: hit.since };
+	}
+	return null;
+}
+
 // ── What a contract asks of us and pays (data DB `contract` + `special_project`) ──────────────
 
 export type ArkshipKind = 'science' | 'military' | 'civilian';
@@ -263,6 +294,7 @@ export type ContractDetail = {
 	needsArkship: boolean; // a project needs one, or the contract has none (travel by arkship)
 	arkshipBranches: boolean; // the outcome differs by arkship type
 	arkships: ArkshipFit[]; // ours, nearest first
+	aboard: Aboard | null; // the arkship carrying this contract's passengers
 };
 
 export type DetailContext = {
@@ -340,6 +372,7 @@ export function contractDetail(
 			.map(ctx.techName),
 		needsArkship,
 		arkshipBranches: projects.some((p) => p.arkshipBranches),
-		arkships
+		arkships,
+		aboard: aboardOf(r, ctx.arkships)
 	};
 }

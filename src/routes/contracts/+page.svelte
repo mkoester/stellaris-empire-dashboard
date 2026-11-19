@@ -117,8 +117,11 @@
 		>{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
 {#snippet workCell(r: Row)}{#if work(r) !== null}{work(r)} days{:else if r.detail.steps}{r.detail
 			.steps} steps{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
-{#snippet arkshipCell(r: Row)}{#if !r.detail.needsArkship}<span class="text-gray-500"
-			>no arkship needed</span
+{#snippet arkshipCell(r: Row)}{#if r.detail.aboard}<span
+			class="font-semibold"
+			title={`${r.detail.aboard.who} came aboard ${r.detail.aboard.since ?? 'on an unknown day'}; the game does not show which arkship carries them`}
+			>{r.detail.aboard.who} aboard {r.detail.aboard.name}</span
+		>{:else if !r.detail.needsArkship}<span class="text-gray-500">no arkship needed</span
 		>{:else if nearest(r)}{nearest(r)?.name}{nearest(r)?.jumps === null
 			? ' · no known route'
 			: ` · ${nearest(r)?.jumps} jumps`}{:else}<span class="text-gray-500">none</span
@@ -177,6 +180,11 @@
 				</dd>
 				<dt class="text-gray-500">Your arkships</dt>
 				<dd>
+					{#if d.aboard}<div class="font-semibold">
+							{d.aboard.who} are aboard {d.aboard.name}{d.aboard.since
+								? ` since ${d.aboard.since}`
+								: ''}.
+						</div>{/if}
 					{#if !d.needsArkship}Not an arkship's job (see what to do).
 					{:else if !d.arkships.length}None.
 					{:else}{d.arkships

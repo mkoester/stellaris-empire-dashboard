@@ -348,6 +348,14 @@ of interest) counts as an arkship's job. `arkship_branches` (Colony Startup only
 the _issuer's_ colony bonus, not our reward: `branchLine()` says so and names what our nearest
 arkship would give (`COLONY_SUPPORT`, hand-copied from the game files — re-check on updates). `pageLatest()` drops `contracts`: the galaxy's list names
 issuers we never met (it reached every page until 2026-11-18).
+**Who is aboard** (the user's ask 2026-11-19: two arkships at the pickup, the game picks one at
+random and no panel says which): Diplomatic Support, Prisoner Disposal and the Sightseeing Tour
+mark the carrying arkship's _fleet_ with a flag (`CONTRACT_CARGO`); `arkships()` keeps those
+flags as `Arkship.cargo` with the day set (READER 67; a flag's value is its hour, `flagDate()`),
+and `aboardOf()` names the ship in the Nearest arkship column and the details. The flag names no
+contract, but a nomad can hold only one of each type (`already_doing_same_contract`), so the key
+links them exactly — no guessing. Checked on Roaming Cybergang 2225.08.21: Farleigh, as the save's
+`carrying_delegates`.
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
 name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the

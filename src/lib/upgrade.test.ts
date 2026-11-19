@@ -38,6 +38,12 @@ describe('upgrade', () => {
 		expect(s.knownSystems).toEqual([{ ...sys, capital: false }]);
 	});
 
+	it('gives arkships stored before READER 67 no cargo', () => {
+		const ark = { shipId: 1, colonyId: 2, name: 'A', size: '', tier: 0, planetSize: 0 };
+		const s = upgrade({ ...old, arkships: [{ ...ark, systemId: 3, capital: true }] } as never);
+		expect(s.arkships?.[0].cargo).toEqual([]);
+	});
+
 	it('leaves a current snapshot as it is', () => {
 		const s = upgrade(old as never);
 		expect(upgrade(s)).toEqual(s);

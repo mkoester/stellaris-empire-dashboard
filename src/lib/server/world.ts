@@ -1,7 +1,6 @@
 import { kindOf, type ContactKind } from '#lib/contacts.ts';
 import { wanderlustCategories } from '#lib/wanderlust.ts';
 import type { Bypass } from '#lib/galaxyGraph.ts';
-import { addGameDays } from '#lib/series.ts';
 import type {
 	AnomalyInfo,
 	Body,
@@ -29,6 +28,7 @@ import {
 	strOrNull,
 	type RawSave
 } from './save.ts';
+import { flagDate } from './save/values.ts';
 
 // What the empire knows of the galaxy and of the others: systems, the empires it met, first
 // contacts, situations, anomalies, special projects, dig sites. Pure, from the gamestate parts in
@@ -548,14 +548,6 @@ export function claims(
 		})
 	);
 }
-
-const FLAG_HOURS_2200 = 62808000; // a flag's value is the hour it was set, +24 a day
-const flagDate = (v: Raw): string | null => {
-	const h = typeof v === 'number' ? v : typeof v?.flag_date === 'number' ? v.flag_date : null;
-	return h === null || h < FLAG_HOURS_2200
-		? null
-		: addGameDays('2200.01.01', Math.floor((h - FLAG_HOURS_2200) / 24));
-};
 
 /**
  * The flags the game sets when a guardian falls (4.5.2): on the victor `killed_guardian`

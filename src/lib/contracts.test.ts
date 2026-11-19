@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { graph } from './galaxyGraph.ts';
 import {
+	aboardOf,
 	arkshipKind,
 	branchLine,
 	contractBonus,
@@ -219,7 +220,40 @@ const ark = (o: Partial<Arkship>): Arkship => ({
 	planetSize: 9,
 	systemId: 1,
 	capital: true,
+	cargo: [],
 	...o
+});
+
+describe('aboardOf', () => {
+	// as in Roaming Cybergang 2225.08.21: two arkships in the pickup system, Farleigh took them
+	const arks = [
+		ark({}),
+		ark({
+			name: 'Farleigh',
+			capital: false,
+			cargo: [{ flag: 'carrying_delegates', since: '2225.08.21' }]
+		})
+	];
+	const row = (o: Partial<Contract>) =>
+		contractRows(
+			[c({ id: 1, key: 'contract_diplomatic_support', ...o })],
+			ctx({ me: 1, nomadic: true })
+		)[0];
+	const mine = { operator: 1, operatorName: 'Us', state: 'active' as const };
+
+	it('names the arkship whose fleet carries the contract’s flag', () => {
+		expect(aboardOf(row(mine), arks)).toEqual({
+			name: 'Farleigh',
+			who: 'the delegates',
+			since: '2225.08.21'
+		});
+	});
+
+	it('says nothing before the pickup, for another contract, or one not ours', () => {
+		expect(aboardOf(row(mine), [ark({})])).toBeNull();
+		expect(aboardOf(row({ ...mine, key: 'contract_prisoner_disposal' }), arks)).toBeNull();
+		expect(aboardOf(row({}), arks)).toBeNull(); // an offer
+	});
 });
 
 describe('contractDetail', () => {

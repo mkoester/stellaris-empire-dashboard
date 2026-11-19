@@ -199,6 +199,7 @@ export function upgrade(
 			globalFlags: s.galcom.globalFlags ?? []
 		},
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
+		arkships: s.arkships && s.arkships.map((a) => ({ ...a, cargo: a.cargo ?? [] })),
 		subjects:
 			s.subjects &&
 			s.subjects.map((x) => ({
