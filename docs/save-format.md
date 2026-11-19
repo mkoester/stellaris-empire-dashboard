@@ -62,7 +62,12 @@ enable_galactic_market = yes`). GalCom bans: global flags `organic_slave_trade_b
   set with `enable_galactic_market` for Galactic Community members once the market is founded
   (`resolution_galactic_market_form` → `action.99/101/104/115`), removed on leaving it unless the
   country holds the market planet (`galcom.61`). The monthly limit (`monthlyLimit`) is shown on
-  the internal market only.
+  the internal market only. **How a price recovers** (fitted 2026-11-19 on Roaming Cyber Gang's
+  saves, internal market): a monthly order moves the fluctuation on the 1st by 2 × amount ÷
+  `market_amount` % (× 0.3 selling); per day it falls back by 0.018519 + 0.000297 × f above base
+  (≈ 0.00307 below), and under 0.3 (`MARKET_FLUCTUATION_EPSILON`) it snaps to 0 — 4× slower than
+  `MARKET_DAYS_TO_BASE_PRICE` × `INTERNAL_MARKET_DAYS_TO_BASE_PRICE` suggest. It reproduces the
+  42/64 buy/sell limits. `priceRecovery()` in `#lib/market.ts` has the data points.
 - Colonies: since 4.x a top-level `colony=` section, referenced from `planets.planet.<id>.colony`.
   Holds pops, housing, amenities, stability, `final_designation`, districts, buildings.
   `employable_pops` counts all pops able to work, _not_ the employed: employed is
