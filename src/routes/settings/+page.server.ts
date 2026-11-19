@@ -6,8 +6,11 @@ import {
 	campaignsOf,
 	campaignAt,
 	profiles,
+	updateHours,
 	viewedNoCheats
 } from '#lib/server/settings.ts';
+import { updateState } from '#lib/server/updates.ts';
+import { isRelease } from '#lib/updates.ts';
 
 // The config tab: profiles, display options and the games in the history.
 export function load({ url }) {
@@ -23,6 +26,7 @@ export function load({ url }) {
 		campaign: campaignAt(db, nodeParam(url)),
 		noCheats: viewedNoCheats(db),
 		campaigns: campaignsOf(db),
-		games: campaignRows(db, campaignsOnDisk())
+		games: campaignRows(db, campaignsOnDisk()),
+		updates: { hours: updateHours(), release: isRelease(__APP_VERSION__), ...updateState() }
 	};
 }

@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Checks GitHub for a newer release at start and every 3 hours (⚙ Updates: the interval, 0 never
+  checks); a newer one shows as a link next to the version in the tab bar. Release builds only.
+- Frontier: tech rewards and research options say whether the tech is researched, already a
+  permanent research option, or in your plan (also as a prerequisite of a planned tech). Outcomes
+  get badges for the kinds of reward they hold: physics, society and engineering research,
+  research options, resources, a fleet, a leader offered or granted, leader experience, traits
+  and more. Still to gain lists research options on their own rows.
+
 ## [0.1.27] - 2026-11-18
 
 ### Added

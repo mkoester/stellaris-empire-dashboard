@@ -28,7 +28,8 @@ import { dataStore, type DataStore } from './dataStore.ts';
 import { dataDbFor, ensureDataDb, extractorFromEnv, type DataMod } from './extract.ts';
 import { launcherPlaysets, loadModDescriptors, readLoadOrder } from './mods.ts';
 import { currentRequest } from './request.ts';
-import { viewedCampaign } from './settings.ts';
+import { updateHours, viewedCampaign } from './settings.ts';
+import { scheduleUpdateChecks, stopUpdateChecks } from './updates.ts';
 import { campaignOf, watchSaves, type Watcher } from './watch.ts';
 import { versionLine } from '#lib/versions.ts';
 
@@ -465,6 +466,7 @@ async function stop() {
 	await state.starting;
 	clearTimeout(state.catchUpTimer);
 	clearInterval(state.launcherTimer);
+	stopUpdateChecks();
 	state.stopTail?.();
 	await state.watcher?.stop();
 	state.db?.close();
@@ -522,6 +524,7 @@ async function run() {
 		nodeById(store, headId(store))?.date ?? null
 	);
 	state.status = 'running';
+	scheduleUpdateChecks(updateHours());
 	state.catchUpTimer = setTimeout(() => {
 		state.watcher
 			?.catchUp(caughtUp)

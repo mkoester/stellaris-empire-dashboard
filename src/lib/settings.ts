@@ -142,7 +142,9 @@ function api(path: string): string {
  * Stores changed settings on the server (`/api/settings`). `chartEvents` entries are merged into
  * the stored map, so charts saving at once do not undo each other.
  */
-export async function putSettings(patch: Partial<ProfileSettings> & { theme?: Theme }) {
+export async function putSettings(
+	patch: Partial<ProfileSettings> & { theme?: Theme; updateHours?: number }
+) {
 	const r = await fetch(api('/api/settings'), {
 		method: 'PUT',
 		headers: { 'content-type': 'application/json' },

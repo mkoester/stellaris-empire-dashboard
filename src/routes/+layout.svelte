@@ -395,6 +395,14 @@
 			<span class="pb-1 text-[11px] text-gray-400" title="dashboard version"
 				>v{__APP_VERSION__}</span
 			>
+			{#if data.update}<a
+					class="pb-1 text-[11px] font-semibold text-green-700 underline dark:text-green-500"
+					href="https://{data.update.url.replace(/^https:\/\//, '')}"
+					target="_blank"
+					rel="noopener"
+					title="a newer dashboard is out: its release page on GitHub (how often this is checked: ⚙ Updates)"
+					>v{data.update.version} available</a
+				>{/if}
 			{#if data.gameVersion}<span
 					class="pb-1 text-[11px] text-gray-400"
 					title="the game version and build the game data was read from (an open beta shares its version with the release, not its build)"
