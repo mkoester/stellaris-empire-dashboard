@@ -15,7 +15,10 @@
 		type Now,
 		outcomeText,
 		prune,
+		rewardBadges,
 		rewards,
+		techFlags,
+		type Flag,
 		type OutcomeNode
 	} from './outcomes.ts';
 
@@ -24,7 +27,9 @@
 	// What this empire cannot get (`off`, a branch not `taken`; `resolve()`) is greyed and folded,
 	// and left out of the markers and the summary. `chapter`: a dig site's next one — the ones
 	// before it are done, greyed. `now`: what months of income and tech progress come to for us
-	// now (≈, `Now` in #lib/outcomes.ts).
+	// now (≈, `Now` in #lib/outcomes.ts), and where each tech stands (researched, a permanent
+	// option, in the plan: `techFlags()`). Beside the markers, tinted, what kinds of reward it
+	// holds (`rewardBadges()`).
 	let {
 		tree,
 		chapter = null,
@@ -33,6 +38,7 @@
 
 	const open = $derived(prune(tree));
 	const kinds = $derived(markers(open));
+	const badges = $derived(rewardBadges(open, now));
 	const summary = $derived(rewards(open, now));
 	const SHOWN = 3;
 	const NOT_OURS = 'not for your empire';
@@ -59,8 +65,19 @@
 				title="≈ at this month's gross income">{m.now}</span
 			>{/if}<span class="text-gray-400">{m.bounds}</span>{:else if text}{#if ref}<InfoPopup {ref}
 				>{text}</InfoPopup
-			>{:else if n.t === 'note'}<i>{text}</i>{:else}{text}{/if}{/if}
+			>{:else if n.t === 'note'}<i>{text}</i
+			>{:else}{text}{/if}{/if}{#each techFlags(n, now) as f (f.label)}<span class="ml-1"
+			>{@render chip(f, false)}</span
+		>{/each}
 {/snippet}
+
+{#snippet chip(f: Flag, tinted: boolean)}<span
+		class="rounded border px-1 text-[11px] leading-4 whitespace-nowrap"
+		style:color={f.color}
+		style:border-color={tinted ? 'transparent' : f.color}
+		style:background-color={tinted ? `${f.color}26` : undefined}
+		title={f.title}>{f.label}</span
+	>{/snippet}
 
 <!-- a foldable level: its heading, a short summary of what is in it, its body -->
 {#snippet fold(head: Snippet, body: OutcomeNode[], depth: number, off: boolean, why: string | null)}
@@ -173,14 +190,8 @@
 {/snippet}
 
 <span class="inline-flex flex-wrap gap-1 align-middle">
-	{#each kinds as m (m)}
-		<span
-			class="rounded border px-1 text-[11px] leading-4"
-			style:color={MARKERS[m].color}
-			style:border-color={MARKERS[m].color}
-			title={MARKERS[m].title}>{MARKERS[m].label}</span
-		>
-	{/each}
+	{#each kinds as m (m)}{@render chip(MARKERS[m], false)}{/each}
+	{#each badges as b (b.label)}{@render chip(b, true)}{/each}
 </span>
 <details class="inline-block align-top">
 	<summary class="cursor-pointer text-gray-500" title={outcomeText(open, chapter, now)}

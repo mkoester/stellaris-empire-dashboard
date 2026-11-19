@@ -84,6 +84,27 @@ describe('gainRows', () => {
 		]);
 		expect(rows[0].sources.map((s) => s.kind)).toEqual(['anomaly', 'project']);
 	});
+
+	it('a research option is a row of its own, after progress; a tech itself is 100 %', () => {
+		const rows = gainRows(
+			[
+				{
+					name: 'A',
+					kind: 'anomaly',
+					tree: [
+						{ t: 'option', k: 'tech_x', name: 'X' },
+						{ t: 'tech', k: 'tech_y', name: 'Y' }
+					]
+				}
+			],
+			{ income: null, values: {} },
+			{ tech_x: 'Tech X', tech_y: 'Tech Y' }
+		);
+		expect(rows.map((r) => [r.key, r.kind, r.label, r.exp, r.ref])).toEqual([
+			['tech:tech_y', 'tech', 'Tech Y', 1, 'tech:tech_y'],
+			['option:tech_x', 'option', 'Tech X as research option', 1, 'tech:tech_x']
+		]);
+	});
 });
 
 describe('mergeGainRows', () => {

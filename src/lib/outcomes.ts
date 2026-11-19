@@ -1,3 +1,4 @@
+import { colorOf } from './colors.ts';
 import { fmt, pretty } from './format.ts';
 import { describe, evaluate, type Facts, type Trigger } from './triggers.ts';
 import type { Resources } from './types.ts';
@@ -404,26 +405,249 @@ export function monthsNow(n: Months, income: Resources | null | undefined): numb
 export type Now = {
 	income: Resources | null;
 	tech?: (key: string) => { cost: number; area: string; perMonth: number | null } | null;
+	mark?: (key: string) => TechMark | null;
+};
+
+/**
+ * Where a tech stands for this empire, for a tech reward or research option (`techFlags()`): its
+ * area, researched, already a permanent research option (`Snapshot.techPermanent`), and the plan's
+ * goal on it — wanted ones' prerequisites included, their note "needed for …".
+ */
+export type TechMark = {
+	area: string | null;
+	researched: boolean;
+	permanent: boolean;
+	plan: { stance: 'want' | 'later' | 'avoid'; note: string } | null;
 };
 
 type TechNow = ReturnType<NonNullable<Now['tech']>>;
 /** `Now` as data, for a page: the techs looked up beforehand. */
-export type NowTable = { income: Resources | null; techs: Record<string, TechNow> };
+export type NowTable = {
+	income: Resources | null;
+	techs: Record<string, TechNow>;
+	marks?: Record<string, TechMark | null>;
+};
 
-/** The techs these trees give progress in, looked up once, for a page (a function does not serialise). */
+/** The techs these trees give progress in or offer, looked up once, for a page (a function does
+ * not serialise). */
 export function nowTable(now: Now, trees: OutcomeNode[][]): NowTable {
 	const techs: Record<string, TechNow> = {};
+	const marks: Record<string, TechMark | null> = {};
 	for (const tree of trees)
-		for (const n of nodes(tree))
+		for (const n of nodes(tree)) {
 			if (n.t === 'tech' && n.p !== undefined && !(n.k in techs))
 				techs[n.k] = now.tech?.(n.k) ?? null;
-	return { income: now.income, techs };
+			if ((n.t === 'tech' || n.t === 'option') && !(n.k in marks))
+				marks[n.k] = now.mark?.(n.k) ?? null;
+		}
+	return { income: now.income, techs, marks };
 }
 
 export const fromTable = (t: NowTable): Now => ({
 	income: t.income,
-	tech: (k) => t.techs[k] ?? null
+	tech: (k) => t.techs[k] ?? null,
+	mark: (k) => t.marks?.[k] ?? null
 });
+
+/** A small labelled chip: a tech's standing, or a kind of reward. */
+export type Flag = { label: string; color: string; title: string };
+
+const GREY = '#8a8f98';
+
+/**
+ * A tech's standing as chips, for what an outcome does with it: `option` a research option,
+ * `progress` progress in it, `grant` the tech itself. Researched outranks the rest; a permanent
+ * option makes a further one useless; the plan says whether it is wanted (or needed for a wanted
+ * one), later or avoided.
+ */
+export function techMarkFlags(m: TechMark, kind: 'option' | 'progress' | 'grant'): Flag[] {
+	if (m.researched)
+		return [
+			{
+				label: 'researched',
+				color: GREY,
+				title: {
+					option: 'already researched: the option is of no use',
+					progress: 'already researched: the progress is lost',
+					grant: 'already researched'
+				}[kind]
+			}
+		];
+	const out: Flag[] = [];
+	if (m.permanent)
+		out.push(
+			kind === 'option'
+				? {
+						label: 'already an option',
+						color: GREY,
+						title: 'already a permanent research option: this adds nothing'
+					}
+				: {
+						label: 'permanent option',
+						color: '#3b82f6',
+						title: 'already a permanent research option: you can pick it at any time'
+					}
+		);
+	const p = m.plan;
+	if (p) {
+		const note = p.note ? `: ${p.note}` : '';
+		const needed = p.note.startsWith('needed for');
+		out.push(
+			p.stance === 'avoid'
+				? { label: 'avoided', color: '#e34948', title: `your plan avoids this tech${note}` }
+				: p.stance === 'later'
+					? { label: 'planned later', color: '#0ea5e9', title: `in your plan, for later${note}` }
+					: {
+							label: needed ? 'helps your plan' : 'planned',
+							color: '#1baf7a',
+							title: `in your plan${note}`
+						}
+		);
+	}
+	return out;
+}
+
+/** A tech reward's or research option's standing (`techMarkFlags()`), or none. */
+export function techFlags(n: OutcomeNode, now?: Now | null): Flag[] {
+	if (n.t !== 'tech' && n.t !== 'option') return [];
+	const m = now?.mark?.(n.k);
+	if (!m) return [];
+	if (n.t === 'option') return techMarkFlags(m, 'option');
+	return techMarkFlags(m, 'p' in n && n.p !== undefined ? 'progress' : 'grant');
+}
+
+const AREAS = ['physics', 'society', 'engineering'];
+
+/**
+ * What kinds of reward a pruned tree holds, as badges in a fixed order: research by field (points,
+ * months of research income, tech progress, a tech), research options, resources, then fleet,
+ * leader (offered: only behind a choice's option; granted), leader experience, traits and the
+ * rest. Losses are not rewards (the `risk` marker says so).
+ */
+export function rewardBadges(tree: OutcomeNode[], now?: Now | null): Flag[] {
+	const areas = new Set<string>();
+	const resources = new Set<string>();
+	const traits = new Set<string>();
+	const other = new Set<string>();
+	let options = 0;
+	let xp = 0;
+	let leader: 'offered' | 'granted' | null = null;
+	const areaOf = (k: string) => now?.mark?.(k)?.area ?? now?.tech?.(k)?.area ?? null;
+	const walk = (list: OutcomeNode[], picked: boolean) => {
+		for (const n of list) {
+			switch (n.t) {
+				case 'res':
+				case 'months': {
+					if (n.t === 'res' && n.n <= 0) break;
+					const area = n.r.replace(/_research$/, '');
+					if (AREAS.includes(area)) areas.add(area);
+					else resources.add(n.r);
+					break;
+				}
+				case 'tech': {
+					const a = areaOf(n.k);
+					if (a) areas.add(a);
+					break;
+				}
+				case 'option':
+					options++;
+					break;
+				case 'xp':
+					xp += n.n;
+					break;
+				case 'trait':
+					traits.add(n.name ?? pretty(n.k));
+					break;
+				case 'leader':
+					leader = picked && leader !== 'granted' ? 'offered' : 'granted';
+					break;
+				case 'fleet':
+					if (n.mine) other.add('fleet');
+					break;
+				case 'pops':
+				case 'relic':
+				case 'specimen':
+				case 'deposit':
+				case 'modifier':
+				case 'megastructure':
+				case 'pc':
+					other.add(n.t);
+					break;
+				case 'event': {
+					walk(n.e, picked);
+					const pick = isChoice(n.o);
+					for (const o of n.o) walk(o.e, picked || pick);
+					break;
+				}
+				case 'random':
+					for (const b of n.b) walk(b.e, picked);
+					break;
+				case 'if':
+					for (const b of n.b) walk(b, picked);
+					break;
+				case 'later':
+				case 'chapter':
+					walk(n.e, picked);
+					break;
+				case 'project':
+					if (n.sub) walk(n.sub, picked);
+					break;
+				default:
+					break;
+			}
+		}
+	};
+	walk(tree, false);
+	const out: Flag[] = AREAS.filter((a) => areas.has(a)).map((a) => ({
+		label: a,
+		color: colorOf(`${a}_research`) ?? GREY,
+		title: `${a} research: points, months of income, or tech progress`
+	}));
+	if (options)
+		out.push({
+			label: 'research option',
+			color: '#2f8fe0',
+			title: 'a tech offered as research option'
+		});
+	for (const r of resources)
+		out.push({ label: pretty(r), color: colorOf(r) ?? GREY, title: `${pretty(r)}: a resource` });
+	if (other.has('fleet'))
+		out.push({ label: 'fleet', color: '#4f94b5', title: 'a fleet joins you' });
+	const l = leader as 'offered' | 'granted' | null; // TS narrows the closure's writes away
+	if (l)
+		out.push({
+			label: `leader ${l}`,
+			color: colorOf('leader') ?? GREY,
+			title:
+				l === 'offered'
+					? 'a new leader, if you pick the option that brings one'
+					: 'a new leader, on some path without a choice'
+		});
+	if (xp > 0)
+		out.push({
+			label: 'leader xp',
+			color: '#6b7280',
+			title: 'experience for the leader involved (the scientist, mostly)'
+		});
+	if (traits.size)
+		out.push({
+			label: traits.size === 1 ? `trait ${[...traits][0]}` : `${traits.size} traits`,
+			color: '#a855f7',
+			title: `leader trait${traits.size === 1 ? '' : 's'}: ${[...traits].join(', ')}`
+		});
+	const OTHER: Record<string, string> = {
+		pops: 'new pops',
+		relic: 'relic',
+		specimen: 'specimen',
+		deposit: 'deposit',
+		modifier: 'modifier',
+		megastructure: 'megastructure',
+		pc: 'planet changes'
+	};
+	for (const [k, label] of Object.entries(OTHER))
+		if (other.has(k)) out.push({ label, color: GREY, title: label });
+	return out;
+}
 
 /**
  * A tech progress reward as research: its share of the tech's cost, and the days our own research
@@ -627,7 +851,8 @@ export function outcomeText(
 				break;
 			default: {
 				const t = effectText(n, now);
-				if (t) add(depth, t);
+				const flags = techFlags(n, now).map((f) => ` [${f.label}]`);
+				if (t) add(depth, `${t}${flags.join('')}`);
 			}
 		}
 	};
