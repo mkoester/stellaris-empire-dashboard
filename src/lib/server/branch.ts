@@ -1,5 +1,5 @@
 import { latestOf } from '#lib/latest.ts';
-import { expiries, rolls, timedOut, upcoming, toDays } from '#lib/events.ts';
+import { expiries, marketRecoveries, rolls, timedOut, upcoming, toDays } from '#lib/events.ts';
 import { jobRows, jobSources, netFlows, withFlows, workedJobs } from '#lib/jobs.ts';
 import { getDb, getExplanations, getGameData, liveTechOptions } from './app.ts';
 import { headId, history, nodeById, nodes, type Db } from './db.ts';
@@ -72,6 +72,7 @@ export function branch(url: URL) {
 			? [
 					...withIdleShips(upcoming(last, previous, getGameData(), saves.slice(0, -1)), idle.ships),
 					...idle.rows,
+					...marketRecoveries(last),
 					...expiries(last, getGameData(), title, display().hiddenTimers),
 					...timedOut(saves, getGameData(), title, dismissed(db, campaign)),
 					...rolls(last, {

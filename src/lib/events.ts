@@ -27,6 +27,7 @@ import type { Progress, QueueItem, Snapshot } from './types.ts';
 // (empire size, galaxy cost sliders) — other cost modifiers are unknown, hence "estimated".
 
 import { pretty } from './format.ts';
+import { basePrice, price, priceRecovery } from './market.ts';
 import type { ActionKind, Colony, GameData, TimedModifier } from './types.ts';
 export type { GameData };
 
@@ -49,6 +50,7 @@ export type Upcoming = {
 		| 'roll' // an envoy's or excavation's next roll
 		| 'idle' // something sits idle until busy again or dismissed (#lib/idle.ts)
 		| 'offer' // a planned tech among the research cards (#lib/techOffers.ts plannedOnOffer)
+		| 'market' // a market price back to normal after trading (#lib/market.ts priceRecovery)
 		| 'fleet'; // a military fleet arrives
 	what: string;
 	detail: string;
@@ -611,6 +613,56 @@ export function deficits(latest: Pick<Snapshot, 'date' | 'stockpile' | 'balance'
 				exact: true
 			}
 		];
+	});
+}
+
+/**
+ * When each market price is back to normal after trading beyond what a month recovers (the
+ * user's ask 2026-11-19, after buying 1000 food): `priceRecovery()`, fitted, so ≈. The standing
+ * orders' own monthly swing (up to the buy limit) gives no row; orders that push a price further
+ * each month than it recovers give one now ("keeps rising").
+ */
+export function marketRecoveries(
+	latest: Pick<Snapshot, 'date' | 'market' | 'marketOrders'>
+): Upcoming[] {
+	const m = latest.market;
+	if (!m) return [];
+	const day = toDays(latest.date);
+	return Object.entries(m.fluctuations).flatMap(([resource, f]): Upcoming[] => {
+		const r = priceRecovery(resource, f, day, latest.marketOrders ?? [], m.galactic);
+		if (r.days === null && !r.never) return [];
+		const name = pretty(resource);
+		const now = price(resource, f);
+		const base = basePrice(resource);
+		const detail = [
+			`${f > 0 ? '+' : ''}${f.toFixed(1)} % ${f > 0 ? 'above' : 'below'} base`,
+			now !== null && base !== null ? `${now.toFixed(2)} → ${base.toFixed(2)} trade a unit` : null,
+			m.galactic ? 'galactic market: other empires trade it too' : null
+		]
+			.filter(Boolean)
+			.join(' · ');
+		const row = { kind: 'market' as const, tint: resource, exact: false };
+		return r.never
+			? [
+					{
+						...row,
+						date: latest.date,
+						months: 0,
+						act: true,
+						what: `${name} price keeps ${f > 0 ? 'rising' : 'falling'}`,
+						detail: `${detail} · your monthly order moves it more than a month recovers`
+					}
+				]
+			: [
+					{
+						...row,
+						date: fromDays(day + r.days!),
+						months: Math.ceil(r.days! / 30),
+						act: false,
+						what: `${name} price back to normal`,
+						detail
+					}
+				];
 	});
 }
 

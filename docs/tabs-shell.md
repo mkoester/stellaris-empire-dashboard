@@ -45,6 +45,18 @@ gated in the effect's own `limit` — role `bonus`: Insult stays possible, the r
 Insult available again · with the next Insult", as the game's tooltip has it), federation laws (their timers sit on the federation, not
 read yet) and enclave deals.
 
+**Market prices back to normal** (`marketRecoveries()` in `#lib/events.ts`, `priceRecovery()` in
+`#lib/market.ts`; the user's ask 2026-11-19, after buying 1000 food with the monthly order at 1):
+per resource of the latest save's market, the day its fluctuation snaps back to 0, simulated a day
+at a time with the standing orders traded on each 1st, ≈. No row when that is by the next 1st — the
+orders' own swing (42 energy: +0.84 on the 1st, under 0.3 and reset by the next): "this slight
+increase should not trigger this". Orders that push it further each month than it recovers give a
+"keeps rising/falling" row now (⚠). The recovery is fitted on Roaming Cyber Gang's saves
+(constants and data points in `market.ts`) — 4× slower than the defines' days-to-base suggest.
+**Unconfirmed**: below base far from 0 (fitted only at −0.36, the per-% term assumed the same as
+above) and the galactic market (½ the impact and 3× the recovery, from the internal multipliers;
+others trade there too). DB copy 2026-11-19, 2223.10.01: one row, food +18.7 % → 2226.03.26.
+
 **Run-out cooldowns stay** (`timedOut()`, the user's ask 2026-10-25): along the branch's saves each
 cooldown instance (a timer an action waits on, per scope — the empire or a colony, so one decision
 on two colonies is two rows —, launched agendas, reform and focus) keeps its latest end seen; once

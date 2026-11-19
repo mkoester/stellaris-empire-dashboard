@@ -8,6 +8,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Upcoming: when a market price is back to normal after trading more than a month recovers (≈,
+  fitted on real saves); the monthly swing of orders within the limit gives no row, orders beyond
+  it a "keeps rising" one.
 - Checks GitHub for a newer release at start and every 3 hours (⚙ Updates: the interval, 0 never
   checks); a newer one shows as a link next to the version in the tab bar. Release builds only.
 - Frontier: tech rewards and research options say whether the tech is researched, already a

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	priceRecovery,
 	basePrice,
 	feeSeries,
 	marketFee,
@@ -152,5 +153,51 @@ describe('marketFee', () => {
 				snap({ countryModifiers: null })
 			]).lines['market fee %']
 		).toEqual([30, null]);
+	});
+});
+
+describe('priceRecovery', () => {
+	const day = (date: string) => {
+		const [y, m, d] = date.split('.').map(Number);
+		return (y * 12 + m - 1) * 30 + d - 1;
+	};
+	const buy = (resource: string, amount: number) => ({ kind: 'buy' as const, resource, amount });
+	const sell = (resource: string, amount: number) => ({ kind: 'sell' as const, resource, amount });
+
+	it('the monthly swing of orders up to the buy limit is normal', () => {
+		// on the 1st right after the trade: 42 energy +0.84, 10 alloys +0.8, 6 motes sold −0.36
+		const orders = [buy('energy', 42), buy('alloys', 10), sell('volatile_motes', 6)];
+		const d = day('2222.05.01');
+		expect(priceRecovery('energy', 0.84, d, orders)).toEqual({ days: null, never: false });
+		expect(priceRecovery('alloys', 0.8, d, orders)).toEqual({ days: null, never: false });
+		expect(priceRecovery('volatile_motes', -0.36, d, orders)).toEqual({ days: null, never: false });
+	});
+
+	it('1000 food bought: back in about 2 years and 5 months', () => {
+		// Roaming Cyber Gang 2223.10.01: food +18.70336 with 1 food bought a month. Closed form of
+		// df/dt = −(a + b·f) down to 0.3: ln((a + b·18.7) / (a + b·0.3)) / b ≈ 867 days, and the
+		// monthly +0.02 costs about a day a month more
+		const r = priceRecovery('food', 18.70336, day('2223.10.01'), [buy('food', 1)]);
+		expect(r.never).toBe(false);
+		expect(r.days).toBeGreaterThanOrEqual(880);
+		expect(r.days).toBeLessThanOrEqual(905);
+	});
+
+	it('reproduces the saves between two dates', () => {
+		// 2223.09.20 food 18.94855 → 2223.10.01 18.70336 (after the 1st's +0.02): step the model
+		// with a day limit by asking when it would be back from each, and compare the gap
+		const a = priceRecovery('food', 18.94855, day('2223.09.20'), [buy('food', 1)]).days!;
+		const b = priceRecovery('food', 18.70336, day('2223.10.01'), [buy('food', 1)]).days!;
+		expect(Math.abs(a - b - 11)).toBeLessThanOrEqual(1);
+	});
+
+	it('orders beyond what a month recovers never get back', () => {
+		expect(priceRecovery('food', 2, day('2223.10.01'), [buy('food', 100)]).never).toBe(true);
+	});
+
+	it('below base too, after selling a lot', () => {
+		const r = priceRecovery('minerals', -5, day('2223.10.01'), []);
+		expect(r.never).toBe(false);
+		expect(r.days).toBeGreaterThan(30);
 	});
 });
