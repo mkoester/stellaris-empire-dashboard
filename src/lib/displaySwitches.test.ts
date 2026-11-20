@@ -70,6 +70,7 @@ describe('effectiveDisplay', () => {
 			'lgates',
 			'pactAdvice',
 			'pactIntel',
+			'precursorsAll',
 			'subjectNumbers',
 			'surveyAll',
 			'tradeIntel',

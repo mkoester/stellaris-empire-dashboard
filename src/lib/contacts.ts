@@ -255,6 +255,7 @@ export const pageLatest = <
 		allWars?: unknown;
 		contracts?: unknown;
 		storms?: unknown;
+		precursorIntel?: unknown;
 	}
 >(
 	s: S
@@ -267,6 +268,9 @@ export const pageLatest = <
 	...('contracts' in s ? { contracts: null } : {}),
 	// every storm's path, a forecast only movement intel gives: the map tab sends what we may see
 	...('storms' in s ? { storms: null } : {}),
+	// every empire's precursor chains and every precursor system (a cheat): the frontier tab sends
+	// them only with it on
+	...('precursorIntel' in s ? { precursorIntel: null } : {}),
 	countries:
 		s.countries?.filter(
 			(c) =>

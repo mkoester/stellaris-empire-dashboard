@@ -175,6 +175,16 @@ export const SWITCHES: Switch[] = [
 		label: 'Show what a dig site’s chapters give'
 	},
 	{
+		key: 'precursorsAll',
+		group: 'Frontier',
+		// the user's ask 2026-11-20; which precursors a galaxy has is the game's secret until found
+		kind: 'cheat',
+		intel: true,
+		label:
+			'Precursors: everything the save holds — which this galaxy has, their systems, every empire’s artifacts',
+		note: 'the game reveals a precursor only once you find its first artifact'
+	},
+	{
 		key: 'hiddenTimers',
 		group: 'Frontier',
 		kind: 'spoiler',
