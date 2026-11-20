@@ -356,6 +356,18 @@ and `aboardOf()` names the ship in the Nearest arkship column and the details. T
 contract, but a nomad can hold only one of each type (`already_doing_same_contract`), so the key
 links them exactly — no guessing. Checked on Roaming Cybergang 2225.08.21: Farleigh, as the save's
 `carrying_delegates`.
+**Where** (the user's ask 2026-11-20: which can be done remotely, which need a trip): `remoteOf()`
+— remote when every project of the contract is a research project (a `cost`, no ship needed: the
+onboard ones, `location = no` on the project even where the contract has a system), the contract
+has no system (the game's `location`, data DB `contract.location`), or it asks for no trip
+(`NO_TRIP`: Join Wars); else "at <system>". `–` with a data DB before 2026-11-20 (no `location`
+column; it also lacks the projects that inline scripts define). The Work column shows a remote
+one's research cost. **Transports** (`TRANSPORT`): Diplomatic Support, Prisoner Disposal and the
+Sightseeing Tour mark pickup and drop-off with flags named for the operator (`<flag><our id>`, a
+planet's carrier flag or a star's flag); `Contract.pickup`/`dropoff` (READER 69) are their
+systems, for our active ones. The Where column shows "pickup → drop-off" (Prisoner Disposal: "your
+choice"), and hovering the row or either system draws an arrow on the map. Roaming Cyber Gang
+2226.08.01: Diplomatic Support Mishar → Slerpanor; the arrow not yet seen in a browser.
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
 name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the

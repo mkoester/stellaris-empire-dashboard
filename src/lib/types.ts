@@ -1091,6 +1091,9 @@ export type ContractType = {
 	failedOpinion: number | null; // the issuer's opinion of us on failure or cancel
 	operatorTechs: string[]; // techs the operator needs
 	projects: ContractProject[]; // the special projects of its event chain
+	// the game's `location = yes`: the contract has a system; null with a data DB before
+	// 2026-11-20, which also lacks the projects defined by inline scripts (the onboard ones)
+	location: boolean | null;
 };
 
 /** What a contract pays its operator on success (data DB `contract.reward_json`). */
@@ -1108,6 +1111,7 @@ export type ContractProject = {
 	key: string;
 	name: string;
 	days: number | null;
+	cost: number | null; // a research project's cost (the field halts meanwhile); null: a ship's
 	requirements: Record<string, unknown>; // {carries_colony: 1}: an arkship
 	arkshipBranches: boolean; // the outcome differs by arkship type
 };
@@ -1127,6 +1131,10 @@ export type Contract = {
 	state: 'offered' | 'active';
 	daysLeft: number | null; // an offer's days to accept
 	accepted: string | null; // accepted_date
+	// a transport contract of ours (`TRANSPORT` in #lib/contracts.ts): the systems its flags mark;
+	// null: none marked (yet), or not one; since READER 69
+	pickup: number | null;
+	dropoff: number | null;
 };
 
 /**
