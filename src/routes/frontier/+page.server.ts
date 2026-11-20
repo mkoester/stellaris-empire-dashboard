@@ -21,6 +21,7 @@ import { gainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
 import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
 import { anomalyDays } from '#lib/ships.ts';
 import { digSiteDone } from '#lib/mapLayers.ts';
+import { lgateRelated } from '#lib/lgates.ts';
 import { techCost } from '#lib/events.ts';
 import { nowTable, prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
@@ -90,7 +91,8 @@ export function load({ url }) {
 						} satisfies Time)
 					: null,
 			outcomes: opts.anomalySpoilers ? (cat?.outcomes ?? []) : null,
-			tree
+			tree,
+			lgate: lgateRelated(cat?.name ?? a.category, tree)
 		};
 	};
 	const project = (p: ProjectInfo) => {
@@ -104,7 +106,8 @@ export function load({ url }) {
 			department: info?.department ?? null,
 			time: projectTime(info),
 			outcomes: opts.projectSpoilers ? (info?.outcomes ?? []) : null,
-			tree
+			tree,
+			lgate: lgateRelated(info?.name ?? p.key, tree)
 		};
 	};
 	const projectTime = (info: (typeof data.projects)[string] | undefined): Time | null => {
@@ -147,7 +150,8 @@ export function load({ url }) {
 							approx: true,
 							note: `expected, ${later.length ? `chapters ${next}–${next + later.length}` : `chapter ${next}`}: a roll every 90 days, d10 + skill + clues − difficulty, 14 finishes; ${withScientist}`
 						} satisfies Time),
-			tree
+			tree,
+			lgate: lgateRelated(data.digSiteTypes[d.type]?.name ?? d.type, tree)
 		};
 	};
 	// what the save has that only one anomaly, project or dig site gives: it got that far

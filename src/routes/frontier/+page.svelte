@@ -7,6 +7,7 @@
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { mergeGainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
 	import { colorOf } from '#lib/colors.ts';
+	import { inStripOrder } from '#lib/resourceGroups.ts';
 	import { valueOf } from '#lib/value.ts';
 	import { daysText, type Time } from '#lib/frontierTime.ts';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
@@ -186,7 +187,12 @@
 		).filter((g) => (g.sure > 0 ? certain.sure : certain.possible))
 	);
 	const anyGains = $derived(Object.values(data.gains).some((l) => l.length));
-	const gainRes = $derived(shownGains.filter((g) => g.kind === 'res'));
+	// in the order of the `all` header's Resources strip
+	const gainRes = $derived.by(() => {
+		const res = shownGains.filter((g) => g.kind === 'res');
+		const order = inStripOrder(res.map((g) => g.key.slice(4)));
+		return res.sort((a, b) => order.indexOf(a.key.slice(4)) - order.indexOf(b.key.slice(4)));
+	});
 	const worth = (which: 'sure' | 'exp') =>
 		valueOf(Object.fromEntries(gainRes.map((g) => [g.key.slice(4), g[which]])), data.values);
 	const trade = (g: GainRow) => valueOf({ [g.key.slice(4)]: g.exp }, data.values);
@@ -344,12 +350,17 @@
 				: `chapter ${r.inferred.chapter} done`}</span
 		>{:else}<span class="text-gray-500" title="finished or lost: the save cannot tell">–</span
 		>{/if}{/snippet}
-{#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{/snippet}
-{#snippet anomalyName(a: Anomaly)}<b>{a.name}</b><AddGoal
+{#snippet lgate(r: { lgate: boolean })}{#if r.lgate}<span
+			class="ml-1 rounded bg-violet-100 px-1 text-[11px] font-semibold text-violet-800 dark:bg-violet-900/50 dark:text-violet-200"
+			title="leads towards the L-Gates: an L-Gate Insight, the L-Gate Activation tech or the L-Cluster (with outcomes off, known by its name only)"
+			>L-Gate</span
+		>{/if}{/snippet}
+{#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{@render lgate(r)}{/snippet}
+{#snippet anomalyName(a: Anomaly)}<b>{a.name}</b>{@render lgate(a)}<AddGoal
 		kind="anomaly"
 		target={{ planet: a.planetId }}
 	/>{/snippet}
-{#snippet digName(d: Dig)}<b>{d.name}</b><AddGoal
+{#snippet digName(d: Dig)}<b>{d.name}</b>{@render lgate(d)}<AddGoal
 		kind="digsite"
 		target={{ planet: d.planetId }}
 	/>{/snippet}

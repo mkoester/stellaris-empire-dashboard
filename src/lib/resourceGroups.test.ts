@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { inFirstRow, stripOrder } from './resourceGroups.ts';
+import { inFirstRow, stripOrder, inStripOrder } from './resourceGroups.ts';
 
 describe('inFirstRow', () => {
 	it('keeps basic, advanced and reserves above strategic, unity and influence', () => {
@@ -52,5 +52,13 @@ describe('stripOrder', () => {
 			'unity',
 			'influence'
 		]);
+	});
+});
+
+describe('inStripOrder', () => {
+	it('orders keys as the header strip, research after, nothing added', () => {
+		expect(
+			inStripOrder(['influence', 'society_research', 'rare_crystals', 'alloys', 'minerals', 'zro'])
+		).toEqual(['minerals', 'alloys', 'rare_crystals', 'zro', 'influence', 'society_research']);
 	});
 });

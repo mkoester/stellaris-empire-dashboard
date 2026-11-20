@@ -286,7 +286,11 @@ situation (`permanent = yes`, data DB `situation.permanent` since 2026-11-20: in
 nomad's Operational Reserves and the Forever Cruise origin's Passenger Satisfaction) stays on top
 whatever the sort, a line below it (SortTable's `pinned`, `pinFirst()`); with an older data DB, none
 is pinned. Unplugged's Embodied Identity has no ending effects but is not permanent: it ends at
-either extreme.
+either extreme. An **L-Gate badge** (2026-11-20, `lgateRelated()` in `#lib/lgates.ts`) marks an anomaly,
+special project or dig site whose name or outcome tree names the L-Gates or the L-Cluster: L-Gate
+Insights (`distar.9000`, 3 in 10 on 24 anomaly categories in 4.5.4), the L-Gate Activation tech, the
+L-Cluster project. The tree is behind the outcomes spoiler, so with it off only the name tells. "Still to
+gain" lists its resources in the `all` header's order (`inStripOrder()`, research last).
 Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
 (Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
 column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept
