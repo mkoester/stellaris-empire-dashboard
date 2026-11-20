@@ -20,6 +20,20 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   "5 / 4" with a time estimate on the frontier tab: now "excavated", out of "Still to gain", and
   done on the map (`digSiteDone()`). Still to see in a browser: the Outcome's "← next" mark
   against the game's dig site window.
+- **Observation Insights for a nomad, after an Insight (2026-11-20)**: Favor Insights sets the
+  country flag `favored_insights`, and each waystation with a pre-FTL world reads that flag (−2
+  society), not the situation — so it outlives the situation's end. The nomads' restart
+  (`fircon.10`) sets `approach_study_insights` without the flag's approach; whether
+  `set_situation_approach` runs that approach's `on_select` (which clears the flag) is not in the
+  files. Check at the next Insight: the restarted situation's approach, the flag in the save, the
+  waystation's society research.
+- **The galaxy setup reaches every page with `disabled_precursors`** (2026-11-20):
+  `Snapshot.galaxySetup` (READER 42) carries which precursors the galaxy has, which the Precursors
+  panel otherwise keeps for its cheat. Open, the user's call: drop it in `pageLatest()` and send it
+  to the galaxy tab alone.
+- **The precursor and L-Gate panels, unchecked with a running chain (2026-11-20)**: Roaming
+  Cybergang has no precursor chain and 0 L-Gate insights, so artifacts, the home system and the
+  Precursor badge were seen on unit tests only. Check at the first precursor anomaly.
 - **The storms map mode, unchecked in a browser (2026-11-20)**: the fill and hover text are unit
   tested (`storms.test.ts`), not seen drawn; Roaming Cybergang has no Cosmic Weather Models, so the
   path ahead has not been shown on a real campaign. Compare with the game's Weather Forecast mode
