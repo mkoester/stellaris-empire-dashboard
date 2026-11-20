@@ -526,6 +526,7 @@ export type Snapshot = {
 	digSites: DigSite[] | null; // archaeological sites in visited systems
 	storms: Storm[] | null; // cosmic storms, every one in the galaxy (the game shows them all); READER 70
 	eventChains: EventChains | null; // our situation log's chains (precursors, the L-Cluster); READER 71
+	precursorIntel: PrecursorIntel | null; // everything on precursors, galaxy-wide (a cheat); READER 72
 	stationsSeen: StationSighting[] | null; // stations where our fleets are, null before 2026-10-18
 	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
 	focus: EmpireFocus | null;
@@ -828,6 +829,20 @@ export type DigSite = {
 export type EventChains = {
 	active: { key: string; counters: Record<string, number> }[];
 	completed: string[];
+};
+
+/** What the save holds on every precursor (the frontier tab's cheat): which the galaxy setup
+ * disabled, the systems each flags (`precursor_<n>`), every empire's precursor chains. */
+export type PrecursorIntel = {
+	disabled: string[]; // `galaxy.disabled_precursors`: "precursor_1", "precursor_baol_1", …
+	systems: Record<string, number[]>; // star flag → system ids
+	chains: {
+		countryId: number;
+		country: string; // its name as the save gives it
+		key: string;
+		counters: Record<string, number>;
+		done: boolean;
+	}[];
 };
 
 /** A cosmic storm (`storms.storms.<id>`, docs/save-format.md "Cosmic storms"). */

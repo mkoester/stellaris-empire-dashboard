@@ -22,7 +22,7 @@ import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
 import { anomalyDays } from '#lib/ships.ts';
 import { digSiteDone } from '#lib/mapLayers.ts';
 import { lgateRelated } from '#lib/lgates.ts';
-import { lgateView, precursorRows } from '#lib/frontierChains.ts';
+import { lgateView, precursorGalaxy, precursorRows } from '#lib/frontierChains.ts';
 import { techCost } from '#lib/events.ts';
 import { nowTable, prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
@@ -283,6 +283,19 @@ export function load({ url }) {
 		}),
 		precursors: precursorRows(save?.eventChains ?? null, data.eventChains),
 		chainsRead: !!save?.eventChains && Object.keys(data.eventChains).length > 0,
+		// the cheat: every precursor and every empire's progress, sent only with it on
+		precursorGalaxy:
+			opts.precursorsAll && save?.precursorIntel
+				? precursorGalaxy(
+						save.precursorIntel,
+						data.eventChains,
+						(
+							(known) => (id: number) =>
+								known.has(id)
+						)(new Set(galaxy.filter((g) => g.visited || g.owned).map((g) => g.id))),
+						save.countryId ?? -1
+					)
+				: null,
 		anomalies,
 		projects,
 		digSites,

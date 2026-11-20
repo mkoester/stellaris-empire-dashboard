@@ -16,6 +16,7 @@ import type {
 	StationSighting,
 	Storm,
 	EventChains,
+	PrecursorIntel,
 	HistoryReading
 } from '#lib/types.ts';
 import {
@@ -545,6 +546,51 @@ export function eventChains(raw: Pick<RawSave, 'country'>): EventChains {
 				: []
 		),
 		completed: [...new Set(items(raw.country?.completed_event_chain).map(String))]
+	};
+}
+
+// the precursors' star flags and chains (4.5.4 `events/precursor_events.txt`, `common/event_chains`)
+const PRECURSOR_FLAG = /^precursor_(\d|[a-z]+_?\d*)$/;
+const PRECURSOR_CHAIN =
+	/^(vultaum|yuht|first_league|irassian|cybrex|baol|cs_inetian|cs_adAkkaria)_(homeworld_)?chain$/;
+
+/** Everything the save holds on precursors, every empire's included (a cheat: the page decides). */
+export function precursorIntel(
+	raw: Pick<RawSave, 'galaxy' | 'systems' | 'countryBlocks'>
+): PrecursorIntel {
+	const systems: Record<string, number[]> = {};
+	for (const [id, s] of Object.entries(raw.systems))
+		for (const f of Object.keys(s?.flags && typeof s.flags === 'object' ? s.flags : {}))
+			if (PRECURSOR_FLAG.test(f) && f !== 'precursor_system') (systems[f] ??= []).push(Number(id));
+	const chains = Object.entries(raw.countryBlocks).flatMap(([id, c]) => {
+		if (!c || typeof c !== 'object') return [];
+		const country = displayName(c.name);
+		const running = items(c.event_chain).flatMap((e) =>
+			e && typeof e === 'object' && PRECURSOR_CHAIN.test(String(e.event_chain))
+				? [
+						{
+							countryId: Number(id),
+							country,
+							key: String(e.event_chain),
+							counters: Object.fromEntries(
+								Object.entries(e.counter ?? {}).flatMap(([k, v]) =>
+									typeof v === 'number' ? [[k, v]] : []
+								)
+							),
+							done: false
+						}
+					]
+				: []
+		);
+		const done = [...new Set(items(c.completed_event_chain).map(String))]
+			.filter((k) => PRECURSOR_CHAIN.test(k))
+			.map((key) => ({ countryId: Number(id), country, key, counters: {}, done: true }));
+		return [...running, ...done];
+	});
+	return {
+		disabled: items(raw.galaxy?.disabled_precursors).map(String),
+		systems,
+		chains
 	};
 }
 

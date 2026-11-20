@@ -530,6 +530,12 @@ type index clues difficulty days_left excavator_fleet completed = { { country da
   finished one (a contract chain repeats). Their counters' maximum is in the files
   (`common/event_chains`, data DB `event_chain`): precursors 6 artifacts, the L-Cluster 7 clues (also
   the variable `num_lcluster_clues`).
+- **Precursors** (Roaming Cybergang 2226.08.01, READER 72): the galaxy setup's
+  `galaxy.disabled_precursors = { "precursor_3" "precursor_baol_1" … }` names those switched off (8 of
+  9 there: only `precursor_5`, the Cybrex, on); the systems that can give a classic precursor's
+  artifacts carry its star flag `precursor_<1-5>` (92 for the Cybrex); a chain runs as an event chain
+  (`cybrex_chain`, counter `cybrex_artifacts`, then `cybrex_homeworld_chain`) on whichever country
+  found it, the intro flag `<x>_intro` on the country.
 - **Cosmic storms** (4.5.4, Roaming Cybergang, first in 2212.11.07 — a magnetic storm; particle
   from ~2217, a gravity storm in 2220 gone by 2223; two at 2226.08.01, none ever over us): top-level
   `storms = { storms = { <id> = { type cosmic_storm_start_position storm_target_pos = { x y }

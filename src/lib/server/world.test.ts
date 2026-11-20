@@ -7,6 +7,7 @@ import {
 	stationsSeen,
 	storms,
 	eventChains,
+	precursorIntel,
 	surveyedPlanets,
 	wormholeLinks
 } from './world.ts';
@@ -279,5 +280,43 @@ describe('eventChains', () => {
 			completed: ['nomad_checklist_chain', 'contract_colony_startup_chain']
 		});
 		expect(eventChains({ country: {} })).toEqual({ active: [], completed: [] });
+	});
+});
+
+describe('precursorIntel', () => {
+	it('reads the disabled precursors, their systems and every empire’s chains', () => {
+		// Roaming Cybergang 2226.08.01: only the Cybrex on, 92 systems flagged precursor_5
+		const raw = {
+			galaxy: { disabled_precursors: ['precursor_3', 'precursor_baol_1', 'precursor_1'] },
+			systems: {
+				'12': { flags: { precursor_5: 62808000, precursor_system: 62808000, hostile_system: 1 } },
+				'13': { flags: { precursor_5: 62808000 } },
+				'14': { flags: {} }
+			},
+			countryBlocks: {
+				'0': {
+					name: { key: 'Roaming Cybergang' },
+					event_chain: [{ event_chain: 'l_cluster_chain' }]
+				},
+				'16777229': {
+					name: { key: 'Barcalid Collective' },
+					event_chain: { event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 2 } },
+					completed_event_chain: ['nomad_checklist_chain']
+				}
+			}
+		};
+		expect(precursorIntel(raw)).toEqual({
+			disabled: ['precursor_3', 'precursor_baol_1', 'precursor_1'],
+			systems: { precursor_5: [12, 13] },
+			chains: [
+				{
+					countryId: 16777229,
+					country: 'Barcalid Collective',
+					key: 'cybrex_chain',
+					counters: { cybrex_artifacts: 2 },
+					done: false
+				}
+			]
+		});
 	});
 });

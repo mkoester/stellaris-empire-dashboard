@@ -373,6 +373,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		digSites: null,
 		storms: null,
 		eventChains: null,
+		precursorIntel: null,
 		stationsSeen: null,
 		surveyedAll: null,
 		focus: null,

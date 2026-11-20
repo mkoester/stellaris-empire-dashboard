@@ -4,6 +4,7 @@ import {
 	digSites,
 	storms,
 	eventChains,
+	precursorIntel,
 	diplomacy,
 	firstContacts,
 	galaxy as galaxySystems,
@@ -154,6 +155,7 @@ export function world(raw: RawSave) {
 		digSites: digSites(raw, visited),
 		storms: storms(raw),
 		eventChains: eventChains(raw),
+		precursorIntel: precursorIntel(raw),
 		stationsSeen: stationsSeen(raw, own)
 	};
 }

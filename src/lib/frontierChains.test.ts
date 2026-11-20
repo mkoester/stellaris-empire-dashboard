@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lgateView, precursorRows } from './frontierChains.ts';
+import { lgateView, precursorGalaxy, precursorRows } from './frontierChains.ts';
 import type { GalaxySystem } from './types.ts';
 
 const types = {
@@ -84,5 +84,72 @@ describe('precursorRows', () => {
 		]);
 		expect(precursorRows({ active: [], completed: [] }, types)).toEqual([]);
 		expect(precursorRows(null, types)).toEqual([]);
+	});
+});
+
+describe('precursorGalaxy', () => {
+	it('every precursor: in this galaxy or not, its systems, who collects it', () => {
+		const rows = precursorGalaxy(
+			{
+				disabled: ['precursor_1', 'precursor_2', 'precursor_3', 'precursor_4', 'precursor_baol_1'],
+				systems: { precursor_5: [12, 13, 14] },
+				chains: [
+					{
+						countryId: 7,
+						country: 'Barcalid Collective',
+						key: 'cybrex_chain',
+						counters: { cybrex_artifacts: 2 },
+						done: false
+					},
+					{
+						countryId: 0,
+						country: 'Roaming Cybergang',
+						key: 'cybrex_chain',
+						counters: {},
+						done: true
+					},
+					{
+						countryId: 0,
+						country: 'Roaming Cybergang',
+						key: 'cybrex_homeworld_chain',
+						counters: {},
+						done: false
+					}
+				]
+			},
+			types,
+			(id) => id === 12,
+			0
+		);
+		const cybrex = rows.find((r) => r.flag === 'precursor_5')!;
+		expect([cybrex.name, cybrex.enabled, cybrex.visited, cybrex.systems]).toEqual([
+			'The Cybrex',
+			true,
+			1,
+			3
+		]);
+		expect(cybrex.empires).toEqual([
+			{
+				country: 'Barcalid Collective',
+				us: false,
+				artifacts: 2,
+				needed: 6,
+				done: false,
+				homeworld: 'none'
+			},
+			{
+				country: 'Roaming Cybergang',
+				us: true,
+				artifacts: 6,
+				needed: 6,
+				done: true,
+				homeworld: 'found'
+			}
+		]);
+		const vultaum = rows.find((r) => r.flag === 'precursor_1')!;
+		expect([vultaum.enabled, vultaum.systems, vultaum.empires]).toEqual([false, 0, []]);
+		// the storm precursors have no star flag of their own
+		expect(rows.find((r) => r.flag === 'precursor_inetian')?.systems).toBeNull();
+		expect(rows.length).toBe(9);
 	});
 });

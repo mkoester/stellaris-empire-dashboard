@@ -1,4 +1,4 @@
-import type { EventChains, GameData, GalaxySystem } from './types.ts';
+import type { EventChains, GameData, GalaxySystem, PrecursorIntel } from './types.ts';
 
 // The frontier tab's L-Gate and Precursors panels: what the empire's situation log holds of each
 // (event chains, `docs/save-format.md`), as the game's own log shows it. Pure.
@@ -86,4 +86,80 @@ export function precursorRows(
 				homeworld: completed.has(home) ? 'done' : active.has(home) ? 'found' : 'none'
 			};
 		});
+}
+
+// Every precursor the game knows (4.5.4): its galaxy-setup key and star flag, its chain, a name
+// for where the data DB has no title. Zroni come from dig sites and have no chain.
+export const PRECURSORS: { flag: string; chain: string | null; name: string }[] = [
+	{ flag: 'precursor_1', chain: 'vultaum_chain', name: 'The Vultaum' },
+	{ flag: 'precursor_2', chain: 'yuht_chain', name: 'The Yuht' },
+	{ flag: 'precursor_3', chain: 'first_league_chain', name: 'The First League' },
+	{ flag: 'precursor_4', chain: 'irassian_chain', name: 'The Irassians' },
+	{ flag: 'precursor_5', chain: 'cybrex_chain', name: 'The Cybrex' },
+	{ flag: 'precursor_baol_1', chain: 'baol_chain', name: 'The Baol' },
+	{ flag: 'precursor_zroni_1', chain: null, name: 'The Zroni' },
+	{ flag: 'precursor_inetian', chain: 'cs_inetian_chain', name: 'The Inetian Traders' },
+	{ flag: 'precursor_adakkaria', chain: 'cs_adAkkaria_chain', name: 'The adAkkaria' }
+];
+
+export type PrecursorGalaxyRow = {
+	flag: string;
+	name: string;
+	enabled: boolean; // not in the galaxy setup's `disabled_precursors`
+	systems: number | null; // systems with its star flag; null where it has none of its own
+	visited: number | null; // of those, the ones we visited or own
+	empires: {
+		country: string;
+		us: boolean;
+		artifacts: number | null;
+		needed: number | null;
+		done: boolean;
+		homeworld: 'none' | 'found' | 'done';
+	}[];
+};
+
+/** The cheat: every precursor, whether this galaxy has it, its systems and who collects it. */
+export function precursorGalaxy(
+	intel: PrecursorIntel,
+	types: GameData['eventChains'],
+	known: (systemId: number) => boolean,
+	us: number
+): PrecursorGalaxyRow[] {
+	const disabled = new Set(intel.disabled);
+	return PRECURSORS.map((p) => {
+		const own = intel.systems[p.flag];
+		const counter = p.chain ? (types[p.chain]?.counters[0] ?? null) : null;
+		const home = p.chain?.replace(/_chain$/, '_homeworld_chain');
+		const of = (id: number) => intel.chains.filter((c) => c.countryId === id);
+		const ids = [
+			...new Set(
+				intel.chains.filter((c) => c.key === p.chain || c.key === home).map((c) => c.countryId)
+			)
+		];
+		return {
+			flag: p.flag,
+			name: (p.chain && types[p.chain]?.title?.replace(/^Precursors - /, '')) || p.name,
+			enabled: !disabled.has(p.flag),
+			systems: own ? own.length : p.flag.match(/^precursor_\d$/) ? 0 : null,
+			visited: own ? own.filter(known).length : p.flag.match(/^precursor_\d$/) ? 0 : null,
+			empires: ids.map((id) => {
+				const cs = of(id);
+				const chain = cs.find((c) => c.key === p.chain);
+				const homes = cs.filter((c) => c.key === home);
+				const done = !!chain?.done;
+				return {
+					country: cs[0].country,
+					us: id === us,
+					artifacts: counter
+						? done && counter.max !== null
+							? counter.max
+							: (chain?.counters[counter.key] ?? 0)
+						: null,
+					needed: counter?.max ?? null,
+					done,
+					homeworld: homes.some((h) => h.done) ? 'done' : homes.length ? 'found' : 'none'
+				};
+			})
+		};
+	});
 }

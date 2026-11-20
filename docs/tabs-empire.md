@@ -298,7 +298,19 @@ counters and their maximum). L-Gate: insights of `l_cluster_chain`'s `clues` (7)
 sources now — the repeatable L-Gate Insight tech on offer, the open rows with the badge. Precursors:
 each precursor chain we started (category `precursors`), its artifacts (6) and its home system's
 chain. Which precursor a galaxy has is a secret until found (`precursor_<n>` system flags: 5 is the
-Cybrex, 92 systems in Roaming Cybergang), so none shows before.
+Cybrex, 92 systems in Roaming Cybergang), so none shows before. The cheat `precursorsAll` (intel, so off in
+multiplayer and Ironman; the user's ask 2026-11-20) adds everything the save holds
+(`Snapshot.precursorIntel`, READER 72, dropped by `pageLatest()`; `precursorGalaxy()`): every precursor
+the game knows (`PRECURSORS`: Vultaum 1, Yuht 2, First League 3, Irassians 4, Cybrex 5, Baol, Zroni,
+Inetian Traders, adAkkaria), whether the setup disabled it, its flagged systems visited / all (the five
+with a star flag of their own), and every empire collecting it with its artifacts and home system.
+Roaming Cybergang 2226.08.01: only the Cybrex, 58 of 92 systems visited, nobody collecting.
+**Nomads get precursors as anyone** (4.5.4): the intro is an `on_survey` random event (`precursor.2000`
+for the Cybrex: weight 6 against 100 for nothing, so ≈ 6 % per body surveyed without an anomaly in one
+of its systems), with no `is_nomadic` anywhere in the chain; the home system's link spawns at a
+waystation of ours in one of its systems, else any waystation, else a colony
+(`precursor_capital_spawn_system_effect`). The nomads' `precursor_system_*` variables are Wanderlust's
+exploration tracker (the `precursor_system` star flag), not this chain.
 Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
 (Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
 column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept

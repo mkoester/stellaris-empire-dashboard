@@ -726,6 +726,47 @@
 						</tbody>
 					</table>
 				{/if}
+				{#if data.precursorGalaxy}
+					<p class="mt-3 mb-1 text-xs text-gray-500">
+						Everything the save holds (a cheat): which precursors this galaxy has, the systems that
+						can give their artifacts, and every empire collecting them.
+					</p>
+					<table class="text-sm">
+						<thead
+							><tr class="border-b border-gray-300 text-left dark:border-gray-700"
+								><th class="pr-4">Precursor</th><th class="pr-4">In this galaxy</th><th
+									class="pr-4 text-right"
+									title="systems with its flag: visited or owned / all">Systems</th
+								><th>Collected by</th></tr
+							></thead
+						>
+						<tbody>
+							{#each data.precursorGalaxy as r (r.flag)}
+								<tr
+									class="border-b border-gray-100 align-top dark:border-gray-900 {r.enabled
+										? ''
+										: 'opacity-50'}"
+									><td class="pr-4"><b>{r.name}</b></td><td class="pr-4"
+										>{r.enabled ? 'yes' : 'disabled in the setup'}</td
+									><td class="pr-4 text-right tabular-nums"
+										>{r.systems === null ? '–' : `${r.visited} / ${r.systems}`}</td
+									><td
+										>{#each r.empires as e, i (i)}<span class="block"
+												><span class={e.us ? 'font-semibold' : ''}>{e.us ? 'you' : e.country}</span
+												>{e.artifacts !== null
+													? ` ${e.artifacts}${e.needed !== null ? ` / ${e.needed}` : ''}`
+													: ''}{e.done ? ' ✓' : ''}{e.homeworld === 'done'
+													? ', home explored'
+													: e.homeworld === 'found'
+														? ', home found'
+														: ''}</span
+											>{:else}<span class="text-gray-500">nobody yet</span>{/each}</td
+									></tr
+								>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
 			</Panel>
 
 			<Panel title="Events" note="The campaign's bigger events are in their own tab.">
