@@ -62,7 +62,12 @@ enable_galactic_market = yes`). GalCom bans: global flags `organic_slave_trade_b
   set with `enable_galactic_market` for Galactic Community members once the market is founded
   (`resolution_galactic_market_form` → `action.99/101/104/115`), removed on leaving it unless the
   country holds the market planet (`galcom.61`). The monthly limit (`monthlyLimit`) is shown on
-  the internal market only.
+  the internal market only. **How a price recovers** (fitted 2026-11-19 on Roaming Cyber Gang's
+  saves, internal market): a monthly order moves the fluctuation on the 1st by 2 × amount ÷
+  `market_amount` % (× 0.3 selling); per day it falls back by 0.018519 + 0.000297 × f above base
+  (≈ 0.00307 below), and under 0.3 (`MARKET_FLUCTUATION_EPSILON`) it snaps to 0 — 4× slower than
+  `MARKET_DAYS_TO_BASE_PRICE` × `INTERNAL_MARKET_DAYS_TO_BASE_PRICE` suggest. It reproduces the
+  42/64 buy/sell limits. `priceRecovery()` in `#lib/market.ts` has the data points.
 - Colonies: since 4.x a top-level `colony=` section, referenced from `planets.planet.<id>.colony`.
   Holds pops, housing, amenities, stability, `final_designation`, districts, buildings.
   `employable_pops` counts all pops able to work, _not_ the employed: employed is
@@ -511,11 +516,41 @@ type progress last_month_progress approach stage }`. Anomalies: `country.events.
 { <planet ids> }`, category in `planets.planet.<id>.anomaly`. Special projects
   `country.events.special_project = { id special_project carrier = { type=planet reference } }`,
   no progress. Dig sites `archaeological_sites.sites.<id> = { location = { type=2 id=<planet> }
-type index clues difficulty days_left excavator_fleet }`; `index` is the chapter under way,
-  0-based (**assumed**: every site in Roaming Korinth 2210.10.20 reads 0, and `site_star_petal`'s
-  difficulty 2 is its first stage's — no site seen past a chapter yet). Megastructures `megastructures.<id> =
+type index clues difficulty days_left excavator_fleet completed = { { country date } } }`;
+  **`index` = the chapters done** = the entries of `completed`, one per chapter with its date
+  (confirmed on four sites, Roaming Cybergang 2226.08.01: Space Shanty 3 of 5, Star Petal 4 of 4, Cut
+  to Fit and Lost Moments 3 each). **An excavated site stays in the save** with `index` at its
+  chapter count — Star Petal finished 2222.07.25 and was still listed four years later —, so
+  "finished" is `index` ≥ the site type's stages (`digSiteDone()`), not a site gone. Megastructures `megastructures.<id> =
 { type coordinate.origin owner }` (2207.03.10: ruined gateways, a ruined quantum catapult, two
   ruined ring world sections).
+- **Event chains** (the situation log; Roaming Cybergang 2226.08.01, READER 71): on the country
+  `event_chain = { event_chain="l_cluster_chain" scope = { … } counter = { clues=1 } }` per running
+  chain — `counter` is absent while every counter is 0 —, and `completed_event_chain="<key>"` per
+  finished one (a contract chain repeats). Their counters' maximum is in the files
+  (`common/event_chains`, data DB `event_chain`): precursors 6 artifacts, the L-Cluster 7 clues (also
+  the variable `num_lcluster_clues`).
+- **Precursors** (Roaming Cybergang 2226.08.01, READER 72): the galaxy setup's
+  `galaxy.disabled_precursors = { "precursor_3" "precursor_baol_1" … }` names those switched off (8 of
+  9 there: only `precursor_5`, the Cybrex, on); the systems that can give a classic precursor's
+  artifacts carry its star flag `precursor_<1-5>` (92 for the Cybrex); a chain runs as an event chain
+  (`cybrex_chain`, counter `cybrex_artifacts`, then `cybrex_homeworld_chain`) on whichever country
+  found it, the intro flag `<x>_intro` on the country.
+- **Cosmic storms** (4.5.4, Roaming Cybergang, first in 2212.11.07 — a magnetic storm; particle
+  from ~2217, a gravity storm in 2220 gone by 2223; two at 2226.08.01, none ever over us): top-level
+  `storms = { storms = { <id> = { type cosmic_storm_start_position storm_target_pos = { x y }
+storm_current_path_index path = { <system ids> } speed storm_days_till_next_system storm_age
+storm_min_radius storm_max_radius storm_activation_period_in_months storm_monthly_added_devastation
+activated cluster = { position radius objects = { <system ids> } } name prefix
+affected_country_ids flags } } cosmic_storm_name_list_name }` — `path` is the route ahead, so a
+  forecast needs no guessing; `cluster.objects` the systems covered now. A dead storm leaves name
+  and type in `dead_cosmic_storm`. Also: map objects `data="<type>"` with flag
+  `space_storm_object`, the system flag `storm_system`, `storm_influence_fields.storm_influence_fields
+= { <i> = { center radius storm_influence_groups = { { system tier } } } }` (tier 1–4), the
+  Storm Repel Field as a perpetual edict `storm_repel_field`, and on an affected country the flags
+  `first_storm_appears_within_borders` / `triggered_eye_of_the_storm` and the timeline event
+  `timeline_first_storm_within_borders`. Unread: what a storm over our own planets writes (no
+  modifier seen on us yet).
 - Empire focus: `country.focus = { active = { <card ids> } priority = { current } reward = {
 rewards = { { category current="development_rewards_2" progress } } } }`; cards are top-level
   `focus_cards.<id> = { type status }`, **`status=1` = done**: the game's panel at 2207.03.10 lists

@@ -80,6 +80,7 @@ const data = {
 	names: { district_city: 'City District' },
 	focus: { categories: {}, cards: {}, rewards: {} },
 	situationTypes: {},
+	eventChains: {},
 	identityNames: { auth_democratic: 'Democratic' },
 	anomalyCategories: {},
 	civicAuthority: { civic_imperial_cult: { require: ['auth_imperial'], forbid: [] } }

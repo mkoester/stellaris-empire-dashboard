@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { graph } from './galaxyGraph.ts';
 import {
+	aboardOf,
 	arkshipKind,
 	branchLine,
 	contractBonus,
@@ -11,10 +12,11 @@ import {
 	inRange,
 	kindOf,
 	parseContractView,
+	remoteOf,
 	type ContractContext,
 	type DetailContext
 } from './contracts.ts';
-import type { Arkship, Contract, ContractType } from './types.ts';
+import type { Arkship, Contract, ContractProject, ContractType } from './types.ts';
 
 // a contract type as an older data DB gives it: no details
 const plain = (name: string, category: string, timeToAccept: number | null): ContractType => ({
@@ -28,7 +30,8 @@ const plain = (name: string, category: string, timeToAccept: number | null): Con
 	reward: null,
 	failedOpinion: null,
 	operatorTechs: [],
-	projects: []
+	projects: [],
+	location: null
 });
 
 const c = (o: Partial<Contract> & Pick<Contract, 'id'>): Contract => ({
@@ -41,6 +44,8 @@ const c = (o: Partial<Contract> & Pick<Contract, 'id'>): Contract => ({
 	state: 'offered',
 	daysLeft: 100,
 	accepted: null,
+	pickup: null,
+	dropoff: null,
 	...o
 });
 
@@ -204,10 +209,12 @@ const STARTUP: ContractType = {
 			key: 'CONTRACT_COLONY_STARTUP_PROJECT',
 			name: 'Colony Startup',
 			days: 180,
+			cost: null,
 			requirements: { carries_colony: 1 },
 			arkshipBranches: true
 		}
-	]
+	],
+	location: true
 };
 
 const ark = (o: Partial<Arkship>): Arkship => ({
@@ -219,7 +226,40 @@ const ark = (o: Partial<Arkship>): Arkship => ({
 	planetSize: 9,
 	systemId: 1,
 	capital: true,
+	cargo: [],
 	...o
+});
+
+describe('aboardOf', () => {
+	// as in Roaming Cybergang 2225.08.21: two arkships in the pickup system, Farleigh took them
+	const arks = [
+		ark({}),
+		ark({
+			name: 'Farleigh',
+			capital: false,
+			cargo: [{ flag: 'carrying_delegates', since: '2225.08.21' }]
+		})
+	];
+	const row = (o: Partial<Contract>) =>
+		contractRows(
+			[c({ id: 1, key: 'contract_diplomatic_support', ...o })],
+			ctx({ me: 1, nomadic: true })
+		)[0];
+	const mine = { operator: 1, operatorName: 'Us', state: 'active' as const };
+
+	it('names the arkship whose fleet carries the contract’s flag', () => {
+		expect(aboardOf(row(mine), arks)).toEqual({
+			name: 'Farleigh',
+			who: 'the delegates',
+			since: '2225.08.21'
+		});
+	});
+
+	it('says nothing before the pickup, for another contract, or one not ours', () => {
+		expect(aboardOf(row(mine), [ark({})])).toBeNull();
+		expect(aboardOf(row({ ...mine, key: 'contract_prisoner_disposal' }), arks)).toBeNull();
+		expect(aboardOf(row({}), arks)).toBeNull(); // an offer
+	});
 });
 
 describe('contractDetail', () => {
@@ -322,5 +362,37 @@ describe('contractBonus / arkshipKind', () => {
 		expect(arkshipKind('military_arkship_champions_forge')).toBe('military');
 		expect(arkshipKind('science_arkship_tier_3')).toBe('science');
 		expect(arkshipKind('civilian_arkship_tier_1')).toBe('civilian');
+	});
+});
+
+describe('remoteOf', () => {
+	const research: ContractProject = {
+		key: 'P',
+		name: 'P',
+		days: null,
+		cost: 750,
+		requirements: {},
+		arkshipBranches: false
+	};
+	const ship = { ...research, days: 30, cost: null, requirements: { carries_colony: 1 } };
+	const type = (location: boolean | null, projects: ContractProject[]): ContractType => ({
+		...plain('x', 'resource_contract', 100),
+		detailed: true,
+		location,
+		projects
+	});
+	it('remote: research projects only (the onboard ones), no system, or no trip asked', () => {
+		expect(remoteOf('contract_onboard_minerals_resource', type(true, [research]))).toBe(true);
+		expect(remoteOf('contract_onboard_physics_research', type(false, [research]))).toBe(true);
+		expect(remoteOf('contract_join_war', type(true, []))).toBe(true);
+	});
+	it('at its system: a ship project, or a system and no project (harvest, pest control)', () => {
+		expect(remoteOf('contract_colony_startup', type(true, [ship]))).toBe(false);
+		expect(remoteOf('contract_harvest_energy', type(true, []))).toBe(false);
+		expect(remoteOf('contract_x', type(true, [research, ship]))).toBe(false);
+	});
+	it('unknown with a data DB before the location column', () => {
+		expect(remoteOf('contract_harvest_energy', type(null, []))).toBe(null);
+		expect(remoteOf('contract_harvest_energy', undefined)).toBe(null);
 	});
 });

@@ -6,8 +6,8 @@ import type { AiIntel, Claim, Relation } from './types.ts';
 
 // Map modes: the map tab's borders, or its systems, recoloured by what we know of each empire —
 // after the game's own (4.5.2 `common/map_modes/00_map_modes.txt`: empire, union, diplomatic,
-// intel, opinion, attitude) plus ours (trust, threat, how fresh our intel is, claims). What our
-// intel does not show stays grey, as the game's "no contact"; a reading our intel no longer
+// intel, opinion, attitude, the storm forecast) plus ours (trust, threat, how fresh our intel is,
+// claims). What our intel does not show stays grey, as the game's "no contact"; a reading our intel no longer
 // shows is drawn dashed ("unverified since").
 
 export const MAP_MODES = [
@@ -20,7 +20,8 @@ export const MAP_MODES = [
 	'trust',
 	'threat',
 	'freshness',
-	'claims'
+	'claims',
+	'storms'
 ] as const;
 export type MapMode = (typeof MAP_MODES)[number];
 
@@ -69,6 +70,11 @@ export const MODE_INFO: Record<
 		label: 'claims',
 		kind: 'system',
 		note: 'systems we claim (blue) and our systems others claim (red); borders in empire colours'
+	},
+	storms: {
+		label: 'storms',
+		kind: 'system',
+		note: 'cosmic storms where they are (magnetic purple, particle red, gravity blue, electric yellow), lighter where they go next — that needs Cosmic Weather Models; hover a system for when'
 	}
 };
 

@@ -97,6 +97,9 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	anomalies: null,
 	specialProjects: null,
 	digSites: null,
+	storms: null,
+	eventChains: null,
+	precursorIntel: null,
 	stationsSeen: null,
 	surveyedAll: null,
 	focus: null,
@@ -199,6 +202,10 @@ export function upgrade(
 			globalFlags: s.galcom.globalFlags ?? []
 		},
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
+		arkships: s.arkships && s.arkships.map((a) => ({ ...a, cargo: a.cargo ?? [] })),
+		contracts:
+			s.contracts &&
+			s.contracts.map((c) => ({ ...c, pickup: c.pickup ?? null, dropoff: c.dropoff ?? null })),
 		subjects:
 			s.subjects &&
 			s.subjects.map((x) => ({

@@ -41,6 +41,43 @@
 		const days = [...new Set(r.detail.projects.map((p) => p.days).filter((d) => d !== null))];
 		return days.length === 1 && r.detail.steps ? r.detail.steps * (days[0] as number) : null;
 	};
+	const name = (id: number | null) => (id === null ? null : (c.systemNames[id] ?? `system ${id}`));
+	// remote, at its system, or a transport's way: pickup → drop-off where the save marks them
+	const where = (r: Row): { label: string; title: string } => {
+		const d = r.detail;
+		if (d.remote === null)
+			return { label: '–', title: 'not known: the data DB predates the extractor of 2026-11-20' };
+		if (d.remote)
+			return {
+				label: 'remote',
+				title: d.research
+					? `research projects only (${fmt(d.research)} research): done from anywhere`
+					: 'no trip asked: done from anywhere'
+			};
+		if (d.transport && (r.pickup !== null || r.dropoff !== null))
+			return {
+				label: `${name(r.pickup) ?? '?'} → ${name(r.dropoff) ?? 'your choice'}`,
+				title: 'pick up → deliver, as the save marks them; hover for the arrow on the map'
+			};
+		if (d.transport)
+			return {
+				label: `transport from ${system(r) ?? '?'}`,
+				title: 'pick up there; where to is marked once you take it'
+			};
+		return { label: `at ${system(r) ?? '?'}`, title: 'a ship has to be at its system' };
+	};
+	// a transport's arrow, while its row or one of its systems is hovered
+	const arrows = $derived(
+		c.rows.flatMap((r) => {
+			const from = r.pickup ?? r.systemId;
+			const to = r.dropoff;
+			const a = from === null ? undefined : byId.get(from);
+			const b = to === null ? undefined : byId.get(to);
+			return a && b && hovered !== null && [r.systemId, r.pickup, r.dropoff].includes(hovered)
+				? [{ id: r.id, a, b, title: `${r.name}: ${name(from)} → ${name(to)}` }]
+				: [];
+		})
+	);
 	const APPROX =
 		'≈ at least: +10 % per contract you completed is counted; traditions, authority or leader traits that raise contract rewards (nomadic_contract_value_mult) are not';
 
@@ -50,6 +87,13 @@
 		{ id: 'issuer', label: 'Issuer', value: (r) => r.issuerName, cell: issuerCell },
 		{ id: 'operator', label: 'Taken by', value: (r) => r.operatorName, cell: operatorCell },
 		{ id: 'system', label: 'System', value: system },
+		{
+			id: 'where',
+			label: 'Where',
+			value: (r) => where(r).label,
+			cell: whereCell,
+			title: 'remote: done from anywhere (research projects only); else a ship has to go there'
+		},
 		{
 			id: 'jumps',
 			label: 'Beyond',
@@ -104,6 +148,14 @@
 {#snippet stateCell(r: Row)}{#if r.state === 'offered'}offered{r.daysLeft === null
 			? ''
 			: `, ${r.daysLeft} days`}{:else}taken{r.accepted ? ` ${r.accepted}` : ''}{/if}{/snippet}
+{#snippet whereCell(r: Row)}<span
+		class={where(r).label === '–'
+			? 'text-gray-500'
+			: where(r).label === 'remote'
+				? 'text-green-700 dark:text-green-400'
+				: ''}
+		title={where(r).title}>{where(r).label}</span
+	>{/snippet}
 {#snippet whyCell(r: Row)}<span
 		class={r.why === 'spoiler'
 			? 'text-amber-600'
@@ -115,10 +167,15 @@
 {#snippet rewardCell(r: Row)}{#if r.detail.trade !== null}<span title={APPROX}
 			>≈{r.detail.trade.toFixed(2)}</span
 		>{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
-{#snippet workCell(r: Row)}{#if work(r) !== null}{work(r)} days{:else if r.detail.steps}{r.detail
-			.steps} steps{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
-{#snippet arkshipCell(r: Row)}{#if !r.detail.needsArkship}<span class="text-gray-500"
-			>no arkship needed</span
+{#snippet workCell(r: Row)}{#if r.detail.research !== null}{fmt(r.detail.research)} research{:else if work(r) !== null}{work(
+			r
+		)} days{:else if r.detail.steps}{r.detail.steps} steps{:else}<span class="text-gray-500">–</span
+		>{/if}{/snippet}
+{#snippet arkshipCell(r: Row)}{#if r.detail.aboard}<span
+			class="font-semibold"
+			title={`${r.detail.aboard.who} came aboard ${r.detail.aboard.since ?? 'on an unknown day'}; the game does not show which arkship carries them`}
+			>{r.detail.aboard.who} aboard {r.detail.aboard.name}</span
+		>{:else if !r.detail.needsArkship}<span class="text-gray-500">no arkship needed</span
 		>{:else if nearest(r)}{nearest(r)?.name}{nearest(r)?.jumps === null
 			? ' · no known route'
 			: ` · ${nearest(r)?.jumps} jumps`}{:else}<span class="text-gray-500">none</span
@@ -177,6 +234,11 @@
 				</dd>
 				<dt class="text-gray-500">Your arkships</dt>
 				<dd>
+					{#if d.aboard}<div class="font-semibold">
+							{d.aboard.who} are aboard {d.aboard.name}{d.aboard.since
+								? ` since ${d.aboard.since}`
+								: ''}.
+						</div>{/if}
 					{#if !d.needsArkship}Not an arkship's job (see what to do).
 					{:else if !d.arkships.length}None.
 					{:else}{d.arkships
@@ -274,6 +336,31 @@
 		>
 			{#snippet layer(at)}
 				<ContractMarks marks={data.marks} {at} place={byId} />
+				<defs
+					><marker
+						id="contract-arrow"
+						viewBox="0 0 10 10"
+						refX="9"
+						refY="5"
+						markerWidth="7"
+						markerHeight="7"
+						orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c9822b" /></marker
+					></defs
+				>
+				{#each arrows as w (w.id)}
+					{@const p = at(w.a)}
+					{@const q = at(w.b)}
+					<line
+						x1={p.x}
+						y1={p.y}
+						x2={q.x}
+						y2={q.y}
+						stroke="#c9822b"
+						stroke-width="3"
+						marker-end="url(#contract-arrow)"
+						pointer-events="none"><title>{w.title}</title></line
+					>
+				{/each}
 			{/snippet}
 		</GalaxyMap>
 		{#if width !== 'side'}<div class="mt-3">{@render table()}</div>{/if}

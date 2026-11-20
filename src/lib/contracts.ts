@@ -181,6 +181,87 @@ export function contractMarks(
 	}));
 }
 
+// ── Who is aboard which arkship ───────────────────────────────────────────────────────────────
+
+/**
+ * Contracts that put passengers on one of our arkships, marked by a fleet flag on its fleet (4.5.x
+ * `events/nomads_events_1.txt`): Diplomatic Support's pickup (nomads.3036, on entering the pickup
+ * system — at random among our arkships there), Prisoner Disposal (nomads.3050), the Sightseeing
+ * Tour (nomads.3060). The game's own panels never say which arkship it is. The flag names no
+ * contract, but a nomad can hold only one of each at a time (`possible_operator`:
+ * `already_doing_same_contract`, `common/missions/missions/02_contracts.txt`), so the contract's
+ * key is enough. Re-check on game updates.
+ */
+export const CONTRACT_CARGO: Record<string, { flag: string; who: string }> = {
+	contract_diplomatic_support: { flag: 'carrying_delegates', who: 'the delegates' },
+	contract_prisoner_disposal: { flag: 'transporting_prisoners', who: 'the prisoners' },
+	contract_sightseeing_tour: { flag: 'sightseeing_tour_arkship', who: 'the tourists' }
+};
+export const CARGO_FLAGS = new Set(Object.values(CONTRACT_CARGO).map((c) => c.flag));
+
+export type Aboard = { name: string; who: string; since: string | null };
+
+/** The arkship that carries this contract's passengers: only for an active contract of ours. */
+export function aboardOf(r: ContractRow, arkships: Arkship[]): Aboard | null {
+	const cargo = CONTRACT_CARGO[r.key];
+	if (!cargo || r.why !== 'mine' || r.state !== 'active') return null;
+	for (const a of arkships) {
+		const hit = a.cargo.find((c) => c.flag === cargo.flag);
+		if (hit) return { name: a.name, who: cargo.who, since: hit.since };
+	}
+	return null;
+}
+
+// ── Where a transport contract picks up and delivers ──────────────────────────────────────────
+
+/**
+ * Transport contracts mark their places with flags named for the operator (`@root`, written
+ * `<flag><our id>` in the save): a planet's carrier flag, or a star's flag (4.5.4
+ * `common/missions/missions/02_contracts.txt` on_accept, `events/nomads_events_1.txt`). Diplomatic
+ * Support: from the contract system's owner's capital to the issuer's; Prisoner Disposal: a pickup
+ * only — where they go is our choice; the Sightseeing Tour: its start, then a destination set
+ * after the pickup (nomads events, `sightseeing_tour_destination_system`). Re-check on game updates.
+ */
+export const TRANSPORT: Record<
+	string,
+	{ pickup: string; dropoff: { planet: string } | { star: string } | null }
+> = {
+	contract_diplomatic_support: {
+		pickup: 'diplomatic_support_pickup_planet',
+		dropoff: { planet: 'diplomatic_support_dropoff_planet' }
+	},
+	contract_prisoner_disposal: { pickup: 'prisoner_disposal_pickup_planet', dropoff: null },
+	contract_sightseeing_tour: {
+		pickup: 'sightseeing_tour_start',
+		dropoff: { star: 'sightseeing_tour_destination_system' }
+	}
+};
+
+// ── Remote, or at a place ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Contracts with a system that ask for no trip there: Join Wars is done by being at war with the
+ * issuer's enemies (02_contracts.txt `contract_join_war`: no project, no fleet check).
+ */
+const NO_TRIP = new Set(['contract_join_war']);
+
+/**
+ * Whether a contract is done from anywhere: every special project of it is a research project
+ * (a `cost`, no ship or arkship needed — the onboard ones, 4.5.4
+ * `inline_scripts/special_projects/onboard_*_contract_project.txt`: `location = no`, `cost`), or
+ * it asks for no trip (`NO_TRIP`). Everything else needs a ship at its system (a project with
+ * `requirements`, or the contract's own fleet checks). null: a data DB before 2026-11-20.
+ */
+export function remoteOf(key: string, type: ContractType | undefined): boolean | null {
+	if (NO_TRIP.has(key)) return true;
+	if (type?.location == null) return null;
+	const ps = type.projects;
+	return (
+		!type.location ||
+		(ps.length > 0 && ps.every((p) => p.cost !== null && !Object.keys(p.requirements).length))
+	);
+}
+
 // ── What a contract asks of us and pays (data DB `contract` + `special_project`) ──────────────
 
 export type ArkshipKind = 'science' | 'military' | 'civilian';
@@ -263,6 +344,10 @@ export type ContractDetail = {
 	needsArkship: boolean; // a project needs one, or the contract has none (travel by arkship)
 	arkshipBranches: boolean; // the outcome differs by arkship type
 	arkships: ArkshipFit[]; // ours, nearest first
+	aboard: Aboard | null; // the arkship carrying this contract's passengers
+	remote: boolean | null; // `remoteOf()`: done from anywhere; null: not known (older data DB)
+	research: number | null; // a remote one's research cost, its projects' summed
+	transport: boolean; // picks up and delivers (`TRANSPORT`)
 };
 
 export type DetailContext = {
@@ -308,8 +393,10 @@ export function contractDetail(
 	];
 	const partial = rw && rw.scaled.length > 1 ? [...scaledLines(rw.scaled[1], bonus), ...fixed] : [];
 	const projects = (type?.projects ?? []).map((p) => ({ ...p, needs: needsOf(p.requirements) }));
+	const remote = remoteOf(r.key, type);
 	const needsArkship =
-		!projects.length || projects.some((p) => p.requirements.carries_colony !== undefined);
+		!remote &&
+		(!projects.length || projects.some((p) => p.requirements.carries_colony !== undefined));
 	const from = (a: Arkship) =>
 		a.systemId === null || r.systemId === null
 			? null
@@ -340,6 +427,11 @@ export function contractDetail(
 			.map(ctx.techName),
 		needsArkship,
 		arkshipBranches: projects.some((p) => p.arkshipBranches),
-		arkships
+		arkships,
+		aboard: aboardOf(r, ctx.arkships),
+		remote,
+		research:
+			remote && projects.length ? projects.reduce((sum, p) => sum + (p.cost ?? 0), 0) : null,
+		transport: r.key in TRANSPORT
 	};
 }

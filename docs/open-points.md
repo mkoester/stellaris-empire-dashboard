@@ -5,16 +5,28 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 ## Open (needs a running game on Linux)
 
 - **Waylines, our own (2026-11-16)**: the roaming tab was checked on the AI nomads' waystations
-  only — `roamingcybergang` had none of ours at 2213.08. After building the first: its tier,
+  only — `roamingcybergang` had none of ours at 2213.08; its first was built 2214.03.22 (the
+  timeline's `timeline_first_waystation_built`; budget 2226.08.01: `starbase_waystations` food 11,
+  trade 22, `_modules` trade 66), so the check needs only the game's window now. Then: its tier,
   modules, fill and stockpile against the waystation's own window, and a module's monthly
   collection against the tab's number. **Assumed**: the tier factor (×0.75 at Waystation I)
   applies to flat `starbase_collected_system_<r>_add` too (the Hydroponics Bay's food); the
   wayline groups follow neighbouring systems (matched the save's `waystation_networks` for all
   five AI waylines).
 
-- **A dig site's chapter (2026-11-15)**: `DigSite.chapter` = the save's `index` + 1 is
-  **assumed** — every site seen so far reads `index=0`. Check after a chapter's event: the
-  frontier tab's Chapter column should read 2, and the Outcome's "← next" mark move with it.
+- **A dig site's chapter, confirmed from the saves (2026-11-20)**: `index` = the chapters done
+  (`completed` holds one dated entry each; Roaming Cybergang 2226.08.01), so `DigSite.chapter` =
+  `index` + 1 holds. An excavated site stays in the save at `index` = its stages, and showed
+  "5 / 4" with a time estimate on the frontier tab: now "excavated", out of "Still to gain", and
+  done on the map (`digSiteDone()`). Still to see in a browser: the Outcome's "← next" mark
+  against the game's dig site window.
+- **The storms map mode, unchecked in a browser (2026-11-20)**: the fill and hover text are unit
+  tested (`storms.test.ts`), not seen drawn; Roaming Cybergang has no Cosmic Weather Models, so the
+  path ahead has not been shown on a real campaign. Compare with the game's Weather Forecast mode
+  once researched: which systems it marks ahead (intel 1 vs 2), and its arrival estimates.
+- **Cosmic storms over us, unseen (2026-11-20)**: the save format is read (`docs/save-format.md`,
+  "Cosmic storms"); no storm has reached Roaming Cybergang's space by 2226.08. At the first that
+  does: what the save adds on our planets and fleets, against the game's storm tooltip.
 - **Outcome trees against the game (2026-11-15)**: the frontier tab's Outcome for an anomaly
   or project should match what its event window offers when it completes (options, rewards). A
   tree is built from the files (`stellaris-data-extraction` `extractor/outcomes.py`), so
@@ -56,7 +68,8 @@ screen, trade calibration, stored research, releases).
   perks.
 
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
-  show a link never jumped through). At the first wormhole explored, diff its `bypasses.<id>`,
+  show a link never jumped through; since 2026-11-20 only once Wormhole Stabilization is
+  researched, which exploring needs — after that the proxy can still be wrong). At the first wormhole explored, diff its `bypasses.<id>`,
   `natural_wormholes.<id>` and the country block against an earlier save for a real marker.
 
 - **Stations seen, exactly**: saves catch only the fleets present at save time. The companion mod

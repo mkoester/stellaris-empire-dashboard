@@ -2,6 +2,7 @@ import { addGameDays } from '#lib/series.ts';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { loadGameData } from './gamedata.ts';
+import { flagDate } from './save/values.ts';
 import {
 	arkships,
 	capitalSystem,
@@ -83,6 +84,7 @@ const raw: RawSave = {
 	firstContacts: {},
 	situations: {},
 	archSites: {},
+	storms: {},
 	focusCards: {},
 	endGameStart: 150,
 	galaxy: { technology: 1.25, traditions: 1 },
@@ -776,7 +778,14 @@ describe('arkships', () => {
 				},
 				'9': { name: { key: 'Second' }, fleet: 4, ship_design_implementation: { design: 2 } }
 			},
-			fleets: { '4': { movement_manager: { coordinate: { origin: 80 } } } },
+			// a contract's flag (Roaming Cybergang 2225.08.21: `carrying_delegates=63029520`) and
+			// one that is no contract's
+			fleets: {
+				'4': {
+					movement_manager: { coordinate: { origin: 80 } },
+					flags: { carrying_delegates: 63029520, some_other_flag: 63029496 }
+				}
+			},
 			shipDesigns: {
 				'1': { growth_stages: [{ ship_size: 'military_arkship_tier_1' }] },
 				'2': { growth_stages: [{ ship_size: 'science_arkship_tier_2' }] }
@@ -791,7 +800,8 @@ describe('arkships', () => {
 				tier: 1,
 				planetSize: 9,
 				systemId: 563,
-				capital: true
+				capital: true,
+				cargo: []
 			},
 			{
 				shipId: 9,
@@ -801,9 +811,20 @@ describe('arkships', () => {
 				tier: 2,
 				planetSize: 0,
 				systemId: 80,
-				capital: false
+				capital: false,
+				cargo: [{ flag: 'carrying_delegates', since: '2225.08.21' }]
 			}
 		]);
+	});
+});
+
+describe('flagDate', () => {
+	it('reads the hour a flag was set as its day, plain or timed', () => {
+		expect(flagDate(62808000)).toBe('2200.01.01');
+		expect(flagDate(63029496)).toBe('2225.08.20'); // the pickup planet's flag, set on accepting
+		expect(flagDate({ flag_date: 63029520, flag_days: 30 })).toBe('2225.08.21');
+		expect(flagDate(1)).toBeNull();
+		expect(flagDate('yes')).toBeNull();
 	});
 });
 
@@ -1893,6 +1914,34 @@ describe('helpers', () => {
 				})
 			).toBe('Zanthi Variatus');
 		});
+	});
+
+	it('fills a prescripted text that is a template itself', () => {
+		// data DB of 2026-11-20: `AofB` = "$1$ of $2$" (a contract's issuer, Roaming Cybergang)
+		const names = {
+			AofB: '$1$ of $2$',
+			PRESCRIPTED_species_adjective_humans1: 'Human $1$'
+		};
+		withNames(names, () => {
+			expect(
+				displayName({
+					key: 'AofB',
+					variables: [
+						{ key: '1', value: { key: 'Pact' } },
+						{ key: '2', value: { key: 'SPEC_Fellnoll_planet' } }
+					]
+				})
+			).toBe('Pact of Fellnoll');
+			expect(
+				displayName({
+					key: '%ADJECTIVE%',
+					variables: [
+						{ key: 'adjective', value: { key: 'PRESCRIPTED_species_adjective_humans1' } },
+						{ key: '1', value: { key: 'Commonwealth' } }
+					]
+				})
+			).toBe('Human Commonwealth');
+		});
 		expect(speciesName({ key: 'PRESCRIPTED_species_name_humans1' })).toBe('Humans');
 	});
 });
@@ -2561,6 +2610,7 @@ describe('contracts', () => {
 	};
 	it('reads the listed missions, offers and accepted ones', () => {
 		const got = contracts({
+			countryId: 1,
 			missions,
 			countryBlocks,
 			contractIds: { available: [23, 16777230, 21], in_progress: [16777235] }
@@ -2576,7 +2626,9 @@ describe('contracts', () => {
 				systemId: 383,
 				state: 'offered',
 				daysLeft: 1025,
-				accepted: null
+				accepted: null,
+				pickup: null,
+				dropoff: null
 			},
 			{
 				id: 16777230,
@@ -2588,7 +2640,9 @@ describe('contracts', () => {
 				systemId: 9,
 				state: 'offered',
 				daysLeft: 1136,
-				accepted: null
+				accepted: null,
+				pickup: null,
+				dropoff: null
 			},
 			{
 				id: 16777235,
@@ -2600,12 +2654,41 @@ describe('contracts', () => {
 				systemId: 303,
 				state: 'active',
 				daysLeft: null,
-				accepted: '2213.08.12'
+				accepted: '2213.08.12',
+				pickup: null,
+				dropoff: null
 			}
 		]);
 	});
+	it("marks our transport contracts' pickup and drop-off by their flags with our id", () => {
+		// shaped like 2226.08.01: Diplomatic Support of ours (country 0), planets 77 and 348
+		const got = contracts({
+			countryId: 0,
+			missions: {
+				'16777228': { mission: 'contract_diplomatic_support', operator: 0, issuer: 5 },
+				'16777229': { mission: 'contract_sightseeing_tour', operator: 0, issuer: 5 },
+				'16777230': { mission: 'contract_prisoner_disposal', operator: 7, issuer: 5 }
+			},
+			countryBlocks: {},
+			contractIds: { in_progress: [16777228, 16777229, 16777230] },
+			planets: {
+				'77': { coordinate: { origin: 256 }, flags: { diplomatic_support_pickup_planet0: 1 } },
+				'348': { coordinate: { origin: 581 }, flags: { diplomatic_support_dropoff_planet0: 1 } },
+				'9': { coordinate: { origin: 12 }, flags: { sightseeing_tour_start0: 1 } },
+				'10': { coordinate: { origin: 13 }, flags: { prisoner_disposal_pickup_planet7: 1 } }
+			},
+			systems: { '40': { flags: { sightseeing_tour_destination_system0: 1 } } }
+		});
+		expect(got.map((c) => [c.key, c.pickup, c.dropoff])).toEqual([
+			['contract_diplomatic_support', 256, 581],
+			['contract_sightseeing_tour', 12, 40],
+			['contract_prisoner_disposal', null, null] // another operator's
+		]);
+	});
 	it('an empty or missing contracts block is no contract', () => {
-		expect(contracts({ missions, countryBlocks, contractIds: {} })).toEqual([]);
-		expect(contracts({ missions, countryBlocks, contractIds: undefined })).toEqual([]);
+		expect(contracts({ countryId: 1, missions, countryBlocks, contractIds: {} })).toEqual([]);
+		expect(contracts({ countryId: 1, missions, countryBlocks, contractIds: undefined })).toEqual(
+			[]
+		);
 	});
 });

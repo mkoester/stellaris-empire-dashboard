@@ -30,7 +30,7 @@ export function load({ url }) {
 	);
 	const shown = mapView(
 		g,
-		reveal(),
+		reveal(snaps),
 		(s?.firstContacts ?? []).map((c) => c.systemId)
 	);
 	const onMap = new Set(shown.map((x) => x.id));

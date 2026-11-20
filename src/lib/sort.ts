@@ -20,6 +20,12 @@ export type Column<R> = {
 	faded?: boolean; // shown but out of reach (e.g. what a nomad cannot give)
 };
 
+/** `rows` with those `pinned` picks first, each part in its order. */
+export const pinFirst = <T>(rows: T[], pinned: (r: T) => boolean): T[] => [
+	...rows.filter(pinned),
+	...rows.filter((r) => !pinned(r))
+];
+
 export function sortBy<T>(rows: T[], value: (r: T) => SortValue, desc: boolean): T[] {
 	const dir = desc ? -1 : 1;
 	return rows

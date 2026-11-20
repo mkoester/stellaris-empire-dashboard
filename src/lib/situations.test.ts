@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+	fallbackName,
+	stageLadder,
+	nextStage,
+	canExploreWormholes,
+	observedMonthly,
 	contactRows,
 	discovered,
 	gone,
@@ -269,5 +274,109 @@ describe('gone', () => {
 		];
 		expect(gone(saves, saves[1], pick, key)).toEqual([]);
 		expect(gone(saves, undefined, pick, key)).toEqual([]);
+	});
+});
+
+describe('observedMonthly', () => {
+	const sit = (id: number, progress: number, monthly: number | null) => ({
+		id,
+		type: 't',
+		progress,
+		monthly,
+		approach: null,
+		stage: null
+	});
+	it('takes the change from the last earlier save where the save says 0', () => {
+		const earlier = [
+			{ date: '2226.06.01', situations: [sit(33, 20838.89, 0)] },
+			{ date: '2226.07.01', situations: [sit(33, 20608.57, 0)] },
+			{ date: '2226.07.15', situations: null }
+		];
+		const [r] = observedMonthly([sit(33, 20379.06, 0)], '2226.08.01', earlier);
+		expect(r.monthlyObserved).toBe(true);
+		expect(r.monthly).toBeCloseTo(-229.51, 2);
+	});
+	it('keeps what the save says, and 0 where nothing moved or nothing is earlier', () => {
+		const earlier = [{ date: '2226.07.01', situations: [sit(1, 10, 2), sit(2, 5, 0)] }];
+		const rows = observedMonthly(
+			[sit(1, 13, 3), sit(2, 5, 0), sit(3, 7, 0)],
+			'2226.08.01',
+			earlier
+		);
+		expect(rows.map((r) => [r.monthly, r.monthlyObserved])).toEqual([
+			[3, false],
+			[0, false],
+			[0, false]
+		]);
+	});
+	it('reads only saves before the date', () => {
+		const earlier = [{ date: '2226.09.01', situations: [sit(1, 100, 0)] }];
+		expect(observedMonthly([sit(1, 50, 0)], '2226.08.01', earlier)[0].monthlyObserved).toBe(false);
+	});
+});
+
+describe('canExploreWormholes', () => {
+	const at = (researched: string[] | null) => ({
+		progress: researched === null ? null : ({ researched } as never)
+	});
+	it('needs Wormhole Stabilization, in the latest save that has the techs', () => {
+		expect(canExploreWormholes([at(['tech_wormhole_stabilization']), at(null)])).toBe(true);
+		expect(canExploreWormholes([at(['tech_lasers_1'])])).toBe(false);
+		expect(canExploreWormholes([at(null)])).toBe(false);
+	});
+});
+
+describe('situation stages', () => {
+	// Roaming Cybergang 2226.08.01
+	it('reaches the next stage going up, or the one below going down', () => {
+		// Operational Reserves: High (19500–26000), falling 229.51 a month
+		const reserves = {
+			progress: 20379.06,
+			monthly: -229.51,
+			stage: 3,
+			ends: [1300, 6500, 19500, 26000]
+		};
+		const names = ['Empty', 'Low', 'Medium', 'High'];
+		const down = nextStage(reserves, names);
+		expect(down?.to).toBe('Medium');
+		expect(down?.months).toBeCloseTo(879.06 / 229.51, 3);
+		expect(nextStage({ ...reserves, monthly: 100 }, names)?.to).toBe('its end');
+		// Observation Insights: one stage to 100
+		const insights = { progress: 83.625, monthly: 0.9375, stage: 0, ends: [100] };
+		expect(nextStage(insights, ['Insights'])?.months).toBeCloseTo(17.47, 2);
+		expect(nextStage({ ...insights, monthly: -1 }, [])?.to).toBe('0');
+		expect(nextStage({ ...insights, monthly: 0 }, [])).toBeNull();
+		expect(nextStage({ ...insights, stage: null }, [])).toBeNull();
+		// stage 1 of 2 going up: named by the data, else by number
+		expect(nextStage({ progress: 5, monthly: 1, stage: 0, ends: [10, 20] }, [])?.to).toBe(
+			'stage 2'
+		);
+	});
+
+	it('lists each stage from where it starts, the current one marked', () => {
+		const ladder = stageLadder({ stage: 3, ends: [1300, 6500, 19500, 26000] }, [
+			'Empty',
+			'Low',
+			'Medium',
+			'High'
+		]);
+		expect(ladder.map((g) => [g.name, g.from, g.to, g.current])).toEqual([
+			['Empty', 0, 1300, false],
+			['Low', 1300, 6500, false],
+			['Medium', 6500, 19500, false],
+			['High', 19500, 26000, true]
+		]);
+		expect(stageLadder({ stage: 0, ends: [100] }, ['Insights'])).toEqual([]);
+	});
+
+	it('names a situation the data leaves unnamed', () => {
+		// the Alarm Clock mod's reminder: 369.54 of 1000
+		expect(
+			fallbackName({
+				type: 'situation_alarm_clock',
+				flags: ['alarm_for_mod_celebrate_diversity', 'alarm_due_date']
+			})
+		).toBe('Reminder: Celebrate Diversity');
+		expect(fallbackName({ type: 'situation_alarm_clock', flags: [] })).toBe('Alarm clock');
 	});
 });

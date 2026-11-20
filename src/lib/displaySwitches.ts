@@ -81,7 +81,8 @@ export const SWITCHES: Switch[] = [
 		key: 'wormholeLinks',
 		group: 'Maps',
 		kind: 'normal',
-		label: 'Show where explored wormholes lead (both ends visited)'
+		label: 'Show where explored wormholes lead (both ends visited)',
+		note: 'only once Wormhole Stabilization is researched: exploring a wormhole needs it'
 	},
 	{
 		key: 'wormholePairs',
@@ -172,6 +173,25 @@ export const SWITCHES: Switch[] = [
 		group: 'Frontier',
 		kind: 'spoiler',
 		label: 'Show what a dig site’s chapters give'
+	},
+	{
+		key: 'precursorsAll',
+		group: 'Frontier',
+		// the user's ask 2026-11-20; which precursors a galaxy has is the game's secret until found
+		kind: 'cheat',
+		intel: true,
+		label:
+			'Precursors: everything the save holds — which this galaxy has, their systems, every empire’s artifacts',
+		note: 'the game reveals a precursor only once you find its first artifact'
+	},
+	{
+		key: 'precursorBadges',
+		group: 'Frontier',
+		// the user's ask 2026-11-20: one badge, the precursor named beside it
+		kind: 'spoiler',
+		label:
+			'Precursors: a badge on anomalies, projects and dig sites that lead to a precursor, and which',
+		note: 'the game tells only once the event names it'
 	},
 	{
 		key: 'hiddenTimers',

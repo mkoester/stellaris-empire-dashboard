@@ -13,7 +13,8 @@ import type {
 import { hops, NOT_ROCKY, type RawSave } from '../save.ts';
 import { buildQueue } from './colonies.ts';
 import { leaderName } from './leaders.ts';
-import { displayName, first, items, list, num, type Raw } from './values.ts';
+import { CARGO_FLAGS } from '#lib/contracts.ts';
+import { displayName, first, flagDate, items, list, num, type Raw } from './values.ts';
 
 // Save → Snapshot: ships, fleets, stations and ship designs (../save.ts; paths in
 // docs/save-format.md).
@@ -257,7 +258,10 @@ export function arkships(
 				tier: Number(/_tier_(\d+)/.exec(size)?.[1] ?? 0),
 				planetSize: num(ship.planet_size),
 				systemId: shipSystemId(raw, carrier.reference),
-				capital: Number(colonyId) === capital
+				capital: Number(colonyId) === capital,
+				cargo: Object.entries(raw.fleets?.[String(ship.fleet)]?.flags ?? {})
+					.filter(([flag]) => CARGO_FLAGS.has(flag))
+					.map(([flag, v]) => ({ flag, since: flagDate(v) }))
 			}
 		];
 	});

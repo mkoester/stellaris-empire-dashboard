@@ -1,7 +1,6 @@
 import { kindOf, type ContactKind } from '#lib/contacts.ts';
 import { wanderlustCategories } from '#lib/wanderlust.ts';
 import type { Bypass } from '#lib/galaxyGraph.ts';
-import { addGameDays } from '#lib/series.ts';
 import type {
 	AnomalyInfo,
 	Body,
@@ -15,6 +14,9 @@ import type {
 	Relation,
 	SituationInfo,
 	StationSighting,
+	Storm,
+	EventChains,
+	PrecursorIntel,
 	HistoryReading
 } from '#lib/types.ts';
 import {
@@ -29,6 +31,7 @@ import {
 	strOrNull,
 	type RawSave
 } from './save.ts';
+import { flagDate } from './save/values.ts';
 
 // What the empire knows of the galaxy and of the others: systems, the empires it met, first
 // contacts, situations, anomalies, special projects, dig sites. Pure, from the gamestate parts in
@@ -447,7 +450,8 @@ export function situations(raw: Pick<RawSave, 'countryId' | 'situations'>): Situ
 						monthly: numOrNull(s.last_month_progress),
 						approach: strOrNull(s.approach),
 						stage: numOrNull(s.stage),
-						ends: items(s.stage_durations).map((d) => num(d?.end))
+						ends: items(s.stage_durations).map((d) => num(d?.end)),
+						flags: s.flags && typeof s.flags === 'object' ? Object.keys(s.flags) : []
 					}
 				]
 			: []
@@ -492,9 +496,11 @@ export function specialProjects(raw: Pick<RawSave, 'country' | 'planets'>): Proj
 		});
 }
 
-/** Archaeological sites (`archaeological_sites.sites`) in systems we visited. */
+/** Archaeological sites (`archaeological_sites.sites`) in systems we visited. Excavated: by a
+ * fleet of ours — other empires dig at sites we see too (2226.08.01, Roaming Cyber Gang: ten sites
+ * with an `excavator_fleet`, one of them ours). */
 export function digSites(
-	raw: Pick<RawSave, 'archSites' | 'planets'>,
+	raw: Pick<RawSave, 'archSites' | 'planets' | 'fleetOwner' | 'countryId'>,
 	visited: Set<number>
 ): DigSite[] {
 	return Object.entries(raw.archSites).flatMap(([id, s]) => {
@@ -512,8 +518,117 @@ export function digSites(
 				difficulty: num(s.difficulty),
 				daysLeft: numOrNull(s.days_left),
 				lastRoll: numOrNull(s.last_roll),
-				excavating: idOrNull(s.excavator_fleet) !== null,
+				excavating: ((f) => f !== null && raw.fleetOwner[String(f)] === raw.countryId)(
+					idOrNull(s.excavator_fleet)
+				),
 				chapter: s.index === undefined ? null : num(s.index) + 1
+			}
+		];
+	});
+}
+
+/** Our event chains (`country.event_chain`, `completed_event_chain`): running ones with their
+ * counters (a counter at 0 is absent), the finished ones' keys. */
+export function eventChains(raw: Pick<RawSave, 'country'>): EventChains {
+	return {
+		active: items(raw.country?.event_chain).flatMap((c) =>
+			c && typeof c === 'object' && typeof c.event_chain === 'string'
+				? [
+						{
+							key: c.event_chain,
+							counters: Object.fromEntries(
+								Object.entries(c.counter ?? {}).flatMap(([k, v]) =>
+									typeof v === 'number' ? [[k, v]] : []
+								)
+							)
+						}
+					]
+				: []
+		),
+		completed: [...new Set(items(raw.country?.completed_event_chain).map(String))]
+	};
+}
+
+// the precursors' star flags and chains (4.5.4 `events/precursor_events.txt`, `common/event_chains`)
+const PRECURSOR_FLAG = /^precursor_(\d|[a-z]+_?\d*)$/;
+const PRECURSOR_CHAIN =
+	/^(vultaum|yuht|first_league|irassian|cybrex|baol|cs_inetian|cs_adAkkaria)_(homeworld_)?chain$/;
+
+/** Everything the save holds on precursors, every empire's included (a cheat: the page decides). */
+export function precursorIntel(
+	raw: Pick<RawSave, 'galaxy' | 'systems' | 'countryBlocks'>
+): PrecursorIntel {
+	const systems: Record<string, number[]> = {};
+	for (const [id, s] of Object.entries(raw.systems))
+		for (const f of Object.keys(s?.flags && typeof s.flags === 'object' ? s.flags : {}))
+			if (PRECURSOR_FLAG.test(f) && f !== 'precursor_system') (systems[f] ??= []).push(Number(id));
+	const chains = Object.entries(raw.countryBlocks).flatMap(([id, c]) => {
+		if (!c || typeof c !== 'object') return [];
+		const country = displayName(c.name);
+		const running = items(c.event_chain).flatMap((e) =>
+			e && typeof e === 'object' && PRECURSOR_CHAIN.test(String(e.event_chain))
+				? [
+						{
+							countryId: Number(id),
+							country,
+							key: String(e.event_chain),
+							counters: Object.fromEntries(
+								Object.entries(e.counter ?? {}).flatMap(([k, v]) =>
+									typeof v === 'number' ? [[k, v]] : []
+								)
+							),
+							done: false
+						}
+					]
+				: []
+		);
+		const done = [...new Set(items(c.completed_event_chain).map(String))]
+			.filter((k) => PRECURSOR_CHAIN.test(k))
+			.map((key) => ({ countryId: Number(id), country, key, counters: {}, done: true }));
+		return [...running, ...done];
+	});
+	return {
+		disabled: items(raw.galaxy?.disabled_precursors).map(String),
+		systems,
+		chains
+	};
+}
+
+// `STORM_PREFIX_<n>` (4.5.4 cosmic_storms_l_english.yml): "Tempest $NAME$"
+const STORM_PREFIX = [
+	'Cyclone',
+	'Disturbance',
+	'Tempest',
+	'Storm',
+	'Hypercane',
+	'Gale',
+	'Monsoon',
+	'Hurricane',
+	'Flux',
+	'Maelstrom',
+	'Vortex'
+];
+
+/** Cosmic storms (`storms.storms.<id>`): where each is and the systems ahead on its path. The game
+ * shows every storm; where it goes next only with storm movement intel (the page decides). */
+export function storms(raw: Pick<RawSave, 'storms' | 'countryId'>): Storm[] {
+	return Object.entries(raw.storms).flatMap(([id, s]) => {
+		if (!s || typeof s !== 'object' || typeof s.type !== 'string') return [];
+		const name = displayName(s.name);
+		const n = /^STORM_PREFIX_(\d+)$/.exec(String(s.prefix?.key ?? ''))?.[1];
+		const prefix = n === undefined ? undefined : STORM_PREFIX[Number(n)];
+		const path = list(s.path);
+		const at = typeof s.storm_current_path_index === 'number' ? s.storm_current_path_index : -1;
+		return [
+			{
+				id: Number(id),
+				type: s.type,
+				name: prefix ? `${prefix} ${name}` : name,
+				systems: list(s.cluster?.objects),
+				path: path.slice(at + 1),
+				daysToNext: numOrNull(s.storm_days_till_next_system),
+				speed: numOrNull(s.speed),
+				affectsUs: list(s.affected_country_ids).includes(raw.countryId)
 			}
 		];
 	});
@@ -548,14 +663,6 @@ export function claims(
 		})
 	);
 }
-
-const FLAG_HOURS_2200 = 62808000; // a flag's value is the hour it was set, +24 a day
-const flagDate = (v: Raw): string | null => {
-	const h = typeof v === 'number' ? v : typeof v?.flag_date === 'number' ? v.flag_date : null;
-	return h === null || h < FLAG_HOURS_2200
-		? null
-		: addGameDays('2200.01.01', Math.floor((h - FLAG_HOURS_2200) / 24));
-};
 
 /**
  * The flags the game sets when a guardian falls (4.5.2): on the victor `killed_guardian`

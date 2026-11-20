@@ -9,6 +9,7 @@
 		type MapShips
 	} from '#lib/mapLayers.ts';
 	import { claimFill, MAP_MODES, MODE_INFO, recolor, type MapMode } from '#lib/mapModes.ts';
+	import { stormFill } from '#lib/storms.ts';
 	import type { MapWidth } from '#lib/mapView.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import { monthStarts } from '#lib/series.ts';
@@ -48,10 +49,17 @@
 	const territories = $derived(
 		on('borders') ? recolor(filter.mode, data.territories, data.modes, data.attitudes) : []
 	);
-	const claims = $derived(filter.mode === 'claims' ? claimFill(data.claims) : null);
+	// a system mode fills systems instead: claims, storms
+	const systemFill = $derived(
+		filter.mode === 'claims'
+			? claimFill(data.claims)
+			: filter.mode === 'storms'
+				? stormFill(data.storms?.list ?? [], (id) => byId.get(id), data.storms?.date ?? '')
+				: null
+	);
 	// each system of a recoloured territory says why on hover
 	const why = $derived(
-		filter.mode === 'empire' || claims
+		filter.mode === 'empire' || systemFill
 			? {}
 			: Object.fromEntries(territories.flatMap((t) => t.systems.map((id) => [id, t.label])))
 	);
@@ -144,7 +152,7 @@
 		)
 	);
 	const titles = $derived.by(() => {
-		const out: Record<number, string> = { ...why, ...claims?.titles };
+		const out: Record<number, string> = { ...why, ...systemFill?.titles };
 		for (const [id, list] of bySystem) {
 			// what an anomaly, project or dig site leads to goes below its line (spoilers)
 			const text = list
@@ -313,7 +321,7 @@
 		<GalaxyMap
 			systems={data.systems}
 			{territories}
-			fill={claims?.fill}
+			fill={systemFill?.fill}
 			{titles}
 			focus={[
 				{
@@ -352,7 +360,16 @@
 						<span class="text-gray-500">{MODE_INFO[filter.mode].note}</span>
 					{/if}
 				</div>
-				{#if filter.mode !== 'empire' && filter.mode !== 'claims' && !data.modes}
+				{#if filter.mode === 'storms'}
+					<p class="mt-1 text-sm text-gray-500">
+						{#if !data.storms}No storms read yet: the next save brings them.{:else}{data.storms.list
+								.length
+								? `${data.storms.list.length} storm${data.storms.list.length > 1 ? 's' : ''}`
+								: 'No storm'} in the galaxy at {data.storms.date}{data.storms.forecast
+								? ''
+								: '; research Cosmic Weather Models to see where they go next'}.{/if}
+					</p>
+				{:else if filter.mode !== 'empire' && MODE_INFO[filter.mode].kind === 'country' && !data.modes}
 					<p class="mt-1 text-sm text-amber-600">
 						No diplomacy read yet: every empire shows grey until the next save.
 					</p>

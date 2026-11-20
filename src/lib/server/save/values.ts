@@ -1,3 +1,4 @@
+import { addGameDays } from '#lib/series.ts';
 import type { Resources } from '#lib/types.ts';
 
 // The small readers every part of the save reading shares: jomini's untyped values as numbers,
@@ -9,6 +10,15 @@ export type Raw = any;
 
 /** A save flag, `x=yes` (parsed as true, or the string when the parser leaves it). */
 export const isYes = (v: Raw) => v === true || v === 'yes';
+
+const FLAG_HOURS_2200 = 62808000; // a flag's value is the hour it was set, +24 a day
+/** The day a flag was set, from its value (`x=63029520`, or `{ flag_date }` for a timed one). */
+export const flagDate = (v: Raw): string | null => {
+	const h = typeof v === 'number' ? v : typeof v?.flag_date === 'number' ? v.flag_date : null;
+	return h === null || h < FLAG_HOURS_2200
+		? null
+		: addGameDays('2200.01.01', Math.floor((h - FLAG_HOURS_2200) / 24));
+};
 
 export const countBy = (keys: string[]): Record<string, number> =>
 	keys.reduce<Record<string, number>>((acc, k) => ({ ...acc, [k]: (acc[k] ?? 0) + 1 }), {});
@@ -50,7 +60,10 @@ export function withNames<T>(names: Record<string, string>, f: () => T): T {
 
 export function displayName(name: Raw): string {
 	const key = String(name?.key ?? name ?? '');
-	if (prescripted[key]) return prescripted[key];
+	// a prescripted text may be a template itself: `AofB` = "$1$ of $2$" (taken by the extractor
+	// since 2026-11-20, which showed a contract's issuer as "$1$ of $2$")
+	const pre = prescripted[key];
+	if (pre) return Array.isArray(name?.variables) ? fill(pre, name.variables) : pre;
 	// `%SEQ%` with fmt (e.g. HUMAN1_FLEET) and num: "1st Fleet".
 	if (key === '%SEQ%' && Array.isArray(name?.variables)) {
 		const v = (k: string) => name.variables.find((x: Raw) => x.key === k)?.value?.key;
@@ -81,19 +94,11 @@ export function displayName(name: Raw): string {
 	}
 	// Inline templates: `$affix$$base$` (a modified species: base "Yorphid", affix "Trans-" →
 	// "Trans-Yorphid"), `$base$ $affix$` — each `$k$` filled by the variable keyed k.
-	if (/\$\w+\$/.test(key) && Array.isArray(name?.variables)) {
-		return key.replace(/\$(\w+)\$/g, (_, k: string) =>
-			displayName(name.variables.find((x: Raw) => x?.key === k)?.value)
-		);
-	}
+	if (/\$\w+\$/.test(key) && Array.isArray(name?.variables)) return fill(key, name.variables);
 	// Name templates with numbered parts (4.5 localisation, `common/random_names/00_empire_names.txt`):
 	// `AofB` = "$1$ of $2$" — "Pact of Fellnoll", read as "AofB Pact Fellnoll" before 2026-11-17.
 	const template = NAME_TEMPLATES[key];
-	if (template && Array.isArray(name?.variables)) {
-		return template.replace(/\$(\w+)\$/g, (_, k: string) =>
-			displayName(name.variables.find((x: Raw) => x?.key === k)?.value)
-		);
-	}
+	if (template && Array.isArray(name?.variables)) return fill(template, name.variables);
 	// Name parts with a part inside — faction names, `{<names_1> {<names_2>}}` (4.5.2
 	// common/random_names/00_pop_faction_names.txt): the outer part's own words come first.
 	// `Council` + `of_Scientific_Betterment` → "Council of Scientific Betterment". Name-part keys
@@ -105,6 +110,18 @@ export function displayName(name: Raw): string {
 	// Templates with variables — `%ADJECTIVE%`, `PLANET_NAME_FORMAT` (PARENT + NUMERAL: "Barnards
 	// Star I"), `PREFIX_NAME_FORMAT` (ship: "UNS Jordan"), `STAR_NAME_1_OF_1` — read as their parts.
 	if (Array.isArray(name?.variables)) {
+		// a prescripted species' adjective holds the noun's place: "Human $1$" + "Commonwealth"
+		// (`PRESCRIPTED_species_adjective_humans1`) is "Human Commonwealth"
+		const adj = name.variables.find((v: Raw) => v?.key === 'adjective');
+		const adjText = adj ? displayName(adj.value) : '';
+		if (key === '%ADJECTIVE%' && adjText.includes('$1$')) {
+			const rest = name.variables
+				.filter((v: Raw) => v !== adj)
+				.map((v: Raw) => displayName(v.value))
+				.filter(Boolean)
+				.join(' ');
+			return adjText.replace('$1$', rest).trim();
+		}
 		return name.variables
 			.filter((v: Raw) => v?.key !== 'PREFIX') // the ship prefix ("UNS") is localisation only
 			.map((v: Raw) => displayName(v.value))
@@ -122,6 +139,12 @@ export function displayName(name: Raw): string {
 			.replaceAll('_', ' ')
 	);
 }
+
+/** `template`'s `$k$` filled with the name of the variable keyed k ("" where none is). */
+const fill = (template: string, variables: Raw[]): string =>
+	template.replace(/\$(\w+)\$/g, (_, k: string) =>
+		displayName(variables.find((x: Raw) => x?.key === k)?.value)
+	);
 
 export function resources(obj: Raw): Resources {
 	const out: Resources = {};

@@ -10,15 +10,17 @@
 	let { explanation: e }: { explanation: Explanation } = $props();
 </script>
 
+<!-- Spans with list roles, not <ul>: InfoPopup renders this inline, often inside a <p>,
+     where a <ul> is invalid HTML (Svelte's node_invalid_placement_ssr). -->
 {#snippet list(mods: Modifier[])}
-	<ul class="space-y-0.5">
+	<span role="list" class="block space-y-0.5">
 		{#each distinctModifiers(mods) as m, i (i)}
-			<li class="flex items-baseline gap-1.5">
+			<span role="listitem" class="flex items-baseline gap-1.5">
 				<span class="font-mono font-semibold {modifierColor(m)}">{formatModifierValue(m)}</span>
 				<span class="opacity-75">{modifierLabel(m)}</span>
-			</li>
+			</span>
 		{/each}
-	</ul>
+	</span>
 {/snippet}
 
 <span class="block space-y-1.5">

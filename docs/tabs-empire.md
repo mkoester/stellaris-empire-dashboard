@@ -270,7 +270,68 @@ the game's stage keys name the contact's kind and way, spoilers, the user's ask 
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
 an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
 with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
-events. **Gone, kept greyed** (the user's ask 2026-11-16: "some decisions come after I officially
+events. **The user's asks 2026-11-20:** situations' progress and ±/mo to two decimals; a ±/mo the
+save gives as 0 (`last_month_progress`, kept 0 by a situation that script effects move rather than
+its `monthly_progress` — Operational Reserves read 0 three months running while falling ~230 a
+month) is taken from the last earlier save with that situation, marked ≈ (`observedMonthly()`).
+Later the same day: a Next column, when the situation reaches its next stage at that ±/mo — the end of
+its stage going up, its start going down (`nextStage()`, from the save's `stage_durations`); progress
+shows "/ end" where its one stage does not end at 100 (the Alarm Clock mod's reminders, 1000), and
+with several stages each from where it starts, the current one bold (`stageLadder()`; the user's ask:
+Operational Reserves "Critical 0 · Low 1300 · Medium 6500 · **High 19500** – 26000"), and the "runs to 100" note says so only where every row does. A situation the
+data leaves unnamed (its text a scripted loc the game fills in, the Alarm Clock mod's
+`[This.GetAlarmLabel]`) is named by `fallbackName()`: Alarm Clock's `alarm_for_<what>` situation
+flag ("Reminder: Celebrate Diversity"; `SituationInfo.flags`, READER 70), else its type. A permanent
+situation (`permanent = yes`, data DB `situation.permanent` since 2026-11-20: in 4.5.4 only every
+nomad's Operational Reserves and the Forever Cruise origin's Passenger Satisfaction) stays on top
+whatever the sort, a line below it (SortTable's `pinned`, `pinFirst()`); with an older data DB, none
+is pinned. Unplugged's Embodied Identity has no ending effects but is not permanent: it ends at
+either extreme. An **L-Gate badge** (2026-11-20, `lgateRelated()` in `#lib/lgates.ts`) marks an anomaly,
+special project or dig site whose name or outcome tree names the L-Gates or the L-Cluster: L-Gate
+Insights (`distar.9000`, 3 in 10 on 24 anomaly categories in 4.5.4), the L-Gate Activation tech, the
+L-Cluster project. The tree is behind the outcomes spoiler, so with it off only the name tells. "Still to
+gain" lists its resources in the `all` header's order (`inStripOrder()`, research last). Between
+Situations and Events, **L-Gate** and **Precursors** (2026-11-20, `#lib/frontierChains.ts`): the
+situation log's chains (`Snapshot.eventChains`, READER 71; data DB `event_chain` with each chain's
+counters and their maximum). L-Gate: insights of `l_cluster_chain`'s `clues` (7), the first L-Gate
+(`encountered_first_lgate`), L-Gates in known systems (bypass `lgate`), L-Gate Activation, and the
+sources now — the repeatable L-Gate Insight tech on offer, the open rows with the badge. Precursors:
+each precursor chain we started (category `precursors`), its artifacts (6) and its home system's
+chain. Which precursor a galaxy has is a secret until found (`precursor_<n>` system flags: 5 is the
+Cybrex, 92 systems in Roaming Cybergang), so none shows before. The cheat `precursorsAll` (intel, so off in
+multiplayer and Ironman; the user's ask 2026-11-20) adds everything the save holds
+(`Snapshot.precursorIntel`, READER 72, dropped by `pageLatest()`; `precursorGalaxy()`): every precursor
+the game knows (`PRECURSORS`: Vultaum 1, Yuht 2, First League 3, Irassians 4, Cybrex 5, Baol, Zroni,
+Inetian Traders, adAkkaria), whether the setup disabled it, its flagged systems visited / all (the five
+with a star flag of their own), and every empire collecting it with its artifacts and home system.
+Roaming Cybergang 2226.08.01: only the Cybrex, 58 of 92 systems visited, nobody collecting. With it
+the first-contact map also rings every precursor place (`precursorPlaces()`: the systems with a star
+flag, the Zroni and Baol dig sites), the precursor on hover; undiscovered ones too, dashed, at their
+position only (the server sends it, the map draws no star there; `extra` fits the view to them, a
+"precursors" fit button). Roaming Cybergang: 92, 34 undiscovered.
+**Nomads get precursors as anyone** (4.5.4): the intro is an `on_survey` random event (`precursor.2000`
+for the Cybrex: weight 6 against 100 for nothing, so ≈ 6 % per body surveyed without an anomaly in one
+of its systems), with no `is_nomadic` anywhere in the chain; the home system's link spawns at a
+waystation of ours in one of its systems, else any waystation, else a colony
+(`precursor_capital_spawn_system_effect`). The nomads' `precursor_system_*` variables are Wanderlust's
+exploration tracker (the `precursor_system` star flag), not this chain. The spoiler `precursorBadges` (the user's ask
+2026-11-20) puts a **Precursor badge** on anomalies, special projects and dig sites that lead to a
+precursor, the precursor named in its tooltip (`precursorsOf()` in `#lib/precursorLinks.ts`, from the
+whole unresolved outcome tree whatever the outcome spoilers say: 62 anomaly categories, 88 projects,
+20 dig sites in 4.5.4; Grunur counts as the Baol). None in Roaming Cybergang 2226.08.01, which has no
+precursor chain yet. "Still to gain" has a **Leads to** filter (L-Gate, and Precursor while
+that spoiler is on): both unticked show every source, a ticked one only the sources leading there
+(`leadsTo()`; the server sends the gains four ways, `gains[all|lgate|precursor|either][kind]`). A
+source chip's click unfolds its kind's panel first when folded (Panel's bindable `open`), then
+scrolls to the row.
+Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
+(Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
+column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept
+per browser). Stations seen: each shipset in a colour of its own, and "group by likely empire"
+(the Owner column's territories: a known empire, or a guess — one shipset within `GUESS_JUMPS`
+jumps; clusters of one shipset far apart are numbered, `SeenRow.group`). Still to gain: each
+resource in its game colour (`colorOf`; minor artifacts, nanites, astral threads and the rare
+resources sampled from their icons 2026-11-20). **Gone, kept greyed** (the user's ask 2026-11-16: "some decisions come after I officially
 finished something like anomalies … keep them in the overview, at the bottom and greyed out"):
 below each of situations, anomalies, dig sites and special projects, what earlier saves of the
 branch had and the shown one no longer has (`gone()` in `#lib/situations.ts`; finished or lost —

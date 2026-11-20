@@ -1,9 +1,9 @@
 {
 	"name": "stellaris-empire-dashboard",
 	"private": true,
-	"version": "0.1.28",
+	"version": "0.1.29",
 	"license": "AGPL-3.0-only",
-	"extractorVersion": "v0.1.21",
+	"extractorVersion": "v0.1.22",
 	"type": "module",
 	"engines": {
 		"node": ">=26"
@@ -17,6 +17,7 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:pages": "node scripts/check-pages.mjs",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"lint": "prettier --check . && eslint .",

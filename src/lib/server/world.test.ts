@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { body, claims, relations, stationsSeen, surveyedPlanets, wormholeLinks } from './world.ts';
+import {
+	body,
+	claims,
+	digSites,
+	relations,
+	stationsSeen,
+	storms,
+	eventChains,
+	precursorIntel,
+	surveyedPlanets,
+	wormholeLinks
+} from './world.ts';
 
 describe('stationsSeen', () => {
 	// shaped like 2207.03.01: fleets in `fleet.<id>.movement_manager.coordinate.origin`, a system's
@@ -181,5 +192,131 @@ describe('body', () => {
 		expect(body(raw, 2)?.surveyed).toBe(false);
 		expect(body(raw, 2, surveyedPlanets(raw))?.surveyed).toBe(true);
 		expect([...surveyedPlanets(raw)]).toEqual([2]);
+	});
+});
+
+describe('digSites', () => {
+	// shaped like 2226.08.01: 4294967295 = no excavator; another empire's fleet digs at a site we see
+	const site = (fleet: number) => ({
+		type: 'omnirelic_site',
+		location: { type: 'planet', id: 7 },
+		clues: 1,
+		difficulty: 4,
+		days_left: 51.5,
+		index: 0,
+		excavator_fleet: fleet
+	});
+	const raw = {
+		countryId: 0,
+		archSites: { 1: site(4), 2: site(42), 3: site(4294967295) },
+		planets: { 7: { coordinate: { origin: 5 } } },
+		fleetOwner: { 4: 0, 42: 16777227 }
+	};
+	it('marks a site excavated only by a fleet of ours', () => {
+		expect(digSites(raw as never, new Set([5])).map((d) => [d.id, d.excavating])).toEqual([
+			[1, true],
+			[2, false],
+			[3, false]
+		]);
+	});
+});
+
+describe('storms', () => {
+	it('reads a storm, its name, the systems it covers and the path ahead', () => {
+		// Roaming Cybergang 2226.08.01, trimmed; `2=none` is a storm gone
+		const raw = {
+			countryId: 16777234,
+			storms: {
+				'1': {
+					type: 'magnetic_storm',
+					storm_current_path_index: 2,
+					speed: 0.02,
+					storm_days_till_next_system: 2438,
+					cluster: { objects: [27, 598, 800] },
+					name: { key: 'HUM1_CHR_Shibbala' },
+					prefix: { key: 'STORM_PREFIX_7' },
+					path: [534, 609, 800, 598, 196],
+					affected_country_ids: [16777234, 36]
+				},
+				'2': 'none'
+			}
+		};
+		expect(storms(raw)).toEqual([
+			{
+				id: 1,
+				type: 'magnetic_storm',
+				name: 'Hurricane Shibbala',
+				systems: [27, 598, 800],
+				path: [598, 196],
+				daysToNext: 2438,
+				speed: 0.02,
+				affectsUs: true
+			}
+		]);
+		expect(storms({ ...raw, countryId: 0 })[0].affectsUs).toBe(false);
+	});
+});
+
+describe('eventChains', () => {
+	it('reads running chains with their counters and the completed ones', () => {
+		// Roaming Cybergang 2226.08.01 (l_cluster_chain without a counter: 0 clues), another
+		// empire's shrouded chain (counter 1)
+		const country = {
+			event_chain: [
+				{ event_chain: 'l_cluster_chain', scope: { type: 'country', id: 0 } },
+				{ event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 3 } }
+			],
+			completed_event_chain: [
+				'nomad_checklist_chain',
+				'contract_colony_startup_chain',
+				'contract_colony_startup_chain'
+			]
+		};
+		expect(eventChains({ country })).toEqual({
+			active: [
+				{ key: 'l_cluster_chain', counters: {} },
+				{ key: 'cybrex_chain', counters: { cybrex_artifacts: 3 } }
+			],
+			completed: ['nomad_checklist_chain', 'contract_colony_startup_chain']
+		});
+		expect(eventChains({ country: {} })).toEqual({ active: [], completed: [] });
+	});
+});
+
+describe('precursorIntel', () => {
+	it('reads the disabled precursors, their systems and every empire’s chains', () => {
+		// Roaming Cybergang 2226.08.01: only the Cybrex on, 92 systems flagged precursor_5
+		const raw = {
+			galaxy: { disabled_precursors: ['precursor_3', 'precursor_baol_1', 'precursor_1'] },
+			systems: {
+				'12': { flags: { precursor_5: 62808000, precursor_system: 62808000, hostile_system: 1 } },
+				'13': { flags: { precursor_5: 62808000 } },
+				'14': { flags: {} }
+			},
+			countryBlocks: {
+				'0': {
+					name: { key: 'Roaming Cybergang' },
+					event_chain: [{ event_chain: 'l_cluster_chain' }]
+				},
+				'16777229': {
+					name: { key: 'Barcalid Collective' },
+					event_chain: { event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 2 } },
+					completed_event_chain: ['nomad_checklist_chain']
+				}
+			}
+		};
+		expect(precursorIntel(raw)).toEqual({
+			disabled: ['precursor_3', 'precursor_baol_1', 'precursor_1'],
+			systems: { precursor_5: [12, 13] },
+			chains: [
+				{
+					countryId: 16777229,
+					country: 'Barcalid Collective',
+					key: 'cybrex_chain',
+					counters: { cybrex_artifacts: 2 },
+					done: false
+				}
+			]
+		});
 	});
 });

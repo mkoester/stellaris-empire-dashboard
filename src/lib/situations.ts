@@ -1,5 +1,6 @@
 import { distances, graph } from './galaxyGraph.ts';
 import { CATEGORICAL, OTHER } from './migration.ts';
+import { pretty } from './format.ts';
 import { gameYear } from './series.ts';
 import type {
 	CountryInfo,
@@ -38,6 +39,42 @@ export function gone<T>(
 	for (const t of pick(latest) ?? []) seen.delete(key(t));
 	return [...seen.values()].sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
 }
+
+/**
+ * Each situation's change per month as the saves show it, where the save's own
+ * `last_month_progress` says nothing (0 or absent): a situation whose progress script effects move,
+ * not its `monthly_progress`, keeps 0 there — 4.5.4 Operational Reserves
+ * (`situation_nomad_economy`) read 0 three months running while its progress fell
+ * 20839 → 20609 → 20379. Taken from the last earlier save that had the same situation, per
+ * 30-day month (`monthlyObserved`); kept as the save says it otherwise.
+ */
+export function observedMonthly<S extends SituationInfo>(
+	list: S[],
+	date: string,
+	earlier: { date: string; situations: SituationInfo[] | null }[]
+): (S & { monthlyObserved: boolean })[] {
+	return list.map((x) => {
+		const before = earlier
+			.filter((e) => e.date < date && e.situations)
+			.findLast((e) => e.situations!.some((y) => y.id === x.id));
+		const prev = before?.situations!.find((y) => y.id === x.id);
+		const months = before ? (gameYear(date) - gameYear(before.date)) * 12 : 0;
+		return x.monthly || !prev || months <= 0 || prev.progress === x.progress
+			? { ...x, monthlyObserved: false }
+			: { ...x, monthly: (x.progress - prev.progress) / months, monthlyObserved: true };
+	});
+}
+
+/**
+ * Whether the empire can have explored a natural wormhole: exploring one takes a science ship and
+ * Wormhole Stabilization (4.5.4 common/bypass/00_bypasses.txt `wormhole`: `requires_exploration`,
+ * `prerequisites = { tech_wormhole_stabilization }`; events exploration.220.hint). Both ends
+ * visited without it drew a link the game does not show (Roaming Cyber Gang 2226.08.01).
+ */
+export const canExploreWormholes = (snaps: Pick<Snapshot, 'progress'>[]) =>
+	snaps
+		.findLast((s) => s.progress)
+		?.progress?.researched.includes('tech_wormhole_stabilization') === true;
 
 /** Whole months from `from` to `to` (game dates, 30-day months). */
 export const monthsBetween = (from: string, to: string) =>
@@ -126,10 +163,79 @@ export function stationOwners(
 
 export type SituationRow = SituationInfo & {
 	name: string;
+	end: number | null; // where its last stage ends: the most progress there is (100 for most)
+	ladder: Rung[]; // each stage from where it starts, with two or more stages; else empty
+	permanent: boolean; // never ends: always running for this playstyle (data DB `permanent`)
+	next: NextStage | null;
 	category: string | null;
 	approachName: string | null;
 	stageName: string | null;
+	monthlyObserved?: boolean; // ±/mo taken from the saves (`observedMonthly()`)
 };
+
+/** The stage a situation reaches next at its monthly change, and in how many months: the end of
+ * its stage going up, the start going down (`ends`: where each stage ends). Null when it stands
+ * still, or the save has no stage. */
+export type NextStage = { months: number; to: string };
+export function nextStage(
+	s: Pick<SituationInfo, 'progress' | 'monthly' | 'stage' | 'ends'>,
+	names: readonly string[]
+): NextStage | null {
+	const ends = s.ends ?? [];
+	if (s.stage === null || !s.monthly || s.stage >= ends.length) return null;
+	const name = (i: number) => names[i] ?? `stage ${i + 1}`;
+	if (s.monthly > 0) {
+		const left = ends[s.stage] - s.progress;
+		if (left <= 0) return null;
+		const last = s.stage === ends.length - 1;
+		return { months: left / s.monthly, to: last ? 'its end' : name(s.stage + 1) };
+	}
+	const floor = s.stage > 0 ? ends[s.stage - 1] : 0;
+	if (s.progress <= floor) return null;
+	return {
+		months: (s.progress - floor) / -s.monthly,
+		to: s.stage > 0 ? name(s.stage - 1) : '0'
+	};
+}
+
+/** A stage and the progress it starts at: the stage before ends there (the first starts at 0). */
+export type Rung = { name: string; from: number; to: number; current: boolean };
+/** A situation's stages as thresholds — Operational Reserves: Empty 0, Low 1300, Medium 6500, High
+ * 19500, to 26000 — with two or more stages; one stage is just its end. */
+export function stageLadder(
+	s: Pick<SituationInfo, 'stage' | 'ends'>,
+	names: readonly string[]
+): Rung[] {
+	const ends = s.ends ?? [];
+	if (ends.length < 2) return [];
+	return ends.map((to, i) => ({
+		name: names[i] ?? `stage ${i + 1}`,
+		from: i ? ends[i - 1] : 0,
+		to,
+		current: s.stage === i
+	}));
+}
+
+/** A situation's name where the data has none — its text is a scripted loc the game fills in
+ * (Alarm Clock, Workshop 3790105183: `[This.GetAlarmLabel]`, picked by an `alarm_for_<what>`
+ * flag): the flag's words, else the type's. */
+export function fallbackName(s: Pick<SituationInfo, 'type' | 'flags'>): string {
+	const alarm = s.flags?.find((f) => f.startsWith('alarm_for_') && f !== 'alarm_for_');
+	if (alarm) {
+		// the mod's label is the flag's words: `alarm_for_mod_celebrate_diversity` → "Celebrate
+		// Diversity" (`mod_`: the cooldown modifier's; also `_cooldown`, `_flag`)
+		const what = alarm
+			.slice('alarm_for_'.length)
+			.replace(/^mod_/, '')
+			.replace(/_(cooldown|flag)$/, '')
+			.split('_')
+			.map((w) => `${w.charAt(0).toUpperCase()}${w.slice(1)}`)
+			.join(' ');
+		return `Reminder: ${what}`;
+	}
+	const words = pretty(s.type.replace(/^situation_/, ''));
+	return `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
+}
 
 export function situationRows<S extends SituationInfo>(
 	situations: S[],
@@ -137,7 +243,11 @@ export function situationRows<S extends SituationInfo>(
 ): (S & SituationRow)[] {
 	return situations.map((s) => ({
 		...s,
-		name: types[s.type]?.name ?? s.type,
+		name: types[s.type]?.name || fallbackName(s),
+		end: s.ends?.at(-1) ?? null,
+		ladder: stageLadder(s, types[s.type]?.stages ?? []),
+		permanent: types[s.type]?.permanent ?? false,
+		next: nextStage(s, types[s.type]?.stages ?? []),
 		category: types[s.type]?.category ?? null,
 		approachName: s.approach ? (types[s.type]?.approaches[s.approach] ?? s.approach) : null,
 		stageName: s.stage === null ? null : (types[s.type]?.stages[s.stage] ?? `stage ${s.stage + 1}`)

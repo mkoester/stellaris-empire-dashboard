@@ -98,9 +98,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
   shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
-  2026-11-18: `develop` has 66 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
+  2026-11-20: `develop` has 72 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
   chapters, planet flags, waystations, the home system surveyed, name templates, every contact's tech
-  gap, the Edict Fund, contracts completed; the highway: the Ancient Highway mod) — that merge takes 67,
+  gap, the Edict Fund, contracts completed, contract passengers aboard arkships, dig sites excavated by our fleets only, transport contracts' pickup and drop-off, cosmic storms and prescripted name templates, event chains, precursor intel; the highway: the Ancient Highway mod) — that merge takes 73,
   and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
   in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
@@ -129,6 +129,17 @@ Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --t
 promises, `switch` exhaustiveness) and takes about 35 s. **A promise started and left alone needs a
 `.catch`** — a rejection nobody handles ends the Node process — and a `switch` over a union names
 every member.
+
+**A change to a page or a component checks every page's server render**: `node
+scripts/check-pages.mjs --db <dashboard.sqlite> --data <stellaris.sqlite>` (`pnpm check:pages` with
+the same arguments). It copies the DB, renders each campaign's newest node on every route, with the
+switches as stored and all on, and fails on a non-200 or on anything the server warns while
+rendering — Svelte's dev-only `node_invalid_placement_ssr` (a `<ul>` from a component inside a
+`<p>`) is only logged, so svelte-check and vitest never see it. Its `<p>` location can name the
+wrong file (`Panel.svelte:576`, an 18-line file, for a `<p>` on `/expansion`, 2026-11-19): find the
+page by the check, not by the message. About 2 min for five campaigns (450 pages);
+narrow with `--campaign <part>` / `--route /path`. Hydration warnings need a browser: not covered.
+Open: a test DB and running it before releases (`docs/testing.md`, "The page check").
 
 - The procedure on a DB copy, replaying a live month, the real-save test, reading a save ad hoc,
   the throwaway games and their console commands ("Testing in a throwaway game"): `docs/testing.md`.

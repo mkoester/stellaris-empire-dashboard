@@ -283,7 +283,11 @@ export type Arkship = {
 	planetSize: number;
 	systemId: number | null;
 	capital: boolean; // the capital colony's carrier
+	cargo: ArkshipCargo[]; // a contract's passengers aboard (READER 67; [] before)
 };
+
+/** A contract's fleet flag on an arkship's fleet (`CONTRACT_CARGO`), and the day it was set. */
+export type ArkshipCargo = { flag: string; since: string | null };
 
 /** A Mega Shipyard; `stage` from its type (mega_shipyard_0…3, _restored). */
 export type MegaShipyard = {
@@ -520,6 +524,9 @@ export type Snapshot = {
 	anomalies: AnomalyInfo[] | null; // found, not yet researched
 	specialProjects: ProjectInfo[] | null;
 	digSites: DigSite[] | null; // archaeological sites in visited systems
+	storms: Storm[] | null; // cosmic storms, every one in the galaxy (the game shows them all); READER 70
+	eventChains: EventChains | null; // our situation log's chains (precursors, the L-Cluster); READER 71
+	precursorIntel: PrecursorIntel | null; // everything on precursors, galaxy-wide (a cheat); READER 72
 	stationsSeen: StationSighting[] | null; // stations where our fleets are, null before 2026-10-18
 	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
 	focus: EmpireFocus | null;
@@ -792,6 +799,7 @@ export type SituationInfo = {
 	approach: string | null;
 	stage: number | null; // index into the situation's stages (data DB `situation_stage`); null before READER 25
 	ends?: number[]; // where each stage ends (`stage_durations`); the last is the most there is
+	flags?: string[]; // the situation's own flags (Alarm Clock's `alarm_for_<what>`); READER 70
 };
 
 export type AnomalyInfo = { planetId: number; planet: string; systemId: number; category: string };
@@ -811,7 +819,42 @@ export type DigSite = {
 	daysLeft: number | null; // to the excavation's next roll
 	lastRoll?: number | null; // `last_roll`; absent before READER 22
 	excavating: boolean;
-	chapter?: number | null; // the next chapter, 1-based (`index` + 1); absent before READER 58
+	// the next chapter, 1-based (`index` + 1: `index` = chapters done); past the last once the site
+	// is excavated, which stays in the save (`digSiteDone()`); absent before READER 58
+	chapter?: number | null;
+};
+
+/** Our event chains: `country.event_chain = { event_chain="<key>" counter = { <name>=N } }`, and
+ * `completed_event_chain="<key>"` for each finished one (docs/save-format.md). */
+export type EventChains = {
+	active: { key: string; counters: Record<string, number> }[];
+	completed: string[];
+};
+
+/** What the save holds on every precursor (the frontier tab's cheat): which the galaxy setup
+ * disabled, the systems each flags (`precursor_<n>`), every empire's precursor chains. */
+export type PrecursorIntel = {
+	disabled: string[]; // `galaxy.disabled_precursors`: "precursor_1", "precursor_baol_1", …
+	systems: Record<string, number[]>; // star flag → system ids
+	chains: {
+		countryId: number;
+		country: string; // its name as the save gives it
+		key: string;
+		counters: Record<string, number>;
+		done: boolean;
+	}[];
+};
+
+/** A cosmic storm (`storms.storms.<id>`, docs/save-format.md "Cosmic storms"). */
+export type Storm = {
+	id: number;
+	type: string; // "magnetic_storm", …
+	name: string; // "Tempest Shibbal": its prefix's text with the name filled in
+	systems: number[]; // the systems it covers now (`cluster.objects`)
+	path: number[]; // the systems ahead, the next first (`path` after `storm_current_path_index`)
+	daysToNext: number | null; // to the next system on its path (`storm_days_till_next_system`)
+	speed: number | null; // galaxy-map units a day
+	affectsUs: boolean; // we are in its `affected_country_ids`
 };
 
 /** A council seat: `council_positions.<id> = { country type leader }`. */
@@ -1087,6 +1130,9 @@ export type ContractType = {
 	failedOpinion: number | null; // the issuer's opinion of us on failure or cancel
 	operatorTechs: string[]; // techs the operator needs
 	projects: ContractProject[]; // the special projects of its event chain
+	// the game's `location = yes`: the contract has a system; null with a data DB before
+	// 2026-11-20, which also lacks the projects defined by inline scripts (the onboard ones)
+	location: boolean | null;
 };
 
 /** What a contract pays its operator on success (data DB `contract.reward_json`). */
@@ -1104,6 +1150,7 @@ export type ContractProject = {
 	key: string;
 	name: string;
 	days: number | null;
+	cost: number | null; // a research project's cost (the field halts meanwhile); null: a ship's
 	requirements: Record<string, unknown>; // {carries_colony: 1}: an arkship
 	arkshipBranches: boolean; // the outcome differs by arkship type
 };
@@ -1123,6 +1170,10 @@ export type Contract = {
 	state: 'offered' | 'active';
 	daysLeft: number | null; // an offer's days to accept
 	accepted: string | null; // accepted_date
+	// a transport contract of ours (`TRANSPORT` in #lib/contracts.ts): the systems its flags mark;
+	// null: none marked (yet), or not one; since READER 69
+	pickup: number | null;
+	dropoff: number | null;
 };
 
 /**
@@ -1415,9 +1466,25 @@ export type GameData = {
 	// a planet, keyed `deposit:<key>`, `modifier:<key>` (static modifier), `building:<key>`
 	capEffects: Record<string, CapEffect[]>;
 	dlcs: Dlc[]; // every DLC the game knows (dlc_info.txt), in release order
+	// event chains (data DB `event_chain`, since 2026-11-20; `{}` with an older one): title, the
+	// situation log's category (precursors …), counters with their maximum
+	eventChains: Record<
+		string,
+		{
+			title: string | null;
+			category: string | null;
+			counters: { key: string; max: number | null }[];
+		}
+	>;
 	situationTypes: Record<
 		string,
-		{ name: string; category: string | null; approaches: Record<string, string>; stages: string[] }
+		{
+			name: string;
+			category: string | null;
+			approaches: Record<string, string>;
+			stages: string[];
+			permanent?: boolean; // never ends (`permanent = yes`); data DBs since 2026-11-20
+		}
 	>;
 	projects: Record<
 		string,

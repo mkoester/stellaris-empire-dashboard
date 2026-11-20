@@ -146,7 +146,8 @@ describe('settleOutcome', () => {
 		tier,
 		planetSize: 9,
 		systemId: 1,
-		capital
+		capital,
+		cargo: []
 	});
 	const colony = (planetId: number, pops: number) => ({ planetId, pops }) as Colony;
 	it('scuttles the arkships besides the capital, counts waystations and logistic ships', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { byKey, byKind, hasAscensionPath } from './gamedata.ts';
+import { byKey, byKind, hasAscensionPath, situationTypes } from './gamedata.ts';
 import { parseTrigger } from '#lib/triggers.ts';
 
 describe('byKind', () => {
@@ -58,5 +58,30 @@ describe('hasAscensionPath', () => {
 		).toBe(true);
 		expect(hasAscensionPath(parseTrigger('{"leaf":"is_hive_empire","value":"yes"}'))).toBe(false);
 		expect(hasAscensionPath(null)).toBe(false);
+	});
+});
+
+describe('situationTypes', () => {
+	it('marks the permanent ones; an older data DB reads 0', () => {
+		const t = situationTypes(
+			[
+				{
+					key: 'situation_nomad_economy',
+					name: 'Operational Reserves',
+					category: 'neutral',
+					permanent: 1
+				},
+				{
+					key: 'situation_observation_insight',
+					name: 'Observation Insights',
+					category: 'positive',
+					permanent: 0
+				}
+			],
+			[],
+			[]
+		);
+		expect(t.situation_nomad_economy.permanent).toBe(true);
+		expect(t.situation_observation_insight.permanent).toBe(false);
 	});
 });
