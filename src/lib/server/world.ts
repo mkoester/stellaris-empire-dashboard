@@ -492,9 +492,11 @@ export function specialProjects(raw: Pick<RawSave, 'country' | 'planets'>): Proj
 		});
 }
 
-/** Archaeological sites (`archaeological_sites.sites`) in systems we visited. */
+/** Archaeological sites (`archaeological_sites.sites`) in systems we visited. Excavated: by a
+ * fleet of ours — other empires dig at sites we see too (2226.08.01, Roaming Cyber Gang: ten sites
+ * with an `excavator_fleet`, one of them ours). */
 export function digSites(
-	raw: Pick<RawSave, 'archSites' | 'planets'>,
+	raw: Pick<RawSave, 'archSites' | 'planets' | 'fleetOwner' | 'countryId'>,
 	visited: Set<number>
 ): DigSite[] {
 	return Object.entries(raw.archSites).flatMap(([id, s]) => {
@@ -512,7 +514,9 @@ export function digSites(
 				difficulty: num(s.difficulty),
 				daysLeft: numOrNull(s.days_left),
 				lastRoll: numOrNull(s.last_roll),
-				excavating: idOrNull(s.excavator_fleet) !== null,
+				excavating: ((f) => f !== null && raw.fleetOwner[String(f)] === raw.countryId)(
+					idOrNull(s.excavator_fleet)
+				),
 				chapter: s.index === undefined ? null : num(s.index) + 1
 			}
 		];
