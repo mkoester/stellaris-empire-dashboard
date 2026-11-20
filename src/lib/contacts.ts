@@ -254,6 +254,7 @@ export const pageLatest = <
 		diplomacy?: unknown;
 		allWars?: unknown;
 		contracts?: unknown;
+		storms?: unknown;
 	}
 >(
 	s: S
@@ -264,6 +265,8 @@ export const pageLatest = <
 	...('allWars' in s ? { allWars: null } : {}),
 	// every contract in the galaxy, issuers we never met by name: the contracts tab sends its own rows
 	...('contracts' in s ? { contracts: null } : {}),
+	// every storm's path, a forecast only movement intel gives: the map tab sends what we may see
+	...('storms' in s ? { storms: null } : {}),
 	countries:
 		s.countries?.filter(
 			(c) =>

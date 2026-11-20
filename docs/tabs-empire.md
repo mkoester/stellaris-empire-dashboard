@@ -274,6 +274,13 @@ events. **The user's asks 2026-11-20:** situations' progress and ±/mo to two de
 save gives as 0 (`last_month_progress`, kept 0 by a situation that script effects move rather than
 its `monthly_progress` — Operational Reserves read 0 three months running while falling ~230 a
 month) is taken from the last earlier save with that situation, marked ≈ (`observedMonthly()`).
+Later the same day: a Next column, when the situation reaches its next stage at that ±/mo — the end of
+its stage going up, its start going down (`nextStage()`, from the save's `stage_durations`); progress
+shows "/ end" where the last stage does not end at 100 (Operational Reserves 26000, the Alarm Clock
+mod's reminders 1000), and the "runs to 100" note says so only where every row does. A situation the
+data leaves unnamed (its text a scripted loc the game fills in, the Alarm Clock mod's
+`[This.GetAlarmLabel]`) is named by `fallbackName()`: Alarm Clock's `alarm_for_<what>` situation
+flag ("Reminder: Celebrate Diversity"; `SituationInfo.flags`, READER 70), else its type.
 Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
 (Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
 column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept

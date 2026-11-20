@@ -297,8 +297,16 @@ own row (the Abandoned Gateway). Wormholes, gateways, L-Gates and megastructures
 pure; the user's ask 2026-11-02, after 4.5.2 `common/map_modes/00_map_modes.txt`). Each mode
 recolours the territories (`recolor()`) and names after each empire why, in the swatches and on a
 system's hover. The modes: empire (default), union, diplomatic, opinion, intel, AI attitude, trust,
-threat, intel freshness, and claims, which fills systems (`claimFill()`) and leaves the borders
-alone. Union, diplomatic and attitude take the game's hsv colours (`hsv()`); diplomatic takes the
+threat, intel freshness, and two that fill systems and leave the borders alone: claims
+(`claimFill()`) and **storms** (`stormFill()`, `#lib/storms.ts`; 2026-11-20, after the game's
+Weather Forecast mode). Storms fills each system a storm covers in its type's colour, and — only
+with storm movement intel, Cosmic Weather Models or its successor (`canForecast()`) — the systems
+ahead on its path lighter, each with when it gets there: the save's days to the next system, then
+each leg's straight distance at the storm's speed (`stormArrivals()`; the save's 2163 days against
+43.3 units at 0.02 a day). Without that tech the path stays on the server (`stormsSeen()`, and
+`pageLatest()` drops `storms`). Not read: storms still forming (formation predictions,
+`STORM_SPAWN_PREDICTION_MONTHS_TIER_*`), whether movement intel 1 shows the whole path or fewer
+steps than 2, and the arrivals beyond a system we never discovered (the chain stops there). Union, diplomatic and attitude take the game's hsv colours (`hsv()`); diplomatic takes the
 first relation that holds in the game's order, federation › war › subject/overlord › defensive pact
 › NAP › research agreement › commercial pact › rival › closed borders › migration treaty. The
 gradients use `scaleColor()`, and opinion is clamped at ±140 as the game's bands are. The data is
@@ -308,9 +316,7 @@ Intel freshness is the age of the oldest unverified reading, red at 2 years. **T
 `relations_manager.relation.hostile=yes` is not the game's `is_hostile`**: it sat on our subject
 Lolehndra (Planetforgers 2214.02.01), so the war colour comes from wars alone. Trust and threat
 are our relation record's (`Relation.trust|threat`); which side's view `threat` is has not been
-checked. Not built yet: neighbours (`is_neighbor_of` is engine-side), storm forecast (the format is
-known since 2026-11-20 — `path` is each storm's route ahead, "Cosmic storms" in
-`docs/save-format.md`), and ethics, GalCom, weight,
+checked. Not built yet: neighbours (`is_neighbor_of` is engine-side), and ethics, GalCom, weight,
 trade, wars and border-change modes. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01,
 Roaming Korinth 2207.02.01): `/map` returned 200 in every mode and each mode's colours were
 recomputed from `__data.json`. The drawing needs a browser, and the colours have not been compared

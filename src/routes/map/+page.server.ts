@@ -11,6 +11,7 @@ import {
 } from '#lib/mapLayers.ts';
 import { diplomacyView } from '#lib/diplomacy.ts';
 import { modeData } from '#lib/mapModes.ts';
+import { canForecast, stormsSeen } from '#lib/storms.ts';
 import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
@@ -88,6 +89,17 @@ export function load({ url }) {
 			snaps.findLast((x) => x.aiIntel)?.aiIntel ?? []
 		),
 		claims: snaps.findLast((x) => x.claims)?.claims ?? [],
+		// every storm; its path only with storm movement intel (#lib/storms.ts)
+		storms: (() => {
+			const at = snaps.findLast((x) => x.storms);
+			return at
+				? {
+						date: at.date,
+						forecast: canForecast(at.progress?.researched ?? []),
+						list: stormsSeen(at.storms ?? [], canForecast(at.progress?.researched ?? []))
+					}
+				: null;
+		})(),
 		attitudes: Object.fromEntries(
 			Object.entries(data.attitudes).map(([k, v]) => [k, { name: v.name }])
 		),

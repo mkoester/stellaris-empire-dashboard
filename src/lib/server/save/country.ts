@@ -2,6 +2,7 @@ import {
 	anomalies,
 	claims,
 	digSites,
+	storms,
 	diplomacy,
 	firstContacts,
 	galaxy as galaxySystems,
@@ -150,6 +151,7 @@ export function world(raw: RawSave) {
 		anomalies: anomalies(raw),
 		specialProjects: specialProjects(raw),
 		digSites: digSites(raw, visited),
+		storms: storms(raw),
 		stationsSeen: stationsSeen(raw, own)
 	};
 }

@@ -84,6 +84,7 @@ const raw: RawSave = {
 	firstContacts: {},
 	situations: {},
 	archSites: {},
+	storms: {},
 	focusCards: {},
 	endGameStart: 150,
 	galaxy: { technology: 1.25, traditions: 1 },
@@ -1912,6 +1913,34 @@ describe('helpers', () => {
 					]
 				})
 			).toBe('Zanthi Variatus');
+		});
+	});
+
+	it('fills a prescripted text that is a template itself', () => {
+		// data DB of 2026-11-20: `AofB` = "$1$ of $2$" (a contract's issuer, Roaming Cybergang)
+		const names = {
+			AofB: '$1$ of $2$',
+			PRESCRIPTED_species_adjective_humans1: 'Human $1$'
+		};
+		withNames(names, () => {
+			expect(
+				displayName({
+					key: 'AofB',
+					variables: [
+						{ key: '1', value: { key: 'Pact' } },
+						{ key: '2', value: { key: 'SPEC_Fellnoll_planet' } }
+					]
+				})
+			).toBe('Pact of Fellnoll');
+			expect(
+				displayName({
+					key: '%ADJECTIVE%',
+					variables: [
+						{ key: 'adjective', value: { key: 'PRESCRIPTED_species_adjective_humans1' } },
+						{ key: '1', value: { key: 'Commonwealth' } }
+					]
+				})
+			).toBe('Human Commonwealth');
 		});
 		expect(speciesName({ key: 'PRESCRIPTED_species_name_humans1' })).toBe('Humans');
 	});

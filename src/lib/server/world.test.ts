@@ -5,6 +5,7 @@ import {
 	digSites,
 	relations,
 	stationsSeen,
+	storms,
 	surveyedPlanets,
 	wormholeLinks
 } from './world.ts';
@@ -215,5 +216,41 @@ describe('digSites', () => {
 			[2, false],
 			[3, false]
 		]);
+	});
+});
+
+describe('storms', () => {
+	it('reads a storm, its name, the systems it covers and the path ahead', () => {
+		// Roaming Cybergang 2226.08.01, trimmed; `2=none` is a storm gone
+		const raw = {
+			countryId: 16777234,
+			storms: {
+				'1': {
+					type: 'magnetic_storm',
+					storm_current_path_index: 2,
+					speed: 0.02,
+					storm_days_till_next_system: 2438,
+					cluster: { objects: [27, 598, 800] },
+					name: { key: 'HUM1_CHR_Shibbala' },
+					prefix: { key: 'STORM_PREFIX_7' },
+					path: [534, 609, 800, 598, 196],
+					affected_country_ids: [16777234, 36]
+				},
+				'2': 'none'
+			}
+		};
+		expect(storms(raw)).toEqual([
+			{
+				id: 1,
+				type: 'magnetic_storm',
+				name: 'Hurricane Shibbala',
+				systems: [27, 598, 800],
+				path: [598, 196],
+				daysToNext: 2438,
+				speed: 0.02,
+				affectsUs: true
+			}
+		]);
+		expect(storms({ ...raw, countryId: 0 })[0].affectsUs).toBe(false);
 	});
 });

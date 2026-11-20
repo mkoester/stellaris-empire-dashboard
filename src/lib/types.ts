@@ -524,6 +524,7 @@ export type Snapshot = {
 	anomalies: AnomalyInfo[] | null; // found, not yet researched
 	specialProjects: ProjectInfo[] | null;
 	digSites: DigSite[] | null; // archaeological sites in visited systems
+	storms: Storm[] | null; // cosmic storms, every one in the galaxy (the game shows them all); READER 70
 	stationsSeen: StationSighting[] | null; // stations where our fleets are, null before 2026-10-18
 	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
 	focus: EmpireFocus | null;
@@ -796,6 +797,7 @@ export type SituationInfo = {
 	approach: string | null;
 	stage: number | null; // index into the situation's stages (data DB `situation_stage`); null before READER 25
 	ends?: number[]; // where each stage ends (`stage_durations`); the last is the most there is
+	flags?: string[]; // the situation's own flags (Alarm Clock's `alarm_for_<what>`); READER 70
 };
 
 export type AnomalyInfo = { planetId: number; planet: string; systemId: number; category: string };
@@ -818,6 +820,18 @@ export type DigSite = {
 	// the next chapter, 1-based (`index` + 1: `index` = chapters done); past the last once the site
 	// is excavated, which stays in the save (`digSiteDone()`); absent before READER 58
 	chapter?: number | null;
+};
+
+/** A cosmic storm (`storms.storms.<id>`, docs/save-format.md "Cosmic storms"). */
+export type Storm = {
+	id: number;
+	type: string; // "magnetic_storm", …
+	name: string; // "Tempest Shibbal": its prefix's text with the name filled in
+	systems: number[]; // the systems it covers now (`cluster.objects`)
+	path: number[]; // the systems ahead, the next first (`path` after `storm_current_path_index`)
+	daysToNext: number | null; // to the next system on its path (`storm_days_till_next_system`)
+	speed: number | null; // galaxy-map units a day
+	affectsUs: boolean; // we are in its `affected_country_ids`
 };
 
 /** A council seat: `council_positions.<id> = { country type leader }`. */

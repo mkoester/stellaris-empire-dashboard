@@ -97,6 +97,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	anomalies: null,
 	specialProjects: null,
 	digSites: null,
+	storms: null,
 	stationsSeen: null,
 	surveyedAll: null,
 	focus: null,

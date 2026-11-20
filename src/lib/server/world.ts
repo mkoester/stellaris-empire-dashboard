@@ -14,6 +14,7 @@ import type {
 	Relation,
 	SituationInfo,
 	StationSighting,
+	Storm,
 	HistoryReading
 } from '#lib/types.ts';
 import {
@@ -447,7 +448,8 @@ export function situations(raw: Pick<RawSave, 'countryId' | 'situations'>): Situ
 						monthly: numOrNull(s.last_month_progress),
 						approach: strOrNull(s.approach),
 						stage: numOrNull(s.stage),
-						ends: items(s.stage_durations).map((d) => num(d?.end))
+						ends: items(s.stage_durations).map((d) => num(d?.end)),
+						flags: s.flags && typeof s.flags === 'object' ? Object.keys(s.flags) : []
 					}
 				]
 			: []
@@ -518,6 +520,46 @@ export function digSites(
 					idOrNull(s.excavator_fleet)
 				),
 				chapter: s.index === undefined ? null : num(s.index) + 1
+			}
+		];
+	});
+}
+
+// `STORM_PREFIX_<n>` (4.5.4 cosmic_storms_l_english.yml): "Tempest $NAME$"
+const STORM_PREFIX = [
+	'Cyclone',
+	'Disturbance',
+	'Tempest',
+	'Storm',
+	'Hypercane',
+	'Gale',
+	'Monsoon',
+	'Hurricane',
+	'Flux',
+	'Maelstrom',
+	'Vortex'
+];
+
+/** Cosmic storms (`storms.storms.<id>`): where each is and the systems ahead on its path. The game
+ * shows every storm; where it goes next only with storm movement intel (the page decides). */
+export function storms(raw: Pick<RawSave, 'storms' | 'countryId'>): Storm[] {
+	return Object.entries(raw.storms).flatMap(([id, s]) => {
+		if (!s || typeof s !== 'object' || typeof s.type !== 'string') return [];
+		const name = displayName(s.name);
+		const n = /^STORM_PREFIX_(\d+)$/.exec(String(s.prefix?.key ?? ''))?.[1];
+		const prefix = n === undefined ? undefined : STORM_PREFIX[Number(n)];
+		const path = list(s.path);
+		const at = typeof s.storm_current_path_index === 'number' ? s.storm_current_path_index : -1;
+		return [
+			{
+				id: Number(id),
+				type: s.type,
+				name: prefix ? `${prefix} ${name}` : name,
+				systems: list(s.cluster?.objects),
+				path: path.slice(at + 1),
+				daysToNext: numOrNull(s.storm_days_till_next_system),
+				speed: numOrNull(s.speed),
+				affectsUs: list(s.affected_country_ids).includes(raw.countryId)
 			}
 		];
 	});

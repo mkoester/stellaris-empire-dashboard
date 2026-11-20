@@ -140,8 +140,18 @@
 			title: 'last month’s change; ≈ where the save says 0: from the save before'
 		},
 		{ id: 'approach', label: 'Approach', value: (r) => r.approachName },
-		{ id: 'stage', label: 'Stage', value: (r) => r.stageName }
+		{ id: 'stage', label: 'Stage', value: (r) => r.stageName },
+		{
+			id: 'next',
+			label: 'Next',
+			value: (r) => r.next?.months ?? null,
+			cell: nextStage,
+			right: true,
+			title: 'when it reaches its next stage, up or down, at the ±/mo it moves now'
+		}
 	];
+	// the note's "runs to 100" only where every situation shown does; others show their end
+	const allTo100 = $derived(data.situations.every((r) => r.end === null || r.end === 100));
 	// below each list, what earlier saves had and the latest has not: finished, or lost; hidden
 	// until asked for, newest first
 	let showGone = $state({ situations: false, anomalies: false, digSites: false, projects: false });
@@ -361,7 +371,18 @@
 			now={pageNow}
 		/>{/if}{/snippet}
 
-{#snippet progress(r: SituationRow)}{r.progress.toFixed(2)}{/snippet}
+{#snippet progress(r: SituationRow)}{r.progress.toFixed(
+		2
+	)}{#if r.end !== null && r.end !== 100}<span class="text-gray-500">{` / ${r.end}`}</span
+		>{/if}{/snippet}
+{#snippet nextStage(r: SituationRow)}{#if r.next}<span
+			title="{r.next.to} in {r.next.months.toFixed(1)} months{r.monthlyObserved
+				? ', at the change measured between saves'
+				: ''}"
+			>≈ {r.next.months < 12
+				? `${Math.ceil(r.next.months)} mo`
+				: `${(r.next.months / 12).toFixed(1)} y`} → {r.next.to}</span
+		>{:else}–{/if}{/snippet}
 {#snippet monthly(r: SituationRow)}{#if r.monthly === null}–{:else}<span
 			title={r.monthlyObserved
 				? 'the save says 0: the change since the save before, per month'
@@ -577,7 +598,12 @@
 					</p>{/if}
 			</Panel>
 
-			<Panel title="Situations" note="Progress runs to 100.">
+			<Panel
+				title="Situations"
+				note={allTo100
+					? 'Progress runs to 100.'
+					: 'Progress runs to 100, or to the end shown after it.'}
+			>
 				{#if data.situations.length}
 					<SortTable rows={data.situations} columns={situationColumns} key={(r) => r.id} />
 				{:else}<p class="text-sm text-gray-500">None running.</p>{/if}

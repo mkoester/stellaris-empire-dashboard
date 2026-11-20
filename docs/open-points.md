@@ -20,6 +20,10 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   "5 / 4" with a time estimate on the frontier tab: now "excavated", out of "Still to gain", and
   done on the map (`digSiteDone()`). Still to see in a browser: the Outcome's "← next" mark
   against the game's dig site window.
+- **The storms map mode, unchecked in a browser (2026-11-20)**: the fill and hover text are unit
+  tested (`storms.test.ts`), not seen drawn; Roaming Cybergang has no Cosmic Weather Models, so the
+  path ahead has not been shown on a real campaign. Compare with the game's Weather Forecast mode
+  once researched: which systems it marks ahead (intel 1 vs 2), and its arrival estimates.
 - **Cosmic storms over us, unseen (2026-11-20)**: the save format is read (`docs/save-format.md`,
   "Cosmic storms"); no storm has reached Roaming Cybergang's space by 2226.08. At the first that
   does: what the save adds on our planets and fleets, against the game's storm tooltip.
