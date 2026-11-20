@@ -22,6 +22,7 @@ import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
 import { anomalyDays } from '#lib/ships.ts';
 import { digSiteDone } from '#lib/mapLayers.ts';
 import { lgateRelated } from '#lib/lgates.ts';
+import { precursorsOf } from '#lib/precursorLinks.ts';
 import { lgateView, precursorGalaxy, precursorRows } from '#lib/frontierChains.ts';
 import { techCost } from '#lib/events.ts';
 import { nowTable, prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
@@ -74,6 +75,9 @@ export function load({ url }) {
 			)
 		: [];
 	const territories = territoriesOf(snaps);
+	// the Precursor badge (a spoiler): from the whole tree, whatever the outcome spoilers say
+	const precursors = (kind: 'anomaly' | 'project' | 'dig_site', key: string) =>
+		opts.precursorBadges ? precursorsOf(key, data.outcomeTrees[kind][key] ?? null) : [];
 	const anomaly = (a: AnomalyInfo) => {
 		const cat = data.anomalyCategories[a.category];
 		const tree = read(trees.anomaly(a.category));
@@ -93,7 +97,8 @@ export function load({ url }) {
 					: null,
 			outcomes: opts.anomalySpoilers ? (cat?.outcomes ?? []) : null,
 			tree,
-			lgate: lgateRelated(cat?.name ?? a.category, tree)
+			lgate: lgateRelated(cat?.name ?? a.category, tree),
+			precursors: precursors('anomaly', a.category)
 		};
 	};
 	const project = (p: ProjectInfo) => {
@@ -108,7 +113,8 @@ export function load({ url }) {
 			time: projectTime(info),
 			outcomes: opts.projectSpoilers ? (info?.outcomes ?? []) : null,
 			tree,
-			lgate: lgateRelated(info?.name ?? p.key, tree)
+			lgate: lgateRelated(info?.name ?? p.key, tree),
+			precursors: precursors('project', p.key)
 		};
 	};
 	const projectTime = (info: (typeof data.projects)[string] | undefined): Time | null => {
@@ -152,7 +158,8 @@ export function load({ url }) {
 							note: `expected, ${later.length ? `chapters ${next}–${next + later.length}` : `chapter ${next}`}: a roll every 90 days, d10 + skill + clues − difficulty, 14 finishes; ${withScientist}`
 						} satisfies Time),
 			tree,
-			lgate: lgateRelated(data.digSiteTypes[d.type]?.name ?? d.type, tree)
+			lgate: lgateRelated(data.digSiteTypes[d.type]?.name ?? d.type, tree),
+			precursors: precursors('dig_site', d.type)
 		};
 	};
 	// what the save has that only one anomaly, project or dig site gives: it got that far

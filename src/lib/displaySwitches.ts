@@ -185,6 +185,15 @@ export const SWITCHES: Switch[] = [
 		note: 'the game reveals a precursor only once you find its first artifact'
 	},
 	{
+		key: 'precursorBadges',
+		group: 'Frontier',
+		// the user's ask 2026-11-20: one badge, the precursor named beside it
+		kind: 'spoiler',
+		label:
+			'Precursors: a badge on anomalies, projects and dig sites that lead to a precursor, and which',
+		note: 'the game tells only once the event names it'
+	},
+	{
 		key: 'hiddenTimers',
 		group: 'Frontier',
 		kind: 'spoiler',

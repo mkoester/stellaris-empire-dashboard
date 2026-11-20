@@ -355,12 +355,19 @@
 			title="leads towards the L-Gates: an L-Gate Insight, the L-Gate Activation tech or the L-Cluster (with outcomes off, known by its name only)"
 			>L-Gate</span
 		>{/if}{/snippet}
-{#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{@render lgate(r)}{/snippet}
-{#snippet anomalyName(a: Anomaly)}<b>{a.name}</b>{@render lgate(a)}<AddGoal
-		kind="anomaly"
-		target={{ planet: a.planetId }}
-	/>{/snippet}
-{#snippet digName(d: Dig)}<b>{d.name}</b>{@render lgate(d)}<AddGoal
+{#snippet precursorBadge(r: { precursors: string[] })}{#if r.precursors.length}<span
+			class="ml-1 rounded bg-amber-100 px-1 text-[11px] font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
+			title="leads to a precursor: {r.precursors.join(
+				', '
+			)} (a spoiler: the game tells only once the event names it)">Precursor</span
+		>{/if}{/snippet}
+{#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{@render lgate(r)}{@render precursorBadge(
+		r
+	)}{/snippet}
+{#snippet anomalyName(a: Anomaly)}<b>{a.name}</b>{@render lgate(a)}{@render precursorBadge(
+		a
+	)}<AddGoal kind="anomaly" target={{ planet: a.planetId }} />{/snippet}
+{#snippet digName(d: Dig)}<b>{d.name}</b>{@render lgate(d)}{@render precursorBadge(d)}<AddGoal
 		kind="digsite"
 		target={{ planet: d.planetId }}
 	/>{/snippet}

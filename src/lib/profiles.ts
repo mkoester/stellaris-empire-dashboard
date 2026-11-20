@@ -63,6 +63,7 @@ export type Display = {
 	historyMet: boolean; // history tab: everything about the empires we met, beyond our intel (spoiler)
 	historyAll: boolean; // history tab: every empire's history, by its own name (cheat)
 	precursorsAll: boolean; // frontier tab: everything the save holds on every precursor (cheat)
+	precursorBadges: boolean; // frontier tab: a Precursor badge on what leads to one, and which (spoiler)
 	pactIntel: boolean; // pacts tab: what intel shows of partners — tech counts, trade at economy intel 3 (spoiler)
 	pactAdvice: boolean; // pacts tab: whom to offer a research agreement or commercial pact, ranked (spoiler)
 	subjectNumbers: boolean; // subjects tab: a subject's power, fleet, size and pops as numbers (cheat)
@@ -104,6 +105,7 @@ export const DEFAULT_DISPLAY: Display = {
 	historyMet: false,
 	historyAll: false,
 	precursorsAll: false,
+	precursorBadges: false,
 	pactIntel: false,
 	pactAdvice: false,
 	subjectNumbers: false,
@@ -198,6 +200,7 @@ export function parseDisplay(v: unknown): Display {
 		historyMet: o.historyMet === true,
 		historyAll: o.historyAll === true,
 		precursorsAll: o.precursorsAll === true,
+		precursorBadges: o.precursorBadges === true,
 		pactIntel: o.pactIntel === true,
 		pactAdvice: o.pactAdvice === true,
 		subjectNumbers: o.subjectNumbers === true,

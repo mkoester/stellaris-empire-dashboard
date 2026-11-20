@@ -310,7 +310,12 @@ for the Cybrex: weight 6 against 100 for nothing, so ≈ 6 % per body surveyed w
 of its systems), with no `is_nomadic` anywhere in the chain; the home system's link spawns at a
 waystation of ours in one of its systems, else any waystation, else a colony
 (`precursor_capital_spawn_system_effect`). The nomads' `precursor_system_*` variables are Wanderlust's
-exploration tracker (the `precursor_system` star flag), not this chain.
+exploration tracker (the `precursor_system` star flag), not this chain. The spoiler `precursorBadges` (the user's ask
+2026-11-20) puts a **Precursor badge** on anomalies, special projects and dig sites that lead to a
+precursor, the precursor named in its tooltip (`precursorsOf()` in `#lib/precursorLinks.ts`, from the
+whole unresolved outcome tree whatever the outcome spoilers say: 62 anomaly categories, 88 projects,
+20 dig sites in 4.5.4; Grunur counts as the Baol). None in Roaming Cybergang 2226.08.01, which has no
+precursor chain yet.
 Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
 (Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
 column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept
