@@ -351,7 +351,10 @@
 			tree={p.tree}
 			now={pageNow}
 		/>{:else}<span class="text-gray-500">{@render outcomes(p.outcomes)}</span>{/if}{/snippet}
-{#snippet chapter(d: Dig)}{d.chapter ?? '–'}{d.stages ? ` / ${d.stages}` : ''}{/snippet}
+{#snippet chapter(d: Dig)}{#if d.done}<span
+			class="text-green-700 dark:text-green-400"
+			title="all {d.stages} chapters excavated">excavated</span
+		>{:else}{d.chapter ?? '–'}{d.stages ? ` / ${d.stages}` : ''}{/if}{/snippet}
 {#snippet digOutcome(d: Dig)}{#if d.tree}<OutcomeCell
 			tree={d.tree}
 			chapter={d.chapter ?? null}

@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import {
 	anomalyKey,
 	contactDone,
+	digSiteDone,
 	firstSeen,
 	mapMarkers,
 	contractMarkers,
@@ -115,7 +116,8 @@ export function load({ url }) {
 			anomalies: along((x) => x.anomalies, anomalyKey),
 			digSites: along(
 				(x) => x.digSites,
-				(d) => d.id
+				(d) => d.id,
+				(d) => digSiteDone(d.chapter, data.digSiteTypes[d.type]?.stages ?? null)
 			),
 			projects: along(
 				(x) => x.specialProjects,

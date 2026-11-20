@@ -20,6 +20,7 @@ import { facts } from '#lib/government.ts';
 import { gainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
 import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
 import { anomalyDays } from '#lib/ships.ts';
+import { digSiteDone } from '#lib/mapLayers.ts';
 import { techCost } from '#lib/events.ts';
 import { nowTable, prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
@@ -125,15 +126,19 @@ export function load({ url }) {
 		const later = (tree ?? []).flatMap((n) =>
 			n.t === 'chapter' && n.n > next && n.difficulty !== null ? [n.difficulty] : []
 		);
+		const stages = data.digSiteTypes[d.type]?.stages ?? null;
+		// excavated: stays in the save, its `index` at the chapter count (`digSiteDone()`)
+		const done = digSiteDone(d.chapter, stages);
 		const days =
-			scientist === null
+			scientist === null || done
 				? null
 				: digDays(scientist, [d.difficulty, ...later], d.clues, d.excavating ? d.daysLeft : null);
 		return {
 			...d,
 			system: system(d.systemId),
 			name: data.digSiteTypes[d.type]?.name ?? pretty(d.type.replace(/^site_/, '')),
-			stages: data.digSiteTypes[d.type]?.stages ?? null,
+			stages,
+			done,
 			time:
 				days === null
 					? null
@@ -183,13 +188,15 @@ export function load({ url }) {
 			tree: p.tree,
 			time: p.time
 		})),
-		...digSites.map((d) => ({
-			name: d.name,
-			kind: 'dig site' as const,
-			time: d.time,
-			tree: d.tree,
-			next: d.chapter
-		}))
+		...digSites
+			.filter((d) => !d.done)
+			.map((d) => ({
+				name: d.name,
+				kind: 'dig site' as const,
+				time: d.time,
+				tree: d.tree,
+				next: d.chapter
+			}))
 	].flatMap((x) => (x.tree ? [{ ...x, tree: prune(x.tree) }] : []));
 	// the plan's techs, wanted ones' prerequisites included: what an outcome helps with
 	const planned = new Map(

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	contactDone,
+	digSiteDone,
 	firstSeen,
 	mapMarkers,
 	ownOnMap,
@@ -303,6 +304,14 @@ describe('found and done', () => {
 		expect(m.find((x) => x.label === 'C1')?.progress).toBe('finished');
 		expect(m.find((x) => x.layer === 'digSites')?.progress).toBe('excavated');
 		expect(contactDone({ status: 'in_progress' })).toBe(false);
+	});
+
+	it('a dig site is done once its next chapter is past its last', () => {
+		expect(digSiteDone(5, 4)).toBe(true); // Star Petal: index 4 of 4 stages
+		expect(digSiteDone(4, 5)).toBe(false); // Space Shanty: 3 of 5 done, chapter 4 next
+		expect(digSiteDone(4, 4)).toBe(false); // the last chapter still to dig
+		expect(digSiteDone(5, null)).toBe(false); // stages unknown: open
+		expect(digSiteDone(null, 4)).toBe(false); // before READER 58
 	});
 
 	it('an entry popup is done where its structure has a row; a ruin once its system is claimed', () => {

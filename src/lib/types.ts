@@ -815,7 +815,9 @@ export type DigSite = {
 	daysLeft: number | null; // to the excavation's next roll
 	lastRoll?: number | null; // `last_roll`; absent before READER 22
 	excavating: boolean;
-	chapter?: number | null; // the next chapter, 1-based (`index` + 1); absent before READER 58
+	// the next chapter, 1-based (`index` + 1: `index` = chapters done); past the last once the site
+	// is excavated, which stays in the save (`digSiteDone()`); absent before READER 58
+	chapter?: number | null;
 };
 
 /** A council seat: `council_positions.<id> = { country type leader }`. */

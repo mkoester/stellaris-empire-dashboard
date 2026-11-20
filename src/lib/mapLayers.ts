@@ -181,6 +181,11 @@ const isTrackedDone = (t: { doneAt?: string | null }) => (t.doneAt ?? null) !== 
 /** A first contact is done once finished or aborted. */
 export const contactDone = (c: Pick<FirstContact, 'status'>) => c.status !== 'in_progress';
 
+/** A dig site is excavated once its next chapter is past its last (`stages`): a finished site
+ * stays in the save with `index` = its chapter count (Star Petal, 4 of 4, 2222.07 – 2226.08). */
+export const digSiteDone = (chapter: number | null | undefined, stages: number | null) =>
+	chapter != null && stages !== null && chapter > stages;
+
 // what a system entry popup is told by, when the system has one of these: the Abandoned Gateway
 // popup by the gateway's own marker
 const TELLS_ENTRY: MapLayer[] = ['gateways', 'megastructures', 'ruins'];
