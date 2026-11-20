@@ -240,7 +240,16 @@
 		}
 	];
 	const fixed = $derived(tabsAt(node));
-	const title = $derived(pageTitle(path, fixed, data.tabs));
+	// a nomad's expansion is roaming: its waylines, and settling down one day — tab and window title
+	const roaming = (name: string) => name === 'expansion' && data.settle.nomad;
+	const label = (name: string) => (roaming(name) ? 'roaming' : name);
+	const title = $derived(
+		pageTitle(
+			path,
+			fixed.map((t) => ({ ...t, name: label(t.name) })),
+			data.tabs
+		)
+	);
 	const tabHref = (id: string) =>
 		node ? resolve(`/tab/[id]?node=${node}`, { id }) : resolve('/tab/[id]', { id });
 	const tab = (active: boolean) =>
@@ -332,17 +341,15 @@
 				<a class={tab(path === `/tab/${t.id}`)} href={tabHref(t.id)}>{t.name}</a>
 			{/each}
 			{#each fixed as t (t.name)}
-				<!-- a nomad's expansion is roaming: its waylines, and settling down one day -->
-				{@const roaming = t.name === 'expansion' && data.settle.nomad}
 				{@const dim = data.empty[t.name] && `nothing to show yet: ${data.empty[t.name]}`}
 				<a
 					class="{tab(t.active)} {dim ? 'opacity-50' : ''}"
 					href={t.href}
 					title={dim ||
-						(roaming
+						(roaming(t.name)
 							? `waylines and settling down${data.settle.blocked ? ` (settling needs ${data.settle.blocked})` : ''}`
 							: undefined)}
-					>{roaming ? 'roaming' : t.name}{#if t.name === 'planner' && data.plan.alerts}<span
+					>{label(t.name)}{#if t.name === 'planner' && data.plan.alerts}<span
 							class="ml-1 rounded bg-red-600 px-1 text-[11px] font-semibold text-white"
 							title="goals no longer possible, or avoided ones that happened"
 							>⚠ {data.plan.alerts}</span
