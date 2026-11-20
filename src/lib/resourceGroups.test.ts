@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { stripOrder } from './resourceGroups.ts';
+import { inFirstRow, stripOrder } from './resourceGroups.ts';
+
+describe('inFirstRow', () => {
+	it('keeps basic, advanced and reserves above strategic, unity and influence', () => {
+		expect(
+			['energy', 'trade', 'operational_reserves', 'volatile_motes', 'unity', 'influence'].map(
+				inFirstRow
+			)
+		).toEqual([true, true, true, false, false, false]);
+	});
+});
 
 describe('stripOrder', () => {
 	it("puts a nomad's Operational Reserves in energy's and minerals' place", () => {
@@ -15,9 +25,18 @@ describe('stripOrder', () => {
 		]);
 	});
 
-	it('puts basic first, unity and influence last, the rest alphabetically between', () => {
+	it('puts basic first, then motes, gases, crystals, the rest alphabetically, unity and influence last', () => {
 		expect(
-			stripOrder(['unity', 'rare_crystals', 'energy', 'exotic_gases', 'society_research'])
+			stripOrder([
+				'unity',
+				'sr_zro',
+				'rare_crystals',
+				'energy',
+				'exotic_gases',
+				'volatile_motes',
+				'sr_dark_matter',
+				'society_research'
+			])
 		).toEqual([
 			'energy',
 			'minerals',
@@ -25,8 +44,11 @@ describe('stripOrder', () => {
 			'consumer_goods',
 			'alloys',
 			'trade',
+			'volatile_motes',
 			'exotic_gases',
 			'rare_crystals',
+			'sr_dark_matter',
+			'sr_zro',
 			'unity',
 			'influence'
 		]);

@@ -10,6 +10,7 @@ import {
 	type ProfileSettings
 } from '#lib/profiles.ts';
 import { parseTheme, type ChartEvents, type CustomTab, type Theme } from '#lib/settings.ts';
+import { DEFAULT_UPDATE_HOURS, parseUpdateHours } from '#lib/updates.ts';
 import { getDb } from './app.ts';
 import {
 	campaignIronman,
@@ -36,6 +37,10 @@ export const campaignAt = (db: Db, node: number | null): string | null =>
 export const viewedCampaign = (db: Db): string | null => campaignAt(db, requestedNode());
 
 export const theme = (): Theme => parseTheme(getSetting(getDb(), 'theme')) ?? 'system';
+
+/** Hours between checks for a newer dashboard (global, ⚙ Updates; 0 = never). */
+export const updateHours = (): number =>
+	parseUpdateHours(getSetting(getDb(), 'updateHours')) ?? DEFAULT_UPDATE_HOURS;
 
 /**
  * The profiles, creating the first one (`default`) from the settings stored before profiles

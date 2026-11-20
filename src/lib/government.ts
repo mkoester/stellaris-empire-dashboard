@@ -99,6 +99,9 @@ function citizenshipFacts(s: Snapshot, slavery: string[]): Partial<Facts> {
 const unlocked = (by: string[], f: Facts) =>
 	by.length === 0 || by.some((k) => f.traditions.includes(k) || f.perks.includes(k));
 
+/** Years a policy stays locked once changed: the game's POLICY_YEARS (common/defines/00_defines.txt). */
+export const POLICY_YEARS = 10;
+
 export type PolicyRow = {
 	key: string;
 	name: string;
@@ -355,6 +358,8 @@ export function councilSeats(
 			...r,
 			council,
 			classes: data.councilPositions[r.key]?.classes ?? [],
+			// which of the seat's classes holds it now (the ruler's seat takes several); null unknown
+			leaderClass: s.leaderRoster?.find((l) => l.id === r.leaderId)?.class ?? null,
 			// per level, and what that gives at the councilor level
 			effects: perLevel.map((m, i) => ({ perLevel: m, now: atLevel(perLevel, council)[i] })),
 			// the leader's traits while on the council (flat, not per level)

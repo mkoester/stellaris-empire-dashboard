@@ -171,8 +171,13 @@ export function combatLog(snaps: { combats: Combat[] | null }[]): Combat[] {
 	return [...byKey.values()].sort((a, b) => b.date.localeCompare(a.date));
 }
 
+// Before communications the game shows a contact's pre-communications name and its colour, nothing
+// of what it is: `country` (real name, type, ethics …) only then, so neither the Type column, the
+// kind badge nor the kind filter tells a first contact apart (the user's ask 2026-11-17). Fauna
+// and the like get communications when their first contact finishes.
 export type ContactRow = Relation & {
-	country: CountryInfo | null;
+	country: CountryInfo | null; // with communications only
+	flagColor: string | null; // its map colour, which the game shows anyway
 	firstContact: FirstContact | null; // an open one
 };
 
@@ -181,20 +186,27 @@ export function contactTable(
 	countries: CountryInfo[],
 	contacts: FirstContact[]
 ): ContactRow[] {
-	return relations.map((r) => ({
-		...r,
-		country: countries.find((c) => c.id === r.countryId) ?? null,
-		firstContact:
-			contacts.find((c) => c.countryId === r.countryId && c.status === 'in_progress') ?? null
-	}));
+	return relations.map((r) => {
+		const c = countries.find((x) => x.id === r.countryId) ?? null;
+		return {
+			...r,
+			country: r.communications ? c : null,
+			flagColor: c?.flagColor ?? null,
+			firstContact:
+				contacts.find((f) => f.countryId === r.countryId && f.status === 'in_progress') ?? null
+		};
+	});
 }
 
 /**
  * Each empire's galaxy-map colour by name — the name we know it by (before communications its
- * pre-communications one) and its own — for `EmpireName` on every page.
+ * pre-communications one) and, once we talk or for ourselves, its own — for `EmpireName` on every
+ * page. A real name we do not know yet stays out: the page data would spoil a first contact.
  */
 export function empireColors(
-	s: { countries: CountryInfo[] | null; relations: Relation[] | null } | undefined,
+	s:
+		| { countries: CountryInfo[] | null; relations: Relation[] | null; countryId?: number | null }
+		| undefined,
 	flagColors: Record<string, string>
 ): Record<string, string> {
 	const color = new Map(
@@ -205,7 +217,11 @@ export function empireColors(
 	);
 	return Object.fromEntries(
 		[
-			...(s?.countries ?? []),
+			...(s?.countries ?? []).filter(
+				(c) =>
+					c.id === s?.countryId ||
+					s?.relations?.some((r) => r.countryId === c.id && r.communications)
+			),
 			...(s?.relations ?? []).map((r) => ({ id: r.countryId, name: r.name }))
 		].flatMap((c) => {
 			const hex = color.get(c.id);
@@ -219,5 +235,39 @@ export const shown = (rows: ContactRow[], v: ContactView) =>
 		(r) =>
 			(!v.communicationsOnly || r.communications) &&
 			(v.hostile === 'any' || r.hostile === (v.hostile === 'hostile')) &&
-			v.kinds.includes(kindOf(r.country?.type ?? ''))
+			// a kind not known yet (no communications) is no reason to hide the row
+			(!r.communications || v.kinds.includes(kindOf(r.country?.type ?? '')))
 	);
+
+/**
+ * The latest snapshot as every page gets it: the countries it may know of in full (ourselves and
+ * those we talk to), and nothing galaxy-wide — the history reading, every empire's relations
+ * (`diplomacy`) and wars (`allWars`); the tabs that need them read them on the server. Page data
+ * is visible to the viewer: anything more spoils a first contact (the user's ask 2026-11-17).
+ */
+export const pageLatest = <
+	S extends {
+		countries: CountryInfo[] | null;
+		relations: Relation[] | null;
+		countryId: number | null;
+		history?: unknown;
+		diplomacy?: unknown;
+		allWars?: unknown;
+		contracts?: unknown;
+	}
+>(
+	s: S
+): S => ({
+	...s,
+	...('history' in s ? { history: null } : {}),
+	...('diplomacy' in s ? { diplomacy: null } : {}),
+	...('allWars' in s ? { allWars: null } : {}),
+	// every contract in the galaxy, issuers we never met by name: the contracts tab sends its own rows
+	...('contracts' in s ? { contracts: null } : {}),
+	countries:
+		s.countries?.filter(
+			(c) =>
+				c.id === s.countryId ||
+				(s.relations ?? []).some((r) => r.countryId === c.id && r.communications)
+		) ?? null
+});

@@ -33,3 +33,20 @@ export function modifierLabel(mod: Modifier): string {
 	const key = mod.key.replace(/_(add|mult)(_uninhabitable)?$/, '');
 	return key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+// Not part of the planner copy — the dashboard's own.
+
+/**
+ * The lines a reader can tell apart: of modifiers that read the same (value, label, colour), the
+ * first. The game labels some keys alike — an agenda's `shipsize_civilian_arkship_tier_1/2/3_*`
+ * all read "Civilian Arkship …" — and three equal lines say nothing a single one does not.
+ */
+export function distinctModifiers(list: Modifier[]): Modifier[] {
+	const seen = new Set<string>();
+	return list.filter((m) => {
+		const line = `${formatModifierValue(m)}|${modifierLabel(m)}|${modifierColor(m)}`;
+		if (seen.has(line)) return false;
+		seen.add(line);
+		return true;
+	});
+}

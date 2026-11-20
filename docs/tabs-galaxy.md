@@ -39,7 +39,7 @@ perks as popups (data DB `specialist_*`, extractor 0.1.16), our holdings against
 `subject_holdings_limit_N` term, and what the subject does — opinion of us, trust, wars, breach of
 a resolution, every policy (fleet doctrine …) from its own country block (`Subject.stance`, READER
 55). Its numbers (`Subject.power`: military, economy, tech power, fleet, naval use, size, pops,
-colonies, rank) only with the `subjectNumbers` cheat — the game shows Inferior / Equivalent /
+colonies, rank) only with the `subjectNumbers` spoiler (a cheat until 2026-11-17; `intel`) — the game shows Inferior / Equivalent /
 Superior. Checked 2026-11-12 on a DB copy (UNE 6, Silicron 2208.02.01: loyalty 92.8, +3.9 a month,
 +3.7 from opinion 366, renegotiation open since 2205.11.01, holdings 0 / 1, 26 policies named); UNE 6
 counts as multiplayer, so the cheat stays off there (the guard). The
@@ -63,17 +63,24 @@ systems claimed, taken or lost, communications opened, guardians slain, wars). E
 `Snapshot.history` (READER 43, ~5 KB: `historyReading()` in `server/world.ts` — every system's
 station owner, every planet colony with its `colonize_date` and system, the guardian kill flags,
 names); `knownHistory()` diffs them along the branch. **What we know is decided at the branch's
-latest save and applied to the whole past** (the user's rule): our own history, all of an empire's
-once we have communications with it, the owner of any system we have visited, guardians' falls
+latest save and applied to the whole past** (the user's rules; 2026-11-17: "only what I know
+about empires, depending on my own intel, and only for empires I met"): our own history; of an
+empire we met (a relation), its systems from military intel 1 ("Location of Starbases") and its
+colonies from economy intel 1 ("Low Intel on Colonies") — both intel 30, the two categories' levels
+being equal at every value (`common/intel_levels`) —, its wars from diplomacy intel 1 (intel 20);
+of an empire not met nothing (it is "an unknown empire" where it takes a system from one we know),
+named as we know them (relations: the pre-communications name until we talk; the save's own names
+only with the cheat — a real name in the page data spoiled first contacts); guardians' falls
 (common knowledge — the flags `killed_guardian`, `horror_killed`, `killed_wraith`,
 `tiyanki_killed`, `killed_hatchling`, global `toxic_god_killed`, `guardians_zanaam_destroyed`:
-**none seen in a save yet**), wars with a side we know (public, as on the diplomacy tab); not
+**none seen in a save yet**), wars with a side we know (named by the save only where we know every side: its name is made of
+theirs); not
 others' discoveries nor battles we did not fight. Before the first save read only colonies are
 known (by `colonize_date`; before 2200 — homeworlds, pre-FTLs at "2016.05.09" — read as
 2200.01.01), and a system whose colony predates that save counts as its owner's since then. A
-change between two saves is dated "≤" the later one. The `historyAll` cheat shows everything.
+change between two saves is dated "≤" the later one. The `historyMet` spoiler shows everything about the empires we met, the `historyAll` cheat everything about every empire by its own name (both `intel`: off in multiplayer and Ironman; the user's split, 2026-11-17).
 Checked 2026-11-01 on a DB copy (Roaming Korinth, 2207.02): known now us, Vivisandia Vestige and
-Skull Clan — 10 colonies, 9 claims, 2 communications; with the cheat 80 and 100. **Open:** when a
+Skull Clan — 10 colonies, 9 claims, 2 communications; with the spoiler 80 and 100. **Open:** when a
 guardian was first discovered (the user's ask) is not read — its system is not tied to the flag;
 arkship colonies (nomads') are not in the reading, which reads planets.
 
@@ -212,6 +219,10 @@ sees everything — `has_full_sensor_range`). `sensor_range` is jumps: ship sens
 starbases add 1, which in map units (~20 between systems) would not leave their own system. Jumps
 run over discovered lanes, so early on the score saturates (2207.03.10: 37 for every reachable
 system). Rules needing bodies are unknown (`?`) in unvisited systems.
+The tab is dimmed in the tab bar (`megastructuresEmpty`, `#lib/tabData.ts`) until a structure is
+found in a visited system (built or ruined, ours too; gateways and L-Gates not) or a structure's
+tech is researched (`MEGA_RULES[*].tech`, the first stage's `prerequisites`) — the user's rule,
+2026-11-15. It reads the stored galaxy, not the display switches' view of it.
 2207.03.10: catapult best near the centre (Elthir: farthest 387, centre 83); arc furnace Sol 20.
 
 **Pacts tab** (`/pacts`, `#lib/pacts.ts` pure; the user's ask 2026-11-05: "what do I get from
@@ -236,9 +247,9 @@ holds a pact.
 - **Commercial pacts** (`commercialSplit()`): we gain 10 % of the partner's trade production
   (`COMMERCIAL_PACTS_INCOME_PERCENTAGE`), booked as trade under `commercial_pacts`, not taken from
   the partner. **Fit**: Planetforgers 2214.02 booked 46.85, Σ 0.1 × (partner's trade income − its
-  own `commercial_pacts` trade, `AiIntel.commercialPactTrade`) 46.83. The total is always shown;
-  per partner with `pactIntel` at economy intel 3 (intel ≥ 90, `resource_production` in
-  `common/intel_categories/02_intel_economy.txt`), any partner with `pactAll`.
+  own `commercial_pacts` trade, `AiIntel.commercialPactTrade`) 46.83. The total and each
+  partner's share are always shown (the user's ask 2026-11-17; before, a partner's share needed
+  economy intel 3 with `pactIntel`, or `pactAll`).
 - **Research agreements** (`researchValue()`, `techCounts()`, `techHints()`): +25 % research speed
   (`RESEARCH_AGREEMENT_SPEED_MULT`) on a tech the partner has, **added to the speed we already
   have — confirmed in game** (the user's point 2026-11-05; throwaway Theian Preservers 2200.07: the
@@ -260,6 +271,25 @@ holds a pact.
   (the cards on offer and techs `inReach()` a partner has, by research saved). From
   `AiIntel.techsWeLack` / `techsTheyLack` (READER 45, research
   partners only, to keep snapshots small); costs × `techCostFactor()`.
+
+- **Pacts to offer** (`#lib/pactAdvice.ts` pure, the `pactAdvice` spoiler, `intel`; the user's ask
+  2026-11-18: "build the research agreement recommendation as well as a commercial pact
+  recommendation, grey out the ones which are not yet available because they won't accept, but
+  keep them in their ranked position"): every empire we talk to without the pact, ranked by what it
+  brings a month in trade (`valuesOf`) less its influence upkeep (`pactUpkeep()`: the kind's booked
+  upkeep per partner, else base × another pact type's booked over base, else base — Isolationist
+  doubles it, 2217.07.01). Research: +25 % of our output
+  per area on the share (by cost) of the techs in progress and on the cards that they have and no
+  partner already gives — every contact's `techsWeLack` since READER 64, `theyLackCount` for the
+  acceptance; on 2217.06.01 "every tech in reach" (128, rare and arcane ones included) diluted a
+  partner's 4–5 to almost nothing, the cards did not. Commercial: 10 % of their trade production.
+  Greyed with the reason: the action's `possible` (trust ≥ 20 or our good opinion, an embassy or
+  Diplomatic Networking, independence) and the AI acceptance from the defines, personalities
+  (`*_acceptance`) and attitudes (`alliance`/`coexist`, extractor 2026-11-18; older data DB:
+  unknown, "?"). Hidden: what is never possible — our or their purifier, inward-perfection, swarm
+  or terminator civics, a research agreement with anything but a regular empire. The acceptance is
+  an upper bound — the game showed −13 where it read +156 —, so only a sum at or below 0 greys a
+  row; a positive one shows as "≤": `docs/open-checks.md` 10.
 
 The route sends a partner's data only as far as the switches allow. `levelOf()` covers the economy
 and technology categories too (`INTEL_LEVELS`, 00_intel_levels.txt: both move together).
@@ -283,12 +313,15 @@ model**: our `intel_manager` value per country (0–100) → a level per categor
 (`common/intel_categories/*`): government 1 (intel 10) ethics, civics, capital (and the ruler, not
 stored); government 2 (40) origin; diplomacy 1 (20)
 rivalries, federation; diplomacy 2 (50) pacts and opinions. A pact shows through either side,
-their opinion of us always; subjects and wars are **assumed public** (`docs/open-points.md`). `diplomacyView()`
+their opinion of us always; subjects and wars are **assumed public** (`docs/open-points.md`). An
+empire is never shown by its id (the user's ask 2026-11-17): a side we have no name for is
+"unknown empire", and a war keeps the save's name ("Prikki - Kilik Xeno Filth Removal", made of
+the sides' own names) only where every side is shown by a name. `diplomacyView()`
 walks the branch's saves: a fact keeps its reading from the last save whose intel showed it — gone
 if that save showed it gone, else **"unverified since"** that date when the intel no longer shows
 it. Snapshots keep relations only among the diplomatic kinds (empires, fallen, enclaves, traders,
 marauders) and with communications (`Snapshot.diplomacy`, `intel`, `allWars`, READER 14). The
-`diplomacyAll` cheat (⚙) is the latest save's truth; the route strips nothing else, since the
+`diplomacyAll` spoiler (⚙, `intel`) is the latest save's truth; the route strips nothing else, since the
 model never passes hidden facts. 2214.01.01: 47 countries, 113 relations shown of 141, 115
 opinions of 228.
 **Ethics** (the user's ask 2026-10-27, `#lib/ethics.ts` pure): what government intel shows, as

@@ -45,6 +45,18 @@ gated in the effect's own `limit` — role `bonus`: Insult stays possible, the r
 Insult available again · with the next Insult", as the game's tooltip has it), federation laws (their timers sit on the federation, not
 read yet) and enclave deals.
 
+**Market prices back to normal** (`marketRecoveries()` in `#lib/events.ts`, `priceRecovery()` in
+`#lib/market.ts`; the user's ask 2026-11-19, after buying 1000 food with the monthly order at 1):
+per resource of the latest save's market, the day its fluctuation snaps back to 0, simulated a day
+at a time with the standing orders traded on each 1st, ≈. No row when that is by the next 1st — the
+orders' own swing (42 energy: +0.84 on the 1st, under 0.3 and reset by the next): "this slight
+increase should not trigger this". Orders that push it further each month than it recovers give a
+"keeps rising/falling" row now (⚠). The recovery is fitted on Roaming Cyber Gang's saves
+(constants and data points in `market.ts`) — 4× slower than the defines' days-to-base suggest.
+**Unconfirmed**: below base far from 0 (fitted only at −0.36, the per-% term assumed the same as
+above) and the galactic market (½ the impact and 3× the recovery, from the internal multipliers;
+others trade there too). DB copy 2026-11-19, 2223.10.01: one row, food +18.7 % → 2226.03.26.
+
 **Run-out cooldowns stay** (`timedOut()`, the user's ask 2026-10-25): along the branch's saves each
 cooldown instance (a timer an action waits on, per scope — the empire or a colony, so one decision
 on two colonies is two rows —, launched agendas, reform and focus) keeps its latest end seen; once
@@ -74,6 +86,9 @@ same cards), so a later draw offering it again is a new row; picking it in game 
 Checked 2026-11-06 on a DB copy (Yorphian Extractorate, node 533): no row before planning; rows for
 `tech_lasers_2` and `tech_bio_reactor` (on offer), none for `tech_physics_1` (being researched); ✕
 removed only its own row. Seen in game 2026-11-06 (the user): "2200.02.02 · now · Quantum Computing ✕ · ⚠ planned tech · physics · on offer since 2200.01.01".
+**A tech planned for later or to avoid** gets a row too (2026-11-16; `later`, "avoided tech":
+"pick another card"), and with companion mod 0.13.0 the rows follow the cards it logs on the 2nd
+of each month (`withLiveOptions()`, `docs/companion-mod.md` "Research options").
 **Rolls** (`rolls()`): an envoy's next roll on a first contact and an excavation's, the save's
 `days_left` (`last_roll` stored too, READER 22). **Ships on their last task always show**: without
 a measured rate a civilian order is ≈ its days at the base rate (one a day), else its travel;
@@ -224,13 +239,30 @@ stations seen, anomalies, dig sites, special projects, wormholes, gateways and L
 (`GalaxySystem.bypasses`), megastructures and their ruins (`*_ruined`) — each layer hidden by the
 profile's `mapFilter`, plus a table with what is worked on and how far (an envoy on a contact,
 an excavation running; stage, clues, days — anomalies and special projects carry no progress in
-the save) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). **Every
+the save), an anomaly's, project's or dig site's outcome as the tooltip of its name and of its
+system on the map (`MapMarker.tip`, behind the three outcome spoilers; the frontier tab's
+Outcome column has the same) and a system search (known names completed; picks and centres, `GalaxyMap.show()`). **Every
 map's width** is the viewer's (`GalaxyMap`'s `width` buttons: normal, wide = the window's full width,
 wide + table = that with the page's table beside the map) — one localStorage key for all maps
-(`MAP_WIDTH_KEY`, `#lib/mapView.ts`). A page with a table of what its map shows (map: Found;
-systems; megastructures; situations: First contacts) defines it as a top-level snippet, passes it
+(`MAP_WIDTH_KEY`, `#lib/mapView.ts`). Until a browser's buttons pick one, a map opens at ⚙'s **Map width**
+(`Display.mapWidth`, per profile, default normal; the layout's `mapDefaults`), and it opens fitted
+to ⚙'s **A map opens fitted to** (`mapFit`: explored — the default —, my empire, everything;
+everything where that set is empty), following the size; the "everything" button follows it too
+(the user's ask, 2026-11-17). ⚙ shows what this browser keeps of its own — its width pick, how many
+map heights were dragged — each with a reset (`forget()` in `#lib/browserStore.ts`), so a default
+can take effect again. A page with a table of what its map shows (map: Found;
+systems; megastructures; frontier: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and
-filters stay above the map. Without `beside` (diplomacy, migration) the third button is not offered
+filters stay above the map. **A map that is the page's last element is as high as it is wide
+where the window has room for that**, else as high as the window allows with its controls and
+legend in sight once scrolled to (`fitFill()`), until the viewer drags it (the user's asks,
+2026-11-15 and 2026-11-17 — square, or the window's bottom where that was more, pushed the legend
+out of a low window): `square` where the page ends with it (the frontier tab), and every map in
+"wide + table". **The height is dragged at the box's bottom edge** (a handle of its own, not the
+browser's `resize-y` corner, 2026-11-17): within 48px of the window's bottom the page scrolls
+along and the map grows into the room that makes, so a map at the page's end grows in one drag
+(the user's ask: before, it grew only to the window's edge per drag). A drag that changed the
+height is stored on release. Without `beside` (diplomacy, migration) the third button is not offered
 and a stored `side` draws as wide. **Full window** (the user's ask 2026-11-02; `GalaxyMap`'s "⛶ full
 window" button, per viewer in localStorage `MAP_FULL_KEY`): the map lays itself over the whole
 browser window (`fixed`, `z-40` — below the context menu and popups, `z-50`), its toolbar on top,
@@ -280,8 +312,11 @@ Roaming Korinth 2207.02.01): `/map` returned 200 in every mode and each mode's c
 recomputed from `__data.json`. The drawing needs a browser, and the colours have not been compared
 with the game's map yet (`docs/open-checks.md` 27).
 
-The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render the same
-panels by id (`EmpirePanel.svelte`);
+The `all` tab and custom tabs (`/tab/[id]`; the header is a switch, not a panel) render their panels
+by id (`EmpirePanel.svelte`); Recommendations is All-only, beside Upcoming, and follows the What-ifs
+spoiler. It groups positive estimated trade or stability changes across edicts, policies, colony
+designations and planet decisions. Its “Show all options, ranked” browser toggle lists every
+estimated option together, ordered by net trade and then stability;
 `LAYOUT` in `#lib/settings.ts` lists them, in `all`'s order and grouping — **a new empire panel
 goes there and into `EmpirePanel`**. **A new profile setting is a key of `ProfileSettings` with its
 default and its parser in `SETTING_PARSERS`** (`#lib/profiles.ts`): the API, the stored profile and
@@ -308,13 +343,15 @@ defines the `dark:` variant on it. Canvases (uPlot) pick axis colours per draw a
 the tabs show what the game's own panels show — agendas, edicts, policies, council seats as the
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
-`factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `diplomacyAll`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`. A new view of hidden information follows the same pattern
+`factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `digSiteSpoilers`, `contactStations`,
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `tradeStockpiles`, `diplomacyAll`, `historyMet`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`. A new view of hidden information follows the same pattern
 (and in multiplayer and Ironman: "No cheats in multiplayer or Ironman").
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —
 `normal`, `spoiler` (what the game hides until found) or `cheat` (what it never tells a player;
-`habitatsAlways` now one) —, a left-hand section list and a search over all of it. Two gates,
+`habitatsAlways` now one). Found includes more intel or exploring: what a higher intel level would
+show is a spoiler with `intel`, not a cheat (`diplomacyAll`, `historyMet`); a cheat
+is what no intel level shows (`pactAll`: another empire's techs; `historyAll`: empires never met) —, a left-hand section list and a search over all of it. Two gates,
 `showSpoilers` / `showCheats` (off by default; a profile from before them starts with a gate on
 when it had one of its switches on), list those kinds; **hidden also means off**:
 `display()` (`server/settings.ts`) returns `effectiveDisplay()`, the stored values kept, so
@@ -345,3 +382,8 @@ browser: the interactions are unchecked here.
 events after the game's text colours. Charts and the upcoming list both use them. **Districts**
 take theirs from the data DB (`district.color`, the border of the game's grid-box icon), shown as
 a swatch and tinted name by `DistrictName.svelte`; pages get them as `colors` next to `names`.
+**Two value scales:** `scaleColor()` runs red → green between a column's worst and best (no
+baseline: willingness, opinion, trust); `gainColor()` compares against a baseline — plain at it,
+grey below, orange → green above up to the best, which the caller sets bold (the trade tab's prices
+against the market, gifts against +0; the user's ask 2026-11-18). Scale along whatever the reader
+compares: the price table per resource, the gift table per empire (which resource buys it most).

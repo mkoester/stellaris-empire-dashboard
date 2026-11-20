@@ -22,7 +22,9 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
 - **Svelte 5 trims whitespace at the start and end of an element**, so a Prettier-wrapped
   `<span …>⏎ by {x}</span>` renders "by" glued to what precedes it (the about tab's credits,
   2026-11-01). The lint refuses `{' '}` (`svelte/no-useless-mustaches`): put the space in an
-  expression, ``<span>{` by ${x}`}</span>``.
+  expression, ``<span>{` by ${x}`}</span>``. A template literal without an expression
+  (``{` – nothing`}``) is refused too: with nothing to interpolate, use a margin (`ml-1`) instead
+  of the space (`Outcome.svelte`, 2026-11-15).
 - **A `{#snippet}` written directly inside a component's children becomes that component's prop**
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
@@ -95,26 +97,49 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   new field stays at its `upgrade()` default until the save changes. **Two branches bump it
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
-  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40.
+  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
+  2026-11-20: `develop` has 68 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
+  chapters, planet flags, waystations, the home system surveyed, name templates, every contact's tech
+  gap, the Edict Fund, contracts completed, contract passengers aboard arkships, dig sites excavated by our fleets only; the highway: the Ancient Highway mod) — that merge takes 69,
+  and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
+  in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
   only — a released step has run on players' DBs). The version is SQLite's `user_version` (0.1.0's
   `state.schema = '15'` is taken over as 15); a new DB is the 0.1.0 tables plus every step, so each
   step runs in every test. Before migrating, `openDb` leaves a copy beside the DB
   (`dashboard.v<old>.sqlite`); a DB of a newer dashboard is refused (the reason shows on `/setup`),
   never dropped — a player who starts an older zip by mistake keeps their history.
+- **A query a page runs is checked with `EXPLAIN QUERY PLAN` on a DB copy.** `USE TEMP B-TREE`
+  beside a `json_extract` column means every snapshot is parsed before `LIMIT 1` keeps one (two
+  layout queries took ~400 ms of every page until migration 18). Time a page by profiling it:
+  "Measuring a page" in `docs/testing.md`.
 - The background start, cleaning up campaigns and the migrations so far: `docs/database.md`. Read
   it before changing `watch.ts` or `campaigns.ts`, or adding a migration.
 
 ## Checking a change
 
 Check a change end to end against a copy of the dashboard DB, never the real one: a dev server
-ingests saves and moves the head. On the Linux game machine the DB in use is in
-`~/.local/share/stellaris-empire-dashboard-test/`. New save shapes come from throwaway games with
+ingests saves and moves the head. Where the DB in use lives differs per machine (`docs/testing.md`):
+on mkTuxedCachy the released zip's own, `~/.local/share/stellaris-empire-dashboard/`. New save shapes come from throwaway games with
 console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
 
 Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`,
 `node_modules/.bin/vitest run`, `node_modules/.bin/prettier --check . && node_modules/.bin/eslint .`
-(why not `pnpm <script>`: "Sandbox notes").
+(why not `pnpm <script>`: "Sandbox notes"). ESLint reads the types for `src/**/*.ts` (floating
+promises, `switch` exhaustiveness) and takes about 35 s. **A promise started and left alone needs a
+`.catch`** — a rejection nobody handles ends the Node process — and a `switch` over a union names
+every member.
+
+**A change to a page or a component checks every page's server render**: `node
+scripts/check-pages.mjs --db <dashboard.sqlite> --data <stellaris.sqlite>` (`pnpm check:pages` with
+the same arguments). It copies the DB, renders each campaign's newest node on every route, with the
+switches as stored and all on, and fails on a non-200 or on anything the server warns while
+rendering — Svelte's dev-only `node_invalid_placement_ssr` (a `<ul>` from a component inside a
+`<p>`) is only logged, so svelte-check and vitest never see it. Its `<p>` location can name the
+wrong file (`Panel.svelte:576`, an 18-line file, for a `<p>` on `/expansion`, 2026-11-19): find the
+page by the check, not by the message. About 2 min for five campaigns (450 pages);
+narrow with `--campaign <part>` / `--route /path`. Hydration warnings need a browser: not covered.
+Open: a test DB and running it before releases (`docs/testing.md`, "The page check").
 
 - The procedure on a DB copy, replaying a live month, the real-save test, reading a save ad hoc,
   the throwaway games and their console commands ("Testing in a throwaway game"): `docs/testing.md`.
@@ -131,7 +156,10 @@ Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --t
 a file is read once its size and mtime hold still for one interval) → `save.ts` reads the zip with
 `zip.ts` and queries the gamestate with jomini (the readings by domain are in `server/save/`,
 re-exported by `save.ts`; `toSnapshot()` is handed the campaign's game data, never a global) → `db.ts` places the snapshot in the save graph via
-`timeline.ts` and records it → `/api/events` tells open pages to reload. In parallel, `feed.ts`
+`timeline.ts` and records it → `/api/events` tells open pages to reload. **That stream is opened
+once per browser** (a SharedWorker, `#lib/eventsWorker.ts`): subscribe through `#lib/live.ts`,
+never `new EventSource` in a page — three per tab once held all 6 connections a browser gives a
+host with two tabs open, and every tab click hung (`docs/open-points.md`). In parallel, `feed.ts`
 follows `game.log` from its current end and turns the mod's monthly lines into partial snapshots
 (stockpile and net income) of the campaign being played.
 
@@ -155,13 +183,50 @@ The tabs show what the game's own panels show. Everything beyond that is a profi
 (`Display`), off by default and labelled as a spoiler or as cheating (the list and the story:
 `docs/tabs-shell.md`).
 
+**A tab is dimmed by the rule its page shows rows by** (`#lib/tabData.ts` calls the page's own
+predicate, e.g. `whyOf()`): a separate "has data" test drifted — the contracts tab was greyed for
+a nomad while listing two offers (the user's report 2026-11-18).
+
+**Lists of options follow the playthrough** (the user's rule, 2026-11-16, the influence tab's
+sinks): hide what this empire will never use — a nomad never settles, a settled empire never
+embarks, an origin, civic or authority it lacks —, grey what is not available _yet_ with the
+reason on hover, and grey a group's header when nothing in it is available. A table column out of
+reach for this empire fades (`Column.faded` in `SortTable`, with the reason as its `title`) and
+drops out of the row's colour scale — a nomad's energy and minerals in the trade tab's offer and
+gift tables (2026-11-18).
+
+**A tradition or perk is the empire's variant** (data DB `tradition_swap`, `#lib/swaps.ts`; the
+user's report 2026-11-18: a nomad's Mastery of Nature unlocks no decision): show it through
+`swapExplanations()`, and sum a held tradition's or perk's modifiers under `empireSwaps(s,
+data).source(key)` — the owner's key reads the settled empire's effects.
+
+**Page data is visible to the viewer, not only what a page renders** (the user's ask 2026-11-17,
+"don't spoil any first contact"): another empire's real name, type, ethics or civics before
+communications stays on the server. `branch()`'s `latest` goes to every page as
+`pageLatest()` (`#lib/contacts.ts`: only ourselves and those we talk to, no galaxy-wide
+`history`, `diplomacy`, `allWars` or `contracts` — a new galaxy-wide field that names other
+empires is dropped there too: `contracts` reached every page with its issuers' names until
+2026-11-18); `empireColors()` and contact rows hold real names only once we talk. Check a change
+by grepping every tab's HTML and `__data.json` on a DB copy for an open contact's real name.
+Never show an empire by its id: one without a known name is "unknown empire", and a save-made
+name built from other empires' names (a war's) only where every one of them is known.
+
+**Every value or worth is in trade** (the user's rule, 2026-11-16): `valueOf()` with
+`valuesOf(snaps)` (`#lib/value.ts`, `server/unitCosts.ts`) — the market's base price, else what a
+unit costs us. No energy-based or self-made weights; label it "trade", two decimals.
+
+**A page with plan buttons returns `tip`** (spread `branch()`'s fields, or `tip: b.tip`):
+`AddGoal`, `WantButtons` and the roaming tab's "+ wayline" render nothing without
+`page.data.tip`, silently — the roaming tab shipped that way in 0.1.23. A check of such a page
+counts the buttons in its HTML, not only its `__data.json`.
+
 Each tab's notes are in one of these; read the one for the tab before working on it:
 
 - `docs/tabs-shell.md`: upcoming events, cooldowns and expiries, popups, tabs and settings, the
   `all` and custom tabs, the time window, colours.
 - `docs/tabs-planner.md`: planner, trade-offs.
-- `docs/tabs-empire.md`: colonies, habitability, expansion, settle down / embark, milestones,
-  council, government, nomads, situations, focus, traditions, tech, leaders, species, contacts.
+- `docs/tabs-empire.md`: colonies, habitability, expansion, roaming (a nomad's waylines), settle down / embark, milestones,
+  council, government, nomads, frontier (formerly situations), focus, traditions, tech, leaders, species, contacts.
 - `docs/tabs-economy.md`: trade, growth, pops charts, growth projection, job output bonuses, bonuses, jobs,
   produce, influence, contracts.
 - `docs/tabs-ethics.md`: ethics.
@@ -203,7 +268,9 @@ branch points: `docs/companion-mod.md`. Read it before changing the mod or `feed
   0.2.0 to 0.10.0 (`error.log`: "attempted to execute an event on an unsupported scope", no
   `sdash_` in the line — grep `Event: sdash` too).
 
-It changes the checksum: no achievements while enabled. **Publishing** (Steam Workshop and Paradox
+**`events/sdash_tech_options.txt` is generated** from the data DB
+(`scripts/gen-tech-options.mjs`, mod 0.13.0): re-run it after a game update, with the mod's other
+re-diffs. It changes the checksum: no achievements while enabled. **Publishing** (Steam Workshop and Paradox
 Mods, through the launcher): `mod/PUBLISHING.md` — store copy, thumbnail source, published IDs.
 Register it on Linux with
 `scripts/link-mod.sh stellaris-empire-dashboard/mod/dashboard_feed` (from the workspace

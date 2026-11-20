@@ -32,16 +32,29 @@ export function mergeSightings(
 	return [...bySystem.values()].sort((a, b) => a.systemId - b.systemId);
 }
 
-/** The stations seen, for a table: no owner id, only the territory (known, guessed) they fall in. */
-export function seenRows(seen: SeenStation[], ts: Territory[], name: (id: number) => string) {
-	return seen.map((s) => ({
-		systemId: s.systemId,
-		system: name(s.systemId),
-		shipset: shipsetName(s.shipset),
-		first: s.first,
-		last: s.last,
-		territory: ts.find((t) => t.systems.includes(s.systemId))?.label ?? 'unknown owner'
-	}));
+/** The stations seen, for a table: no owner id, only the territory (known, guessed) they fall in,
+ * and whether its owner is an empire we have communications with (`talking`). The owner is the
+ * system's owner now where its territory is known, else the one at the last sighting: a station
+ * changes hands (2226, Aphris: seen in 2219 under another empire, now one we talk to). */
+export function seenRows(
+	seen: SeenStation[],
+	ts: Territory[],
+	name: (id: number) => string,
+	talking: ReadonlySet<number> = new Set()
+) {
+	return seen.map((s) => {
+		const t = ts.find((t) => t.systems.includes(s.systemId));
+		const owner = t?.key.startsWith('country:') ? Number(t.key.slice(8)) : s.ownerId;
+		return {
+			talking: talking.has(owner),
+			systemId: s.systemId,
+			system: name(s.systemId),
+			shipset: shipsetName(s.shipset),
+			first: s.first,
+			last: s.last,
+			territory: t?.label ?? 'unknown owner'
+		};
+	});
 }
 export type SeenRow = ReturnType<typeof seenRows>[number];
 
@@ -126,7 +139,7 @@ export function territories(p: {
 	const talking = new Set(p.relations.filter((r) => r.communications).map((r) => r.countryId));
 	const known = (id: number) => id === p.ownId || p.spoiler || talking.has(id);
 	const name = (id: number) =>
-		p.relations.find((r) => r.countryId === id)?.name ?? country(id)?.name ?? String(id);
+		p.relations.find((r) => r.countryId === id)?.name ?? country(id)?.name ?? 'unknown empire';
 
 	const byOwner = new Map<number, number[]>();
 	const unknown: number[] = [];

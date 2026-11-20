@@ -28,8 +28,10 @@ import { dataStore, type DataStore } from './dataStore.ts';
 import { dataDbFor, ensureDataDb, extractorFromEnv, type DataMod } from './extract.ts';
 import { launcherPlaysets, loadModDescriptors, readLoadOrder } from './mods.ts';
 import { currentRequest } from './request.ts';
-import { viewedCampaign } from './settings.ts';
+import { updateHours, viewedCampaign } from './settings.ts';
+import { scheduleUpdateChecks, stopUpdateChecks } from './updates.ts';
 import { campaignOf, watchSaves, type Watcher } from './watch.ts';
+import { versionLine } from '#lib/versions.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
 // companion mod, and one event bus for live updates.
@@ -72,7 +74,12 @@ type State = {
 	/** when the last save or month was recorded, and the last daily tick (ms): which came last */
 	recordedAt?: number;
 	lastTick?: { date: string; at: number };
+	/** the research options the companion mod logged last (0.13.0), for the campaign then played */
+	techOptions?: LiveTechOptions;
 };
+
+/** The research options on offer on a day, from the companion mod (on the 2nd of each month). */
+export type LiveTechOptions = { campaign: string; date: string; techs: string[] };
 const g = globalThis as typeof globalThis & { __stellarisDashboard?: State };
 const state: State = (g.__stellarisDashboard ??= { updates: new EventEmitter(), status: 'setup' });
 
@@ -203,6 +210,20 @@ export const getExplanations = (): Explanations => viewedData().explanations;
 
 /** The game version and build the game data comes from (`Cygnus v4.5.3 (7793)`), null if unknown. */
 export const dataVersion = () => viewedData().dataVersion;
+
+/**
+ * The packaged launcher's start line (`release/launcher.mjs`): this build and the head campaign's
+ * game version. Read once `start()` is done; before the folders are set there is no game data.
+ */
+export function startVersions(): string {
+	let game: string | null = null;
+	try {
+		game = dataVersion();
+	} catch {
+		// not started: /setup
+	}
+	return versionLine(__APP_VERSION__, game);
+}
 
 /** The mods the viewed campaign's game data includes ([] none), null when the data DB cannot tell. */
 export const dataMods = () => viewedData().dataMods;
@@ -360,6 +381,13 @@ function recorded(r: Recorded, source: string) {
  * mod when it came after the last save or month, else the head's date (`headDate`). By arrival,
  * not by date: after loading an older save, the older ticks are the latest data.
  */
+/**
+ * The research options the mod logged last for `campaign`, or null. Memory only: the next autosave
+ * holds them too, and a restart before it shows the save's until the next 2nd.
+ */
+export const liveTechOptions = (campaign: string): LiveTechOptions | null =>
+	state.techOptions?.campaign === campaign ? state.techOptions : null;
+
 export function lastDataDate(headDate: string | null): string | null {
 	const t = state.lastTick;
 	return t && t.at > (state.recordedAt ?? 0) ? t.date : headDate;
@@ -438,6 +466,7 @@ async function stop() {
 	await state.starting;
 	clearTimeout(state.catchUpTimer);
 	clearInterval(state.launcherTimer);
+	stopUpdateChecks();
 	state.stopTail?.();
 	await state.watcher?.stop();
 	state.db?.close();
@@ -495,6 +524,7 @@ async function run() {
 		nodeById(store, headId(store))?.date ?? null
 	);
 	state.status = 'running';
+	scheduleUpdateChecks(updateHours());
 	state.catchUpTimer = setTimeout(() => {
 		state.watcher
 			?.catchUp(caughtUp)
@@ -518,7 +548,14 @@ async function run() {
 				state.lastTick = { date: t.date, at: Date.now() };
 				updates.emit('tick', t satisfies Tick);
 			},
+			onTechOptions: (date, techs) => {
+				const campaign = headCampaign(store);
+				if (campaign === null) return;
+				state.techOptions = { campaign, date, techs };
+				updates.emit('update', 'refreshed'); // Upcoming and the tech tab show them
+			},
 			onLoad: (date, id) => {
+				state.techOptions = undefined; // the left future's
 				const campaign = headCampaign(store);
 				state.loadedFrom =
 					campaign === null || id === null ? null : loadedNode(store, campaign, date, id);

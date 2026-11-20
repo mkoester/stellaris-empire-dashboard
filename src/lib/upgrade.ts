@@ -19,6 +19,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	starbases: null,
 	navalUsed: null,
 	navalMax: null,
+	edictFund: null,
 	envoys: null,
 	marketOrders: [],
 	market: null,
@@ -75,6 +76,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	warLostDate: null,
 	tradeDeals: null,
 	contracts: null,
+	contractsCompleted: null,
 	gameVersion: null,
 	dlcs: null,
 	mods: null,
@@ -197,6 +199,7 @@ export function upgrade(
 			globalFlags: s.galcom.globalFlags ?? []
 		},
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
+		arkships: s.arkships && s.arkships.map((a) => ({ ...a, cargo: a.cargo ?? [] })),
 		subjects:
 			s.subjects &&
 			s.subjects.map((x) => ({

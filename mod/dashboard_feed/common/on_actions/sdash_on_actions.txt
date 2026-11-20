@@ -137,6 +137,13 @@ on_entering_system_first_time = {
 	}
 }
 
+# 0.13.0. This = Country — a tech researched: its field's new cards are logged the next day
+on_tech_increased = {
+	events = {
+		sdash.7
+	}
+}
+
 # This = Pop group, From = Country (buyer), FromFrom = Country (seller) — every sale in the galaxy
 # (4.5.3 00_on_actions.txt; empty in vanilla)
 on_slave_sold_on_market = {

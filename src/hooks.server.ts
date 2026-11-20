@@ -1,10 +1,15 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
-import { start, status } from '#lib/server/app.ts';
+import { start, startVersions, status } from '#lib/server/app.ts';
 import { refusal } from '#lib/server/guard.ts';
 import { theme } from '#lib/server/settings.ts';
 
 export const init: ServerInit = start;
+
+// The packaged launcher's start line names the versions (`release/launcher.mjs`): the app is its
+// own bundle there, so the launcher finds this on globalThis once the handler module has loaded.
+(globalThis as Record<symbol, unknown>)[Symbol.for('stellaris-dashboard.startVersions')] =
+	startVersions;
 
 // A request under a foreign name, a write from another site, or a change of the folders or the
 // campaigns from another device is refused (`guard.ts`).

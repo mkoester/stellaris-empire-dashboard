@@ -3,6 +3,7 @@
 	import Effects from '#lib/Effects.svelte';
 	import EffectTotals from '#lib/EffectTotals.svelte';
 	import InfoPopup from '#lib/InfoPopup.svelte';
+	import WhatIfLine from '#lib/WhatIfLine.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 
@@ -69,6 +70,9 @@
 								target={{ tradition: x.key }}
 							/>{/if}
 						<div><Effects explanation={data.explain[`tradition:${x.key}`]} /></div>
+						{#if !x.active && data.whatIfs?.[`tradition:${x.key}`]}<div>
+								<WhatIfLine what={data.whatIfs[`tradition:${x.key}`]} label="if picked now" />
+							</div>{/if}
 					</li>
 				{/each}
 			</ul>
@@ -89,6 +93,10 @@
 						title="plan to adopt this tree"
 					/>{/if}{/each}
 		</p>
+		{#each data.otherTrees.filter((t) => t.adopt && data.whatIfs?.[`tradition:${t.adopt}`]) as t (t.key)}<div
+			>
+				<WhatIfLine what={data.whatIfs?.[`tradition:${t.adopt}`]} label={`adopting ${t.name}`} />
+			</div>{/each}
 	</Panel>
 
 	<Panel
@@ -104,6 +112,9 @@
 						explanation={data.explain[`perk:${p.key}`]}>{p.name}</InfoPopup
 					><AddGoal kind="perk" target={{ perk: p.key }} />{/each}
 			</div>
+			{#each open.filter((p) => data.whatIfs?.[`perk:${p.key}`]) as p (p.key)}<div>
+					<WhatIfLine what={data.whatIfs?.[`perk:${p.key}`]} label={p.name} />
+				</div>{/each}
 		</div>
 	</Panel>
 </div>

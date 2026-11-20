@@ -101,6 +101,17 @@ export function scaleColor(v: number, worst: number, best: number): string | nul
 }
 
 /**
+ * A value against a baseline, higher better: null at the baseline (the text's own colour),
+ * 'worse' below it (shown grey), else orange just above it to green at `best`.
+ */
+export function gainColor(v: number, base: number, best: number): string | 'worse' | null {
+	if (v === base) return null;
+	if (v < base) return 'worse';
+	const t = best > base ? Math.min(1, (v - base) / (best - base)) : 1;
+	return `hsl(${Math.round(30 + t * 90)} 70% 45%)`;
+}
+
+/**
  * The Galactic Community's resolution groups as the game colours their banners (4.5.2
  * `common/resolution_groups`: `color_index` 1 gold, 2 purple, 3 blue, 4 red, 5 green — the sprite
  * frames). Hues sampled from screenshot 2026_10_23_10 (gold ~45°, purple ~305°, blue ~198°) and

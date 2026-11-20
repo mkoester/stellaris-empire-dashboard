@@ -146,7 +146,10 @@
 	const titles = $derived.by(() => {
 		const out: Record<number, string> = { ...why, ...claims?.titles };
 		for (const [id, list] of bySystem) {
-			const text = list.map((m) => `${m.label} (${m.detail}${m.done ? ', done' : ''})`).join('; ');
+			// what an anomaly, project or dig site leads to goes below its line (spoilers)
+			const text = list
+				.map((m) => `${m.label} (${m.detail}${m.done ? ', done' : ''})${m.tip ? `\n${m.tip}` : ''}`)
+				.join(list.some((m) => m.tip) ? '\n\n' : '; ');
 			out[id] = out[id] ? `${out[id]}; ${text}` : text;
 		}
 		return out;
@@ -154,7 +157,7 @@
 
 	const columns: Column<Marker>[] = [
 		{ id: 'layer', label: 'What', value: (r) => LAYER_INFO[r.layer].label, cell: what },
-		{ id: 'label', label: 'Name', value: (r) => r.label },
+		{ id: 'label', label: 'Name', value: (r) => r.label, cell: name },
 		{ id: 'system', label: 'System', value: (r) => byId.get(r.systemId)?.name ?? null },
 		{ id: 'detail', label: 'Detail', value: (r) => r.detail },
 		{
@@ -205,6 +208,10 @@
 			data.latest.date
 		)} mo{/if}{/snippet}
 {#snippet ongoing(r: Marker)}{r.ongoing ? '✓' : r.ongoing === false ? 'waiting' : '–'}{/snippet}
+{#snippet name(r: Marker)}{#if r.tip}<span
+			class="cursor-help underline decoration-dotted"
+			title={r.tip}>{r.label}</span
+		>{:else}{r.label}{/if}{/snippet}
 {#snippet what(r: Marker)}
 	<span style:color={LAYER_INFO[r.layer].color}>{LAYER_INFO[r.layer].symbol}</span>
 	{LAYER_INFO[r.layer].label}
@@ -279,13 +286,21 @@
 {#if data.wanderlust && on('wanderlust')}
 	<p
 		class="mb-3 text-sm"
-		title="the arkship counts a target system once, on entering it; the game asks for 80 % of each category's systems"
+		title="the arkship counts a target system once, on entering it; the game asks for 80 % of each category's systems. counted / needed · found: the targets in systems we visited or own. Bold: the found ones not yet counted are enough to finish it"
 	>
 		<span style:color={LAYER_INFO.wanderlust.color}>{LAYER_INFO.wanderlust.symbol}</span>
 		Wanderlust{#if data.wanderlust.complete}: every category explored{:else}:
-			{#each data.wanderlust.categories as c, i (c.key)}{i ? ' · ' : ''}<span
-					class={c.done ? 'text-green-700 dark:text-green-500' : ''}
-					>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ''}</span
+			{#each data.wanderlustOutlook ?? [] as c, i (c.key)}{i ? ' · ' : ''}<span
+					class={c.done
+						? 'text-green-700 dark:text-green-500'
+						: c.finishable
+							? 'font-semibold underline decoration-2'
+							: ''}
+					style:text-decoration-color={c.finishable ? LAYER_INFO.wanderlust.color : undefined}
+					title={c.done
+						? 'done'
+						: `${c.need} more to visit; ${c.open} found and not yet counted${c.finishable ? ': enough to finish it' : ''}`}
+					>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ` (${c.found} found)`}</span
 				>{/each}{/if}
 	</p>
 {/if}

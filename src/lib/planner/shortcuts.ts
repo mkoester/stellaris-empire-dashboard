@@ -17,6 +17,38 @@ export type Shortcut = {
 };
 
 export const SHORTCUTS: Shortcut[] = [
+	// Nomads first: they need some of it fast (the user's ask 2026-11-16: "there are things I need
+	// rather fast, e.g. more logistic ships"). Every tech here has `potential = { is_nomadic = yes }`
+	// (4.5.4 `technology/00_nomads_dlc_tech.txt`), so a settled empire never sees the bundle.
+	// Logistic ships (`nomads_constructor`, `nomads_engineer_vessel`) are capped by the modifier
+	// `nomadic_constructor_limit_add` (`country_limits/ship_of_size_limits/00_ship_of_size_limits.txt`):
+	// 2 from the start (Space Construction's nomad swap, `00_eng_tech.txt`), +2 each from Waystations
+	// II and III, +1 per Logistics Hub — a waystation module of Waystations III
+	// (`starbase_modules/00_waystation_modules.txt`). Nothing else in the 4.5.4 files raises it.
+	{
+		id: 'nomads',
+		name: 'Nomads',
+		why: 'logistic ships, waystations and arkships',
+		techs: [
+			{
+				tech: 'tech_waystation_2',
+				why: '+2 logistic ships (2 at the start), +4 waystations, +25 % logistic ship stockpile'
+			},
+			{
+				tech: 'tech_waystation_3',
+				why: '+2 logistic ships, +6 waystations; Logistics Hub module (+1 logistic ship each)'
+			},
+			{
+				tech: 'tech_arkship_construction',
+				why: 'arkships build more arkships (megastructure menu)'
+			},
+			{ tech: 'tech_civilian_arkship', why: 'civilian arkships' },
+			{ tech: 'tech_science_arkship', why: 'science arkships' },
+			{ tech: 'tech_military_arkship', why: 'military arkships' },
+			{ tech: 'tech_arkship_tier_2', why: 'arkship upgrade to tier 2' },
+			{ tech: 'tech_arkship_tier_3', why: 'arkship upgrade to tier 3' }
+		]
+	},
 	{
 		id: 'economy',
 		name: 'Economy core',

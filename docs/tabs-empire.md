@@ -52,6 +52,51 @@ features and their district loss). Matched the game at 2207.03.10 (Alpha Centaur
 `@DISTRICTS_FROM_SR_DEPOSITS` (swamps and bogs: +3 farming). Its view (range, toggles, filters,
 sort, species) and both tables' row lines belong to the profile.
 
+**Roaming** (a nomad's expansion tab, renamed — the user's ask 2026-11-16: "instead of expand
+they need a waylines tab … where would I build waystations, which modules — only 2 slots at the
+start, so choose wisely —, where would I make best use of waylines, where might I get in trouble
+for collection with other empires"; the user chose one tab for waylines and settling, named
+"roaming"; `#lib/waylines.ts` pure, `server/waylines.ts`, `panels/Waylines.svelte`, above the
+Settle down panel). From the 4.5.4 files (sources in `waylines.ts`'s header): a waystation collects
+only its own system's station deposits, one module per resource group (`COLLECTS`, from each
+module's `collected_system_resources`), × 0.75 / 1 / 1.25 by tier, 2 / 4 / 6 slots; flat
+`starbase_collected_system_<r>_add` the empire qualifies for counts too (the Hydroponics Bay's
+food, ≈ the tier factor on it — `open-points.md`). **Waystations** — map and table: every visited
+system with a deposit a module collects, its best modules for the 2 slots of Waystation I, what they
+collect a month in trade (`valueOf` with `valuesOf`: the market's base price, else what a unit
+costs us — the systems, produce and trade-offs tabs' values), jumps from our nearest waystation (the arkships before the first), the
+waylines it would extend or link, and whose space it is — another empire's without a Wayline
+Pact is ⚠ (their stations there collect 25 % less, −10 opinion each to −200, the Expel Nomads war
+goal), someone else's waystation ✕. "+ goal" plans a waystation or a module, "+ wayline (n)" the
+waystation and every one on the shortest way from our waylines (`chainTo`, past no one else's
+waystation). The value of each site, in trade a month (two decimals; hover it for each module's share), also
+shows under its star, and the map shows it as the system's colour or, toggled, as a green dot
+whose area grows with what lies above the baseline of 10 (the smallest dot up to it); our
+waystations are blue on the map, with what they collect now, and have a table of their own above
+the sites (both beside the map in "wide + table"); research, unity and whatever else the market does not sell count at what a unit
+costs us (`unitValues`: our own sources' running cost — about 1 trade a point in
+`roamingcybergang` 2213.08); a toggle rates the sites
+for Waystation I, II or III (2 / 4 / 6 slots, × 0.75 / 1 / 1.25 — tiers not yet researched say
+"later"), with the modules the empire has today. **Pre-FTL civilisations**: the extraction keeps
+a `solar_system = { … }` condition as an opaque leaf, so `SOLAR_SYSTEM` in `waylines.ts` answers it
+per module and modifier — the Research Observatory's means a pre-FTL planet without an observation
+post (society research 2 / 3 / 4 / 5 by the interference policy, ∓ 2 by the favoured approach, the
+Galactic Community's pre-FTL resolutions), except its +2 energy, which needs a trade pact with that
+civilisation (not read: no). A site with a pre-FTL civilisation and no deposit counts too (👁 in
+the table; ≈ no one else's observation post there). **Planned waystations** (the user's ask 2026-11-16): a `waystation` goal moves its system from the
+sites into the waystations table — italics, tier "planned", its `station_module` goals as modules
+(none: the best ones count for its worth), ✕ beside ✓ planned on each — and shows ⚑ and light blue
+on the map. "✓ planned" has a ✕ on every tab (`AddGoal`, the goal id from `planSummary().ids`).
+The roaming tab returns `tip` itself: without it (0.1.23) none of its plan buttons showed. **Your waylines**: our waystations grouped by neighbouring systems (`networks()`, the
+same five groups as the save's `waystation_networks` for the AI nomads of 2213.08), planned ones
+in italics, each with its fill, stockpile and the best modules for its free slots; the wayline
+modules (any `waystation_network_*` modifier) it has and lacks; the collection point
+(`collectionPoint()`, fewest jumps to the rest — where a Logistics Hub, Waystations III, collects
+the whole line). **Unlicensed waystations**: per empire, ours in its space without a pact and the
+opinion they cost. Module popups (`module:<key>` explanations) list their station effects and,
+apart, those along the whole wayline. A waystation claims no space: since READER 60 neither a
+system's owner nor our systems count one (`stationOwner`, `ownSystems`).
+
 **Settle down / Embark** (the expansion tab, above the Expansion panel; the user's ask
 2026-11-01: "help to settle down as a nomadic empire" — "the other way is possible, too";
 `#lib/settle.ts` pure, `server/settle.ts`, `panels/SettleDown.svelte`). From 4.5.2's files:
@@ -140,6 +185,35 @@ them: policies are the save's `active_policies` (2207.03.10: 27, the game's pane
 Philosophy under both its categories), edicts those whose potential holds and that are unlocked
 (traditions, perks and `prerequisites` techs; 2207.03.10: exactly the game's five). The profile's
 `showLocked` switch (⚙) adds the rest: locked agendas and edicts, all policies and options.
+**What-ifs** (⚙ What-ifs, a spoiler; `#lib/whatIf.ts`, `server/whatIfs.ts`): three paths, all ≈ —
+output (`*_produces_mult` as a share of today's output), wellbeing (amenities → stability → output)
+and upkeep (a `_mult` × what the budget books for its group: `pop_category_*` for the pops'
+consumer goods, `planet_pops_traits` for organics' food, `planet_<job>`, `planet_buildings`,
+`ships`, `edicts`, …; an `_add` per 100 workforce of a job or per 100 pops of a stratum — 3606
+specialists × 0.5 = the 18.03 consumer goods booked, 2203.09). An edict's price is its base cost and
+upkeep × the budget's `edicts` expenses over the active edicts' base (`edict_size_effect`,
+`edicts_upkeep_mult`); with no active edict of that resource, base, marked "(base)". The net is
+trade a month at the produce tab's values (`whatIfValues()`, as `logistics.ts`). The same what-if
+runs on the species tab (Living Standards: the two options' modifiers swapped, on that species'
+strata — each colony's strata × its share of the pops, ≈), the traditions tab (traditions not
+taken in adopted trees, other trees' adoption, perks whose `potential`/`possible` is not false) and
+the tech tab (the cards on offer). Happiness per stratum (`pop_cat_*_happiness`) is not counted.
+**Colony what-ifs** (2026-11-15): a designation swap counts `pop_bonus_workforce_mult` (the nomad
+capital's +10 % on every job) and `worker_and_simple_drone_cat_bonus_workforce_mult` as output —
+before, the swap away showed only gains. "losing <current>" leaves out what every alternative of
+the family has at the same value (`ownModifiers()`: a capital's +5 stability and housing). Planet
+decisions answer `planet_crime` (`Colony.crime`) and `has_carrier_flag`/`has_planet_flag`
+(`Colony.flags`, READER 59) — Introduce Chaos no longer shows as (?). A one-time cost reads
+"costs … once". **The crime decisions** (`#lib/crime.ts`) are valued at the enforcers holding
+crime at 25 (what crime automation holds, under the 30 where Criminal Underworld may appear), so
+crime's engine-side stability penalty is the same either way: the campaign needs fewer enforcers
+(25 → 35 a job) and the freed workforce fills open jobs at the colony's average net output; the
+deal's criminals (200 + 3 per crime point) and the enforcers for its +50 % crime come out of other
+jobs. Not counted: the deal keeps a colony out of the crime events, and ending it costs −10
+stability for 5 years. The user's rule of thumb recommends the campaign wherever crime ≥ 10 and the
+colony has open jobs (`Recommendation.rule`, kept by `worthwhile()` whatever the estimate). Policy
+what-ifs say "then locked for 10 years" (`POLICY_YEARS`; the save keeps no change date). Game
+mechanics: `stellaris-modding-insights/docs/25-crime.md`.
 **Species rights** (species tab, `#lib/rights.ts`): `country.modules.standard_species_rights_module
 .primary = { species_index citizenship living_standard … }` for the founder species and
 `.species_rights = { { species_index … } … }` for every other (READER 51; before, other species had
@@ -186,12 +260,117 @@ capital and migration are since READER 41), the trade tab's valuation of energy 
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
-**Situations tab** (`/situations`, `#lib/situations.ts` pure, readers in `server/world.ts`): first
-contacts as a table (age in months, difficulty, clues, stage, days left, envoy, jumps from our
+**Frontier tab** (`/frontier`; the situations tab until 2026-11-15 — renamed because situations and
+events are the game's own terms for one panel each, `/situations` redirects; `#lib/situations.ts` pure,
+readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,
+situations, a link to events | anomalies, dig sites, special projects), the first-contact map
+below them at full width (the user's ask, 2026-11-15): first
+contacts as a table (age in months, difficulty, clues, stage — its number alone, `contactStage()`:
+the game's stage keys name the contact's kind and way, spoilers, the user's ask 2026-11-17 —, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
-an envoy); situations, anomalies, special projects (no progress in the save), dig sites, a link
-to events. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`:
-the outcome events' titles), as is `contactStations`: visited systems coloured by their
+an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
+with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
+events. **The user's asks 2026-11-20:** situations' progress and ±/mo to two decimals; a ±/mo the
+save gives as 0 (`last_month_progress`, kept 0 by a situation that script effects move rather than
+its `monthly_progress` — Operational Reserves read 0 three months running while falling ~230 a
+month) is taken from the last earlier save with that situation, marked ≈ (`observedMonthly()`).
+Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
+(Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
+column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept
+per browser). **Gone, kept greyed** (the user's ask 2026-11-16: "some decisions come after I officially
+finished something like anomalies … keep them in the overview, at the bottom and greyed out"):
+below each of situations, anomalies, dig sites and special projects, what earlier saves of the
+branch had and the shown one no longer has (`gone()` in `#lib/situations.ts`; finished or lost —
+the save cannot tell), with "Last seen" and the same columns, Outcome included. Roaming Cyber Gang
+2213.08.02: 8 anomalies. **Hidden until asked for, newest first** (the user's ask 2026-11-17): a
+checkbox per panel, "also no longer in the save (n)", off on every load; the table starts sorted by
+Last seen, descending. **≈ finished, inferred** (the same ask; `#lib/inferDone.ts` pure): a
+Status column on gone anomalies, projects and dig sites says `≈ finished` (a dig site `≈ chapter n
+done` short of its last) where the save has an effect only that one source gives —
+`uniqueMarks()` over every outcome tree: the country flags its events set (data DB
+`outcome.flags_json`, extraction since 2026-11-17; read only where `PRAGMA table_info` has it, so
+an older data DB infers from the rest), the modifiers and deposits in its tree. Checked against the
+save the gone lists compare with: `countryFlags`; `countryModifiers` and colonies' planet
+modifiers; deposits on the source's own planet (`campaignGalaxy` bodies, colonies). The tooltip
+names the evidence. Techs never count (research gives them too); ship and uncolonised-planet
+modifiers are not in the save reading. DB copy 2026-11-17: 1 of 14 gone anomalies
+(Interference, flag `lcluster_clue_sonic`) — the rest give only resources and research, which
+leave nothing to find. Spoilers are display switches in the profile (`anomalySpoilers`, `projectSpoilers`,
+`digSiteSpoilers`): the **Outcome** column (the user's ask 2026-11-15, `#lib/outcomes.ts` pure,
+`Outcome.svelte`, `server/outcomes.ts`) — the data DB's `outcome` trees, a project's own tree
+filled in where an anomaly leads to it (`withProjects()`), as markers, the first rewards, and the
+whole tree on opening (its plain text as the tooltip), **every level folding on its own**
+(an event, option, branch, chapter, project; open at the first level and where only effects
+follow; the user's ask 2026-11-17). **What this empire cannot get is greyed** (the same ask):
+the data DB's conditions (`c`, extraction since 2026-11-17: an event's `trigger`, an option's
+conditions, an `if` chain's limits, a weighted branch's modifier — in a ship event only its
+`owner = { … }` part) read by `resolve()` against `facts()` of the latest save, three-valued:
+`holds()` takes a false answer only from what the empire _is_ (ethics, civics, origin,
+authority, DLC, gestalt…) — a flag, tech or modifier the chain may still bring is unknown while
+absent (Shattered Frontier's hostile reply hangs on a flag its own dialog sets). Greyed: `off`
+events and options with the condition on hover, `if` branches not `taken`, a weighted branch
+settled at 0; `prune()` leaves them out of markers, summary and gains, and a row with nothing
+left is greyed. An older data DB has no `c`: nothing greys. A dig site's chapters before the next
+one are greyed as done. **What a reward comes to now** (`Now`, `outcomeNow()`; the user's ask
+2026-11-17), in the tree, its summary and every tooltip (map, planner, upcoming): months of income
+"≈ +543 now" (`monthsNow()`, the latest save's gross income, clamped — the same as Still to gain),
+its "(min …, max …)" greyed; tech progress "≈ 165 physics, 3.6 months of ours" (the share × the
+tech's cost at the save's cost factors, `techCost()`; the time at our research in that field,
+none for a tech researched). The page gets the techs as a table (`nowTable()`, every tech the
+outcome trees give progress in): a function does not serialise. **Where a tech stands, and what kind of reward** (the user's ask
+2026-11-19: does a research option help my plan, is it researched, is it already a permanent
+option): every tech reward and research option carries chips (`techFlags()` / `techMarkFlags()`,
+`TechMark` from `outcomeNow()`): _researched_ (wasted; outranks the rest), _already an option_
+(`techPermanent`: a further one adds nothing) or _permanent option_ beside progress, and the plan's
+goal — _planned_, _helps your plan_ (a wanted tech's prerequisite, `planSummary().plannedTechs`,
+note "needed for …" on hover), _planned later_, _avoided_; the tooltip text appends them as
+`[label]`. Only the frontier passes the plan: the map, planner and upcoming tooltips show researched
+and permanent alone. Beside the markers, tinted, **reward badges** (`rewardBadges()`, on the pruned
+tree): physics / society / engineering (research points, months of research income, tech progress,
+a tech), research option, each resource, fleet (ours), _leader offered_ (only behind a choice's
+option) or _granted_, leader xp, trait(s) by name, then relic, specimen, deposit, modifier, new
+pops, megastructure, planet changes. Still to gain lists research options as rows of their own
+(`option:<tech>`, struck through when researched or already permanent) and a tech given outright
+as +100 % of it. **Still to gain** (`#lib/outcomeGains.ts`, the user's ask 2026-11-17),
+above the anomalies while one of the three spoilers is on: the pruned trees of the open
+anomalies, projects and dig sites (from the next chapter) summed per reward — _sure_ on every
+path, _expected_ by the odds (an unsettled `if` as even odds); at an event's options the one
+worth most in trade; projects an outcome leads to count; months of income from the latest save's
+gross income, clamped, ≈. The resources' worth in trade (`valuesOf()`), sure and expected.
+Each reward names its sources, one chip each in its kind's colour (anomaly, project, dig site;
+with how long it takes, as in its table; the user's ask 2026-11-17: kinds alone hid which one gives it), a certainty badge (sure; likely ≥ 50 %; possible) and the popup of a tech, modifier,
+trait or deposit (`GainRow.ref`, `effectRef()`). Tech progress names the tech's tier, area, its
+cost to us now (`techCost()` in `#lib/events.ts`, shared with Upcoming's research) and the
+expected progress in research, its area in the field's colour; a tech already researched is struck
+through (the progress is lost). **Filters** (the user's ask 2026-11-17): sure / possible, and which
+kinds of source count — the route sends one `gainRows()` list per kind and the page merges the
+ticked ones (`mergeGainRows()`), so the amounts and totals follow the filter. Hovering a source
+chip highlights every reward it gives and its row in its table (matched by kind and name);
+clicking it scrolls to that row (`SortTable`'s `anchor`, `data-anchor`), lit for 2 s. **Time** (the user's ask 2026-11-17,
+`#lib/frontierTime.ts`): each table's Time column, before speed bonuses, with our best scientist
+on a science ship (`civilianShips`, max `leaderLevel`): an anomaly by
+SCIENCE_SHIP_ANOMALY_RESEARCH_DAYS (`anomalyDays()`, shared with the ships' order totals); a
+ship's project its `days_to_research`; a research project ≈ its `cost` (data DBs since
+2026-11-17) at the gross monthly research of its department, which halts meanwhile; a dig site ≈
+the expected rolls of its remaining chapters (`expectedRolls()`: a d10 + skill + clues −
+difficulty, 14 finishes, 11–13 +2 clues, 6–10 +1, `standard_archaeological_site_on_roll_failed_case`;
+the next chapter from its clues and `days_left`, later chapters' difficulties from the tree, so
+only the next one without the spoiler) — its assumptions are open check A5.
+**Stations seen hides empires we have communications with** (the user's ask 2026-11-17;
+`SeenRow.talking` from the latest save's relations, the owner id stays on the server): their
+territory is on the map; a checkbox shows them again. Checked
+2026-11-17 on a DB copy: 52 nodes greyed (origin Evolutionary Predators, civic Determined
+Exterminator …), 8913 trade sure, 11509 expected. **Markers** (`markers()`): _known_ — no
+chance, no choice, no condition anywhere, projects included; _random_ — a random list with two
+branches or more; _choice_ — an event with two options open to one empire (conditional options
+count as one variant: "Study the orb." / "Eat the orb."); _depends_ — a conditional option, a
+weighted branch with conditions, or an `if` whose branches differ; _project_ — leads to a further
+special project; _later_ — something fires a year or more later (the Orb's explorer: ~100 years);
+_risk_ — a leader killed, a ship or fleet destroyed, resources taken, or a fleet not ours. Random
+branches show percentages, or weights where a branch has conditions (the Mineral Cluster: 0, or 1
+while the scientist lacks the trait the branch gives). The same text is the tooltip on the map tab,
+on the planner's anomaly and dig-site suggestions and on Upcoming's excavation rolls. An older data
+DB has no tree: the column falls back to the outcome events' titles. So is `contactStations` a switch: visited systems coloured by their
 station's owner, and every map's borders named — the save names it before communications, a
 spoiler. **Stations seen** (`Snapshot.stationsSeen`, `stationsSeen()` in `server/world.ts`): other
 empires' stations in the systems our fleets are in when the game saves (`fleet.<id>.movement_manager.coordinate.origin`),
@@ -237,7 +416,14 @@ saucer the map does not show).
 - **traditions**: the active effects in two tables, traditions and perks (`totalEffects()`,
   `EffectTotals.svelte`, shared with the Government panel; text-only effects listed apart), every
   adopted tree in full with each tradition's effects (not yet active ones grey), the other trees,
-  every perk (taken first, conditions not checked).
+  every perk (taken first, conditions not checked). **Each tradition and perk as this empire's
+  variant** (data DB `tradition_swap`, `#lib/swaps.ts`, the user's report 2026-11-18): a nomad's
+  Mastery of Nature raises harvest output and unlocks no decision, Expansion's Colonization Fever
+  is Arkship Armada. The first swap whose trigger holds; its name, text and modifiers (the owner's
+  where it `inherit_effects`) under `<kind>:<swap id>` in the explanations. The same lookup feeds
+  the empire tab's popups and size estimate, district caps, the galcom tab's diplomatic weight and
+  leader recruitment cost (the sums any swap's modifiers reach, checked 2026-11-18 in the 4.5.4 data);
+  councilor skill and the other `tradition:` sums still read the owner's.
 - **tech**: the three queues with due dates (`events.ts`), the cards on offer **now**
   (`tech_status.alternatives`; the game redraws a field's cards once its tech is done) with ▶ the
   one being researched, ★ the permanent options and the progress of queued ones, ↺ that of techs
@@ -288,3 +474,18 @@ saucer the map does not show).
   Caravaneers), pre-FTL civilisations (`primitive`), space fauna (leviathans and guardians
   included), marauders, other (factions, the Shroud, event countries). Names are `EmpireName`
   (map-colour swatch) with `EmpireBadges` (fallen, enclave, nomadic, … — shared with the trade tab).
+
+**Tech tree** (the tech tab, under Researching and On offer; the user's ask 2026-11-16: "tech
+tree plus the +/− want buttons", after androdawton's stellaris-tech-tree; `#lib/techTree.ts` pure,
+`TechTree.svelte`, `planner/WantButtons.svelte`). One field at a time; every tech the empire can
+still get — a `potential` the save rules out leaves it out (lists follow the playthrough), an
+unknown one stays. A column per step of prerequisites within the field, never left of the tech's
+tier (techs without a tier — events, Fallen Empires — by depth alone); rows by a few barycentre
+sweeps over prerequisites and what each leads to, so edges cross less. Dashed edges: one of an
+`OR` group; ↖: a prerequisite in another field (listed, not drawn). Colours: researched, being
+researched, on offer, within reach (`inReach()`), not yet; badges: want, later, avoid (the
+plan's `plannedTechs`, which carry their goal id since 2026-11-16 so the buttons can edit and
+remove). Hover: + want / − want, or switch and ✕ once planned. Click: what it needs and leads to,
+both clickable; "show" fades all but the techs within reach, the wanted ones with what they need,
+or the clicked tech's path. Tooltips are built from the tree's own data, not the `tech:`
+explanations, which would put ~650 popups on the page.

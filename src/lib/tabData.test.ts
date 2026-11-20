@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptyTabs } from './tabData.ts';
+import { emptyTabs, megastructuresEmpty } from './tabData.ts';
 import type { Snapshot } from './types.ts';
 
 // a snapshot read by a current reader with nothing in it
@@ -30,11 +30,11 @@ describe('emptyTabs', () => {
 		expect(Object.keys(emptyTabs([blank()])).sort()).toEqual([
 			'contracts',
 			'diplomacy',
+			'frontier',
 			'galcom',
 			'migration',
 			'pacts',
 			'shroud',
-			'situations',
 			'slave market',
 			'subjects',
 			'trade deals',
@@ -47,6 +47,28 @@ describe('emptyTabs', () => {
 			migration: [{ own: true, immigration: 2, emigration: 0 }] as Snapshot['migration']
 		});
 		expect(emptyTabs([moved, blank()]).migration).toBeUndefined();
+	});
+
+	it('a nomad sees offers from empires it talks to: the contracts tab counts them', () => {
+		const offer = { id: 8, issuer: 5, operator: null, state: 'offered' };
+		const nomad = (communications: boolean) =>
+			blank({
+				contracts: [offer] as unknown as Snapshot['contracts'],
+				situations: [{ type: 'situation_nomad_economy' }] as Snapshot['situations'],
+				relations: [
+					{ countryId: 5, contact: true, communications, agreements: [] }
+				] as unknown as Snapshot['relations']
+			});
+		expect(emptyTabs([nomad(true)]).contracts).toBeUndefined();
+		expect(emptyTabs([nomad(false)]).contracts).toBeDefined();
+		// a settled empire is offered nothing: another empire's offer stays behind the spoiler
+		const settled = blank({
+			contracts: [offer] as unknown as Snapshot['contracts'],
+			relations: [
+				{ countryId: 5, contact: true, communications: true, agreements: [] }
+			] as unknown as Snapshot['relations']
+		});
+		expect(emptyTabs([settled]).contracts).toBeDefined();
 	});
 
 	it('a pact undims the pacts tab, an embassy does not', () => {
@@ -88,5 +110,30 @@ describe('emptyTabs', () => {
 		);
 		expect(emptyTabs([blank({ relations: null })])).not.toHaveProperty('diplomacy');
 		expect(emptyTabs([])).toEqual({});
+	});
+});
+
+describe('megastructuresEmpty', () => {
+	const research = (researched: string[]) => ({
+		progress: { researched } as Snapshot['progress']
+	});
+	const sys = (megastructures: string[], visited = true) => ({ visited, megastructures });
+
+	it('is empty until a structure is found or its tech researched', () => {
+		expect(megastructuresEmpty([research(['tech_lasers_1'])], [sys([])])).toMatch(
+			/no megastructure/
+		);
+		expect(megastructuresEmpty([research([]), research(['tech_dyson_swarm'])], [])).toBeNull();
+		expect(megastructuresEmpty([research([])], [sys(['ruined_dyson_sphere'])])).toBeNull();
+	});
+
+	it('does not count gateways, nor what lies in a system not visited', () => {
+		expect(
+			megastructuresEmpty([research([])], [sys(['gateway_ruined']), sys(['ring_world_1'], false)])
+		).not.toBeNull();
+	});
+
+	it('is not empty while nothing is known', () => {
+		expect(megastructuresEmpty([{ progress: null }], null)).toBeNull();
 	});
 });

@@ -14,19 +14,20 @@ complete and became node 286 under 281, beside the left 08.01 (282). Event lines
 The format is shared with `feed.ts` — change both together and bump the number. The table below
 shows format 2.
 
-| Line                                                                 | When                   | From                                                                          |
-| -------------------------------------------------------------------- | ---------------------- | ----------------------------------------------------------------------------- |
-| `timeline\|<id>\|<previous id>`                                      | monthly, first         | `on_monthly_pulse_country`                                                    |
-| `<resource>\|<stockpile>\|<monthly income>` × 26, then `end`         | monthly                | same                                                                          |
-| `tick\|<resource>\|<stockpile>` × 26, then `tick-end`                | daily                  | a self-rescheduling event                                                     |
-| `load\|<id>`                                                         | a save was loaded      | `on_single_player_save_game_load`                                             |
-| `event\|colony\|<planet>`                                            | colony established     | `on_colonized`                                                                |
-| `event\|war-started\|<war>` / `event\|war-ended\|<loser>\|<winner>`  | at once                | `on_war_beginning` / `on_war_ended`                                           |
-| `event\|leader-died\|<leader>`, `event\|ruler\|<name>`               | at once                | `on_leader_death`, `on_ruler_set`                                             |
-| `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`       | each battle we fight   | `on_space_battle_won`                                                         |
-| `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0) | at once                | queued/cancelled, edict, decision, … (`#lib/spending.ts`)                     |
-| `event\|multiplayer` (0.11.0)                                        | monthly                | `is_multiplayer` holds (see `docs/no-cheats.md`)                              |
-| `event\|slave-sold\|<species>\|<pops>\|<buyer>\|<seller>` (0.12.0)   | each sale, galaxy-wide | `on_slave_sold_on_market` (This = pop group, From = buyer, FromFrom = seller) |
+| Line                                                                      | When                                                          | From                                                                                                                              |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `timeline\|<id>\|<previous id>`                                           | monthly, first                                                | `on_monthly_pulse_country`                                                                                                        |
+| `<resource>\|<stockpile>\|<monthly income>` × 26, then `end`              | monthly                                                       | same                                                                                                                              |
+| `tick\|<resource>\|<stockpile>` × 26, then `tick-end`                     | daily                                                         | a self-rescheduling event                                                                                                         |
+| `load\|<id>`                                                              | a save was loaded                                             | `on_single_player_save_game_load`                                                                                                 |
+| `event\|colony\|<planet>`                                                 | colony established                                            | `on_colonized`                                                                                                                    |
+| `event\|war-started\|<war>` / `event\|war-ended\|<loser>\|<winner>`       | at once                                                       | `on_war_beginning` / `on_war_ended`                                                                                               |
+| `event\|leader-died\|<leader>`, `event\|ruler\|<name>`                    | at once                                                       | `on_leader_death`, `on_ruler_set`                                                                                                 |
+| `event\|combat\|<winner>\|<fleet>\|<loser>\|<fleet>\|<system>`            | each battle we fight                                          | `on_space_battle_won`                                                                                                             |
+| `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0)      | at once                                                       | queued/cancelled, edict, decision, … (`#lib/spending.ts`)                                                                         |
+| `event\|multiplayer` (0.11.0)                                             | monthly                                                       | `is_multiplayer` holds (see `docs/no-cheats.md`)                                                                                  |
+| `event\|slave-sold\|<species>\|<pops>\|<buyer>\|<seller>` (0.12.0)        | each sale, galaxy-wide                                        | `on_slave_sold_on_market` (This = pop group, From = buyer, FromFrom = seller)                                                     |
+| `event\|tech-option\|<tech>` × n, then `event\|tech-options-end` (0.13.0) | the 2nd of each month, and the day after a tech is researched | `sdash.6`, scheduled a day ahead by `sdash.1` and `sdash.7` (`on_tech_increased`), once a day at most (format 3: with the run id) |
 
 - **Diplomatic weight** (0.4.0): no log line — each month the player's event exports every
   Galactic Community member's `diplomacy_weight` trigger into its country variable `sdash_dw`, so
@@ -46,6 +47,31 @@ shows format 2.
   `screenshot_2026-10-31_09-25-00`, `-09`): `sdash_stab_add=33.35` = the tooltip's lines but
   approval (10 + 5.6 + 17.7); the page's 110.9 = the tooltip's sum with approval unrounded (95.8 %
   → +27.5, shown "+27").
+- **Edict Fund** (0.14.0, the user's question 2026-11-18: "when below edict fund this costs
+  nothing — is this respected?"): no log line — each month `export_modifier_to_variable` exports
+  our `country_edict_fund_add` and `country_edict_fund_mult` into `sdash_ef_add` / `sdash_ef_mult`
+  (country variables), read as `Snapshot.edictFund` (READER 65). The edict what-ifs charge unity
+  upkeep only beyond the fund's room (`#lib/edictFund.ts`); without the mod the fund is ≈, a lower
+  bound from what the empire holds. In game: `docs/open-checks.md` 40.
+- **Research options** (0.13.0, the user's ask 2026-11-16: "check on every 2nd of a month which
+  tech options are available"): the monthly `sdash.1` schedules `sdash.6` a day ahead, and so does
+  `sdash.7` on `on_tech_increased` — a field draws its new cards when one of its techs is researched
+  (4.5.4 `SELECT_TECHNOLOGY_DESC`: "Whenever we finish researching a Technology, up to N new
+  options will be generated"; picking or changing research draws none), on any day, so the 2nd
+  alone left a mid-month draw unseen until the next month. `sdash_queue_tech_options` schedules it
+  once a day at most (a one-day country flag). `sdash.6` logs
+  one line per tech on offer and an end line (an empty list is a list). Script cannot list the
+  options, only ask `has_tech_option = <key>` (4.5.4 triggers.log), so `sdash.6` asks it for every
+  tech of the data DB with a cost: `events/sdash_tech_options.txt` is **generated** by
+  `node scripts/gen-tech-options.mjs --db <data DB> --out mod/dashboard_feed/events/sdash_tech_options.txt`
+  — re-run after a game update; techs of other mods are not asked. Format 3, like the month lines,
+  so a replayed 2nd after a load is not dropped as a repeat; event lines, so an older dashboard
+  skips them. `feed.ts` hands the list over at the end line (`onTechOptions`); `app.ts` keeps the
+  last one per campaign **in memory** (`liveTechOptions()`; a load drops it) and reloads open pages.
+  At the head, `withLiveOptions()` (`#lib/techOffers.ts`) adds it as a reading after the last save
+  for Upcoming's planned techs on offer and the tech tab's cards (dated in the panel title) — the
+  cards only: the reading repeats the last save, which rates would read as no progress. Without
+  the mod, or after a restart, the saves' cards serve as before. In game: `docs/open-checks.md` 39.
 - **First entry into a system** (0.10.0): `on_entering_system_first_time` (scope: ship, From =
   the system) logs `event|system-entered|<system>` for a human owner's ship; the line only dates a
   system entry event (see "System entry events", `docs/tabs-galaxy.md`), never stands alone.

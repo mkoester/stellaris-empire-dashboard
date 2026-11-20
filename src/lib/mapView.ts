@@ -55,5 +55,22 @@ export type MapWidth = (typeof MAP_WIDTHS)[number];
 export const MAP_WIDTH_KEY = 'galaxy-map-width';
 // '1' while the viewer has the map over the whole browser window (GalaxyMap's "full window")
 export const MAP_FULL_KEY = 'galaxy-map-full';
-export const parseMapWidth = (stored: string | null): MapWidth =>
-	MAP_WIDTHS.find((m) => m === stored) ?? 'normal';
+export const parseMapWidth = (stored: unknown, fallback: MapWidth = 'normal'): MapWidth =>
+	MAP_WIDTHS.find((m) => m === stored) ?? fallback;
+/** The width buttons' labels, also the settings' choice of the default width. */
+export const MAP_WIDTH_LABELS: Record<MapWidth, string> = {
+	normal: 'normal',
+	wide: 'wide',
+	side: 'wide + table'
+};
+
+/** What a map shows when a page opens (⚙, per profile): the fit buttons every map has. A set with
+ * nothing in it (no systems of our own yet) shows everything. */
+export const MAP_FITS = {
+	explored: 'explored',
+	empire: 'my empire',
+	everything: 'everything'
+} as const;
+export type MapFit = keyof typeof MAP_FITS;
+export const parseMapFit = (v: unknown): MapFit =>
+	typeof v === 'string' && v in MAP_FITS ? (v as MapFit) : 'explored';

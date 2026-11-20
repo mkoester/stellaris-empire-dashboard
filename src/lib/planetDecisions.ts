@@ -22,8 +22,11 @@ export type PlanetFacts = {
 	modifiers: string[]; // the planet's modifiers (keys)
 	designation: string;
 	planetClass: string;
+	artificial: boolean | null; // the class's is_artificial_planet (arkship, habitats); null: unknown
 	pops: number;
 	capital: boolean;
+	crime: number | null; // null: a save read before READER 28
+	flags: string[] | null; // every planet flag, carrier flags included; null: read before READER 59
 };
 
 const CMP: Record<string, (a: number, b: number) => boolean> = {
@@ -56,8 +59,18 @@ export function planetTrigger(t: Trigger | null, p: PlanetFacts): Trigger | null
 		case 'is_capital':
 			v = yes(p.capital);
 			break;
+		case 'is_artificial':
+			v = p.artificial === null ? null : yes(p.artificial);
+			break;
 		case 'pop_amount':
 			v = t.cmp && CMP[t.cmp] ? CMP[t.cmp](p.pops, Number(t.value)) : null;
+			break;
+		case 'planet_crime':
+			v = p.crime !== null && t.cmp && CMP[t.cmp] ? CMP[t.cmp](p.crime, Number(t.value)) : null;
+			break;
+		case 'has_carrier_flag':
+		case 'has_planet_flag':
+			v = p.flags === null ? null : p.flags.includes(t.value);
 			break;
 	}
 	return known(v) ?? t;

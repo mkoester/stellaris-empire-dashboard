@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { guessGroups, mergeSightings, shipsetName, territories } from './territories.ts';
+import { guessGroups, mergeSightings, seenRows, shipsetName, territories } from './territories.ts';
 import type { CountryInfo, GalaxySystem, Relation } from './types.ts';
 
 const sys = (id: number, s: Partial<GalaxySystem> = {}): GalaxySystem => ({
@@ -124,4 +124,34 @@ describe('mergeSightings', () => {
 		]);
 	});
 	it('names shipsets', () => expect(shipsetName('mammalian_01')).toBe('Mammalian'));
+});
+
+describe('seenRows', () => {
+	it('marks the stations of empires we talk to, without their id', () => {
+		const seen = [
+			{ systemId: 1, ownerId: 7, shipset: 'avian_01', first: '2201.01.01', last: '2202.01.01' },
+			{ systemId: 2, ownerId: 8, shipset: null, first: '2201.01.01', last: '2201.01.01' }
+		];
+		const rows = seenRows(seen, [], String, new Set([7]));
+		expect(rows.map((r) => [r.system, r.talking])).toEqual([
+			['1', true],
+			['2', false]
+		]);
+		expect(JSON.stringify(rows)).not.toContain('ownerId');
+	});
+	it('takes the owner from the territory now, not from the sighting', () => {
+		const seen = [
+			{ systemId: 1, ownerId: 8, shipset: 'avian_01', first: '2218.12.01', last: '2219.08.15' },
+			{ systemId: 2, ownerId: 7, shipset: 'avian_01', first: '2218.12.01', last: '2219.08.15' }
+		];
+		const ts = [
+			{ key: 'country:7', label: 'C7', color: '#000', guess: false, systems: [1] },
+			{ key: 'guess:x:2', label: 'guess', color: '#000', guess: true, systems: [2] }
+		];
+		const rows = seenRows(seen, ts, String, new Set([7]));
+		expect(rows.map((r) => [r.system, r.talking, r.territory])).toEqual([
+			['1', true, 'C7'],
+			['2', true, 'guess']
+		]);
+	});
 });

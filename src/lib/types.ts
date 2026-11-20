@@ -1,3 +1,4 @@
+import type { OutcomeNode } from './outcomes.ts';
 import type { ShipParts } from './designStats.ts';
 import type { JobAutomation } from './jobAutomation.ts';
 import type { StarbasePart } from './starbasePlanner.ts';
@@ -44,6 +45,7 @@ export type Colony = {
 	deposits: string[]; // deposit types on the planet, blockers included
 	planet: PlanetState | null; // null in older snapshots
 	timedFlags: TimedModifier[]; // the planet's timed flags (cooldowns of decisions …); since READER 21
+	flags?: string[] | null; // every flag on the planet (carrier flags included); since READER 59
 	buildQueue: QueueItem[];
 	buildSlots: number; // items the planet builds at once (queue `simultaneous`; >1 for wilderness, arkships, mods)
 	jobs: ColonyJob[];
@@ -261,6 +263,11 @@ export type Station = {
 	slots: number;
 	shipyard: { queue: QueueItem[]; slots: number } | null; // null: no shipyard module
 	arkship: boolean;
+	// a waystation's (READER 60): what it collected so far, how full (0…1, the game's monthly
+	// value, null before the first month) and whether a logistic ship is collecting it
+	stockpile?: Resources;
+	fill?: number | null;
+	collecting?: boolean;
 };
 
 /**
@@ -276,7 +283,11 @@ export type Arkship = {
 	planetSize: number;
 	systemId: number | null;
 	capital: boolean; // the capital colony's carrier
+	cargo: ArkshipCargo[]; // a contract's passengers aboard (READER 67; [] before)
 };
+
+/** A contract's fleet flag on an arkship's fleet (`CONTRACT_CARGO`), and the day it was set. */
+export type ArkshipCargo = { flag: string; since: string | null };
 
 /** A Mega Shipyard; `stage` from its type (mega_shipyard_0…3, _restored). */
 export type MegaShipyard = {
@@ -316,8 +327,9 @@ export type AiIntel = {
 	income: Resources; // per month, gross (the cap on what it pays a month); {} before READER 12
 	max?: Resources; // storage, exact: companion mod 0.5.0's sdash_m_<res>; absent without it
 	commercialPactTrade?: number; // trade its own commercial pacts bring it (READER 45)
-	techsWeLack?: string[]; // a research partner's techs we do not have (READER 45)
-	techsTheyLack?: string[]; // ours it does not have (READER 45)
+	techsWeLack?: string[]; // its techs we do not have (READER 45 research partners, 64 everyone)
+	theyLackCount?: number; // how many of ours it does not have (READER 64)
+	techsTheyLack?: string[]; // ours it does not have: research partners only (READER 45)
 };
 
 /** A trader enclave we talk to; `kind` 1 XuraCorp, 2 Riggans, 3 Muutagan (#lib/aiTrade.ts). */
@@ -341,6 +353,9 @@ export type QueueItem = {
  * Where an observation came from: a parsed save (complete) or the companion mod's monthly
  * game.log lines (stockpile and net income only — the other fields are null/empty).
  */
+/** A country flag an outcome sets (data DB `outcome.flags_json`); `ch`: a dig site's chapter. */
+export type OutcomeFlag = { k: string; ch?: number };
+
 export type SourceKind = 'save' | 'log';
 
 /** A static modifier on the empire or a planet (events, agendas, features …); `until` null = permanent. */
@@ -405,6 +420,9 @@ export type Snapshot = {
 	starbases: { used: number; capacity: number } | null;
 	navalUsed: number | null;
 	navalMax: number | null;
+	// the Edict Fund's modifiers, `country_edict_fund_add` / `_mult`: companion mod 0.14.0
+	// exports them (`sdash_ef_add`, `sdash_ef_mult`), else null (#lib/edictFund.ts); READER 65
+	edictFund: { add: number; mult: number } | null;
 	envoys: { used: number; total: number } | null;
 	marketOrders: MarketOrder[]; // standing monthly buy/sell orders
 	market: Market | null; // null from the mod feed and in older snapshots
@@ -475,6 +493,8 @@ export type Snapshot = {
 	warLostDate: string | null; // `last_date_war_lost` ("0.01.01" = never)
 	tradeDeals: TradeDeal[] | null;
 	contracts: Contract[] | null; // every Nomads contract in the galaxy, offered or accepted; READER 52
+	// contracts we completed (`country.variables.contract_completed`, the reward's scaling); READER 66
+	contractsCompleted: number | null;
 	// From the save's `meta`; null from the mod feed and in older snapshots.
 	gameVersion: string | null; // e.g. "Cygnus v4.5.2"
 	dlcs: string[] | null; // DLCs active in this save (`required_dlcs`), by name
@@ -650,7 +670,8 @@ export type GalaxySystem = {
 	lanes: number[]; // hyperlanes to systems with a higher id
 	visited: boolean;
 	owned: boolean;
-	ownerId: number | null; // the station's owner, in a visited system
+	ownerId: number | null; // the primary station's owner, in a visited system (never a waystation's)
+	waystation?: number; // who owns the waystation here, in a visited system; READER 60
 	bodies: Body[] | null; // visited only
 	megastructures: string[]; // types, built or ruined, in a visited system
 	bypasses?: string[]; // wormholes, gateways, L-gates (`bypasses.<id>.type`) in a visited system; since 2026-10-18
@@ -794,6 +815,7 @@ export type DigSite = {
 	daysLeft: number | null; // to the excavation's next roll
 	lastRoll?: number | null; // `last_roll`; absent before READER 22
 	excavating: boolean;
+	chapter?: number | null; // the next chapter, 1-based (`index` + 1); absent before READER 58
 };
 
 /** A council seat: `council_positions.<id> = { country type leader }`. */
@@ -1060,6 +1082,34 @@ export type ContractType = {
 	name: string;
 	category: string; // e.g. resource_contract, science_contract_internal, crew_resource_contract_special
 	timeToAccept: number | null; // days an offer stays open
+	// the rest: data DBs since 2026-11-18 (`detailed`); null / [] with an older one
+	detailed: boolean;
+	timeToComplete: number | null; // days to finish once accepted; null: no limit
+	description: string | null; // what the operator does; {issuer} and {system} to fill in
+	steps: number | null; // progress needed (Espionage Support 2: two projects)
+	reward: ContractReward | null;
+	failedOpinion: number | null; // the issuer's opinion of us on failure or cancel
+	operatorTechs: string[]; // techs the operator needs
+	projects: ContractProject[]; // the special projects of its event chain
+};
+
+/** What a contract pays its operator on success (data DB `contract.reward_json`). */
+export type ContractReward = {
+	// × contract_bonus_value; the first the full reward, a second one a partial success's
+	scaled: { trade: number | null; resource: string | null; amount: number | null }[];
+	cruise: number | null; // Forever Cruise's trade, × its own bonus
+	fixed: Record<string, number>; // not scaled: the influence for the opinion gained
+	trust: number | null;
+	opinion: number | null;
+};
+
+/** A special project a contract's operator does (data DB `special_project` by `event_chain`). */
+export type ContractProject = {
+	key: string;
+	name: string;
+	days: number | null;
+	requirements: Record<string, unknown>; // {carries_colony: 1}: an arkship
+	arkshipBranches: boolean; // the outcome differs by arkship type
 };
 
 /**
@@ -1109,6 +1159,12 @@ export type TimelineNode = {
 /** Base cost, upkeep and output of a thing the game builds (data DB, before modifiers). */
 export type Costs = { cost: Resources; upkeep: Resources; produces: Resources };
 
+/** A megastructure stage: the stages it is upgraded from, its cost by `country_uses_bio_ships`. */
+export type MegaStage = {
+	from: string[];
+	cost: Partial<Record<'any' | 'bio' | 'regular', Resources>>;
+};
+
 /** What a player does that runs on a timer (data DB `action_timer.action_kind`). */
 export type ActionKind =
 	| 'decision'
@@ -1140,7 +1196,10 @@ export type GameData = {
 	>;
 	districtJobs: Record<string, Record<string, number>>; // district → job → positions (pops)
 	buildingJobs: Record<string, Record<string, number>>;
-	buildDays: Record<string, number>; // districts, ship sizes, buildings: base days
+	buildDays: Record<string, number>; // districts, ship sizes, buildings, megastructures: base days
+	// megastructure stages (extractor 2026-11-17; empty before): the stages each is upgraded from
+	// and its build cost per bio-ship variant (`any` paid by all, plus `bio` or `regular`)
+	megastructures: Record<string, MegaStage>;
 	depositCategory: Record<string, string | null>; // orbital_mining_deposits, …
 	buildingCategory: Record<string, string | null>; // government, manufacturing, research, …
 	shipParts: ShipParts; // ship sizes, sections, components (extractor 2026-11-09; empty before)
@@ -1161,8 +1220,20 @@ export type GameData = {
 			deficitTrade?: number | null;
 		}
 	>;
-	personalities: Record<string, { name: string; willingness: number | null }>;
-	attitudes: Record<string, { name: string; trade: boolean }>;
+	personalities: Record<
+		string,
+		{
+			name: string;
+			willingness: number | null;
+			// added to a pact's acceptance; null: an older data DB
+			acceptance?: { research: number; commercial: number } | null;
+		}
+	>;
+	// alliance / coexist: the behaviours pact acceptance reads; absent on an older data DB
+	attitudes: Record<
+		string,
+		{ name: string; trade: boolean; alliance?: boolean; coexist?: boolean }
+	>;
 	opinionModifiers: Record<string, { name: string; max: number | null; decay: number | null }>; // per level: outpost, starport …
 	edictModifiers: Record<string, Record<string, number>>; // edict → modifier → value
 	policyModifiers: Record<string, Record<string, number>>; // policy option → modifier → value
@@ -1248,6 +1319,7 @@ export type GameData = {
 			ideal: boolean;
 			standard: boolean;
 			climate: string | null;
+			artificial?: boolean; // is_artificial_planet: arkship, habitats, ring segments
 		}
 	>;
 	names: Record<string, string>; // display names of buildings, deposits, districts, zones, starbase modules and buildings
@@ -1300,9 +1372,18 @@ export type GameData = {
 	traditionTrees: Record<
 		string,
 		// color: '#rrggbb', the tree's colour in game; absent on a data DB from before it
-		{ name: string; color?: string; traditions: { key: string; name: string; role: string }[] }
+		{
+			name: string;
+			color?: string;
+			ascension?: boolean;
+			potential?: Trigger | null;
+			adoptPossible?: Trigger | null;
+			traditions: { key: string; name: string; role: string }[];
+		}
 	>;
 	perks: Record<string, string>; // ascension perk names
+	traditionSwaps: Record<string, import('./swaps.ts').Swap[]>; // tradition or perk → its swaps
+	pathPerks?: string[]; // path perks from `00_ascension_paths.txt`; absent on older data DBs
 	precursors: Record<string, string>; // precursor names (data DB `precursor`), for the galaxy setup
 	setupScenarios: Record<string, Record<string, number>>; // galaxy size → save key → its default (`setup_scenario`, extractor 0.1.16)
 	// Nomads contracts by key (data DB `contract`, extractor 2026-11-07; {} with an older one)
@@ -1344,9 +1425,21 @@ export type GameData = {
 	>;
 	projects: Record<
 		string,
-		{ name: string; days: number | null; department: string | null; outcomes: Outcome[] }
+		{
+			name: string;
+			days: number | null; // a ship's or fleet's project
+			cost?: number | null; // research, halting its field meanwhile; data DBs since 2026-11-17
+			department: string | null;
+			outcomes: Outcome[];
+		}
 	>;
 	anomalyCategories: Record<string, { name: string; level: number | null; outcomes: Outcome[] }>;
+	// what each leads to, followed down to the effects (`#lib/outcomes.ts`); empty on an older data DB
+	outcomeTrees: Record<'anomaly' | 'project' | 'dig_site', Record<string, OutcomeNode[]>>;
+	// the country flags each sets on the way (`ch`: a dig site's chapter), for telling a finished one
+	// from a lost one (`#lib/inferDone.ts`); empty on a data DB before 2026-11-17
+	outcomeFlags: Record<'anomaly' | 'project' | 'dig_site', Record<string, OutcomeFlag[]>>;
+	digSiteTypes: Record<string, { name: string; stages: number }>; // archaeological site types
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
 	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1
 	entryEvents: EntryEvent[]; // the popups a first entry into a system fires (system_entry_event)
@@ -1401,6 +1494,7 @@ export type GameData = {
 	};
 
 	// council seats; modifiers (per leader level) are the `seat:<key>` explanations
+	edictFund: Record<string, { add?: number; mult?: number }>; // `bySource` keys → fund modifiers
 	councilPositions: Record<
 		string,
 		{ name: string; civic: string | null; classes: string[]; possible: Trigger | null }

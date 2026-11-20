@@ -1,7 +1,6 @@
 import { kindOf, type ContactKind } from '#lib/contacts.ts';
 import { wanderlustCategories } from '#lib/wanderlust.ts';
 import type { Bypass } from '#lib/galaxyGraph.ts';
-import { addGameDays } from '#lib/series.ts';
 import type {
 	AnomalyInfo,
 	Body,
@@ -29,6 +28,7 @@ import {
 	strOrNull,
 	type RawSave
 } from './save.ts';
+import { flagDate } from './save/values.ts';
 
 // What the empire knows of the galaxy and of the others: systems, the empires it met, first
 // contacts, situations, anomalies, special projects, dig sites. Pure, from the gamestate parts in
@@ -52,17 +52,57 @@ export function stationOwner(
 	raw: Pick<RawSave, 'starbases' | 'ships' | 'fleetOwner'>,
 	system: Raw
 ): number | null {
+	return starbaseOwner(raw, system, false);
+}
+
+/**
+ * A nomad's waystation is a starbase of the system too, but not its primary one: it claims no
+ * space (4.5.4 `every_owned_nonprimary_starbase`). Before READER 60 the owner of a system with only
+ * a waystation read as the nomad — 33 systems of `roamingcybergang` 2213.08 listed `4294967295`
+ * (no primary starbase) before the waystation.
+ */
+export const isWaystation = (sb: Raw) => String(sb?.level ?? '').includes('waystation');
+
+/** Who owns the waystation in a system (one per system, whoever builds it), or null. */
+export function waystationOwner(
+	raw: Pick<RawSave, 'starbases' | 'ships' | 'fleetOwner'>,
+	system: Raw
+): number | null {
+	return starbaseOwner(raw, system, true);
+}
+
+function starbaseOwner(
+	raw: Pick<RawSave, 'starbases' | 'ships' | 'fleetOwner'>,
+	system: Raw,
+	waystation: boolean
+): number | null {
 	for (const sb of list(system?.starbases)) {
-		const ship = raw.ships[String(raw.starbases[String(sb)]?.station)];
-		const owner = raw.fleetOwner[String(ship?.fleet)];
+		const base = raw.starbases[String(sb)];
+		if (isWaystation(base) !== waystation) continue;
+		const owner = raw.fleetOwner[String(raw.ships[String(base?.station)]?.fleet)];
 		if (owner !== undefined) return owner;
 	}
 	return null;
 }
 
+/**
+ * The planets we surveyed: `country.surveyed_deposit_holders` (`{ type=0 id=<planet> }`) — every
+ * planet `surveyed_by` names, plus the home system's, which the game counts as surveyed without
+ * naming us on them (`roamingcybergang` 2213.09.02: 145 = 135 + the 10 bodies of Dar-Hesh;
+ * before READER 61 those read as unsurveyed and the waylines tab left Dar-Hesh out).
+ */
+export function surveyedPlanets(raw: Pick<RawSave, 'country'>): Set<number> {
+	return new Set(
+		items(raw.country?.surveyed_deposit_holders)
+			.filter((h) => num(h?.type) === 0)
+			.map((h) => Number(h.id))
+	);
+}
+
 export function body(
 	raw: Pick<RawSave, 'planets' | 'deposits' | 'countryId'>,
-	id: number
+	id: number,
+	surveyed: Set<number> = new Set()
 ): Body | null {
 	const p = raw.planets[String(id)];
 	if (!p || typeof p !== 'object') return null;
@@ -81,7 +121,7 @@ export function body(
 			.filter((t): t is string => typeof t === 'string' && t !== 'none'),
 		anomaly: typeof p.anomaly === 'string' ? p.anomaly : null,
 		dist: Math.hypot(num(p.coordinate?.x), num(p.coordinate?.y)),
-		surveyed: list(p.surveyed_by).includes(raw.countryId),
+		surveyed: surveyed.has(id) || list(p.surveyed_by).includes(raw.countryId),
 		// a mining or research station orbits it (`shipclass_orbital_station` = the ship's id)
 		station: p.shipclass_orbital_station !== undefined
 	};
@@ -176,6 +216,8 @@ export function galaxy(
 		.filter(([, s]) => starFlags(s).includes('lcluster1'))
 		.map(([id]) => Number(id));
 	const open = Object.keys(raw.globalFlags ?? {}).includes('lgates_activated_globally');
+	const waystationAt = (s: Raw) => waystationOwner(raw, s);
+	const surveyed = surveyedPlanets(raw);
 	return Object.entries(raw.systems).flatMap(([key, s]) => {
 		if (!s || typeof s !== 'object') return [];
 		const id = Number(key);
@@ -193,9 +235,10 @@ export function galaxy(
 				visited: seen,
 				owned: own.has(id),
 				ownerId: seen ? stationOwner(raw, s) : null,
+				...(seen && waystationAt(s) !== null && { waystation: waystationAt(s)! }),
 				// every system's bodies: what a map may show of them is surveyView's choice
 				bodies: list(s.planet)
-					.map((p) => body(raw, p))
+					.map((p) => body(raw, p, surveyed))
 					.filter((b) => b !== null),
 				megastructures: seen ? (megas.get(id) ?? []) : [],
 				wormholes: wormholes.get(id) ?? [],
@@ -449,9 +492,11 @@ export function specialProjects(raw: Pick<RawSave, 'country' | 'planets'>): Proj
 		});
 }
 
-/** Archaeological sites (`archaeological_sites.sites`) in systems we visited. */
+/** Archaeological sites (`archaeological_sites.sites`) in systems we visited. Excavated: by a
+ * fleet of ours — other empires dig at sites we see too (2226.08.01, Roaming Cyber Gang: ten sites
+ * with an `excavator_fleet`, one of them ours). */
 export function digSites(
-	raw: Pick<RawSave, 'archSites' | 'planets'>,
+	raw: Pick<RawSave, 'archSites' | 'planets' | 'fleetOwner' | 'countryId'>,
 	visited: Set<number>
 ): DigSite[] {
 	return Object.entries(raw.archSites).flatMap(([id, s]) => {
@@ -469,7 +514,10 @@ export function digSites(
 				difficulty: num(s.difficulty),
 				daysLeft: numOrNull(s.days_left),
 				lastRoll: numOrNull(s.last_roll),
-				excavating: idOrNull(s.excavator_fleet) !== null
+				excavating: ((f) => f !== null && raw.fleetOwner[String(f)] === raw.countryId)(
+					idOrNull(s.excavator_fleet)
+				),
+				chapter: s.index === undefined ? null : num(s.index) + 1
 			}
 		];
 	});
@@ -483,7 +531,7 @@ export function claims(
 	raw: Pick<RawSave, 'systems' | 'countryId' | 'countries' | 'starbases' | 'ships' | 'fleetOwner'>,
 	own: Set<number>
 ): Claim[] {
-	const name = (id: number) => raw.countries[String(id)]?.name ?? `empire ${id}`;
+	const name = (id: number) => raw.countries[String(id)]?.name ?? 'unknown empire';
 	return Object.entries(raw.systems).flatMap(([id, s]) =>
 		items(s?.claims).flatMap((c) => {
 			const claimant = Number(c?.owner);
@@ -504,14 +552,6 @@ export function claims(
 		})
 	);
 }
-
-const FLAG_HOURS_2200 = 62808000; // a flag's value is the hour it was set, +24 a day
-const flagDate = (v: Raw): string | null => {
-	const h = typeof v === 'number' ? v : typeof v?.flag_date === 'number' ? v.flag_date : null;
-	return h === null || h < FLAG_HOURS_2200
-		? null
-		: addGameDays('2200.01.01', Math.floor((h - FLAG_HOURS_2200) / 24));
-};
 
 /**
  * The flags the game sets when a guardian falls (4.5.2): on the victor `killed_guardian`
@@ -567,7 +607,7 @@ export function historyReading(
 	const ids = new Set([...owners.map(([, o]) => o), ...colonies.map(([, o]) => o)]);
 	const names: [number, string][] = [...ids].map((id) => [
 		id,
-		displayName(raw.countryBlocks[String(id)]?.name) || `empire ${id}`
+		displayName(raw.countryBlocks[String(id)]?.name) || 'unknown empire'
 	]);
 	return { owners, colonies, guardians, names };
 }

@@ -1,11 +1,16 @@
 <script lang="ts">
-	import { pretty } from '#lib/format.ts';
-	import type { AgendaRow, EdictRow } from '#lib/government.ts';
+	import { fmt, pretty } from '#lib/format.ts';
+	import { POLICY_YEARS, type AgendaRow, type EdictRow } from '#lib/government.ts';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { colorOf } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
-	import { formatModifierValue, modifierColor, modifierLabel } from '#lib/modifiers.ts';
+	import {
+		distinctModifiers,
+		formatModifierValue,
+		modifierColor,
+		modifierLabel
+	} from '#lib/modifiers.ts';
 	import { followGame } from '#lib/live.ts';
 	import Government from '#lib/panels/Government.svelte';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -80,7 +85,7 @@
 			title: 'its launch effect, and the modifier it leaves for a while'
 		}
 	];
-	const edictColumns: Column<EdictRow>[] = [
+	const edictColumns = $derived<Column<EdictRow>[]>([
 		{ id: 'name', label: 'Edict', value: (r) => r.name, cell: edictName },
 		{ id: 'category', label: 'Kind', value: (r) => pretty(r.category ?? '') },
 		{
@@ -109,20 +114,36 @@
 			label: 'Effects',
 			value: (r) => data.explain[`edict:${r.key}`]?.modifiers.length ?? 0,
 			cell: edictEffects
-		}
-	];
+		},
+		...(data.whatIfs
+			? [
+					{
+						id: 'net',
+						label: 'Net ≈',
+						value: (r: EdictRow) => data.whatIfs?.[`edict:${r.key}`]?.net ?? null,
+						right: true,
+						cell: edictNet,
+						title:
+							'≈ trade a month if enacted now (cancelled, for an active one): output and upkeep it changes, minus its own upkeep, at the produce tab’s values; effects not counted are left out'
+					}
+				]
+			: [])
+	]);
 	const node = $derived(page.url.searchParams.get('node'));
 </script>
 
-{#snippet classes(list: string[])}
+<!-- a seat that takes several classes (the ruler's): the one holding it solid, the others dimmed -->
+{#snippet classes(list: string[], held: string | null = null)}
+	{@const marked = held !== null && list.length > 1 && list.includes(held)}
 	{#each list as k (k)}<span
-			class="mr-1 rounded px-1 text-xs text-white"
+			class="mr-1 rounded px-1 text-xs text-white {marked && k !== held ? 'opacity-40' : ''}"
 			style:background={colorOf(`class-${k}`)}
-			title="takes a {k}">{k}</span
+			title={`${marked && k === held ? 'held by' : 'takes'} ${/^[aeiou]/.test(k) ? 'an' : 'a'} ${k}`}
+			>{k}</span
 		>{/each}
 {/snippet}
 {#snippet mods(list: Modifier[])}
-	{#each list as m (m.key)}<div>
+	{#each distinctModifiers(list) as m (m.key)}<div>
 			<span class={modifierColor(m)}>{formatModifierValue(m)}</span>
 			{modifierLabel(m)}
 		</div>{/each}
@@ -185,6 +206,12 @@
 			style:color={colorOf(k)}>{v} {pretty(k)}</span
 		>{/each}
 {/snippet}
+{#snippet edictNet(r: EdictRow)}
+	{@const n = data.whatIfs?.[`edict:${r.key}`]?.net}
+	{#if n != null}<span class={n < 0 ? 'text-red-600' : 'text-green-600'}
+			>{n < 0 ? '−' : '+'}{fmt(Math.abs(n))}</span
+		>{/if}
+{/snippet}
 {#snippet cost(r: EdictRow)}{@render amounts(r.cost.cost)}{/snippet}
 {#snippet upkeep(r: EdictRow)}{@render amounts(r.cost.upkeep)}{/snippet}
 {#snippet edictName(r: EdictRow)}
@@ -235,7 +262,7 @@
 					<tr class="border-b border-gray-100 align-top dark:border-gray-900">
 						<th class="p-1 pr-3 font-normal whitespace-nowrap"
 							><InfoPopup explanation={data.explain[`seat:${c.key}`]}>{c.name}</InfoPopup>
-							<div>{@render classes(c.classes)}</div></th
+							<div>{@render classes(c.classes, c.leaderClass)}</div></th
 						>
 						<td class="p-1 whitespace-nowrap"
 							>{c.leader ?? 'empty'}{#if c.level !== null}<div class="text-gray-500">
@@ -349,7 +376,9 @@
 											>{/each}
 										{#each p.options.filter((o) => data.whatIfs?.[`policy:${o.key}`]) as o (o.key)}
 											<div>
-												<WhatIfLine what={data.whatIfs?.[`policy:${o.key}`]} label={o.name} />
+												<WhatIfLine what={data.whatIfs?.[`policy:${o.key}`]} label={o.name} /><span
+													class="text-xs text-amber-600">then locked for {POLICY_YEARS} years</span
+												>
 											</div>
 										{/each}
 									</td>

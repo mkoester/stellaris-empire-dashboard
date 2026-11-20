@@ -5,6 +5,7 @@ import { pretty } from '#lib/format.ts';
 import type { Colony, PlanetState, Snapshot } from '#lib/types.ts';
 import { getExplanations, getGameData } from './app.ts';
 import { pick } from './explain.ts';
+import { NO_SWAPS, empireSwaps, type SwapLookup } from '#lib/swaps.ts';
 
 /**
  * A planet's details for `PlanetDetails.svelte`: district caps, plus the popups and display names
@@ -54,12 +55,14 @@ export function planetDetails(
 const buildingsOf = (c: Colony) => colonyActiveBuildings(c.districtList);
 
 /** What of the empire can raise its planets' district limits, as `districtCaps` owners. */
-export const empireOwners = (s: Snapshot | null): string[] =>
+export const empireOwners = (s: Snapshot | null, swaps: SwapLookup = NO_SWAPS): string[] =>
 	s
 		? [
 				...(s.government ?? []).map((k) => `civic:${k}`),
 				...(s.origin ? [`origin:${s.origin}`] : []),
-				...[...(s.traditions ?? []), ...(s.ascensionPerks ?? [])].map((k) => `tradition:${k}`)
+				...[...(s.traditions ?? []), ...(s.ascensionPerks ?? [])].map(
+					(k) => `tradition:${swaps.source(k)}`
+				)
 			]
 		: [];
 
@@ -77,7 +80,7 @@ export function colonyDetails(
 			buildings: buildingsOf(c),
 			built: Object.fromEntries(c.districtList.map((d) => [d.type, d.built]))
 		},
-		empireOwners(s)
+		empireOwners(s, empireSwaps(s, getGameData()))
 	);
 }
 

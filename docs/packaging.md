@@ -54,6 +54,19 @@ exit 130, `-wal` left). **Not yet seen on Windows or a Mac.** `pnpm dev` is Vite
 
 The version in the header and the zip names is `scripts/version.mjs` (decorated with git state;
 a commit tagged `v<version>` counts as a release, since CI builds from the detached tag).
+The launcher's start line names it and the head campaign's game version: `startVersions()` in
+`app.ts`, handed over on `globalThis` by `hooks.server.ts`, as the app is a bundle of its own.
+Before it prints that line and opens the browser, the launcher requests `/` once (warm-up: 0.36 s
+cold, 0.09 s after, on a copy of the author's DB, 2026-11-15).
+**Newer releases** (the user's ask 2026-11-19): `server/updates.ts` asks GitHub's
+`releases/latest` (never a prerelease or draft) once the dashboard runs, then every
+`updateHours` (a global setting like the theme, ⚙ Updates, default 3, 0 = never); a newer one shows
+as a link beside the version and in the launcher's console. **Only a release build asks**
+(`isRelease()`: an undecorated `X.Y.Z`) — a `develop` build (`-<hash>`, `-SNAPSHOT`) or an rc/beta
+never does (the user: "ignore on develop"), so no test or dev server reaches GitHub. One timer per
+process on `globalThis`, unref'd so a stop is not held up; the next check counts from the last one,
+at most one interval away. Node's `fetch` ignores `HTTPS_PROXY` unless `NODE_USE_ENV_PROXY=1`: in
+the sandbox it fails "fetch failed" (curl works), so check it there with that set.
 Releasing: `RELEASE.md` — pushing a `vX.Y.Z` tag on `main` runs `.github/workflows/release.yml`,
 which checks out the extractor at `extractorVersion` next to the dashboard, tests, packages and
 creates the GitHub release with both zips and the `CHANGELOG.md` section as notes. A

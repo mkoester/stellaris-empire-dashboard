@@ -12,6 +12,8 @@ import type { ColonyDay, LogEvent, Resources, Snapshot, Tick } from '#lib/types.
 //   SDASH|2|<date>|event|colony-jobs|<colony>|<open jobs>|<unemployed>|<pops>
 //                                    within the daily tick, a colony whose numbers changed (0.9.0)
 //   SDASH|2|<date>|event|multiplayer                          monthly, in a multiplayer game (0.11.0)
+//   SDASH|3|<date>|<run>|event|tech-option|<tech>  …  event|tech-options-end
+//                                    the research options, on the 2nd of each month (0.13.0)
 // Format 1 (mod 0.1.0) had the monthly resource and end lines only. Format 3 (mod 0.7.0) is format
 // 2 with a run id after the date on every line but events' — SDASH|3|<date>|<run>|end — drawn at
 // each load: the game drops a line it has already written this session, so without it a branch
@@ -46,6 +48,8 @@ export type Line =
 	| ({ kind: 'colony-day'; date: string; colony: string } & ColonyDay)
 	| { kind: 'load'; date: string; id: number | null }
 	| { kind: 'multiplayer'; date: string }
+	| { kind: 'tech-option'; date: string; tech: string }
+	| { kind: 'tech-options-end'; date: string }
 	| { kind: 'event'; event: LogEvent }
 	| ({ kind: 'unsupported' } & FeedFormat);
 
@@ -53,6 +57,7 @@ export type Line =
 export type Output =
 	| { kind: 'month'; month: Month }
 	| { kind: 'tick'; tick: Tick }
+	| { kind: 'tech-options'; date: string; techs: string[] }
 	| { kind: 'load'; date: string; id: number | null }
 	| ({ kind: 'unsupported' } & FeedFormat);
 
@@ -128,6 +133,15 @@ export function parseLine(raw: string): Line | null {
 			if (args.length !== 1) throw bad();
 			return { kind: 'multiplayer', date };
 		}
+		// mod 0.13.0: the research options on the 2nd, one line each, then an end line
+		if (head === 'event' && args[0] === 'tech-option') {
+			if (args.length !== 2 || !args[1]) throw bad();
+			return { kind: 'tech-option', date, tech: args[1] };
+		}
+		if (head === 'event' && args[0] === 'tech-options-end') {
+			if (args.length !== 1) throw bad();
+			return { kind: 'tech-options-end', date };
+		}
 		if (head === 'event') {
 			const [kind, ...fields] = args;
 			// a newer mod's kind: skipped, so an older dashboard keeps reading the rest
@@ -158,6 +172,7 @@ export function assembler() {
 	let events: LogEvent[] = [];
 	let ticks: Tick[] = [];
 	let multiplayer = false;
+	let options: { date: string; techs: string[] } | null = null;
 	const monthOf = (date: string) => {
 		const m = months.get(date) ?? {
 			date,
@@ -223,6 +238,16 @@ export function assembler() {
 			case 'multiplayer':
 				multiplayer = true;
 				return null;
+			case 'tech-option':
+				if (options?.date !== line.date) options = { date: line.date, techs: [] };
+				options.techs.push(line.tech);
+				return null;
+			case 'tech-options-end': {
+				// none on offer is a list too; lines of another day are not this one's
+				const techs = options?.date === line.date ? options.techs : [];
+				options = null;
+				return { kind: 'tech-options', date: line.date, techs };
+			}
 			case 'load':
 				months.clear();
 				days.clear();
@@ -230,6 +255,7 @@ export function assembler() {
 				events = [];
 				ticks = [];
 				multiplayer = false;
+				options = null;
 				return { kind: 'load', date: line.date, id: line.id };
 			case 'unsupported':
 				return line;
@@ -263,6 +289,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		starbases: null,
 		navalUsed: null,
 		navalMax: null,
+		edictFund: null,
 		envoys: null,
 		marketOrders: [],
 		market: null,
@@ -323,6 +350,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		warLostDate: null,
 		tradeDeals: null,
 		contracts: null,
+		contractsCompleted: null,
 		gameVersion: null,
 		dlcs: null,
 		mods: null,
@@ -371,6 +399,8 @@ export function monthFingerprint(m: Month): string {
 export type TailOptions = {
 	onMonth: (m: Month) => void;
 	onTick?: (t: Tick) => void;
+	/** the research options on offer that day (mod 0.13.0) */
+	onTechOptions?: (date: string, techs: string[]) => void;
 	onLoad?: (date: string, id: number | null) => void;
 	/** a line in a format this build does not read (skipped) */
 	onUnsupported?: (f: FeedFormat) => void;
@@ -412,6 +442,7 @@ export async function tailLog(file: string, opts: TailOptions): Promise<() => vo
 						const out = line && add(line);
 						if (out?.kind === 'month') opts.onMonth(out.month);
 						else if (out?.kind === 'tick') opts.onTick?.(out.tick);
+						else if (out?.kind === 'tech-options') opts.onTechOptions?.(out.date, out.techs);
 						else if (out?.kind === 'load') opts.onLoad?.(out.date, out.id);
 						else if (out?.kind === 'unsupported') opts.onUnsupported?.(out);
 					} catch (e) {

@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { body, claims, relations, stationsSeen, wormholeLinks } from './world.ts';
+import {
+	body,
+	claims,
+	digSites,
+	relations,
+	stationsSeen,
+	surveyedPlanets,
+	wormholeLinks
+} from './world.ts';
 
 describe('stationsSeen', () => {
 	// shaped like 2207.03.01: fleets in `fleet.<id>.movement_manager.coordinate.origin`, a system's
@@ -165,5 +173,47 @@ describe('body', () => {
 			surveyed: true,
 			station: false
 		});
+	});
+	it('counts the home system surveyed: listed in surveyed_deposit_holders, not in surveyed_by', () => {
+		const raw = {
+			countryId: 0,
+			deposits: { '2': { type: 'd_minerals_2' } },
+			planets: { '2': { name: { key: 'NAME_Dutchen' }, planet_class: 'pc_broken', deposits: [2] } },
+			country: {
+				surveyed_deposit_holders: [
+					{ type: 0, id: 2 },
+					{ type: 2, id: 7 }
+				]
+			}
+		};
+		expect(body(raw, 2)?.surveyed).toBe(false);
+		expect(body(raw, 2, surveyedPlanets(raw))?.surveyed).toBe(true);
+		expect([...surveyedPlanets(raw)]).toEqual([2]);
+	});
+});
+
+describe('digSites', () => {
+	// shaped like 2226.08.01: 4294967295 = no excavator; another empire's fleet digs at a site we see
+	const site = (fleet: number) => ({
+		type: 'omnirelic_site',
+		location: { type: 'planet', id: 7 },
+		clues: 1,
+		difficulty: 4,
+		days_left: 51.5,
+		index: 0,
+		excavator_fleet: fleet
+	});
+	const raw = {
+		countryId: 0,
+		archSites: { 1: site(4), 2: site(42), 3: site(4294967295) },
+		planets: { 7: { coordinate: { origin: 5 } } },
+		fleetOwner: { 4: 0, 42: 16777227 }
+	};
+	it('marks a site excavated only by a fleet of ours', () => {
+		expect(digSites(raw as never, new Set([5])).map((d) => [d.id, d.excavating])).toEqual([
+			[1, true],
+			[2, false],
+			[3, false]
+		]);
 	});
 });

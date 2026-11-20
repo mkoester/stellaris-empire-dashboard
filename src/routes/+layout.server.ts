@@ -33,11 +33,14 @@ import {
 } from '#lib/server/settings.ts';
 import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
+import { updateAvailable } from '#lib/server/updates.ts';
+import type { Release } from '#lib/updates.ts';
 import { shownNode } from '#lib/server/branch.ts';
 import { settleTab } from '#lib/server/settle.ts';
 import { slaveTab } from '#lib/server/slaveTab.ts';
 import { emptyTabsAt } from '#lib/server/tabData.ts';
 import { galaxyRings } from '#lib/server/quadrants.ts';
+import type { MapFit, MapWidth } from '#lib/mapView.ts';
 import type { QuadrantView } from '#lib/quadrants.ts';
 import type { ChartEvents, CustomTab } from '#lib/settings.ts';
 
@@ -55,12 +58,19 @@ export function load({ url }) {
 			gone: [],
 			tradeoffs: false,
 			slaveMarket: false,
+			mapDefaults: { fit: 'explored' as MapFit, width: 'normal' as MapWidth },
 			loaded: null,
 			feed: null,
 			head: null,
 			gameVersion: null,
+			update: null as Release | null,
 			dates: null,
-			plan: { keys: [] as string[], alerts: 0, unavailable: [] as string[] },
+			plan: {
+				keys: [] as string[],
+				ids: {} as Record<string, string>,
+				alerts: 0,
+				unavailable: [] as string[]
+			},
 			settle: { nomad: false, blocked: null as string | null },
 			empty: {} as Record<string, string>,
 			quadrants: null as { view: QuadrantView; inner: number; outer: number } | null
@@ -95,6 +105,8 @@ export function load({ url }) {
 		tradeoffs: display().tradeoffs,
 		// the slave market tab: where slavery is allowed, else as ⚙ says
 		slaveMarket: slaveTab(shown, display().slaveMarket),
+		// every map's start: what it fits, and its width until this browser's buttons pick one
+		mapDefaults: { fit: display().mapFit, width: display().mapWidth },
 		loaded: loadedNode ? { node: loadedNode.id, date: loadedNode.date } : null,
 		// the companion mod writes a log format this build skips: which side to update
 		feed: (() => {
@@ -105,7 +117,7 @@ export function load({ url }) {
 		head,
 		// the planner's goals at the node shown (for "+ goal" buttons) and how many need attention
 		plan: planSummary(shown),
-		// a nomad's expansion tab is "settle", dimmed (naming what is missing) until it can
+		// a nomad's expansion tab is "roaming": waylines, and settling down (what it still needs)
 		settle: settleTab(shown),
 		// tabs with nothing to show yet along the branch: dimmed, their title saying why
 		empty: emptyTabsAt(shown),
@@ -116,6 +128,8 @@ export function load({ url }) {
 		})(),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
+		// a newer release on GitHub (`server/updates.ts`; release builds only)
+		update: updateAvailable(),
 		// the viewed campaign's own game data (its mods) still being extracted: pages show older data
 		extracting: (() => {
 			const d = campaignDataState();

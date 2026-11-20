@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	researchRate,
 	researchTicks,
+	techCost,
 	techCostFactor,
 	deficits,
 	difficultyLabel,
@@ -38,6 +39,9 @@ const data: GameData = {
 	situationTypes: {},
 	projects: {},
 	anomalyCategories: {},
+	outcomeTrees: { anomaly: {}, project: {}, dig_site: {} },
+	outcomeFlags: { anomaly: {}, project: {}, dig_site: {} },
+	digSiteTypes: {},
 	actionTimers: {},
 	councilPositions: {},
 	depositCategories: {},
@@ -77,6 +81,8 @@ const data: GameData = {
 	blockerInfo: {},
 	traditionTrees: {},
 	perks: {},
+	traditionSwaps: {},
+	edictFund: {},
 	precursors: {},
 	setupScenarios: {},
 	contractTypes: {},
@@ -98,6 +104,7 @@ const data: GameData = {
 	districtJobs: {},
 	buildingJobs: {},
 	buildDays: {},
+	megastructures: {},
 	depositCategory: {},
 	buildingCategory: {},
 	shipParts: { sizes: {}, sections: {}, components: {} },
@@ -822,5 +829,23 @@ describe('leader level-ups', () => {
 		expect(
 			leaderLevelUps(at('2204.12.01', cosha(538, 9, 1)), [at('2204.11.01', cosha(500, 9, 1))])
 		).toEqual([]);
+	});
+});
+
+describe('techCost', () => {
+	const data = {
+		techs: { tech_x: { name: 'X', cost: 1000, area: 'physics', tier: 1 } },
+		defines: { EMPIRE_SIZE_BASE: 100, EMPIRE_SIZE_TECH_COST_PENALTY: 0.001 }
+	} as unknown as Parameters<typeof techCost>[2];
+	const progress = { costSettings: { technology: 1, traditions: 1 } } as Snapshot['progress'];
+	it('base × slider × size penalty × difficulty per tier, rounded down', () => {
+		// size 150: +5 %; settings unknown: +5 % per tier
+		expect(techCost('tech_x', { progress, empireSize: 150 }, data)).toBe(
+			Math.floor(1000 * 1.05 * 1.05)
+		);
+	});
+	it('null without a base cost or progress', () => {
+		expect(techCost('tech_y', { progress, empireSize: 100 }, data)).toBe(null);
+		expect(techCost('tech_x', { progress: null, empireSize: 100 }, data)).toBe(null);
 	});
 });

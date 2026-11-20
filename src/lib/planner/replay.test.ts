@@ -65,6 +65,19 @@ describe('planAt', () => {
 		expect(p.history.map((e) => e.op)).toEqual(['add', 'edit', 'park', 'check', 'unpark']);
 	});
 
+	it('keeps a tech for later, and an unknown polarity as want', () => {
+		const plan = planAt(
+			[
+				add(1, 'a', 'tech_a', { polarity: 'later' }),
+				add(1, 'b', 'tech_b', { polarity: 'sometime' }),
+				ev(1, 'b', 'edit', { polarity: 'later' }),
+				ev(1, 'a', 'edit', { polarity: 'never' })
+			],
+			[1]
+		);
+		expect([...plan.goals.values()].map((g) => g.polarity)).toEqual(['later', 'later']);
+	});
+
 	it('ignores changes to goals not on the branch, and a second add of one id', () => {
 		const p = planAt(
 			[ev(1, 'x', 'edit', { note: 'n' }), add(1, 'a', 't1'), add(1, 'a', 't2')],

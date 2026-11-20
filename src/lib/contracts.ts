@@ -10,7 +10,9 @@
 // - settled: the contracts we issued. Spoiler: others' contracts in systems up to the picked range
 //   beyond our border. Cheat: everything. What the game itself shows a settled empire of other
 //   empires' contracts is not known yet (docs/open-checks.md).
-import type { Contract, ContractType } from './types.ts';
+import { distances, type Graph } from './galaxyGraph.ts';
+import type { Arkship, Contract, ContractProject, ContractType, Resources } from './types.ts';
+import { valueOf } from './value.ts';
 
 export type ContractWhy = 'mine' | 'offered' | 'spoiler' | 'cheat';
 export type ContractKind = 'military' | 'science' | 'resource' | 'diplomacy' | 'other';
@@ -177,4 +179,200 @@ export function contractMarks(
 			...s.rows.map((r) => `${r.name}: ${contractLine(r)}`)
 		].join('\n')
 	}));
+}
+
+// ── Who is aboard which arkship ───────────────────────────────────────────────────────────────
+
+/**
+ * Contracts that put passengers on one of our arkships, marked by a fleet flag on its fleet (4.5.x
+ * `events/nomads_events_1.txt`): Diplomatic Support's pickup (nomads.3036, on entering the pickup
+ * system — at random among our arkships there), Prisoner Disposal (nomads.3050), the Sightseeing
+ * Tour (nomads.3060). The game's own panels never say which arkship it is. The flag names no
+ * contract, but a nomad can hold only one of each at a time (`possible_operator`:
+ * `already_doing_same_contract`, `common/missions/missions/02_contracts.txt`), so the contract's
+ * key is enough. Re-check on game updates.
+ */
+export const CONTRACT_CARGO: Record<string, { flag: string; who: string }> = {
+	contract_diplomatic_support: { flag: 'carrying_delegates', who: 'the delegates' },
+	contract_prisoner_disposal: { flag: 'transporting_prisoners', who: 'the prisoners' },
+	contract_sightseeing_tour: { flag: 'sightseeing_tour_arkship', who: 'the tourists' }
+};
+export const CARGO_FLAGS = new Set(Object.values(CONTRACT_CARGO).map((c) => c.flag));
+
+export type Aboard = { name: string; who: string; since: string | null };
+
+/** The arkship that carries this contract's passengers: only for an active contract of ours. */
+export function aboardOf(r: ContractRow, arkships: Arkship[]): Aboard | null {
+	const cargo = CONTRACT_CARGO[r.key];
+	if (!cargo || r.why !== 'mine' || r.state !== 'active') return null;
+	for (const a of arkships) {
+		const hit = a.cargo.find((c) => c.flag === cargo.flag);
+		if (hit) return { name: a.name, who: cargo.who, since: hit.since };
+	}
+	return null;
+}
+
+// ── What a contract asks of us and pays (data DB `contract` + `special_project`) ──────────────
+
+export type ArkshipKind = 'science' | 'military' | 'civilian';
+
+/**
+ * What the issuer's colony gets for 10 years from Colony Startup, by the type of arkship that did
+ * the project (4.5.x `nomad_contract_colony_support_*`: their colonist jobs' extra output, from
+ * `inline_scripts/output/colony_support_contract_*`; all three also +50 % building speed, −25 %
+ * building cost, +10 % pop growth and assembly). Our reward is the same either way. Re-check on
+ * game updates: the only project that branches on the arkship (`special_project.arkship_branches`).
+ */
+export const COLONY_SUPPORT: Record<ArkshipKind, string> = {
+	science: '+1 physics, engineering and society research per colonist job',
+	military: '+1 alloys per colonist job',
+	civilian: '+1 consumer goods per colonist job and +100 amenities (a gestalt: the amenities only)'
+};
+
+/** The line for a project that branches on the arkship type, naming what ours would give. */
+export function branchLine(arkships: ArkshipFit[]): string {
+	const ours = arkships[0];
+	return `The issuer's colony gets a bonus by the type of arkship that does it — your reward is the same.${
+		ours ? ` ${ours.name} (${ours.kind}): ${COLONY_SUPPORT[ours.kind]}.` : ''
+	}`;
+}
+
+/** An arkship's type from its size (`military_arkship_tier_1`, `military_arkship_champions_forge`). */
+export function arkshipKind(size: string): ArkshipKind {
+	return size.startsWith('science_')
+		? 'science'
+		: size.startsWith('military_')
+			? 'military'
+			: 'civilian';
+}
+
+const NEEDS: Record<string, string> = {
+	carries_colony: 'an arkship',
+	shipclass_science_ship: 'a science ship',
+	shipclass_military: 'a military fleet',
+	shipclass_constructor: 'a construction ship'
+};
+
+/** A project's requirements in words: {carries_colony: 1} → ["an arkship"]. */
+export function needsOf(requirements: Record<string, unknown>): string[] {
+	return Object.entries(requirements).map(([k, v]) =>
+		k === 'leader' ? `a ${String(v)}` : (NEEDS[k] ?? `${k} ${JSON.stringify(v)}`)
+	);
+}
+
+/**
+ * The reward's scaling, the game's `contract_bonus_value`: +10 % per contract completed, 1 to
+ * 50. Its other factor, `nomadic_contract_value_mult` (traditions, authority, leader traits), is
+ * not read: the result is a lower bound, shown with ≈.
+ */
+export const contractBonus = (completed: number | null) =>
+	Math.min(50, Math.max(1, 1 + (completed ?? 0) / 10));
+
+export type RewardLine = { resource: string; amount: number; scaled: boolean };
+
+export type ArkshipFit = {
+	name: string;
+	kind: ArkshipKind;
+	capital: boolean;
+	jumps: number | null; // along known lanes; null: no known route, or not placed
+};
+
+export type ContractDetail = {
+	detailed: boolean; // false: the data DB predates the details
+	description: string | null; // {issuer} and {system} filled in
+	steps: number | null;
+	projects: (ContractProject & { needs: string[] })[];
+	reward: RewardLine[]; // the full success's, scaled ones × bonus
+	partial: RewardLine[]; // a smaller reward for a partial success (military contracts), else []
+	trade: number | null; // the reward's worth in trade
+	bonus: number; // the scaling applied
+	trust: number | null;
+	opinion: number | null;
+	failedOpinion: number | null;
+	timeToComplete: number | null;
+	missingTechs: string[];
+	needsArkship: boolean; // a project needs one, or the contract has none (travel by arkship)
+	arkshipBranches: boolean; // the outcome differs by arkship type
+	arkships: ArkshipFit[]; // ours, nearest first
+	aboard: Aboard | null; // the arkship carrying this contract's passengers
+};
+
+export type DetailContext = {
+	completed: number | null; // Snapshot.contractsCompleted
+	researched: Set<string>;
+	arkships: Arkship[];
+	lanes: Graph; // the known lanes, as the tab counts jumps
+	values: Resources; // valuesOf(): one unit in trade
+	systemName: string | null;
+	techName: (key: string) => string;
+};
+
+const scaledLines = (
+	s: { trade: number | null; resource: string | null; amount: number | null } | undefined,
+	bonus: number
+): RewardLine[] =>
+	s
+		? [
+				...(s.trade ? [{ resource: 'trade', amount: s.trade * bonus, scaled: true }] : []),
+				...(s.resource && s.amount
+					? [{ resource: s.resource, amount: s.amount * bonus, scaled: true }]
+					: [])
+			]
+		: [];
+
+/** What a contract asks of us, what it pays, and how far each arkship of ours is from it. Pure. */
+export function contractDetail(
+	r: ContractRow,
+	type: ContractType | undefined,
+	ctx: DetailContext
+): ContractDetail {
+	const bonus = contractBonus(ctx.completed);
+	const rw = type?.reward ?? null;
+	const fixed = Object.entries(rw?.fixed ?? {}).map(([resource, amount]) => ({
+		resource,
+		amount,
+		scaled: false
+	}));
+	const reward = [
+		...scaledLines(rw?.scaled[0], bonus),
+		...(rw?.cruise ? [{ resource: 'trade', amount: rw.cruise, scaled: true }] : []),
+		...fixed
+	];
+	const partial = rw && rw.scaled.length > 1 ? [...scaledLines(rw.scaled[1], bonus), ...fixed] : [];
+	const projects = (type?.projects ?? []).map((p) => ({ ...p, needs: needsOf(p.requirements) }));
+	const needsArkship =
+		!projects.length || projects.some((p) => p.requirements.carries_colony !== undefined);
+	const from = (a: Arkship) =>
+		a.systemId === null || r.systemId === null
+			? null
+			: (distances(ctx.lanes, [a.systemId]).jumps.get(r.systemId) ?? null);
+	const arkships = ctx.arkships
+		.map((a) => ({ name: a.name, kind: arkshipKind(a.size), capital: a.capital, jumps: from(a) }))
+		.sort((a, b) => (a.jumps ?? Infinity) - (b.jumps ?? Infinity) || a.name.localeCompare(b.name));
+	return {
+		detailed: type?.detailed ?? false,
+		description:
+			type?.description
+				?.replaceAll('{issuer}', r.issuerName)
+				.replaceAll('{system}', ctx.systemName ?? 'the system') ?? null,
+		steps: type?.steps ?? null,
+		projects,
+		reward,
+		partial,
+		trade: reward.length
+			? reward.reduce((sum, l) => sum + valueOf({ [l.resource]: l.amount }, ctx.values), 0)
+			: null,
+		bonus,
+		trust: rw?.trust ?? null,
+		opinion: rw?.opinion ?? null,
+		failedOpinion: type?.failedOpinion ?? null,
+		timeToComplete: type?.timeToComplete ?? null,
+		missingTechs: (type?.operatorTechs ?? [])
+			.filter((t) => !ctx.researched.has(t))
+			.map(ctx.techName),
+		needsArkship,
+		arkshipBranches: projects.some((p) => p.arkshipBranches),
+		arkships,
+		aboard: aboardOf(r, ctx.arkships)
+	};
 }

@@ -20,8 +20,14 @@ export const LAYOUT = [
 		cols: 'flex flex-col gap-2',
 		panels: [
 			{ id: 'header', label: 'Header: rank, date, progress', wide: true },
-			{ id: 'resources', label: 'Resources', wide: true },
-			{ id: 'upcoming', label: 'Upcoming', wide: true }
+			{ id: 'resources', label: 'Resources', wide: true }
+		]
+	},
+	{
+		cols: 'grid items-start gap-4 lg:grid-cols-2',
+		panels: [
+			{ id: 'upcoming', label: 'Upcoming', wide: true },
+			{ id: 'recommendations', label: 'Recommendations', wide: true }
 		]
 	},
 	{
@@ -81,7 +87,7 @@ type Panel = (typeof LAYOUT)[number]['panels'][number] & { wide?: true };
 export type PanelId = Panel['id'];
 export const PANELS: Panel[] = LAYOUT.flatMap((g): Panel[] => [...g.panels]);
 /** What a custom tab picks from; the header is its own switch, always on top. */
-export const PICKABLE = PANELS.filter((p) => p.id !== 'header');
+export const PICKABLE = PANELS.filter((p) => p.id !== 'header' && p.id !== 'recommendations');
 const panelIds = new Set<string>(PICKABLE.map((p) => p.id));
 export const panelInfo = (id: PanelId) => PANELS.find((p) => p.id === id)!;
 
@@ -136,7 +142,9 @@ function api(path: string): string {
  * Stores changed settings on the server (`/api/settings`). `chartEvents` entries are merged into
  * the stored map, so charts saving at once do not undo each other.
  */
-export async function putSettings(patch: Partial<ProfileSettings> & { theme?: Theme }) {
+export async function putSettings(
+	patch: Partial<ProfileSettings> & { theme?: Theme; updateHours?: number }
+) {
 	const r = await fetch(api('/api/settings'), {
 		method: 'PUT',
 		headers: { 'content-type': 'application/json' },

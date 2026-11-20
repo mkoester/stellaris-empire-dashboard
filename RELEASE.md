@@ -13,7 +13,9 @@ version's `CHANGELOG.md` section.
    tag's `scripts/release-check` and fails on a stale dump or one from a game beta (prereleases
    skip it); tags before v0.1.6 have no such script, so pin a newer one.
 2. On `develop`, everything committed: in `CHANGELOG.md`, turn `Unreleased` into
-   `## [X.Y.Z] - <date>` (own commit) — the release notes come from that section.
+   `## [X.Y.Z] - <date>` (own commit) — the release notes come from that section. Feature
+   commits do not always add to it: write what is missing from `git log vX.Y.Z-1..develop`
+   (0.1.26 had no `Unreleased` at all, 2026-11-17).
 3. `git checkout main && git merge --ff-only origin/main && git merge --no-ff develop -m "Release
 vX.Y.Z (merge develop)"`, then `git tag vX.Y.Z`. The local `main` lags `origin/main` after a
    release tagged in a clone (step 4): on 2026-11-15 it still sat at v0.1.15, 7 commits behind.
@@ -25,7 +27,10 @@ vX.Y.Z (merge develop)"`, then `git tag vX.Y.Z`. The local `main` lags `origin/m
    write `<temp>/stellaris-empire-dashboard/config.json` = `{"gameDir": …, "userDir": …}` first and
    start with `BROWSER=true`; the launcher prints its URL (checked 2026-10-31 for v0.1.4). Stopping
    it while it extracts a campaign's data in the background logs "extraction with mods failed …
-   (exit null)": the killed extractor, not a fault (v0.1.15, 2026-11-12).
+   (exit null)": the killed extractor, not a fault (v0.1.15, 2026-11-12). In Claude Code's sandbox
+   the Node download needs `NODE_USE_ENV_PROXY=1` and `nodejs.org` allowed (the vault's
+   `claude-sandbox` skill), and pnpm's "Could not lock the dependency install" before the build is
+   harmless in a clone (v0.1.18, 2026-11-15).
    **Before tagging for real** (v0.1.8, 2026-11-01): clone both repos into `$TMPDIR`, commit the
    pending changelog/pin there and make the tags in the clones only — a clone of the local
    checkout has no `main` (the checkout knows it only as `origin/main`): `git fetch <checkout>

@@ -78,3 +78,14 @@ sdash_random_digit = {
 		10 = { change_variable = { which = $VAR$ value = 9 } }
 	}
 }
+
+# 0.13.0: the research options (sdash.6) the next day, once a day at most — the month's start and
+# a tech researched that day, or two of them, log one list (the flag ends before sdash.6 is due
+# again the day after).
+sdash_queue_tech_options = {
+	if = {
+		limit = { NOT = { has_country_flag = sdash_tech_options_queued } }
+		set_timed_country_flag = { flag = sdash_tech_options_queued days = 1 }
+		country_event = { id = sdash.6 days = 1 }
+	}
+}

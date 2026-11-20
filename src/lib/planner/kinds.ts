@@ -1,6 +1,7 @@
+import { contactStage } from '#lib/format.ts';
 import { colonyActiveBuildings } from '#lib/buildings.ts';
-import { MEGA_RULES } from '#lib/megastructures.ts';
-import { counted, wanderlustName } from '#lib/wanderlust.ts';
+import { MEGA_RULES, stagePrefix } from '#lib/megastructures.ts';
+import { counted, countsFor, outlook, wanderlustName } from '#lib/wanderlust.ts';
 import type { GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
 import type { AutoGoal, Target } from './replay.ts';
 import type { Trigger } from '#lib/triggers.ts';
@@ -19,7 +20,7 @@ export const GROUPS = [
 	{ id: 'research', name: 'Research' },
 	{ id: 'traditions', name: 'Traditions & perks' },
 	{ id: 'focus', name: 'Focus' },
-	{ id: 'situations', name: 'Situations & contacts' },
+	{ id: 'situations', name: 'Frontier & situations' },
 	{ id: 'government', name: 'Government & ethics' },
 	{ id: 'other', name: 'Other' }
 ] as const;
@@ -170,10 +171,13 @@ export const KINDS: Record<string, Kind> = {
 		check: (t, c) => {
 			const w = c.latest.wanderlust;
 			if (!w) return { state: 'unknown', why: 'no Wanderlust perk' };
-			const cat = w.categories.find((x) => x.key === s(t, 'category'));
+			const cat = outlook(w, c.galaxy ?? []).find((x) => x.key === s(t, 'category'));
 			if (w.complete || cat?.done) return { state: 'done' };
 			if (!cat) return { state: 'unknown' };
-			return { state: cat.seen > 0 ? 'progress' : 'open', why: `${cat.seen} of ${cat.count}` };
+			return {
+				state: cat.seen > 0 ? 'progress' : 'open',
+				why: `${cat.seen} of ${cat.count}, ${cat.open} found to visit${cat.finishable ? ': enough to finish' : ''}`
+			};
 		}
 	},
 	wanderlust_visit: {
@@ -185,7 +189,9 @@ export const KINDS: Record<string, Kind> = {
 		check: (t, c) => {
 			if (!c.latest.wanderlust) return { state: 'unknown', why: 'no Wanderlust perk' };
 			const at = counted(c.latest.wanderlust, n(t, 'system'));
-			return at ? { state: 'done', why: `counted ${at}` } : { state: 'open' };
+			if (at) return { state: 'done', why: `counted ${at}` };
+			const key = countsFor(sys(c, n(t, 'system'))?.wanderlust ?? []);
+			return { state: 'open', why: key ? wanderlustName(key) : undefined };
 		}
 	},
 	outpost: {
@@ -350,7 +356,7 @@ export const KINDS: Record<string, Kind> = {
 		check: (t, c) => {
 			const x = sys(c, n(t, 'system'));
 			if (!x) return { state: 'unknown' };
-			const there = x.megastructures.filter((m) => m.startsWith(s(t, 'structure')));
+			const there = x.megastructures.filter((m) => m.startsWith(stagePrefix(s(t, 'structure'))));
 			if (there.some((m) => !m.endsWith('_ruined')) && x.owned)
 				return {
 					state: there.some((m) => /_(0|1)$/.test(m)) ? 'progress' : 'done',
@@ -540,7 +546,11 @@ export const KINDS: Record<string, Kind> = {
 			}
 			if (f.status === 'finished') return { state: 'done' };
 			if (f.status === 'aborted') return { state: 'blocked', why: 'aborted' };
-			return { state: f.leaderId !== null ? 'progress' : 'open', why: `stage ${f.stage}` };
+			const stage = contactStage(f.stage);
+			return {
+				state: f.leaderId !== null ? 'progress' : 'open',
+				why: stage === null ? 'in progress' : `stage ${stage}`
+			};
 		}
 	},
 	identity: {
@@ -621,6 +631,48 @@ export function traditionName(key: string, data: Pick<GameData, 'traditionTrees'
 	return pretty(key);
 }
 
+/** Whether a planned item belongs to an explicitly declared ascension path. */
+export function ascensionOf(
+	kind: string,
+	target: Target,
+	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'pathPerks'>>
+): boolean {
+	if (kind === 'perk') return data.pathPerks?.includes(String(target.perk)) ?? false;
+	if (kind === 'tradition')
+		return Object.values(data.traditionTrees).some(
+			(tree) => tree.ascension && tree.traditions.some((t) => t.key === target.tradition)
+		);
+	return false;
+}
+
+/** Keep one same-name perk, preferring the variant whose potential is known to apply. */
+export function uniquePerks(
+	keys: string[],
+	names: Record<string, string>,
+	potential: (key: string) => boolean | null
+): string[] {
+	const chosen = new Map<string, { key: string; rank: number; index: number }>();
+	keys.forEach((key, index) => {
+		const name = names[key] ?? key;
+		const state = potential(key);
+		const rank = state === true ? 2 : state === null ? 1 : 0;
+		const old = chosen.get(name);
+		if (!old) chosen.set(name, { key, rank, index });
+		else if (rank > old.rank) chosen.set(name, { key, rank, index: old.index });
+	});
+	return [...chosen.values()].sort((a, b) => a.index - b.index).map((x) => x.key);
+}
+
+/** Traditions and perks are complete lists; other suggestion kinds stay capped. */
+export function suggestionLimit(kind: string, limit = 12): number {
+	return kind === 'tradition' || kind === 'perk' ? Infinity : limit;
+}
+
+/** Potentially impossible perks stay plan-able by hand, but do not appear as suggestions. */
+export function suggestionVisible(kind: string, state: State): boolean {
+	return kind !== 'perk' || state !== 'blocked';
+}
+
 export const groupOf = (kind: string): Group => KINDS[kind]?.group ?? 'other';
 
 /** A goal's status for its polarity: an avoided goal that came true "happened". */
@@ -667,7 +719,7 @@ export const sourceOf = (kind: string, field: string) => SOURCE[`${kind}.${field
  * docs/tabs-economy.md "Trade tab"). It claims no systems and settles no planets (the game's
  * `nomadic_gameplay_desc`): no outposts or colonies — waystations and arkships instead.
  */
-export const nomadic = (s: Snapshot) =>
+export const nomadic = (s: Pick<Snapshot, 'situations'>) =>
 	(s.situations ?? []).some((x) => x.type === 'situation_nomad_economy');
 
 /** Kinds that cannot apply to this empire at all, left out of the add form and the suggestions. */
@@ -695,8 +747,11 @@ export const arkships = (s: Snapshot, type: string) =>
  */
 export function autoGoals(
 	s: Snapshot,
-	data: Pick<GameData, 'traditionTrees'> & Partial<Pick<GameData, 'traditionPrereqs'>>,
-	wanted: string[] = []
+	data: Pick<GameData, 'traditionTrees'> &
+		Partial<Pick<GameData, 'traditionPrereqs' | 'perkTrees'>>,
+	wanted: string[] = [],
+	wantedPerks: string[] = [],
+	treeAvailable: (key: string) => boolean = () => true
 ): AutoGoal[] {
 	const picked = s.traditions ?? [];
 	const taken = new Set(picked);
@@ -713,6 +768,25 @@ export function autoGoals(
 	// taken ones first, in the order picked
 	for (const k of picked) add(k);
 	const want = new Set(wanted);
+	const perkAdoptions = new Set<string>();
+	const openedByPerks = [...(s.ascensionPerks ?? []), ...wantedPerks].flatMap(
+		(perk) => data.perkTrees?.[perk] ?? []
+	);
+	const openedTrees = new Map<string, string>();
+	for (const key of openedByPerks) {
+		const tree = data.traditionTrees[key];
+		if (!tree?.traditions.some((x) => x.role === 'adopt')) continue;
+		const sameName = openedTrees.get(tree.name);
+		if (!sameName || (treeAvailable(key) && !treeAvailable(sameName)))
+			openedTrees.set(tree.name, key);
+	}
+	for (const key of openedTrees.values()) {
+		const adopt = data.traditionTrees[key].traditions.find((x) => x.role === 'adopt')?.key;
+		if (adopt) {
+			want.add(adopt);
+			perkAdoptions.add(adopt);
+		}
+	}
 	const prereqs = data.traditionPrereqs ?? {};
 	const needs = (k: string): string[] => [...(prereqs[k] ?? []).flatMap((p) => [...needs(p), p])];
 	for (const t of Object.values(data.traditionTrees)) {
@@ -728,7 +802,7 @@ export function autoGoals(
 			}
 	}
 	return [
-		...keys.filter((k) => !want.has(k) || taken.has(k)).map(goal),
+		...keys.filter((k) => !want.has(k) || taken.has(k) || perkAdoptions.has(k)).map(goal),
 		...(s.ascensionPerks ?? []).map((k) => ({
 			id: `auto-ap-${k}`,
 			kind: 'perk',

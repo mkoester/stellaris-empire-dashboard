@@ -41,7 +41,9 @@ dashboard_feed/thumbnail.png`) stay out of the upload.
 
 First uploaded 2026-10-24 (0.5.0). `remote_file_id` (Steam) is in `descriptor.mod`; the Paradox
 id only in the launcher's DB (`mods.remotePdxId`). **A first Workshop upload is Hidden**: set the
-visibility to Public on the item's page (Owner Controls) — the launcher does not.
+visibility to Public on the item's page (Owner Controls) — the launcher does not. **The first upload
+from another machine made a new item** (2026-11-17: `3841118861`, deleted; why is unknown): after
+uploading from a machine for the first time, check `remote_file_id` is still `3826360023`.
 
 **0.10.1, 2026-11-01 08:40 UTC, from `develop`** — an exception to "upload from `main`" (the user's
 call: `develop` differed from `main` only in the mod and docs, not worth a dashboard release);
@@ -67,7 +69,8 @@ The companion mod for the [url=https://github.com/mkoester/stellaris-empire-dash
 [*][b]Daily stockpiles[/b] — not just at each autosave.
 [*][b]Exact reload branches[/b] — which save you loaded, so going back in time starts the right branch instead of a guess.
 [*][b]Events as they happen[/b] — colonies, wars, battles, leader deaths, new rulers, spending.
-[*][b]Values the game does not save[/b] — your storage and other empires', and Galactic Community voting weight; without the mod the dashboard estimates them (marked ≈).
+[*][b]Values the game does not save[/b] — your storage and other empires', Galactic Community voting weight and your Edict Fund; without the mod the dashboard estimates them (marked ≈).
+[*][b]Research options every month[/b] — the cards on offer on the 2nd, so the dashboard points out a planned tech even when your autosaves are yearly.
 [/list]
 The dashboard works fully without the mod; this makes it exact and live.
 
@@ -103,7 +106,8 @@ What it adds to the dashboard
 • Daily stockpiles — not just at each autosave.
 • Exact reload branches — which save you loaded, so going back in time starts the right branch instead of a guess.
 • Events as they happen — colonies, wars, battles, leader deaths, new rulers, spending.
-• Values the game does not save — your storage and other empires', and Galactic Community voting weight; without the mod the dashboard estimates them (marked ≈).
+• Values the game does not save — your storage and other empires', Galactic Community voting weight and your Edict Fund; without the mod the dashboard estimates them (marked ≈).
+• Research options every month — the cards on offer on the 2nd, so the dashboard points out a planned tech even when your autosaves are yearly.
 The dashboard works fully without the mod; this makes it exact and live.
 
 How it works

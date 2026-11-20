@@ -268,6 +268,51 @@ export function loadExplanations(file: string): Explanations {
 		const buildingUnlocks = rows<{ owner_key: string; building_key: string }>(
 			'SELECT owner_key, building_key FROM building_unlock'
 		);
+		// starbase modules and buildings (waystation modules among them): what they do at the
+		// station, in the system and — a waystation's — along its whole wayline (scope
+		// `waystation_network_*`, 4.5.4 common/starbase_modules/00_example.txt); a data DB before
+		// extractor 2026-11-09 has none of it
+		if (
+			rows(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'starbase_part_modifier'"
+			).length
+		) {
+			const partMods = new Map<string, { scope: string; m: Modifier }[]>();
+			for (const r of rows<{ key: string; scope: string; modifier_key: string; value: number }>(
+				'SELECT key, scope, modifier_key, value FROM starbase_part_modifier WHERE trigger_json IS NULL ORDER BY key, sort_order'
+			))
+				partMods.set(r.key, [
+					...(partMods.get(r.key) ?? []),
+					{ scope: r.scope, m: modifier(r.modifier_key, r.value) }
+				]);
+			const partRes = rows<{ key: string; kind: string; resource: string; amount: number }>(
+				'SELECT key, kind, resource, amount FROM starbase_module_resource'
+			);
+			for (const p of rows<{ key: string; name: string | null }>(
+				'SELECT key, name FROM starbase_part'
+			)) {
+				const mods = partMods.get(p.key) ?? [];
+				const res = (kind: string) =>
+					partRes
+						.filter((r) => r.key === p.key && r.kind === kind)
+						.map((r) => `${r.amount} ${pretty(r.resource)}`)
+						.join(', ');
+				const wayline = mods.filter((x) => x.scope.startsWith('waystation_network'));
+				out[`module:${p.key}`] = {
+					title: p.name ?? pretty(p.key),
+					description: null,
+					modifiers: mods.filter((x) => !x.scope.startsWith('waystation_network')).map((x) => x.m),
+					text: null,
+					...(wayline.length && {
+						after: { label: 'along the whole wayline', modifiers: wayline.map((x) => x.m) }
+					}),
+					facts: [
+						...(res('cost') ? [`costs ${res('cost')}`] : []),
+						...(res('upkeep') ? [`upkeep ${res('upkeep')} per month`] : [])
+					]
+				};
+			}
+		}
 		for (const b of rows<{ key: string; name: string | null; description: string | null }>(
 			'SELECT key, name, description FROM building'
 		)) {
@@ -388,6 +433,29 @@ export function loadExplanations(file: string): Explanations {
 				text: p.tooltip,
 				facts: []
 			};
+		// their swaps (#lib/swaps.ts), under `<kind>:<swap id>`: the swap's name and text, its
+		// own modifiers or, inheriting, the owner's — never the owner's text (Mastery of
+		// Nature's "Unlocks Decision" is not a nomad's)
+		for (const s of rows<{
+			id: string;
+			owner_key: string;
+			name: string | null;
+			description: string | null;
+			tooltip: string | null;
+			inherit_effects: number;
+		}>('SELECT id, owner_key, name, description, tooltip, inherit_effects FROM tradition_swap')) {
+			const kind = out[`perk:${s.owner_key}`] ? 'perk' : 'tradition';
+			const owner = out[`${kind}:${s.owner_key}`];
+			if (!owner) continue;
+			const inherit = s.inherit_effects === 1;
+			out[`${kind}:${s.id}`] = {
+				title: s.name ?? owner.title,
+				description: s.description ?? owner.description,
+				modifiers: inherit ? owner.modifiers : (ownedMods.get(s.id) ?? []),
+				text: s.tooltip ?? (inherit ? owner.text : null),
+				facts: []
+			};
+		}
 
 		const jobMods = grouped(
 			'SELECT job_key AS owner, modifier AS key, value FROM job_modifier ORDER BY sort_order'

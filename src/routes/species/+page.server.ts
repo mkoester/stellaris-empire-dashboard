@@ -5,6 +5,7 @@ import { pick } from '#lib/server/explain.ts';
 import { traitBudget } from '#lib/species.ts';
 import { facts } from '#lib/government.ts';
 import { rightRows } from '#lib/rights.ts';
+import { livingStandardWhatIfs } from '#lib/server/whatIfs.ts';
 
 // The species with pops in the empire: class, traits, pops, trait budget.
 export function load({ url }) {
@@ -21,15 +22,23 @@ export function load({ url }) {
 	const f = last ? facts(last, data.scriptedTriggers, { shipKinds: data.shipKinds }) : null;
 	return {
 		...rest,
-		species: species.map((s) => ({
-			...s,
-			className: data.speciesClasses[s.cls]?.name ?? s.cls,
-			budget: traitBudget(s, data),
-			rights:
+		species: species.map((s) => {
+			const rights =
 				f && last?.speciesRights?.[s.id]
 					? rightRows(data.speciesRights, last.speciesRights[s.id], { ...f, traits: s.traits })
-					: []
-		})),
+					: [];
+			const living = rights.find((r) => r.kind === 'living_standard');
+			return {
+				...s,
+				className: data.speciesClasses[s.cls]?.name ?? s.cls,
+				budget: traitBudget(s, data),
+				rights,
+				// ≈ what switching its Living Standards would do now (a spoiler switch in ⚙)
+				whatIfs: living
+					? livingStandardWhatIfs(b, String(s.id), living.selected, living.options)
+					: {}
+			};
+		}),
 		explain: pick(getExplanations(), [
 			...species.flatMap((s) => s.traits.map((t) => `trait:${t}`)),
 			...data.speciesRights.flatMap((k) => k.options.map((o) => `right:${o.key}`))

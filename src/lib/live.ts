@@ -1,6 +1,66 @@
 import { onMount } from 'svelte';
 import { invalidateAll } from '$app/navigation';
+import type { LiveEvent } from './eventsWorker.ts';
 import type { Tick } from './types.ts';
+
+type Handler = (data: string) => void;
+type Connect = (dispatch: (e: LiveEvent) => void) => () => void;
+
+/**
+ * The tab's subscriptions to the server events, over one connection that opens with the first
+ * and closes with the last. `on` returns the unsubscribe.
+ */
+export function createHub(connect: Connect) {
+	const handlers = new Map<LiveEvent['type'], Set<Handler>>();
+	let close: (() => void) | null = null;
+	const dispatch = (e: LiveEvent) => {
+		for (const h of handlers.get(e.type) ?? []) h(e.data);
+	};
+	return (type: LiveEvent['type'], h: Handler) => {
+		const set = handlers.get(type) ?? new Set();
+		handlers.set(type, set.add(h));
+		close ??= connect(dispatch);
+		return () => {
+			set.delete(h);
+			if ([...handlers.values()].every((s) => s.size === 0)) {
+				close?.();
+				close = null;
+			}
+		};
+	};
+}
+
+// One stream for the whole browser (`eventsWorker.ts`); where SharedWorker is missing (Chrome on
+// Android), one per tab. Never `new EventSource('/api/events')` in a page: two tabs of three
+// streams each once held all 6 connections a browser gives a host.
+const browserConnect: Connect = (dispatch) => {
+	if (typeof SharedWorker === 'undefined') {
+		const events = new EventSource('/api/events');
+		events.onmessage = (e) => dispatch({ type: 'message', data: e.data });
+		for (const type of ['tick', 'loaded'] as const)
+			events.addEventListener(type, (e) => dispatch({ type, data: e.data }));
+		return () => events.close();
+	}
+	const worker = new SharedWorker(new URL('./eventsWorker.ts', import.meta.url), {
+		type: 'module',
+		name: 'dashboard-events'
+	});
+	const port = worker.port;
+	port.onmessage = (e: MessageEvent<LiveEvent>) => dispatch(e.data);
+	port.start();
+	// a tab going away for good stops getting events (one kept for back/forward still listens)
+	const bye = (e: PageTransitionEvent) => {
+		if (!e.persisted) port.postMessage('close');
+	};
+	addEventListener('pagehide', bye);
+	return () => {
+		removeEventListener('pagehide', bye);
+		port.postMessage('close');
+		port.close();
+	};
+};
+
+const on = createHub(browserConnect);
 
 /**
  * Reload the page whenever the server ingests a save — but only while `follow()` holds and the
@@ -8,23 +68,17 @@ import type { Tick } from './types.ts';
  * it has read stored saves again (`refreshed`), which may be the ones shown.
  */
 export function followGame(follow: () => boolean) {
-	onMount(() => {
-		const events = new EventSource('/api/events');
-		events.onmessage = (e) => {
+	onMount(() =>
+		on('message', (data) => {
 			const pinned = new URL(location.href).searchParams.has('node');
-			if (e.data === 'refreshed' || (follow() && !pinned)) void invalidateAll();
-		};
-		return () => events.close();
-	});
+			if (data === 'refreshed' || (follow() && !pinned)) void invalidateAll();
+		})
+	);
 }
 
 /** Calls `onTick` with each day's stockpile the companion mod logs (the `tick` server event). */
 export function followTicks(onTick: (t: Tick) => void) {
-	onMount(() => {
-		const events = new EventSource('/api/events');
-		events.addEventListener('tick', (e) => onTick(JSON.parse(e.data)));
-		return () => events.close();
-	});
+	onMount(() => on('tick', (data) => onTick(JSON.parse(data) as Tick)));
 }
 
 /**
@@ -33,12 +87,14 @@ export function followTicks(onTick: (t: Tick) => void) {
  */
 export function followLoads(onLoaded: () => void, onSave: () => void) {
 	onMount(() => {
-		const events = new EventSource('/api/events');
-		events.addEventListener('loaded', onLoaded);
-		events.onmessage = (e) => {
-			if (e.data !== 'refreshed') onSave();
+		const offLoaded = on('loaded', () => onLoaded());
+		const offSave = on('message', (data) => {
+			if (data !== 'refreshed') onSave();
+		});
+		return () => {
+			offLoaded();
+			offSave();
 		};
-		return () => events.close();
 	});
 }
 

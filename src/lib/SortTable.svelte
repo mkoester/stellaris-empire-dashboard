@@ -11,6 +11,7 @@
 	// makes a row click pick its system (again: unpick); a system picked elsewhere marks its row and
 	// scrolls it into view. `rowClass` sets a row apart (a reference row, say), `rowStyle` styles it
 	// (a row in its event's colour). `below` adds a full-width line under each row (details).
+	// `anchor` marks a row (`data-anchor`) for a link elsewhere on the page to scroll to.
 	let {
 		rows,
 		columns,
@@ -21,7 +22,8 @@
 		selected = $bindable(),
 		rowClass,
 		rowStyle,
-		below
+		below,
+		anchor
 	}: {
 		rows: T[];
 		columns: Column<T>[];
@@ -33,6 +35,7 @@
 		rowClass?: (r: T) => string;
 		rowStyle?: (r: T) => string;
 		below?: Snippet<[T]>;
+		anchor?: (r: T) => string;
 	} = $props();
 
 	// an unknown column (`''`) keeps the rows in their given order until a header is clicked
@@ -58,7 +61,7 @@
 	<thead>
 		<tr class="border-b border-gray-300 dark:border-gray-700">
 			{#each columns as c (c.id)}
-				<th class="p-1 {c.right ? 'text-right' : ''}" title={c.title}>
+				<th class="p-1 {c.right ? 'text-right' : ''} {c.faded ? 'opacity-40' : ''}" title={c.title}>
 					<button
 						style:color={c.color}
 						class="cursor-pointer whitespace-nowrap hover:underline {sort.column === c.id
@@ -83,12 +86,13 @@
 						: (rowClass?.(r) ?? '')} {selectable ? 'cursor-pointer' : ''}"
 				style={rowStyle?.(r)}
 				data-system={sys}
+				data-anchor={anchor?.(r)}
 				onpointerenter={link ? () => (hovered = sys) : undefined}
 				onpointerleave={link ? () => (hovered = null) : undefined}
 				onclick={selectable ? () => pick(sys) : undefined}
 			>
 				{#each columns as c (c.id)}
-					<td class="p-1 {c.right ? 'text-right tabular-nums' : ''}">
+					<td class="p-1 {c.right ? 'text-right tabular-nums' : ''} {c.faded ? 'opacity-40' : ''}">
 						{#if c.cell}{@render c.cell(r, c.id)}{:else}{c.value(r) ?? '–'}{/if}
 					</td>
 				{/each}

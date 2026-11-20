@@ -32,9 +32,9 @@ type SettleTab = { nomad: boolean; blocked: string | null };
 let memo: { tip: number; tab: SettleTab } | null = null;
 
 /**
- * For the tab bar, at `tip`: whether the empire is nomadic — its expansion tab is "settle" then —
- * and what keeps it from settling (the tab is dimmed, still usable), null when it can (or might:
- * unknown counts as met). Kept per tip: the layout asks on every page.
+ * For the tab bar, at `tip`: whether the empire is nomadic — its expansion tab is "roaming" then
+ * (waylines and settling down) — and what keeps it from settling (named in the tab's hover), null
+ * when it can (or might: unknown counts as met). Kept per tip: the layout asks on every page.
  */
 export function settleTab(tip: number | null): SettleTab {
 	if (tip === null) return { nomad: false, blocked: null };

@@ -2,10 +2,17 @@
 	import { followGame } from '#lib/live.ts';
 	import Expansion from '#lib/panels/Expansion.svelte';
 	import SettleDown from '#lib/panels/SettleDown.svelte';
+	import Waylines from '#lib/panels/Waylines.svelte';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
 </script>
+
+{#if data.waylines && data.map}
+	<div class="mb-8">
+		<Waylines w={data.waylines} map={data.map} />
+	</div>
+{/if}
 
 {#if data.settle}
 	<div class="mb-8">

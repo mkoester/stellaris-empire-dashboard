@@ -54,6 +54,8 @@
 	);
 	const ids = $derived(new Set(nodes.map((n) => n.id)));
 	const byId = $derived(new Map(nodes.map((n) => [n.id, n])));
+	// every empire the view knows, filtered out or not: for naming (wars)
+	const named = $derived(new Map((d?.nodes ?? []).map((n) => [n.id, n])));
 	const systemById = $derived(new Map(data.systems.map((s) => [s.id, s])));
 	const edges = $derived(
 		(d?.edges ?? []).filter(
@@ -130,7 +132,9 @@
 			.flatMap((k) => (k?.stale ? [k.asOf] : []))
 			.sort()[0] ?? null;
 	const opinionOf = (from: number, to: number) => d?.opinions[`${from}:${to}`] ?? null;
-	const name = (id: number | null) => (id === null ? '–' : (byId.get(id)?.name ?? `empire ${id}`));
+	// an empire not shown: never its id (the user's ask 2026-11-17)
+	const name = (id: number | null) =>
+		id === null ? '–' : (named.get(id)?.name ?? 'unknown empire');
 
 	// --- map
 	const pos = $derived(new Map(data.systems.map((s) => [s.id, s])));
@@ -154,7 +158,7 @@
 			g.value.civics.map((k) => nameOf(data.names, k)).join(', ')
 		].flatMap((text) => (text ? [{ text, stale: g.stale }] : []));
 	};
-	// the legend lists what our intel knows of (every empire with the cheat): an ethic once for
+	// the legend lists what our intel knows of (every empire with the spoiler): an ethic once for
 	// both its variants, every authority; civics and origins only those of empires on the graph
 	const known = $derived((d?.nodes ?? []).filter((n) => !n.us));
 	const onGraph = $derived(nodes.filter((n) => !n.us));
@@ -396,8 +400,8 @@
 	</p>
 {:else}
 	<p class="mb-3 text-sm text-gray-500">
-		{#if data.cheat}<span class="text-red-600"
-				>Cheat on (⚙): every empire and relation, whatever our intel.</span
+		{#if data.all}<span class="text-amber-600"
+				>Spoiler on (⚙): every empire and relation, beyond what our intel shows.</span
 			>
 		{:else}What our intel shows: an empire's government from intel 10, its rivals and federation
 			from 20, its pacts and opinions from 50 — through either side of a pact. Subjects and wars
@@ -842,7 +846,7 @@
 							? 'opacity-30'
 							: ''}
 					>
-						<b>{w.name}</b>
+						{#if w.name}<b>{w.name}</b>{/if}
 						<span class="text-gray-500">since {w.start ?? '?'}</span>:
 						{w.attackers.map(name).join(', ')} against {w.defenders.map(name).join(', ')}
 					</li>

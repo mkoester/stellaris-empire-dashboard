@@ -6,6 +6,12 @@ Where each value sits in a save and how the game computes it. Read before readin
 
 **Contracts** (Planetforgers 2214.02.01, Proton): top-level `missions = { <id> = { mission="<key>" issuer operator location={ type=4 id=<system> } … } }` holds contracts and situation-log missions alike (star journals: `issuer=4294967295`), gaps as `<id>=none`; `contracts = { available = { ids } in_progress = { ids } }` says which are contracts. An offer has `days_left` and `operator=4294967295`, an accepted one `accepted_date` and `status=active`; an internal one (Eternal Chorus, Forever Cruise's) has operator = issuer while still offered. 18 contracts there, from 9 issuers.
 
+**Planet flags** (`planet.flags = { <flag>=<date> … }`, 2210.10.20): every flag the planet carries,
+`set_carrier_flag` ones assumed among them (seen: `colony_event`, `mechanical_species0`; a
+`perfect_organization` never seen). A timed flag's value is a block with `flag_days`
+(`timedFlags()`). Read whole as `Colony.flags` since READER 59, for `has_carrier_flag` /
+`has_planet_flag` in planet decisions.
+
 **For a shape not yet seen in our saves** (wars, trade deals, galactic market): the other parser,
 eliasdoehne/stellaris-dashboard (`stellarisdashboard/parsing/timeline.py`), reads many; a 4.0.1
 save at 2312 lives in chennin/stellaris-dashboard-test-saves (galactic market and GalCom, but
@@ -56,7 +62,12 @@ enable_galactic_market = yes`). GalCom bans: global flags `organic_slave_trade_b
   set with `enable_galactic_market` for Galactic Community members once the market is founded
   (`resolution_galactic_market_form` → `action.99/101/104/115`), removed on leaving it unless the
   country holds the market planet (`galcom.61`). The monthly limit (`monthlyLimit`) is shown on
-  the internal market only.
+  the internal market only. **How a price recovers** (fitted 2026-11-19 on Roaming Cyber Gang's
+  saves, internal market): a monthly order moves the fluctuation on the 1st by 2 × amount ÷
+  `market_amount` % (× 0.3 selling); per day it falls back by 0.018519 + 0.000297 × f above base
+  (≈ 0.00307 below), and under 0.3 (`MARKET_FLUCTUATION_EPSILON`) it snaps to 0 — 4× slower than
+  `MARKET_DAYS_TO_BASE_PRICE` × `INTERNAL_MARKET_DAYS_TO_BASE_PRICE` suggest. It reproduces the
+  42/64 buy/sell limits. `priceRecovery()` in `#lib/market.ts` has the data points.
 - Colonies: since 4.x a top-level `colony=` section, referenced from `planets.planet.<id>.colony`.
   Holds pops, housing, amenities, stability, `final_designation`, districts, buildings.
   `employable_pops` counts all pops able to work, _not_ the employed: employed is
@@ -160,7 +171,16 @@ shipyard_build_queue station }` — **no owner field**; the country's are those 
   (`ship_design.<id>.{name, growth_stages[0].ship_size}`). Capital ships (titan, colossus,
   juggernaut) need a citadel with `capital_yards`, an arkship's `arkship_capital_shipyard`, or a
   finished Mega Shipyard, plus the tech (`*_possible_construction` in
-  `scripted_triggers/07_scripted_triggers_ships.txt`). Mega Shipyards: `megastructures.<id> =
+  `scripted_triggers/07_scripted_triggers_ships.txt`). **Waystations** (`roamingcybergang`
+  2213.08, the AI nomads' 33): starbases `level="starbase_level_waystation_<n>"
+type="swaystation_<kind>"`, `modules` only, `variables.waystation_collection_fill` (0…1, set
+  monthly by `nomads.9035`: the station's stockpile use, or its wayline's with a Logistics Hub) and
+  `flags.stockpile_being_collected_locally_by_logistic_ship` while a logistic ship collects it; the
+  stockpile is the station ship's `ships.<station>.resources`. A system with a waystation lists
+  `4294967295` (no primary starbase) or its owner's starbase first, then the waystation — it is
+  not the system's owner (READER 60). Waylines: top-level `waystation_networks.<i>.waystations = {
+<starbase ids> }` and per country `waystation_networks_manager = { waystation_networks = { <i> }
+connected_countries = { … } }`; every network was waystations one hyperlane apart. Mega Shipyards: `megastructures.<id> =
 { type owner }` — not yet seen in a save, so how its ship queue is located is a guess.
 - **Ship designs** (UNE 6 2208.01.01, 4.5.3; READER 53): the top-level `ship_design` is global
   (2389 entries, **no owner**); the player's saved designs are
@@ -179,6 +199,7 @@ template } … } … required_component … }`, `role` (screen, gunship; absent 
 - Map positions: `galactic_object.<id>.coordinate = { x y }` — the game draws **x growing to the
   left** and y growing down (2207.03: Alpha Centauri x 11 west of Sol x −6, Sirius x −30 east);
   `#lib/mapView.ts` flips x.
+- Surveyed: `country.surveyed_deposit_holders = { { type=0 id=<planet> } }` holds every planet whose `surveyed_by` names us **plus the home system's**, which name no one (`roamingcybergang` 2213.09.02: 145 = 135 + 10); `Body.surveyed` reads both since READER 61.
 - Expansion: `country.surveyed_deposit_holders = { { type=0 id=<planet> } }`; systems
   `galactic_object.<id> = { name planet hyperlane = { to length } colonies }`. The game's list
   differs from the class rule (`pc_barren` is `colonizable = no`, yet Mars is offered — terraforming).
@@ -369,6 +390,11 @@ migration_access waystation_pact … }` (`=yes`; the last two are the migration 
   later that month) holds that payout as `current_month`, `last_month` the one before (2207.04.01:
   `last_month` = 2207.03.10's `current_month`). Stockpile change between two monthly autosaves =
   the later one's balance, to the cent, unless something was paid outside it.
+- **Edicts' unity upkeep is booked only beyond the Edict Fund**: the fund pays it first, and the
+  save holds no fund total (2217.06.01: Farming Subsidies' 30 active, no `edicts` source at all).
+  Its modifiers come from companion mod 0.14.0 (`sdash_ef_add`/`_mult`, `#lib/edictFund.ts`). Read
+  booked ÷ base as a discount and the fund skews it — booked = k × base − fund. Diplomatic upkeep
+  is booked per pact type and carries its multipliers (Isolationist: a guarantee 1 for 0.5).
 - **One-off spending is booked nowhere**: construction, station builds, event rewards, one-off
   market trades, edicts, … show only as a stockpile change. `unbooked()` = change since the last
   snapshot before the latest's month start − that month's payout, per day with the mod's ticks;
@@ -484,12 +510,15 @@ date days_left difficulty clues stage status }` (`leader=4294967295`: none; `sta
   in_progress / finished / aborted; stages have no localisation). Relations
   `country.relations_manager.relation = { country contact communications hostile
 relation_current trust threat border_range pre_communications_name }` (`border_range`
-  2147483647: not bordering; pacts as flags, see "Pacts are flags" above). Situations `situations.situations.<id> = { country
+  2147483647: not bordering — a nomad's with every empire, 2217.06.01; pacts as flags, see "Pacts
+  are flags" above). Situations `situations.situations.<id> = { country
 type progress last_month_progress approach stage }`. Anomalies: `country.events.anomalies =
 { <planet ids> }`, category in `planets.planet.<id>.anomaly`. Special projects
   `country.events.special_project = { id special_project carrier = { type=planet reference } }`,
   no progress. Dig sites `archaeological_sites.sites.<id> = { location = { type=2 id=<planet> }
-type clues difficulty days_left excavator_fleet }`. Megastructures `megastructures.<id> =
+type index clues difficulty days_left excavator_fleet }`; `index` is the chapter under way,
+  0-based (**assumed**: every site in Roaming Korinth 2210.10.20 reads 0, and `site_star_petal`'s
+  difficulty 2 is its first stage's — no site seen past a chapter yet). Megastructures `megastructures.<id> =
 { type coordinate.origin owner }` (2207.03.10: ruined gateways, a ruined quantum catapult, two
   ruined ring world sections).
 - Empire focus: `country.focus = { active = { <card ids> } priority = { current } reward = {

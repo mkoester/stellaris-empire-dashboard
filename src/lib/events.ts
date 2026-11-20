@@ -27,6 +27,7 @@ import type { Progress, QueueItem, Snapshot } from './types.ts';
 // (empire size, galaxy cost sliders) — other cost modifiers are unknown, hence "estimated".
 
 import { pretty } from './format.ts';
+import { basePrice, price, priceRecovery } from './market.ts';
 import type { ActionKind, Colony, GameData, TimedModifier } from './types.ts';
 export type { GameData };
 
@@ -49,6 +50,7 @@ export type Upcoming = {
 		| 'roll' // an envoy's or excavation's next roll
 		| 'idle' // something sits idle until busy again or dismissed (#lib/idle.ts)
 		| 'offer' // a planned tech among the research cards (#lib/techOffers.ts plannedOnOffer)
+		| 'market' // a market price back to normal after trading (#lib/market.ts priceRecovery)
 		| 'fleet'; // a military fleet arrives
 	what: string;
 	detail: string;
@@ -64,6 +66,7 @@ export type Upcoming = {
 	queuedAfter?: number; // construction: items still waiting when this one is done
 	fleetId?: number; // civilian ship rows
 	sub?: string; // what to show as the kind, where finer than `kind` (ships: the ship type)
+	tip?: string; // a tooltip on the detail: an excavation's chapters (behind the dig-site spoiler)
 	dismiss?: string; // a cooldown run out, something idle or a planned tech on offer: the id to dismiss it by (`timedOut()`, `idles()`, `plannedOnOffer()`)
 };
 
@@ -113,6 +116,26 @@ export function techCostFactor(
 	const rank = DIFFICULTY_RANK[settings?.difficulty ?? ''];
 	const perTier = scale === undefined || rank === undefined ? 0.05 : mult * scale * rank;
 	return 1 + perTier * (tier ?? 1);
+}
+
+/** What a tech costs this empire now: its base cost × the technology slider × the empire-size
+ * penalty × the difficulty's per-tier factor, rounded down; null without a base cost or progress. */
+export function techCost(
+	key: string,
+	s: Pick<Snapshot, 'progress' | 'empireSize'>,
+	data: Pick<GameData, 'techs' | 'defines'>
+): number | null {
+	const tech = data.techs[key];
+	const p = s.progress;
+	if (!tech?.cost || !p) return null;
+	const d = data.defines;
+	return Math.floor(
+		tech.cost *
+			p.costSettings.technology *
+			sizePenalty(s.empireSize, d.EMPIRE_SIZE_TECH_COST_PENALTY, d) *
+			techCostFactor(tech.tier, p.costSettings, d.TECH_COST_DIFFICULTY_SCALE_MULT) +
+			1e-9
+	);
 }
 
 // ── Game calendar: 12 months of 30 days ────────────────────────────────────
@@ -258,14 +281,8 @@ export function upcoming(
 
 	for (const r of p.research) {
 		const tech = data.techs[r.tech];
-		if (!tech?.cost) continue;
-		const cost = Math.floor(
-			tech.cost *
-				p.costSettings.technology *
-				sizePenalty(latest.empireSize, d.EMPIRE_SIZE_TECH_COST_PENALTY, d) *
-				techCostFactor(tech.tier, p.costSettings, d.TECH_COST_DIFFICULTY_SCALE_MULT) +
-				1e-9
-		);
+		const cost = techCost(r.tech, latest, data);
+		if (!tech || cost === null) continue;
 		const rate =
 			researchRate(r.tech, latest, earlier) ?? latest.income?.[`${r.area}_research`] ?? 0;
 		const when = due(latest.date, cost - r.progress, rate);
@@ -596,6 +613,56 @@ export function deficits(latest: Pick<Snapshot, 'date' | 'stockpile' | 'balance'
 				exact: true
 			}
 		];
+	});
+}
+
+/**
+ * When each market price is back to normal after trading beyond what a month recovers (the
+ * user's ask 2026-11-19, after buying 1000 food): `priceRecovery()`, fitted, so ≈. The standing
+ * orders' own monthly swing (up to the buy limit) gives no row; orders that push a price further
+ * each month than it recovers give one now ("keeps rising").
+ */
+export function marketRecoveries(
+	latest: Pick<Snapshot, 'date' | 'market' | 'marketOrders'>
+): Upcoming[] {
+	const m = latest.market;
+	if (!m) return [];
+	const day = toDays(latest.date);
+	return Object.entries(m.fluctuations).flatMap(([resource, f]): Upcoming[] => {
+		const r = priceRecovery(resource, f, day, latest.marketOrders ?? [], m.galactic);
+		if (r.days === null && !r.never) return [];
+		const name = pretty(resource);
+		const now = price(resource, f);
+		const base = basePrice(resource);
+		const detail = [
+			`${f > 0 ? '+' : ''}${f.toFixed(1)} % ${f > 0 ? 'above' : 'below'} base`,
+			now !== null && base !== null ? `${now.toFixed(2)} → ${base.toFixed(2)} trade a unit` : null,
+			m.galactic ? 'galactic market: other empires trade it too' : null
+		]
+			.filter(Boolean)
+			.join(' · ');
+		const row = { kind: 'market' as const, tint: resource, exact: false };
+		return r.never
+			? [
+					{
+						...row,
+						date: latest.date,
+						months: 0,
+						act: true,
+						what: `${name} price keeps ${f > 0 ? 'rising' : 'falling'}`,
+						detail: `${detail} · your monthly order moves it more than a month recovers`
+					}
+				]
+			: [
+					{
+						...row,
+						date: fromDays(day + r.days!),
+						months: Math.ceil(r.days! / 30),
+						act: false,
+						what: `${name} price back to normal`,
+						detail
+					}
+				];
 	});
 }
 
@@ -946,7 +1013,14 @@ export function timedOut(
  * counts down to it (first contacts and dig sites both carry `last_roll`). The game reports what
  * a roll gives, so `act` is false.
  */
-export function rolls(latest: Pick<Snapshot, 'date' | 'firstContacts' | 'digSites'>): Upcoming[] {
+export function rolls(
+	latest: Pick<Snapshot, 'date' | 'firstContacts' | 'digSites'>,
+	// dig sites: the type's name, and what its chapters give (null: switched off or unknown)
+	site: {
+		name?: (type: string) => string | undefined;
+		tip?: (type: string, chapter: number | null) => string | null;
+	} = {}
+): Upcoming[] {
 	const at = (days: number) => fromDays(toDays(latest.date) + days);
 	const contacts = (latest.firstContacts ?? [])
 		.filter((c) => c.status === 'in_progress' && c.leaderId !== null && c.daysLeft !== null)
@@ -968,11 +1042,12 @@ export function rolls(latest: Pick<Snapshot, 'date' | 'firstContacts' | 'digSite
 			months: s.daysLeft! / 30,
 			kind: 'roll' as const,
 			sub: 'excavation',
-			what: `Next excavation roll: ${pretty(s.type.replace(/^site_/, ''))}`,
-			detail: `${s.clues} clues · difficulty ${s.difficulty}`,
+			what: `Next excavation roll: ${site.name?.(s.type) ?? pretty(s.type.replace(/^site_/, ''))}`,
+			detail: `${s.chapter ? `chapter ${s.chapter} · ` : ''}${s.clues} clues · difficulty ${s.difficulty}`,
 			tint: 'roll',
 			exact: true,
-			act: false
+			act: false,
+			...((t) => (t ? { tip: t } : {}))(site.tip?.(s.type, s.chapter ?? null) ?? null)
 		}));
 	return [...contacts, ...sites];
 }

@@ -6,6 +6,278 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Contracts: which arkship carries the passengers of Diplomatic Support, Prisoner Disposal and the
+  Sightseeing Tour — the game picks one at random when several are there and never shows which.
+
+## [0.1.28] - 2026-11-19
+
+### Added
+
+- Upcoming: when a market price is back to normal after trading more than a month recovers (≈,
+  fitted on real saves); the monthly swing of orders within the limit gives no row, orders beyond
+  it a "keeps rising" one.
+- Checks GitHub for a newer release at start and every 3 hours (⚙ Updates: the interval, 0 never
+  checks); a newer one shows as a link next to the version in the tab bar. Release builds only.
+- Frontier: tech rewards and research options say whether the tech is researched, already a
+  permanent research option, or in your plan (also as a prerequisite of a planned tech). Outcomes
+  get badges for the kinds of reward they hold: physics, society and engineering research,
+  research options, resources, a fleet, a leader offered or granted, leader experience, traits
+  and more. Still to gain lists research options on their own rows.
+
+### Changed
+
+- Trade: prices and gifts are coloured against the market — plain at the market price, orange to
+  green the better (the best in bold), grey the worse. Gifts are coloured per empire, so each row
+  shows which resource buys that empire the most, and count per 1,000 trade of each resource by
+  default.
+- Trade: a nomad's energy and minerals fade in the offer and gift tables (a nomad keeps them).
+- Trade: the rates, prices and gifts are a spoiler switch now; other empires' stockpiles moved to
+  a cheat switch of their own, switched on for profiles that had the old one.
+
+## [0.1.27] - 2026-11-18
+
+### Added
+
+- Pacts to offer: every empire you talk to without a research agreement or commercial pact,
+  ranked by what the pact brings a month in trade, greyed with the reason where the game would not
+  allow it or the AI would refuse. The upkeep is the one your budget shows; acceptance is an upper
+  bound until calibrated. Behind a spoiler switch.
+- Edicts: what-ifs pay unity upkeep only beyond the Edict Fund — exact with companion mod 0.14.0,
+  else a lower-bound estimate (≈).
+- A back-to-top button on every tab.
+- Contracts: per contract what to do (its projects, their days and what they need), the reward
+  in resources and in trade, scaled by the contracts you completed, the opinion lost on failure,
+  and how many jumps each of your arkships is from it. A Reward, Work and Nearest arkship column.
+  Needs a data DB from this release.
+
+### Fixed
+
+- Nomads: traditions and perks show the nomad variant in popups, effects and their sums; no
+  Mastery of Nature decision on an arkship.
+- Contracts: page data no longer carries every contract in the galaxy, whose issuers you may not
+  have met.
+- Contracts: the tab is no longer greyed for a nomad that has only offers from empires it talks
+  to — it counted only contracts you issued or took.
+
+## [0.1.26] - 2026-11-17
+
+### Added
+
+- Planner: when each goal can be started and when it is built — the cost still to pay, at this
+  month's net income (highlighted) and at the mean of the last months (a setting, default 6;
+  one-time spending left out). The tooltip lists each resource needed with its stock and when it
+  is there. A display switch times goals in plan order, paying the goals above first.
+  Megastructure costs need a data DB from this release.
+- Wanderlust: the map and the planner show each category's counted / needed targets, the ones
+  found in visited systems and whether they would finish it; the map's right-click offers an
+  arkship visit as a want, not only an avoid.
+- Outcomes: months of income show what they come to now ("≈ +N now"); tech progress shows its
+  research points and how long your own research would take.
+- Frontier: a checkbox per panel hides what is gone from the save, newest first; a Status column
+  marks a source ≈ finished where the save has a flag, modifier or deposit only it gives.
+- Maps: square where the window has room, else as high as it allows. Drag the bottom edge past
+  the window edge to grow a map at the end of a page in one drag.
+- Settings: a default map fit (explored) and width; what the browser keeps for itself (width,
+  dragged heights) is listed, each with a reset.
+
+### Changed
+
+- History shows only the empires you have met, as far as your intel goes (systems and colonies
+  from intel 30, wars from 20), named as you know them. A spoiler switch shows everything about
+  met empires; everything about all empires is a cheat now.
+- Subject numbers are an intel spoiler. What each commercial pact brings is always shown; the
+  pact switches only cover research partners' techs.
+
+### Fixed
+
+- First contacts were spoiled: stage names gave away the contact's kind (now its stage number),
+  and pages and the contacts tab carried names, types and galaxy history before you talk.
+- Empire names: name templates are filled in ("Pact of Fellnoll"), an empire never shows as an
+  id ("unknown empire" instead), and a war keeps its save name only where every side is known.
+  Names events give (e.g. "False Asteroid") are read with a data DB from this release.
+- FirstContact-MeaningfulLabels contacts read "Voidworms (Space Fauna)", not "fc label fauna
+  Voidworms".
+- Planner: Arc Furnace, Stellar Cannon and Sentry Array goals never read as built.
+
+## [0.1.25] - 2026-11-17
+
+### Added
+
+- Frontier: every level of an outcome folds on its own, with a short summary of what is inside.
+  What your empire can never get (an option for another origin or civic, a branch your ethics rule
+  out) is greyed, with the reason on hover, and left out of the markers and the summary; a dig
+  site's done chapters are greyed. Needs a data DB from this release.
+- Frontier: "Still to gain" — what the open anomalies, special projects and dig sites can still
+  bring this empire, summed: for sure and expected, the resources' worth in trade. Each reward
+  names its sources (coloured by kind, with how long each takes) and how certain it is (sure,
+  likely, possible); techs, modifiers and traits open their popup. Tech progress shows the tech's
+  tier, area, cost to you and what the progress is worth in research. Filters for sure / possible
+  and for each kind of source (the sums follow them); hovering a source highlights everything it
+  gives and its row further down, clicking it jumps there.
+- Frontier: how long each open anomaly, special project and dig site takes — an anomaly by your
+  best scientist's level, a ship's project its days, a research project ≈ its cost at your
+  research in that field, a dig site ≈ the expected rolls of its remaining chapters.
+- Frontier: stations of empires you have communications with are hidden from "Stations seen"
+  (their territory is on the map); a switch shows them again.
+- The window title names the tab: "Colonies - Empire Dashboard (Stellaris)".
+
+### Changed
+
+- The History and Diplomacy switches "beyond what you know" are spoilers now, not cheats: the
+  game reveals both through intel and exploring. Still off in multiplayer and Ironman. Where
+  spoilers are hidden and cheats shown, they now read as off until spoilers are shown.
+
+## [0.1.24] - 2026-11-16
+
+### Added
+
+- Plan waystations on the roaming tab: a planned one moves from the sites into the waystations
+  table (in italics, with its planned modules and what it would collect), shows ⚑ and light blue on
+  the map, and its wayline dashed. Every "✓ planned" button has a ✕ beside it to take the plan out
+  again, on every tab.
+- The companion mod (0.13.0) also reads the research options the day after a tech is researched,
+  when its field draws new cards — not only on the 2nd of the month.
+
+### Fixed
+
+- The roaming tab's "+ goal" and "+ wayline" buttons did not show.
+- The home system counts as surveyed: its deposits show on the waylines tab (a nomad's starting
+  system was missing there), on maps and in the planner's popups.
+
+## [0.1.23] - 2026-11-16
+
+### Added
+
+- Nomads: the expansion tab is now **roaming** — where a waystation pays off (map and table:
+  what its best modules would collect, for the 2 slots of a new waystation), which waylines it
+  would extend or link, and whose space it is: another empire's without a Wayline Pact costs
+  opinion and gives them a war goal. Plan a waystation, a module, or a whole wayline from ours in
+  one click. Below: your waylines with each waystation's stockpile and what each wayline still
+  lacks, and the Settle down panel as before. Each site's value in trade a month shows under its
+  star; rate the sites for Waystation I, II or III (2, 4 or 6 slots) to find the best spots for
+  later. A pre-FTL civilisation counts too: a Research Observatory there collects society
+  research by your interference policy.
+- The tech tab has a **tech tree** per field: each tech by where it stands (researched, being
+  researched, on offer, within reach) and whether it is planned. Hover a tech for + want / − want;
+  click it to see what it needs and leads to, or fade everything but the techs within reach, the
+  wanted ones, or the clicked tech's path. Techs this empire can never get are left out.
+- **− want** plans a tech for later: still wanted, not yet. While a tech planned for later — or
+  one to avoid — is on offer, Upcoming says to pick another card.
+- With the companion mod 0.13.0, the cards on offer are read on the 2nd of each month, so
+  Upcoming and the tech tab show this month's cards without waiting for the next autosave.
+- The planner has shortcuts for nomads: logistic ships, waystations, arkships (only nomads see
+  them).
+- The influence tab lists everywhere influence can go, at base cost: what this playthrough can
+  never use is hidden (nomad or settled, origin, civics, authority), what is not available yet is
+  greyed with the reason.
+- The frontier tab keeps finished anomalies, dig sites, special projects and situations below each
+  list, greyed, with the date last seen and their outcomes.
+
+### Fixed
+
+- A system with only a nomad's waystation no longer shows that nomad as its owner on maps and
+  borders: waystations claim no space.
+- Influence hints name the real conditions for a rival (a harm-relations envoy counts at once, an
+  insult does not), and with influence storage full a nomad is pointed to waystations and arkship
+  upgrades instead of claims and outposts.
+
+## [0.1.22] - 2026-11-15
+
+### Changed
+
+- The situations tab is now **frontier**: situations and events are the game's terms for one of
+  its panels each. Old links to `/situations` still work.
+- Its tables use the width: first contacts, stations seen and situations on the left; anomalies,
+  dig sites and special projects on the right; the first-contact map below them.
+- A map that ends its page is as high as it is wide, or reaches the window's bottom where that is
+  more: the frontier tab's, and every map in "wide + table". Heights dragged before are not
+  taken over.
+- The Resources strip shows strategic resources in the game's order — Volatile Motes, Exotic
+  Gases, Rare Crystals — here and on the resources charts, and splits into two rows: basic and
+  advanced resources, then strategic and rare resources, unity and influence.
+- Colony what-ifs: the current designation shows what leaving it loses, one-time costs read
+  "costs … once", and policy changes warn of their 10-year lock.
+
+### Added
+
+- What anomalies, special projects and dig sites actually give, behind the spoiler switches: the
+  frontier tab's Outcome column shows markers (known, random, choice, depends, project, later,
+  risk), the first rewards, and the whole chain on opening. The same text is the tooltip on the
+  map tab, on the planner's anomaly and dig-site suggestions and on Upcoming's excavation rolls.
+  Needs a data DB from stellaris-data-extraction with the `outcome` table; older ones show the
+  event titles as before.
+- A spoiler switch for dig sites' chapters; dig sites show their next chapter.
+- Colony what-ifs for the crime decisions: the Anti-Crime Campaign frees the enforcers beyond
+  those holding crime at 25 for open jobs (recommended where crime is 10 or more and jobs are
+  open), Crime Lords costs the workforce of 3 criminal jobs per crime point. Whether a colony can
+  take them (crime 10 or more, Introduce Chaos's flag) is read from the save.
+
+### Fixed
+
+- Designation what-ifs count pop-wide and stratum workforce bonuses (the nomad capital's +10 %,
+  worker and simple drone bonuses): switching away no longer looks like a pure gain.
+- Dig sites by their name ("Gas Giant Structure", not "star petal") on the frontier tab, the
+  map, the planner and Upcoming.
+
+## [0.1.21] - 2026-11-15
+
+### Added
+
+- Planner suggestions mark ascension perks and tradition trees, include Wanderlust, collapse
+  duplicate ascension trees, and dim trees unavailable to the current empire. Planning a linked
+  ascension perk also plans its tree.
+
+## [0.1.20] - 2026-11-15
+
+### Added
+
+- All tab Recommendations panel (next to Upcoming, a What-ifs spoiler): worthwhile edict, policy,
+  designation and planet decision changes, with their estimates. “Show all options, ranked” lists
+  every estimate together for comparison.
+- What-ifs (⚙, a spoiler) now count upkeep: Recycling Campaign shows the consumer goods it saves,
+  not "1 effect not counted". Upkeep modifiers on pops, jobs, buildings, districts, ships,
+  starbases, leaders, armies and edicts are read from what the budget books.
+- Each what-if sets what you gain against what it costs: an edict's own upkeep and one-off cost,
+  scaled by what the budget books for your active edicts, and the net in trade a month at the
+  produce tab's values. The edicts table sorts by it.
+- What-ifs on more tabs: switching a species' Living Standards (species tab), the traditions not
+  yet picked, adopting another tree and the ascension perks open to you (traditions tab), and the
+  tech cards on offer (tech tab).
+
+## [0.1.19] - 2026-11-15
+
+### Added
+
+- The megastructures tab is dimmed until a megastructure is found or the tech for one is
+  researched.
+- The council marks which class holds a seat that takes several, such as the ruler's.
+
+### Changed
+
+- In "wide + table", a map reaches the window's bottom, like the table beside it. Each map
+  remembers its height for that mode and for the others separately.
+
+### Fixed
+
+- With two or more dashboard tabs open, clicking a tab did nothing until one was closed.
+- A map's chosen height is kept: leaving the full window or switching modes no longer overwrites it.
+- Council agendas list modifiers that read alike once (Arkship Development showed each line three
+  times).
+
+## [0.1.18] - 2026-11-15
+
+### Added
+
+- The start window names the dashboard's version and the game version beside the address.
+
+### Changed
+
+- Pages load several times faster (about 0.05 s instead of 0.45 s on a history of 330 saves),
+  the first one after the start too: the dashboard's database gets two indexes, and the start
+  loads the first page once before the browser opens it.
+
 ### Security
 
 - The dashboard answers only under a local name (`localhost`, an IP address, a `.local` or

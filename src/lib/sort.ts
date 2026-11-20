@@ -17,6 +17,7 @@ export type Column<R> = {
 	color?: string; // the header's
 	title?: string;
 	right?: boolean; // numbers: right-aligned
+	faded?: boolean; // shown but out of reach (e.g. what a nomad cannot give)
 };
 
 export function sortBy<T>(rows: T[], value: (r: T) => SortValue, desc: boolean): T[] {

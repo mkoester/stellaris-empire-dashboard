@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PANELS, parseChartEvents, parseTabs, parseTheme } from './settings.ts';
+import { LAYOUT, PANELS, PICKABLE, parseChartEvents, parseTabs, parseTheme } from './settings.ts';
 
 describe('parseTheme', () => {
 	it('takes the three themes and nothing else', () => {
@@ -61,5 +61,11 @@ describe('PANELS', () => {
 	it('names every panel once', () => {
 		const ids = PANELS.map((p) => p.id);
 		expect(new Set(ids).size).toBe(ids.length);
+	});
+
+	it('places recommendations beside Upcoming on All and keeps them out of custom tabs', () => {
+		const pair = LAYOUT.find((g) => g.panels.some((p) => p.id === 'upcoming'))!;
+		expect(pair.panels.map((p) => p.id)).toEqual(['upcoming', 'recommendations']);
+		expect(PICKABLE.map((p) => String(p.id))).not.toContain('recommendations');
 	});
 });

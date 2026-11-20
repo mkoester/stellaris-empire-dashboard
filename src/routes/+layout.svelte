@@ -2,13 +2,16 @@
 	import './layout.css';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { pageTitle } from '#lib/pageTitle.ts';
 	import { page } from '$app/state';
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
 	import favicon from '#lib/assets/favicon.svg';
 	import InfoPopup from '#lib/InfoPopup.svelte';
+	import BackToTop from '#lib/BackToTop.svelte';
 	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
+	import { gameVersionNumber } from '#lib/versions.ts';
 
 	let { data, children } = $props();
 
@@ -146,9 +149,9 @@
 			active: path === '/ethics'
 		},
 		{
-			name: 'situations',
-			href: node ? resolve(`/situations?node=${node}`) : resolve('/situations'),
-			active: path === '/situations'
+			name: 'frontier',
+			href: node ? resolve(`/frontier?node=${node}`) : resolve('/frontier'),
+			active: path === '/frontier'
 		},
 		{
 			name: 'shroud',
@@ -237,6 +240,7 @@
 		}
 	];
 	const fixed = $derived(tabsAt(node));
+	const title = $derived(pageTitle(path, fixed, data.tabs));
 	const tabHref = (id: string) =>
 		node ? resolve(`/tab/[id]?node=${node}`, { id }) : resolve('/tab/[id]', { id });
 	const tab = (active: boolean) =>
@@ -313,7 +317,7 @@
 </script>
 
 <svelte:head>
-	<title>Empire dashboard</title>
+	<title>{title}</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
@@ -328,13 +332,17 @@
 				<a class={tab(path === `/tab/${t.id}`)} href={tabHref(t.id)}>{t.name}</a>
 			{/each}
 			{#each fixed as t (t.name)}
-				{@const settle = t.name === 'expansion' && data.settle.nomad}
-				{@const dim =
-					settle && data.settle.blocked
-						? `not yet usable in game: settling needs ${data.settle.blocked}`
-						: data.empty[t.name] && `nothing to show yet: ${data.empty[t.name]}`}
-				<a class="{tab(t.active)} {dim ? 'opacity-50' : ''}" href={t.href} title={dim || undefined}
-					>{settle ? 'settle' : t.name}{#if t.name === 'planner' && data.plan.alerts}<span
+				<!-- a nomad's expansion is roaming: its waylines, and settling down one day -->
+				{@const roaming = t.name === 'expansion' && data.settle.nomad}
+				{@const dim = data.empty[t.name] && `nothing to show yet: ${data.empty[t.name]}`}
+				<a
+					class="{tab(t.active)} {dim ? 'opacity-50' : ''}"
+					href={t.href}
+					title={dim ||
+						(roaming
+							? `waylines and settling down${data.settle.blocked ? ` (settling needs ${data.settle.blocked})` : ''}`
+							: undefined)}
+					>{roaming ? 'roaming' : t.name}{#if t.name === 'planner' && data.plan.alerts}<span
 							class="ml-1 rounded bg-red-600 px-1 text-[11px] font-semibold text-white"
 							title="goals no longer possible, or avoided ones that happened"
 							>⚠ {data.plan.alerts}</span
@@ -387,10 +395,18 @@
 			<span class="pb-1 text-[11px] text-gray-400" title="dashboard version"
 				>v{__APP_VERSION__}</span
 			>
+			{#if data.update}<a
+					class="pb-1 text-[11px] font-semibold text-green-700 underline dark:text-green-500"
+					href="https://{data.update.url.replace(/^https:\/\//, '')}"
+					target="_blank"
+					rel="noopener"
+					title="a newer dashboard is out: its release page on GitHub (how often this is checked: ⚙ Updates)"
+					>v{data.update.version} available</a
+				>{/if}
 			{#if data.gameVersion}<span
 					class="pb-1 text-[11px] text-gray-400"
 					title="the game version and build the game data was read from (an open beta shares its version with the release, not its build)"
-					>game {data.gameVersion.replace(/^\D*/, '')}</span
+					>game {gameVersionNumber(data.gameVersion)}</span
 				>{/if}
 			<!-- the difficulty and the dates alone on the right, also when they wrap onto a line of their own -->
 			{#if data.dates?.difficulty}<span class="ml-auto pb-1 text-[11px] text-gray-400"
@@ -454,3 +470,5 @@
 		{@render children()}
 	{/if}
 </main>
+
+<BackToTop />

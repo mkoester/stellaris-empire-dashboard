@@ -10,10 +10,44 @@
 		type SlaveMarketMode
 	} from '#lib/profiles.ts';
 	import { MAX_POP_WINDOW, windowMonths, windowStrip, type PopWindow } from '#lib/popWindow.ts';
+	import { MAX_INCOME_WINDOW } from '#lib/planner/eta.ts';
 	import { MAX_RINGS, SECTOR_COUNTS, type QuadrantView, type SectorCount } from '#lib/quadrants.ts';
 	import { campaignAction, profileAction, putSettings } from '#lib/settings.ts';
+	import { MAX_UPDATE_HOURS } from '#lib/updates.ts';
+	import { forget, recall } from '#lib/browserStore.ts';
+	import {
+		MAP_FITS,
+		MAP_WIDTH_KEY,
+		MAP_WIDTH_LABELS,
+		MAP_WIDTHS,
+		type MapFit,
+		type MapWidth
+	} from '#lib/mapView.ts';
+	import { onMount } from 'svelte';
 
 	let { data } = $props();
+	// what this browser keeps of its own about maps (localStorage): its width pick overrides the
+	// profile's default width; map heights per map. Each with a reset (the user's ask 2026-11-17).
+	let widthPick: string | null = $state(null);
+	let heights = $state(0);
+	const isHeight = (k: string) => /-map-height(-side)?(-square)?$/.test(k);
+	const readBrowser = () => {
+		widthPick = recall(MAP_WIDTH_KEY);
+		try {
+			heights = Object.keys(localStorage).filter(isHeight).length;
+		} catch {
+			heights = 0;
+		}
+	};
+	onMount(readBrowser);
+	const resetWidth = () => {
+		forget((k) => k === MAP_WIDTH_KEY);
+		readBrowser();
+	};
+	const resetHeights = () => {
+		forget(isHeight);
+		readBrowser();
+	};
 
 	// the display switches by group, filtered by the search; spoilers and cheats only when shown,
 	// cheats and the spoilers revealing other empires never in a multiplayer or Ironman game
@@ -38,7 +72,9 @@
 		['display', 'Display'],
 		['quadrants', 'Map rings and quadrants'],
 		['popWindow', 'Pops charts'],
+		['incomeWindow', 'Planner: mean income'],
 		['games', 'Games'],
+		['updates', 'Updates'],
 		['folders', 'Folders']
 	] as const;
 
@@ -63,6 +99,7 @@
 		act(() => putSettings({ popWindow: { ...data.popWindow, ...patch } }));
 	const strip = $derived(windowStrip(data.popWindow));
 	const MONTH_CHOICES = Array.from({ length: MAX_POP_WINDOW + 1 }, (_, i) => i);
+	const INCOME_CHOICES = Array.from({ length: MAX_INCOME_WINDOW }, (_, i) => i + 1);
 
 	const act = async (f: () => Promise<unknown>) => {
 		failure = '';
@@ -279,6 +316,56 @@
 				<span class="text-sm text-gray-500">(an empire allowing slavery always sees it)</span
 				></label
 			>
+			<h3 class="mt-4 font-semibold">Maps</h3>
+			<label class="block"
+				>A map opens fitted to
+				<select
+					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+					value={data.display.mapFit}
+					onchange={(e) =>
+						act(() =>
+							putSettings({
+								display: { ...data.display, mapFit: e.currentTarget.value as MapFit }
+							})
+						)}
+				>
+					{#each Object.entries(MAP_FITS) as [m, label] (m)}<option value={m}>{label}</option
+						>{/each}
+				</select>
+				<span class="text-sm text-gray-500">(everything where that is empty)</span></label
+			>
+			<label class="block"
+				>Map width
+				<select
+					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+					value={data.display.mapWidth}
+					onchange={(e) =>
+						act(() =>
+							putSettings({
+								display: { ...data.display, mapWidth: e.currentTarget.value as MapWidth }
+							})
+						)}
+				>
+					{#each MAP_WIDTHS as m (m)}<option value={m}>{MAP_WIDTH_LABELS[m]}</option>{/each}
+				</select>
+				<span class="text-sm text-gray-500"
+					>until a map's width buttons pick one in this browser</span
+				></label
+			>
+			<p class="mt-1 text-sm text-gray-500">
+				This browser:
+				{#if widthPick}width “{MAP_WIDTH_LABELS[widthPick as MapWidth] ?? widthPick}”, picked on a
+					map
+					<button
+						class="ml-1 rounded border border-gray-300 px-2 dark:border-gray-700"
+						onclick={resetWidth}>reset to the default</button
+					>{:else}the default width{/if}{heights
+					? ` · ${heights} map height${heights === 1 ? '' : 's'} dragged`
+					: ''}{#if heights}<button
+						class="ml-1 rounded border border-gray-300 px-2 dark:border-gray-700"
+						onclick={resetHeights}>reset heights</button
+					>{/if}
+			</p>
 			{#each groups as g (g.title)}
 				<h3 id="display-{g.title}" class="mt-4 scroll-mt-4 font-semibold">{g.title}</h3>
 				{#each g.items as s (s.key)}
@@ -403,6 +490,24 @@
 						' months.'}
 			</p>
 		</section>
+		<section id="incomeWindow" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Planner: mean income</h2>
+			<p class="mb-1 text-gray-500">
+				The planner times each goal twice: at this month's net income and at its mean over the last
+				months. The net is the budget's, so one-time spending (construction, edicts, decisions) is
+				never in it.
+			</p>
+			<label class="block"
+				>months
+				<select
+					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
+					value={String(data.incomeWindow)}
+					onchange={(e) => act(() => putSettings({ incomeWindow: Number(e.currentTarget.value) }))}
+				>
+					{#each INCOME_CHOICES as n (n)}<option value={String(n)}>{n}</option>{/each}
+				</select></label
+			>
+		</section>
 		<section id="games" class="scroll-mt-4">
 			<h2 class="mb-1 text-xl font-semibold">Games</h2>
 			<p class="mb-1 text-gray-500">
@@ -424,6 +529,39 @@
 					{/each}
 				</tbody>
 			</table>
+		</section>
+		<section id="updates" class="scroll-mt-4">
+			<h2 class="mb-1 text-xl font-semibold">Updates</h2>
+			<p class="mb-1 text-gray-500">
+				Asks GitHub for the latest release at start and then every few hours; a newer one shows next
+				to the version in the tab bar. 0 never asks. Only a release build asks.
+			</p>
+			<label class="block"
+				>every
+				<input
+					type="number"
+					min="0"
+					max={MAX_UPDATE_HOURS}
+					step="1"
+					class="w-16 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
+					value={data.updates.hours}
+					onchange={(e) => {
+						const h = Number(e.currentTarget.value);
+						if (Number.isFinite(h) && h >= 0 && h <= MAX_UPDATE_HOURS)
+							act(() => putSettings({ updateHours: h }));
+					}}
+				/>
+				hours</label
+			>
+			<p class="mt-1 text-gray-500">
+				{#if !data.updates.release}This build (v{__APP_VERSION__}) is not a release: it never asks.{:else if data.updates.checkedAt === null}Not
+					asked yet.{:else}Last asked {new Date(data.updates.checkedAt).toLocaleString()}: {data
+						.updates.error
+						? `failed (${data.updates.error})`
+						: data.updates.latest
+							? `latest is v${data.updates.latest.version}`
+							: 'no release found'}.{/if}
+			</p>
 		</section>
 		<section id="folders" class="scroll-mt-4">
 			<h2 class="mb-1 text-xl font-semibold">Folders</h2>

@@ -21,6 +21,7 @@ export type Kind = (typeof KINDS)[number];
 type Rule = {
 	name: string;
 	file: string;
+	tech: string; // the first stage's `prerequisites`
 	machineAge?: boolean; // needs The Machine Age (true) or its absence (false)
 	stars?: string[]; // only around these star classes
 	notStars?: string[];
@@ -37,6 +38,7 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	arc_furnace: {
 		name: 'Arc Furnace',
 		file: '17_orbital_arc_furnace.txt',
+		tech: 'tech_orbital_arc_furnace',
 		machineAge: true,
 		score:
 			"the game's own: bodies neither star nor colonizable without a research deposit (≤ 10 poor, ≥ 16 good)"
@@ -44,6 +46,7 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	dyson_swarm: {
 		name: 'Dyson Swarm',
 		file: '18_dyson_swarm.txt',
+		tech: 'tech_dyson_swarm',
 		machineAge: true,
 		notStars: COLLAPSED,
 		noBinary: true,
@@ -52,6 +55,7 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	dyson_sphere: {
 		name: 'Dyson Sphere',
 		file: '01_dyson_sphere.txt',
+		tech: 'tech_dyson_sphere',
 		machineAge: false,
 		notStars: COLLAPSED,
 		noBinary: true,
@@ -61,6 +65,7 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	ring_world: {
 		name: 'Ring World',
 		file: '00_ring_world.txt',
+		tech: 'tech_ring_world',
 		notStars: ['sc_black_hole'],
 		noBinary: true,
 		noColonizable: true,
@@ -70,6 +75,7 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	matter_decompressor: {
 		name: 'Matter Decompressor',
 		file: '06_matter_decompressor.txt',
+		tech: 'tech_matter_decompressor',
 		stars: ['sc_black_hole'],
 		noColonizable: true,
 		score: 'black holes only; the bodies around it are listed'
@@ -77,6 +83,7 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	stellar_cannon: {
 		name: 'Stellar Cannon',
 		file: '31_dyson_gun.txt',
+		tech: 'tech_dyson_gun',
 		stars: PULSING,
 		noBinary: true,
 		score: 'neutron stars and pulsars only: every fitting system is listed'
@@ -84,6 +91,7 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	quantum_catapult: {
 		name: 'Quantum Catapult',
 		file: '13_quantum_catapult.txt',
+		tech: 'tech_quantum_catapult',
 		stars: PULSING,
 		noBinary: true,
 		lowerIsBetter: true,
@@ -92,6 +100,7 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	mega_shipyard: {
 		name: 'Mega Shipyard',
 		file: '11_mega_shipyard.txt',
+		tech: 'tech_mega_shipyard',
 		notStars: COLLAPSED,
 		noBinary: true,
 		lowerIsBetter: true,
@@ -100,10 +109,20 @@ export const MEGA_RULES: Record<Kind, Rule> = {
 	sentry_array: {
 		name: 'Sentry Array',
 		file: '02_spy_orb.txt',
+		tech: 'tech_sentry_array',
 		score:
 			'systems not ours within 20 hyperlane jumps (stage 1’s sensor range; 40 and 60 for the next stages, the finished array sees the whole galaxy)'
 	}
 };
+
+/**
+ * The prefix of a structure's stage keys in the game (`<prefix>_<n>`, a system's `megastructures`),
+ * where it differs from the rule's name: 17_orbital_arc_furnace.txt, 31_dyson_gun.txt, 02_spy_orb.txt.
+ */
+export const stagePrefix = (kind: string) =>
+	({ arc_furnace: 'orbital_arc_furnace', stellar_cannon: 'dyson_gun', sentry_array: 'spy_orb' })[
+		kind
+	] ?? kind;
 
 /** The tab's view, the profile's: structure, systems shown, fitting only, the system picked. */
 export type MegaView = {

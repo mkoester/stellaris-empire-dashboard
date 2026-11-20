@@ -13,7 +13,8 @@ import type {
 import { hops, NOT_ROCKY, type RawSave } from '../save.ts';
 import { buildQueue } from './colonies.ts';
 import { leaderName } from './leaders.ts';
-import { displayName, first, items, list, num, type Raw } from './values.ts';
+import { CARGO_FLAGS } from '#lib/contracts.ts';
+import { displayName, first, flagDate, items, list, num, type Raw } from './values.ts';
 
 // Save → Snapshot: ships, fleets, stations and ship designs (../save.ts; paths in
 // docs/save-format.md).
@@ -127,7 +128,12 @@ export function ownSystems(
 		'countryId' | 'construction' | 'deposits' | 'shipDesigns' | 'starbases' | 'systems'
 	>
 ): Set<number> {
-	const mine = new Set(stations(raw).map((s) => s.id));
+	// a waystation claims no space (world.ts `isWaystation`)
+	const mine = new Set(
+		stations(raw)
+			.filter((s) => !s.level.startsWith('waystation'))
+			.map((s) => s.id)
+	);
 	const out = new Set<number>();
 	for (const [id, sys] of Object.entries(raw.systems))
 		if (list(sys?.starbases).some((sb) => mine.has(sb))) out.add(Number(id));
@@ -252,7 +258,10 @@ export function arkships(
 				tier: Number(/_tier_(\d+)/.exec(size)?.[1] ?? 0),
 				planetSize: num(ship.planet_size),
 				systemId: shipSystemId(raw, carrier.reference),
-				capital: Number(colonyId) === capital
+				capital: Number(colonyId) === capital,
+				cargo: Object.entries(raw.fleets?.[String(ship.fleet)]?.flags ?? {})
+					.filter(([flag]) => CARGO_FLAGS.has(flag))
+					.map(([flag, v]) => ({ flag, since: flagDate(v) }))
 			}
 		];
 	});
@@ -315,10 +324,33 @@ export function stations(
 							}
 						: null,
 				arkship:
-					String(sb.level ?? '').includes('arkship') || String(sb.type ?? '').includes('arkship')
+					String(sb.level ?? '').includes('arkship') || String(sb.type ?? '').includes('arkship'),
+				...(String(sb.level ?? '').includes('waystation') && waystationState(raw, sb))
 			}
 		];
 	});
+}
+
+/**
+ * What a waystation holds until a logistic ship or arkship collects it: its station ship's
+ * `resources` (`ships.<station>.resources`), and how full it is — `variables.waystation_collection_fill`,
+ * 0…1, which the game sets monthly (4.5.4 events/nomads_events_1.txt nomads.9035: the station's
+ * `used_stockpile_capacity_percentage`, or its whole wayline's when a Logistics Hub collects
+ * there). `collecting`: a logistic ship is on its way (`flags.stockpile_being_collected_locally_by_logistic_ship`).
+ */
+function waystationState(
+	raw: Partial<Pick<RawSave, 'ships'>>,
+	sb: Raw
+): Pick<Station, 'stockpile' | 'fill' | 'collecting'> {
+	const res = raw.ships?.[String(sb.station)]?.resources ?? {};
+	const fill = sb.variables?.waystation_collection_fill;
+	return {
+		stockpile: Object.fromEntries(
+			Object.entries(res).flatMap(([k, v]) => (typeof v === 'number' && v > 0 ? [[k, v]] : []))
+		),
+		fill: typeof fill === 'number' ? fill : null,
+		collecting: sb.flags?.stockpile_being_collected_locally_by_logistic_ship !== undefined
+	};
 }
 
 /**

@@ -4,7 +4,7 @@
 	import { monthlyLimit } from './market.ts';
 	import { RESERVES, type LevelTone } from './nomad.ts';
 	import { followTicks } from './live.ts';
-	import { stripOrder } from './resourceGroups.ts';
+	import { inFirstRow, stripOrder } from './resourceGroups.ts';
 	import { monthsLeft, urgencyColor, type StorageRow } from './storage.ts';
 	import type { MarketOrder, Resources, Tick } from './types.ts';
 
@@ -77,6 +77,11 @@
 		)
 	);
 
+	// two rows: basic and advanced resources, then strategic, rare, unity and influence
+	const rows = $derived(
+		[shown.filter(inFirstRow), shown.filter((k) => !inFirstRow(k))].filter((r) => r.length > 0)
+	);
+
 	const signed = (n: number) => (n >= 0 ? '+' : '−') + fmt(Math.abs(n));
 	// the game's stage colours: Critical red, Low orange, Medium plain, High green
 	const TONES: Record<LevelTone, string> = {
@@ -87,55 +92,59 @@
 	};
 </script>
 
-<div class="mb-4 flex flex-wrap gap-x-5 gap-y-1">
-	{#if today}
-		<span
-			class="text-sm whitespace-nowrap text-gray-500"
-			title="stockpile from the companion mod's daily tick">as of {today.date}</span
-		>
-	{/if}
-	{#each shown as key (key)}
-		{@const net = balance[key] ?? 0}
-		{@const limit = limits.get(key)}
-		{@const have = stockpile[key] ?? 0}
-		{@const left = limit ? monthsLeft(have, limit.max, net) : null}
-		<span class="inline-flex flex-col whitespace-nowrap">
-			<span>
+<div class="mb-4 flex flex-col gap-y-1">
+	{#each rows as row, i (i)}
+		<div class="flex flex-wrap gap-x-5 gap-y-1">
+			{#if today && i === 0}
 				<span
-					style:color={colorOf(key)}
-					title={key === RESERVES
-						? `energy and minerals in one pool, spent from either${reserves?.estimated ? ' — ≈ the last save plus the months since, which the companion mod logged' : ''}`
-						: undefined}>{pretty(key)}</span
-				>
-				<b>{key === RESERVES && reserves?.estimated ? '≈' : ''}{fmt(have)}</b>
-				<span class={net < 0 ? 'text-red-600' : net > 0 ? 'text-green-600' : 'text-gray-500'}
-					>{signed(net)}</span
-				>
-			</span>
-			{#if key === RESERVES && reserves}
-				<!-- the game's "Current Reserves: Medium (50%)", and how far the next level is -->
-				<span
-					class="text-xs text-gray-500"
-					title="Current Reserves of {fmt(
-						reserves.capacity ?? 0
-					)}, as the game rounds them (down); each level is a stage of the Operational Reserves situation"
-					><b class={TONES[reserves.tone]}>{reserves.level ?? '?'}</b
-					>{#if reserves.share !== null}&nbsp;{Math.floor(reserves.share * 100)} %{/if}{#if reserves.next}&nbsp;·
-						{reserves.next.down ? '−' : '+'}{fmt(reserves.next.amount)} to
-						<span class={TONES[reserves.next.tone]}>{reserves.next.level}</span>
-						({months(reserves.next.months)}){/if}</span
-				>
-			{:else if limit}
-				<span
-					class="text-right text-xs text-gray-500"
-					title={`storage ${limit.exact ? '' : '≈ '}${fmt(limit.max)}${limit.exact ? '' : " (the base; silos, Mega-Engineering and others add to it — companion mod 0.5.0 stores the game's value)"}${left === null ? '' : `; ${net > 0 ? 'full' : 'empty'} in ${months(left)} at ${signed(net)} a month`}`}
-					>({limit.exact ? '' : '≈'}{fmt(limit.max)}){#if left !== null}
-						<span style:color={urgencyColor(left)}
-							>&ensp;{left === 0 ? (net > 0 ? 'full' : 'empty') : months(left)}</span
-						>{/if}</span
+					class="text-sm whitespace-nowrap text-gray-500"
+					title="stockpile from the companion mod's daily tick">as of {today.date}</span
 				>
 			{/if}
-		</span>
+			{#each row as key (key)}
+				{@const net = balance[key] ?? 0}
+				{@const limit = limits.get(key)}
+				{@const have = stockpile[key] ?? 0}
+				{@const left = limit ? monthsLeft(have, limit.max, net) : null}
+				<span class="inline-flex flex-col whitespace-nowrap">
+					<span>
+						<span
+							style:color={colorOf(key)}
+							title={key === RESERVES
+								? `energy and minerals in one pool, spent from either${reserves?.estimated ? ' — ≈ the last save plus the months since, which the companion mod logged' : ''}`
+								: undefined}>{pretty(key)}</span
+						>
+						<b>{key === RESERVES && reserves?.estimated ? '≈' : ''}{fmt(have)}</b>
+						<span class={net < 0 ? 'text-red-600' : net > 0 ? 'text-green-600' : 'text-gray-500'}
+							>{signed(net)}</span
+						>
+					</span>
+					{#if key === RESERVES && reserves}
+						<!-- the game's "Current Reserves: Medium (50%)", and how far the next level is -->
+						<span
+							class="text-xs text-gray-500"
+							title="Current Reserves of {fmt(
+								reserves.capacity ?? 0
+							)}, as the game rounds them (down); each level is a stage of the Operational Reserves situation"
+							><b class={TONES[reserves.tone]}>{reserves.level ?? '?'}</b
+							>{#if reserves.share !== null}&nbsp;{Math.floor(reserves.share * 100)} %{/if}{#if reserves.next}&nbsp;·
+								{reserves.next.down ? '−' : '+'}{fmt(reserves.next.amount)} to
+								<span class={TONES[reserves.next.tone]}>{reserves.next.level}</span>
+								({months(reserves.next.months)}){/if}</span
+						>
+					{:else if limit}
+						<span
+							class="text-right text-xs text-gray-500"
+							title={`storage ${limit.exact ? '' : '≈ '}${fmt(limit.max)}${limit.exact ? '' : " (the base; silos, Mega-Engineering and others add to it — companion mod 0.5.0 stores the game's value)"}${left === null ? '' : `; ${net > 0 ? 'full' : 'empty'} in ${months(left)} at ${signed(net)} a month`}`}
+							>({limit.exact ? '' : '≈'}{fmt(limit.max)}){#if left !== null}
+								<span style:color={urgencyColor(left)}
+									>&ensp;{left === 0 ? (net > 0 ? 'full' : 'empty') : months(left)}</span
+								>{/if}</span
+						>
+					{/if}
+				</span>
+			{/each}
+		</div>
 	{/each}
 </div>
 

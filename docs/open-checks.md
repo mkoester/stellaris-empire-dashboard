@@ -39,7 +39,10 @@ run-out cooldown dismissed on a reloaded branch. Still open:
 4. **Engine cooldowns left**: a federation law change (its timers sit on the federation, not read
    yet), the jump drive (`jump_drive_cooldown`).
 5. **Rolls**: an envoy on a first contact and a science ship on a dig site — the next roll's date
-   against `days_left`, and the cycle after a roll (`last_roll`).
+   against `days_left`, and the cycle after a roll (`last_roll`). The frontier tab's dig-site
+   time (`#lib/frontierTime.ts`) assumes a roll every 90 days (`ARCHAEOLOGICAL_SITE_DISCOVERY_DAYS`),
+   the skill bonus = the scientist's level, and clues reset per chapter: the game's breakthrough
+   tooltip ("current score before dice roll") and the days between two rolls settle all three.
 6. **Days per jump**: a military fleet and a science ship over a known number of jumps, with a
    manual save each few days — calibrates `DEFAULT_DAYS_PER_JUMP` (10, a placeholder).
 
@@ -336,6 +339,13 @@ it cannot accept (`possible_operator`: already on the same contract, a tech, out
   contract icons on the galaxy map in systems that are not yours.
 - **Send:** the screenshots and the date. Check: the contracts tab's rows without spoilers (the
   normal view should show exactly the game's).
+- **Details (from 2026-11-18):** Roaming Cyber Gang 2218.12.01 offers Colony Startup (Pact of
+  Fellnoll) and Diplomatic Support (Mishar Pact). **Do:** open each offer, hover its reward; order
+  Selborne toward the contract's system and read the arrival estimate. **Check:** reward 750 trade
+  - 150 society research + 50 influence, and 1750 trade + 350 unity + 50 influence (0 contracts
+    completed: ×1 — a higher figure in game is `nomadic_contract_value_mult`, then drop or fit the
+    ≈); "Colony Startup" 180 days, any arkship; the ETA against "3 jumps" decides whether the tab can
+    give days.
 
 ### 33. Design stats and the starbase list — fleets and starbases tabs (from 2026-11-09)
 
@@ -560,7 +570,73 @@ holds whatever it really does.
   (That job efficiency scales upkeep is confirmed: `docs/workspace-notes.md`, physicists
   2026-10-31.)
 
+### 39. Research options on the 2nd — Upcoming and tech tab, companion mod 0.13.0 (from 2026-11-16)
+
+`docs/companion-mod.md` ("Research options"). The mod asks `has_tech_option` for each of the 631
+techs of the 4.5.4 data DB on the 2nd of each month (`sdash.6`). Replayed on a DB copy only (Roaming
+Cyber Gang, node 460, 2026-11-16): Upcoming and the tech tab switched to the replayed list.
+**Seen in game 2026-11-16** (Roaming Cyber Gang, 2213.09.02, Research options+ on: up to 6 cards):
+17 `tech-option` lines and one `tech-options-end`, no `sdash` line in `error.log`; physics 5 and
+society 6 matched the research screen card for card (bio-ship names: Fusion Metabolism = Fusion
+Power), engineering 6 by count; the tech under research (Ceramo-Metal Materials) is among the
+logged cards. Still open: the cost on the 2nd at full speed, and Upcoming's "later" row.
+
+- **After a researched tech** (`sdash.7`): **seen in game 2026-11-17** — Specialized Combat
+  Computers finished on 2214.01.02, the day the month's list was logged (the flag set by `sdash.1`
+  on the 1st did not block it); 2214.01.03 logged one list of 18 cards with physics' six new ones,
+  equal card for card to the save of 2214.01.04 in all three fields. Still open: two techs
+  finishing on one day log one list.
+
+- **The lines come at all:** with mod 0.13.0 linked, play past a 2nd → `game.log` has
+  `SDASH|3|<date>.02|<run>|event|tech-option|…` lines and one `tech-options-end`; `error.log` has
+  no `sdash` line (a tech key the game does not know would show there).
+- **Same cards as the game:** compare the logged techs with the research screen on that day
+  (screenshot). Open: whether the tech **under research** is among them — the save's cards hold it,
+  and `withLiveOptions()` adds it when missing (else every 2nd would read as a new draw).
+- **Cost:** 631 trigger checks once a month — any hitch on the 2nd at full speed?
+- **Send:** the `SDASH` lines of one 2nd, the research screen of that day, and whether Upcoming
+  showed the "later" row for a tech planned with − want.
+
+### 40. The Edict Fund — government tab and recommendations, companion mod 0.14.0 (from 2026-11-18)
+
+The edict what-ifs pay unity upkeep only beyond the fund's room (`#lib/edictFund.ts`). Assumed:
+the fund is `country_edict_fund_add` × (1 + `country_edict_fund_mult`); it pays the upkeep after
+`edict_size_effect` and `edicts_upkeep_mult`; the budget's `edicts` unity is what goes beyond it.
+Without the mod: the estimate leaves out jobs (bureaucrats and priests under some civics).
+
+- **Do:** with mod 0.14.0, in the nomad campaign, open Government → Edicts and hover the Edict
+  Fund; enact an edict that fits in it, save, then one that does not, save.
+- **Send:** the fund tooltip (total and its lines) and both saves. Check: `sdash_ef_add` /
+  `sdash_ef_mult` against the tooltip, the fund against the dashboard's popup, and the second
+  save's booked `edicts` unity against the what-if's "pays".
+
 ## C. Not in the game
+
+### 37. Upkeep what-ifs and the net in trade — government, species, traditions, tech tabs (from 2026-11-15)
+
+**Assumed**: an upkeep `_mult` takes its share of what the budget books for its group today (an
+upper bound, as the output path); `planet_pops_organics_*` is the budget's `planet_pops_traits`;
+an edict's measured factor applies to its one-off cost too. Seen only against the save: 2203.09's
+Recycling Campaign ≈ +2.1 consumer goods for 15 energy (base, no edict active), net −10.8 trade.
+
+- **Do:** with ⚙ What-ifs on, note Recycling Campaign's line on the government tab; enact it,
+  let a month pass, then hover the consumer goods income in the top bar.
+- **Send:** the screenshots before and after, and the date. Check: the pops' consumer goods upkeep
+  fell by the estimate; the edict's upkeep in the budget against "pays".
+
+### 38. Crime decisions — colony what-ifs, recommendations (from 2026-11-15)
+
+**Assumed**: crime before enforcers = crime + 25 per enforcer job (an upper bound at crime 0);
+`planet_crime_mult` scales that gross crime; freed enforcer workforce works open jobs at the
+colony's average net output; criminal jobs fill from the unemployed first. Only the save checked:
+Selborne (Roaming Cyber Gang, 2210.10.20), crime 22.4, 0.36 enforcer jobs.
+
+- **Do:** on a colony with crime well above 25 (throwaway game, `effect add_modifier = { modifier
+= crime_wave days = 3600 }` on the planet), note both decisions' what-if lines; take the
+  campaign, let a month pass, lower the enforcer jobs' priority until crime sits near 25.
+- **Send:** the colony's crime, enforcer and criminal jobs and stability tooltip before and after.
+  Check: enforcer jobs needed against "hold it at 25"; the stability tooltip's crime line (the
+  engine-side penalty nothing in the files gives).
 
 ### 14. Storage, computed — resources panel (open task, 2026-10-24)
 
@@ -595,6 +671,33 @@ pact −50). Most inputs are in the save (opinion, attitude, pacts, rivals, rela
 strength need work); the engine may add terms the files do not show, as the trade valuation did.
 **Calibrate like trade:** the diplomacy screen's acceptance tooltip per action at a few empires,
 against the formula — the files are a starting point, not the answer.
+
+**Built for research agreements and commercial pacts (2026-11-18, `#lib/pactAdvice.ts`, the pacts
+tab's "Pacts to offer" behind the `pactAdvice` spoiler) — uncalibrated.** Assumed, each to check:
+the AI accepts above 0; "no border" (`border_range` 2147483647, a nomad's with everyone) adds no
+distance term; the commercial "collected trade value" is the 10 % share each side passes on, not the
+whole trade; the attitude term is 100 for `alliance`, else 50 for `coexist`. Roaming Korinth
+2217.06.01 read Mishar Pact ≈ +133 (research) / +156 (commercial), Pact of Fellnoll ≈ −50 / −3,
+Mictor Continuity ≈ −32 (commercial). **The game said −13** for Mishar's commercial pact on
+2217.07.01 (screenshot `2026_11_18_1.png`, the proposal dialog; the model ≈ +158 that day), so the
+sum is now read as an upper bound: only ≤ 0 greys a row. First suspect: the opinion term, +182 (0.4
+× their `relation_current` of us, 454) — without it the sum is ≈ −24. The same dialog showed the
+upkeep 0.40 influence (base 0.25: Isolationist +100 %, the nomad ruler −5 % a level), now measured
+from the budget (`pactUpkeep()`). **The tooltip lists no terms at low intel** ("Since we do not
+have enough intel, we can only speculate as to their reasons.", screenshot `2026_11_18_2.png`; our
+intel on Mishar 11 in the manual save `2217.07.01.sav`), so the term breakdown on the pacts tab is
+more than the game shows (behind the `pactAdvice` spoiler). That save: their `relation_current`
+of us 454 (the opinion, confirmed 2026-10-19), honorbound_warriors (commercial −20), cordial; and
+**a research agreement signed with them** between the 09:45 autosave and it (the model: ≈ +134) —
+so the missing ≈ −170 is not a term every pact shares (distance, stance), but the commercial
+pact's own: its trade terms, or an engine term for commercial pacts only. A research agreement
+lifts our intel to at least 30 (`INTEL_FROM_RESEARCH_AGREEMENT`): hover again a month later.
+
+- **Do:** in the nomad campaign (or any), open Diplomacy → propose a research agreement and a
+  commercial pact to two or three empires; hover the acceptance.
+- **Send:** a screenshot of each acceptance tooltip — hovered, so its terms show — and the save of
+  that day. Check each term
+  against the tab's popup (Accept column), and a distant settled empire's border distance term.
 
 ### 9. After the answers come in
 

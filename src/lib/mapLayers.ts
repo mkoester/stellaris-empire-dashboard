@@ -1,4 +1,4 @@
-import { pretty } from './format.ts';
+import { contactStage, pretty } from './format.ts';
 import { parseMapMode, type MapMode } from './mapModes.ts';
 import { NOMAD_ECONOMY } from './nomad.ts';
 import { shipLabel } from './ships.ts';
@@ -69,6 +69,12 @@ export type MapShips = (typeof MAP_SHIPS)[number];
 export type MapFilter = { hidden: MapLayer[]; ships: MapShips; mode: MapMode };
 export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], ships: 'off', mode: 'empire' };
 
+// a contact's stage by its number, if it has one (`contactStage()`)
+const stageOf = (stage: string) => {
+	const n = contactStage(stage);
+	return n === null ? '' : `stage ${n}, `;
+};
+
 export function parseMapFilter(v: unknown): MapFilter {
 	const o = (v && typeof v === 'object' ? v : {}) as Partial<MapFilter>;
 	return {
@@ -136,6 +142,7 @@ export type MapMarker = {
 	// no longer to be done: resolved, excavated, met, counted, claimed — or told by another marker
 	done: boolean;
 	doneAt?: string | null; // the first save showing it done, where the history tells
+	tip?: string | null; // what it leads to, as tooltip text (anomalies, projects, dig sites; spoilers)
 };
 
 /** A thing as the branch's saves list it: its latest reading, and the first save showing it done. */
@@ -219,7 +226,7 @@ export const anomalyKey = (a: Pick<AnomalyInfo, 'planetId' | 'category'>) =>
 
 const days = (d: number | null) => (d === null ? '' : `, ${Math.ceil(d)} days left`);
 
-const isGate = (t: string) => /gateway|lgate/.test(t);
+export const isGate = (t: string) => /gateway|lgate/.test(t);
 const isRuin = (t: string) => /ruined/.test(t);
 const structure = (t: string) =>
 	(/^lgate/.test(t) ? 'L-Gate' : pretty(t.replace(/_(permanently_)?ruined.*$/, ''))) +
@@ -241,6 +248,13 @@ export function mapMarkers(p: {
 	entries?: (SystemEntry & { detail: string; seen?: Seen | null })[];
 	firstSeen?: FirstSeen; // from the branch's saves (firstSeen())
 	anomalyLevels?: Record<string, number | null>; // category → level, the anomaly's difficulty
+	digSiteNames?: Record<string, string>; // site type → name
+	// what each leads to, as text (`outcomeTips()` in server/outcomes.ts); null behind its spoiler
+	tips?: {
+		anomaly: (category: string) => string | null;
+		project: (key: string) => string | null;
+		digSite: (type: string, chapter: number | null) => string | null;
+	};
 }): MapMarker[] {
 	const visited = (id: number) => p.firstSeen?.systems.get(id) ?? null;
 	const shown = new Set(p.galaxy.map((s) => s.id));
@@ -266,7 +280,7 @@ export function mapMarkers(p: {
 				: {
 						done: false,
 						ongoing: c.leaderId !== null, // an envoy on it
-						progress: `${pretty(c.stage)}, ${c.clues} clues${days(c.daysLeft)}`
+						progress: `${stageOf(c.stage)}${c.clues} clues${days(c.daysLeft)}`
 					})
 		})),
 		...p.seen.map((s) => ({
@@ -285,6 +299,7 @@ export function mapMarkers(p: {
 			detail: `anomaly at ${a.planet}`,
 			difficulty: p.anomalyLevels?.[a.category] ?? null,
 			seen: p.firstSeen?.anomalies.get(anomalyKey(a)) ?? null,
+			tip: p.tips?.anomaly(a.category) ?? null,
 			...done(a)
 		})),
 		...p.digSites.flatMap((d) =>
@@ -294,9 +309,10 @@ export function mapMarkers(p: {
 						{
 							layer: 'digSites' as const,
 							systemId: d.systemId,
-							label: pretty(d.type),
+							label: p.digSiteNames?.[d.type] ?? pretty(d.type.replace(/^site_/, '')),
 							detail: 'dig site',
 							difficulty: d.difficulty,
+							tip: p.tips?.digSite(d.type, d.chapter ?? null) ?? null,
 							seen: p.firstSeen?.digSites.get(d.id) ?? null,
 							...(isTrackedDone(d)
 								? { ...done(d), progress: 'excavated' }
@@ -325,6 +341,7 @@ export function mapMarkers(p: {
 							systemId: s.systemId,
 							label: s.name,
 							detail: 'special project',
+							tip: p.tips?.project(s.key) ?? null,
 							...done(s)
 						}
 					]

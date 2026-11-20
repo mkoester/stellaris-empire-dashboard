@@ -11,11 +11,18 @@ whether war bars a deal is open, `docs/open-checks.md` 6) —
 with what the diplomacy screen shows: personality and its `trade_willingness`, attitude towards
 us (one that does not trade refuses everything: data DB `attitude.trade`), their opinion of us
 with its modifiers, trust, our deals, a gift's "Favorable Trade Deal" (data DB `opinion_modifier`:
-+1 a point, max 100, decay 2 — a year, on the first gift's anniversary, seen 2202.06.01). With the **`tradeIntel`**
-spoiler (cheating — their stockpiles and income; the route strips them otherwise): the deal
++1 a point, max 100, decay 2 — a year, on the first gift's anniversary, seen 2202.06.01). Two switches since
+2026-11-18 (the user's ask; one cheat before): the **`tradeIntel`** spoiler (`intel`) shows the deal
 finder (we give X, for Y: per empire the most Y it would give per X, against selling X and buying
-Y on the market with the fee) and per empire and resource whether it is short (under a third of
-its storage) or flush (over three quarters). **Estimated**: the AI's valuation is engine code;
+Y on the market with the fee), what a resource costs in trade and what a gift buys; the
+**`tradeStockpiles`** cheat their stockpiles — the finder's "They take", "They spare" and "Can they
+afford it", and per empire and resource whether it is short (under a third of its storage) or flush
+(over three quarters). The estimates rest on stockpile and income, so the route sends them with
+either switch (both barred in multiplayer and Ironman) and strips them with neither; a profile that
+had the old switch on gets both. The price and gift tables colour each value against the market's
+row: plain the same, orange → green the better (the column's best bold), grey worse; gifts per
+empire against +0 (its best resource bold, +0 grey). The gift table counts per 1,000 trade of each resource (`valuesOf()`; the default) or per 1,000 units,
+to see which resource buys the most opinion for the same value. **Estimated**: the AI's valuation is engine code;
 measured 2026-10-23 on three empires (one fallen) and gifts to 13 more
 (`docs/trade-calibration.md` → What we know; every tooltip line is a case in `aiTrade.test.ts`): the
 acceptance is our side's worth × the AI's willingness minus its side's, linear in the amount
@@ -279,9 +286,36 @@ collected** (`uncollected()`):
 - **Rival slots**: 0.5 influence a rival (`common/diplomacy_economy`, valued at what a rival books
   now when there is one); slots 3 (`empire_base`) + 2 with the Animosity stance
   (`diplo_stance_animosity*` policy flag) + 1 with `tr_enmity_adopt`.
+  **Who can be declared a rival** (4.5.4 `diplomatic_actions/00_actions.txt` `action_make_rival`,
+  checked 2026-11-16 for the user's question): any of our opinion **of them** ≤ terrible (−750,
+  `OPINION_TERRIBLE`), **an envoy of ours harming relations with them** (`is_harming_relations_with`
+  — no need to wait for opinion to drop), war, a Supremacist or Animosity stance on either side,
+  their rivalry of us, a fallen empire either side, the Mirror Empire. **An insult does not
+  qualify**: `opinion_insult` (−200, decays 2 a month) sits on the insulted empire's opinion of us,
+  and the rule reads ours of them. Never for purifiers (other species), devouring swarms,
+  terminators (organics), assimilators, inward perfection, or against one's own subjects or
+  overlord. A rival books +0.5 influence: for an empire at its influence cap, the slots are no
+  help.
 - **Lost at the storage cap** (`lostAtCap()`): with companion mod's `storageMax`, the net while at
   it; without, a stockpile that did not move although the budget booked a gain (Planetforgers
   2214.01–02: 1000 both, +5.8 booked) — estimated; the unexplained row then says so.
+
+**Where influence can go** (`#lib/influenceSinks.ts` pure, the user's ask 2026-11-16: "this time
+I have too much influence; find all possible sinks"): every cost and upkeep naming influence in the
+4.5.4 files — a scan of every `cost`/`upkeep` block under `common/`, plus the defines' outpost,
+claim, branch office, capital, GalCom and agreement costs —, as base costs, grouped. **Hidden**
+what this empire cannot use in this playthrough (the user's rule: a nomad never settles, a settled
+empire never embarks): nomad-only (`is_nomadic` potentials: waystations, arkships, wayline pacts)
+or settled-only (outposts, claims, the capital, megastructures that must be inside the borders —
+gateway, ring world, orbital ring, habitat complex, Dyson gun; hyper relay, quantum catapult and
+cosmogenesis work at a waystation), and what needs an origin, civic or authority the empire lacks
+(branch offices: `auth_corporate`; the knights, wilderness, deep sleep, worldscaping, Inner
+Focus). **Greyed**, with the reason on hover: a tech or perk not yet had, no regular empire with
+communications (pacts, envoys, espionage, proxy wars, claims), the GalCom not founded or not a
+member, no Galactic Council, no subject; a group with nothing available greys its header too. Left out: the CFL trophy relics and Flash-Forge Hyper
+Relay (neither read from the save); the Imperial Council is always greyed (the emperor is not
+read). Roaming Cyber Gang 2213.08.02 (nomad, no communications with a regular empire): every
+pact greyed, the waystation and a new arkship open.
 
 **Contracts tab** (`/contracts`, `#lib/contracts.ts` pure, `server/contracts.ts`; the user's ask
 2026-11-07: contracts for nomadic and settled empires, a tab and on the maps). `Snapshot.contracts`
@@ -295,6 +329,33 @@ empire sees what it issued; the spoiler adds others' contracts up to `contractVi
 beyond the border (`jumpsFromBorder()` over discovered lanes — Planetforgers 2214.02.01: 32 of 129
 visited systems reachable, so most contracts need range "anywhere"), the cheat everything.
 What the game shows a settled empire of others' contracts is not known (`docs/open-checks.md` 32).
+The tab bar dims the tab by the same rule (`tabData.ts` uses `whyOf()`, without spoilers): a
+nomad's offers from empires it talks to count — before, only issued or taken ones did, and Roaming
+Cyber Gang 2218.12.01 (two offers listed) had the tab greyed (the user's report 2026-11-18).
+**Details per contract** (the user's ask 2026-11-18: what to do, what it costs, how long, which
+arkship): `contractDetail()` from the data DB's `contract` (`description` with `{issuer}` /
+`{system}` filled, `steps`, `reward_json`, `failed_opinion`, `operator_techs_json`) and the
+`special_project`s of its `event_chain` (days, `requirements_json` — `carries_colony` is an arkship
+—, `arkship_branches`); `detailed: false` with an older data DB, the line says so. The reward is
+`contract_scaling_reward_effect` × `contract_bonus_value` (+10 % per `country.variables.
+contract_completed`, `Snapshot.contractsCompleted`, READER 66) plus unscaled influence; the other
+factor `nomadic_contract_value_mult` is not read, so the scaled amounts and the trade total carry
+≈ (a lower bound). Cost to the operator: no resources — the arkship's time, and the issuer's
+opinion on failure. Arkships: jumps from each along the known lanes (the graph the Beyond column
+uses), nearest first; **no days** — a jump's duration is not read (`docs/open-checks.md` 32). A
+contract without projects (Diplomatic Support: the AI's travel project only, a player gets points
+of interest) counts as an arkship's job. `arkship_branches` (Colony Startup only, 4.5.x) changes
+the _issuer's_ colony bonus, not our reward: `branchLine()` says so and names what our nearest
+arkship would give (`COLONY_SUPPORT`, hand-copied from the game files — re-check on updates). `pageLatest()` drops `contracts`: the galaxy's list names
+issuers we never met (it reached every page until 2026-11-18).
+**Who is aboard** (the user's ask 2026-11-19: two arkships at the pickup, the game picks one at
+random and no panel says which): Diplomatic Support, Prisoner Disposal and the Sightseeing Tour
+mark the carrying arkship's _fleet_ with a flag (`CONTRACT_CARGO`); `arkships()` keeps those
+flags as `Arkship.cargo` with the day set (READER 67; a flag's value is its hour, `flagDate()`),
+and `aboardOf()` names the ship in the Nearest arkship column and the details. The flag names no
+contract, but a nomad can hold only one of each type (`already_doing_same_contract`), so the key
+links them exactly — no guessing. Checked on Roaming Cybergang 2225.08.21: Farleigh, as the save's
+`carrying_delegates`.
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
 name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the

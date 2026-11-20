@@ -7,13 +7,36 @@ How to check a change end to end on a DB copy, replay a live month, read a save 
 4.0.1 save fails one); for an ad-hoc look at any save, a throwaway `src/lib/server/*.test.ts`
 calling `readSave`/`toSnapshot` (and `loadGameData` for the data DB) works — delete it after.
 
+**A change to the save reader that must not change its output is checked on real saves, old tree
+against new** (2026-11-15, the split of `save.ts`): `git archive develop src package.json | tar -x`
+into `$TMPDIR` with `node_modules` linked, then one Node script per tree that imports
+`src/lib/server/save.ts` and `gamedata.ts` (Node runs the `.ts` files as they are), reads the same
+saves with `loadGameData(<data DB>)` and writes each snapshot's JSON; `diff` them. Read each save
+alone _and_ after another: that comparison is what showed the old reader's names following the
+save read before, which no unit test could see (each sets its own state).
+
+**Tests of a server module that reads the process-wide state** (`getDb()`, `getGameData()`) set
+`globalThis.__stellarisDashboard` before a dynamic `import()` of the module — `planner.test.ts` is
+the pattern, with an in-memory DB and only the game data fields its goals read. This is also why
+vitest keeps one worker per file (`isolate`, its default): with shared workers that state would
+leak between test files.
+
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
 dev server ingests saves and moves the head). On the Linux game machine the one in use is
 `~/.local/share/stellaris-empire-dashboard-test/` (every campaign, the nomad Roaming Korinth
-included, 2026-10-31) — `~/.local/share/stellaris-empire-dashboard/` is stale since 2026-10-18
-(UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. Copy `dashboard.sqlite*` (WAL files included) to a
-temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir, then request
-pages and `/__data.json` with curl and stop the server — all in one command where the sandbox gives
+included, 2026-10-31) — on mkTuxedCachy there is no `-test` folder, and the released zip's own
+`~/.local/share/stellaris-empire-dashboard/` is the one in use (2026-11-15); on the game machine
+it is stale since 2026-10-18
+(UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. **Take the copy with
+`sqlite3 <db> ".backup '<copy>'"`** (consistent while the dashboard writes); **once the dashboard
+is closed, open the source as `file:<db>?immutable=1`**: with no `-shm` left, SQLite must create
+one beside the DB, which the sandbox cannot, and every open fails "unable to open database file"
+(2026-11-16). Or copy `dashboard.sqlite*` (WAL files included) to a
+temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir (or a copy of
+one campaign's folder, so a READER bump re-reads only that campaign — it then logs "cannot read
+the launcher's playsets" on every read: no launcher DB beside the copy, harmless, 2026-11-18), then request
+pages and `/__data.json` with curl (to only read what the copy holds, point `STELLARIS_SAVE_DIR` at an
+empty folder: nothing is ingested, the head stays) and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
 `data` with `unflatten` from `node_modules/.pnpm/devalue@*/node_modules/devalue/index.js` (a
 `node --experimental-strip-types` script can import the pure `src/lib/*.ts` to recompute from it).
@@ -38,6 +61,46 @@ lines (the real log's, or written from a snapshot's stockpile and balance — `p
 only the `SDASH|` part), fetch `__data.json`, then copy the next autosave in and fetch again. The
 save merges into the log month's node (same id, same tip). 2026-10-25: every state rendered 200
 server-side; a browser-side error needs a browser, which the sandbox cannot start.
+
+## The page check: open tasks (the user's, 2026-11-19)
+
+`scripts/check-pages.mjs` (`AGENTS.md`, "Checking a change") runs only on a player's real dashboard
+DB for now, so its result depends on whose DB and which campaigns.
+
+- [ ] **A test DB**: a small dashboard DB in the repo (or built by a script from throwaway-game
+      saves) that covers the page variants — a settled empire with colonies, a nomad, a custom tab
+      (`/tab/[id]` is never reached today), a multiplayer or Ironman campaign — so the check runs the
+      same for everyone and in CI.
+  - [ ] **Keep it up to date**: a migration (`MIGRATIONS` in `db.ts`) or a `READER` bump must
+        bring it along — decide how (regenerate from its saves, or migrate it on open and commit).
+- [ ] **Run it before a release, not on every change**, if it stays slow (about 2 min for 450
+      pages, 2026-11-19): a step in `RELEASE.md` (or the release workflow, once the test DB exists).
+
+## Measuring a page
+
+How 0.1.18's speed-up was found (2026-11-15): reading the code suggested a warm-up, the profile
+showed two queries. Measure the packaged path, not `vite dev`:
+
+1. `node_modules/.bin/vite build`; a folder holding a copy of `release/launcher.mjs` and a symlink
+   `app` → `build/` runs it as a zip would.
+2. A consistent DB copy, WAL included: `VACUUM INTO '<copy>'` from a read-only `node:sqlite`
+   connection. A copy of an older schema also runs the new migration, with its backup beside it.
+   **In the sandbox that open fails** ("unable to open database file", 2026-11-15) where the DB's
+   folder is not writable — the released zip's `~/.local/share/stellaris-empire-dashboard/` on
+   mkTuxedCachy; a WAL database needs its `-shm` beside it even to read. With the dashboard
+   stopped (no `-wal` file left) a plain `cp` of `dashboard.sqlite` is consistent; otherwise copy
+   all three files to `$TMPDIR` and `VACUUM INTO` from that copy.
+3. One command: start the launcher with `DASHBOARD_DB`, `STELLARIS_SAVE_DIR`,
+   `STELLARIS_DATA_DB` (one of `data/*.sqlite`), `XDG_DATA_HOME=$TMPDIR/…` and a `PORT`; wait for
+   `every campaign is up to date` in its log (**a catch-up re-reading saves makes requests ~1.5 s
+   and drowns every other effect**), time each route twice with `curl -w '%{time_total}'`, then
+   `kill -INT` the launcher.
+4. To see where the time goes, start it with `node --cpu-prof --cpu-prof-dir=<dir>`, request one
+   page ~15 times, stop it, and sum the profile's `samples`/`timeDeltas` per function (self and
+   total time). A cost every route shares sits in `+layout.server.ts`.
+5. A suspect query: `EXPLAIN QUERY PLAN` and a timed `prepare().all()` on the copy, before and
+   after a candidate `CREATE INDEX`. SQLite takes an expression index only when the query cannot
+   use another one first (`+n.campaign`, `campaignIronman`).
 
 ## Testing in a throwaway game
 

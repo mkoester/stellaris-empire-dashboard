@@ -2,10 +2,27 @@
 	import { fmt } from './format.ts';
 	import ResourceChips from './ResourceChips.svelte';
 	import type { LuxuryWhatIf } from './luxuries.ts';
+	import { valueOf } from './value.ts';
+	import type { Resources } from './types.ts';
 
 	// What the planet decision "Distribute Luxury Goods" would bring if enacted now, or until when
 	// it runs (#lib/luxuries.ts). The chain is the panel above's, so it is ≈ as that is.
-	let { what, until }: { what: LuxuryWhatIf | null; until: string | null } = $props();
+	let {
+		what,
+		until,
+		tradeValues
+	}: { what: LuxuryWhatIf | null; until: string | null; tradeValues: Resources } = $props();
+	const trade = $derived(
+		what
+			? {
+					monthly: valueOf(what.monthly, tradeValues),
+					total: valueOf(what.total, tradeValues),
+					cost: valueOf({ consumer_goods: what.cost }, tradeValues),
+					net:
+						valueOf(what.total, tradeValues) - valueOf({ consumer_goods: what.cost }, tradeValues)
+				}
+			: null
+	);
 
 	const pct = (v: number) => `${v > 0 ? '+' : ''}${Math.round(v * 1000) / 10} %`;
 	const pts = (v: number) => `${v > 0 ? '+' : ''}${Math.round(v * 10) / 10}`;
@@ -27,6 +44,14 @@
 			{pts(what.stability)} (to {Math.round(what.stabilityAfter * 10) / 10}) → job output {pct(
 				what.output
 			)}
+		</div>
+		<div class="mt-1">
+			trade value now: +{fmt(trade!.monthly)} / month → +{fmt(trade!.total)} over 10 years; −{fmt(
+				trade!.cost
+			)} once →
+			<b class={trade!.net >= 0 ? 'text-green-600' : 'text-red-600'}>
+				net {trade!.net >= 0 ? '+' : '−'}{fmt(Math.abs(trade!.net))} trade over 10 years
+			</b>
 		</div>
 		{#if what.output > 0}
 			<div class="mt-1">

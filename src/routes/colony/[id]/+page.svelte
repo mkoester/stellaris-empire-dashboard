@@ -141,7 +141,7 @@
 	<div class="grid items-start gap-x-4 lg:grid-cols-2">
 		<ColonyWellbeing colony={data.colony} rules={data.wellbeing} gestalt={data.gestalt} />
 		<ColonySpecies rows={data.species} />
-		<LuxuryGoods what={data.luxuries} until={data.luxuriesUntil} />
+		<LuxuryGoods what={data.luxuries} until={data.luxuriesUntil} tradeValues={data.tradeValues} />
 		<ColonyLogistics what={data.logistics} />
 		<ColonyWhatIfs
 			what={data.whatIfs}

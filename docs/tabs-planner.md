@@ -15,7 +15,13 @@ cannot move a change to another branch; changing the plan at an old node reaches
 branch below it (the page says how many). Goals of other branches missing here (by id, or by
 kind and target — `goalKey()`, free-text goals by their text) are offered to copy; one not
 possible here is copied **parked** ("a potential step to plan again", the user's ask). Each goal
-is **want or avoid**; an avoided goal that comes true shows "happened" in red. **Status**
+is **want, later or avoid**; an avoided goal that comes true shows "happened" in red. **Later**
+(the user's ask 2026-11-16: "I might want to delay some tech options, so a `-want` button"):
+wanted, but not yet — it counts as wanted everywhere (status, alerts, what a tech needs), and only
+Upcoming tells it apart: on offer, its row says to pick another card (`plannedOnOffer()`). The
+"− want" button on tech goals, shortcuts and potential goals sets it ("+ want" undoes it), ⏸ marks
+it; the add form offers "want it later". Stored as `polarity: 'later'` in `plan_event` (no
+migration: `planAt()` reads an unknown polarity as want, `parsePlanRequest()` refuses one). **Status**
 (`check()`): done, under way, open, no longer possible (blocked), unknown — against the branch's
 latest full save and the campaign's galaxy as the viewer may see it (`campaignGalaxy()`, spoilers
 respected); "since" walks back over the saves (`holdsSince()`, "by" where a save cannot tell —
@@ -32,14 +38,27 @@ ethic (blocked by `civicAuthority`), government type, free text (ticked by hand)
 outpost goal shows blocked) and offers instead **waystations** (4.5.3
 `megastructures/30_nomad_waystation.txt`: nomads only, one per system, an unowned system fully
 surveyed, an owned one intel on its owner's deposits; done = a station of ours whose level starts
-`waystation` — `starbase_level_waystation_<n>`, spelling as `stations()` strips it, **not yet seen
-in a save**) and **arkships** per type (civilian, science, military — `<type>_arkship_megastructure`
+`waystation` — `starbase_level_waystation_<n>`, spelling as `stations()` strips it; seen in
+`roamingcybergang` 2213.08, the AI nomads' 33) — the roaming tab adds them, a whole wayline at once,
+and their modules as `station_module` goals and **arkships** per type (civilian, science, military — `<type>_arkship_megastructure`
 in `megastructures/29_nomad_arkships.txt`; counted from `Snapshot.ships` sizes
 `<type>_arkship_tier_<n>`, any tier; a settled empire gets neither). **Goals the save implies**
 (`autoGoals()`, passed to `planAt()` as seeds with stable ids `auto-tr-<key>` / `auto-ap-<key>`):
 every tradition of each adopted tree — taken ones show done with their date and land in the
 history's "reached" list, the rest are the tree's remaining picks — and every perk taken; they
 can be ordered, noted and removed (a removal sticks), and give way to the same goal added by hand.
+**Wanderlust** (the user's ask 2026-11-17: prioritise categories, pick targets on the map, see
+what was found; `outlook()` in `#lib/wanderlust.ts`). Per category: counted / needed, **found**
+(targets in systems visited or owned — never a spoiler), still open = found − counted (every
+counted system is one we entered, so this needs no `visited_by_nomad` flag) and **finishable**
+when the open ones cover what is missing. A system flagged twice counts for its first category
+only (`countsFor()`: nomads.4720 tests the flags with else_if). The category goal says it ("1 of
+2, 1 found to visit: enough to finish"), the suggestions list finishable categories first, the
+map's Wanderlust line underlines them; the map's right-click offers an arkship visit as a _want_
+for a target not yet counted whose category is not done (an unvisited one only with the spoiler).
+The chain does not end at the fourth category: the perk's second modifier comes at four done (a
+category with no targets in the galaxy counts as done), and every category keeps paying out until
+all eight end it (`complete_nomad_exploration_effect`).
 **Popups** (`explanations()`): the game data's for techs, traditions, perks, buildings and
 civics; a Wanderlust category its reward, the static modifier `<category>_modifier` (4.5.3
 `missions/01_missions_nomads.txt`); focus cards built here (`focuscard:`: requirement, progress
@@ -79,11 +98,16 @@ techs of tier 1", the user's ask) and the plan's order decides within a tier. **
 (`badgeOf()`, `areaOf()`): a tech's and tier gate's tier (T1…) and research area in the game's
 colours (`<area>_research`), a tradition's place — adopt, pick, finisher (the community's word;
 the game says "… Traditions Finished"; its tree's colour from the data DB as a stripe,
-`tintOf()` → `tintColor()`) —, perk; the research group filters by area (per viewer,
-none on = all, suggestions too); the history shows them with the goal's group, its reorderings
-behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
-(`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, none that
-another goal or the save implies): OK removes them with it (they are derived, so nothing is
+`tintOf()` → `tintColor()`) —, perk; ascension-path trees and path perks also carry an `ascension`
+badge. The research group filters by area (per viewer, none on = all, suggestions too). Potential
+goals list traditions and perks; same-name perk variants collapse to the one whose
+availability is best established for this empire. Ascension trees with duplicate names appear once;
+trees whose potential or adoption rules are known to fail for this empire are dimmed and labelled.
+Planning a perk that opens a tradition tree also plans that tree and its traditions; trees known to
+be unavailable are skipped. The history shows badges with the goal's group,
+its reorderings behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
+(`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, or a
+perk's linked tree; none that another goal or the save implies): OK removes them with it (they are derived, so nothing is
 stored), Cancel keeps them as goals of their own (an add each). **Focus** (the user's ask 2026-10-31: "split this — tasks give points to one of three areas; the
 rewards per area as entries of their own"): a **task** (`focus_card`) carries its area and points
 as a badge in the area's colour (`tintOf()`: `focus-<area>`; "all +10" for core cards), its popup
@@ -113,7 +137,11 @@ tree first ("Cybernetics (adopt) · opened by The Flesh is Weak"). Nomads settle
 buttons on other tabs). Potential goals start folded, per group, their "+ want" and "⊘" (avoid)
 buttons at the left of each row, the row lit on hover. **Shortcuts** (the user's ask 2026-11-06:
 "techs almost every player would want, offered as shortcuts"; `#lib/planner/shortcuts.ts`,
-`shortcuts()` in `server/planner.ts`): bundles of techs above the potential goals — economy core,
+`shortcuts()` in `server/planner.ts`): bundles of techs above the potential goals — **nomads** (first; every tech has `potential =
+is_nomadic`, so only nomads see it; the user's ask 2026-11-16: "things I need rather fast, e.g.
+more logistic ships": logistic ships are capped by `nomadic_constructor_limit_add`, 2 from the
+start, +2 each from Waystations II and III, +1 per Logistics Hub waystation module — nothing else
+in the 4.5.4 files; then the arkship techs), economy core,
 research buildings (`tech_physics_1`, `tech_society_1`, `tech_engineering_1`: each field's lab),
 its second step, strategic resources, habitats and terraforming, military, late game — each tech
 with "+ want", each bundle with "+ add all"; prerequisites and tier gates follow via `techNeeds()`.
@@ -141,7 +169,7 @@ rings (their `Station.level` not yet seen in a save), espionage (nothing in the 
 DB). **Other
 tabs**: `AddGoal.svelte` ("+ goal", ✓ once planned, from the layout's `plan.keys`) on the tech
 offers, traditions and perks, the colony page (districts up to their cap, queued buildings),
-expansion candidates, megastructure rows and the situations tab's first contacts, anomalies and
+expansion candidates, megastructure rows and the frontier tab's first contacts, anomalies and
 dig sites; the map's right-click (`GalaxyMap` `onsystemmenu`, left button only for pan and pick;
 `ContextMenu.svelte`; `GET /api/plan?node=&system=` → `systemGoals()`) and its `planned` layer.
 The tab bar's badge counts blocked wanted goals and avoided ones that happened (`planSummary()`,
@@ -150,6 +178,38 @@ viewer (localStorage). Checked 2026-10-31 on a DB copy (Roaming Korinth, head #3
 leaf 363): goals stayed on their branch, each offered on the other, a bad body 400, a node of
 another campaign 409, every touched tab 200. Drag, the right-click menu and the buttons need a
 browser — not seen yet.
+
+**When a goal is paid for and built** (`#lib/planner/cost.ts`, `#lib/planner/eta.ts`, the user's ask
+2026-11-17: "how long it takes me to gather all the resources to build another planned arkship, some
+megastructure, etc."). Every open goal of a kind with a known cost shows a line under its status:
+what it still costs, **start** (the stockpile holds the cost) and **built** (start + its base build
+days), each at this month's net and at the **mean net of the last N game months** (⚙ "Planner: mean
+income", default 6, `incomeWindow`). A second pair, **in plan order**, pays the queued goals above it
+first (wanted or later, not done, blocked or parked; page order, groups top to bottom) out of the same
+stockpile and income, so its time is that of their sum with its own — behind the ⚙ switch
+`planOrder` ("Planner: also time each goal in plan order", off by default; the user 2026-11-17).
+The line highlights **start at this month's net**; the mean's time stays grey beside it. The
+tooltip lists every resource needed: amount, what is in stock, and when it is there at either income
+(`CostRow.resources`, from `eta().each`).
+
+- **Costs:** the data DB's base costs, before modifiers, so always ≈. Arkships: the ones still
+  missing × `<type>_arkship_megastructure`; megastructures: every stage after the one in the system
+  (`stageChain()`, numbered stages along `upgrade_from`; ruins and restorations are not planned);
+  waystation, outpost, starbase levels (each level up to the wanted one), modules, starbase
+  buildings, districts (the ones still missing) and buildings. The bio-ship variant from the shipset
+  (`shipKinds` has `bio_ship`: half the alloys, the rest as food); unknown shipset → the regular cost.
+  Megastructure costs need extractor 2026-11-17 (`megastructure`, `megastructure_resource`); an older
+  data DB has neither, and those goals show no line.
+- **One-time spending is out by construction:** the net is the budget's (`balance`), which books
+  recurring flows only; construction, edicts and decisions move the stockpile, not the net
+  (`unbooked()` in `#lib/series.ts` is what the budget does not explain). The mean takes each game
+  month's last reading once.
+- **Never:** no income of a needed resource, or the cost above its storage ("exceeds storage" —
+  megastructures are paid up front; storage exact with the companion mod, else the base estimate of
+  `#lib/storage.ts`). The plan-order sum is not held against storage: it is paid as it goes.
+- Checked 2026-11-17 on Roaming Cybergang (bio shipset, 2215.01): a Scientific Arkship 500 influence,
+  5000 alloys, 17 500 food; start (17 500 − 2752 food) / 163.43 a month = 90 months, matching the
+  page.
 
 **Trade-offs tab** (`/tradeoffs`, behind the profile's `tradeoffs` switch in ⚙ — exploratory, the
 user's ask 2026-10-22: "when to spend scarce resources on what"; `#lib/tradeoffs.ts` pure,

@@ -107,6 +107,7 @@ export function playerColonies(raw: RawSave): Colony[] {
 				.filter((d) => typeof d === 'string'),
 			planet: planet ? planetState(raw, planet) : null,
 			timedFlags: timedFlags(planet?.flags, raw.date),
+			flags: Object.keys(planet?.flags ?? {}),
 			buildQueue:
 				planet?.build_queue !== undefined ? buildQueue(raw, Number(planet.build_queue)) : [],
 			buildSlots:
@@ -152,7 +153,7 @@ export function migration(
 			planetId: Number(planetId),
 			name: displayName(p.name),
 			ownerId: Number(p.owner),
-			owner: own ? raw.empireName : (raw.countryNames[String(p.owner)] ?? `empire ${p.owner}`),
+			owner: own ? raw.empireName : (raw.countryNames[String(p.owner)] ?? 'unknown empire'),
 			own,
 			system: displayName(sys?.name),
 			x: num(sys?.coordinate?.x),

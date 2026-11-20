@@ -13,6 +13,16 @@ import {
 	tradeBase
 } from '#lib/pacts.ts';
 import { getGameData } from '#lib/server/app.ts';
+import {
+	advise,
+	commercialGain,
+	pactUpkeep,
+	researchGain,
+	type Other,
+	type Us
+} from '#lib/pactAdvice.ts';
+import { valuesOf } from '#lib/server/unitCosts.ts';
+import { valueOf } from '#lib/value.ts';
 import { branch } from '#lib/server/branch.ts';
 import { display } from '#lib/server/settings.ts';
 import { researchSpeed } from '#lib/researchSpeed.ts';
@@ -21,9 +31,28 @@ import { evaluate } from '#lib/triggers.ts';
 import { xExtent } from '#lib/series.ts';
 
 // What each pact gives, per type and partner (#lib/pacts.ts). What the game shows a player stays
-// plain; partners' tech counts and, at economy intel 3, their trade need the `pactIntel` spoiler;
-// their techs, every partner's trade and the tech hints the `pactAll` cheat. Nothing else of a
-// partner leaves the server.
+// plain, and what each commercial pact brings, always (the user's ask 2026-11-17); partners' tech
+// counts need the `pactIntel` spoiler, their techs and the tech hints the `pactAll` cheat. Nothing
+// else of a partner leaves the server. Whom to offer a research agreement or a commercial pact
+// (#lib/pactAdvice.ts) needs the `pactAdvice` spoiler: ranked by what each brings, greyed where
+// the game would refuse it now; only names, the ≈ value and the reasons leave the server.
+type Advice = {
+	upkeep: Record<'research' | 'commercial', ReturnType<typeof pactUpkeep>>;
+	research: AdviceRow[] | null;
+	commercial: AdviceRow[] | null;
+};
+type AdviceRow = {
+	countryId: number;
+	name: string;
+	gain: Record<string, number>;
+	value: number;
+	available: boolean;
+	why: string[];
+	terms: { label: string; value: number | null }[];
+	total: number | null;
+	accepts: boolean | null;
+};
+
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
@@ -43,6 +72,8 @@ export function load({ url }) {
 		names: {} as Record<string, string>,
 		pactIntel: d.pactIntel,
 		pactAll: d.pactAll,
+		pactAdvice: d.pactAdvice,
+		advice: null as Advice | null,
 		xExtent: xExtent(snaps)
 	};
 	if (!latest) return none;
@@ -51,10 +82,9 @@ export function load({ url }) {
 	const partnersOf = (key: string) => types.find((t) => t.key === key)?.partners ?? [];
 	const intel = new Map((latest.intel ?? []).map((i) => [i.countryId, i.intel]));
 	const ai = new Map((latest.aiIntel ?? []).map((a) => [a.countryId, a]));
-	const intelLevel = (id: number, category: 'economy' | 'technology') =>
-		levelOf(intel.get(id) ?? 0, category);
+	const intelLevel = (id: number, category: 'technology') => levelOf(intel.get(id) ?? 0, category);
 
-	// commercial pacts: the booked total, split by partner where we may know its trade
+	// commercial pacts: the booked total, split by partner
 	const commercialTotal =
 		latest.budget?.find((s) => s.source === 'commercial_pacts')?.income.trade ?? 0;
 	const commercial = partnersOf('commercial_pact').length
@@ -62,8 +92,7 @@ export function load({ url }) {
 				commercialTotal,
 				partnersOf('commercial_pact').map((p) => {
 					const a = ai.get(p.countryId);
-					const shown = d.pactAll || (d.pactIntel && intelLevel(p.countryId, 'economy') >= 3);
-					return { countryId: p.countryId, base: a && shown ? tradeBase(a) : null };
+					return { countryId: p.countryId, base: a ? tradeBase(a) : null };
 				})
 			)
 		: null;
@@ -134,8 +163,107 @@ export function load({ url }) {
 				.map((h) => ({ ...h, name: name(h.key) }))
 		: null;
 
+	// whom to offer which pact: every empire we talk to without one yet
+	const advice = (() => {
+		if (!d.pactAdvice || latest.countryId === null) return null;
+		const ourId = latest.countryId;
+		const dip = new Map((latest.diplomacy ?? []).map((c) => [c.id, c]));
+		const country = new Map((latest.countries ?? []).map((c) => [c.id, c]));
+		const rel = new Map((latest.relations ?? []).map((r) => [r.countryId, r]));
+		const count = (id: number, flag: string) =>
+			(dip.get(id)?.relations ?? []).filter(
+				(r) => r.countryId !== ourId && r.agreements.includes(flag)
+			).length;
+		const government = latest.government ?? [];
+		const sources = latest.budget ?? [];
+		const us: Us = {
+			civics: government,
+			traditions: latest.traditions ?? [],
+			perks: latest.ascensionPerks ?? [],
+			megacorp: government.includes('auth_corporate'),
+			subject: (dip.get(ourId)?.overlord ?? null) !== null,
+			tradeBase: sources
+				.filter((s) => s.source !== 'commercial_pacts')
+				.reduce((n, s) => n + (s.income.trade ?? 0), 0)
+		};
+		const others: Other[] = (latest.aiIntel ?? []).map((a) => {
+			const c = country.get(a.countryId);
+			return {
+				countryId: a.countryId,
+				name: rel.get(a.countryId)?.name ?? c?.name ?? 'unknown empire',
+				type: c?.type ?? '',
+				civics: c?.civics ?? [],
+				subject: (dip.get(a.countryId)?.overlord ?? null) !== null,
+				ai: a,
+				relation: rel.get(a.countryId) ?? null,
+				pacts: {
+					research: count(a.countryId, 'research_agreement'),
+					commercial: count(a.countryId, 'commercial_pact')
+				}
+			};
+		});
+		const values = valuesOf(snaps);
+		const worth = (r: Record<string, number>) => valueOf(r, values);
+		// what current partners already speed up counts once (#lib/pacts.ts)
+		const covered = new Set(
+			partnersOf('research_agreement').flatMap((p) => ai.get(p.countryId)?.techsWeLack ?? [])
+		);
+		// what we would research next: the techs in progress and the cards on offer, else all in reach
+		const upcoming = [
+			...new Set([...current.map((c) => c.tech), ...Object.values(full?.techOptions ?? {}).flat()])
+		];
+		const next = upcoming.length ? upcoming : [...reach];
+		const row = (a: ReturnType<typeof advise>) =>
+			a?.map((x) => ({
+				countryId: x.countryId,
+				name: x.name,
+				gain: x.gain,
+				value: x.value,
+				available: x.available,
+				why: x.why,
+				terms: x.acceptance.terms,
+				total: x.acceptance.total,
+				accepts: x.acceptance.accepts
+			})) ?? null;
+		const upkeep = {
+			research: pactUpkeep('research', types),
+			commercial: pactUpkeep('commercial', types)
+		};
+		return {
+			upkeep,
+			research: progress
+				? row(
+						advise(
+							'research',
+							others,
+							us,
+							data,
+							(o) =>
+								o.ai.techsWeLack
+									? researchGain(o.ai.techsWeLack, next, covered, info, monthly)
+									: null,
+							worth,
+							upkeep.research.amount
+						)
+					)
+				: null,
+			commercial: row(
+				advise(
+					'commercial',
+					others,
+					us,
+					data,
+					(o) => ({ trade: commercialGain(o.ai) }),
+					worth,
+					upkeep.commercial.amount
+				)
+			)
+		};
+	})();
+
 	return {
 		...none,
+		advice,
 		asOf: latest.date,
 		types,
 		commercial: commercial && { ...commercial, total: commercialTotal },

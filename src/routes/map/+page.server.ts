@@ -25,6 +25,8 @@ import { display, setting } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
 import { plannedSystems } from '#lib/server/planner.ts';
 import { contractsAt } from '#lib/server/contracts.ts';
+import { outcomeNow, outcomeTips } from '#lib/server/outcomes.ts';
+import { outlook } from '#lib/wanderlust.ts';
 
 // The galaxy as the empire has discovered it: borders, first contacts, stations seen, anomalies,
 // dig sites, special projects, wormholes, gateways, megastructures and their ruins — each a layer
@@ -70,6 +72,8 @@ export function load({ url }) {
 		own: ownOnMap(b.latest),
 		arkships: arkshipsOf(snaps),
 		wanderlust,
+		// per category: found, still open, finishable by what we found (#lib/wanderlust.ts)
+		wanderlustOutlook: wanderlust && outlook(wanderlust, g),
 		systems: mapView(g, { ...reveal(), wanderlust: allTargets }, contactSites).map((x) => ({
 			...x,
 			capital: x.id === capital
@@ -128,7 +132,11 @@ export function load({ url }) {
 			firstSeen: firstSeen(saves),
 			anomalyLevels: Object.fromEntries(
 				Object.entries(data.anomalyCategories).map(([k, v]) => [k, v.level])
-			)
+			),
+			digSiteNames: Object.fromEntries(
+				Object.entries(data.digSiteTypes).map(([k, v]) => [k, v.name])
+			),
+			tips: outcomeTips(data, shown, outcomeNow(saves.at(-1), data))
 		})
 			.concat(contractMarkers(contractsAt(snaps, shown).rows))
 			.concat(

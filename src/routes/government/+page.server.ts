@@ -13,8 +13,8 @@ import { branch } from '#lib/server/branch.ts';
 import { identity } from '#lib/server/empire.ts';
 import { pick } from '#lib/server/explain.ts';
 import { display } from '#lib/server/settings.ts';
-import { whatIfInputs, whatIfOf } from '#lib/server/whatIfs.ts';
-import { swapModifiers, type WhatIf } from '#lib/whatIf.ts';
+import { edictFundFor, whatIfInputs, whatIfOf } from '#lib/server/whatIfs.ts';
+import { edictPrices, swapModifiers, type WhatIf } from '#lib/whatIf.ts';
 
 // The game's government screen: identity, council and agendas, policies, edicts (factions: the
 // ethics tab), read against the branch's latest save that has the government fields.
@@ -61,11 +61,17 @@ export function load({ url }) {
 	const whatIfs: Record<string, WhatIf> = {};
 	const inputs = showWhatIfs ? whatIfInputs(b) : null;
 	if (inputs) {
+		const prices = edictPrices(
+			edicts,
+			inputs.save.budget?.find((x) => x.source === 'edicts')?.expenses,
+			edictFundFor(inputs.save, edicts)
+		);
 		for (const e of edicts) {
 			const mods = data.edictModifiers[e.key];
 			const w = whatIfOf(
 				e.active ? Object.fromEntries(Object.entries(mods ?? {}).map(([k, v]) => [k, -v])) : mods,
-				inputs
+				inputs,
+				prices[e.key]
 			);
 			if (w) whatIfs[`edict:${e.key}`] = w;
 		}

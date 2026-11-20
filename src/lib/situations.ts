@@ -7,11 +7,62 @@ import type {
 	GalaxySystem,
 	Relation,
 	SituationInfo,
-	GameData
+	GameData,
+	Snapshot
 } from './types.ts';
 
-// The situations tab: first contacts (table and map), situations, anomalies, special projects and
+// The frontier tab: first contacts (table and map), situations, anomalies, special projects and
 // dig sites, from one save and the campaign's galaxy. Pure.
+
+/**
+ * What the branch's earlier saves had and `latest` no longer has — finished, or lost: the save
+ * cannot tell (an anomaly researched, a dig site's last chapter, a project done or failed, a
+ * situation ended). The user's ask 2026-11-16: "some decisions come after I officially finished
+ * something like anomalies … keep them in the overview, at the bottom and greyed out". Each with
+ * its last reading and that save's date, newest first. Saves without the list (`pick` null) are
+ * skipped, and so is everything after `latest`.
+ */
+export function gone<T>(
+	saves: Snapshot[],
+	latest: Snapshot | undefined,
+	pick: (s: Snapshot) => T[] | null,
+	key: (t: T) => string | number
+): (T & { lastSeen: string })[] {
+	if (!latest) return [];
+	const seen = new Map<string | number, T & { lastSeen: string }>();
+	for (const s of saves) {
+		const list = pick(s);
+		if (list) for (const t of list) seen.set(key(t), { ...t, lastSeen: s.date });
+		if (s === latest) break;
+	}
+	for (const t of pick(latest) ?? []) seen.delete(key(t));
+	return [...seen.values()].sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
+}
+
+/**
+ * Each situation's change per month as the saves show it, where the save's own
+ * `last_month_progress` says nothing (0 or absent): a situation whose progress script effects move,
+ * not its `monthly_progress`, keeps 0 there — 4.5.4 Operational Reserves
+ * (`situation_nomad_economy`) read 0 three months running while its progress fell
+ * 20839 → 20609 → 20379. Taken from the last earlier save that had the same situation, per
+ * 30-day month (`monthlyObserved`); kept as the save says it otherwise.
+ */
+export function observedMonthly<S extends SituationInfo>(
+	list: S[],
+	date: string,
+	earlier: { date: string; situations: SituationInfo[] | null }[]
+): (S & { monthlyObserved: boolean })[] {
+	return list.map((x) => {
+		const before = earlier
+			.filter((e) => e.date < date && e.situations)
+			.findLast((e) => e.situations!.some((y) => y.id === x.id));
+		const prev = before?.situations!.find((y) => y.id === x.id);
+		const months = before ? (gameYear(date) - gameYear(before.date)) * 12 : 0;
+		return x.monthly || !prev || months <= 0 || prev.progress === x.progress
+			? { ...x, monthlyObserved: false }
+			: { ...x, monthly: (x.progress - prev.progress) / months, monthlyObserved: true };
+	});
+}
 
 /** Whole months from `from` to `to` (game dates, 30-day months). */
 export const monthsBetween = (from: string, to: string) =>
@@ -47,14 +98,17 @@ export function contactRows(
 ): ContactRow[] {
 	const byId = new Map(galaxy.map((s) => [s.id, s]));
 	const jumps = jumpsFromBorder(galaxy);
+	const talks = (id: number) => relations.find((r) => r.countryId === id)?.communications ?? false;
 	return contacts.map((c) => ({
 		...c,
 		system: byId.get(c.systemId)?.name ?? String(c.systemId),
 		months: monthsBetween(c.date, date),
 		jumps: jumps.get(c.systemId) ?? null,
-		communications: relations.find((r) => r.countryId === c.countryId)?.communications ?? false,
+		communications: talks(c.countryId),
 		stations: galaxy.filter((s) => s.ownerId === c.countryId).length,
-		country: countries.find((x) => x.id === c.countryId) ?? null
+		// what it is only once we talk: the page has no business with it before (the user's ask
+		// 2026-11-17: no first contact spoiled)
+		country: talks(c.countryId) ? (countries.find((x) => x.id === c.countryId) ?? null) : null
 	}));
 }
 
@@ -85,7 +139,7 @@ export function stationOwners(
 		const c = countries.find((x) => x.id === id);
 		return {
 			countryId: id,
-			name: relations.find((r) => r.countryId === id)?.name ?? c?.name ?? String(id),
+			name: relations.find((r) => r.countryId === id)?.name ?? c?.name ?? 'unknown empire',
 			type: c?.type ?? null,
 			shipset: c?.shipset ?? null,
 			color: CATEGORICAL[(i + 1) % CATEGORICAL.length] ?? OTHER,
@@ -100,12 +154,13 @@ export type SituationRow = SituationInfo & {
 	category: string | null;
 	approachName: string | null;
 	stageName: string | null;
+	monthlyObserved?: boolean; // ±/mo taken from the saves (`observedMonthly()`)
 };
 
-export function situationRows(
-	situations: SituationInfo[],
+export function situationRows<S extends SituationInfo>(
+	situations: S[],
 	types: GameData['situationTypes']
-): SituationRow[] {
+): (S & SituationRow)[] {
 	return situations.map((s) => ({
 		...s,
 		name: types[s.type]?.name ?? s.type,

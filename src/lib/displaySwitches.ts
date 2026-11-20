@@ -7,7 +7,13 @@ import type { Display } from './profiles.ts';
 
 export type SwitchKey = Exclude<
 	keyof Display,
-	'colonyRowLine' | 'expansionRowLine' | 'slaveMarket' | 'showSpoilers' | 'showCheats'
+	| 'colonyRowLine'
+	| 'expansionRowLine'
+	| 'slaveMarket'
+	| 'mapFit'
+	| 'mapWidth'
+	| 'showSpoilers'
+	| 'showCheats'
 >;
 export type SwitchKind = 'normal' | 'spoiler' | 'cheat';
 export type Switch = {
@@ -26,7 +32,7 @@ export const SWITCH_GROUPS = [
 	'Maps',
 	'Expansion',
 	'Government and ethics',
-	'Situations',
+	'Frontier',
 	'Diplomacy and trade',
 	'What-ifs'
 ] as const;
@@ -40,11 +46,29 @@ export const SWITCHES: Switch[] = [
 		note: 'exploratory: estimates from your budget, with knobs for upcoming techs and traditions'
 	},
 	{
+		key: 'planOrder',
+		group: 'Tabs',
+		kind: 'normal',
+		label: 'Planner: also time each goal in plan order',
+		note: 'when it is paid for and built with the wanted goals above it paid first',
+		tags: 'cost income estimate'
+	},
+	{
+		key: 'historyMet',
+		group: 'Tabs',
+		kind: 'spoiler',
+		intel: true,
+		label: 'History: everything about the empires you met, beyond your intel on them',
+		note: 'without it: their systems and colonies from intel 30, their wars from intel 20'
+	},
+	{
 		key: 'historyAll',
 		group: 'Tabs',
+		// the game never tells anyone another empire's whole past (the user's ask 2026-11-17)
 		kind: 'cheat',
-		label: 'History: every empire’s systems, colonies and wars, whatever you know of them',
-		note: 'the tab shows your own history, that of empires you talk to, and what you saw yourself'
+		intel: true,
+		label: 'History: every empire’s systems, colonies and wars, met or not, by its own name',
+		note: 'the game never shows anyone that'
 	},
 	{
 		key: 'unknownStars',
@@ -133,19 +157,25 @@ export const SWITCHES: Switch[] = [
 	},
 	{
 		key: 'anomalySpoilers',
-		group: 'Situations',
+		group: 'Frontier',
 		kind: 'spoiler',
 		label: 'Show what an anomaly can lead to'
 	},
 	{
 		key: 'projectSpoilers',
-		group: 'Situations',
+		group: 'Frontier',
 		kind: 'spoiler',
 		label: 'Show what a special project leads to'
 	},
 	{
+		key: 'digSiteSpoilers',
+		group: 'Frontier',
+		kind: 'spoiler',
+		label: 'Show what a dig site’s chapters give'
+	},
+	{
 		key: 'hiddenTimers',
-		group: 'Situations',
+		group: 'Frontier',
 		kind: 'spoiler',
 		label: 'Upcoming: show the timers of events in progress (when an event chain continues)',
 		tags: 'events'
@@ -153,24 +183,36 @@ export const SWITCHES: Switch[] = [
 	{
 		key: 'diplomacyAll',
 		group: 'Diplomacy and trade',
-		kind: 'cheat',
-		label: 'Diplomacy: every empire and every relation between them, whatever our intel shows',
-		note: 'the game shows what your intel on each empire reveals'
+		kind: 'spoiler',
+		intel: true,
+		label: 'Diplomacy: every empire and every relation between them, beyond what your intel shows',
+		note: 'the game shows what your intel on each empire reveals; more intel reveals the rest'
 	},
 	{
 		key: 'pactIntel',
 		group: 'Diplomacy and trade',
 		kind: 'spoiler',
 		intel: true,
-		label:
-			'Pacts: what your intel shows of each partner — its techs per area, its trade at high intel',
+		label: 'Pacts: what your intel shows of each research partner — its techs per area',
 		note: 'the game shows them on the empire’s intel screen, not what a pact comes to',
 		tags: 'research agreement commercial pact intel'
 	},
 	{
+		key: 'pactAdvice',
+		group: 'Diplomacy and trade',
+		kind: 'spoiler',
+		intel: true,
+		label:
+			'Pacts: whom to offer a research agreement or commercial pact, ranked by what it brings, and who would accept',
+		note: 'the game shows the acceptance only when you propose, and no intel level lists another empire’s techs',
+		tags: 'research agreement commercial pact recommendation acceptance'
+	},
+	{
 		key: 'subjectNumbers',
 		group: 'Diplomacy and trade',
-		kind: 'cheat',
+		// a spoiler since 2026-11-17 (the user's ask): another empire's numbers, off where cheats are
+		kind: 'spoiler',
+		intel: true,
 		label:
 			'Subjects: each subject’s military, economy and tech power, fleet, size and pops as numbers',
 		note: 'the game compares them only as Inferior, Equivalent or Superior',
@@ -180,8 +222,7 @@ export const SWITCHES: Switch[] = [
 		key: 'pactAll',
 		group: 'Diplomacy and trade',
 		kind: 'cheat',
-		label:
-			'Pacts: which techs each research partner has, what each commercial pact brings, and which tech to pick',
+		label: 'Pacts: which techs each research partner has, and which tech to pick',
 		note: 'no intel level lists another empire’s techs',
 		tags: 'research agreement commercial pact tech hints'
 	},
@@ -205,18 +246,28 @@ export const SWITCHES: Switch[] = [
 	{
 		key: 'tradeIntel',
 		group: 'Diplomacy and trade',
+		// split from the stockpiles 2026-11-18 (the user's ask): the rates are a spoiler
+		kind: 'spoiler',
+		intel: true,
+		label: 'Trade: what other empires would trade, at what rate, and what a gift buys them',
+		note: 'the game shows it only as the acceptance of a deal you put together; estimated until calibrated (docs/trade-calibration.md)',
+		tags: 'gift opinion price market'
+	},
+	{
+		key: 'tradeStockpiles',
+		group: 'Diplomacy and trade',
 		kind: 'cheat',
-		label: 'Trade: other empires’ stockpiles and income, and what they would trade at what rate',
-		note: 'the game shows neither; estimated until calibrated (docs/trade-calibration.md)'
+		label: 'Trade: other empires’ stockpiles and income — what they spare, take and need',
+		note: 'the game never shows them'
 	},
 	{
 		key: 'whatIfs',
 		group: 'What-ifs',
 		kind: 'spoiler',
 		label:
-			'What-ifs: ≈ what an edict, a policy, a designation or a planet decision would do if taken now',
+			'What-ifs: ≈ what an edict, a policy, a designation, a planet decision, a Living Standard, a tradition, an ascension perk or a tech on offer would do if taken now, and its net in trade',
 		note: 'the game shows a choice’s modifiers, not what they come to; Distribute Luxury Goods’ estimate is one of them',
-		tags: 'estimate edicts policies designation decisions luxury goods'
+		tags: 'estimate edicts policies designation decisions luxury goods living standards traditions perks techs upkeep trade value'
 	}
 ];
 

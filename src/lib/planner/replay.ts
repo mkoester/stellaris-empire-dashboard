@@ -16,7 +16,14 @@ export const OPS = [
 ] as const;
 export type PlanOp = (typeof OPS)[number];
 
-export type Polarity = 'want' | 'avoid';
+// `later`: wanted, but not yet — the user's ask 2026-11-16 ("I might want to delay some tech
+// options"); it counts as wanted everywhere but the cards on offer (#lib/techOffers.ts).
+export const POLARITIES = ['want', 'later', 'avoid'] as const;
+export type Polarity = (typeof POLARITIES)[number];
+/** Whether a goal is meant to come true: wanted now or later. */
+export const wanted = (p: Polarity) => p !== 'avoid';
+const polarityOf = (v: unknown): Polarity | null =>
+	(POLARITIES as readonly unknown[]).includes(v) ? (v as Polarity) : null;
 
 /** What a goal is about: system, planet, tech … ids and keys, by the kind's own field names. */
 export type Target = Record<string, string | number>;
@@ -103,7 +110,7 @@ export function planAt(events: PlanEvent[], path: number[], auto: AutoGoal[] = [
 					id: e.goal,
 					kind: d.kind,
 					target: obj(d.target) as Target,
-					polarity: d.polarity === 'avoid' ? 'avoid' : 'want',
+					polarity: polarityOf(d.polarity) ?? 'want',
 					note: typeof d.note === 'string' ? d.note : '',
 					title: typeof d.title === 'string' ? d.title : '',
 					parked: d.parked === true,
@@ -116,7 +123,10 @@ export function planAt(events: PlanEvent[], path: number[], auto: AutoGoal[] = [
 			}
 			case 'edit':
 				if (!g) continue;
-				if (d.polarity === 'want' || d.polarity === 'avoid') g.polarity = d.polarity;
+				{
+					const p = polarityOf(d.polarity);
+					if (p) g.polarity = p;
+				}
 				if (typeof d.note === 'string') g.note = d.note;
 				if (typeof d.title === 'string') g.title = d.title;
 				break;

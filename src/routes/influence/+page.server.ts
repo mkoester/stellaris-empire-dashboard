@@ -8,6 +8,7 @@ import {
 	uncollected
 } from '#lib/influence.ts';
 import { getGameData } from '#lib/server/app.ts';
+import { sinkFacts, sinkRows } from '#lib/influenceSinks.ts';
 import { branch } from '#lib/server/branch.ts';
 import { unbooked, xExtent } from '#lib/series.ts';
 import { namedSpending } from '#lib/spending.ts';
@@ -37,6 +38,8 @@ export function load({ url }) {
 				)
 			: null;
 	const u = unbooked(snaps, 'influence', spends);
+	// where influence can go (#lib/influenceSinks.ts), from the latest full save
+	const facts = latest ? sinkFacts(latest) : null;
 	return {
 		...rest,
 		budget: latest?.budget ?? null,
@@ -52,6 +55,8 @@ export function load({ url }) {
 		lostAtCap: latest ? lostAtCap(latest, u) : null,
 		uncollected: latest ? uncollected(latest, rivals, u) : [],
 		powerProjection: pp,
+		sinks: facts ? sinkRows(facts) : [],
+		sinksNomad: facts?.nomad ?? false,
 		navalUsed: latest?.navalUsed ?? null,
 		empireSize: latest?.empireSize ?? null,
 		rivals,

@@ -2,6 +2,7 @@ import { addGameDays } from '#lib/series.ts';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { loadGameData } from './gamedata.ts';
+import { flagDate } from './save/values.ts';
 import {
 	arkships,
 	capitalSystem,
@@ -239,6 +240,12 @@ describe('toSnapshot', () => {
 		expect(s.navalMax).toBeNull(); // without companion mod 0.6.0
 	});
 
+	it('reads the Edict Fund companion mod 0.14.0 exports (sdash_ef_add, sdash_ef_mult)', () => {
+		expect(s.edictFund).toBeNull();
+		const withMod = { ...raw, country: { ...raw.country, variables: { sdash_ef_add: 65 } } };
+		expect(toSnapshot(withMod, 'camp', NO_READING_DATA).edictFund).toEqual({ add: 65, mult: 0 });
+	});
+
 	it('reads the naval capacity companion mod 0.6.0 exports (sdash_nc)', () => {
 		const withMod = { ...raw, country: { ...raw.country, variables: { sdash_nc: 40 } } };
 		expect(toSnapshot(withMod, 'camp', NO_READING_DATA).navalMax).toBe(40);
@@ -287,6 +294,7 @@ describe('toSnapshot', () => {
 				deposits: [],
 				planet: { deposits: [], modifiers: [] },
 				timedFlags: [],
+				flags: [],
 				districts: 5,
 				districtList: [
 					{
@@ -769,7 +777,14 @@ describe('arkships', () => {
 				},
 				'9': { name: { key: 'Second' }, fleet: 4, ship_design_implementation: { design: 2 } }
 			},
-			fleets: { '4': { movement_manager: { coordinate: { origin: 80 } } } },
+			// a contract's flag (Roaming Cybergang 2225.08.21: `carrying_delegates=63029520`) and
+			// one that is no contract's
+			fleets: {
+				'4': {
+					movement_manager: { coordinate: { origin: 80 } },
+					flags: { carrying_delegates: 63029520, some_other_flag: 63029496 }
+				}
+			},
 			shipDesigns: {
 				'1': { growth_stages: [{ ship_size: 'military_arkship_tier_1' }] },
 				'2': { growth_stages: [{ ship_size: 'science_arkship_tier_2' }] }
@@ -784,7 +799,8 @@ describe('arkships', () => {
 				tier: 1,
 				planetSize: 9,
 				systemId: 563,
-				capital: true
+				capital: true,
+				cargo: []
 			},
 			{
 				shipId: 9,
@@ -794,9 +810,20 @@ describe('arkships', () => {
 				tier: 2,
 				planetSize: 0,
 				systemId: 80,
-				capital: false
+				capital: false,
+				cargo: [{ flag: 'carrying_delegates', since: '2225.08.21' }]
 			}
 		]);
+	});
+});
+
+describe('flagDate', () => {
+	it('reads the hour a flag was set as its day, plain or timed', () => {
+		expect(flagDate(62808000)).toBe('2200.01.01');
+		expect(flagDate(63029496)).toBe('2225.08.20'); // the pickup planet's flag, set on accepting
+		expect(flagDate({ flag_date: 63029520, flag_days: 30 })).toBe('2225.08.21');
+		expect(flagDate(1)).toBeNull();
+		expect(flagDate('yes')).toBeNull();
 	});
 });
 
@@ -1097,11 +1124,16 @@ describe('intelOf, a pact partner (READER 45)', () => {
 			tech_status: { technology: ['tech_a', 'tech_b', 'tech_c'] },
 			budget: { current_month: { income: { commercial_pacts: { trade: 48.66 } } } }
 		};
-		expect(intelOf(1, c, {}, 0, false, ['tech_a', 'tech_d'])).toMatchObject({
+		expect(intelOf(1, c, {}, 0, false, ['tech_a', 'tech_d'], true)).toMatchObject({
 			commercialPactTrade: 48.66,
 			techsWeLack: ['tech_b', 'tech_c'],
+			theyLackCount: 1,
 			techsTheyLack: ['tech_d']
 		});
+		// anyone else we talk to: what it has, and only how many of ours it lacks (READER 64)
+		const other = intelOf(1, c, {}, 0, false, ['tech_a', 'tech_d']);
+		expect(other).toMatchObject({ techsWeLack: ['tech_b', 'tech_c'], theyLackCount: 1 });
+		expect(other).not.toHaveProperty('techsTheyLack');
 		expect(intelOf(1, c, {}, 0)).not.toHaveProperty('techsWeLack');
 	});
 });
@@ -1830,6 +1862,23 @@ describe('helpers', () => {
 				variables: [{ key: 'NAME', value: { key: 'NAME_Alpha_Centauri' } }]
 			})
 		).toBe('Alpha Centauri Prime');
+		// FirstContact-MeaningfulLabels: the contact's name, its type in parentheses (roaming
+		// cybergang 2215.03.03)
+		expect(
+			displayName({
+				key: 'fc_label_drones',
+				variables: [
+					{
+						key: 'event_target:fc_label_who.GetName',
+						value: { key: 'NAME_Mineral_Extraction_Operation' }
+					}
+				]
+			})
+		).toBe('Mineral Extraction Operation (Mining Drones)');
+		// a type the dashboard does not know yet: its key
+		expect(
+			displayName({ key: 'fc_label_newtype', variables: [{ key: 'x', value: { key: 'Foo' } }] })
+		).toBe('Foo (newtype)');
 	});
 
 	it('fills a modified species’ inline template, prescripted names first', () => {
@@ -1845,6 +1894,15 @@ describe('helpers', () => {
 					]
 				})
 			).toBe('Trans-Yorphid');
+			expect(
+				displayName({
+					key: 'AofB',
+					variables: [
+						{ key: '1', value: { key: 'Pact' } },
+						{ key: '2', value: { key: 'Fellnoll' } }
+					]
+				})
+			).toBe('Pact of Fellnoll');
 			expect(
 				displayName({
 					key: '$base$ $affix$',

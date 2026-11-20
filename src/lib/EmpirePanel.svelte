@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { ComponentProps } from 'svelte';
 	import { resolve } from '$app/paths';
 	import Chart from './Chart.svelte';
@@ -40,9 +41,48 @@
 	import { gameYear, POP_CHANGE_LINES } from './series.ts';
 	import type { EmpireData } from './server/empire.ts';
 	import type { PanelId } from './settings.ts';
+	import WhatIfLine from './WhatIfLine.svelte';
+	import { POLICY_YEARS } from './government.ts';
+	import { keep, recall } from './browserStore.ts';
+	import {
+		ranked,
+		worthwhile,
+		type Recommendation,
+		type RecommendationKind
+	} from './recommendations.ts';
 
 	// One empire panel by id: the `all` tab lays them all out, a custom tab shows its pick.
 	let { id, data }: { id: PanelId; data: EmpireData } = $props();
+	const RECOMMENDATIONS_VIEW = 'recommendations-show-all';
+	let showAllRecommendations = $state(false);
+	onMount(() => (showAllRecommendations = recall(RECOMMENDATIONS_VIEW) === '1'));
+	const recommendationKinds: RecommendationKind[] = ['edict', 'policy', 'designation', 'decision'];
+	const recommendationLabels: Record<RecommendationKind, string> = {
+		edict: 'Edicts',
+		policy: 'Policies',
+		designation: 'Designations',
+		decision: 'Planet decisions'
+	};
+	const recommendations = $derived(
+		data.recommendations
+			? showAllRecommendations
+				? ranked(data.recommendations)
+				: worthwhile(data.recommendations)
+			: []
+	);
+	const recommendationsByKind = $derived(
+		Object.fromEntries(
+			recommendationKinds.map((kind) => [kind, recommendations.filter((r) => r.kind === kind)])
+		) as Record<RecommendationKind, Recommendation[]>
+	);
+	const recommendationHref = (r: Recommendation) =>
+		r.planetId !== null
+			? data.isHead
+				? resolve('/colony/[id]', { id: String(r.planetId) })
+				: resolve(`/colony/[id]?node=${data.tip}`, { id: String(r.planetId) })
+			: data.isHead
+				? resolve('/government')
+				: resolve(`/government?node=${data.tip}`);
 
 	const pct = (v: number | null) => (v === null ? '–' : `${Math.round(v * 100)}%`);
 	const colonyColumns: Column<Colony>[] = [
@@ -166,6 +206,26 @@
 	} as Record<string, Omit<ComponentProps<typeof Chart>, 'range' | 'extent'>>);
 </script>
 
+{#snippet recommendationRow(row: Recommendation, rankNumber: number | null)}
+	<li class="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
+		{#if rankNumber !== null}<span class="text-gray-500">{rankNumber}.</span>{/if}
+		<a class="underline" href={recommendationHref(row)}>
+			{row.label}{row.target ? ` — ${row.target}` : ''}
+		</a>
+		{#if row.possible === null}<span
+				class="text-gray-500"
+				title="The save cannot confirm all conditions">conditions uncertain</span
+			>{/if}
+		<WhatIfLine what={row.what} label="if changed now" showSmall emptyLabel="no modelled change" />
+		{#if row.rule}<span class="text-xs text-green-700 dark:text-green-500" title="a rule of thumb"
+				>recommended: {row.rule}</span
+			>{/if}
+		{#if row.kind === 'policy'}<span class="text-xs text-amber-600"
+				>then locked for {POLICY_YEARS} years</span
+			>{/if}
+	</li>
+{/snippet}
+
 {#if id === 'header'}
 	<header class="flex flex-col gap-1">
 		<!-- the game date always top right; everything else wraps to its left -->
@@ -251,6 +311,48 @@
 			explain={data.explain}
 			names={data.names}
 		/>
+	</section>
+{:else if id === 'recommendations' && data.recommendations}
+	<section>
+		<div class="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+			<h2 class="text-xl font-semibold">
+				Recommendations <span class="text-sm font-normal text-gray-500">(spoiler)</span>
+			</h2>
+			<label class="flex items-center gap-2 text-sm">
+				<input
+					type="checkbox"
+					checked={showAllRecommendations}
+					onchange={(event) => {
+						showAllRecommendations = event.currentTarget.checked;
+						keep(RECOMMENDATIONS_VIEW, showAllRecommendations ? '1' : '0');
+					}}
+				/>
+				Show all options, ranked
+			</label>
+		</div>
+		{#if recommendations.length}
+			{#if showAllRecommendations}
+				<ol class="space-y-2">
+					{#each recommendations as row, i (`${row.kind}:${row.planetId ?? ''}:${row.label}`)}
+						{@render recommendationRow(row, i + 1)}
+					{/each}
+				</ol>
+			{:else}
+				{#each recommendationKinds as kind (kind)}
+					{@const rows = recommendationsByKind[kind]}
+					{#if rows.length}
+						<h3 class="mt-3 mb-1 font-semibold">{recommendationLabels[kind]}</h3>
+						<ol class="space-y-2">
+							{#each rows as row (`${row.kind}:${row.planetId ?? ''}:${row.label}`)}
+								{@render recommendationRow(row, null)}
+							{/each}
+						</ol>
+					{/if}
+				{/each}
+			{/if}
+		{:else}
+			<p class="text-sm text-gray-500">No worthwhile changes found.</p>
+		{/if}
 	</section>
 {:else if id in charts}
 	{#key data.tip}
