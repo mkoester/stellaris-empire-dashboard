@@ -1,3 +1,4 @@
+import { TRANSPORT } from '#lib/contracts.ts';
 import { distances } from '#lib/galaxyGraph.ts';
 import { MARKET_RESOURCES } from '#lib/market.ts';
 import { addGameDays } from '#lib/series.ts';
@@ -415,8 +416,40 @@ export function externalBuildings(
  */
 const NO_ID = 4294967295; // the save's "none" for an id
 
+/**
+ * Where our transport contracts pick up and deliver (`TRANSPORT`): the systems of the planets and
+ * stars carrying their flags with our id appended (2226.08.01 Diplomatic Support:
+ * `planets.77.flags.diplomatic_support_pickup_planet0`, system 256; `…_dropoff_planet0` on the
+ * issuer's capital, system 581). null where nothing carries the flag.
+ */
+export function transportSystems(
+	raw: Partial<Pick<RawSave, 'planets' | 'systems'>>,
+	key: string,
+	me: number
+): { pickup: number | null; dropoff: number | null } {
+	const t = TRANSPORT[key];
+	if (!t) return { pickup: null, dropoff: null };
+	const planetWith = (flag: string) => {
+		for (const p of Object.values(raw.planets ?? {}))
+			if (p?.flags && typeof p.flags === 'object' && `${flag}${me}` in p.flags)
+				return numOrNull(p.coordinate?.origin);
+		return null;
+	};
+	const starWith = (flag: string) => {
+		for (const [id, g] of Object.entries(raw.systems ?? {}))
+			if (g?.flags && typeof g.flags === 'object' && `${flag}${me}` in g.flags) return Number(id);
+		return null;
+	};
+	const to = t.dropoff;
+	return {
+		pickup: planetWith(t.pickup),
+		dropoff: to === null ? null : 'planet' in to ? planetWith(to.planet) : starWith(to.star)
+	};
+}
+
 export function contracts(
-	raw: Pick<RawSave, 'missions' | 'contractIds' | 'countryBlocks'>
+	raw: Pick<RawSave, 'missions' | 'contractIds' | 'countryBlocks' | 'countryId'> &
+		Partial<Pick<RawSave, 'planets' | 'systems'>>
 ): Contract[] {
 	const name = (id: number) => displayName(raw.countryBlocks[String(id)]?.name) || `empire ${id}`;
 	const ids = [
@@ -440,7 +473,10 @@ export function contracts(
 					m.location?.type === 4 && typeof m.location.id === 'number' ? m.location.id : null,
 				state: listed,
 				daysLeft: numOrNull(m.days_left),
-				accepted: typeof m.accepted_date === 'string' ? m.accepted_date : null
+				accepted: typeof m.accepted_date === 'string' ? m.accepted_date : null,
+				...(operator === raw.countryId && listed === 'active'
+					? transportSystems(raw, m.mission, raw.countryId)
+					: { pickup: null, dropoff: null })
 			}
 		];
 	});

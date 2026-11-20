@@ -74,7 +74,7 @@ export function load({ url }) {
 		wanderlust,
 		// per category: found, still open, finishable by what we found (#lib/wanderlust.ts)
 		wanderlustOutlook: wanderlust && outlook(wanderlust, g),
-		systems: mapView(g, { ...reveal(), wanderlust: allTargets }, contactSites).map((x) => ({
+		systems: mapView(g, { ...reveal(snaps), wanderlust: allTargets }, contactSites).map((x) => ({
 			...x,
 			capital: x.id === capital
 		})),

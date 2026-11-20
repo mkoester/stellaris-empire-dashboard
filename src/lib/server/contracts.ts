@@ -47,7 +47,7 @@ export function contractsAt(snaps: Snapshot[], shown: Display): ContractsAt {
 		all: shown.contractsAll,
 		types: data.contractTypes
 	});
-	const used = new Set(rows.map((r) => r.systemId));
+	const used = new Set(rows.flatMap((r) => [r.systemId, r.pickup, r.dropoff]));
 	const names = Object.fromEntries(
 		systems.filter((x) => used.has(x.id)).map((x) => [x.id, x.name])
 	);

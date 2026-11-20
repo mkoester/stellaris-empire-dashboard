@@ -2581,6 +2581,7 @@ describe('contracts', () => {
 	};
 	it('reads the listed missions, offers and accepted ones', () => {
 		const got = contracts({
+			countryId: 1,
 			missions,
 			countryBlocks,
 			contractIds: { available: [23, 16777230, 21], in_progress: [16777235] }
@@ -2596,7 +2597,9 @@ describe('contracts', () => {
 				systemId: 383,
 				state: 'offered',
 				daysLeft: 1025,
-				accepted: null
+				accepted: null,
+				pickup: null,
+				dropoff: null
 			},
 			{
 				id: 16777230,
@@ -2608,7 +2611,9 @@ describe('contracts', () => {
 				systemId: 9,
 				state: 'offered',
 				daysLeft: 1136,
-				accepted: null
+				accepted: null,
+				pickup: null,
+				dropoff: null
 			},
 			{
 				id: 16777235,
@@ -2620,12 +2625,41 @@ describe('contracts', () => {
 				systemId: 303,
 				state: 'active',
 				daysLeft: null,
-				accepted: '2213.08.12'
+				accepted: '2213.08.12',
+				pickup: null,
+				dropoff: null
 			}
 		]);
 	});
+	it("marks our transport contracts' pickup and drop-off by their flags with our id", () => {
+		// shaped like 2226.08.01: Diplomatic Support of ours (country 0), planets 77 and 348
+		const got = contracts({
+			countryId: 0,
+			missions: {
+				'16777228': { mission: 'contract_diplomatic_support', operator: 0, issuer: 5 },
+				'16777229': { mission: 'contract_sightseeing_tour', operator: 0, issuer: 5 },
+				'16777230': { mission: 'contract_prisoner_disposal', operator: 7, issuer: 5 }
+			},
+			countryBlocks: {},
+			contractIds: { in_progress: [16777228, 16777229, 16777230] },
+			planets: {
+				'77': { coordinate: { origin: 256 }, flags: { diplomatic_support_pickup_planet0: 1 } },
+				'348': { coordinate: { origin: 581 }, flags: { diplomatic_support_dropoff_planet0: 1 } },
+				'9': { coordinate: { origin: 12 }, flags: { sightseeing_tour_start0: 1 } },
+				'10': { coordinate: { origin: 13 }, flags: { prisoner_disposal_pickup_planet7: 1 } }
+			},
+			systems: { '40': { flags: { sightseeing_tour_destination_system0: 1 } } }
+		});
+		expect(got.map((c) => [c.key, c.pickup, c.dropoff])).toEqual([
+			['contract_diplomatic_support', 256, 581],
+			['contract_sightseeing_tour', 12, 40],
+			['contract_prisoner_disposal', null, null] // another operator's
+		]);
+	});
 	it('an empty or missing contracts block is no contract', () => {
-		expect(contracts({ missions, countryBlocks, contractIds: {} })).toEqual([]);
-		expect(contracts({ missions, countryBlocks, contractIds: undefined })).toEqual([]);
+		expect(contracts({ countryId: 1, missions, countryBlocks, contractIds: {} })).toEqual([]);
+		expect(contracts({ countryId: 1, missions, countryBlocks, contractIds: undefined })).toEqual(
+			[]
+		);
 	});
 });

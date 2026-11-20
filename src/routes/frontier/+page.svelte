@@ -17,6 +17,7 @@
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import type { ContactRow, SituationRow } from '#lib/situations.ts';
 	import type { SeenRow } from '#lib/territories.ts';
+	import { CATEGORICAL, OTHER } from '#lib/migration.ts';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 	import type { Outcome } from '#lib/types.ts';
@@ -31,6 +32,29 @@
 	let showTalking = $state(false); // stations of empires we have communications with
 	const seen = $derived(data.seen.filter((r) => showTalking || !r.talking));
 	const talking = $derived(data.seen.filter((r) => r.talking).length);
+	// a colour per shipset, the same in every row: by its place among the shipsets seen
+	const shipsetColor = $derived(
+		new Map(
+			[...new Set(data.seen.map((r) => r.shipset))]
+				.sort()
+				.map((k, i) => [k, k === 'unknown' ? OTHER : CATEGORICAL[i % CATEGORICAL.length]])
+		)
+	);
+	// grouped by likely empire: the Owner column (known, or our guess by shipset), most stations first
+	let groupSeen = $state(false);
+	const seenGroups = $derived.by(() => {
+		const gs = [...Map.groupBy(seen, (r) => r.group)]
+			.map(([group, rows]) => ({ group, owner: rows[0].territory, rows }))
+			.sort((a, b) => b.rows.length - a.rows.length || a.owner.localeCompare(b.owner));
+		// clusters of one shipset far apart share a label: number them
+		const n = new Map<string, number>();
+		return gs.map((g) => {
+			const same = gs.filter((x) => x.owner === g.owner).length;
+			const k = (n.get(g.owner) ?? 0) + 1;
+			n.set(g.owner, k);
+			return { ...g, nth: same > 1 ? k : null };
+		});
+	});
 	let contactSort = $state({ column: 'difficulty', desc: true });
 	let hovered: number | null = $state(null); // a system, on the map or a contact's row
 
@@ -53,7 +77,7 @@
 
 	const seenColumns: Column<SeenRow>[] = [
 		{ id: 'system', label: 'System', value: (r) => r.system },
-		{ id: 'shipset', label: 'Shipset', value: (r) => r.shipset },
+		{ id: 'shipset', label: 'Shipset', value: (r) => r.shipset, cell: shipset },
 		{
 			id: 'territory',
 			label: 'Owner',
@@ -341,6 +365,8 @@
 				: undefined}
 			>{r.monthlyObserved ? '≈ ' : ''}{r.monthly > 0 ? '+' : ''}{r.monthly.toFixed(2)}</span
 		>{/if}{/snippet}
+{#snippet shipset(r: SeenRow)}<span style:color={shipsetColor.get(r.shipset)}>{r.shipset}</span
+	>{/snippet}
 {#snippet territory(r: SeenRow)}{#if r.territory}<EmpireName
 			name={r.territory}
 			bold={false}
@@ -442,7 +468,8 @@
 					<tbody>
 						{#each gainRes as g (g.key)}
 							<tr class={fromLit(g) ? HIGHLIGHT : ''}
-								><td class="pr-4">{@render gainLabel(g)}</td><td
+								><td class="pr-4" style:color={colorOf(g.key.slice(4))}>{@render gainLabel(g)}</td
+								><td
 									class="pr-4 text-right tabular-nums"
 									style:color={g.sure > 0 ? '#1baf7a' : undefined}
 									>{g.approx ? '≈ ' : ''}{fmt(g.sure)}</td
@@ -505,13 +532,34 @@
 
 			<Panel
 				title="Stations seen"
-				note="Other empires' stations in systems one of your fleets was in when the game saved (monthly autosaves catch only the fleets there at that moment), with their shipset. Unknown owners are guessed: one shipset within 3 jumps counts as one empire. Empires you have communications with are hidden: their territory is on the map."
+				note="Other empires' stations in systems one of your fleets was in when the game saved (monthly autosaves catch only the fleets there at that moment), with their shipset. Unknown owners are guessed: one shipset within 3 jumps counts as one empire (grouped: a cluster each, numbered where one shipset has several). Empires you have communications with are hidden: their territory is on the map."
 			>
 				{#if talking}<label class="mb-2 flex items-center gap-1 text-sm"
 						><input type="checkbox" bind:checked={showTalking} /> also empires you have
 						communications with ({talking})</label
 					>{/if}
-				{#if seen.length}
+				{#if seen.length}<label class="mb-2 flex items-center gap-1 text-sm"
+						><input type="checkbox" bind:checked={groupSeen} /> group by likely empire</label
+					>{/if}
+				{#if seen.length && groupSeen}
+					{#each seenGroups as g (g.group)}
+						<h3 class="mt-3 mb-1 text-sm font-semibold">
+							<EmpireName name={g.owner} /><span class="font-normal text-gray-500"
+								>{`${g.nth ? ` #${g.nth}` : ''} · ${g.rows.length} station${g.rows.length === 1 ? '' : 's'} ·`}</span
+							>{#each [...new Set(g.rows.map((r) => r.shipset))] as k (k)}<span
+									class="ml-1 font-normal"
+									style:color={shipsetColor.get(k)}>{k}</span
+								>{/each}
+						</h3>
+						<SortTable
+							rows={g.rows}
+							columns={seenColumns.filter((c) => c.id !== 'territory')}
+							key={(r) => r.systemId}
+							link={(r) => r.systemId}
+							bind:hovered
+						/>
+					{/each}
+				{:else if seen.length}
 					<SortTable
 						rows={seen}
 						columns={seenColumns}

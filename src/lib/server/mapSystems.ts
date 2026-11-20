@@ -1,5 +1,5 @@
 import { sectorColors } from '#lib/colonyTable.ts';
-import { knownIds, mapView, surveyView } from '#lib/situations.ts';
+import { canExploreWormholes, knownIds, mapView, surveyView } from '#lib/situations.ts';
 import { mergeSightings, territories, type Territory } from '#lib/territories.ts';
 import type { KnownSystem, Snapshot } from '#lib/types.ts';
 import { getDb, getGameData } from './app.ts';
@@ -18,7 +18,7 @@ export function mapSystems(snaps: Snapshot[]): (KnownSystem & { known?: boolean 
 	const g = last ? campaignGalaxy(last.campaign) : null;
 	const capital = capitalId(snaps);
 	if (!g) return known.map((s) => ({ ...s, capital: s.id === capital }));
-	return mapView(g.systems, reveal()).map((s) => ({ ...s, capital: s.id === capital }));
+	return mapView(g.systems, reveal(snaps)).map((s) => ({ ...s, capital: s.id === capital }));
 }
 
 /**
@@ -42,13 +42,13 @@ export function campaignGalaxy(campaign: string) {
 	return g ? { ...g, systems: surveyView(g.systems, display().surveyAll) } : null;
 }
 
-/** The display switches that decide what a map reveals. */
-export const reveal = () => {
+/** The display switches that decide what a map reveals, for the branch's empire. */
+export const reveal = (snaps: Pick<Snapshot, 'progress'>[]) => {
 	const d = display();
 	return {
 		whole: d.wholeGalaxy,
 		stars: d.unknownStars,
-		wormholes: d.wormholeLinks,
+		wormholes: d.wormholeLinks && canExploreWormholes(snaps),
 		wormholePairs: d.wormholePairs,
 		lgates: d.lgates
 	};

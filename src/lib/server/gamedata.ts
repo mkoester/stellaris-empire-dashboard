@@ -1257,6 +1257,7 @@ type ContractRowDb = {
 	failed_opinion: number | null;
 	operator_techs_json: string | null;
 	description: string | null;
+	location: number | null;
 };
 
 /** Contracts by key, with their projects joined by event chain (data DBs since 2026-11-18). */
@@ -1265,10 +1266,11 @@ function contractTypes(
 	columnsOf: (table: string) => Set<string>
 ): Record<string, ContractType> {
 	const detailed = columnsOf('contract').has('reward_json');
+	const placed = columnsOf('contract').has('location');
 	const list = rows<ContractRowDb>(
 		detailed
-			? 'SELECT key, name, category, time_to_accept, time_to_complete, event_chain, steps, reward_json, failed_opinion, operator_techs_json, description FROM contract'
-			: 'SELECT key, name, category, time_to_accept, NULL AS time_to_complete, NULL AS event_chain, NULL AS steps, NULL AS reward_json, NULL AS failed_opinion, NULL AS operator_techs_json, NULL AS description FROM contract'
+			? `SELECT key, name, category, time_to_accept, time_to_complete, event_chain, steps, reward_json, failed_opinion, operator_techs_json, description, ${placed ? 'location' : 'NULL AS location'} FROM contract`
+			: 'SELECT key, name, category, time_to_accept, NULL AS time_to_complete, NULL AS event_chain, NULL AS steps, NULL AS reward_json, NULL AS failed_opinion, NULL AS operator_techs_json, NULL AS description, NULL AS location FROM contract'
 	);
 	const byChain = new Map<string, ContractProject[]>();
 	if (detailed && columnsOf('special_project').has('event_chain'))
@@ -1276,11 +1278,12 @@ function contractTypes(
 			key: string;
 			name: string | null;
 			days: number | null;
+			cost: number | null;
 			event_chain: string;
 			requirements_json: string | null;
 			arkship_branches: number;
 		}>(
-			'SELECT key, name, days, event_chain, requirements_json, arkship_branches FROM special_project WHERE event_chain IS NOT NULL ORDER BY key'
+			'SELECT key, name, days, cost, event_chain, requirements_json, arkship_branches FROM special_project WHERE event_chain IS NOT NULL ORDER BY key'
 		))
 			byChain.set(p.event_chain, [
 				...(byChain.get(p.event_chain) ?? []),
@@ -1288,6 +1291,7 @@ function contractTypes(
 					key: p.key,
 					name: p.name ?? p.key,
 					days: p.days,
+					cost: p.cost,
 					requirements: p.requirements_json
 						? (JSON.parse(p.requirements_json) as Record<string, unknown>)
 						: {},
@@ -1308,7 +1312,8 @@ function contractTypes(
 				reward: r.reward_json ? (JSON.parse(r.reward_json) as ContractReward) : null,
 				failedOpinion: r.failed_opinion,
 				operatorTechs: r.operator_techs_json ? (JSON.parse(r.operator_techs_json) as string[]) : [],
-				projects: r.event_chain ? (byChain.get(r.event_chain) ?? []) : []
+				projects: r.event_chain ? (byChain.get(r.event_chain) ?? []) : [],
+				location: r.location === null ? null : r.location === 1
 			}
 		])
 	);

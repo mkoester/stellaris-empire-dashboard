@@ -11,7 +11,7 @@ import {
 } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import { campaignGalaxy, territoriesOf } from '#lib/server/mapSystems.ts';
+import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display } from '#lib/server/settings.ts';
 import { outcomeNow, outcomeTrees } from '#lib/server/outcomes.ts';
 import { planSummary } from '#lib/server/planner.ts';
@@ -252,13 +252,7 @@ export function load({ url }) {
 		wholeGalaxy: opts.wholeGalaxy,
 		systems: mapView(
 			galaxy,
-			{
-				whole: opts.wholeGalaxy,
-				stars: opts.unknownStars,
-				wormholes: opts.wormholeLinks,
-				wormholePairs: opts.wormholePairs,
-				lgates: opts.lgates
-			},
+			reveal(snaps),
 			(s?.firstContacts ?? []).map((c) => c.systemId)
 		),
 		owners: opts.contactStations ? owners : [],

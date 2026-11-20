@@ -81,7 +81,8 @@ export const SWITCHES: Switch[] = [
 		key: 'wormholeLinks',
 		group: 'Maps',
 		kind: 'normal',
-		label: 'Show where explored wormholes lead (both ends visited)'
+		label: 'Show where explored wormholes lead (both ends visited)',
+		note: 'only once Wormhole Stabilization is researched: exploring a wormhole needs it'
 	},
 	{
 		key: 'wormholePairs',

@@ -48,7 +48,7 @@ export function load({ url }) {
 		// the map beside the waylines: as the map tab shows it
 		...(waylines && {
 			map: {
-				systems: mapView(g?.systems ?? [], reveal()),
+				systems: mapView(g?.systems ?? [], reveal(b.snaps)),
 				territories: territoriesOf(b.snaps),
 				own: ownOnMap(b.latest),
 				arkships

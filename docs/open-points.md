@@ -56,7 +56,8 @@ screen, trade calibration, stored research, releases).
   perks.
 
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
-  show a link never jumped through). At the first wormhole explored, diff its `bypasses.<id>`,
+  show a link never jumped through; since 2026-11-20 only once Wormhole Stabilization is
+  researched, which exploring needs — after that the proxy can still be wrong). At the first wormhole explored, diff its `bypasses.<id>`,
   `natural_wormholes.<id>` and the country block against an earlier save for a real marker.
 
 - **Stations seen, exactly**: saves catch only the fleets present at save time. The companion mod

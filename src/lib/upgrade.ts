@@ -200,6 +200,9 @@ export function upgrade(
 		},
 		relations: s.relations && s.relations.map((r) => ({ ...r, agreements: r.agreements ?? [] })),
 		arkships: s.arkships && s.arkships.map((a) => ({ ...a, cargo: a.cargo ?? [] })),
+		contracts:
+			s.contracts &&
+			s.contracts.map((c) => ({ ...c, pickup: c.pickup ?? null, dropoff: c.dropoff ?? null })),
 		subjects:
 			s.subjects &&
 			s.subjects.map((x) => ({
