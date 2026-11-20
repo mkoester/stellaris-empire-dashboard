@@ -189,7 +189,10 @@ star's class). Re-check on game updates. Explored wormholes are dashed arcs, beh
 **both ends visited**: the save marks no wormhole as explored (bypasses carry no such field, the
 country only `seen_bypass_types`), and exploring one is a fleet's jump through it (4.5.2
 `common/bypass/00_bypasses.txt`, `on_pre_explore`), which visits the far end; one end visited is
-not enough (2207.03.10: Phiroza visited, Eye of Bal not — no link). `wormholePairs` (spoiler) shows
+not enough (2207.03.10: Phiroza visited, Eye of Bal not — no link). **And only with Wormhole
+Stabilization researched** (`canExploreWormholes()`; the bypass's `requires_exploration` and
+`prerequisites`): both ends reached by hyperlanes without it drew a link the game does not show
+(Roaming Cyber Gang 2226.08.01, the user's report 2026-11-20). `wormholePairs` (spoiler) shows
 every pair (`wormholeLinks()` stores them all), both ends. Fit
 buttons: capital, my empire (a nomad's: **my waystations**, starbase level `waystation_*`;
 disabled without one), explored, the page's own, everything; the map and systems tabs pass `own`

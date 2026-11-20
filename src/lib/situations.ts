@@ -64,6 +64,17 @@ export function observedMonthly<S extends SituationInfo>(
 	});
 }
 
+/**
+ * Whether the empire can have explored a natural wormhole: exploring one takes a science ship and
+ * Wormhole Stabilization (4.5.4 common/bypass/00_bypasses.txt `wormhole`: `requires_exploration`,
+ * `prerequisites = { tech_wormhole_stabilization }`; events exploration.220.hint). Both ends
+ * visited without it drew a link the game does not show (Roaming Cyber Gang 2226.08.01).
+ */
+export const canExploreWormholes = (snaps: Pick<Snapshot, 'progress'>[]) =>
+	snaps
+		.findLast((s) => s.progress)
+		?.progress?.researched.includes('tech_wormhole_stabilization') === true;
+
 /** Whole months from `from` to `to` (game dates, 30-day months). */
 export const monthsBetween = (from: string, to: string) =>
 	Math.max(0, Math.floor((gameYear(to) - gameYear(from)) * 12 + 1e-9));

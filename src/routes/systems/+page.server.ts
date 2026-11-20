@@ -106,6 +106,9 @@ export function load({ url }) {
 		territories: territoriesOf(snaps),
 		arkships: arkshipsOf(snaps),
 		contractMarks: contractMarksAt(snaps, shown),
-		systems: mapView(g?.systems ?? [], reveal()).map((x) => ({ ...x, capital: x.id === capital }))
+		systems: mapView(g?.systems ?? [], reveal(snaps)).map((x) => ({
+			...x,
+			capital: x.id === capital
+		}))
 	};
 }

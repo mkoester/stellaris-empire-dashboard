@@ -45,7 +45,7 @@ export function load({ url }) {
 		view: setting('megastructureView'),
 		territories: territoriesOf(snaps),
 		contractMarks: contractMarksAt(snaps, shown),
-		systems: mapView(g?.systems ?? [], reveal()),
+		systems: mapView(g?.systems ?? [], reveal(snaps)),
 		kinds: KINDS.map((kind) => ({
 			kind,
 			...MEGA_RULES[kind],

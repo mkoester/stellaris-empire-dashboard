@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	canExploreWormholes,
 	observedMonthly,
 	contactRows,
 	discovered,
@@ -308,5 +309,16 @@ describe('observedMonthly', () => {
 	it('reads only saves before the date', () => {
 		const earlier = [{ date: '2226.09.01', situations: [sit(1, 100, 0)] }];
 		expect(observedMonthly([sit(1, 50, 0)], '2226.08.01', earlier)[0].monthlyObserved).toBe(false);
+	});
+});
+
+describe('canExploreWormholes', () => {
+	const at = (researched: string[] | null) => ({
+		progress: researched === null ? null : ({ researched } as never)
+	});
+	it('needs Wormhole Stabilization, in the latest save that has the techs', () => {
+		expect(canExploreWormholes([at(['tech_wormhole_stabilization']), at(null)])).toBe(true);
+		expect(canExploreWormholes([at(['tech_lasers_1'])])).toBe(false);
+		expect(canExploreWormholes([at(null)])).toBe(false);
 	});
 });

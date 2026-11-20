@@ -21,7 +21,7 @@ export function load({ url }) {
 		marks: contractMarks(c.rows, c.systemNames),
 		spoilers: shown.contractSpoilers,
 		all: shown.contractsAll,
-		systems: mapView(g?.systems ?? [], reveal()),
+		systems: mapView(g?.systems ?? [], reveal(snaps)),
 		territories: territoriesOf(snaps)
 	};
 }
