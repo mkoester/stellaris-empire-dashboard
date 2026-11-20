@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	fallbackName,
+	stageLadder,
 	nextStage,
 	canExploreWormholes,
 	observedMonthly,
@@ -350,6 +351,22 @@ describe('situation stages', () => {
 		expect(nextStage({ progress: 5, monthly: 1, stage: 0, ends: [10, 20] }, [])?.to).toBe(
 			'stage 2'
 		);
+	});
+
+	it('lists each stage from where it starts, the current one marked', () => {
+		const ladder = stageLadder({ stage: 3, ends: [1300, 6500, 19500, 26000] }, [
+			'Empty',
+			'Low',
+			'Medium',
+			'High'
+		]);
+		expect(ladder.map((g) => [g.name, g.from, g.to, g.current])).toEqual([
+			['Empty', 0, 1300, false],
+			['Low', 1300, 6500, false],
+			['Medium', 6500, 19500, false],
+			['High', 19500, 26000, true]
+		]);
+		expect(stageLadder({ stage: 0, ends: [100] }, ['Insights'])).toEqual([]);
 	});
 
 	it('names a situation the data leaves unnamed', () => {

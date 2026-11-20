@@ -371,9 +371,13 @@
 			now={pageNow}
 		/>{/if}{/snippet}
 
-{#snippet progress(r: SituationRow)}{r.progress.toFixed(
-		2
-	)}{#if r.end !== null && r.end !== 100}<span class="text-gray-500">{` / ${r.end}`}</span
+{#snippet progress(r: SituationRow)}{r.progress.toFixed(2)}{#if r.ladder.length}<span
+			class="block text-xs whitespace-nowrap text-gray-500"
+			>{#each r.ladder as g, i (i)}{#if i}<span class="mx-1">·</span>{/if}<span
+					class={g.current ? 'font-semibold text-gray-900 dark:text-gray-100' : ''}
+					title="{g.name}: {g.from} – {g.to}">{g.name} {g.from}</span
+				>{/each}<span class="ml-1">– {r.ladder.at(-1)?.to}</span></span
+		>{:else if r.end !== null && r.end !== 100}<span class="text-gray-500">{` / ${r.end}`}</span
 		>{/if}{/snippet}
 {#snippet nextStage(r: SituationRow)}{#if r.next}<span
 			title="{r.next.to} in {r.next.months.toFixed(1)} months{r.monthlyObserved
@@ -602,7 +606,7 @@
 				title="Situations"
 				note={allTo100
 					? 'Progress runs to 100.'
-					: 'Progress runs to 100, or to the end shown after it.'}
+					: 'Progress runs to 100, or to the end shown after it; with several stages, each from where it starts.'}
 			>
 				{#if data.situations.length}
 					<SortTable rows={data.situations} columns={situationColumns} key={(r) => r.id} />

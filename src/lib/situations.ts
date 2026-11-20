@@ -164,6 +164,7 @@ export function stationOwners(
 export type SituationRow = SituationInfo & {
 	name: string;
 	end: number | null; // where its last stage ends: the most progress there is (100 for most)
+	ladder: Rung[]; // each stage from where it starts, with two or more stages; else empty
 	next: NextStage | null;
 	category: string | null;
 	approachName: string | null;
@@ -196,6 +197,24 @@ export function nextStage(
 	};
 }
 
+/** A stage and the progress it starts at: the stage before ends there (the first starts at 0). */
+export type Rung = { name: string; from: number; to: number; current: boolean };
+/** A situation's stages as thresholds — Operational Reserves: Empty 0, Low 1300, Medium 6500, High
+ * 19500, to 26000 — with two or more stages; one stage is just its end. */
+export function stageLadder(
+	s: Pick<SituationInfo, 'stage' | 'ends'>,
+	names: readonly string[]
+): Rung[] {
+	const ends = s.ends ?? [];
+	if (ends.length < 2) return [];
+	return ends.map((to, i) => ({
+		name: names[i] ?? `stage ${i + 1}`,
+		from: i ? ends[i - 1] : 0,
+		to,
+		current: s.stage === i
+	}));
+}
+
 /** A situation's name where the data has none — its text is a scripted loc the game fills in
  * (Alarm Clock, Workshop 3790105183: `[This.GetAlarmLabel]`, picked by an `alarm_for_<what>`
  * flag): the flag's words, else the type's. */
@@ -225,6 +244,7 @@ export function situationRows<S extends SituationInfo>(
 		...s,
 		name: types[s.type]?.name || fallbackName(s),
 		end: s.ends?.at(-1) ?? null,
+		ladder: stageLadder(s, types[s.type]?.stages ?? []),
 		next: nextStage(s, types[s.type]?.stages ?? []),
 		category: types[s.type]?.category ?? null,
 		approachName: s.approach ? (types[s.type]?.approaches[s.approach] ?? s.approach) : null,

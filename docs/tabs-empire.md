@@ -276,8 +276,9 @@ its `monthly_progress` — Operational Reserves read 0 three months running whil
 month) is taken from the last earlier save with that situation, marked ≈ (`observedMonthly()`).
 Later the same day: a Next column, when the situation reaches its next stage at that ±/mo — the end of
 its stage going up, its start going down (`nextStage()`, from the save's `stage_durations`); progress
-shows "/ end" where the last stage does not end at 100 (Operational Reserves 26000, the Alarm Clock
-mod's reminders 1000), and the "runs to 100" note says so only where every row does. A situation the
+shows "/ end" where its one stage does not end at 100 (the Alarm Clock mod's reminders, 1000), and
+with several stages each from where it starts, the current one bold (`stageLadder()`; the user's ask:
+Operational Reserves "Critical 0 · Low 1300 · Medium 6500 · **High 19500** – 26000"), and the "runs to 100" note says so only where every row does. A situation the
 data leaves unnamed (its text a scripted loc the game fills in, the Alarm Clock mod's
 `[This.GetAlarmLabel]`) is named by `fallbackName()`: Alarm Clock's `alarm_for_<what>` situation
 flag ("Reminder: Celebrate Diversity"; `SituationInfo.flags`, READER 70), else its type.
