@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	observedMonthly,
 	contactRows,
 	discovered,
 	gone,
@@ -269,5 +270,43 @@ describe('gone', () => {
 		];
 		expect(gone(saves, saves[1], pick, key)).toEqual([]);
 		expect(gone(saves, undefined, pick, key)).toEqual([]);
+	});
+});
+
+describe('observedMonthly', () => {
+	const sit = (id: number, progress: number, monthly: number | null) => ({
+		id,
+		type: 't',
+		progress,
+		monthly,
+		approach: null,
+		stage: null
+	});
+	it('takes the change from the last earlier save where the save says 0', () => {
+		const earlier = [
+			{ date: '2226.06.01', situations: [sit(33, 20838.89, 0)] },
+			{ date: '2226.07.01', situations: [sit(33, 20608.57, 0)] },
+			{ date: '2226.07.15', situations: null }
+		];
+		const [r] = observedMonthly([sit(33, 20379.06, 0)], '2226.08.01', earlier);
+		expect(r.monthlyObserved).toBe(true);
+		expect(r.monthly).toBeCloseTo(-229.51, 2);
+	});
+	it('keeps what the save says, and 0 where nothing moved or nothing is earlier', () => {
+		const earlier = [{ date: '2226.07.01', situations: [sit(1, 10, 2), sit(2, 5, 0)] }];
+		const rows = observedMonthly(
+			[sit(1, 13, 3), sit(2, 5, 0), sit(3, 7, 0)],
+			'2226.08.01',
+			earlier
+		);
+		expect(rows.map((r) => [r.monthly, r.monthlyObserved])).toEqual([
+			[3, false],
+			[0, false],
+			[0, false]
+		]);
+	});
+	it('reads only saves before the date', () => {
+		const earlier = [{ date: '2226.09.01', situations: [sit(1, 100, 0)] }];
+		expect(observedMonthly([sit(1, 50, 0)], '2226.08.01', earlier)[0].monthlyObserved).toBe(false);
 	});
 });

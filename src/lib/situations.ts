@@ -39,6 +39,31 @@ export function gone<T>(
 	return [...seen.values()].sort((a, b) => b.lastSeen.localeCompare(a.lastSeen));
 }
 
+/**
+ * Each situation's change per month as the saves show it, where the save's own
+ * `last_month_progress` says nothing (0 or absent): a situation whose progress script effects move,
+ * not its `monthly_progress`, keeps 0 there — 4.5.4 Operational Reserves
+ * (`situation_nomad_economy`) read 0 three months running while its progress fell
+ * 20839 → 20609 → 20379. Taken from the last earlier save that had the same situation, per
+ * 30-day month (`monthlyObserved`); kept as the save says it otherwise.
+ */
+export function observedMonthly<S extends SituationInfo>(
+	list: S[],
+	date: string,
+	earlier: { date: string; situations: SituationInfo[] | null }[]
+): (S & { monthlyObserved: boolean })[] {
+	return list.map((x) => {
+		const before = earlier
+			.filter((e) => e.date < date && e.situations)
+			.findLast((e) => e.situations!.some((y) => y.id === x.id));
+		const prev = before?.situations!.find((y) => y.id === x.id);
+		const months = before ? (gameYear(date) - gameYear(before.date)) * 12 : 0;
+		return x.monthly || !prev || months <= 0 || prev.progress === x.progress
+			? { ...x, monthlyObserved: false }
+			: { ...x, monthly: (x.progress - prev.progress) / months, monthlyObserved: true };
+	});
+}
+
 /** Whole months from `from` to `to` (game dates, 30-day months). */
 export const monthsBetween = (from: string, to: string) =>
 	Math.max(0, Math.floor((gameYear(to) - gameYear(from)) * 12 + 1e-9));
@@ -129,6 +154,7 @@ export type SituationRow = SituationInfo & {
 	category: string | null;
 	approachName: string | null;
 	stageName: string | null;
+	monthlyObserved?: boolean; // ±/mo taken from the saves (`observedMonthly()`)
 };
 
 export function situationRows<S extends SituationInfo>(

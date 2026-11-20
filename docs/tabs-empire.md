@@ -270,7 +270,14 @@ the game's stage keys name the contact's kind and way, spoilers, the user's ask 
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
 an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
 with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
-events. **Gone, kept greyed** (the user's ask 2026-11-16: "some decisions come after I officially
+events. **The user's asks 2026-11-20:** situations' progress and ±/mo to two decimals; a ±/mo the
+save gives as 0 (`last_month_progress`, kept 0 by a situation that script effects move rather than
+its `monthly_progress` — Operational Reserves read 0 three months running while falling ~230 a
+month) is taken from the last earlier save with that situation, marked ≈ (`observedMonthly()`).
+Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
+(Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
+column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept
+per browser). **Gone, kept greyed** (the user's ask 2026-11-16: "some decisions come after I officially
 finished something like anomalies … keep them in the overview, at the bottom and greyed out"):
 below each of situations, anomalies, dig sites and special projects, what earlier saves of the
 branch had and the shown one no longer has (`gone()` in `#lib/situations.ts`; finished or lost —

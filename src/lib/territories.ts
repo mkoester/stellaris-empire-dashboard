@@ -33,22 +33,28 @@ export function mergeSightings(
 }
 
 /** The stations seen, for a table: no owner id, only the territory (known, guessed) they fall in,
- * and whether its owner is an empire we have communications with (`talking`). */
+ * and whether its owner is an empire we have communications with (`talking`). The owner is the
+ * system's owner now where its territory is known, else the one at the last sighting: a station
+ * changes hands (2226, Aphris: seen in 2219 under another empire, now one we talk to). */
 export function seenRows(
 	seen: SeenStation[],
 	ts: Territory[],
 	name: (id: number) => string,
 	talking: ReadonlySet<number> = new Set()
 ) {
-	return seen.map((s) => ({
-		talking: talking.has(s.ownerId),
-		systemId: s.systemId,
-		system: name(s.systemId),
-		shipset: shipsetName(s.shipset),
-		first: s.first,
-		last: s.last,
-		territory: ts.find((t) => t.systems.includes(s.systemId))?.label ?? 'unknown owner'
-	}));
+	return seen.map((s) => {
+		const t = ts.find((t) => t.systems.includes(s.systemId));
+		const owner = t?.key.startsWith('country:') ? Number(t.key.slice(8)) : s.ownerId;
+		return {
+			talking: talking.has(owner),
+			systemId: s.systemId,
+			system: name(s.systemId),
+			shipset: shipsetName(s.shipset),
+			first: s.first,
+			last: s.last,
+			territory: t?.label ?? 'unknown owner'
+		};
+	});
 }
 export type SeenRow = ReturnType<typeof seenRows>[number];
 

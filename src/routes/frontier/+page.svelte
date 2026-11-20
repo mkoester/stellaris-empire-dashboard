@@ -106,8 +106,15 @@
 	const situationColumns: Column<SituationRow>[] = [
 		{ id: 'name', label: 'Situation', value: (r) => r.name },
 		{ id: 'category', label: 'Kind', value: (r) => r.category },
-		{ id: 'progress', label: 'Progress', value: (r) => r.progress, right: true },
-		{ id: 'monthly', label: '±/mo', value: (r) => r.monthly, right: true },
+		{ id: 'progress', label: 'Progress', value: (r) => r.progress, right: true, cell: progress },
+		{
+			id: 'monthly',
+			label: '±/mo',
+			value: (r) => r.monthly,
+			right: true,
+			cell: monthly,
+			title: 'last month’s change; ≈ where the save says 0: from the save before'
+		},
 		{ id: 'approach', label: 'Approach', value: (r) => r.approachName },
 		{ id: 'stage', label: 'Stage', value: (r) => r.stageName }
 	];
@@ -272,14 +279,17 @@
 		<label class="mb-2 flex items-center gap-1 text-sm"
 			><input type="checkbox" bind:checked={showDone} /> also finished and aborted</label
 		>
-		<SortTable
-			rows={contacts}
-			columns={contactColumns}
-			key={(r) => r.id}
-			bind:sort={contactSort}
-			link={(r) => r.systemId}
-			bind:hovered
-		/>
+		<!-- wider than its column with all eleven columns: scrolls inside it (no popups to clip) -->
+		<div class="overflow-x-auto">
+			<SortTable
+				rows={contacts}
+				columns={contactColumns}
+				key={(r) => r.id}
+				bind:sort={contactSort}
+				link={(r) => r.systemId}
+				bind:hovered
+			/>
+		</div>
 	</Panel>
 {/snippet}
 
@@ -324,6 +334,13 @@
 			now={pageNow}
 		/>{/if}{/snippet}
 
+{#snippet progress(r: SituationRow)}{r.progress.toFixed(2)}{/snippet}
+{#snippet monthly(r: SituationRow)}{#if r.monthly === null}–{:else}<span
+			title={r.monthlyObserved
+				? 'the save says 0: the change since the save before, per month'
+				: undefined}
+			>{r.monthlyObserved ? '≈ ' : ''}{r.monthly > 0 ? '+' : ''}{r.monthly.toFixed(2)}</span
+		>{/if}{/snippet}
 {#snippet territory(r: SeenRow)}{#if r.territory}<EmpireName
 			name={r.territory}
 			bold={false}
@@ -537,6 +554,7 @@
 			{#if spoilersOn}{@render stillToGain()}{/if}
 			<Panel
 				title="Anomalies"
+				collapse="frontier-anomalies"
 				note="Found and not yet researched. {data.opts.anomalySpoilers
 					? 'What each can lead to, followed through its events and the projects it starts.'
 					: 'What they can lead to: switch on the spoilers in ⚙.'}"
@@ -568,6 +586,7 @@
 
 			<Panel
 				title="Dig sites"
+				collapse="frontier-dig-sites"
 				note="Archaeological sites in systems you visited. {data.opts.digSiteSpoilers
 					? 'What each chapter gives; the next one is marked.'
 					: 'What their chapters give: switch on the spoilers in ⚙.'}"
@@ -599,6 +618,7 @@
 
 			<Panel
 				title="Special projects"
+				collapse="frontier-projects"
 				note="The save holds no progress for them. {data.opts.projectSpoilers
 					? 'What each leads to, followed through its events.'
 					: 'What they lead to: switch on the spoilers in ⚙.'}"

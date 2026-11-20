@@ -1,7 +1,14 @@
 import { contractMarksAt } from '#lib/server/contracts.ts';
 import { error } from '@sveltejs/kit';
 import { pretty } from '#lib/format.ts';
-import { contactRows, gone, mapView, situationRows, stationOwners } from '#lib/situations.ts';
+import {
+	contactRows,
+	gone,
+	mapView,
+	observedMonthly,
+	situationRows,
+	stationOwners
+} from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { campaignGalaxy, territoriesOf } from '#lib/server/mapSystems.ts';
@@ -255,7 +262,10 @@ export function load({ url }) {
 			(s?.firstContacts ?? []).map((c) => c.systemId)
 		),
 		owners: opts.contactStations ? owners : [],
-		situations: situationRows(s?.situations ?? [], data.situationTypes),
+		situations: situationRows(
+			s ? observedMonthly(s.situations ?? [], s.date, snaps) : [],
+			data.situationTypes
+		),
 		anomalies,
 		projects,
 		digSites,
