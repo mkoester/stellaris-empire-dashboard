@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lgateRelated } from './lgates.ts';
+import { leadsTo, lgateRelated } from './lgates.ts';
 
 describe('lgateRelated', () => {
 	it('tells by the name, or by anything in the tree', () => {
@@ -18,5 +18,14 @@ describe('lgateRelated', () => {
 		expect(lgateRelated('Old War', [{ t: 'modifier', k: 'ship_graveyard' }])).toBe(false);
 		// behind its spoiler: no tree, the name alone
 		expect(lgateRelated('Old War', null)).toBe(false);
+	});
+});
+
+describe('leadsTo', () => {
+	it('shows every source until one is ticked', () => {
+		expect(leadsTo(false, false)).toBe('all');
+		expect(leadsTo(true, false)).toBe('lgate');
+		expect(leadsTo(false, true)).toBe('precursor');
+		expect(leadsTo(true, true)).toBe('either');
 	});
 });

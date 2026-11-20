@@ -17,3 +17,8 @@ export function lgateRelated(name: string, tree: unknown): boolean {
 				: !!n && typeof n === 'object' && Object.values(n).some(walk);
 	return walk(tree);
 }
+
+/** "Still to gain"'s "Leads to" filter: none on shows every source; either or both narrow it. */
+export type LeadsTo = 'all' | 'lgate' | 'precursor' | 'either';
+export const leadsTo = (lgate: boolean, precursor: boolean): LeadsTo =>
+	lgate && precursor ? 'either' : lgate ? 'lgate' : precursor ? 'precursor' : 'all';

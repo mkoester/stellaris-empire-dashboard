@@ -15,6 +15,8 @@
 	import EmpireName from '#lib/EmpireName.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
+	import { tick } from 'svelte';
+	import { leadsTo } from '#lib/lgates.ts';
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import type { ContactRow, SituationRow } from '#lib/situations.ts';
 	import type { SeenRow } from '#lib/territories.ts';
@@ -179,14 +181,16 @@
 		'dig site': true
 	});
 	let certain = $state({ sure: true, possible: true });
+	// "Leads to": both off shows every source; once one is on, only the sources leading there
+	let leads = $state({ lgate: false, precursor: false });
 	const shownGains = $derived(
 		mergeGainRows(
 			(Object.keys(fromKinds) as GainSource['kind'][])
 				.filter((k) => fromKinds[k])
-				.map((k) => data.gains[k])
+				.map((k) => data.gains[leadsTo(leads.lgate, leads.precursor)][k])
 		).filter((g) => (g.sure > 0 ? certain.sure : certain.possible))
 	);
-	const anyGains = $derived(Object.values(data.gains).some((l) => l.length));
+	const anyGains = $derived(Object.values(data.gains.all).some((l) => l.length));
 	// in the order of the `all` header's Resources strip
 	const gainRes = $derived.by(() => {
 		const res = shownGains.filter((g) => g.kind === 'res');
@@ -207,8 +211,18 @@
 	// a chip's click: to its row in its table, lit for a moment after the pointer has left
 	const anchorOf = (kind: GainSource['kind']) => (r: { name: string }) => `${kind}:${r.name}`;
 	let held: ReturnType<typeof setTimeout> | undefined;
-	function jump(s: GainSource) {
+	// whether each kind's panel is unfolded: a chip's click unfolds a folded one first
+	let panelOpen = $state<Record<GainSource['kind'], boolean>>({
+		anomaly: true,
+		project: true,
+		'dig site': true
+	});
+	async function jump(s: GainSource) {
 		const a = `${s.kind}:${s.name}`;
+		if (!panelOpen[s.kind]) {
+			panelOpen[s.kind] = true;
+			await tick();
+		}
 		document
 			.querySelector(`[data-anchor="${CSS.escape(a)}"]`)
 			?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -463,8 +477,8 @@
 					lit = `${s.kind}:${s.name}`;
 				}}
 				onpointerleave={() => (lit = null)}
-				onclick={() => jump(s)}
-				onkeydown={(e) => e.key === 'Enter' && jump(s)}
+				onclick={() => void jump(s)}
+				onkeydown={(e) => e.key === 'Enter' && void jump(s)}
 				title="{s.kind}: {s.time ? 'how long it takes, as in its table' : 'no time known'}"
 				>{s.name}{#if sourceTime(s)}<span class="ml-1 opacity-75">· {sourceTime(s)}</span
 					>{/if}</span
@@ -495,6 +509,13 @@
 					>From:{#each KINDS as k (k)}<label class="ml-2" style:color={SOURCE_COLORS[k]}
 							><input type="checkbox" bind:checked={fromKinds[k]} /> {k}</label
 						>{/each}</span
+				>
+				<span title="none ticked: every source; ticked: only those leading there"
+					>Leads to:<label class="ml-1"
+						><input type="checkbox" bind:checked={leads.lgate} /> L-Gate</label
+					>{#if data.opts.precursorBadges}<label class="ml-2"
+							><input type="checkbox" bind:checked={leads.precursor} /> Precursor</label
+						>{/if}</span
 				>
 			</div>
 			{#if gainRes.length}
@@ -785,6 +806,7 @@
 			<Panel
 				title="Anomalies"
 				collapse="frontier-anomalies"
+				bind:open={panelOpen.anomaly}
 				note="Found and not yet researched. {data.opts.anomalySpoilers
 					? 'What each can lead to, followed through its events and the projects it starts.'
 					: 'What they can lead to: switch on the spoilers in ⚙.'}"
@@ -817,6 +839,7 @@
 			<Panel
 				title="Dig sites"
 				collapse="frontier-dig-sites"
+				bind:open={panelOpen['dig site']}
 				note="Archaeological sites in systems you visited. {data.opts.digSiteSpoilers
 					? 'What each chapter gives; the next one is marked.'
 					: 'What their chapters give: switch on the spoilers in ⚙.'}"
@@ -849,6 +872,7 @@
 			<Panel
 				title="Special projects"
 				collapse="frontier-projects"
+				bind:open={panelOpen.project}
 				note="The save holds no progress for them. {data.opts.projectSpoilers
 					? 'What each leads to, followed through its events.'
 					: 'What they lead to: switch on the spoilers in ⚙.'}"

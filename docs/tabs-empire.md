@@ -315,7 +315,11 @@ exploration tracker (the `precursor_system` star flag), not this chain. The spoi
 precursor, the precursor named in its tooltip (`precursorsOf()` in `#lib/precursorLinks.ts`, from the
 whole unresolved outcome tree whatever the outcome spoilers say: 62 anomaly categories, 88 projects,
 20 dig sites in 4.5.4; Grunur counts as the Baol). None in Roaming Cybergang 2226.08.01, which has no
-precursor chain yet.
+precursor chain yet. "Still to gain" has a **Leads to** filter (L-Gate, and Precursor while
+that spoiler is on): both unticked show every source, a ticked one only the sources leading there
+(`leadsTo()`; the server sends the gains four ways, `gains[all|lgate|precursor|either][kind]`). A
+source chip's click unfolds its kind's panel first when folded (Panel's bindable `open`), then
+scrolls to the row.
 Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
 (Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
 column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept

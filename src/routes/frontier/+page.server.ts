@@ -21,7 +21,7 @@ import { gainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
 import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
 import { anomalyDays } from '#lib/ships.ts';
 import { digSiteDone } from '#lib/mapLayers.ts';
-import { lgateRelated } from '#lib/lgates.ts';
+import { lgateRelated, type LeadsTo } from '#lib/lgates.ts';
 import { precursorsOf } from '#lib/precursorLinks.ts';
 import { lgateView, precursorGalaxy, precursorRows } from '#lib/frontierChains.ts';
 import { techCost } from '#lib/events.ts';
@@ -186,19 +186,24 @@ export function load({ url }) {
 	const techNames = Object.fromEntries(Object.entries(data.techs).map(([k, v]) => [k, v.name]));
 	// what the open ones can still bring, as far as their spoilers are on
 	const researched = new Set(save?.progress?.researched ?? []);
-	type Source = Parameters<typeof gainRows>[0][number];
+	// each with what it leads to, for the "Leads to" filter (precursors only with their spoiler)
+	type Source = Parameters<typeof gainRows>[0][number] & { lgate: boolean; precursor: boolean };
 	const all: Source[] = [
 		...anomalies.map((a) => ({
 			name: a.name,
 			kind: 'anomaly' as const,
 			tree: a.tree,
-			time: a.time
+			time: a.time,
+			lgate: a.lgate,
+			precursor: a.precursors.length > 0
 		})),
 		...projects.map((p) => ({
 			name: p.name,
 			kind: 'project' as const,
 			tree: p.tree,
-			time: p.time
+			time: p.time,
+			lgate: p.lgate,
+			precursor: p.precursors.length > 0
 		})),
 		...digSites
 			.filter((d) => !d.done)
@@ -207,7 +212,9 @@ export function load({ url }) {
 				kind: 'dig site' as const,
 				time: d.time,
 				tree: d.tree,
-				next: d.chapter
+				next: d.chapter,
+				lgate: d.lgate,
+				precursor: d.precursors.length > 0
 			}))
 	].flatMap((x) => (x.tree ? [{ ...x, tree: prune(x.tree) }] : []));
 	// the plan's techs, wanted ones' prerequisites included: what an outcome helps with
@@ -232,17 +239,25 @@ export function load({ url }) {
 				}
 			: g;
 	};
-	// one list per kind of source, merged on the page as its filters say (`mergeGainRows()`)
-	const gains = Object.fromEntries(
-		(['anomaly', 'project', 'dig site'] as const).map((kind) => [
-			kind,
-			gainRows(
-				all.filter((x) => x.kind === kind),
-				{ income: save?.income ?? null, values },
-				techNames
-			).map(withTech)
-		])
-	) as Record<GainSource['kind'], GainRow[]>;
+	// one list per kind of source, merged on the page as its filters say (`mergeGainRows()`), for
+	// each choice of "Leads to": every source, those leading to an L-Gate, to a precursor, or either
+	const byKind = (sources: Source[]) =>
+		Object.fromEntries(
+			(['anomaly', 'project', 'dig site'] as const).map((kind) => [
+				kind,
+				gainRows(
+					sources.filter((x) => x.kind === kind),
+					{ income: save?.income ?? null, values },
+					techNames
+				).map(withTech)
+			])
+		) as Record<GainSource['kind'], GainRow[]>;
+	const gains: Record<LeadsTo, Record<GainSource['kind'], GainRow[]>> = {
+		all: byKind(all),
+		lgate: byKind(all.filter((x) => x.lgate)),
+		precursor: byKind(all.filter((x) => x.precursor)),
+		either: byKind(all.filter((x) => x.lgate || x.precursor))
+	};
 	return {
 		...rest,
 		gains,
