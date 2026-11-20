@@ -4,12 +4,46 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.29] - 2026-11-21
 
 ### Added
 
 - Contracts: which arkship carries the passengers of Diplomatic Support, Prisoner Disposal and the
   Sightseeing Tour — the game picks one at random when several are there and never shows which.
+- Contracts: remote ones (research projects, no system, Join Wars) apart from those at a place;
+  transports show their pickup and drop-off, and hovering one draws its route on the map.
+- Map: a storms mode, after the game's Weather Forecast — every cosmic storm where it is, and with
+  Cosmic Weather Models the systems ahead on its path with when it gets there.
+- Frontier: L-Gate and Precursors panels from the situation log — L-Gate insights of 7, the
+  L-Gates you know and what can still give insights; each precursor found with its artifacts and
+  home system. An L-Gate badge marks the anomalies, projects and dig sites that lead there.
+- Frontier: a Precursor badge on what leads to a precursor, which one on hover (a spoiler switch),
+  and a cheat switch showing everything the save holds on precursors: which this galaxy has, their
+  systems on the map (undiscovered ones too) and every empire collecting them.
+- Frontier, situations: a Next column (when the next stage comes, up or down), each stage's
+  threshold (Operational Reserves: Critical 0 · Low 1300 · Medium 6500 · High 19500), and the
+  situations that never end (Operational Reserves, Passenger Satisfaction) pinned on top.
+- Frontier, Still to gain: a "Leads to" filter (L-Gate, Precursor); resources in the header's
+  order.
+- Frontier: stations seen grouped by their likely empire, in shipset colours; anomalies, dig sites
+  and projects fold, and a source's chip unfolds its panel before scrolling to it.
+
+### Changed
+
+- Frontier: situations' progress and monthly change to two decimals; a monthly change the save
+  gives as 0 is measured between saves (≈). Stations seen hide an empire you talk to by the
+  system's owner now.
+- Maps: a natural wormhole counts as explored only with Wormhole Stabilization researched.
+- A nomad's window title says Roaming, as its tab does.
+
+### Fixed
+
+- Dig sites: an excavated site showed "chapter 5 / 4" with a time estimate; other empires'
+  excavations counted as ours.
+- Contracts: an issuer named by a template showed "$1$ of $2$" (with the extractor's 0.1.22 data);
+  prescripted species names read "Human $1$ Commonwealth".
+- A situation a mod names by script (the Alarm Clock mod's reminders) showed no name.
+- Explanation cards inside a paragraph rendered invalid HTML.
 
 ## [0.1.28] - 2026-11-19
 
