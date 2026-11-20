@@ -281,7 +281,12 @@ with several stages each from where it starts, the current one bold (`stageLadde
 Operational Reserves "Critical 0 · Low 1300 · Medium 6500 · **High 19500** – 26000"), and the "runs to 100" note says so only where every row does. A situation the
 data leaves unnamed (its text a scripted loc the game fills in, the Alarm Clock mod's
 `[This.GetAlarmLabel]`) is named by `fallbackName()`: Alarm Clock's `alarm_for_<what>` situation
-flag ("Reminder: Celebrate Diversity"; `SituationInfo.flags`, READER 70), else its type.
+flag ("Reminder: Celebrate Diversity"; `SituationInfo.flags`, READER 70), else its type. A permanent
+situation (`permanent = yes`, data DB `situation.permanent` since 2026-11-20: in 4.5.4 only every
+nomad's Operational Reserves and the Forever Cruise origin's Passenger Satisfaction) stays on top
+whatever the sort, a line below it (SortTable's `pinned`, `pinFirst()`); with an older data DB, none
+is pinned. Unplugged's Embodied Identity has no ending effects but is not permanent: it ends at
+either extreme.
 Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
 (Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
 column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept

@@ -1445,7 +1445,13 @@ export type GameData = {
 	dlcs: Dlc[]; // every DLC the game knows (dlc_info.txt), in release order
 	situationTypes: Record<
 		string,
-		{ name: string; category: string | null; approaches: Record<string, string>; stages: string[] }
+		{
+			name: string;
+			category: string | null;
+			approaches: Record<string, string>;
+			stages: string[];
+			permanent?: boolean; // never ends (`permanent = yes`); data DBs since 2026-11-20
+		}
 	>;
 	projects: Record<
 		string,

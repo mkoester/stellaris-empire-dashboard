@@ -447,7 +447,11 @@ export function loadGameData(file: string): GameData {
 					}, {})
 				: {},
 			situationTypes: situationTypes(
-				rows('SELECT key, name, category FROM situation'),
+				rows(
+					columnsOf('situation').has('permanent')
+						? 'SELECT key, name, category, permanent FROM situation'
+						: 'SELECT key, name, category, 0 AS permanent FROM situation'
+				),
 				rows('SELECT situation_key, key, name FROM situation_approach ORDER BY sort_order'),
 				rows('SELECT situation_key, key, name FROM situation_stage ORDER BY sort_order')
 			),
@@ -1369,7 +1373,7 @@ const jsonList = <T = string>(json: string | null): T[] => (json ? JSON.parse(js
 
 /** Situations with their approaches' names. */
 export function situationTypes(
-	types: { key: string; name: string | null; category: string | null }[],
+	types: { key: string; name: string | null; category: string | null; permanent?: number }[],
 	approaches: { situation_key: string; key: string; name: string | null }[],
 	stages: { situation_key: string; key: string; name: string | null }[]
 ): GameData['situationTypes'] {
@@ -1379,6 +1383,7 @@ export function situationTypes(
 			{
 				name: t.name ?? t.key,
 				category: t.category,
+				permanent: !!t.permanent,
 				approaches: Object.fromEntries(
 					approaches.filter((a) => a.situation_key === t.key).map((a) => [a.key, a.name ?? a.key])
 				),

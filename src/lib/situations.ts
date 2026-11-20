@@ -165,6 +165,7 @@ export type SituationRow = SituationInfo & {
 	name: string;
 	end: number | null; // where its last stage ends: the most progress there is (100 for most)
 	ladder: Rung[]; // each stage from where it starts, with two or more stages; else empty
+	permanent: boolean; // never ends: always running for this playstyle (data DB `permanent`)
 	next: NextStage | null;
 	category: string | null;
 	approachName: string | null;
@@ -245,6 +246,7 @@ export function situationRows<S extends SituationInfo>(
 		name: types[s.type]?.name || fallbackName(s),
 		end: s.ends?.at(-1) ?? null,
 		ladder: stageLadder(s, types[s.type]?.stages ?? []),
+		permanent: types[s.type]?.permanent ?? false,
 		next: nextStage(s, types[s.type]?.stages ?? []),
 		category: types[s.type]?.category ?? null,
 		approachName: s.approach ? (types[s.type]?.approaches[s.approach] ?? s.approach) : null,

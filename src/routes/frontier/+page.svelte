@@ -609,7 +609,13 @@
 					: 'Progress runs to 100, or to the end shown after it; with several stages, each from where it starts.'}
 			>
 				{#if data.situations.length}
-					<SortTable rows={data.situations} columns={situationColumns} key={(r) => r.id} />
+					<!-- the permanent ones (a nomad's Operational Reserves) on top, a line below them -->
+					<SortTable
+						rows={data.situations}
+						columns={situationColumns}
+						key={(r) => r.id}
+						pinned={(r) => r.permanent}
+					/>
 				{:else}<p class="text-sm text-gray-500">None running.</p>{/if}
 				{#if data.gone.situations.length}
 					{@render goneToggle('situations', data.gone.situations.length)}
