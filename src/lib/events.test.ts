@@ -37,6 +37,7 @@ const data: GameData = {
 	policies: [],
 	factionTypes: [],
 	situationTypes: {},
+	eventChains: {},
 	projects: {},
 	anomalyCategories: {},
 	outcomeTrees: { anomaly: {}, project: {}, dig_site: {} },

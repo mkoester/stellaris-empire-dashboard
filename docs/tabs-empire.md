@@ -290,7 +290,15 @@ either extreme. An **L-Gate badge** (2026-11-20, `lgateRelated()` in `#lib/lgate
 special project or dig site whose name or outcome tree names the L-Gates or the L-Cluster: L-Gate
 Insights (`distar.9000`, 3 in 10 on 24 anomaly categories in 4.5.4), the L-Gate Activation tech, the
 L-Cluster project. The tree is behind the outcomes spoiler, so with it off only the name tells. "Still to
-gain" lists its resources in the `all` header's order (`inStripOrder()`, research last).
+gain" lists its resources in the `all` header's order (`inStripOrder()`, research last). Between
+Situations and Events, **L-Gate** and **Precursors** (2026-11-20, `#lib/frontierChains.ts`): the
+situation log's chains (`Snapshot.eventChains`, READER 71; data DB `event_chain` with each chain's
+counters and their maximum). L-Gate: insights of `l_cluster_chain`'s `clues` (7), the first L-Gate
+(`encountered_first_lgate`), L-Gates in known systems (bypass `lgate`), L-Gate Activation, and the
+sources now — the repeatable L-Gate Insight tech on offer, the open rows with the badge. Precursors:
+each precursor chain we started (category `precursors`), its artifacts (6) and its home system's
+chain. Which precursor a galaxy has is a secret until found (`precursor_<n>` system flags: 5 is the
+Cybrex, 92 systems in Roaming Cybergang), so none shows before.
 Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
 (Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
 column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept

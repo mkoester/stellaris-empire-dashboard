@@ -644,6 +644,90 @@
 				{/if}
 			</Panel>
 
+			<Panel
+				title="L-Gate"
+				note="The L-Cluster chain of the situation log: 7 L-Gate Insights make L-Gate Activation researchable. Insights come from anomalies and projects (the L-Gate badge) and from the repeatable L-Gate Insight tech."
+			>
+				{#if !data.chainsRead}<p class="text-sm text-gray-500">
+						Not read yet: needs the next save and a current data DB.
+					</p>{:else if !data.lgate.encountered && !data.lgate.gates}<p
+						class="text-sm text-gray-500"
+					>
+						No L-Gate found yet.
+					</p>{:else}
+					{@const l = data.lgate}
+					{@const leads = [...data.anomalies, ...data.projects, ...data.digSites].filter(
+						(r) => r.lgate && !('closed' in r && r.closed)
+					).length}
+					<ul class="space-y-1 text-sm">
+						<li>
+							Insights <b class="tabular-nums">{l.insights} / {l.needed}</b><span
+								class="ml-2 inline-block h-2 w-24 rounded bg-gray-200 align-middle dark:bg-gray-800"
+								><span
+									class="block h-2 rounded bg-violet-500"
+									style:width="{(100 * l.insights) / l.needed}%"
+								></span></span
+							>
+						</li>
+						<li>L-Gates in systems you know: <b>{l.gates}</b></li>
+						{#if l.activated}<li class="text-green-700 dark:text-green-400">
+								L-Gate Activation researched: the L-Gates can be opened.
+							</li>{:else if l.complete}<li class="text-green-700 dark:text-green-400">
+								All insights gathered: L-Gate Activation {l.activationTech
+									? 'is on offer now'
+									: 'can be researched'}.
+							</li>{:else}<li>
+								Sources now: {l.insightTech
+									? 'the L-Gate Insight tech is on offer (engineering)'
+									: 'the L-Gate Insight tech is not on offer'}{leads
+									? `; ${leads} open anomal${leads > 1 ? 'ies, projects or dig sites' : 'y, project or dig site'} with the L-Gate badge`
+									: ''}.
+							</li>{/if}
+					</ul>
+				{/if}
+			</Panel>
+
+			<Panel
+				title="Precursors"
+				note="The precursor chains of the situation log: a precursor's artifacts (6) lead to its home system. Which precursors a galaxy has stays hidden until one is found, as in the game."
+			>
+				{#if !data.chainsRead}<p class="text-sm text-gray-500">
+						Not read yet: needs the next save and a current data DB.
+					</p>{:else if !data.precursors.length}<p class="text-sm text-gray-500">
+						None found yet: a precursor's first artifact comes from an anomaly in one of its
+						systems.
+					</p>{:else}
+					<table class="text-sm">
+						<thead
+							><tr class="border-b border-gray-300 text-left dark:border-gray-700"
+								><th class="pr-4">Precursor</th><th class="pr-4 text-right">Artifacts</th><th
+									>Home system</th
+								></tr
+							></thead
+						>
+						<tbody>
+							{#each data.precursors as r (r.key)}
+								<tr class="border-b border-gray-100 dark:border-gray-900"
+									><td class="pr-4"><b>{r.name}</b></td><td class="pr-4 text-right tabular-nums"
+										>{r.artifacts === null
+											? '–'
+											: `${r.artifacts}${r.needed !== null ? ` / ${r.needed}` : ''}`}{r.done
+											? ' ✓'
+											: ''}</td
+									><td
+										>{r.homeworld === 'done'
+											? 'explored ✓'
+											: r.homeworld === 'found'
+												? 'found'
+												: '–'}</td
+									></tr
+								>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
+			</Panel>
+
 			<Panel title="Events" note="The campaign's bigger events are in their own tab.">
 				<a class="text-sm hover:underline" href={resolve('/events')}>→ events</a>
 			</Panel>

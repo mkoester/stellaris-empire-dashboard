@@ -525,6 +525,7 @@ export type Snapshot = {
 	specialProjects: ProjectInfo[] | null;
 	digSites: DigSite[] | null; // archaeological sites in visited systems
 	storms: Storm[] | null; // cosmic storms, every one in the galaxy (the game shows them all); READER 70
+	eventChains: EventChains | null; // our situation log's chains (precursors, the L-Cluster); READER 71
 	stationsSeen: StationSighting[] | null; // stations where our fleets are, null before 2026-10-18
 	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
 	focus: EmpireFocus | null;
@@ -820,6 +821,13 @@ export type DigSite = {
 	// the next chapter, 1-based (`index` + 1: `index` = chapters done); past the last once the site
 	// is excavated, which stays in the save (`digSiteDone()`); absent before READER 58
 	chapter?: number | null;
+};
+
+/** Our event chains: `country.event_chain = { event_chain="<key>" counter = { <name>=N } }`, and
+ * `completed_event_chain="<key>"` for each finished one (docs/save-format.md). */
+export type EventChains = {
+	active: { key: string; counters: Record<string, number> }[];
+	completed: string[];
 };
 
 /** A cosmic storm (`storms.storms.<id>`, docs/save-format.md "Cosmic storms"). */
@@ -1443,6 +1451,16 @@ export type GameData = {
 	// a planet, keyed `deposit:<key>`, `modifier:<key>` (static modifier), `building:<key>`
 	capEffects: Record<string, CapEffect[]>;
 	dlcs: Dlc[]; // every DLC the game knows (dlc_info.txt), in release order
+	// event chains (data DB `event_chain`, since 2026-11-20; `{}` with an older one): title, the
+	// situation log's category (precursors …), counters with their maximum
+	eventChains: Record<
+		string,
+		{
+			title: string | null;
+			category: string | null;
+			counters: { key: string; max: number | null }[];
+		}
+	>;
 	situationTypes: Record<
 		string,
 		{

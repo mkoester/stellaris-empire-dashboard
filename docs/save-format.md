@@ -524,6 +524,12 @@ type index clues difficulty days_left excavator_fleet completed = { { country da
   "finished" is `index` ≥ the site type's stages (`digSiteDone()`), not a site gone. Megastructures `megastructures.<id> =
 { type coordinate.origin owner }` (2207.03.10: ruined gateways, a ruined quantum catapult, two
   ruined ring world sections).
+- **Event chains** (the situation log; Roaming Cybergang 2226.08.01, READER 71): on the country
+  `event_chain = { event_chain="l_cluster_chain" scope = { … } counter = { clues=1 } }` per running
+  chain — `counter` is absent while every counter is 0 —, and `completed_event_chain="<key>"` per
+  finished one (a contract chain repeats). Their counters' maximum is in the files
+  (`common/event_chains`, data DB `event_chain`): precursors 6 artifacts, the L-Cluster 7 clues (also
+  the variable `num_lcluster_clues`).
 - **Cosmic storms** (4.5.4, Roaming Cybergang, first in 2212.11.07 — a magnetic storm; particle
   from ~2217, a gravity storm in 2220 gone by 2223; two at 2226.08.01, none ever over us): top-level
   `storms = { storms = { <id> = { type cosmic_storm_start_position storm_target_pos = { x y }

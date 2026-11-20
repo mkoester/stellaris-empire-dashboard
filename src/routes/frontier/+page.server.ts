@@ -22,6 +22,7 @@ import { digDays, researchDays, type Time } from '#lib/frontierTime.ts';
 import { anomalyDays } from '#lib/ships.ts';
 import { digSiteDone } from '#lib/mapLayers.ts';
 import { lgateRelated } from '#lib/lgates.ts';
+import { lgateView, precursorRows } from '#lib/frontierChains.ts';
 import { techCost } from '#lib/events.ts';
 import { nowTable, prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
@@ -271,6 +272,17 @@ export function load({ url }) {
 			s ? observedMonthly(s.situations ?? [], s.date, snaps) : [],
 			data.situationTypes
 		),
+		// the situation log's L-Cluster and precursor chains (#lib/frontierChains.ts)
+		lgate: lgateView({
+			chains: save?.eventChains ?? null,
+			types: data.eventChains,
+			flags: save?.countryFlags ?? [],
+			researched: save?.progress?.researched ?? [],
+			options: save?.techOptions ?? null,
+			galaxy
+		}),
+		precursors: precursorRows(save?.eventChains ?? null, data.eventChains),
+		chainsRead: !!save?.eventChains && Object.keys(data.eventChains).length > 0,
 		anomalies,
 		projects,
 		digSites,

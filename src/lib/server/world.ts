@@ -15,6 +15,7 @@ import type {
 	SituationInfo,
 	StationSighting,
 	Storm,
+	EventChains,
 	HistoryReading
 } from '#lib/types.ts';
 import {
@@ -523,6 +524,28 @@ export function digSites(
 			}
 		];
 	});
+}
+
+/** Our event chains (`country.event_chain`, `completed_event_chain`): running ones with their
+ * counters (a counter at 0 is absent), the finished ones' keys. */
+export function eventChains(raw: Pick<RawSave, 'country'>): EventChains {
+	return {
+		active: items(raw.country?.event_chain).flatMap((c) =>
+			c && typeof c === 'object' && typeof c.event_chain === 'string'
+				? [
+						{
+							key: c.event_chain,
+							counters: Object.fromEntries(
+								Object.entries(c.counter ?? {}).flatMap(([k, v]) =>
+									typeof v === 'number' ? [[k, v]] : []
+								)
+							)
+						}
+					]
+				: []
+		),
+		completed: [...new Set(items(raw.country?.completed_event_chain).map(String))]
+	};
 }
 
 // `STORM_PREFIX_<n>` (4.5.4 cosmic_storms_l_english.yml): "Tempest $NAME$"

@@ -6,6 +6,7 @@ import {
 	relations,
 	stationsSeen,
 	storms,
+	eventChains,
 	surveyedPlanets,
 	wormholeLinks
 } from './world.ts';
@@ -252,5 +253,31 @@ describe('storms', () => {
 			}
 		]);
 		expect(storms({ ...raw, countryId: 0 })[0].affectsUs).toBe(false);
+	});
+});
+
+describe('eventChains', () => {
+	it('reads running chains with their counters and the completed ones', () => {
+		// Roaming Cybergang 2226.08.01 (l_cluster_chain without a counter: 0 clues), another
+		// empire's shrouded chain (counter 1)
+		const country = {
+			event_chain: [
+				{ event_chain: 'l_cluster_chain', scope: { type: 'country', id: 0 } },
+				{ event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 3 } }
+			],
+			completed_event_chain: [
+				'nomad_checklist_chain',
+				'contract_colony_startup_chain',
+				'contract_colony_startup_chain'
+			]
+		};
+		expect(eventChains({ country })).toEqual({
+			active: [
+				{ key: 'l_cluster_chain', counters: {} },
+				{ key: 'cybrex_chain', counters: { cybrex_artifacts: 3 } }
+			],
+			completed: ['nomad_checklist_chain', 'contract_colony_startup_chain']
+		});
+		expect(eventChains({ country: {} })).toEqual({ active: [], completed: [] });
 	});
 });

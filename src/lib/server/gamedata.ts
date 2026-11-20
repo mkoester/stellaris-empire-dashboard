@@ -425,6 +425,11 @@ export function loadGameData(file: string): GameData {
 						).map((r) => [r.key, r.parent])
 					)
 				: {},
+			eventChains: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'event_chain'"
+			).length
+				? eventChainsOf(rows('SELECT key, title, category, counters_json FROM event_chain'))
+				: {},
 			situationStageModifiers: rows<{ name: string }>(
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'situation_stage_modifier'"
 			).length
@@ -1372,6 +1377,29 @@ export function blockerInfo(
 const jsonList = <T = string>(json: string | null): T[] => (json ? JSON.parse(json) : []);
 
 /** Situations with their approaches' names. */
+/** Event chains by key; `counters_json` [{key, max}], NULL for none. */
+export function eventChainsOf(
+	chains: {
+		key: string;
+		title: string | null;
+		category: string | null;
+		counters_json: string | null;
+	}[]
+): GameData['eventChains'] {
+	return Object.fromEntries(
+		chains.map((c) => [
+			c.key,
+			{
+				title: c.title,
+				category: c.category,
+				counters: c.counters_json
+					? (JSON.parse(c.counters_json) as { key: string; max: number | null }[])
+					: []
+			}
+		])
+	);
+}
+
 export function situationTypes(
 	types: { key: string; name: string | null; category: string | null; permanent?: number }[],
 	approaches: { situation_key: string; key: string; name: string | null }[],
