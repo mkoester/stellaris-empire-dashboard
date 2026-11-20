@@ -277,7 +277,11 @@ month) is taken from the last earlier save with that situation, marked ≈ (`obs
 Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
 (Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
 column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept
-per browser). **Gone, kept greyed** (the user's ask 2026-11-16: "some decisions come after I officially
+per browser). Stations seen: each shipset in a colour of its own, and "group by likely empire"
+(the Owner column's territories: a known empire, or a guess — one shipset within `GUESS_JUMPS`
+jumps; clusters of one shipset far apart are numbered, `SeenRow.group`). Still to gain: each
+resource in its game colour (`colorOf`; minor artifacts, nanites, astral threads and the rare
+resources sampled from their icons 2026-11-20). **Gone, kept greyed** (the user's ask 2026-11-16: "some decisions come after I officially
 finished something like anomalies … keep them in the overview, at the bottom and greyed out"):
 below each of situations, anomalies, dig sites and special projects, what earlier saves of the
 branch had and the shown one no longer has (`gone()` in `#lib/situations.ts`; finished or lost —

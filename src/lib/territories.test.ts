@@ -149,9 +149,9 @@ describe('seenRows', () => {
 			{ key: 'guess:x:2', label: 'guess', color: '#000', guess: true, systems: [2] }
 		];
 		const rows = seenRows(seen, ts, String, new Set([7]));
-		expect(rows.map((r) => [r.system, r.talking, r.territory])).toEqual([
-			['1', true, 'C7'],
-			['2', true, 'guess']
+		expect(rows.map((r) => [r.system, r.talking, r.territory, r.group])).toEqual([
+			['1', true, 'C7', 0],
+			['2', true, 'guess', 1]
 		]);
 	});
 });

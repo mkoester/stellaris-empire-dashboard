@@ -18,6 +18,14 @@ const COLORS: Record<string, string> = {
 	exotic_gases: '#2e8b3e',
 	rare_crystals: '#c9a227',
 	volatile_motes: '#b0603a',
+	// sampled from their icons' saturated pixels (4.5.4 gfx/interface/icons/resources), lifted a
+	// little to read on both backgrounds — 2026-11-20
+	minor_artifacts: '#9a62c0',
+	nanites: '#7f9a86',
+	astral_threads: '#2f8fd6',
+	sr_dark_matter: '#6560c8',
+	sr_living_metal: '#6f8484',
+	sr_zro: '#5a7fc4',
 	// events without a resource of their own
 	agenda: '#e09a1f', // the game's highlight orange (§H)
 	election: '#8f6ad8', // politics: influence

@@ -52,7 +52,10 @@ export function seenRows(
 			shipset: shipsetName(s.shipset),
 			first: s.first,
 			last: s.last,
-			territory: t?.label ?? 'unknown owner'
+			territory: t?.label ?? 'unknown owner',
+			// which territory: guesses of one shipset share a label, each cluster (one shipset within
+			// GUESS_JUMPS jumps) is its own; an index, not the owner's id
+			group: t ? ts.indexOf(t) : -1
 		};
 	});
 }
