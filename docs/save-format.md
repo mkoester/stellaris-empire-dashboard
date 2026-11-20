@@ -516,11 +516,29 @@ type progress last_month_progress approach stage }`. Anomalies: `country.events.
 { <planet ids> }`, category in `planets.planet.<id>.anomaly`. Special projects
   `country.events.special_project = { id special_project carrier = { type=planet reference } }`,
   no progress. Dig sites `archaeological_sites.sites.<id> = { location = { type=2 id=<planet> }
-type index clues difficulty days_left excavator_fleet }`; `index` is the chapter under way,
-  0-based (**assumed**: every site in Roaming Korinth 2210.10.20 reads 0, and `site_star_petal`'s
-  difficulty 2 is its first stage's — no site seen past a chapter yet). Megastructures `megastructures.<id> =
+type index clues difficulty days_left excavator_fleet completed = { { country date } } }`;
+  **`index` = the chapters done** = the entries of `completed`, one per chapter with its date
+  (confirmed on four sites, Roaming Cybergang 2226.08.01: Space Shanty 3 of 5, Star Petal 4 of 4, Cut
+  to Fit and Lost Moments 3 each). **An excavated site stays in the save** with `index` at its
+  chapter count — Star Petal finished 2222.07.25 and was still listed four years later —, so
+  "finished" is `index` ≥ the site type's stages (`digSiteDone()`), not a site gone. Megastructures `megastructures.<id> =
 { type coordinate.origin owner }` (2207.03.10: ruined gateways, a ruined quantum catapult, two
   ruined ring world sections).
+- **Cosmic storms** (4.5.4, Roaming Cybergang, first in 2212.11.07 — a magnetic storm; particle
+  from ~2217, a gravity storm in 2220 gone by 2223; two at 2226.08.01, none ever over us): top-level
+  `storms = { storms = { <id> = { type cosmic_storm_start_position storm_target_pos = { x y }
+storm_current_path_index path = { <system ids> } speed storm_days_till_next_system storm_age
+storm_min_radius storm_max_radius storm_activation_period_in_months storm_monthly_added_devastation
+activated cluster = { position radius objects = { <system ids> } } name prefix
+affected_country_ids flags } } cosmic_storm_name_list_name }` — `path` is the route ahead, so a
+  forecast needs no guessing; `cluster.objects` the systems covered now. A dead storm leaves name
+  and type in `dead_cosmic_storm`. Also: map objects `data="<type>"` with flag
+  `space_storm_object`, the system flag `storm_system`, `storm_influence_fields.storm_influence_fields
+= { <i> = { center radius storm_influence_groups = { { system tier } } } }` (tier 1–4), the
+  Storm Repel Field as a perpetual edict `storm_repel_field`, and on an affected country the flags
+  `first_storm_appears_within_borders` / `triggered_eye_of_the_storm` and the timeline event
+  `timeline_first_storm_within_borders`. Unread: what a storm over our own planets writes (no
+  modifier seen on us yet).
 - Empire focus: `country.focus = { active = { <card ids> } priority = { current } reward = {
 rewards = { { category current="development_rewards_2" progress } } } }`; cards are top-level
   `focus_cards.<id> = { type status }`, **`status=1` = done**: the game's panel at 2207.03.10 lists

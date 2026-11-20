@@ -308,8 +308,9 @@ Intel freshness is the age of the oldest unverified reading, red at 2 years. **T
 `relations_manager.relation.hostile=yes` is not the game's `is_hostile`**: it sat on our subject
 Lolehndra (Planetforgers 2214.02.01), so the war colour comes from wars alone. Trust and threat
 are our relation record's (`Relation.trust|threat`); which side's view `threat` is has not been
-checked. Not built yet: neighbours (`is_neighbor_of` is engine-side), storm forecast (none of the
-last 40 saves on this machine holds a storm, so its format is unknown), and ethics, GalCom, weight,
+checked. Not built yet: neighbours (`is_neighbor_of` is engine-side), storm forecast (the format is
+known since 2026-11-20 — `path` is each storm's route ahead, "Cosmic storms" in
+`docs/save-format.md`), and ethics, GalCom, weight,
 trade, wars and border-change modes. Checked 2026-11-02 on a DB copy (Planetforgers 2214.02.01,
 Roaming Korinth 2207.02.01): `/map` returned 200 in every mode and each mode's colours were
 recomputed from `__data.json`. The drawing needs a browser, and the colours have not been compared
