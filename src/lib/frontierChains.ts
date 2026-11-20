@@ -163,3 +163,20 @@ export function precursorGalaxy(
 		};
 	});
 }
+
+/** The cheat's places for the map: each system with a precursor's star flag, and each dig site of
+ * one (Zroni, Baol), by system, with the precursors there. */
+export function precursorPlaces(
+	intel: PrecursorIntel,
+	digSites: { systemId: number | null; type: string }[],
+	digPrecursors: (type: string) => string[]
+): { systemId: number; names: string[] }[] {
+	const at = new Map<number, Set<string>>();
+	const add = (id: number, name: string) => at.set(id, (at.get(id) ?? new Set()).add(name));
+	for (const p of PRECURSORS) for (const id of intel.systems[p.flag] ?? []) add(id, p.name);
+	for (const d of digSites)
+		if (d.systemId !== null)
+			for (const n of digPrecursors(d.type))
+				add(d.systemId, `${n.startsWith('The ') ? n : `The ${n}`} (dig site)`);
+	return [...at].map(([systemId, names]) => ({ systemId, names: [...names] }));
+}

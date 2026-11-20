@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lgateView, precursorGalaxy, precursorRows } from './frontierChains.ts';
+import { lgateView, precursorGalaxy, precursorPlaces, precursorRows } from './frontierChains.ts';
 import type { GalaxySystem } from './types.ts';
 
 const types = {
@@ -151,5 +151,23 @@ describe('precursorGalaxy', () => {
 		// the storm precursors have no star flag of their own
 		expect(rows.find((r) => r.flag === 'precursor_inetian')?.systems).toBeNull();
 		expect(rows.length).toBe(9);
+	});
+});
+
+describe('precursorPlaces', () => {
+	it('every flagged system and precursor dig site, by system', () => {
+		const places = precursorPlaces(
+			{ disabled: [], systems: { precursor_5: [12, 13] }, chains: [] },
+			[
+				{ systemId: 13, type: 'zroni_digsite_1' },
+				{ systemId: 20, type: 'site_debris_belt' },
+				{ systemId: null, type: 'baol_digsite_1' }
+			],
+			(t) => (t.startsWith('zroni') ? ['Zroni'] : t.startsWith('baol') ? ['Baol'] : [])
+		);
+		expect(places).toEqual([
+			{ systemId: 12, names: ['The Cybrex'] },
+			{ systemId: 13, names: ['The Cybrex', 'The Zroni (dig site)'] }
+		]);
 	});
 });

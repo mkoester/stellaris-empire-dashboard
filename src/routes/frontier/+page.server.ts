@@ -23,7 +23,7 @@ import { anomalyDays } from '#lib/ships.ts';
 import { digSiteDone } from '#lib/mapLayers.ts';
 import { lgateRelated, type LeadsTo } from '#lib/lgates.ts';
 import { precursorsOf } from '#lib/precursorLinks.ts';
-import { lgateView, precursorGalaxy, precursorRows } from '#lib/frontierChains.ts';
+import { lgateView, precursorGalaxy, precursorPlaces, precursorRows } from '#lib/frontierChains.ts';
 import { techCost } from '#lib/events.ts';
 import { nowTable, prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
@@ -305,6 +305,18 @@ export function load({ url }) {
 		}),
 		precursors: precursorRows(save?.eventChains ?? null, data.eventChains),
 		chainsRead: !!save?.eventChains && Object.keys(data.eventChains).length > 0,
+		// the cheat's map marks: every precursor system and dig site, undiscovered ones included
+		// (their position only: the map draws no star there)
+		precursorPlaces:
+			opts.precursorsAll && save?.precursorIntel
+				? ((at) =>
+						precursorPlaces(save.precursorIntel!, save.digSites ?? [], (t) =>
+							precursorsOf(t, null)
+						).flatMap((p) => {
+							const g = at.get(p.systemId);
+							return g ? [{ ...p, x: g.x, y: g.y, name: g.name, known: g.visited || g.owned }] : [];
+						}))(new Map(galaxy.map((g) => [g.id, g])))
+				: null,
 		// the cheat: every precursor and every empire's progress, sent only with it on
 		precursorGalaxy:
 			opts.precursorsAll && save?.precursorIntel

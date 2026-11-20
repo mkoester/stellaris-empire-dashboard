@@ -915,7 +915,13 @@
 			systems={data.systems}
 			{fill}
 			{titles}
-			focus={[{ label: 'contacts', points: open.flatMap((c) => byId.get(c.systemId) ?? []) }]}
+			focus={[
+				{ label: 'contacts', points: open.flatMap((c) => byId.get(c.systemId) ?? []) },
+				...(data.precursorPlaces?.length
+					? [{ label: 'precursors', points: data.precursorPlaces }]
+					: [])
+			]}
+			extra={data.precursorPlaces ?? []}
 			heightKey="first-contact-map-height"
 			square
 			bind:width
@@ -951,9 +957,39 @@
 						>
 					{/if}
 				{/each}
+				{#each data.precursorPlaces ?? [] as pl (pl.systemId)}
+					{@const p = at(pl)}
+					<circle
+						cx={p.x}
+						cy={p.y}
+						r="9"
+						fill="none"
+						stroke="#d97706"
+						stroke-width="1.5"
+						stroke-dasharray={pl.known ? undefined : '3 3'}
+						role="presentation"
+						onpointerenter={() => (hovered = pl.systemId)}
+						onpointerleave={() => (hovered = null)}
+						><title
+							>{pl.name}{pl.known ? '' : ' (not discovered)'}: {pl.names.join(', ')} (a cheat)</title
+						></circle
+					>
+				{/each}
 				<ContractMarks marks={data.contractMarks} {at} place={byId} />
 			{/snippet}
 		</GalaxyMap>
+		{#if data.precursorPlaces?.length}
+			{@const hidden = data.precursorPlaces.filter((p) => !p.known).length}
+			<p class="mt-2 text-sm">
+				<span
+					class="inline-block h-2.5 w-2.5 rounded-full border-2 align-middle"
+					style:border-color="#d97706"
+				></span>
+				Precursor places (a cheat): {data.precursorPlaces.length} systems{hidden
+					? `, ${hidden} not discovered (dashed)`
+					: ''} — hover one for which precursor.
+			</p>
+		{/if}
 		{#if data.owners.length}
 			<ul class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
 				{#each data.owners as o (o.countryId)}

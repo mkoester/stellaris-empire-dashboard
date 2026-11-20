@@ -304,7 +304,11 @@ multiplayer and Ironman; the user's ask 2026-11-20) adds everything the save hol
 the game knows (`PRECURSORS`: Vultaum 1, Yuht 2, First League 3, Irassians 4, Cybrex 5, Baol, Zroni,
 Inetian Traders, adAkkaria), whether the setup disabled it, its flagged systems visited / all (the five
 with a star flag of their own), and every empire collecting it with its artifacts and home system.
-Roaming Cybergang 2226.08.01: only the Cybrex, 58 of 92 systems visited, nobody collecting.
+Roaming Cybergang 2226.08.01: only the Cybrex, 58 of 92 systems visited, nobody collecting. With it
+the first-contact map also rings every precursor place (`precursorPlaces()`: the systems with a star
+flag, the Zroni and Baol dig sites), the precursor on hover; undiscovered ones too, dashed, at their
+position only (the server sends it, the map draws no star there; `extra` fits the view to them, a
+"precursors" fit button). Roaming Cybergang: 92, 34 undiscovered.
 **Nomads get precursors as anyone** (4.5.4): the intro is an `on_survey` random event (`precursor.2000`
 for the Cybrex: weight 6 against 100 for nothing, so ≈ 6 % per body surveyed without an anomaly in one
 of its systems), with no `is_nomadic` anywhere in the chain; the home system's link spawns at a
