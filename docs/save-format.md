@@ -6,6 +6,17 @@ Where each value sits in a save and how the game computes it. Read before readin
 
 **Contracts** (Planetforgers 2214.02.01, Proton): top-level `missions = { <id> = { mission="<key>" issuer operator location={ type=4 id=<system> } … } }` holds contracts and situation-log missions alike (star journals: `issuer=4294967295`), gaps as `<id>=none`; `contracts = { available = { ids } in_progress = { ids } }` says which are contracts. An offer has `days_left` and `operator=4294967295`, an accepted one `accepted_date` and `status=active`; an internal one (Eternal Chorus, Forever Cruise's) has operator = issuer while still offered. 18 contracts there, from 9 issuers.
 
+**Grand Archive** (roamingcybergang 2226.08.01, unitednationsofearth5 2245): top-level
+`exhibits = { <id> = { exhibit_state=locked|unlocked activated=yes specimen={ specimen="<key>"
+origin date_added exhibition_date } owner=<country> } }` — every empire's specimens, `owner` the
+holder; and per country `modules.standard_grand_archive_module.exhibits = { aesthetic_wonder={ ids }
+historical_item={ ids } xeno_geology={ ids } }`, its exhibitions, with `last_acquired_exhibit`.
+`activated=yes` only on exhibits whose bonuses apply (an AI's three origin specimens, dated
+2200.01.01); the player's six there were all `locked`, no Grand Archive built. **Not seen yet**:
+where storage is (an owned exhibit in no exhibition list is read as stored) and the
+`has_already_traded_specimens` country flag (read as a timed flag). Read as
+`Snapshot.archives` (READER 73).
+
 **Planet flags** (`planet.flags = { <flag>=<date> … }`, 2210.10.20): every flag the planet carries,
 `set_carrier_flag` ones assumed among them (seen: `colony_event`, `mechanical_species0`; a
 `perfect_organization` never seen). A timed flag's value is a block with `flag_days`

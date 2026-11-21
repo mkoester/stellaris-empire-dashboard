@@ -69,6 +69,7 @@ const data: GameData = {
 	identityNames: {},
 	diploNames: {},
 	specialists: { types: {}, perks: {} },
+	specimens: {},
 	resolutionCategories: {},
 	resolutionGroups: {},
 	resolutions: {},

@@ -256,6 +256,7 @@ export const pageLatest = <
 		contracts?: unknown;
 		storms?: unknown;
 		precursorIntel?: unknown;
+		archives?: { countryId: number }[] | null;
 	}
 >(
 	s: S
@@ -271,6 +272,10 @@ export const pageLatest = <
 	// every empire's precursor chains and every precursor system (a cheat): the frontier tab sends
 	// them only with it on
 	...('precursorIntel' in s ? { precursorIntel: null } : {}),
+	// every empire's specimens: the archive and trade tabs send others' per switch
+	...('archives' in s
+		? { archives: s.archives?.filter((a) => a.countryId === s.countryId) ?? null }
+		: {}),
 	countries:
 		s.countries?.filter(
 			(c) =>

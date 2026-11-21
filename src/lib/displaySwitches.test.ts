@@ -62,6 +62,7 @@ describe('effectiveDisplay', () => {
 				.map((s) => s.key)
 				.sort()
 		).toEqual([
+			'archiveOthers',
 			'contactStations',
 			'contractSpoilers',
 			'diplomacyAll',
@@ -71,6 +72,8 @@ describe('effectiveDisplay', () => {
 			'pactAdvice',
 			'pactIntel',
 			'precursorsAll',
+			'specimenTrade',
+			'specimenTradeAll',
 			'subjectNumbers',
 			'surveyAll',
 			'tradeIntel',

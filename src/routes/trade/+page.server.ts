@@ -1,5 +1,8 @@
 import { error } from '@sveltejs/kit';
-import { ENCLAVE_DEAL, enclaveDeal, modelFrom, offersTrade } from '#lib/aiTrade.ts';
+import { ENCLAVE_DEAL, enclaveDeal, modelFrom, offersTrade, terms } from '#lib/aiTrade.ts';
+import { blockers, CATEGORIES, factsOf, holds, refusals, specimenDeal } from '#lib/archive.ts';
+import { formatModifierValue, modifierLabel } from '#lib/modifiers.ts';
+import type { AiIntel, ArchiveHolding, Exhibit, Snapshot } from '#lib/types.ts';
 import { marketFee, price } from '#lib/market.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -12,14 +15,16 @@ import { valueOf } from '#lib/value.ts';
 // what a gift buys, estimated (#lib/aiTrade.ts); with the `tradeStockpiles` cheat their stockpiles,
 // what they spare, take and need. The estimates rest on stockpile and income, so either switch
 // sends them; the page shows them only with the cheat. Both are off in multiplayer and Ironman.
-// Trader enclaves' offers are fixed (no spoiler needed).
+// Trader enclaves' offers are fixed (no spoiler needed). With the `specimenTrade` spoiler the
+// Grand Archive specimens each empire would trade us and what it would pay for ours (≈, #lib/archive.ts);
+// `specimenTradeAll` (cheat) adds those blocked now, with the reason.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	const latest = snaps.findLast((s) => s.kind === 'save' && s.aiIntel !== null) ?? null;
 	const data = getGameData();
-	const { tradeIntel, tradeStockpiles } = display();
+	const { tradeIntel, tradeStockpiles, specimenTrade, specimenTradeAll } = display();
 	const economy = tradeIntel || tradeStockpiles;
 	const names = new Map((latest?.relations ?? []).map((r) => [r.countryId, r.name]));
 	// empires we can offer a deal (the reader keeps only trading types since READER 10; older
@@ -52,8 +57,13 @@ export function load({ url }) {
 	// a unit of each resource in trade (the gift table's "per 1,000 trade")
 	const values = valuesOf(snaps);
 	const unitValue = Object.fromEntries(tradable.map((r) => [r, valueOf({ [r]: 1 }, values)]));
+	const specimens = specimenTrade
+		? specimenRows(latest, empires, data, specimenTradeAll, values)
+		: null;
 	return {
 		...rest,
+		specimens,
+		specimenTradeAll,
 		unitValue,
 		date: latest?.date ?? null,
 		tradeIntel,
@@ -78,4 +88,88 @@ export function load({ url }) {
 			)
 		}
 	};
+}
+
+/**
+ * The specimens each empire we can trade with holds (`theirs`) with what we would pay for one in
+ * energy and trade, and ours with what each would pay (`ours`), from the trade value the defines
+ * give and the personality's willingness. A row with `blocked` reasons is one the trade screen
+ * would refuse now: sent only with `all` (the cheat).
+ */
+function specimenRows(
+	latest: Snapshot | null,
+	empires: (AiIntel & { name: string })[],
+	data: ReturnType<typeof getGameData>,
+	all: boolean,
+	values: Record<string, number>
+) {
+	if (!latest || Object.keys(data.specimens).length === 0)
+		return { theirs: [], ours: [], known: false };
+	const archives = latest.archives ?? [];
+	const holding = (id: number | null) => archives.find((a) => a.countryId === id) ?? null;
+	const us = holding(latest.countryId);
+	const facts = factsOf(latest, data);
+	const held = (h: ArchiveHolding | null): Exhibit[] => [
+		...(h?.exhibits ?? []),
+		...(h?.storage ?? [])
+	];
+	const energy = values.energy ?? 1;
+	const category = (k: string) => CATEGORIES.find((c) => c.key === k)?.name ?? k;
+	// what a specimen would give us: its modifiers whose condition does not fail for us
+	const gives = (key: string) =>
+		(data.specimens[key]?.modifiers ?? [])
+			.filter((m) => holds(m.condition, facts) !== false)
+			.map((m) => `${formatModifierValue(m)} ${modifierLabel(m)}`)
+			.join(', ');
+	const theirs = [];
+	const ours = [];
+	for (const e of empires) {
+		const them = holding(e.countryId);
+		const t = terms(e, data.personalities, data.attitudes);
+		const ctx = { date: latest.date };
+		const refused = refusals({ opinion: e.opinion, trades: t.trades });
+		for (const x of held(them)) {
+			const spec = data.specimens[x.specimen];
+			if (!spec) continue;
+			const blocked = blockers(spec, x.specimen, them, us, { ...ctx, receiverIsUs: true });
+			if (blocked.length && !all) continue;
+			const { price } = specimenDeal(spec, them, t.willingness);
+			theirs.push({
+				id: `${e.countryId}:${x.id}`,
+				empire: e.name,
+				key: x.specimen,
+				name: spec.name,
+				category: category(spec.category),
+				rarity: spec.rarity,
+				exhibited: x.active,
+				gives: gives(x.specimen),
+				price,
+				priceTrade: price === null ? null : price * energy,
+				refused,
+				blocked
+			});
+		}
+		for (const x of held(us)) {
+			const spec = data.specimens[x.specimen];
+			if (!spec) continue;
+			const blocked = blockers(spec, x.specimen, us, them, { ...ctx, receiverIsUs: false });
+			if (blocked.length && !all) continue;
+			const { bid } = specimenDeal(spec, them, t.willingness);
+			ours.push({
+				id: `${e.countryId}:${x.id}`,
+				empire: e.name,
+				key: x.specimen,
+				name: spec.name,
+				category: category(spec.category),
+				rarity: spec.rarity,
+				exhibited: x.active,
+				bid,
+				bidTrade: bid * energy,
+				refused,
+				blocked
+			});
+		}
+	}
+	ours.sort((a, b) => b.bid - a.bid);
+	return { theirs, ours, known: archives.length > 0 };
 }

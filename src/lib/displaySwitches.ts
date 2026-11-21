@@ -281,6 +281,35 @@ export const SWITCHES: Switch[] = [
 		note: 'the game never shows them'
 	},
 	{
+		key: 'specimenTrade',
+		group: 'Diplomacy and trade',
+		// the user's ask 2026-11-21: the trade screen lists them per empire, not side by side
+		kind: 'spoiler',
+		intel: true,
+		label:
+			'Trade: the specimens each empire you talk to would trade you, ≈ for how much, and which of yours they want most',
+		note: 'the game lists them one empire at a time in its trade screen and shows no price before you propose',
+		tags: 'specimen specimens grand archive exhibit'
+	},
+	{
+		key: 'specimenTradeAll',
+		group: 'Diplomacy and trade',
+		kind: 'cheat',
+		intel: true,
+		label: 'Trade: every specimen, also those they would not trade now, and why',
+		note: 'the game lists only what can be traded now',
+		tags: 'specimen specimens grand archive'
+	},
+	{
+		key: 'archiveOthers',
+		group: 'Diplomacy and trade',
+		kind: 'cheat',
+		intel: true,
+		label: 'Archive: another empire’s Grand Archive — its exhibitions and what they give',
+		note: 'the game never shows another empire’s collection; unmet empires stay unnamed',
+		tags: 'specimen specimens grand archive exhibit'
+	},
+	{
 		key: 'whatIfs',
 		group: 'What-ifs',
 		kind: 'spoiler',

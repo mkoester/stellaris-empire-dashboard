@@ -2,6 +2,18 @@
 
 Trade, growth, pops charts, growth projection, job output bonuses, jobs and the shared values, produce, influence, contracts. Read before working on one of them. _Moved verbatim from `AGENTS.md` on 2026-11-14._
 
+**Specimens in the trade tab** (2026-11-21, the user's ask): with the **`specimenTrade`** spoiler
+(`intel`) "Specimens they would trade us" (every specimen of each empire we can trade with) and
+"Which of our specimens they want most" (ours, per empire, by its bid). Worth from the defines, in
+energy: sell value by rarity (250/500/1000/2000) × 1.3, × 1.5 to a receiver whose exhibition of
+the kind is empty, × 1.25 to one it fills; the price we pay = worth ÷ willingness, their bid = worth
+to them × willingness (`specimenDeal()`: the energy-worth curve cancels as both sides are energy) —
+in trade at energy's value, ≈ until checked against the trade screen. `blockers()` hide a row (not
+tradable, the receiver has it, archive full, `has_already_traded_specimens` on either side, 3600
+days); **`specimenTradeAll`** (cheat) shows them greyed ⊘ with the reason. `refusals()` fill the
+"Willing?" column: an attitude that trades nothing, or an opinion of us under 750
+(`MIN_RELATION_TO_TRADE_SPECIMENS`, read as opinion — open).
+
 **Trade tab** (`/trade`, `#lib/aiTrade.ts` pure; the user's biggest pain point, 2026-10-22: "who
 trades what, both directions, for how much, normalised by trade"): the empires we have
 communications with — regular and fallen ones only (`TRADING_TYPES` in save.ts; pre-FTL

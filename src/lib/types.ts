@@ -527,6 +527,8 @@ export type Snapshot = {
 	storms: Storm[] | null; // cosmic storms, every one in the galaxy (the game shows them all); READER 70
 	eventChains: EventChains | null; // our situation log's chains (precursors, the L-Cluster); READER 71
 	precursorIntel: PrecursorIntel | null; // everything on precursors, galaxy-wide (a cheat); READER 72
+	// every empire's Grand Archive specimens, galaxy-wide (pageLatest keeps ours); READER 73
+	archives: ArchiveHolding[] | null;
 	stationsSeen: StationSighting[] | null; // stations where our fleets are, null before 2026-10-18
 	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
 	focus: EmpireFocus | null;
@@ -833,6 +835,27 @@ export type EventChains = {
 
 /** What the save holds on every precursor (the frontier tab's cheat): which the galaxy setup
  * disabled, the systems each flags (`precursor_<n>`), every empire's precursor chains. */
+/** A specimen an empire holds (top-level `exhibits`): in an exhibition (`category`) or in storage. */
+export type Exhibit = {
+	id: number;
+	specimen: string; // data DB specimen.key
+	category: string | null; // the exhibition listing it; null: storage
+	unlocked: boolean; // exhibit_state = unlocked
+	active: boolean; // activated = yes: its bonuses apply
+	added: string | null; // date_added
+	exhibited: string | null; // exhibition_date
+};
+
+/** An empire's Grand Archive collection (server/save/archive.ts). */
+export type ArchiveHolding = {
+	countryId: number;
+	exhibits: Exhibit[];
+	storage: Exhibit[];
+	tradeUntil: string | null; // has_already_traded_specimens: no specimen trade until then
+	// each exhibition's multiplier (1 + its and the general specimens output): companion mod 0.15.0
+	mults: Record<string, number> | null;
+};
+
 export type PrecursorIntel = {
 	disabled: string[]; // `galaxy.disabled_precursors`: "precursor_1", "precursor_baol_1", …
 	systems: Record<string, number[]>; // star flag → system ids
@@ -1229,6 +1252,18 @@ export type ActionKind =
  */
 export type EthicAxis = { axis: string; pos: number };
 
+/** A Grand Archive specimen (data DB `specimen`, `specimen_modifier`, `specimen_resource`). */
+export type Specimen = {
+	name: string;
+	category: string; // aesthetic_wonder, historical_item, xeno_geology
+	rarity: string; // common, rare, epic, exceptional
+	tradable: boolean;
+	sellable: boolean;
+	// while exhibited, × the category's multiplier; `condition` the block's potential (NULL: always)
+	modifiers: (Modifier & { condition: string | null })[];
+	produces: Resources; // a month, × the category's multiplier too
+};
+
 export type GameData = {
 	// per timed modifier or flag (`modifier:<key>`, `flag:<key>`): the actions that wait for it to
 	// end (`cooldown`), whose effect only sets it again once it has ended (`bonus`), or only set it
@@ -1376,6 +1411,7 @@ export type GameData = {
 	// resolutions, resolution categories, subject agreement terms, term values and presets by key
 	diploNames: Record<string, string>;
 	specialists: Specialists; // subject specialisations (extractor 0.1.16; empty before)
+	specimens: Record<string, Specimen>; // Grand Archive specimens by key (empty from an older data DB)
 	resolutionCategories: Record<string, string>; // resolution → its category key
 	resolutionGroups: Record<string, string>; // category → its group (commerce_industry, …)
 	// every resolution a category lists, in file order: what proposing it takes (#lib/proposable.ts)

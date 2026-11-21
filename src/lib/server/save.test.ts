@@ -113,6 +113,7 @@ const raw: RawSave = {
 	resolutions: {},
 	popFactions: {},
 	patronRelations: {},
+	exhibits: {},
 	aiIntel: [],
 	traderEnclaves: [],
 	starbases: {},

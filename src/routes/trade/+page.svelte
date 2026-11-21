@@ -422,7 +422,94 @@
 		},
 		{ id: 'deal', label: 'Our deal', value: (x) => x.running?.perMonth ?? null, cell: deal }
 	];
+
+	// Specimens (the `specimenTrade` spoiler): theirs with our price, ours with their bid, in trade
+	type TheirSpecimen = NonNullable<typeof data.specimens>['theirs'][number];
+	type OurSpecimen = NonNullable<typeof data.specimens>['ours'][number];
+	const tradeFmt = (v: number | null) => (v === null ? '–' : `≈ ${v.toFixed(2)}`);
+	const theirSpecimenColumns: Column<TheirSpecimen>[] = [
+		{ id: 'empire', label: 'Empire', value: (r) => r.empire },
+		{ id: 'name', label: 'Specimen', value: (r) => r.name, cell: specimenName },
+		{ id: 'category', label: 'Exhibition', value: (r) => r.category },
+		{
+			id: 'rarity',
+			label: 'Rarity',
+			value: (r) => RARITY_ORDER.indexOf(r.rarity),
+			cell: rarityCell
+		},
+		{ id: 'gives', label: 'Gives us', value: (r) => r.gives },
+		{
+			id: 'willing',
+			label: 'Willing?',
+			value: (r) => (r.refused.length ? 0 : 1),
+			cell: willingCell,
+			title: '≈ whether they would trade it at the price: not below an opinion of us of 750'
+		},
+		{
+			id: 'price',
+			label: 'Price (trade)',
+			value: (r) => r.priceTrade,
+			cell: specimenPrice,
+			right: true,
+			title:
+				'≈ what we would have to offer, in trade: its worth to them (sell value × 1.3) ÷ their willingness. Not calibrated against the trade screen yet.'
+		}
+	];
+	const ourSpecimenColumns: Column<OurSpecimen>[] = [
+		{ id: 'empire', label: 'Empire', value: (r) => r.empire },
+		{ id: 'name', label: 'Our specimen', value: (r) => r.name, cell: specimenName },
+		{ id: 'category', label: 'Exhibition', value: (r) => r.category },
+		{
+			id: 'rarity',
+			label: 'Rarity',
+			value: (r) => RARITY_ORDER.indexOf(r.rarity),
+			cell: rarityCell
+		},
+		{
+			id: 'willing',
+			label: 'Willing?',
+			value: (r) => (r.refused.length ? 0 : 1),
+			cell: willingCell,
+			title: '≈ whether they would trade it at the price: not below an opinion of us of 750'
+		},
+		{
+			id: 'bid',
+			label: 'They pay (trade)',
+			value: (r) => r.bidTrade,
+			cell: bidCell,
+			right: true,
+			title:
+				'≈ what they would give for it at most, in trade: its worth to them (sell value × 1.3, × 1.5 if their exhibition of it is empty, × 1.25 if it fills it) × their willingness.'
+		}
+	];
+	const RARITY_ORDER = ['common', 'rare', 'epic', 'exceptional'];
+	const RARITY_TONE: Record<string, string> = {
+		common: 'text-gray-600',
+		rare: 'text-sky-700',
+		epic: 'text-purple-700',
+		exceptional: 'text-amber-600'
+	};
 </script>
+
+{#snippet specimenName(r: { name: string; blocked: string[]; exhibited: boolean })}<span
+		class:text-gray-400={r.blocked.length > 0}
+		title={r.blocked.length
+			? `not now: ${r.blocked.join('; ')}`
+			: r.exhibited
+				? 'exhibited'
+				: 'in storage'}>{r.name}{r.blocked.length ? ' ⊘' : ''}</span
+	>{/snippet}
+{#snippet rarityCell(r: { rarity: string })}<span class="text-xs {RARITY_TONE[r.rarity] ?? ''}"
+		>{r.rarity}</span
+	>{/snippet}
+{#snippet specimenPrice(r: TheirSpecimen)}<span class="tabular-nums">{tradeFmt(r.priceTrade)}</span
+	>{/snippet}
+{#snippet willingCell(r: { refused: string[] })}<span
+		class={r.refused.length ? 'text-red-600' : 'text-green-600'}
+		title={r.refused.length ? r.refused.join('; ') : 'nothing known stops them'}
+		>{r.refused.length ? 'refuses ≈' : 'yes ≈'}</span
+	>{/snippet}
+{#snippet bidCell(r: OurSpecimen)}<span class="tabular-nums">{tradeFmt(r.bidTrade)}</span>{/snippet}
 
 {#snippet enclaveName(x: EnclaveRow)}<EmpireName
 		name={x.name}
@@ -747,6 +834,55 @@
 						bind:sort={giftSort}
 					/>
 				</div>
+			</Panel>
+		{/if}
+
+		{#if !data.specimens}
+			<p class="text-sm text-gray-500">
+				Which Grand Archive specimens each empire would trade you, and for how much, the game shows
+				one empire at a time in its trade screen — switch on "Trade: the specimens each empire would
+				trade you" in ⚙ (spoiler).
+			</p>
+		{:else}
+			<Panel
+				title="Specimens they would trade us"
+				note="Every specimen of each empire we can trade with that its trade screen lists{data.specimenTradeAll
+					? ', and greyed with ⊘ those no deal can get now (hover for why)'
+					: ''} — not one we have already, not for 10 years after either side traded a specimen. Willing: an AI trades specimens only at an opinion of us of 750 or more. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
+			>
+				{#if data.specimens.theirs.length}
+					<div class="overflow-x-auto text-sm">
+						<SortTable
+							rows={data.specimens.theirs}
+							columns={theirSpecimenColumns}
+							key={(r) => r.id}
+							sort={{ column: 'price', desc: false }}
+						/>
+					</div>
+				{:else}
+					<p class="text-sm text-gray-500">
+						{data.specimens.known
+							? 'None on offer now.'
+							: 'No save with the archives read yet; it fills after the next save.'}
+					</p>
+				{/if}
+			</Panel>
+			<Panel
+				title="Which of our specimens they want most"
+				note="Ours, by what each empire would pay at most — more where its exhibition of the kind is empty (× 1.5) or one short of full (× 1.25). ≈ as above."
+			>
+				{#if data.specimens.ours.length}
+					<div class="overflow-x-auto text-sm">
+						<SortTable
+							rows={data.specimens.ours}
+							columns={ourSpecimenColumns}
+							key={(r) => r.id}
+							sort={{ column: 'bid', desc: true }}
+						/>
+					</div>
+				{:else}
+					<p class="text-sm text-gray-500">None of ours they would take now.</p>
+				{/if}
 			</Panel>
 		{/if}
 

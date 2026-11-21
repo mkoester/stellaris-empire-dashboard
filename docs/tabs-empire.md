@@ -260,6 +260,20 @@ capital and migration are since READER 41), the trade tab's valuation of energy 
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
+**Archive tab** (`/archive`, `#lib/archive.ts` pure, the reading in `server/save/archive.ts`; the
+user's ask 2026-11-21): the Grand Archive as the game's Collection view — three exhibitions
+(`CATEGORIES`, 9 exhibits each), storage (60), and what the **active** exhibits give: each
+specimen's modifiers and resources (data DB `specimen*`) × the exhibition's multiplier
+`1 + <category>_specimens_produces_mult + specimens_produces_mult` (companion mod 0.15.0, else ≈
+1). A modifier's condition (its block's `potential`: `is_lithoid`, `is_infernal`, `is_gestalt`,
+`country_uses_consumer_goods`, `has_country_flag`) is evaluated by `holds()` against `factsOf()`
+(founder's archetype and traits, `government`, consumer goods expenses): failing ones are left out,
+those it cannot tell kept, greyed "(?)". The **`archiveOthers`** cheat (`intel`) adds a dropdown of
+every other empire holding specimens (`?empire=<id>`); one we do not talk to is "unknown empire
+(N specimens)" — the user's choice 2026-11-21 — and its conditions read as unknown. `pageLatest()`
+keeps only our holding: the page sends another only with the cheat. The tab is dimmed until we hold
+a specimen.
+
 **Frontier tab** (`/frontier`; the situations tab until 2026-11-15 — renamed because situations and
 events are the game's own terms for one panel each, `/situations` redirects; `#lib/situations.ts` pure,
 readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,

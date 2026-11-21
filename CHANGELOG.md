@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Archive: a new tab for the Grand Archive — its three exhibitions (Aesthetic Wonders, Galactic
+  History, Xeno Geology) with their 9 exhibits, which are active, the storage, and what the active
+  specimens give, per exhibition and summed. Bonuses for only some empires (lithoid, gestalt, …)
+  apply to yours or are marked when the save cannot tell. A cheat switch shows another empire's
+  archive; empires you have not met stay unnamed.
+- Trade: a spoiler switch lists the specimens each empire you can trade with holds, ≈ what one
+  would cost you in trade and whether they would trade it at all, and which of yours each would
+  pay most for. A cheat switch adds those no deal can get now, with the reason.
+- Companion mod 0.15.0 stores the Specimens Output bonuses, so the exhibitions' output is exact;
+  without it, they count none (≈).
+
 ## [0.1.29] - 2026-11-21
 
 ### Added

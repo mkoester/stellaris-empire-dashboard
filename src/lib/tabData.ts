@@ -27,6 +27,7 @@ type Fields = Pick<
 	| 'contracts'
 	| 'countryId'
 	| 'progress'
+	| 'archives'
 >;
 
 /**
@@ -114,6 +115,16 @@ const CHECKS: {
 		why: 'no subject agreement, branch office or holding yet',
 		known: (s) => s.external !== null && s.external !== undefined,
 		has: (s) => (s.subjects ?? []).length > 0 || (s.external ?? []).length > 0 || !!s.branchSites
+	},
+	{
+		tab: 'archive',
+		why: 'no specimen collected yet',
+		known: (s) => s.archives !== null && s.archives !== undefined,
+		// what the tab shows without the cheat: our own exhibitions and storage
+		has: (s) =>
+			(s.archives ?? []).some(
+				(a) => a.countryId === s.countryId && a.exhibits.length + a.storage.length > 0
+			)
 	},
 	{
 		tab: 'frontier',

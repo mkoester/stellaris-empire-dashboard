@@ -59,6 +59,9 @@ export type Display = {
 	planOrder: boolean; // planner: each goal's times with the goals above it paid first
 	tradeIntel: boolean; // trade tab: what other empires would trade, at what rate, what a gift buys (spoiler)
 	tradeStockpiles: boolean; // trade tab: other empires' stockpiles and income (cheat)
+	specimenTrade: boolean; // trade tab: the specimens each contact would trade, and for what (spoiler)
+	specimenTradeAll: boolean; // trade tab: … also those blocked now, with the reason (cheat)
+	archiveOthers: boolean; // archive tab: another empire's Grand Archive (cheat)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, beyond our intel (spoiler)
 	historyMet: boolean; // history tab: everything about the empires we met, beyond our intel (spoiler)
 	historyAll: boolean; // history tab: every empire's history, by its own name (cheat)
@@ -101,6 +104,9 @@ export const DEFAULT_DISPLAY: Display = {
 	whatIfs: false,
 	tradeIntel: false,
 	tradeStockpiles: false,
+	specimenTrade: false,
+	specimenTradeAll: false,
+	archiveOthers: false,
 	diplomacyAll: false,
 	historyMet: false,
 	historyAll: false,
@@ -196,6 +202,9 @@ export function parseDisplay(v: unknown): Display {
 		// one switch until 2026-11-18: a profile that had it on keeps the stockpiles too
 		tradeStockpiles:
 			typeof o.tradeStockpiles === 'boolean' ? o.tradeStockpiles : o.tradeIntel === true,
+		specimenTrade: o.specimenTrade === true,
+		specimenTradeAll: o.specimenTradeAll === true,
+		archiveOthers: o.archiveOthers === true,
 		diplomacyAll: o.diplomacyAll === true,
 		historyMet: o.historyMet === true,
 		historyAll: o.historyAll === true,

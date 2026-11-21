@@ -4,6 +4,17 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 
 ## Open (needs a running game on Linux)
 
+- **Specimens (2026-11-21, the archive tab and the trade tab's specimens)**: (1) where the save
+  keeps stored specimens — move one to storage (or fill an exhibition past 9) and grep `exhibits`
+  and the country's `standard_grand_archive_module`; (2) which specimens the trade screen lists —
+  all the AI holds, or not its active exhibits; (3) whether 750 is its opinion of us
+  (`MIN_RELATION_TO_TRADE_SPECIMENS`), and whether it stops giving, taking or both; who gets
+  `has_already_traded_specimens`; (4) a specimen's acceptance in the trade screen against
+  `specimenDeal()`'s price and bid — calibrate in `docs/trade-calibration.md`, then drop the ≈;
+  (5) whether `activated` is the bonus switch (the exhibit's own click) and `unlocked` the paid
+  exhibit; (6) the exhibitions' multiplier from companion mod 0.15.0 (`sdash_sp*`) against the
+  Collection view's numbers, and `error.log` clean of `sdash_`.
+
 - **Waylines, our own (2026-11-16)**: the roaming tab was checked on the AI nomads' waystations
   only — `roamingcybergang` had none of ours at 2213.08; its first was built 2214.03.22 (the
   timeline's `timeline_first_waystation_built`; budget 2226.08.01: `starbase_waystations` food 11,
