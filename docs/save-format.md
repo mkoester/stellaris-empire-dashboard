@@ -571,7 +571,19 @@ rewards = { { category current="development_rewards_2" progress } } } }`; cards 
 - Prescripted names: a save names a prescripted empire's ruler, species and empire by loc key
   (`PRESCRIPTED_ruler_name_humans1` → "Dolores Muwanga"); `displayName()` resolves them from the
   data DB's `prescripted_name`, set at start (`setPrescriptedNames`). Snapshots stored earlier
-  keep the raw text ("ruler name humans1") until their save is read again.
+  keep the raw text ("ruler name humans1") until their save is read again. **A prescripted word
+  can hold parts** (READER 74, 2026-11-21): a fallen hive's fragments are `%ADJ%` → `Indomitable`
+  (prescripted "Indomitable") → `%ADJECTIVE%` (`SPEC_Myrran` + `Aggression`); taking the word alone
+  named all three "Indomitable" or "Forgotten". **A noun as `%ADJECTIVE%`'s adjective takes the
+  game's ending** (`name_system_l_english.yml` `adj_NN*`, `adjective()`): "Mishar" + "Pact" is
+  "Misharan Pact", "Barcalid" → "Barcalan", "Prime" → "Priman" — every name in the campaign's
+  empire list at 2226.08.01 now reads as the game's. Open: a loc text with a scripted part
+  (`NAME_fotd_seperatists` = "[fotd_country.GetSpeciesName] Commune") reaches the data DB as
+  "Commune" — the extractor drops `[…]` — and reads "Commune Fellnoll", not "Fellnoll Commune".
+- A fallen hive's fragments are told apart by government, not name (`gov_war_splinter`,
+  `gov_growth_splinter`, `gov_control_splinter`; all `origin_fallen_empire_hive`,
+  `civic_fragmented_command`): `splinterOf()` / `empireTags()` (`#lib/contacts.ts`), shown by
+  `EmpireName` on every tab that names empires, once we talk to them.
 - Launched agendas: `country.government.council_agenda_cooldowns = { council_agenda start_date }`
   — **`start_date` is when it can be picked again**, not the launch (2207.03.10, other empires:
   Infinite Opportunities until 2231/2232, 30 years after their first agenda). Launch = that minus

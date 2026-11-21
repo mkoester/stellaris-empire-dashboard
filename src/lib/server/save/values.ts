@@ -63,7 +63,13 @@ export function displayName(name: Raw): string {
 	// a prescripted text may be a template itself: `AofB` = "$1$ of $2$" (taken by the extractor
 	// since 2026-11-20, which showed a contract's issuer as "$1$ of $2$")
 	const pre = prescripted[key];
-	if (pre) return Array.isArray(name?.variables) ? fill(pre, name.variables) : pre;
+	if (pre && Array.isArray(name?.variables) && pre.includes('$')) return fill(pre, name.variables);
+	// one without a placeholder is a name part with parts inside: a fallen hive's fragments,
+	// `Indomitable` + `%ADJECTIVE%` (Myrran, Aggression) = "Indomitable Myrran Aggression" — the
+	// part alone named all three "Indomitable" or "Forgotten" (2026-11-21)
+	if (pre && Array.isArray(name?.variables))
+		return [pre, ...name.variables.map((v: Raw) => displayName(v.value)).filter(Boolean)].join(' ');
+	if (pre) return pre;
 	// `%SEQ%` with fmt (e.g. HUMAN1_FLEET) and num: "1st Fleet".
 	if (key === '%SEQ%' && Array.isArray(name?.variables)) {
 		const v = (k: string) => name.variables.find((x: Raw) => x.key === k)?.value?.key;
@@ -122,6 +128,14 @@ export function displayName(name: Raw): string {
 				.join(' ');
 			return adjText.replace('$1$', rest).trim();
 		}
+		// a noun as the adjective takes the game's ending: "Mishar" + "Pact" is "Misharan Pact"
+		if (key === '%ADJECTIVE%' && adj) {
+			const rest = name.variables
+				.filter((v: Raw) => v !== adj)
+				.map((v: Raw) => displayName(v.value))
+				.filter(Boolean);
+			return [adjective(adjText), ...rest].join(' ');
+		}
 		return name.variables
 			.filter((v: Raw) => v?.key !== 'PREFIX') // the ship prefix ("UNS") is localisation only
 			.map((v: Raw) => displayName(v.value))
@@ -138,6 +152,34 @@ export function displayName(name: Raw): string {
 			.replace(/_(planet|system|star)$/, '')
 			.replaceAll('_', ' ')
 	);
+}
+
+// The game's rules for turning a noun into an adjective (4.5.4 localisation/english/
+// name_system_l_english.yml, `adj_NN*`): its last two letters, else its last one, replaced.
+const ADJ_ENDINGS: Record<string, string> = {
+	us: 'an',
+	is: 'an',
+	es: 'an',
+	ss: 'an',
+	id: 'an',
+	ed: 'an',
+	ad: 'an',
+	od: 'an',
+	ud: 'an',
+	yd: 'an',
+	i: 'ian',
+	r: 'ran',
+	a: 'an',
+	e: 'an'
+};
+
+/** A noun as an adjective, as the game makes it: "Mishar" → "Misharan", "Barcalid" → "Barcalan". */
+export function adjective(noun: string): string {
+	for (const n of [2, 1]) {
+		const end = ADJ_ENDINGS[noun.slice(-n)];
+		if (end && noun.length > n) return noun.slice(0, -n) + end;
+	}
+	return noun;
 }
 
 /** `template`'s `$k$` filled with the name of the variable keyed k ("" where none is). */
