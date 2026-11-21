@@ -1710,7 +1710,7 @@ function specimens(rows: <T>(sql: string) => T[]): Record<string, Specimen> {
 		sellable: number;
 	}>('SELECT key, name, category, rarity, tradable, sellable FROM specimen ORDER BY sort_order'))
 		out[r.key] = {
-			// a name the loc file quotes inside its quotes ("Ageless" Miracle Cream) reads empty
+			// extractor 0.1.22's dump read names with quotes inside empty ("Ageless" Miracle Cream)
 			name: r.name || titleOf(r.key),
 			category: r.category ?? '',
 			rarity: r.rarity ?? 'common',
