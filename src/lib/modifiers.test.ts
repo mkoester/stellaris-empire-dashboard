@@ -4,7 +4,8 @@ import {
 	formatModifierValue,
 	modifierColor,
 	modifierLabel,
-	modifierResource
+	modifierResource,
+	modifierTintKey
 } from './modifiers.ts';
 
 const mod = (key: string, value: number, positiveIsGood = true, label: string | null = null) => ({
@@ -22,6 +23,18 @@ describe('modifierResource', () => {
 		expect(modifierResource('leaders_upkeep_mult')).toBeNull();
 		expect(modifierResource('planet_stability_add')).toBeNull();
 		expect(modifierResource('energy_weapon_damage_mult')).toBeNull();
+	});
+});
+
+describe('modifierTintKey', () => {
+	it('tints by resource first, then by topic', () => {
+		expect(modifierTintKey('country_unity_produces_mult')).toBe('unity');
+		expect(modifierTintKey('planet_amenities_add')).toBe('amenities');
+		expect(modifierTintKey('planet_amenities_no_happiness_add')).toBe('amenities');
+		expect(modifierTintKey('planet_stability_add')).toBe('stability');
+		expect(modifierTintKey('leaders_upkeep_mult')).toBe('leader');
+		expect(modifierTintKey('species_leader_exp_gain')).toBe('leader');
+		expect(modifierTintKey('ship_speed_mult')).toBeNull();
 	});
 });
 

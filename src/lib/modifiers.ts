@@ -61,8 +61,20 @@ const RESOURCES =
  */
 export const modifierResource = (key: string): string | null => RESOURCES.exec(key)?.[1] ?? null;
 
-/** A modifier's label colour: its resource's, as everywhere else (unity, research, …); none. */
+// What else a modifier label is tinted by: the dashboard's own colours (#lib/colors.ts), the game's
+// icons for these being gold like energy (the user's choice, 2026-11-21)
+const TOPICS: [RegExp, string][] = [
+	[/(?:^|_)amenities(?:_|$)/, 'amenities'],
+	[/(?:^|_)stability(?:_|$)/, 'stability'],
+	[/(?:^|_)leaders?(?:_|$)/, 'leader']
+];
+
+/** The colour key of a modifier's label: its resource's, else its topic's (amenities, …); null. */
+export const modifierTintKey = (key: string): string | null =>
+	modifierResource(key) ?? TOPICS.find(([re]) => re.test(key))?.[1] ?? null;
+
+/** A modifier's label colour, as everywhere else (unity, research, leaders, …); none. */
 export const modifierTint = (key: string): string | undefined => {
-	const r = modifierResource(key);
-	return r ? colorOf(r) : undefined;
+	const k = modifierTintKey(key);
+	return k ? colorOf(k) : undefined;
 };
