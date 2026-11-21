@@ -126,12 +126,13 @@ describe('exhibitions', () => {
 });
 
 describe('trade', () => {
-	it('values a specimen by rarity, more to an empire whose category is empty or nearly full', () => {
+	it('values a specimen by rarity, more to an empire it would fill an exhibition of', () => {
 		expect(tradeEnergy(spores, undefined)).toBe(325);
-		// the game, 2026-11-21: Vran (none held) took a common gift at the plain worth, not × 1.5
+		// the game, 2026-11-21: no × 1.5 for an empty exhibition — Vran (none held) took a common
+		// gift at the plain worth, the Priman Matrix (one in another exhibition) a rare one
 		expect(tradeEnergy(spores, holding([]))).toBe(325);
 		expect(tradeEnergy(spores, null)).toBe(325);
-		expect(tradeEnergy(spores, holding([exhibit(1, 'x', 'historical_item')]))).toBe(487.5);
+		expect(tradeEnergy(spores, holding([exhibit(1, 'x', 'historical_item')]))).toBe(325);
 		const eight = holding(Array.from({ length: 8 }, (_, i) => exhibit(i, `s${i}`, 'xeno_geology')));
 		expect(tradeEnergy(spores, eight)).toBe(406.25);
 		expect(

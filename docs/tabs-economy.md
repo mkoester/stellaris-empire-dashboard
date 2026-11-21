@@ -5,8 +5,8 @@ Trade, growth, pops charts, growth projection, job output bonuses, jobs and the 
 **Specimens in the trade tab** (2026-11-21, the user's ask): with the **`specimenTrade`** spoiler
 (`intel`) "Specimens they would trade us" (every specimen of each empire we can trade with) and
 "Which of our specimens they want most" (ours, per empire, by its bid). Worth from the defines, in
-energy: sell value by rarity (250/500/1000/2000) × 1.3, × 1.5 to a receiver whose exhibition of
-the kind is empty (not to one holding no specimen at all: the gifts of 2026-11-21, `docs/trade-calibration.md`), × 1.25 to one it fills; the price we pay = worth ÷ willingness, their bid = worth
+energy: sell value by rarity (250/500/1000/2000) × 1.3, not the defines' × 1.5 for an empty exhibition (gifts to six empires, 2026-11-21,
+`docs/trade-calibration.md`), × 1.25 to a receiver whose exhibition it fills (untested); the price we pay = worth ÷ willingness, their bid = worth
 to them × willingness (`specimenDeal()`: the energy-worth curve cancels as both sides are energy) —
 in trade at energy's value, ≈ until checked against the trade screen. `blockers()` hide a row (not
 tradable, the receiver has it, archive full, `has_already_traded_specimens` on either side, 3600

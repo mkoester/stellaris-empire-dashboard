@@ -485,7 +485,7 @@
 			cell: bidCell,
 			right: true,
 			title:
-				'≈ what they would give for it at most, in trade: its worth to them (sell value × 1.3, × 1.5 if their exhibition of it is empty while they hold others, × 1.25 if it fills it) × their willingness. "gift only": an attitude that gives nothing pays nothing, but takes it as a gift.'
+				'≈ what they would give for it at most, in trade: its worth to them (sell value × 1.3, × 1.25 if it fills their exhibition of it) × their willingness. "gift only": an attitude that gives nothing pays nothing, but takes it as a gift.'
 		}
 	];
 </script>
@@ -851,7 +851,7 @@
 				title="Specimens"
 				note="Each exhibition: on the left every specimen of each empire we can trade with that its trade screen lists{data.specimenTradeAll
 					? ' (greyed with ⊘ those no deal can get now, hover for why)'
-					: ''} — not one we have already, not for 10 years after either side traded a specimen; on the right ours, by what each empire would pay at most — more where its exhibition of the kind is empty while it holds others (× 1.5) or one short of full (× 1.25). Willing (theirs): not with an attitude that gives nothing — such an empire takes ours only as a gift; fallen empires trade no specimens. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
+					: ''} — not one we have already, not for 10 years after either side traded a specimen; on the right ours, by what each empire would pay at most — more where its exhibition of the kind is one short of full (× 1.25). Willing (theirs): not with an attitude that gives nothing — such an empire takes ours only as a gift; fallen empires trade no specimens. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
 			>
 				{#if !data.specimens.known}
 					<p class="text-sm text-gray-500">

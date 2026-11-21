@@ -8,8 +8,9 @@ import type { ArchiveHolding, Exhibit, GameData, Modifier, Resources, Specimen }
 //   value:<category>_specimens_modifiers_mult = 1 + modifier:<category>_specimens_produces_mult +
 //   modifier:specimens_produces_mult (common/script_values/05_script_values_grand_archive.txt);
 // - its worth in a trade, in energy: the sell value by rarity × TRADE_VALUE_SPECIMEN_MULT 1.3,
-//   × 1.25 when it completes the receiver's category, × 1.5 when that category is empty
-//   (TRADE_VALUE_SPECIMEN_COMPLETE_CATEGORY_MULT / _EMPTY_CATEGORY_MULT);
+//   × 1.25 when it completes the receiver's category (TRADE_VALUE_SPECIMEN_COMPLETE_CATEGORY_MULT);
+//   the defines' × 1.5 for an empty category (_EMPTY_CATEGORY_MULT) never showed in the trade screen
+//   (gifts to six empires, 2026-11-21: docs/trade-calibration.md);
 // - an AI with a trade-refusing attitude refuses (−1000 "Dismissive attitude" in the trade screen);
 //   MIN_RELATION_TO_TRADE_SPECIMENS 750 does not gate a deal we propose (an AI at opinion 695
 //   accepted both ways, 2026-11-21: docs/open-points.md), and an empire that traded one is flagged
@@ -39,7 +40,6 @@ export const SELL_VALUE: Record<string, number> = {
 };
 export const TRADE_MULT = 1.3;
 export const COMPLETE_MULT = 1.25;
-export const EMPTY_MULT = 1.5;
 /** The tech the Grand Archive needs (common/megastructures/20_grand_archive.txt). */
 export const ARCHIVE_TECH = 'tech_galactic_archivism';
 
@@ -241,19 +241,16 @@ export const hasSpecimen = (h: ArchiveHolding | null, specimen: string) =>
 	[...(h?.exhibits ?? []), ...(h?.storage ?? [])].some((e) => e.specimen === specimen);
 
 /**
- * A specimen's worth in a trade to the empire receiving it, in energy: sell value × 1.3, × 1.5 if
- * the receiver's exhibition of its category is empty, × 1.25 if it would fill it. Without a
- * receiver, the plain × 1.3. An empire holding no specimen at all gets no × 1.5: the game's gift
- * acceptance at four such empires was the plain worth, one holding three matched (2026-11-21,
- * docs/trade-calibration.md); whether one with specimens elsewhere gets it is open.
+ * A specimen's worth in a trade to the empire receiving it, in energy: sell value × 1.3, × 1.25 if
+ * it would fill the receiver's exhibition of its category (not seen in game yet). No × 1.5 for an
+ * empty exhibition, whatever the defines say: gifts to six empires (2026-11-21), three holding no
+ * specimen and the Priman Matrix with empty exhibitions beside a held one, matched the plain worth
+ * within 2–6 % (docs/trade-calibration.md). Without a receiver, the plain × 1.3.
  */
 export function tradeEnergy(spec: Specimen, receiver: ArchiveHolding | null | undefined): number {
 	const base = (SELL_VALUE[spec.rarity] ?? 0) * TRADE_MULT;
 	if (receiver === undefined) return base;
-	const held = (receiver?.exhibits.length ?? 0) + (receiver?.storage.length ?? 0);
-	const n = countIn(receiver, spec.category);
-	if (n === 0) return held > 0 ? base * EMPTY_MULT : base;
-	if (n === EXHIBITS_PER_CATEGORY - 1) return base * COMPLETE_MULT;
+	if (countIn(receiver, spec.category) === EXHIBITS_PER_CATEGORY - 1) return base * COMPLETE_MULT;
 	return base;
 }
 

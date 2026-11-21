@@ -8,8 +8,10 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   keeps stored specimens — move one to storage (or fill an exhibition past 9) and grep `exhibits`
   and the country's `standard_grand_archive_module`; (2) which specimens the trade screen lists —
   all the AI holds, or not its active exhibits; (3) who gets `has_already_traded_specimens`, and
-  what `MIN_RELATION_TO_TRADE_SPECIMENS` 750 gates if not a deal we propose (AI-made offers?); (4) a specimen's acceptance in the trade screen against
-  `specimenDeal()`'s price and bid — calibrate in `docs/trade-calibration.md`, then drop the ≈;
+  what `MIN_RELATION_TO_TRADE_SPECIMENS` 750 gates if not a deal we propose (AI-made offers?); (4) the specimen deal's ≈: gifts to six empires matched
+  `tradeEnergy()` within 0–6 % without the defines' empty-exhibition × 1.5 (2026-11-21,
+  `docs/trade-calibration.md`); open: the × 1.25 for filling an exhibition, a deal where they give
+  a specimen;
   (5) whether `activated` is the bonus switch (the exhibit's own click) and `unlocked` the paid
   exhibit; (6) the exhibitions' multiplier from companion mod 0.15.0 (`sdash_sp*`) against the
   Collection view's numbers, and `error.log` clean of `sdash_`.
