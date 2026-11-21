@@ -5,6 +5,8 @@ import {
 	type EmpireFacts,
 	holds,
 	refusals,
+	bonusKind,
+	givesKinds,
 	specimenDeal,
 	specimenGives,
 	sumBonuses,
@@ -162,5 +164,26 @@ describe('trade', () => {
 			'their attitude or personality trades nothing'
 		]);
 		expect(refusals({ opinion: null, trades: true })).toEqual([]);
+	});
+});
+
+describe('bonus kinds', () => {
+	it('sorts a bonus by its colour key, else its topic', () => {
+		expect(bonusKind('planet_jobs_food_produces_mult')).toBe('food');
+		expect(bonusKind('planet_amenities_add')).toBe('amenities');
+		expect(bonusKind('planet_researchers_produces_mult')).toBe('research');
+		expect(bonusKind('ship_hull_mult')).toBe('military');
+		expect(bonusKind('space_fauna_growth_rate_mult')).toBe('space fauna');
+		expect(bonusKind('bonus_pop_growth_mult')).toBe('pops');
+		expect(bonusKind('terraform_speed_mult')).toBe('other');
+	});
+
+	it('lists every kind a specimen gives, resources too, once each', () => {
+		expect(
+			givesKinds({
+				bonuses: [mod('a_unity_produces_mult', 1), mod('b_unity_produces_mult', 1)],
+				produces: { society_research: 20 }
+			})
+		).toEqual(['unity', 'society_research']);
 	});
 });

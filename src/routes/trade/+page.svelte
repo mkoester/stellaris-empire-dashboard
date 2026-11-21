@@ -17,13 +17,14 @@
 		terms,
 		wantPrice
 	} from '#lib/aiTrade.ts';
-	import { CATEGORIES, RARITY_TONE } from '#lib/archive.ts';
+	import { CATEGORIES, givesKinds, RARITY_TONE } from '#lib/archive.ts';
 	import { colorOf, gainColor, scaleColor } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import SortTable from '#lib/SortTable.svelte';
+	import SpecimenFilter from '#lib/SpecimenFilter.svelte';
 	import SpecimenGives from '#lib/SpecimenGives.svelte';
 	import { modifierLabel } from '#lib/modifiers.ts';
 	import type { Column } from '#lib/sort.ts';
@@ -431,6 +432,17 @@
 	type OurSpecimen = NonNullable<typeof data.specimens>['ours'][number];
 	const tradeFmt = (v: number | null) => (v === null ? '–' : `≈ ${v.toFixed(2)}`);
 	type Gives = Pick<TheirSpecimen, 'bonuses' | 'produces'>;
+	// the bonus filter over both lists: specimens giving none of the kinds picked are left out
+	let specimenKinds: string[] = $state([]);
+	const allSpecimenKinds = $derived([
+		...new Set(
+			[...(data.specimens?.theirs ?? []), ...(data.specimens?.ours ?? [])].flatMap((r) =>
+				givesKinds(r)
+			)
+		)
+	]);
+	const specimenShown = (r: Gives) =>
+		!specimenKinds.length || givesKinds(r).some((k) => specimenKinds.includes(k));
 	// sorted by its first line
 	const givesColumn = {
 		id: 'gives',
@@ -848,9 +860,14 @@
 						No save with the archives read yet; it fills after the next save.
 					</p>
 				{:else}
+					<SpecimenFilter kinds={allSpecimenKinds} bind:selected={specimenKinds} />
 					{#each CATEGORIES as c (c.key)}
-						{@const theirs = data.specimens.theirs.filter((r) => r.category === c.name)}
-						{@const ours = data.specimens.ours.filter((r) => r.category === c.name)}
+						{@const theirs = data.specimens.theirs.filter(
+							(r) => r.category === c.name && specimenShown(r)
+						)}
+						{@const ours = data.specimens.ours.filter(
+							(r) => r.category === c.name && specimenShown(r)
+						)}
 						<h3 class="mt-4 mb-1 font-semibold first:mt-0">{c.name}</h3>
 						<div class="grid gap-x-6 gap-y-2 xl:grid-cols-2">
 							<div>
@@ -865,7 +882,9 @@
 										/>
 									</div>
 								{:else}
-									<p class="text-sm text-gray-500">None on offer now.</p>
+									<p class="text-sm text-gray-500">
+										{specimenKinds.length ? 'None with that bonus.' : 'None on offer now.'}
+									</p>
 								{/if}
 							</div>
 							<div>
@@ -880,7 +899,11 @@
 										/>
 									</div>
 								{:else}
-									<p class="text-sm text-gray-500">None of ours they would take now.</p>
+									<p class="text-sm text-gray-500">
+										{specimenKinds.length
+											? 'None with that bonus.'
+											: 'None of ours they would take now.'}
+									</p>
 								{/if}
 							</div>
 						</div>

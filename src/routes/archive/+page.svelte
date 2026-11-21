@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
-	import { RARITY_TONE } from '#lib/archive.ts';
+	import { givesKinds, RARITY_TONE } from '#lib/archive.ts';
 	import { followGame } from '#lib/live.ts';
 	import {
 		formatModifierValue,
@@ -11,6 +11,7 @@
 	} from '#lib/modifiers.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import ResourceChips from '#lib/ResourceChips.svelte';
+	import SpecimenFilter from '#lib/SpecimenFilter.svelte';
 	import SpecimenGives from '#lib/SpecimenGives.svelte';
 
 	let { data } = $props();
@@ -18,6 +19,17 @@
 
 	type Line = (typeof data.total)[number];
 
+	// the bonus filter: exhibits that do not match fade (the exhibition keeps its shape), stored
+	// specimens that do not match are left out
+	let kinds: string[] = $state([]);
+	type Gives = Parameters<typeof givesKinds>[0];
+	const matches = (g: Gives) => !kinds.length || givesKinds(g).some((k) => kinds.includes(k));
+	const allKinds = $derived([
+		...new Set(
+			[...data.categories.flatMap((c) => c.exhibits), ...data.storage].flatMap((e) => givesKinds(e))
+		)
+	]);
+	const stored = $derived(data.storage.filter(matches));
 	const multNote = (m: number) => `${data.multExact ? '' : '≈ '}×${m.toFixed(2)}`;
 
 	// another empire's archive (cheat), staying on the branch shown
@@ -90,6 +102,7 @@
 			companion mod 0.15.0 or later.
 		</p>
 	{/if}
+	<SpecimenFilter kinds={allKinds} bind:selected={kinds} />
 	<div class="mb-6 grid gap-6 lg:grid-cols-3">
 		{#each data.categories as c (c.key)}
 			<Panel
@@ -99,6 +112,7 @@
 				<ol class="mb-3 space-y-0.5 text-sm">
 					{#each c.exhibits as e (e.id)}
 						<li
+							class:opacity-30={!matches(e)}
 							title={e.active
 								? `exhibited, active${e.added ? ` — collected ${e.added}` : ''}`
 								: 'not active: its bonuses do not apply until the exhibit is activated'}
@@ -157,9 +171,9 @@
 			title="Storage"
 			note={`${data.storage.length} of ${data.storageSlots} slots: stored specimens give nothing`}
 		>
-			{#if data.storage.length}
+			{#if stored.length}
 				<ul class="space-y-0.5 text-sm">
-					{#each data.storage as e (e.id)}
+					{#each stored as e (e.id)}
 						<li>
 							<div class="flex items-baseline gap-2">
 								<span
@@ -175,7 +189,9 @@
 					{/each}
 				</ul>
 			{:else}
-				<p class="text-sm text-gray-500">Empty.</p>
+				<p class="text-sm text-gray-500">
+					{data.storage.length ? 'None with that bonus.' : 'Empty.'}
+				</p>
 			{/if}
 		</Panel>
 	</div>

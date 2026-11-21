@@ -278,7 +278,10 @@ rarity (`RARITY_TONE`, the word itself only on hover); every exhibit and stored 
 it gives once active (`specimenGives()`, × its exhibition's multiplier; shown by
 `#lib/SpecimenGives.svelte`, shared with the trade tab), modifiers and monthly resources alike —
 a specimen may give only resources (Memorial Stone). Values green/red and a modifier's label in its
-resource's colour — or for amenities, stability and leaders the dashboard's own (`modifierTint()`, the user's choice 2026-11-21: the game's icons are gold like energy) — while active, grey while inactive or stored.
+resource's colour — or for amenities, stability and leaders the dashboard's own (`modifierTint()`, the user's choice 2026-11-21: the game's icons are gold like energy) — while active, grey while inactive or stored. A bonus filter (`#lib/SpecimenFilter.svelte`, shared
+with the trade tab; kinds from `givesKinds()`: a resource, amenities, stability, leaders, research,
+pops, military, space fauna, other — resources in the top bar's order) fades the exhibits that give
+none of the kinds picked and leaves such stored ones out.
 
 **Frontier tab** (`/frontier`; the situations tab until 2026-11-15 — renamed because situations and
 events are the game's own terms for one panel each, `/situations` redirects; `#lib/situations.ts` pure,

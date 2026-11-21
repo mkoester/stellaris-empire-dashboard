@@ -1,3 +1,4 @@
+import { modifierTintKey } from './modifiers.ts';
 import type { ArchiveHolding, Exhibit, GameData, Modifier, Resources, Specimen } from './types.ts';
 
 // The Grand Archive — pure. From the game files (4.5.4, docs/tabs-empire.md "Archive tab"):
@@ -192,6 +193,23 @@ export function exhibitions(
 		return { key, name, exhibits, mult, bonuses, produces };
 	});
 }
+
+// The bonus filter's kinds beyond the label colours (#lib/modifiers.ts `modifierTintKey`)
+const KIND_TOPICS: [RegExp, string][] = [
+	[/research|researchers/, 'research'],
+	[/^(ship|army|starbase|command_limit)_/, 'military'],
+	[/space_fauna|vivarium/, 'space fauna'],
+	[/pop_|logistic_growth/, 'pops']
+];
+
+/** A modifier's kind for the bonus filter: its colour key (a resource, amenities, …), else a topic. */
+export const bonusKind = (key: string): string =>
+	modifierTintKey(key) ?? KIND_TOPICS.find(([re]) => re.test(key))?.[1] ?? 'other';
+
+/** Every kind of bonus a specimen gives: its modifiers' and its resources'. */
+export const givesKinds = (g: { bonuses: { key: string }[]; produces: Resources }): string[] => [
+	...new Set([...g.bonuses.map((b) => bonusKind(b.key)), ...Object.keys(g.produces)])
+];
 
 /** Lines of the same modifier (and condition) summed, the specimens they come from kept. */
 export function sumBonuses(lines: BonusLine[]): (BonusLine & { sources: string[] })[] {

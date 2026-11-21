@@ -16,7 +16,7 @@ days); **`specimenTradeAll`** (cheat) shows them greyed ⊘ with the reason. `re
 panel, per exhibition side by side (theirs | ours), without an Exhibition column; the name is
 tinted by its rarity instead of a Rarity column, and both show what the specimen gives us
 (`SpecimenGives`: modifiers and monthly resources, × our exhibition's multiplier) — the user's asks,
-2026-11-21.
+2026-11-21. The archive tab's bonus filter (`SpecimenFilter`) narrows both lists.
 
 **Trade tab** (`/trade`, `#lib/aiTrade.ts` pure; the user's biggest pain point, 2026-10-22: "who
 trades what, both directions, for how much, normalised by trade"): the empires we have
