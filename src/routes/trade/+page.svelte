@@ -479,21 +479,13 @@
 		{ id: 'name', label: 'Our specimen', value: (r) => r.name, cell: specimenName },
 		givesColumn,
 		{
-			id: 'willing',
-			label: 'Willing?',
-			value: (r) => (r.refused.length ? 0 : 1),
-			cell: willingCell,
-			title:
-				'whether they would trade it at the price: not with an attitude that trades nothing (their opinion of us does not matter)'
-		},
-		{
 			id: 'bid',
 			label: 'They pay (trade)',
-			value: (r) => r.bidTrade,
+			value: (r) => (r.refused.length ? -1 : r.bidTrade),
 			cell: bidCell,
 			right: true,
 			title:
-				'≈ what they would give for it at most, in trade: its worth to them (sell value × 1.3, × 1.5 if their exhibition of it is empty, × 1.25 if it fills it) × their willingness.'
+				'≈ what they would give for it at most, in trade: its worth to them (sell value × 1.3, × 1.5 if their exhibition of it is empty, × 1.25 if it fills it) × their willingness. "gift only": an attitude that gives nothing pays nothing, but takes it as a gift.'
 		}
 	];
 </script>
@@ -516,7 +508,11 @@
 		>{r.refused.length ? 'refuses' : 'yes ≈'}</span
 	>{/snippet}
 {#snippet givesCell(r: Gives)}<SpecimenGives bonuses={r.bonuses} produces={r.produces} />{/snippet}
-{#snippet bidCell(r: OurSpecimen)}<span class="tabular-nums">{tradeFmt(r.bidTrade)}</span>{/snippet}
+{#snippet bidCell(r: OurSpecimen)}{#if r.refused.length}<span
+			class="text-gray-500"
+			title={`${r.refused.join('; ')}: it pays nothing, but takes it as a gift (the Backattan Empire, Suspicious, 2026-11-21)`}
+			>gift only</span
+		>{:else}<span class="tabular-nums">{tradeFmt(r.bidTrade)}</span>{/if}{/snippet}
 
 {#snippet enclaveName(x: EnclaveRow)}<EmpireName
 		name={x.name}
@@ -855,7 +851,7 @@
 				title="Specimens"
 				note="Each exhibition: on the left every specimen of each empire we can trade with that its trade screen lists{data.specimenTradeAll
 					? ' (greyed with ⊘ those no deal can get now, hover for why)'
-					: ''} — not one we have already, not for 10 years after either side traded a specimen; on the right ours, by what each empire would pay at most — more where its exhibition of the kind is empty (× 1.5) or one short of full (× 1.25). Willing: not with an attitude that trades nothing; fallen empires trade no specimens. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
+					: ''} — not one we have already, not for 10 years after either side traded a specimen; on the right ours, by what each empire would pay at most — more where its exhibition of the kind is empty (× 1.5) or one short of full (× 1.25). Willing (theirs): not with an attitude that gives nothing — such an empire takes ours only as a gift; fallen empires trade no specimens. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
 			>
 				{#if !data.specimens.known}
 					<p class="text-sm text-gray-500">

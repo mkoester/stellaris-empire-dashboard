@@ -19,7 +19,8 @@ Glassware for 2 rare crystals a month (+2), the Thembolon Accord at 232 took the
 empires are left out: their trade screen has no specimens on either side (Indomitable Myrran
 Aggression, the same day). An attitude that trades nothing still takes a gift (the Backattan
 Empire, Suspicious: our Heart of the Pulsar for nothing, +46), so "refuses" means it gives nothing:
-with 1 energy a month from it the same deal read "Suspicious attitude: −1000" (the same day). The whole trade tab leaves out empires whose "Offer
+with 1 energy a month from it the same deal read "Suspicious attitude: −1000" (the same day). So "Willing?" is only in their list; in ours such an
+empire's "They pay" reads "gift only" (sorted last) — it pays nothing but takes the specimen. The whole trade tab leaves out empires whose "Offer
 Trade Deal" the game closes (`tradeClosed()`: Fanatic Purifiers, Devouring Swarms, Determined
 Exterminators unless we are machines, scorched-earth Infernals unless we are Infernal — the
 Havariggan Purifiers' greyed action, the same day). Both lists sit in one "Specimens"
