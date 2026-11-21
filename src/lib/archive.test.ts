@@ -6,6 +6,7 @@ import {
 	holds,
 	refusals,
 	specimenDeal,
+	specimenGives,
 	sumBonuses,
 	tradeEnergy
 } from './archive.ts';
@@ -94,9 +95,20 @@ describe('exhibitions', () => {
 		expect(xg.produces).toEqual({ unity: 7.5 });
 	});
 
-	it('gives nothing for an exhibit not activated', () => {
+	it('gives nothing for an exhibit not activated, but says what it would', () => {
 		const h = holding([exhibit(1, 'acidic_spores', 'xeno_geology', false)]);
-		expect(exhibitions(h, { specimens }, facts)[2].bonuses).toEqual([]);
+		const xg = exhibitions(h, { specimens }, facts, { xeno_geology: 2 })[2];
+		expect(xg.bonuses).toEqual([]);
+		expect(xg.exhibits[0].gives?.bonuses.map((b) => b.value)).toEqual([0.04, 2]);
+		expect(xg.exhibits[0].gives?.produces).toEqual({ unity: 10 });
+	});
+
+	it('leaves out a modifier whose condition fails', () => {
+		const lithoid = { ...facts, lithoid: true };
+		expect(specimenGives(spores, lithoid).bonuses.map((b) => b.key)).toEqual([
+			'planet_jobs_minerals_produces_mult',
+			'planet_stability_add'
+		]);
 	});
 
 	it('sums the same modifier over specimens', () => {

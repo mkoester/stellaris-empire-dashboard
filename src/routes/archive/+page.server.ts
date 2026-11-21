@@ -5,6 +5,7 @@ import {
 	EXHIBITS_PER_CATEGORY,
 	factsOf,
 	factsOfOther,
+	specimenGives,
 	STORAGE_SLOTS,
 	sumBonuses
 } from '#lib/archive.ts';
@@ -74,7 +75,9 @@ export function load({ url }) {
 				rarity: e.spec?.rarity ?? null,
 				unlocked: e.unlocked,
 				active: e.active,
-				added: e.added
+				added: e.added,
+				bonuses: e.gives?.bonuses ?? [],
+				produces: e.gives?.produces ?? {}
 			})),
 			bonuses: sumBonuses(c.bonuses),
 			produces: c.produces
@@ -84,11 +87,19 @@ export function load({ url }) {
 			for (const [r, v] of Object.entries(c.produces)) sum[r] = (sum[r] ?? 0) + v;
 			return sum;
 		}, {}),
-		storage: (shown?.storage ?? []).map((e) => ({
-			id: e.id,
-			name: name(e.specimen),
-			rarity: data.specimens[e.specimen]?.rarity ?? null,
-			category: CATEGORIES.find((c) => c.key === data.specimens[e.specimen]?.category)?.name ?? null
-		}))
+		// what each would give once exhibited and active, × its category's multiplier
+		storage: (shown?.storage ?? []).map((e) => {
+			const spec = data.specimens[e.specimen];
+			const gives = spec
+				? specimenGives(spec, facts, shown?.mults?.[spec.category] ?? 1)
+				: { bonuses: [], produces: {} };
+			return {
+				id: e.id,
+				name: name(e.specimen),
+				rarity: spec?.rarity ?? null,
+				category: CATEGORIES.find((c) => c.key === spec?.category)?.name ?? null,
+				...gives
+			};
+		})
 	};
 }

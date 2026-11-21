@@ -17,6 +17,7 @@
 		terms,
 		wantPrice
 	} from '#lib/aiTrade.ts';
+	import { CATEGORIES, RARITY_TONE } from '#lib/archive.ts';
 	import { colorOf, gainColor, scaleColor } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
@@ -430,13 +431,6 @@
 	const theirSpecimenColumns: Column<TheirSpecimen>[] = [
 		{ id: 'empire', label: 'Empire', value: (r) => r.empire },
 		{ id: 'name', label: 'Specimen', value: (r) => r.name, cell: specimenName },
-		{ id: 'category', label: 'Exhibition', value: (r) => r.category },
-		{
-			id: 'rarity',
-			label: 'Rarity',
-			value: (r) => RARITY_ORDER.indexOf(r.rarity),
-			cell: rarityCell
-		},
 		{ id: 'gives', label: 'Gives us', value: (r) => r.gives },
 		{
 			id: 'willing',
@@ -460,12 +454,6 @@
 		{ id: 'name', label: 'Our specimen', value: (r) => r.name, cell: specimenName },
 		{ id: 'category', label: 'Exhibition', value: (r) => r.category },
 		{
-			id: 'rarity',
-			label: 'Rarity',
-			value: (r) => RARITY_ORDER.indexOf(r.rarity),
-			cell: rarityCell
-		},
-		{
 			id: 'willing',
 			label: 'Willing?',
 			value: (r) => (r.refused.length ? 0 : 1),
@@ -482,25 +470,17 @@
 				'≈ what they would give for it at most, in trade: its worth to them (sell value × 1.3, × 1.5 if their exhibition of it is empty, × 1.25 if it fills it) × their willingness.'
 		}
 	];
-	const RARITY_ORDER = ['common', 'rare', 'epic', 'exceptional'];
-	const RARITY_TONE: Record<string, string> = {
-		common: 'text-gray-600',
-		rare: 'text-sky-700',
-		epic: 'text-purple-700',
-		exceptional: 'text-amber-600'
-	};
 </script>
 
-{#snippet specimenName(r: { name: string; blocked: string[]; exhibited: boolean })}<span
-		class:text-gray-400={r.blocked.length > 0}
-		title={r.blocked.length
-			? `not now: ${r.blocked.join('; ')}`
-			: r.exhibited
-				? 'exhibited'
-				: 'in storage'}>{r.name}{r.blocked.length ? ' ⊘' : ''}</span
-	>{/snippet}
-{#snippet rarityCell(r: { rarity: string })}<span class="text-xs {RARITY_TONE[r.rarity] ?? ''}"
-		>{r.rarity}</span
+{#snippet specimenName(r: {
+	name: string;
+	rarity: string;
+	blocked: string[];
+	exhibited: boolean;
+})}<span
+		class={r.blocked.length ? 'text-gray-400' : (RARITY_TONE[r.rarity] ?? '')}
+		title={`${r.rarity}, ${r.blocked.length ? `not now: ${r.blocked.join('; ')}` : r.exhibited ? 'exhibited' : 'in storage'}`}
+		>{r.name}{r.blocked.length ? ' ⊘' : ''}</span
 	>{/snippet}
 {#snippet specimenPrice(r: TheirSpecimen)}<span class="tabular-nums">{tradeFmt(r.priceTrade)}</span
 	>{/snippet}
@@ -851,14 +831,20 @@
 					: ''} — not one we have already, not for 10 years after either side traded a specimen. Willing: an AI trades specimens only at an opinion of us of 750 or more. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
 			>
 				{#if data.specimens.theirs.length}
-					<div class="overflow-x-auto text-sm">
-						<SortTable
-							rows={data.specimens.theirs}
-							columns={theirSpecimenColumns}
-							key={(r) => r.id}
-							sort={{ column: 'price', desc: false }}
-						/>
-					</div>
+					{#each CATEGORIES as c (c.key)}
+						{@const rows = data.specimens.theirs.filter((r) => r.category === c.name)}
+						{#if rows.length}
+							<h3 class="mt-3 mb-1 text-sm font-semibold first:mt-0">{c.name}</h3>
+							<div class="overflow-x-auto text-sm">
+								<SortTable
+									{rows}
+									columns={theirSpecimenColumns}
+									key={(r) => r.id}
+									sort={{ column: 'price', desc: false }}
+								/>
+							</div>
+						{/if}
+					{/each}
 				{:else}
 					<p class="text-sm text-gray-500">
 						{data.specimens.known

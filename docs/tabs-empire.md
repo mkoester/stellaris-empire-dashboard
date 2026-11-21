@@ -271,8 +271,12 @@ specimen's modifiers and resources (data DB `specimen*`) × the exhibition's mul
 those it cannot tell kept, greyed "(?)". The **`archiveOthers`** cheat (`intel`) adds a dropdown of
 every other empire holding specimens (`?empire=<id>`); one we do not talk to is "unknown empire
 (N specimens)" — the user's choice 2026-11-21 — and its conditions read as unknown. `pageLatest()`
-keeps only our holding: the page sends another only with the cheat. The tab is dimmed until we hold
-a specimen.
+keeps only our holding: the page sends another only with the cheat. **The user's asks
+2026-11-21:** the tab is dimmed until Galactic Archivism (`ARCHIVE_TECH`, the Grand Archive's
+prerequisite) is researched — not by whether we hold a specimen; a specimen's name is tinted by its
+rarity (`RARITY_TONE`, the word itself only on hover); every exhibit and stored specimen lists what
+it gives once active (`specimenGives()`, × its exhibition's multiplier), values in the usual
+green/red while active, grey while inactive or stored.
 
 **Frontier tab** (`/frontier`; the situations tab until 2026-11-15 — renamed because situations and
 events are the game's own terms for one panel each, `/situations` redirects; `#lib/situations.ts` pure,

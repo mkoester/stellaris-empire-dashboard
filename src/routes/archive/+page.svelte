@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
+	import { RARITY_TONE } from '#lib/archive.ts';
 	import { followGame } from '#lib/live.ts';
 	import { formatModifierValue, modifierColor, modifierLabel } from '#lib/modifiers.ts';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -10,14 +11,8 @@
 	followGame(() => data.isHead);
 
 	type Line = (typeof data.total)[number];
+	type Gives = { bonuses: Omit<Line, 'sources'>[]; produces: Record<string, number> };
 
-	// rarity colours as the game's Collection view tints them
-	const RARITY: Record<string, string> = {
-		common: 'text-gray-600',
-		rare: 'text-sky-700',
-		epic: 'text-purple-700',
-		exceptional: 'text-amber-600'
-	};
 	const multNote = (m: number) => `${data.multExact ? '' : '≈ '}×${m.toFixed(2)}`;
 
 	// another empire's archive (cheat), staying on the branch shown
@@ -53,6 +48,32 @@
 			</li>
 		{/each}
 	</ul>
+{/snippet}
+
+<!-- what one specimen gives once exhibited and active; grey while it gives nothing -->
+{#snippet gives(g: Gives, on: boolean)}
+	{#if g.bonuses.length || Object.keys(g.produces).length}
+		<div
+			class="flex flex-wrap items-baseline gap-x-2 pl-5 text-xs"
+			class:text-gray-400={!on}
+			class:grayscale={!on}
+		>
+			{#each g.bonuses as b (`${b.key}|${b.condition}`)}
+				<span
+					class:opacity-60={b.applies === null}
+					title={b.applies === null ? `only if ${b.condition} — the save does not tell` : ''}
+				>
+					<span class="font-mono font-semibold {on ? modifierColor(b) : ''}"
+						>{formatModifierValue(b)}</span
+					>
+					{modifierLabel(b)}{b.applies === null ? ' (?)' : ''}
+				</span>
+			{/each}
+			{#if Object.keys(g.produces).length}
+				<span class:opacity-60={!on}><ResourceChips flows={g.produces} sign={1} /> a month</span>
+			{/if}
+		</div>
+	{/if}
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -97,15 +118,20 @@
 				<ol class="mb-3 space-y-0.5 text-sm">
 					{#each c.exhibits as e (e.id)}
 						<li
-							class="flex items-baseline gap-2"
-							class:opacity-50={!e.active}
 							title={e.active
 								? `exhibited, active${e.added ? ` — collected ${e.added}` : ''}`
 								: 'not active: its bonuses do not apply until the exhibit is activated'}
 						>
-							<span class="w-3 text-center">{e.active ? '●' : '○'}</span>
-							<span class="flex-1">{e.name}</span>
-							{#if e.rarity}<span class="text-xs {RARITY[e.rarity] ?? ''}">{e.rarity}</span>{/if}
+							<div class="flex items-baseline gap-2">
+								<span class="w-3 text-center" class:text-gray-400={!e.active}
+									>{e.active ? '●' : '○'}</span
+								>
+								<span
+									class="flex-1 {e.rarity ? (RARITY_TONE[e.rarity] ?? '') : ''}"
+									title={e.rarity ?? ''}>{e.name}</span
+								>
+							</div>
+							{@render gives(e, e.active)}
 						</li>
 					{/each}
 					{#each Array.from({ length: Math.max(0, data.perCategory - c.exhibits.length) }, (_, i) => i) as i (i)}
@@ -151,10 +177,15 @@
 			{#if data.storage.length}
 				<ul class="space-y-0.5 text-sm">
 					{#each data.storage as e (e.id)}
-						<li class="flex items-baseline gap-2">
-							<span class="flex-1">{e.name}</span>
-							<span class="text-xs text-gray-500">{e.category ?? ''}</span>
-							{#if e.rarity}<span class="text-xs {RARITY[e.rarity] ?? ''}">{e.rarity}</span>{/if}
+						<li>
+							<div class="flex items-baseline gap-2">
+								<span
+									class="flex-1 {e.rarity ? (RARITY_TONE[e.rarity] ?? '') : ''}"
+									title={e.rarity ?? ''}>{e.name}</span
+								>
+								<span class="text-xs text-gray-500">{e.category ?? ''}</span>
+							</div>
+							{@render gives(e, false)}
 						</li>
 					{/each}
 				</ul>

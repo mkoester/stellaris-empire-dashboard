@@ -1,5 +1,6 @@
 // Which tabs have nothing to show yet along a branch: their names are dimmed in the tab bar, the
 // title saying why. Still links — the page explains itself.
+import { ARCHIVE_TECH } from './archive.ts';
 import { whyOf } from './contracts.ts';
 import { isGate } from './mapLayers.ts';
 import { KINDS, MEGA_RULES } from './megastructures.ts';
@@ -118,13 +119,10 @@ const CHECKS: {
 	},
 	{
 		tab: 'archive',
-		why: 'no specimen collected yet',
-		known: (s) => s.archives !== null && s.archives !== undefined,
-		// what the tab shows without the cheat: our own exhibitions and storage
-		has: (s) =>
-			(s.archives ?? []).some(
-				(a) => a.countryId === s.countryId && a.exhibits.length + a.storage.length > 0
-			)
+		why: 'Galactic Archivism not researched yet',
+		known: (s) => s.progress !== null && s.progress !== undefined,
+		// the tech that lets the empire build the Grand Archive (common/megastructures/20_grand_archive.txt)
+		has: (s) => (s.progress?.researched ?? []).includes(ARCHIVE_TECH)
 	},
 	{
 		tab: 'frontier',

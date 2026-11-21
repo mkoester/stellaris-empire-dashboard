@@ -22,6 +22,13 @@ export const CATEGORIES = [
 export const EXHIBITS_PER_CATEGORY = 9;
 export const STORAGE_SLOTS = 60;
 export const RARITIES = ['common', 'rare', 'epic', 'exceptional'] as const;
+/** Rarity colours as the game's Collection view tints a specimen's name. */
+export const RARITY_TONE: Record<string, string> = {
+	common: 'text-gray-600',
+	rare: 'text-sky-700',
+	epic: 'text-purple-700',
+	exceptional: 'text-amber-600'
+};
 export const SELL_VALUE: Record<string, number> = {
 	common: 250,
 	rare: 500,
@@ -32,6 +39,8 @@ export const TRADE_MULT = 1.3;
 export const COMPLETE_MULT = 1.25;
 export const EMPTY_MULT = 1.5;
 export const MIN_OPINION = 750;
+/** The tech the Grand Archive needs (common/megastructures/20_grand_archive.txt). */
+export const ARCHIVE_TECH = 'tech_galactic_archivism';
 
 /** What a condition (a specimen block's `potential`) asks of an empire; null: not known. */
 export type EmpireFacts = {
@@ -121,10 +130,35 @@ export type BonusLine = Modifier & {
 	from: string; // the specimen's name
 };
 
+/**
+ * What one specimen gives while exhibited in its category: its modifiers and resources × `mult`. A
+ * modifier whose condition fails for the empire is left out; one that cannot be told stays, marked.
+ */
+export function specimenGives(
+	spec: Specimen,
+	facts: EmpireFacts,
+	mult = 1
+): { bonuses: BonusLine[]; produces: Resources } {
+	const bonuses: BonusLine[] = [];
+	for (const m of spec.modifiers) {
+		const applies = holds(m.condition, facts);
+		if (applies === false) continue;
+		bonuses.push({ ...m, value: m.value * mult, applies, from: spec.name });
+	}
+	const produces: Resources = Object.fromEntries(
+		Object.entries(spec.produces).map(([r, v]) => [r, v * mult])
+	);
+	return { bonuses, produces };
+}
+
 export type CategoryView = {
 	key: string;
 	name: string;
-	exhibits: (Exhibit & { spec: Specimen | null })[];
+	// each with what it gives once active (`gives`), active or not
+	exhibits: (Exhibit & {
+		spec: Specimen | null;
+		gives: { bonuses: BonusLine[]; produces: Resources } | null;
+	})[];
 	mult: number;
 	bonuses: BonusLine[]; // per active exhibit's modifier, × mult; those whose condition fails left out
 	produces: Resources; // a month, × mult
@@ -132,8 +166,7 @@ export type CategoryView = {
 
 /**
  * The three exhibitions with what each gives: every active exhibit's modifiers and resources ×
- * the category's multiplier (`mults`, 1 where unknown). A modifier whose condition fails for the
- * empire is left out; one that cannot be told stays, marked.
+ * the category's multiplier (`mults`, 1 where unknown), as `specimenGives()`.
  */
 export function exhibitions(
 	holding: ArchiveHolding | null,
@@ -142,21 +175,19 @@ export function exhibitions(
 	mults: Record<string, number> = {}
 ): CategoryView[] {
 	return CATEGORIES.map(({ key, name }) => {
+		const mult = mults[key] ?? 1;
 		const exhibits = (holding?.exhibits ?? [])
 			.filter((e) => e.category === key)
-			.map((e) => ({ ...e, spec: data.specimens[e.specimen] ?? null }));
-		const mult = mults[key] ?? 1;
+			.map((e) => {
+				const spec = data.specimens[e.specimen] ?? null;
+				return { ...e, spec, gives: spec ? specimenGives(spec, facts, mult) : null };
+			});
 		const bonuses: BonusLine[] = [];
 		const produces: Resources = {};
 		for (const e of exhibits) {
-			if (!e.active || !e.spec) continue;
-			for (const m of e.spec.modifiers) {
-				const applies = holds(m.condition, facts);
-				if (applies === false) continue;
-				bonuses.push({ ...m, value: m.value * mult, applies, from: e.spec.name });
-			}
-			for (const [r, v] of Object.entries(e.spec.produces))
-				produces[r] = (produces[r] ?? 0) + v * mult;
+			if (!e.active || !e.gives) continue;
+			bonuses.push(...e.gives.bonuses);
+			for (const [r, v] of Object.entries(e.gives.produces)) produces[r] = (produces[r] ?? 0) + v;
 		}
 		return { key, name, exhibits, mult, bonuses, produces };
 	});

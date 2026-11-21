@@ -12,7 +12,9 @@ in trade at energy's value, ≈ until checked against the trade screen. `blocker
 tradable, the receiver has it, archive full, `has_already_traded_specimens` on either side, 3600
 days); **`specimenTradeAll`** (cheat) shows them greyed ⊘ with the reason. `refusals()` fill the
 "Willing?" column: an attitude that trades nothing, or an opinion of us under 750
-(`MIN_RELATION_TO_TRADE_SPECIMENS`, read as opinion — open).
+(`MIN_RELATION_TO_TRADE_SPECIMENS`, read as opinion — open). "Specimens they would trade us" is
+one table per exhibition, without an Exhibition column; in both, the name is tinted by its rarity
+instead of a Rarity column (the user's asks, 2026-11-21).
 
 **Trade tab** (`/trade`, `#lib/aiTrade.ts` pure; the user's biggest pain point, 2026-10-22: "who
 trades what, both directions, for how much, normalised by trade"): the empires we have
