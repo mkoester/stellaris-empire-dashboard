@@ -461,7 +461,8 @@
 			label: 'Willing?',
 			value: (r) => (r.refused.length ? 0 : 1),
 			cell: willingCell,
-			title: '≈ whether they would trade it at the price: not below an opinion of us of 750'
+			title:
+				'whether they would trade it at the price: not with an attitude that trades nothing (their opinion of us does not matter)'
 		},
 		{
 			id: 'price',
@@ -482,7 +483,8 @@
 			label: 'Willing?',
 			value: (r) => (r.refused.length ? 0 : 1),
 			cell: willingCell,
-			title: '≈ whether they would trade it at the price: not below an opinion of us of 750'
+			title:
+				'whether they would trade it at the price: not with an attitude that trades nothing (their opinion of us does not matter)'
 		},
 		{
 			id: 'bid',
@@ -853,7 +855,7 @@
 				title="Specimens"
 				note="Each exhibition: on the left every specimen of each empire we can trade with that its trade screen lists{data.specimenTradeAll
 					? ' (greyed with ⊘ those no deal can get now, hover for why)'
-					: ''} — not one we have already, not for 10 years after either side traded a specimen; on the right ours, by what each empire would pay at most — more where its exhibition of the kind is empty (× 1.5) or one short of full (× 1.25). Willing: an AI trades specimens only at an opinion of us of 750 or more. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
+					: ''} — not one we have already, not for 10 years after either side traded a specimen; on the right ours, by what each empire would pay at most — more where its exhibition of the kind is empty (× 1.5) or one short of full (× 1.25). Willing: not with an attitude that trades nothing; fallen empires trade no specimens. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
 			>
 				{#if !data.specimens.known}
 					<p class="text-sm text-gray-500">

@@ -105,7 +105,7 @@ export function load({ url }) {
  */
 function specimenRows(
 	latest: Snapshot | null,
-	empires: (AiIntel & { name: string })[],
+	empires: (AiIntel & { name: string; fallen: boolean })[],
 	data: ReturnType<typeof getGameData>,
 	all: boolean,
 	values: Record<string, number>
@@ -126,11 +126,12 @@ function specimenRows(
 	const gives = (spec: Specimen) => specimenGives(spec, facts, us?.mults?.[spec.category] ?? 1);
 	const theirs = [];
 	const ours = [];
-	for (const e of empires) {
+	// a fallen empire's trade screen has no specimens on either side (2026-11-21)
+	for (const e of empires.filter((x) => !x.fallen)) {
 		const them = holding(e.countryId);
 		const t = terms(e, data.personalities, data.attitudes);
 		const ctx = { date: latest.date };
-		const refused = refusals({ opinion: e.opinion, trades: t.trades });
+		const refused = refusals({ trades: t.trades });
 		for (const x of held(them)) {
 			const spec = data.specimens[x.specimen];
 			if (!spec) continue;

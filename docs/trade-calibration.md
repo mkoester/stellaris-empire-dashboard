@@ -657,6 +657,21 @@ income — fits the two regular empires to 1–2 % but puts the fallen one 8× t
 holds it, the test every line above. Not measured: volatile motes, exotic gases, rare crystals,
 zro, dark matter and the rest (the nomad test game).
 
+### 2026-11-21: specimens, the campaign at 2226.08.01 (no cheats, nothing sent)
+
+Acceptance in the trade screen, willingness 70 % (Misharan Pact, honorbound warriors, cordial,
+opinion 695; Thembolon Accord, hive mind, opinion 232). Raw points for calibrating
+`specimenDeal()` later; no tooltip breakdown was taken.
+
+| Deal                                                                   | Acceptance                  |
+| ---------------------------------------------------------------------- | --------------------------- |
+| Misharan Pact gives Uranium Glassware (common), nothing back           | −26                         |
+| … for 2 rare crystals a month, 10 years                                | +2                          |
+| we give Heart of the Pulsar (exceptional), nothing back                | +50                         |
+| … for 3 alloys a month, 10 years                                       | +29                         |
+| Thembolon Accord: we give Heart of the Pulsar, nothing back            | +41                         |
+| Indomitable Myrran Aggression (fallen empire): 1 trade a month from it | −1000 (Dismissive attitude) |
+
 ## Live values a companion mod could export
 
 The mod "Stop Guessing What AI Will Trade You" (Workshop 3832466386, v1.1.1, read 2026-11-09)

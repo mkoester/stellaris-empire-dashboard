@@ -158,13 +158,9 @@ describe('trade', () => {
 	});
 
 	it('names why the AI would refuse', () => {
-		expect(refusals({ opinion: 500, trades: true })).toEqual([
-			'their opinion of us (500) is under 750'
-		]);
-		expect(refusals({ opinion: 800, trades: false })).toEqual([
-			'their attitude or personality trades nothing'
-		]);
-		expect(refusals({ opinion: null, trades: true })).toEqual([]);
+		// the game, 2026-11-21: the Misharan Pact at opinion 695 accepted a specimen both ways
+		expect(refusals({ trades: true })).toEqual([]);
+		expect(refusals({ trades: false })).toEqual(['their attitude or personality trades nothing']);
 	});
 });
 

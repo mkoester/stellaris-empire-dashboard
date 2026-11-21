@@ -10,8 +10,9 @@ import type { ArchiveHolding, Exhibit, GameData, Modifier, Resources, Specimen }
 // - its worth in a trade, in energy: the sell value by rarity × TRADE_VALUE_SPECIMEN_MULT 1.3,
 //   × 1.25 when it completes the receiver's category, × 1.5 when that category is empty
 //   (TRADE_VALUE_SPECIMEN_COMPLETE_CATEGORY_MULT / _EMPTY_CATEGORY_MULT);
-// - an AI trades specimens only at MIN_RELATION_TO_TRADE_SPECIMENS 750 (read as its opinion of
-//   us: docs/open-points.md), and an empire that traded one is flagged
+// - an AI with a trade-refusing attitude refuses (−1000 "Dismissive attitude" in the trade screen);
+//   MIN_RELATION_TO_TRADE_SPECIMENS 750 does not gate a deal we propose (an AI at opinion 695
+//   accepted both ways, 2026-11-21: docs/open-points.md), and an empire that traded one is flagged
 //   has_already_traded_specimens for SPECIMEN_TRADE_FLAG_DAYS 3600.
 
 export const CATEGORIES = [
@@ -39,7 +40,6 @@ export const SELL_VALUE: Record<string, number> = {
 export const TRADE_MULT = 1.3;
 export const COMPLETE_MULT = 1.25;
 export const EMPTY_MULT = 1.5;
-export const MIN_OPINION = 750;
 /** The tech the Grand Archive needs (common/megastructures/20_grand_archive.txt). */
 export const ARCHIVE_TECH = 'tech_galactic_archivism';
 
@@ -283,16 +283,13 @@ export function blockers(
 }
 
 /**
- * Why the AI would refuse a specimen deal however good (≈, docs/open-points.md): an attitude or
- * personality that trades nothing, or an opinion of us under MIN_RELATION_TO_TRADE_SPECIMENS
- * (750, read as opinion). Empty: it trades at the price.
+ * Why the AI would refuse a specimen deal however good: an attitude or personality that trades
+ * nothing (the trade screen's −1000). Its opinion of us does not matter: the Misharan Pact at 695,
+ * under the defines' MIN_RELATION_TO_TRADE_SPECIMENS 750, accepted a specimen both ways
+ * (2026-11-21). Empty: it trades at the price.
  */
-export function refusals(ctx: { opinion: number | null; trades: boolean }): string[] {
-	const out: string[] = [];
-	if (!ctx.trades) out.push('their attitude or personality trades nothing');
-	if (ctx.opinion !== null && ctx.opinion < MIN_OPINION)
-		out.push(`their opinion of us (${ctx.opinion}) is under ${MIN_OPINION}`);
-	return out;
+export function refusals(ctx: { trades: boolean }): string[] {
+	return ctx.trades ? [] : ['their attitude or personality trades nothing'];
 }
 
 /**
