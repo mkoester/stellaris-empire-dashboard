@@ -5,6 +5,7 @@ import {
 	type EmpireFacts,
 	holds,
 	refusals,
+	allKinds,
 	bonusKind,
 	givesKinds,
 	specimenDeal,
@@ -176,6 +177,10 @@ describe('bonus kinds', () => {
 		expect(bonusKind('space_fauna_growth_rate_mult')).toBe('space fauna');
 		expect(bonusKind('bonus_pop_growth_mult')).toBe('pops');
 		expect(bonusKind('terraform_speed_mult')).toBe('other');
+	});
+
+	it('lists every kind any specimen gives, for the full filter', () => {
+		expect(allKinds({ specimens }).sort()).toEqual(['food', 'minerals', 'stability', 'unity']);
 	});
 
 	it('lists every kind a specimen gives, resources too, once each', () => {

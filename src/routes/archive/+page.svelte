@@ -24,7 +24,7 @@
 	let kinds: string[] = $state([]);
 	type Gives = Parameters<typeof givesKinds>[0];
 	const matches = (g: Gives) => !kinds.length || givesKinds(g).some((k) => kinds.includes(k));
-	const allKinds = $derived([
+	const presentKinds = $derived([
 		...new Set(
 			[...data.categories.flatMap((c) => c.exhibits), ...data.storage].flatMap((e) => givesKinds(e))
 		)
@@ -102,7 +102,7 @@
 			companion mod 0.15.0 or later.
 		</p>
 	{/if}
-	<SpecimenFilter kinds={allKinds} bind:selected={kinds} />
+	<SpecimenFilter kinds={data.bonusKinds} present={presentKinds} bind:selected={kinds} />
 	<div class="mb-6 grid gap-6 lg:grid-cols-3">
 		{#each data.categories as c (c.key)}
 			<Panel

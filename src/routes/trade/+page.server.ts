@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { ENCLAVE_DEAL, enclaveDeal, modelFrom, offersTrade, terms } from '#lib/aiTrade.ts';
 import {
+	allKinds,
 	blockers,
 	CATEGORIES,
 	factsOf,
@@ -110,7 +111,7 @@ function specimenRows(
 	values: Record<string, number>
 ) {
 	if (!latest || Object.keys(data.specimens).length === 0)
-		return { theirs: [], ours: [], known: false };
+		return { theirs: [], ours: [], known: false, kinds: [] as string[] };
 	const archives = latest.archives ?? [];
 	const holding = (id: number | null) => archives.find((a) => a.countryId === id) ?? null;
 	const us = holding(latest.countryId);
@@ -174,5 +175,5 @@ function specimenRows(
 		}
 	}
 	ours.sort((a, b) => b.bid - a.bid);
-	return { theirs, ours, known: archives.length > 0 };
+	return { theirs, ours, known: archives.length > 0, kinds: allKinds(data) };
 }

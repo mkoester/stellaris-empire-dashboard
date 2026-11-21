@@ -434,7 +434,7 @@
 	type Gives = Pick<TheirSpecimen, 'bonuses' | 'produces'>;
 	// the bonus filter over both lists: specimens giving none of the kinds picked are left out
 	let specimenKinds: string[] = $state([]);
-	const allSpecimenKinds = $derived([
+	const presentSpecimenKinds = $derived([
 		...new Set(
 			[...(data.specimens?.theirs ?? []), ...(data.specimens?.ours ?? [])].flatMap((r) =>
 				givesKinds(r)
@@ -860,7 +860,11 @@
 						No save with the archives read yet; it fills after the next save.
 					</p>
 				{:else}
-					<SpecimenFilter kinds={allSpecimenKinds} bind:selected={specimenKinds} />
+					<SpecimenFilter
+						kinds={data.specimens.kinds}
+						present={presentSpecimenKinds}
+						bind:selected={specimenKinds}
+					/>
 					{#each CATEGORIES as c (c.key)}
 						{@const theirs = data.specimens.theirs.filter(
 							(r) => r.category === c.name && specimenShown(r)

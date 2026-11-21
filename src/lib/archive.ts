@@ -211,6 +211,15 @@ export const givesKinds = (g: { bonuses: { key: string }[]; produces: Resources 
 	...new Set([...g.bonuses.map((b) => bonusKind(b.key)), ...Object.keys(g.produces)])
 ];
 
+/** Every kind of bonus any specimen gives: the bonus filter's full list. */
+export const allKinds = (data: Pick<GameData, 'specimens'>): string[] => [
+	...new Set(
+		Object.values(data.specimens).flatMap((s) =>
+			givesKinds({ bonuses: s.modifiers, produces: s.produces })
+		)
+	)
+];
+
 /** Lines of the same modifier (and condition) summed, the specimens they come from kept. */
 export function sumBonuses(lines: BonusLine[]): (BonusLine & { sources: string[] })[] {
 	const out = new Map<string, BonusLine & { sources: string[] }>();

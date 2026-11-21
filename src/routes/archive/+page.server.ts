@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import {
+	allKinds,
 	CATEGORIES,
 	exhibitions,
 	EXHIBITS_PER_CATEGORY,
@@ -60,6 +61,7 @@ export function load({ url }) {
 		...rest,
 		seenAt: s?.date ?? null,
 		noData: Object.keys(data.specimens).length === 0,
+		bonusKinds: allKinds(data),
 		others,
 		shownId: other?.countryId ?? null,
 		multExact: shown?.mults !== null && shown?.mults !== undefined,

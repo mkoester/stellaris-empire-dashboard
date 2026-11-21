@@ -279,7 +279,7 @@ it gives once active (`specimenGives()`, × its exhibition's multiplier; shown b
 `#lib/SpecimenGives.svelte`, shared with the trade tab), modifiers and monthly resources alike —
 a specimen may give only resources (Memorial Stone). Values green/red and a modifier's label in its
 resource's colour — or for amenities, stability and leaders the dashboard's own (`modifierTint()`, the user's choice 2026-11-21: the game's icons are gold like energy) — while active, grey while inactive or stored. A bonus filter (`#lib/SpecimenFilter.svelte`, shared
-with the trade tab; kinds from `givesKinds()`: a resource, amenities, stability, leaders, research,
+with the trade tab; every kind any specimen gives (`allKinds()`) always shown, those no specimen on the page gives disabled; kinds from `givesKinds()`: a resource, amenities, stability, leaders, research,
 pops, military, space fauna, other — resources in the top bar's order) fades the exhibits that give
 none of the kinds picked and leaves such stored ones out.
 
