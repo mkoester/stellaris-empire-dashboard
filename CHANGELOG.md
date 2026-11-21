@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.30] - 2026-11-21
 
 ### Added
 
@@ -12,12 +12,40 @@ All notable changes to this project are documented here. The format follows
   History, Xeno Geology) with their 9 exhibits, which are active, the storage, and what the active
   specimens give, per exhibition and summed. Bonuses for only some empires (lithoid, gestalt, …)
   apply to yours or are marked when the save cannot tell. A cheat switch shows another empire's
-  archive; empires you have not met stay unnamed.
-- Trade: a spoiler switch lists the specimens each empire you can trade with holds, ≈ what one
-  would cost you in trade and whether they would trade it at all, and which of yours each would
-  pay most for. A cheat switch adds those no deal can get now, with the reason.
+  archive; empires you have not met stay unnamed. The tab stays greyed until you research
+  Galactic Archivism.
+- Archive: every specimen lists what it gives — modifiers and monthly resources — even when not
+  active (in grey); its name is tinted by its rarity.
+- Archive and trade: a bonus filter — one chip per kind of bonus (each resource, amenities,
+  stability, leaders, research, pops, military, space fauna), always all of them, those no
+  specimen here gives disabled.
+- Trade: a spoiler switch lists, per exhibition side by side, the specimens each empire you can
+  trade with would trade you, ≈ what one would cost in trade and whether they would at all, and
+  which of yours each would pay most for, with what each specimen gives you. A cheat switch adds
+  those no deal can get now, with the reason.
+- Fallen hive fragments: the War, Growth and Control Splinter is shown beside each fragment's name
+  on every tab that names empires and in the history, whatever the fragment is called.
 - Companion mod 0.15.0 stores the Specimens Output bonuses, so the exhibitions' output is exact;
   without it, they count none (≈).
+
+### Changed
+
+- Bonuses on the archive and trade tabs: a bonus to a resource is labelled in that resource's
+  colour; amenities, stability and leader bonuses have colours of their own.
+- Trade: empires the game will not trade with (Fanatic Purifiers, Devouring Swarms, Determined
+  Exterminators, scorched-earth Infernals) are left out, and fallen empires from the specimen
+  lists — their trade screens have no specimens.
+
+### Fixed
+
+- Empire names: the three fragments of a shattered fallen hive all read "Indomitable" or
+  "Forgotten" instead of "Indomitable Myrran Aggression" and so on; names made from a species
+  take the game's ending ("Misharan Pact", not "Mishar Pact"); a separatist empire reads
+  "Fellnoll Commune", not "Commune".
+- Specimen trade, checked in the trade screen: an empire's opinion of you does not stop a
+  specimen deal (it read "refuses" under 750); an attitude that trades nothing still takes a
+  specimen as a gift ("gift only"); and an empty exhibition makes a specimen worth no more to an
+  empire without a Grand Archive — prices were 1.5× too high there.
 
 ## [0.1.29] - 2026-11-21
 
