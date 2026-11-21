@@ -275,8 +275,10 @@ keeps only our holding: the page sends another only with the cheat. **The user's
 2026-11-21:** the tab is dimmed until Galactic Archivism (`ARCHIVE_TECH`, the Grand Archive's
 prerequisite) is researched — not by whether we hold a specimen; a specimen's name is tinted by its
 rarity (`RARITY_TONE`, the word itself only on hover); every exhibit and stored specimen lists what
-it gives once active (`specimenGives()`, × its exhibition's multiplier), values in the usual
-green/red while active, grey while inactive or stored.
+it gives once active (`specimenGives()`, × its exhibition's multiplier; shown by
+`#lib/SpecimenGives.svelte`, shared with the trade tab), modifiers and monthly resources alike —
+a specimen may give only resources (Memorial Stone). Values green/red and a modifier's label in its
+resource's colour (`modifierTint()`) while active, grey while inactive or stored.
 
 **Frontier tab** (`/frontier`; the situations tab until 2026-11-15 — renamed because situations and
 events are the game's own terms for one panel each, `/situations` redirects; `#lib/situations.ts` pure,

@@ -1,8 +1,14 @@
 import { error } from '@sveltejs/kit';
 import { ENCLAVE_DEAL, enclaveDeal, modelFrom, offersTrade, terms } from '#lib/aiTrade.ts';
-import { blockers, CATEGORIES, factsOf, holds, refusals, specimenDeal } from '#lib/archive.ts';
-import { formatModifierValue, modifierLabel } from '#lib/modifiers.ts';
-import type { AiIntel, ArchiveHolding, Exhibit, Snapshot } from '#lib/types.ts';
+import {
+	blockers,
+	CATEGORIES,
+	factsOf,
+	refusals,
+	specimenDeal,
+	specimenGives
+} from '#lib/archive.ts';
+import type { AiIntel, ArchiveHolding, Exhibit, Snapshot, Specimen } from '#lib/types.ts';
 import { marketFee, price } from '#lib/market.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -115,12 +121,8 @@ function specimenRows(
 	];
 	const energy = values.energy ?? 1;
 	const category = (k: string) => CATEGORIES.find((c) => c.key === k)?.name ?? k;
-	// what a specimen would give us: its modifiers whose condition does not fail for us
-	const gives = (key: string) =>
-		(data.specimens[key]?.modifiers ?? [])
-			.filter((m) => holds(m.condition, facts) !== false)
-			.map((m) => `${formatModifierValue(m)} ${modifierLabel(m)}`)
-			.join(', ');
+	// what a specimen would give us exhibited and active, × our exhibition's multiplier
+	const gives = (spec: Specimen) => specimenGives(spec, facts, us?.mults?.[spec.category] ?? 1);
 	const theirs = [];
 	const ours = [];
 	for (const e of empires) {
@@ -142,7 +144,7 @@ function specimenRows(
 				category: category(spec.category),
 				rarity: spec.rarity,
 				exhibited: x.active,
-				gives: gives(x.specimen),
+				...gives(spec),
 				price,
 				priceTrade: price === null ? null : price * energy,
 				refused,
@@ -163,6 +165,7 @@ function specimenRows(
 				category: category(spec.category),
 				rarity: spec.rarity,
 				exhibited: x.active,
+				...gives(spec),
 				bid,
 				bidTrade: bid * energy,
 				refused,

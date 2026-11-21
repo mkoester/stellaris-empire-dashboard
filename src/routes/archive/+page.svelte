@@ -3,15 +3,20 @@
 	import { resolve } from '$app/paths';
 	import { RARITY_TONE } from '#lib/archive.ts';
 	import { followGame } from '#lib/live.ts';
-	import { formatModifierValue, modifierColor, modifierLabel } from '#lib/modifiers.ts';
+	import {
+		formatModifierValue,
+		modifierColor,
+		modifierLabel,
+		modifierTint
+	} from '#lib/modifiers.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import ResourceChips from '#lib/ResourceChips.svelte';
+	import SpecimenGives from '#lib/SpecimenGives.svelte';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
 
 	type Line = (typeof data.total)[number];
-	type Gives = { bonuses: Omit<Line, 'sources'>[]; produces: Record<string, number> };
 
 	const multNote = (m: number) => `${data.multExact ? '' : '≈ '}×${m.toFixed(2)}`;
 
@@ -43,37 +48,13 @@
 						: ''}
 			>
 				<span class="font-mono font-semibold {modifierColor(b)}">{formatModifierValue(b)}</span>
-				<span>{modifierLabel(b)}{b.applies === null ? ' (?)' : ''}</span>
+				<span style:color={modifierTint(b.key)}
+					>{modifierLabel(b)}{b.applies === null ? ' (?)' : ''}</span
+				>
 				<span class="text-xs text-gray-500">{b.sources.join(', ')}</span>
 			</li>
 		{/each}
 	</ul>
-{/snippet}
-
-<!-- what one specimen gives once exhibited and active; grey while it gives nothing -->
-{#snippet gives(g: Gives, on: boolean)}
-	{#if g.bonuses.length || Object.keys(g.produces).length}
-		<div
-			class="flex flex-wrap items-baseline gap-x-2 pl-5 text-xs"
-			class:text-gray-400={!on}
-			class:grayscale={!on}
-		>
-			{#each g.bonuses as b (`${b.key}|${b.condition}`)}
-				<span
-					class:opacity-60={b.applies === null}
-					title={b.applies === null ? `only if ${b.condition} — the save does not tell` : ''}
-				>
-					<span class="font-mono font-semibold {on ? modifierColor(b) : ''}"
-						>{formatModifierValue(b)}</span
-					>
-					{modifierLabel(b)}{b.applies === null ? ' (?)' : ''}
-				</span>
-			{/each}
-			{#if Object.keys(g.produces).length}
-				<span class:opacity-60={!on}><ResourceChips flows={g.produces} sign={1} /> a month</span>
-			{/if}
-		</div>
-	{/if}
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -131,7 +112,9 @@
 									title={e.rarity ?? ''}>{e.name}</span
 								>
 							</div>
-							{@render gives(e, e.active)}
+							<div class="pl-5 text-xs">
+								<SpecimenGives bonuses={e.bonuses} produces={e.produces} on={e.active} />
+							</div>
 						</li>
 					{/each}
 					{#each Array.from({ length: Math.max(0, data.perCategory - c.exhibits.length) }, (_, i) => i) as i (i)}
@@ -185,7 +168,9 @@
 								>
 								<span class="text-xs text-gray-500">{e.category ?? ''}</span>
 							</div>
-							{@render gives(e, false)}
+							<div class="text-xs">
+								<SpecimenGives bonuses={e.bonuses} produces={e.produces} on={false} />
+							</div>
 						</li>
 					{/each}
 				</ul>

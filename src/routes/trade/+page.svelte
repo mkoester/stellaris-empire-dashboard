@@ -24,6 +24,8 @@
 	import Panel from '#lib/panels/Panel.svelte';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import SortTable from '#lib/SortTable.svelte';
+	import SpecimenGives from '#lib/SpecimenGives.svelte';
+	import { modifierLabel } from '#lib/modifiers.ts';
 	import type { Column } from '#lib/sort.ts';
 
 	let { data } = $props();
@@ -428,10 +430,20 @@
 	type TheirSpecimen = NonNullable<typeof data.specimens>['theirs'][number];
 	type OurSpecimen = NonNullable<typeof data.specimens>['ours'][number];
 	const tradeFmt = (v: number | null) => (v === null ? '–' : `≈ ${v.toFixed(2)}`);
+	type Gives = Pick<TheirSpecimen, 'bonuses' | 'produces'>;
+	// sorted by its first line
+	const givesColumn = {
+		id: 'gives',
+		label: 'Gives us',
+		value: (r: Gives) =>
+			r.bonuses.map((b) => modifierLabel(b)).join(', ') || Object.keys(r.produces).join(', '),
+		cell: givesCell,
+		title: 'exhibited and active, × our exhibition’s output'
+	};
 	const theirSpecimenColumns: Column<TheirSpecimen>[] = [
 		{ id: 'empire', label: 'Empire', value: (r) => r.empire },
 		{ id: 'name', label: 'Specimen', value: (r) => r.name, cell: specimenName },
-		{ id: 'gives', label: 'Gives us', value: (r) => r.gives },
+		givesColumn,
 		{
 			id: 'willing',
 			label: 'Willing?',
@@ -452,7 +464,7 @@
 	const ourSpecimenColumns: Column<OurSpecimen>[] = [
 		{ id: 'empire', label: 'Empire', value: (r) => r.empire },
 		{ id: 'name', label: 'Our specimen', value: (r) => r.name, cell: specimenName },
-		{ id: 'category', label: 'Exhibition', value: (r) => r.category },
+		givesColumn,
 		{
 			id: 'willing',
 			label: 'Willing?',
@@ -489,6 +501,7 @@
 		title={r.refused.length ? r.refused.join('; ') : 'nothing known stops them'}
 		>{r.refused.length ? 'refuses ≈' : 'yes ≈'}</span
 	>{/snippet}
+{#snippet givesCell(r: Gives)}<SpecimenGives bonuses={r.bonuses} produces={r.produces} />{/snippet}
 {#snippet bidCell(r: OurSpecimen)}<span class="tabular-nums">{tradeFmt(r.bidTrade)}</span>{/snippet}
 
 {#snippet enclaveName(x: EnclaveRow)}<EmpireName
@@ -825,49 +838,53 @@
 			</p>
 		{:else}
 			<Panel
-				title="Specimens they would trade us"
-				note="Every specimen of each empire we can trade with that its trade screen lists{data.specimenTradeAll
-					? ', and greyed with ⊘ those no deal can get now (hover for why)'
-					: ''} — not one we have already, not for 10 years after either side traded a specimen. Willing: an AI trades specimens only at an opinion of us of 750 or more. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
+				title="Specimens"
+				note="Each exhibition: on the left every specimen of each empire we can trade with that its trade screen lists{data.specimenTradeAll
+					? ' (greyed with ⊘ those no deal can get now, hover for why)'
+					: ''} — not one we have already, not for 10 years after either side traded a specimen; on the right ours, by what each empire would pay at most — more where its exhibition of the kind is empty (× 1.5) or one short of full (× 1.25). Willing: an AI trades specimens only at an opinion of us of 750 or more. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
 			>
-				{#if data.specimens.theirs.length}
-					{#each CATEGORIES as c (c.key)}
-						{@const rows = data.specimens.theirs.filter((r) => r.category === c.name)}
-						{#if rows.length}
-							<h3 class="mt-3 mb-1 text-sm font-semibold first:mt-0">{c.name}</h3>
-							<div class="overflow-x-auto text-sm">
-								<SortTable
-									{rows}
-									columns={theirSpecimenColumns}
-									key={(r) => r.id}
-									sort={{ column: 'price', desc: false }}
-								/>
-							</div>
-						{/if}
-					{/each}
-				{:else}
+				{#if !data.specimens.known}
 					<p class="text-sm text-gray-500">
-						{data.specimens.known
-							? 'None on offer now.'
-							: 'No save with the archives read yet; it fills after the next save.'}
+						No save with the archives read yet; it fills after the next save.
 					</p>
-				{/if}
-			</Panel>
-			<Panel
-				title="Which of our specimens they want most"
-				note="Ours, by what each empire would pay at most — more where its exhibition of the kind is empty (× 1.5) or one short of full (× 1.25). ≈ as above."
-			>
-				{#if data.specimens.ours.length}
-					<div class="overflow-x-auto text-sm">
-						<SortTable
-							rows={data.specimens.ours}
-							columns={ourSpecimenColumns}
-							key={(r) => r.id}
-							sort={{ column: 'bid', desc: true }}
-						/>
-					</div>
 				{:else}
-					<p class="text-sm text-gray-500">None of ours they would take now.</p>
+					{#each CATEGORIES as c (c.key)}
+						{@const theirs = data.specimens.theirs.filter((r) => r.category === c.name)}
+						{@const ours = data.specimens.ours.filter((r) => r.category === c.name)}
+						<h3 class="mt-4 mb-1 font-semibold first:mt-0">{c.name}</h3>
+						<div class="grid gap-x-6 gap-y-2 xl:grid-cols-2">
+							<div>
+								<h4 class="mb-1 text-sm text-gray-500">They would trade us</h4>
+								{#if theirs.length}
+									<div class="overflow-x-auto text-sm">
+										<SortTable
+											rows={theirs}
+											columns={theirSpecimenColumns}
+											key={(r) => r.id}
+											sort={{ column: 'price', desc: false }}
+										/>
+									</div>
+								{:else}
+									<p class="text-sm text-gray-500">None on offer now.</p>
+								{/if}
+							</div>
+							<div>
+								<h4 class="mb-1 text-sm text-gray-500">Ours they want most</h4>
+								{#if ours.length}
+									<div class="overflow-x-auto text-sm">
+										<SortTable
+											rows={ours}
+											columns={ourSpecimenColumns}
+											key={(r) => r.id}
+											sort={{ column: 'bid', desc: true }}
+										/>
+									</div>
+								{:else}
+									<p class="text-sm text-gray-500">None of ours they would take now.</p>
+								{/if}
+							</div>
+						</div>
+					{/each}
 				{/if}
 			</Panel>
 		{/if}
