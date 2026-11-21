@@ -128,7 +128,10 @@ describe('exhibitions', () => {
 describe('trade', () => {
 	it('values a specimen by rarity, more to an empire whose category is empty or nearly full', () => {
 		expect(tradeEnergy(spores, undefined)).toBe(325);
-		expect(tradeEnergy(spores, holding([]))).toBe(487.5);
+		// the game, 2026-11-21: Vran (none held) took a common gift at the plain worth, not × 1.5
+		expect(tradeEnergy(spores, holding([]))).toBe(325);
+		expect(tradeEnergy(spores, null)).toBe(325);
+		expect(tradeEnergy(spores, holding([exhibit(1, 'x', 'historical_item')]))).toBe(487.5);
 		const eight = holding(Array.from({ length: 8 }, (_, i) => exhibit(i, `s${i}`, 'xeno_geology')));
 		expect(tradeEnergy(spores, eight)).toBe(406.25);
 		expect(
@@ -137,7 +140,7 @@ describe('trade', () => {
 	});
 
 	it('prices a deal by the personality’s willingness', () => {
-		expect(specimenDeal(spores, holding([]), 0.5)).toEqual({ price: 650, bid: 243.75 });
+		expect(specimenDeal(spores, holding([]), 0.5)).toEqual({ price: 650, bid: 162.5 });
 		expect(specimenDeal(spores, holding([]), 0).price).toBeNull();
 	});
 

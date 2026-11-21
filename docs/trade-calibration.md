@@ -672,6 +672,28 @@ opinion 695; Thembolon Accord, hive mind, opinion 232). Raw points for calibrati
 | Thembolon Accord: we give Heart of the Pulsar, nothing back            | +41                         |
 | Indomitable Myrran Aggression (fallen empire): 1 trade a month from it | −1000 (Dismissive attitude) |
 
+Gifts of one specimen, nothing back (13:08–13:11 the same day, `screenshot_2026-11-21_13-*`),
+against `tradeEnergy()` × energy's worth to it (`WORTH`, its energy income) × willingness:
+
+| Empire (willingness, specimens held) | Specimen                                           | Game               | Model with × 1.5 | without |
+| ------------------------------------ | -------------------------------------------------- | ------------------ | ---------------- | ------- |
+| Misharan Pact (70 %, 3)              | 4 commons                                          | +12                | —                | 11.8    |
+| Misharan Pact                        | Massive Metatarsal (rare)                          | +25                | —                | 23.6    |
+| Misharan Pact                        | Heart of the Pulsar (epic)                         | +50                | —                | 47.1    |
+| Vran Free Traders (100 %, 0)         | 4 commons                                          | +15                | 22.4             | 14.9    |
+| Vran Free Traders                    | Massive Metatarsal (rare)                          | +31                | 44.7             | 29.8    |
+| Thembolon Accord (70 %, 0)           | Heart of the Pulsar                                | +41                | 60.2             | 40.1    |
+| Backattan Empire (80 %, 0)           | Heart of the Pulsar                                | +46                | 67.6             | 45.1    |
+| Vran Free Traders (100 %, 0)         | Heart of the Pulsar, for 469 energy + 510 minerals | +62 (−22, −39: +1) | 89.4             | 59.6    |
+
+Vran's own line prices its energy: 22 for 469, 0.047 a unit (the model 0.046), so the Heart of the
+Pulsar is worth it 62 / 0.047 ≈ 1,320 energy — the plain 1,000 × 1.3 (13:13:19). The empty-category × 1.5 does not reach an empire holding no specimen (all five 1.5× too high
+with it); without it the model reads 2–6 % low throughout. `tradeEnergy()` drops it for such an
+empire; whether an empire with specimens in other exhibitions gets it is open. Also seen: Vran
+refused even 1 trade at once ("Wants to trade away less of the following resources: Trade",
+−1000) and the Misharan Pact 110 trade while 109 passed (+46 with the Heart of the Pulsar) — the
+resource's own limit, not the specimen.
+
 ## Live values a companion mod could export
 
 The mod "Stop Guessing What AI Will Trade You" (Workshop 3832466386, v1.1.1, read 2026-11-09)

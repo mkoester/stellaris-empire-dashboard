@@ -243,13 +243,16 @@ export const hasSpecimen = (h: ArchiveHolding | null, specimen: string) =>
 /**
  * A specimen's worth in a trade to the empire receiving it, in energy: sell value × 1.3, × 1.5 if
  * the receiver's exhibition of its category is empty, × 1.25 if it would fill it. Without a
- * receiver, the plain × 1.3.
+ * receiver, the plain × 1.3. An empire holding no specimen at all gets no × 1.5: the game's gift
+ * acceptance at four such empires was the plain worth, one holding three matched (2026-11-21,
+ * docs/trade-calibration.md); whether one with specimens elsewhere gets it is open.
  */
 export function tradeEnergy(spec: Specimen, receiver: ArchiveHolding | null | undefined): number {
 	const base = (SELL_VALUE[spec.rarity] ?? 0) * TRADE_MULT;
 	if (receiver === undefined) return base;
+	const held = (receiver?.exhibits.length ?? 0) + (receiver?.storage.length ?? 0);
 	const n = countIn(receiver, spec.category);
-	if (n === 0) return base * EMPTY_MULT;
+	if (n === 0) return held > 0 ? base * EMPTY_MULT : base;
 	if (n === EXHIBITS_PER_CATEGORY - 1) return base * COMPLETE_MULT;
 	return base;
 }
