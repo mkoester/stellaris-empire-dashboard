@@ -513,7 +513,7 @@
 {#snippet willingCell(r: { refused: string[] })}<span
 		class={r.refused.length ? 'text-red-600' : 'text-green-600'}
 		title={r.refused.length ? r.refused.join('; ') : 'nothing known stops them'}
-		>{r.refused.length ? 'refuses ≈' : 'yes ≈'}</span
+		>{r.refused.length ? 'refuses' : 'yes ≈'}</span
 	>{/snippet}
 {#snippet givesCell(r: Gives)}<SpecimenGives bonuses={r.bonuses} produces={r.produces} />{/snippet}
 {#snippet bidCell(r: OurSpecimen)}<span class="tabular-nums">{tradeFmt(r.bidTrade)}</span>{/snippet}

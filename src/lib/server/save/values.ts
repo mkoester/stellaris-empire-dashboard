@@ -183,8 +183,9 @@ export function adjective(noun: string): string {
 }
 
 /** `template`'s `$k$` filled with the name of the variable keyed k ("" where none is). */
+// a scope command kept as a placeholder has dots: `$fotd_country.GetSpeciesName$` (extractor 2026-11-21)
 const fill = (template: string, variables: Raw[]): string =>
-	template.replace(/\$(\w+)\$/g, (_, k: string) =>
+	template.replace(/\$([\w.]+)\$/g, (_, k: string) =>
 		displayName(variables.find((x: Raw) => x?.key === k)?.value)
 	);
 

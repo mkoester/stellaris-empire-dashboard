@@ -1957,6 +1957,18 @@ describe('helpers', () => {
 		);
 	});
 
+	it('fills a scope command the extractor kept as a placeholder', () => {
+		// roamingcybergang 2226.08.01, country 98: the game's "[fotd_country.GetSpeciesName] Commune"
+		withNames({ NAME_fotd_seperatists: '$fotd_country.GetSpeciesName$ Commune' }, () => {
+			expect(
+				displayName({
+					key: 'NAME_fotd_seperatists',
+					variables: [{ key: 'fotd_country.GetSpeciesName', value: { key: 'SPEC_Fellnoll' } }]
+				})
+			).toBe('Fellnoll Commune');
+		});
+	});
+
 	it('fills a prescripted text that is a template itself', () => {
 		// data DB of 2026-11-20: `AofB` = "$1$ of $2$" (a contract's issuer, Roaming Cybergang)
 		const names = {
