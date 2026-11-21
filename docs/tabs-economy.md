@@ -17,7 +17,12 @@ in the campaign at 2226.08.01 (2026-11-21, `~/Pictures/Screenshots/screenshot_20
 the Misharan Pact at opinion 695 took our Heart of the Pulsar as a gift (+50) and gave its Uranium
 Glassware for 2 rare crystals a month (+2), the Thembolon Accord at 232 took the gift (+41). Fallen
 empires are left out: their trade screen has no specimens on either side (Indomitable Myrran
-Aggression, the same day). Both lists sit in one "Specimens"
+Aggression, the same day). An attitude that trades nothing still takes a gift (the Backattan
+Empire, Suspicious: our Heart of the Pulsar for nothing, +46), so "refuses" means it gives nothing
+— open: its −1000 when it gives a specimen. The whole trade tab leaves out empires whose "Offer
+Trade Deal" the game closes (`tradeClosed()`: Fanatic Purifiers, Devouring Swarms, Determined
+Exterminators unless we are machines, scorched-earth Infernals unless we are Infernal — the
+Havariggan Purifiers' greyed action, the same day). Both lists sit in one "Specimens"
 panel, per exhibition side by side (theirs | ours), without an Exhibition column; the name is
 tinted by its rarity instead of a Rarity column, and both show what the specimen gives us
 (`SpecimenGives`: modifiers and monthly resources, × our exhibition's multiplier) — the user's asks,

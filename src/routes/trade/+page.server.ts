@@ -1,5 +1,12 @@
 import { error } from '@sveltejs/kit';
-import { ENCLAVE_DEAL, enclaveDeal, modelFrom, offersTrade, terms } from '#lib/aiTrade.ts';
+import {
+	ENCLAVE_DEAL,
+	enclaveDeal,
+	modelFrom,
+	offersTrade,
+	terms,
+	tradeClosed
+} from '#lib/aiTrade.ts';
 import {
 	allKinds,
 	blockers,
@@ -38,8 +45,19 @@ export function load({ url }) {
 	// readings had more, and it keeps the berserk custodian)
 	const countries = new Map((latest?.countries ?? []).map((c) => [c.id, c]));
 	const types = new Map([...countries].map(([id, c]) => [id, c.type]));
+	// and those whose "Offer Trade Deal" the game closes to us (purifiers, swarms, …)
+	const us = {
+		machine:
+			(latest?.government ?? []).includes('auth_machine_intelligence') ||
+			['MACHINE', 'ROBOT'].includes(data.speciesArchetypes[latest?.founderClass ?? ''] ?? '') ||
+			(latest?.countryFlags ?? []).includes('synthetic_empire'),
+		infernal: latest ? factsOf(latest, data).infernal : null
+	};
 	const empires = (latest?.aiIntel ?? [])
-		.filter((ai) => offersTrade(countries.get(ai.countryId) ?? { type: 'default', civics: [] }))
+		.filter((ai) => {
+			const c = countries.get(ai.countryId) ?? { type: 'default', civics: [] };
+			return offersTrade(c) && tradeClosed(c, us) === null;
+		})
 		.map((ai) => ({
 			...ai,
 			name: names.get(ai.countryId) ?? String(ai.countryId),
