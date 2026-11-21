@@ -185,7 +185,9 @@ The tabs show what the game's own panels show. Everything beyond that is a profi
 
 **A tab is dimmed by the rule its page shows rows by** (`#lib/tabData.ts` calls the page's own
 predicate, e.g. `whyOf()`): a separate "has data" test drifted — the contracts tab was greyed for
-a nomad while listing two offers (the user's report 2026-11-18).
+a nomad while listing two offers (the user's report 2026-11-18). The exception is a tab whose
+trigger the user chose: the archive tab dims until Galactic Archivism is researched, specimens or
+not (2026-11-21).
 
 **Lists of options follow the playthrough** (the user's rule, 2026-11-16, the influence tab's
 sinks): hide what this empire will never use — a nomad never settles, a settled empire never
@@ -258,6 +260,9 @@ Drop an old format by raising `FEED_FORMATS.min`, never by erroring.
 The line formats, the table of lines, what each mod version exports, the daily tick and exact
 branch points: `docs/companion-mod.md`. Read it before changing the mod or `feed.ts`.
 
+- **A mod change that names a new version bumps `descriptor.mod` at once**, in its own
+  `chore(mod): X.Y.Z` commit: 0.15.0's Specimens Output export was in the events, the code and the
+  docs as "0.15.0" while the descriptor said 0.14.0, until the release found it (2026-11-21).
 - **A save field's name is not a trigger**: every trigger the mod exports must appear in
   `triggers.log` or in vanilla script (`trigger:<name>`). 0.9.0 exported `num_sapient_pops` (a
   save field); the game only says so in `error.log` (`cannot find: num_sapient_pops`), and the
