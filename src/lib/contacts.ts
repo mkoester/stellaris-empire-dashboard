@@ -230,6 +230,33 @@ export function empireColors(
 	);
 }
 
+/**
+ * A fallen hive's fragment by its government (`gov_war_splinter` → "War Splinter"), whatever its
+ * name — the three fragments of one hive are told apart by it; null for any other empire.
+ */
+export const splinterOf = (governmentType: string | null | undefined): string | null => {
+	const m = /^gov_(\w+)_splinter$/.exec(governmentType ?? '');
+	return m ? `${m[1].charAt(0).toUpperCase()}${m[1].slice(1).replaceAll('_', ' ')} Splinter` : null;
+};
+
+/**
+ * Each fragment's splinter by the name we know it by, for `EmpireName` on every page: only those
+ * we talk to — its government before communications would spoil the first contact.
+ */
+export function empireTags(
+	s: { countries: CountryInfo[] | null; relations: Relation[] | null } | undefined
+): Record<string, string> {
+	const talking = new Set(
+		(s?.relations ?? []).filter((r) => r.communications).map((r) => r.countryId)
+	);
+	return Object.fromEntries(
+		(s?.countries ?? []).flatMap((c) => {
+			const tag = talking.has(c.id) ? splinterOf(c.governmentType) : null;
+			return tag ? [[c.name, tag]] : [];
+		})
+	);
+}
+
 export const shown = (rows: ContactRow[], v: ContactView) =>
 	rows.filter(
 		(r) =>
@@ -256,6 +283,7 @@ export const pageLatest = <
 		contracts?: unknown;
 		storms?: unknown;
 		precursorIntel?: unknown;
+		archives?: { countryId: number }[] | null;
 	}
 >(
 	s: S
@@ -271,6 +299,10 @@ export const pageLatest = <
 	// every empire's precursor chains and every precursor system (a cheat): the frontier tab sends
 	// them only with it on
 	...('precursorIntel' in s ? { precursorIntel: null } : {}),
+	// every empire's specimens: the archive and trade tabs send others' per switch
+	...('archives' in s
+		? { archives: s.archives?.filter((a) => a.countryId === s.countryId) ?? null }
+		: {}),
 	countries:
 		s.countries?.filter(
 			(c) =>

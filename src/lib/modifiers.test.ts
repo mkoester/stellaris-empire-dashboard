@@ -3,7 +3,9 @@ import {
 	distinctModifiers,
 	formatModifierValue,
 	modifierColor,
-	modifierLabel
+	modifierLabel,
+	modifierResource,
+	modifierTintKey
 } from './modifiers.ts';
 
 const mod = (key: string, value: number, positiveIsGood = true, label: string | null = null) => ({
@@ -11,6 +13,29 @@ const mod = (key: string, value: number, positiveIsGood = true, label: string | 
 	value,
 	positiveIsGood,
 	label
+});
+
+describe('modifierResource', () => {
+	it('names the resource a modifier changes, or none', () => {
+		expect(modifierResource('country_unity_produces_mult')).toBe('unity');
+		expect(modifierResource('planet_jobs_consumer_goods_produces_mult')).toBe('consumer_goods');
+		expect(modifierResource('country_physics_research_produces_mult')).toBe('physics_research');
+		expect(modifierResource('leaders_upkeep_mult')).toBeNull();
+		expect(modifierResource('planet_stability_add')).toBeNull();
+		expect(modifierResource('energy_weapon_damage_mult')).toBeNull();
+	});
+});
+
+describe('modifierTintKey', () => {
+	it('tints by resource first, then by topic', () => {
+		expect(modifierTintKey('country_unity_produces_mult')).toBe('unity');
+		expect(modifierTintKey('planet_amenities_add')).toBe('amenities');
+		expect(modifierTintKey('planet_amenities_no_happiness_add')).toBe('amenities');
+		expect(modifierTintKey('planet_stability_add')).toBe('stability');
+		expect(modifierTintKey('leaders_upkeep_mult')).toBe('leader');
+		expect(modifierTintKey('species_leader_exp_gain')).toBe('leader');
+		expect(modifierTintKey('ship_speed_mult')).toBeNull();
+	});
 });
 
 describe('modifiers', () => {

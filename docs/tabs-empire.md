@@ -260,6 +260,29 @@ capital and migration are since READER 41), the trade tab's valuation of energy 
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
+**Archive tab** (`/archive`, `#lib/archive.ts` pure, the reading in `server/save/archive.ts`; the
+user's ask 2026-11-21): the Grand Archive as the game's Collection view — three exhibitions
+(`CATEGORIES`, 9 exhibits each), storage (60), and what the **active** exhibits give: each
+specimen's modifiers and resources (data DB `specimen*`) × the exhibition's multiplier
+`1 + <category>_specimens_produces_mult + specimens_produces_mult` (companion mod 0.15.0, else ≈
+1). A modifier's condition (its block's `potential`: `is_lithoid`, `is_infernal`, `is_gestalt`,
+`country_uses_consumer_goods`, `has_country_flag`) is evaluated by `holds()` against `factsOf()`
+(founder's archetype and traits, `government`, consumer goods expenses): failing ones are left out,
+those it cannot tell kept, greyed "(?)". The **`archiveOthers`** cheat (`intel`) adds a dropdown of
+every other empire holding specimens (`?empire=<id>`); one we do not talk to is "unknown empire
+(N specimens)" — the user's choice 2026-11-21 — and its conditions read as unknown. `pageLatest()`
+keeps only our holding: the page sends another only with the cheat. **The user's asks
+2026-11-21:** the tab is dimmed until Galactic Archivism (`ARCHIVE_TECH`, the Grand Archive's
+prerequisite) is researched — not by whether we hold a specimen; a specimen's name is tinted by its
+rarity (`RARITY_TONE`, the word itself only on hover); every exhibit and stored specimen lists what
+it gives once active (`specimenGives()`, × its exhibition's multiplier; shown by
+`#lib/SpecimenGives.svelte`, shared with the trade tab), modifiers and monthly resources alike —
+a specimen may give only resources (Memorial Stone). Values green/red and a modifier's label in its
+resource's colour — or for amenities, stability and leaders the dashboard's own (`modifierTint()`, the user's choice 2026-11-21: the game's icons are gold like energy) — while active, grey while inactive or stored. A bonus filter (`#lib/SpecimenFilter.svelte`, shared
+with the trade tab; every kind any specimen gives (`allKinds()`) always shown, those no specimen on the page gives disabled; kinds from `givesKinds()`: a resource, amenities, stability, leaders, research,
+pops, military, space fauna, other — resources in the top bar's order) fades the exhibits that give
+none of the kinds picked and leaves such stored ones out.
+
 **Frontier tab** (`/frontier`; the situations tab until 2026-11-15 — renamed because situations and
 events are the game's own terms for one panel each, `/situations` redirects; `#lib/situations.ts` pure,
 readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,

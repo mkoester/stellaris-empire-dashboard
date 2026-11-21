@@ -19,6 +19,10 @@
 		nomadic?: boolean;
 		bold?: boolean;
 	} = $props();
+	// a fallen hive's fragment: which splinter it is, whatever its name (`empireTags`, branch())
+	const tag = $derived(
+		(page.data.empireTags as Record<string, string> | undefined)?.[name] ?? null
+	);
 	const hex = $derived(
 		color === undefined
 			? ((page.data.empireColors as Record<string, string> | undefined)?.[name] ?? null)
@@ -31,5 +35,8 @@
 			class="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-gray-400 align-baseline dark:border-gray-600"
 			style:background={hex}
 			title="its colour on the galaxy map"
-		></span>{/if}{#if bold}<b>{name}</b>{:else}{name}{/if}<EmpireBadges {kind} {nomadic} /></span
+		></span>{/if}{#if bold}<b>{name}</b>{:else}{name}{/if}{#if tag}<span
+			class="ml-1 rounded border border-gray-300 px-1 text-xs font-normal text-gray-500 dark:border-gray-700"
+			title="one of the fragments of a shattered fallen hive empire">{tag}</span
+		>{/if}<EmpireBadges {kind} {nomadic} /></span
 >

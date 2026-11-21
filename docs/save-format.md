@@ -6,6 +6,17 @@ Where each value sits in a save and how the game computes it. Read before readin
 
 **Contracts** (Planetforgers 2214.02.01, Proton): top-level `missions = { <id> = { mission="<key>" issuer operator location={ type=4 id=<system> } … } }` holds contracts and situation-log missions alike (star journals: `issuer=4294967295`), gaps as `<id>=none`; `contracts = { available = { ids } in_progress = { ids } }` says which are contracts. An offer has `days_left` and `operator=4294967295`, an accepted one `accepted_date` and `status=active`; an internal one (Eternal Chorus, Forever Cruise's) has operator = issuer while still offered. 18 contracts there, from 9 issuers.
 
+**Grand Archive** (roamingcybergang 2226.08.01, unitednationsofearth5 2245): top-level
+`exhibits = { <id> = { exhibit_state=locked|unlocked activated=yes specimen={ specimen="<key>"
+origin date_added exhibition_date } owner=<country> } }` — every empire's specimens, `owner` the
+holder; and per country `modules.standard_grand_archive_module.exhibits = { aesthetic_wonder={ ids }
+historical_item={ ids } xeno_geology={ ids } }`, its exhibitions, with `last_acquired_exhibit`.
+`activated=yes` only on exhibits whose bonuses apply (an AI's three origin specimens, dated
+2200.01.01); the player's six there were all `locked`, no Grand Archive built. **Not seen yet**:
+where storage is (an owned exhibit in no exhibition list is read as stored) and the
+`has_already_traded_specimens` country flag (read as a timed flag). Read as
+`Snapshot.archives` (READER 73).
+
 **Planet flags** (`planet.flags = { <flag>=<date> … }`, 2210.10.20): every flag the planet carries,
 `set_carrier_flag` ones assumed among them (seen: `colony_event`, `mechanical_species0`; a
 `perfect_organization` never seen). A timed flag's value is a block with `flag_days`
@@ -560,7 +571,20 @@ rewards = { { category current="development_rewards_2" progress } } } }`; cards 
 - Prescripted names: a save names a prescripted empire's ruler, species and empire by loc key
   (`PRESCRIPTED_ruler_name_humans1` → "Dolores Muwanga"); `displayName()` resolves them from the
   data DB's `prescripted_name`, set at start (`setPrescriptedNames`). Snapshots stored earlier
-  keep the raw text ("ruler name humans1") until their save is read again.
+  keep the raw text ("ruler name humans1") until their save is read again. **A prescripted word
+  can hold parts** (READER 74, 2026-11-21): a fallen hive's fragments are `%ADJ%` → `Indomitable`
+  (prescripted "Indomitable") → `%ADJECTIVE%` (`SPEC_Myrran` + `Aggression`); taking the word alone
+  named all three "Indomitable" or "Forgotten". **A noun as `%ADJECTIVE%`'s adjective takes the
+  game's ending** (`name_system_l_english.yml` `adj_NN*`, `adjective()`): "Mishar" + "Pact" is
+  "Misharan Pact", "Barcalid" → "Barcalan", "Prime" → "Priman" — every name in the campaign's
+  empire list at 2226.08.01 now reads as the game's. A loc text with a scope command (`NAME_fotd_seperatists` = "[fotd_country.GetSpeciesName]
+  Commune") reaches the data DB as "$fotd_country.GetSpeciesName$ Commune" (extractor,
+  2026-11-21; it dropped the part before) and `fill()` puts the save's variable of that key in:
+  "Fellnoll Commune" (READER 75).
+- A fallen hive's fragments are told apart by government, not name (`gov_war_splinter`,
+  `gov_growth_splinter`, `gov_control_splinter`; all `origin_fallen_empire_hive`,
+  `civic_fragmented_command`): `splinterOf()` / `empireTags()` (`#lib/contacts.ts`), shown by
+  `EmpireName` on every tab that names empires, and in the history tab's names ("… (War Splinter)"), once we talk to them.
 - Launched agendas: `country.government.council_agenda_cooldowns = { council_agenda start_date }`
   — **`start_date` is when it can be picked again**, not the launch (2207.03.10, other empires:
   Infinite Opportunities until 2231/2232, 30 years after their first agenda). Launch = that minus

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ContractMarks from '#lib/ContractMarks.svelte';
+	import EmpireName from '#lib/EmpireName.svelte';
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import type { MapWidth } from '#lib/mapView.ts';
@@ -54,6 +55,7 @@
 			label: 'Owner',
 			value: (r) =>
 				r.owned ? 'us' : r.ownerId === null ? null : (data.owners[r.ownerId] ?? String(r.ownerId)),
+			cell: ownerCell,
 			title: 'the station’s owner, where visited'
 		},
 		{
@@ -99,6 +101,10 @@
 	/>
 {/snippet}
 
+{#snippet ownerCell(r: Candidate)}{#if r.owned}us{:else if r.ownerId !== null}<EmpireName
+			name={data.owners[r.ownerId] ?? String(r.ownerId)}
+			bold={false}
+		/>{/if}{/snippet}
 {#snippet systemCell(r: Candidate)}{r.name}{#if r.ok !== false}<AddGoal
 			kind="megastructure"
 			target={{ system: r.systemId, structure: k.kind }}

@@ -22,12 +22,14 @@ const blank = (over: Partial<Snapshot> = {}) =>
 		digSites: [],
 		traditions: [],
 		slaveMarket: [],
+		progress: { researched: [] },
 		...over
 	}) as Snapshot;
 
 describe('emptyTabs', () => {
 	it('dims every tab without data', () => {
 		expect(Object.keys(emptyTabs([blank()])).sort()).toEqual([
+			'archive',
 			'contracts',
 			'diplomacy',
 			'frontier',
@@ -110,6 +112,16 @@ describe('emptyTabs', () => {
 		);
 		expect(emptyTabs([blank({ relations: null })])).not.toHaveProperty('diplomacy');
 		expect(emptyTabs([])).toEqual({});
+	});
+});
+
+describe('archive tab', () => {
+	it('is dimmed until Galactic Archivism is researched', () => {
+		const researched = (techs: string[]) =>
+			blank({ progress: { researched: techs } as Snapshot['progress'] });
+		expect(emptyTabs([researched(['tech_lasers_1'])]).archive).toMatch(/Galactic Archivism/);
+		expect(emptyTabs([researched(['tech_galactic_archivism'])]).archive).toBeUndefined();
+		expect(emptyTabs([blank({ progress: null })])).not.toHaveProperty('archive');
 	});
 });
 

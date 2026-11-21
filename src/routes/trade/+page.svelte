@@ -17,12 +17,16 @@
 		terms,
 		wantPrice
 	} from '#lib/aiTrade.ts';
+	import { CATEGORIES, givesKinds, RARITY_TONE } from '#lib/archive.ts';
 	import { colorOf, gainColor, scaleColor } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import SortTable from '#lib/SortTable.svelte';
+	import SpecimenFilter from '#lib/SpecimenFilter.svelte';
+	import SpecimenGives from '#lib/SpecimenGives.svelte';
+	import { modifierLabel } from '#lib/modifiers.ts';
 	import type { Column } from '#lib/sort.ts';
 
 	let { data } = $props();
@@ -422,7 +426,93 @@
 		},
 		{ id: 'deal', label: 'Our deal', value: (x) => x.running?.perMonth ?? null, cell: deal }
 	];
+
+	// Specimens (the `specimenTrade` spoiler): theirs with our price, ours with their bid, in trade
+	type TheirSpecimen = NonNullable<typeof data.specimens>['theirs'][number];
+	type OurSpecimen = NonNullable<typeof data.specimens>['ours'][number];
+	const tradeFmt = (v: number | null) => (v === null ? '–' : `≈ ${v.toFixed(2)}`);
+	type Gives = Pick<TheirSpecimen, 'bonuses' | 'produces'>;
+	// the bonus filter over both lists: specimens giving none of the kinds picked are left out
+	let specimenKinds: string[] = $state([]);
+	const presentSpecimenKinds = $derived([
+		...new Set(
+			[...(data.specimens?.theirs ?? []), ...(data.specimens?.ours ?? [])].flatMap((r) =>
+				givesKinds(r)
+			)
+		)
+	]);
+	const specimenShown = (r: Gives) =>
+		!specimenKinds.length || givesKinds(r).some((k) => specimenKinds.includes(k));
+	// sorted by its first line
+	const givesColumn = {
+		id: 'gives',
+		label: 'Gives us',
+		value: (r: Gives) =>
+			r.bonuses.map((b) => modifierLabel(b)).join(', ') || Object.keys(r.produces).join(', '),
+		cell: givesCell,
+		title: 'exhibited and active, × our exhibition’s output'
+	};
+	const theirSpecimenColumns: Column<TheirSpecimen>[] = [
+		{ id: 'empire', label: 'Empire', value: (r) => r.empire },
+		{ id: 'name', label: 'Specimen', value: (r) => r.name, cell: specimenName },
+		givesColumn,
+		{
+			id: 'willing',
+			label: 'Willing?',
+			value: (r) => (r.refused.length ? 0 : 1),
+			cell: willingCell,
+			title:
+				'whether they would trade it at the price: not with an attitude that trades nothing (their opinion of us does not matter)'
+		},
+		{
+			id: 'price',
+			label: 'Price (trade)',
+			value: (r) => r.priceTrade,
+			cell: specimenPrice,
+			right: true,
+			title:
+				'≈ what we would have to offer, in trade: its worth to them (sell value × 1.3) ÷ their willingness. Not calibrated against the trade screen yet.'
+		}
+	];
+	const ourSpecimenColumns: Column<OurSpecimen>[] = [
+		{ id: 'empire', label: 'Empire', value: (r) => r.empire },
+		{ id: 'name', label: 'Our specimen', value: (r) => r.name, cell: specimenName },
+		givesColumn,
+		{
+			id: 'bid',
+			label: 'They pay (trade)',
+			value: (r) => (r.refused.length ? -1 : r.bidTrade),
+			cell: bidCell,
+			right: true,
+			title:
+				'≈ what they would give for it at most, in trade: its worth to them (sell value × 1.3, × 1.25 if it fills their exhibition of it) × their willingness. "gift only": an attitude that gives nothing pays nothing, but takes it as a gift.'
+		}
+	];
 </script>
+
+{#snippet specimenName(r: {
+	name: string;
+	rarity: string;
+	blocked: string[];
+	exhibited: boolean;
+})}<span
+		class={r.blocked.length ? 'text-gray-400' : (RARITY_TONE[r.rarity] ?? '')}
+		title={`${r.rarity}, ${r.blocked.length ? `not now: ${r.blocked.join('; ')}` : r.exhibited ? 'exhibited' : 'in storage'}`}
+		>{r.name}{r.blocked.length ? ' ⊘' : ''}</span
+	>{/snippet}
+{#snippet specimenPrice(r: TheirSpecimen)}<span class="tabular-nums">{tradeFmt(r.priceTrade)}</span
+	>{/snippet}
+{#snippet willingCell(r: { refused: string[] })}<span
+		class={r.refused.length ? 'text-red-600' : 'text-green-600'}
+		title={r.refused.length ? r.refused.join('; ') : 'nothing known stops them'}
+		>{r.refused.length ? 'refuses' : 'yes ≈'}</span
+	>{/snippet}
+{#snippet givesCell(r: Gives)}<SpecimenGives bonuses={r.bonuses} produces={r.produces} />{/snippet}
+{#snippet bidCell(r: OurSpecimen)}{#if r.refused.length}<span
+			class="text-gray-500"
+			title={`${r.refused.join('; ')}: it pays nothing, but takes it as a gift (the Backattan Empire, Suspicious, 2026-11-21)`}
+			>gift only</span
+		>{:else}<span class="tabular-nums">{tradeFmt(r.bidTrade)}</span>{/if}{/snippet}
 
 {#snippet enclaveName(x: EnclaveRow)}<EmpireName
 		name={x.name}
@@ -747,6 +837,80 @@
 						bind:sort={giftSort}
 					/>
 				</div>
+			</Panel>
+		{/if}
+
+		{#if !data.specimens}
+			<p class="text-sm text-gray-500">
+				Which Grand Archive specimens each empire would trade you, and for how much, the game shows
+				one empire at a time in its trade screen — switch on "Trade: the specimens each empire would
+				trade you" in ⚙ (spoiler).
+			</p>
+		{:else}
+			<Panel
+				title="Specimens"
+				note="Each exhibition: on the left every specimen of each empire we can trade with that its trade screen lists{data.specimenTradeAll
+					? ' (greyed with ⊘ those no deal can get now, hover for why)'
+					: ''} — not one we have already, not for 10 years after either side traded a specimen; on the right ours, by what each empire would pay at most — more where its exhibition of the kind is one short of full (× 1.25). Willing (theirs): not with an attitude that gives nothing — such an empire takes ours only as a gift; fallen empires trade no specimens. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
+			>
+				{#if !data.specimens.known}
+					<p class="text-sm text-gray-500">
+						No save with the archives read yet; it fills after the next save.
+					</p>
+				{:else}
+					<SpecimenFilter
+						kinds={data.specimens.kinds}
+						present={presentSpecimenKinds}
+						bind:selected={specimenKinds}
+					/>
+					{#each CATEGORIES as c (c.key)}
+						{@const theirs = data.specimens.theirs.filter(
+							(r) => r.category === c.name && specimenShown(r)
+						)}
+						{@const ours = data.specimens.ours.filter(
+							(r) => r.category === c.name && specimenShown(r)
+						)}
+						<h3 class="mt-4 mb-1 font-semibold first:mt-0">{c.name}</h3>
+						<div class="grid gap-x-6 gap-y-2 xl:grid-cols-2">
+							<div>
+								<h4 class="mb-1 text-sm text-gray-500">They would trade us</h4>
+								{#if theirs.length}
+									<div class="overflow-x-auto text-sm">
+										<SortTable
+											rows={theirs}
+											columns={theirSpecimenColumns}
+											key={(r) => r.id}
+											sort={{ column: 'price', desc: false }}
+										/>
+									</div>
+								{:else}
+									<p class="text-sm text-gray-500">
+										{specimenKinds.length ? 'None with that bonus.' : 'None on offer now.'}
+									</p>
+								{/if}
+							</div>
+							<div>
+								<h4 class="mb-1 text-sm text-gray-500">Ours they want most</h4>
+								{#if ours.length}
+									<div class="overflow-x-auto text-sm">
+										<SortTable
+											rows={ours}
+											columns={ourSpecimenColumns}
+											key={(r) => r.id}
+											sort={{ column: 'bid', desc: true }}
+										/>
+									</div>
+								{:else}
+									<p class="text-sm text-gray-500">
+										{specimenKinds.length
+											? 'None with that bonus.'
+											: 'None of ours they would take now.'}
+									</p>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				{/if}
 			</Panel>
 		{/if}
 

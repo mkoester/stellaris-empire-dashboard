@@ -4,6 +4,18 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 
 ## Open (needs a running game on Linux)
 
+- **Specimens (2026-11-21, the archive tab and the trade tab's specimens)**: (1) where the save
+  keeps stored specimens — move one to storage (or fill an exhibition past 9) and grep `exhibits`
+  and the country's `standard_grand_archive_module`; (2) which specimens the trade screen lists —
+  all the AI holds, or not its active exhibits; (3) who gets `has_already_traded_specimens`, and
+  what `MIN_RELATION_TO_TRADE_SPECIMENS` 750 gates if not a deal we propose (AI-made offers?); (4) the specimen deal's ≈: gifts to six empires matched
+  `tradeEnergy()` within 0–6 % without the defines' empty-exhibition × 1.5 (2026-11-21,
+  `docs/trade-calibration.md`); open: the × 1.5 at an empire that has built its archive (none of the
+  six had one), the × 1.25 for filling an exhibition, a deal where they give a specimen;
+  (5) whether `activated` is the bonus switch (the exhibit's own click) and `unlocked` the paid
+  exhibit; (6) the exhibitions' multiplier from companion mod 0.15.0 (`sdash_sp*`) against the
+  Collection view's numbers, and `error.log` clean of `sdash_`.
+
 - **Waylines, our own (2026-11-16)**: the roaming tab was checked on the AI nomads' waystations
   only — `roamingcybergang` had none of ours at 2213.08; its first was built 2214.03.22 (the
   timeline's `timeline_first_waystation_built`; budget 2226.08.01: `starbase_waystations` food 11,
@@ -20,6 +32,20 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   "5 / 4" with a time estimate on the frontier tab: now "excavated", out of "Still to gain", and
   done on the map (`digSiteDone()`). Still to see in a browser: the Outcome's "← next" mark
   against the game's dig site window.
+- **Observation Insights for a nomad, after an Insight (2026-11-20)**: Favor Insights sets the
+  country flag `favored_insights`, and each waystation with a pre-FTL world reads that flag (−2
+  society), not the situation — so it outlives the situation's end. The nomads' restart
+  (`fircon.10`) sets `approach_study_insights` without the flag's approach; whether
+  `set_situation_approach` runs that approach's `on_select` (which clears the flag) is not in the
+  files. Check at the next Insight: the restarted situation's approach, the flag in the save, the
+  waystation's society research.
+- **The galaxy setup reaches every page with `disabled_precursors`** (2026-11-20):
+  `Snapshot.galaxySetup` (READER 42) carries which precursors the galaxy has, which the Precursors
+  panel otherwise keeps for its cheat. Open, the user's call: drop it in `pageLatest()` and send it
+  to the galaxy tab alone.
+- **The precursor and L-Gate panels, unchecked with a running chain (2026-11-20)**: Roaming
+  Cybergang has no precursor chain and 0 L-Gate insights, so artifacts, the home system and the
+  Precursor badge were seen on unit tests only. Check at the first precursor anomaly.
 - **The storms map mode, unchecked in a browser (2026-11-20)**: the fill and hover text are unit
   tested (`storms.test.ts`), not seen drawn; Roaming Cybergang has no Cosmic Weather Models, so the
   path ahead has not been shown on a real campaign. Compare with the game's Weather Forecast mode

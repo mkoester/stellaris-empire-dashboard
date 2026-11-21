@@ -49,6 +49,14 @@ country_event = {
 		# effect as for the colonies' stability below (scopes include country).
 		export_modifier_to_variable = { modifier = country_edict_fund_add variable = sdash_ef_add }
 		export_modifier_to_variable = { modifier = country_edict_fund_mult variable = sdash_ef_mult }
+		# 0.15.0: the Grand Archive's output modifiers, which the game does not save — each
+		# exhibition's bonuses are × (1 + its category's + the general one). Into sdash_sp (general),
+		# sdash_sp_aw, sdash_sp_hi, sdash_sp_xg, read from the save only. Modifiers from 4.5.4
+		# modifiers.log (Economic Units).
+		export_modifier_to_variable = { modifier = specimens_produces_mult variable = sdash_sp }
+		export_modifier_to_variable = { modifier = aesthetic_wonder_specimens_produces_mult variable = sdash_sp_aw }
+		export_modifier_to_variable = { modifier = historical_item_specimens_produces_mult variable = sdash_sp_hi }
+		export_modifier_to_variable = { modifier = xeno_geology_specimens_produces_mult variable = sdash_sp_xg }
 		# 0.8.0: each colony's flat stability and stability multiplier — the game saves stability
 		# capped at 100, so how far above the cap a colony is shows nowhere else. Into the colony's
 		# sdash_stab_add / sdash_stab_mult, read from the save only (every_controlled_colony covers

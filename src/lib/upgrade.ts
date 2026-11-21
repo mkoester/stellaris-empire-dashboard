@@ -100,6 +100,7 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	storms: null,
 	eventChains: null,
 	precursorIntel: null,
+	archives: null,
 	stationsSeen: null,
 	surveyedAll: null,
 	focus: null,

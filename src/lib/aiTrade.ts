@@ -165,6 +165,26 @@ export const offersTrade = (c: { type: string; civics: string[] }) =>
 	['default', 'fallen_empire', 'awakened_fallen_empire'].includes(c.type) &&
 	!c.civics.includes('civic_malfunctioning_custodian');
 
+/**
+ * Why the game's "Offer Trade Deal" is closed to an empire however it feels about us (4.5.4
+ * common/diplomatic_actions/00_actions.txt, `action_offer_trade_deal`'s recipient checks); null:
+ * open. The same-species exception of purifiers and exterminators is left out. The Havariggan
+ * Purifiers' action was greyed "They are Fanatic Purifiers!" (the campaign, 2026-11-21).
+ */
+export function tradeClosed(
+	them: { civics: string[] },
+	us: { machine: boolean; infernal: boolean | null }
+): string | null {
+	const has = (c: string) => them.civics.includes(c);
+	if (has('civic_fanatic_purifiers')) return 'Fanatic Purifiers: no diplomacy with other species';
+	if (has('civic_hive_devouring_swarm')) return 'a Devouring Swarm: no diplomacy';
+	if (has('civic_machine_terminator') && !us.machine)
+		return 'Determined Exterminators: diplomacy with machines only';
+	if ((has('civic_scorched_earth') || has('civic_hive_scorched_earth')) && us.infernal !== true)
+		return 'scorched-earth Infernals: diplomacy with Infernals only';
+	return null;
+}
+
 /** A nomadic empire's reserve: it takes these, never gives them. */
 export const NOMAD_RESERVE = ['energy', 'minerals'];
 

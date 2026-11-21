@@ -53,6 +53,12 @@ shows format 2.
   (country variables), read as `Snapshot.edictFund` (READER 65). The edict what-ifs charge unity
   upkeep only beyond the fund's room (`#lib/edictFund.ts`); without the mod the fund is ≈, a lower
   bound from what the empire holds. In game: `docs/open-checks.md` 40.
+- **Specimens Output** (0.15.0, the archive tab 2026-11-21): no log line — each month
+  `export_modifier_to_variable` exports our `specimens_produces_mult` and the three
+  `<category>_specimens_produces_mult` (4.5.4 modifiers.log, Economic Units) into `sdash_sp`,
+  `sdash_sp_aw`, `sdash_sp_hi`, `sdash_sp_xg` (country variables), read as
+  `ArchiveHolding.mults` = 1 + general + category (READER 73). Without them each exhibition counts
+  ×1, marked ≈. In game: `docs/open-points.md`, Specimens.
 - **Research options** (0.13.0, the user's ask 2026-11-16: "check on every 2nd of a month which
   tech options are available"): the monthly `sdash.1` schedules `sdash.6` a day ahead, and so does
   `sdash.7` on `on_tech_increased` — a field draws its new cards when one of its techs is researched

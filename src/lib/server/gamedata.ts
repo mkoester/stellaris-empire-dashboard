@@ -13,7 +13,8 @@ import type {
 	MegaStage,
 	OutcomeFlag,
 	Resources,
-	Specialists
+	Specialists,
+	Specimen
 } from '#lib/types.ts';
 import { NO_SHIP_PARTS, type ShipParts } from '#lib/designStats.ts';
 import {
@@ -290,6 +291,7 @@ export function loadGameData(file: string): GameData {
 				).map((r) => [r.key, r.name])
 			),
 			specialists: specialists(rows),
+			specimens: specimens(rows),
 			resolutions: Object.fromEntries(
 				rows<{
 					key: string;
@@ -1693,6 +1695,59 @@ function starbaseParts(rows: <T>(sql: string) => T[]): Record<string, StarbasePa
 		)
 	);
 }
+
+/** Grand Archive specimens: none from a data DB before the specimen tables. */
+function specimens(rows: <T>(sql: string) => T[]): Record<string, Specimen> {
+	const has = rows("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'specimen'");
+	if (!has.length) return {};
+	const out: Record<string, Specimen> = {};
+	for (const r of rows<{
+		key: string;
+		name: string | null;
+		category: string | null;
+		rarity: string | null;
+		tradable: number;
+		sellable: number;
+	}>('SELECT key, name, category, rarity, tradable, sellable FROM specimen ORDER BY sort_order'))
+		out[r.key] = {
+			// extractor 0.1.22's dump read names with quotes inside empty ("Ageless" Miracle Cream)
+			name: r.name || titleOf(r.key),
+			category: r.category ?? '',
+			rarity: r.rarity ?? 'common',
+			tradable: r.tradable === 1,
+			sellable: r.sellable === 1,
+			modifiers: [],
+			produces: {}
+		};
+	for (const m of rows<{
+		specimen_key: string;
+		modifier_key: string;
+		modifier_value: number;
+		condition: string | null;
+		label: string | null;
+		positive_is_good: number | null;
+	}>(
+		`SELECT s.specimen_key, s.modifier_key, s.modifier_value, s.condition, l.label, l.positive_is_good
+		 FROM specimen_modifier s LEFT JOIN modifier_label l ON l.modifier_key = s.modifier_key
+		 ORDER BY s.specimen_key, s.sort_order`
+	))
+		out[m.specimen_key]?.modifiers.push({
+			key: m.modifier_key,
+			value: m.modifier_value,
+			label: m.label,
+			positiveIsGood: (m.positive_is_good ?? 1) === 1,
+			condition: m.condition
+		});
+	for (const r of rows<{ specimen_key: string; resource: string; amount: number }>(
+		'SELECT specimen_key, resource, amount FROM specimen_resource ORDER BY specimen_key, sort_order'
+	)) {
+		const p = out[r.specimen_key]?.produces;
+		if (p) p[r.resource] = (p[r.resource] ?? 0) + r.amount;
+	}
+	return out;
+}
+
+const titleOf = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 /** Subject specialisations (extractor 0.1.16): none from an older data DB. */
 function specialists(rows: <T>(sql: string) => T[]): Specialists {

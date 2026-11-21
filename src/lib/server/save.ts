@@ -82,6 +82,7 @@ import {
 	ownLeaders,
 	ruler
 } from './save/leaders.ts';
+import { archives } from './save/archive.ts';
 import { slaveMarket, speciesByEmpire, speciesInfo, speciesRights } from './save/species.ts';
 import {
 	addResources,
@@ -113,6 +114,7 @@ export * from './save/fleets.ts';
 export * from './save/species.ts';
 export * from './save/diplomacy.ts';
 export * from './save/colonies.ts';
+export * from './save/archive.ts';
 
 export type RawSave = {
 	date: string;
@@ -172,6 +174,7 @@ export type RawSave = {
 	resolutions: Record<string, Raw>; // top-level resolution: proposed and voted on
 	popFactions: Record<string, Raw>; // top-level pop_factions: every empire's factions
 	patronRelations: Record<string, Raw>; // top-level patron_relations: every empire's patrons
+	exhibits: Record<string, Raw>; // top-level exhibits: every empire's Grand Archive specimens
 	aiIntel: AiIntel[]; // empires we have communications with: their view of us and their economy
 	traderEnclaves: TraderEnclave[]; // trader enclaves we have communications with
 };
@@ -313,6 +316,7 @@ function query(jomini: Jomini, zip: Uint8Array): RawSave {
 			resolutions: q.at('/resolution') ?? {},
 			popFactions: q.at('/pop_factions') ?? {},
 			patronRelations: q.at('/patron_relations') ?? {},
+			exhibits: q.at('/exhibits') ?? {},
 			aiIntel,
 			traderEnclaves,
 			starbases: q.at('/starbase_mgr/starbases') ?? {},
@@ -340,7 +344,7 @@ function query(jomini: Jomini, zip: Uint8Array): RawSave {
 
 // The reader's version. Bump it whenever toSnapshot's output changes (with the new field's default
 // in upgrade()): a save on disk is read again only when READER (or the data DB) changed since.
-export const READER = '72'; // 72: precursor intel, galaxy-wide (the frontier tab's cheat); 71: 71: our event chains (precursors, the L-Cluster); 70: 70: cosmic storms, prescripted name templates filled (`AofB` from the data DB), situations' flags; 69: transport contracts' pickup and drop-off systems; 68: dig sites excavated only by our fleets; 67: contract passengers aboard our arkships (fleet flags); 66: contracts completed (the reward's scaling); 65: the Edict Fund's modifiers (companion mod 0.14.0); 64: every contact's techs we lack (research agreement advice); 63: name templates (`AofB`: "Pact of Fellnoll"); 62: FirstContact-MeaningfulLabels' contact names ("Voidworms (fauna)"); 61: the home system's bodies count as surveyed (surveyed_deposit_holders); 60: waystations' stockpile and fill, a waystation no longer owns its system (nor makes it ours); 59: every planet flag (carrier flags for planet decisions); 58: dig sites' chapter; 57: prescripted empires' names where countries are named while the file is read (they followed the save read before); 56: the save's player count (multiplayer only from two players); 55: subjects' renegotiation dates, stance and numbers; 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
+export const READER = '75'; // 75: scope-command placeholders in names ("Fellnoll Commune"); 74: names with parts inside a prescripted name part (a fallen hive's fragments, "Indomitable Myrran Aggression"); 73: every empire's Grand Archive specimens, the specimen trade flag; 72: precursor intel, galaxy-wide (the frontier tab's cheat); 71: 71: our event chains (precursors, the L-Cluster); 70: 70: cosmic storms, prescripted name templates filled (`AofB` from the data DB), situations' flags; 69: transport contracts' pickup and drop-off systems; 68: dig sites excavated only by our fleets; 67: contract passengers aboard our arkships (fleet flags); 66: contracts completed (the reward's scaling); 65: the Edict Fund's modifiers (companion mod 0.14.0); 64: every contact's techs we lack (research agreement advice); 63: name templates (`AofB`: "Pact of Fellnoll"); 62: FirstContact-MeaningfulLabels' contact names ("Voidworms (fauna)"); 61: the home system's bodies count as surveyed (surveyed_deposit_holders); 60: waystations' stockpile and fill, a waystation no longer owns its system (nor makes it ours); 59: every planet flag (carrier flags for planet decisions); 58: dig sites' chapter; 57: prescripted empires' names where countries are named while the file is read (they followed the save read before); 56: the save's player count (multiplayer only from two players); 55: subjects' renegotiation dates, stance and numbers; 54: jobs' automated workforce; 53: ship designs (saved and unofficial), fleets' designs; 52: Nomads contracts; 51: pops per species per colony, every species' rights (not the founder's alone); 50: the Slave Market and the slave trade bans; 49: the progress of techs switched away from; 48: no multiplayer from an Ironman save's account name; 47: our species in every empire we talk to; 46: jobs' efficiency workforce and species; 45: research partners' tech gaps, commercial pact trade, species by empire; 44: multiplayer; 43: branch offices and holdings, the history reading; 42: the galaxy setup; 41: our arkships, the capital's system by its colony; 40: our shipset; 39: no shipyard without a shipyard queue, arkships placed by their ship; 38: civilian ships' size, fleets' and arkships' system id; 37: systems' entry events; 36: the mod's colony stability; 35: the founder species' class (34: leaders' home colony; 33: leaders' experience; 32: difficulty-adjusted tech costs, leaders' assignments and the pool's details; 31: Wanderlust; 30: the leader pool; 29: ascension tier and governor skill per colony; 28: amenities, crime, approval; 27: disabled buildings; 26: leaders' ethic and governors; 25: situation stages and their ends; 24: our pops' ethics; 23: capital, rights and insult cooldowns; 22: fleet ids, roll cycles; 21: timed flags, reform and focus cooldowns)
 
 /**
  * What reading a save takes from the game data: the prescripted empires' names (data DB
@@ -494,6 +498,7 @@ function snapshot(raw: RawSave, campaign: string, entryEvents: EntryEvent[]): Sn
 		councilSlots: numOrNull(raw.country?.government?.unlocked_civic_council_slots),
 		edictTimes: edictTimes(raw.country?.edicts),
 		...world(raw),
+		archives: archives(raw),
 		focus: empireFocus(raw),
 		techOptions: Object.fromEntries(
 			Object.entries(raw.country?.tech_status?.alternatives ?? {}).map(([area, techs]) => [

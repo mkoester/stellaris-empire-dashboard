@@ -1,3 +1,4 @@
+import { colorOf } from './colors.ts';
 import type { Modifier } from './types.ts';
 
 // Modifier display, copied from stellaris-empire-planner `src/lib/civics.ts`
@@ -50,3 +51,30 @@ export function distinctModifiers(list: Modifier[]): Modifier[] {
 		return true;
 	});
 }
+
+const RESOURCES =
+	/(?:^|_)(energy|minerals|food|alloys|consumer_goods|unity|influence|trade|physics_research|society_research|engineering_research|exotic_gases|rare_crystals|volatile_motes|minor_artifacts|nanites|astral_threads|sr_dark_matter|sr_living_metal|sr_zro)_(?:produces|upkeep|cost)(?:_|$)/;
+
+/**
+ * The resource a modifier changes the output, upkeep or cost of (`country_unity_produces_mult`,
+ * `planet_jobs_food_produces_mult`), for its colour; null when it names none.
+ */
+export const modifierResource = (key: string): string | null => RESOURCES.exec(key)?.[1] ?? null;
+
+// What else a modifier label is tinted by: the dashboard's own colours (#lib/colors.ts), the game's
+// icons for these being gold like energy (the user's choice, 2026-11-21)
+const TOPICS: [RegExp, string][] = [
+	[/(?:^|_)amenities(?:_|$)/, 'amenities'],
+	[/(?:^|_)stability(?:_|$)/, 'stability'],
+	[/(?:^|_)leaders?(?:_|$)/, 'leader']
+];
+
+/** The colour key of a modifier's label: its resource's, else its topic's (amenities, …); null. */
+export const modifierTintKey = (key: string): string | null =>
+	modifierResource(key) ?? TOPICS.find(([re]) => re.test(key))?.[1] ?? null;
+
+/** A modifier's label colour, as everywhere else (unity, research, leaders, …); none. */
+export const modifierTint = (key: string): string | undefined => {
+	const k = modifierTintKey(key);
+	return k ? colorOf(k) : undefined;
+};

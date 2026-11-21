@@ -1,5 +1,22 @@
 import { error } from '@sveltejs/kit';
-import { ENCLAVE_DEAL, enclaveDeal, modelFrom, offersTrade } from '#lib/aiTrade.ts';
+import {
+	ENCLAVE_DEAL,
+	enclaveDeal,
+	modelFrom,
+	offersTrade,
+	terms,
+	tradeClosed
+} from '#lib/aiTrade.ts';
+import {
+	allKinds,
+	blockers,
+	CATEGORIES,
+	factsOf,
+	refusals,
+	specimenDeal,
+	specimenGives
+} from '#lib/archive.ts';
+import type { AiIntel, ArchiveHolding, Exhibit, Snapshot, Specimen } from '#lib/types.ts';
 import { marketFee, price } from '#lib/market.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -12,22 +29,35 @@ import { valueOf } from '#lib/value.ts';
 // what a gift buys, estimated (#lib/aiTrade.ts); with the `tradeStockpiles` cheat their stockpiles,
 // what they spare, take and need. The estimates rest on stockpile and income, so either switch
 // sends them; the page shows them only with the cheat. Both are off in multiplayer and Ironman.
-// Trader enclaves' offers are fixed (no spoiler needed).
+// Trader enclaves' offers are fixed (no spoiler needed). With the `specimenTrade` spoiler the
+// Grand Archive specimens each empire would trade us and what it would pay for ours (≈, #lib/archive.ts);
+// `specimenTradeAll` (cheat) adds those blocked now, with the reason.
 export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	const latest = snaps.findLast((s) => s.kind === 'save' && s.aiIntel !== null) ?? null;
 	const data = getGameData();
-	const { tradeIntel, tradeStockpiles } = display();
+	const { tradeIntel, tradeStockpiles, specimenTrade, specimenTradeAll } = display();
 	const economy = tradeIntel || tradeStockpiles;
 	const names = new Map((latest?.relations ?? []).map((r) => [r.countryId, r.name]));
 	// empires we can offer a deal (the reader keeps only trading types since READER 10; older
 	// readings had more, and it keeps the berserk custodian)
 	const countries = new Map((latest?.countries ?? []).map((c) => [c.id, c]));
 	const types = new Map([...countries].map(([id, c]) => [id, c.type]));
+	// and those whose "Offer Trade Deal" the game closes to us (purifiers, swarms, …)
+	const us = {
+		machine:
+			(latest?.government ?? []).includes('auth_machine_intelligence') ||
+			['MACHINE', 'ROBOT'].includes(data.speciesArchetypes[latest?.founderClass ?? ''] ?? '') ||
+			(latest?.countryFlags ?? []).includes('synthetic_empire'),
+		infernal: latest ? factsOf(latest, data).infernal : null
+	};
 	const empires = (latest?.aiIntel ?? [])
-		.filter((ai) => offersTrade(countries.get(ai.countryId) ?? { type: 'default', civics: [] }))
+		.filter((ai) => {
+			const c = countries.get(ai.countryId) ?? { type: 'default', civics: [] };
+			return offersTrade(c) && tradeClosed(c, us) === null;
+		})
 		.map((ai) => ({
 			...ai,
 			name: names.get(ai.countryId) ?? String(ai.countryId),
@@ -52,8 +82,13 @@ export function load({ url }) {
 	// a unit of each resource in trade (the gift table's "per 1,000 trade")
 	const values = valuesOf(snaps);
 	const unitValue = Object.fromEntries(tradable.map((r) => [r, valueOf({ [r]: 1 }, values)]));
+	const specimens = specimenTrade
+		? specimenRows(latest, empires, data, specimenTradeAll, values)
+		: null;
 	return {
 		...rest,
+		specimens,
+		specimenTradeAll,
 		unitValue,
 		date: latest?.date ?? null,
 		tradeIntel,
@@ -78,4 +113,86 @@ export function load({ url }) {
 			)
 		}
 	};
+}
+
+/**
+ * The specimens each empire we can trade with holds (`theirs`) with what we would pay for one in
+ * energy and trade, and ours with what each would pay (`ours`), from the trade value the defines
+ * give and the personality's willingness. A row with `blocked` reasons is one the trade screen
+ * would refuse now: sent only with `all` (the cheat).
+ */
+function specimenRows(
+	latest: Snapshot | null,
+	empires: (AiIntel & { name: string; fallen: boolean })[],
+	data: ReturnType<typeof getGameData>,
+	all: boolean,
+	values: Record<string, number>
+) {
+	if (!latest || Object.keys(data.specimens).length === 0)
+		return { theirs: [], ours: [], known: false, kinds: [] as string[] };
+	const archives = latest.archives ?? [];
+	const holding = (id: number | null) => archives.find((a) => a.countryId === id) ?? null;
+	const us = holding(latest.countryId);
+	const facts = factsOf(latest, data);
+	const held = (h: ArchiveHolding | null): Exhibit[] => [
+		...(h?.exhibits ?? []),
+		...(h?.storage ?? [])
+	];
+	const energy = values.energy ?? 1;
+	const category = (k: string) => CATEGORIES.find((c) => c.key === k)?.name ?? k;
+	// what a specimen would give us exhibited and active, × our exhibition's multiplier
+	const gives = (spec: Specimen) => specimenGives(spec, facts, us?.mults?.[spec.category] ?? 1);
+	const theirs = [];
+	const ours = [];
+	// a fallen empire's trade screen has no specimens on either side (2026-11-21)
+	for (const e of empires.filter((x) => !x.fallen)) {
+		const them = holding(e.countryId);
+		const t = terms(e, data.personalities, data.attitudes);
+		const ctx = { date: latest.date };
+		const refused = refusals({ trades: t.trades });
+		for (const x of held(them)) {
+			const spec = data.specimens[x.specimen];
+			if (!spec) continue;
+			const blocked = blockers(spec, x.specimen, them, us, { ...ctx, receiverIsUs: true });
+			if (blocked.length && !all) continue;
+			const { price } = specimenDeal(spec, them, t.willingness);
+			theirs.push({
+				id: `${e.countryId}:${x.id}`,
+				empire: e.name,
+				key: x.specimen,
+				name: spec.name,
+				category: category(spec.category),
+				rarity: spec.rarity,
+				exhibited: x.active,
+				...gives(spec),
+				price,
+				priceTrade: price === null ? null : price * energy,
+				refused,
+				blocked
+			});
+		}
+		for (const x of held(us)) {
+			const spec = data.specimens[x.specimen];
+			if (!spec) continue;
+			const blocked = blockers(spec, x.specimen, us, them, { ...ctx, receiverIsUs: false });
+			if (blocked.length && !all) continue;
+			const { bid } = specimenDeal(spec, them, t.willingness);
+			ours.push({
+				id: `${e.countryId}:${x.id}`,
+				empire: e.name,
+				key: x.specimen,
+				name: spec.name,
+				category: category(spec.category),
+				rarity: spec.rarity,
+				exhibited: x.active,
+				...gives(spec),
+				bid,
+				bidTrade: bid * energy,
+				refused,
+				blocked
+			});
+		}
+	}
+	ours.sort((a, b) => b.bid - a.bid);
+	return { theirs, ours, known: archives.length > 0, kinds: allKinds(data) };
 }

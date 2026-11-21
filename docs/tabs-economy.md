@@ -2,6 +2,33 @@
 
 Trade, growth, pops charts, growth projection, job output bonuses, jobs and the shared values, produce, influence, contracts. Read before working on one of them. _Moved verbatim from `AGENTS.md` on 2026-11-14._
 
+**Specimens in the trade tab** (2026-11-21, the user's ask): with the **`specimenTrade`** spoiler
+(`intel`) "Specimens they would trade us" (every specimen of each empire we can trade with) and
+"Which of our specimens they want most" (ours, per empire, by its bid). Worth from the defines, in
+energy: sell value by rarity (250/500/1000/2000) × 1.3, not the defines' × 1.5 for an empty exhibition (gifts to six empires, 2026-11-21,
+`docs/trade-calibration.md`), × 1.25 to a receiver whose exhibition it fills (untested); the price we pay = worth ÷ willingness, their bid = worth
+to them × willingness (`specimenDeal()`: the energy-worth curve cancels as both sides are energy) —
+in trade at energy's value, ≈ until checked against the trade screen. `blockers()` hide a row (not
+tradable, the receiver has it, archive full, `has_already_traded_specimens` on either side, 3600
+days); **`specimenTradeAll`** (cheat) shows them greyed ⊘ with the reason. `refusals()` fill the
+"Willing?" column: an attitude that trades nothing (the trade screen's "Dismissive attitude:
+−1000"). Not the opinion: `MIN_RELATION_TO_TRADE_SPECIMENS` 750 does not gate a deal we propose —
+in the campaign at 2226.08.01 (2026-11-21, `~/Pictures/Screenshots/screenshot_2026-11-21_12-2*`)
+the Misharan Pact at opinion 695 took our Heart of the Pulsar as a gift (+50) and gave its Uranium
+Glassware for 2 rare crystals a month (+2), the Thembolon Accord at 232 took the gift (+41). Fallen
+empires are left out: their trade screen has no specimens on either side (Indomitable Myrran
+Aggression, the same day). An attitude that trades nothing still takes a gift (the Backattan
+Empire, Suspicious: our Heart of the Pulsar for nothing, +46), so "refuses" means it gives nothing:
+with 1 energy a month from it the same deal read "Suspicious attitude: −1000" (the same day). So "Willing?" is only in their list; in ours such an
+empire's "They pay" reads "gift only" (sorted last) — it pays nothing but takes the specimen. The whole trade tab leaves out empires whose "Offer
+Trade Deal" the game closes (`tradeClosed()`: Fanatic Purifiers, Devouring Swarms, Determined
+Exterminators unless we are machines, scorched-earth Infernals unless we are Infernal — the
+Havariggan Purifiers' greyed action, the same day). Both lists sit in one "Specimens"
+panel, per exhibition side by side (theirs | ours), without an Exhibition column; the name is
+tinted by its rarity instead of a Rarity column, and both show what the specimen gives us
+(`SpecimenGives`: modifiers and monthly resources, × our exhibition's multiplier) — the user's asks,
+2026-11-21. The archive tab's bonus filter (`SpecimenFilter`) narrows both lists.
+
 **Trade tab** (`/trade`, `#lib/aiTrade.ts` pure; the user's biggest pain point, 2026-10-22: "who
 trades what, both directions, for how much, normalised by trade"): the empires we have
 communications with — regular and fallen ones only (`TRADING_TYPES` in save.ts; pre-FTL

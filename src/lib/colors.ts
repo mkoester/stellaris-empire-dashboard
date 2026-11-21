@@ -50,6 +50,9 @@ const COLORS: Record<string, string> = {
 	'trade-deal': '#d9a521', // energy
 	galcom: '#4f8fd6', // ours: a diplomatic blue
 	leader: '#6b7280',
+	// modifier labels (#lib/modifiers.ts `modifierTint`): ours, the game's icons are gold like energy
+	amenities: '#d0608f', // the masks' theatre: a warm pink
+	stability: '#6b7fa3', // a muted slate blue
 	'leader-pool': '#9ca3af', // the leaders' grey, lighter
 	wanderlust: '#1baf7a', // exploring: the special projects' green
 	'system-event': '#c64fb5', // a find on first entry: the wormholes' magenta

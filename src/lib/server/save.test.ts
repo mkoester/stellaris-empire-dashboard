@@ -113,6 +113,7 @@ const raw: RawSave = {
 	resolutions: {},
 	popFactions: {},
 	patronRelations: {},
+	exhibits: {},
 	aiIntel: [],
 	traderEnclaves: [],
 	starbases: {},
@@ -1913,6 +1914,58 @@ describe('helpers', () => {
 					]
 				})
 			).toBe('Zanthi Variatus');
+		});
+	});
+
+	it('keeps the parts inside a prescripted name part: a fallen hive’s fragments', () => {
+		// roamingcybergang 2226.08.01: the data DB names `Indomitable` "Indomitable"; the game shows
+		// "Indomitable Myrran Aggression" (the trade screen, 2026-11-21)
+		const fragment = (head: string, noun: string) => ({
+			key: '%ADJ%',
+			variables: [
+				{
+					key: '1',
+					value: {
+						key: head,
+						variables: [
+							{
+								key: '1',
+								value: {
+									key: '%ADJECTIVE%',
+									variables: [
+										{ key: 'adjective', value: { key: 'SPEC_Myrran' } },
+										{ key: '1', value: { key: noun } }
+									]
+								}
+							}
+						]
+					}
+				}
+			]
+		});
+		withNames(
+			{ Indomitable: 'Indomitable', Forgotten: 'Forgotten', Aggression: 'Aggression' },
+			() => {
+				expect(displayName(fragment('Indomitable', 'Aggression'))).toBe(
+					'Indomitable Myrran Aggression'
+				);
+				expect(displayName(fragment('Indomitable', 'Aspiration'))).toBe(
+					'Indomitable Myrran Aspiration'
+				);
+				expect(displayName(fragment('Forgotten', 'Authority'))).toBe('Forgotten Myrran Authority');
+			}
+		);
+	});
+
+	it('fills a scope command the extractor kept as a placeholder', () => {
+		// roamingcybergang 2226.08.01, country 98: the game's "[fotd_country.GetSpeciesName] Commune"
+		withNames({ NAME_fotd_seperatists: '$fotd_country.GetSpeciesName$ Commune' }, () => {
+			expect(
+				displayName({
+					key: 'NAME_fotd_seperatists',
+					variables: [{ key: 'fotd_country.GetSpeciesName', value: { key: 'SPEC_Fellnoll' } }]
+				})
+			).toBe('Fellnoll Commune');
 		});
 	});
 

@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { splinterOf } from '#lib/contacts.ts';
 import { knownHistory, months, type HistoryMode } from '#lib/history.ts';
 import { CATEGORICAL } from '#lib/migration.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -16,10 +17,27 @@ export function load({ url }) {
 	const { historyAll, historyMet } = display();
 	const mode: HistoryMode = historyAll ? 'all' : historyMet ? 'met' : 'known';
 	const latest = saves.at(-1);
+	// a fallen hive's fragments carry their splinter in every name the tab shows (map, events),
+	// by id — once we talk to them, as everywhere (`empireTags`); the plain name finds the colour
+	const talking = new Set(
+		(latest?.relations ?? []).filter((r) => r.communications).map((r) => r.countryId)
+	);
+	const splinters = new Map(
+		(latest?.countries ?? []).flatMap((c) => {
+			const t = talking.has(c.id) ? splinterOf(c.governmentType) : null;
+			return t ? [[c.id, t] as [number, string]] : [];
+		})
+	);
+	const plain = new Map<number, string>();
+	const tagged = ([id, n]: [number, string]): [number, string] => {
+		plain.set(id, n);
+		const t = splinters.get(id);
+		return [id, t ? `${n} (${t})` : n];
+	};
 	const history = knownHistory(
 		saves.map((s) => ({
 			date: s.date,
-			history: s.history!,
+			history: { ...s.history!, names: s.history!.names.map(tagged) },
 			communications: (s.relations ?? []).filter((r) => r.communications).map((r) => r.countryId),
 			met: (s.relations ?? []).map((r) => r.countryId),
 			intel: (s.intel ?? []).map((i) => [i.countryId, i.intel] as [number, number]),
@@ -27,7 +45,7 @@ export function load({ url }) {
 			names: [
 				...(s.countryId === null ? [] : [[s.countryId, s.empireName] as [number, string]]),
 				...(s.relations ?? []).map((r) => [r.countryId, r.name] as [number, string])
-			]
+			].map(tagged)
 		})),
 		latest?.countryId ?? -1,
 		mode
@@ -51,7 +69,8 @@ export function load({ url }) {
 	// each empire's map colour, else one of ours
 	const colors: Record<number, string> = {};
 	Object.entries(history.names).forEach(([id, name], i) => {
-		colors[Number(id)] = rest.empireColors[name] ?? CATEGORICAL[i % CATEGORICAL.length];
+		colors[Number(id)] =
+			rest.empireColors[plain.get(Number(id)) ?? name] ?? CATEGORICAL[i % CATEGORICAL.length];
 	});
 	return {
 		...rest,

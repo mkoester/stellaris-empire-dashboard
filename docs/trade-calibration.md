@@ -657,6 +657,51 @@ income — fits the two regular empires to 1–2 % but puts the fallen one 8× t
 holds it, the test every line above. Not measured: volatile motes, exotic gases, rare crystals,
 zro, dark matter and the rest (the nomad test game).
 
+### 2026-11-21: specimens, the campaign at 2226.08.01 (no cheats, nothing sent)
+
+Acceptance in the trade screen, willingness 70 % (Misharan Pact, honorbound warriors, cordial,
+opinion 695; Thembolon Accord, hive mind, opinion 232). Raw points for calibrating
+`specimenDeal()` later; no tooltip breakdown was taken.
+
+| Deal                                                                   | Acceptance                  |
+| ---------------------------------------------------------------------- | --------------------------- |
+| Misharan Pact gives Uranium Glassware (common), nothing back           | −26                         |
+| … for 2 rare crystals a month, 10 years                                | +2                          |
+| we give Heart of the Pulsar (exceptional), nothing back                | +50                         |
+| … for 3 alloys a month, 10 years                                       | +29                         |
+| Thembolon Accord: we give Heart of the Pulsar, nothing back            | +41                         |
+| Indomitable Myrran Aggression (fallen empire): 1 trade a month from it | −1000 (Dismissive attitude) |
+
+Gifts of one specimen, nothing back (13:08–13:11 the same day, `screenshot_2026-11-21_13-*`),
+against `tradeEnergy()` × energy's worth to it (`WORTH`, its energy income) × willingness:
+
+| Empire (willingness, specimens held)        | Specimen                                           | Game               | Model with × 1.5 | without |
+| ------------------------------------------- | -------------------------------------------------- | ------------------ | ---------------- | ------- |
+| Misharan Pact (70 %, 3)                     | 4 commons                                          | +12                | —                | 11.8    |
+| Misharan Pact                               | Massive Metatarsal (rare)                          | +25                | —                | 23.6    |
+| Misharan Pact                               | Heart of the Pulsar (epic)                         | +50                | —                | 47.1    |
+| Vran Free Traders (100 %, 0)                | 4 commons                                          | +15                | 22.4             | 14.9    |
+| Vran Free Traders                           | Massive Metatarsal (rare)                          | +31                | 44.7             | 29.8    |
+| Thembolon Accord (70 %, 0)                  | Heart of the Pulsar                                | +41                | 60.2             | 40.1    |
+| Backattan Empire (80 %, 0)                  | Heart of the Pulsar                                | +46                | 67.6             | 45.1    |
+| Vran Free Traders (100 %, 0)                | Heart of the Pulsar, for 469 energy + 510 minerals | +62 (−22, −39: +1) | 89.4             | 59.6    |
+| Priman Matrix (80 %, 1 in Galactic History) | Heart of the Pulsar (Aesthetic: empty)             | +43                | 63.2             | 42.1    |
+| Priman Matrix                               | Massive Metatarsal (Xeno Geology: empty)           | +21                | 31.6             | 21.1    |
+| Priman Matrix                               | Tales of a Mercenary (Galactic History: 1)         | +10                | —                | 10.5    |
+
+Vran's own line prices its energy: 22 for 469, 0.047 a unit (the model 0.046), so the Heart of the
+Pulsar is worth it 62 / 0.047 ≈ 1,320 energy — the plain 1,000 × 1.3 (13:13:19). The defines' empty-category × 1.5 never showed: not for an empire holding no specimen (all five
+1.5× too high with it), nor for the Priman Matrix's empty exhibitions beside a held one
+(13:18). Without it the model reads 0–6 % low throughout; `tradeEnergy()` has no × 1.5 since.
+**But none of the six had an archive**: in the save only the Misharan Pact has researched
+Galactic Archivism and built a Grand Archive (`grand_archive_0`, owner 5), and its three
+exhibitions hold one each. Open (the user's thought, 2026-11-21): the × 1.5 may count once the
+archive is built — test in a throwaway game (an AI given the tech and an archive by console, a
+specimen for its empty exhibition). The × 1.25 for filling an exhibition is untested. Also seen: Vran
+refused even 1 trade at once ("Wants to trade away less of the following resources: Trade",
+−1000) and the Misharan Pact 110 trade while 109 passed (+46 with the Heart of the Pulsar) — the
+resource's own limit, not the specimen.
+
 ## Live values a companion mod could export
 
 The mod "Stop Guessing What AI Will Trade You" (Workshop 3832466386, v1.1.1, read 2026-11-09)

@@ -154,6 +154,11 @@
 			active: path === '/frontier'
 		},
 		{
+			name: 'archive',
+			href: node ? resolve(`/archive?node=${node}`) : resolve('/archive'),
+			active: path === '/archive'
+		},
+		{
 			name: 'shroud',
 			href: node ? resolve(`/shroud?node=${node}`) : resolve('/shroud'),
 			active: path === '/shroud'

@@ -1,5 +1,6 @@
 // Which tabs have nothing to show yet along a branch: their names are dimmed in the tab bar, the
 // title saying why. Still links — the page explains itself.
+import { ARCHIVE_TECH } from './archive.ts';
 import { whyOf } from './contracts.ts';
 import { isGate } from './mapLayers.ts';
 import { KINDS, MEGA_RULES } from './megastructures.ts';
@@ -27,6 +28,7 @@ type Fields = Pick<
 	| 'contracts'
 	| 'countryId'
 	| 'progress'
+	| 'archives'
 >;
 
 /**
@@ -114,6 +116,13 @@ const CHECKS: {
 		why: 'no subject agreement, branch office or holding yet',
 		known: (s) => s.external !== null && s.external !== undefined,
 		has: (s) => (s.subjects ?? []).length > 0 || (s.external ?? []).length > 0 || !!s.branchSites
+	},
+	{
+		tab: 'archive',
+		why: 'Galactic Archivism not researched yet',
+		known: (s) => s.progress !== null && s.progress !== undefined,
+		// the tech that lets the empire build the Grand Archive (common/megastructures/20_grand_archive.txt)
+		has: (s) => (s.progress?.researched ?? []).includes(ARCHIVE_TECH)
 	},
 	{
 		tab: 'frontier',

@@ -9,9 +9,11 @@ import {
 	proposalDates,
 	proposedLabel,
 	shown,
-	voteStanding
+	voteStanding,
+	empireTags,
+	splinterOf
 } from './contacts.ts';
-import type { Relation } from './types.ts';
+import type { CountryInfo, Relation } from './types.ts';
 
 const rel = (countryId: number, r: Partial<Relation> = {}): Relation => ({
 	countryId,
@@ -227,5 +229,34 @@ describe('proposedLabel', () => {
 			'2208.10.14 – 2208.11.01'
 		);
 		expect(proposedLabel({ after: null, by: '2205.03.01' })).toBe('by 2205.03.01');
+	});
+});
+
+describe('a fallen hive’s fragments', () => {
+	it('are told apart by their government, whatever their names', () => {
+		expect(splinterOf('gov_war_splinter')).toBe('War Splinter');
+		expect(splinterOf('gov_growth_splinter')).toBe('Growth Splinter');
+		expect(splinterOf('gov_control_splinter')).toBe('Control Splinter');
+		expect(splinterOf('gov_custodian_matrix')).toBeNull();
+		expect(splinterOf(null)).toBeNull();
+	});
+
+	it('are tagged by the name we know them by, only once we talk', () => {
+		// the campaign at 2226.08.01: three fragments of the Myrran hive
+		const country = (id: number, name: string, governmentType: string) =>
+			({ id, name, governmentType }) as CountryInfo;
+		const s = {
+			countries: [
+				country(33, 'Indomitable Myrran Aggression', 'gov_war_splinter'),
+				country(34, 'Indomitable Myrran Aspiration', 'gov_growth_splinter'),
+				country(16777247, 'Forgotten Myrran Authority', 'gov_control_splinter'),
+				country(5, 'Misharan Pact', 'gov_military_junta')
+			],
+			relations: [33, 34, 5].map((countryId) => ({ countryId, communications: true }) as Relation)
+		};
+		expect(empireTags(s)).toEqual({
+			'Indomitable Myrran Aggression': 'War Splinter',
+			'Indomitable Myrran Aspiration': 'Growth Splinter'
+		});
 	});
 });

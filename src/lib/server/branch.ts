@@ -11,7 +11,7 @@ import { plannedOnOffer, withLiveOptions } from '#lib/techOffers.ts';
 import { planSummary } from './planner.ts';
 import { display } from './settings.ts';
 import { outcomeNow, outcomeTips } from './outcomes.ts';
-import { empireColors, pageLatest } from '#lib/contacts.ts';
+import { empireColors, empireTags, pageLatest } from '#lib/contacts.ts';
 import { milestones } from '#lib/milestones.ts';
 import { path } from '#lib/timeline.ts';
 import type { Snapshot } from '#lib/types.ts';
@@ -112,6 +112,8 @@ export function branch(url: URL) {
 			snaps.findLast((s) => s.countries !== null),
 			getGameData().flagColors
 		),
+		// a fallen hive's fragments by name: which splinter each is, for EmpireName
+		empireTags: empireTags(snaps.findLast((s) => s.countries !== null)),
 		tip,
 		isHead: tip === headId(db),
 		snaps,
