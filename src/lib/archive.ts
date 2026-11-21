@@ -245,7 +245,8 @@ export const hasSpecimen = (h: ArchiveHolding | null, specimen: string) =>
  * it would fill the receiver's exhibition of its category (not seen in game yet). No × 1.5 for an
  * empty exhibition, whatever the defines say: gifts to six empires (2026-11-21), three holding no
  * specimen and the Priman Matrix with empty exhibitions beside a held one, matched the plain worth
- * within 2–6 % (docs/trade-calibration.md). Without a receiver, the plain × 1.3.
+ * within 2–6 % (docs/trade-calibration.md). None of them had an archive: whether the × 1.5 counts
+ * once one is built is open. Without a receiver, the plain × 1.3.
  */
 export function tradeEnergy(spec: Specimen, receiver: ArchiveHolding | null | undefined): number {
 	const base = (SELL_VALUE[spec.rarity] ?? 0) * TRADE_MULT;

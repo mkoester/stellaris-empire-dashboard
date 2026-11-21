@@ -693,7 +693,11 @@ Vran's own line prices its energy: 22 for 469, 0.047 a unit (the model 0.046), s
 Pulsar is worth it 62 / 0.047 ≈ 1,320 energy — the plain 1,000 × 1.3 (13:13:19). The defines' empty-category × 1.5 never showed: not for an empire holding no specimen (all five
 1.5× too high with it), nor for the Priman Matrix's empty exhibitions beside a held one
 (13:18). Without it the model reads 0–6 % low throughout; `tradeEnergy()` has no × 1.5 since.
-The × 1.25 for filling an exhibition is untested. Also seen: Vran
+**But none of the six had an archive**: in the save only the Misharan Pact has researched
+Galactic Archivism and built a Grand Archive (`grand_archive_0`, owner 5), and its three
+exhibitions hold one each. Open (the user's thought, 2026-11-21): the × 1.5 may count once the
+archive is built — test in a throwaway game (an AI given the tech and an archive by console, a
+specimen for its empty exhibition). The × 1.25 for filling an exhibition is untested. Also seen: Vran
 refused even 1 trade at once ("Wants to trade away less of the following resources: Trade",
 −1000) and the Misharan Pact 110 trade while 109 passed (+46 with the Heart of the Pulsar) — the
 resource's own limit, not the specimen.
