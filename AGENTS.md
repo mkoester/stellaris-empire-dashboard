@@ -80,6 +80,16 @@ game data, per campaign: `docs/setup-and-data.md`. Read it before changing `serv
 What a zip holds per OS, the launcher, stopping and the version: `docs/packaging.md`. Read it
 before changing `scripts/package.mjs` or `release/`. Releasing: `RELEASE.md`.
 
+A dependency check covers the runtimes the zips bundle too: `NODE`, `PYTHON` and `PBS_RELEASE`
+in `scripts/package.mjs`, with their SHA-256s from the official sums files. `pnpm outdated` does
+not see them (Node 26.13.1, a security release, was caught by hand on 2026-11-22).
+
+**Check a formatting-only change by its output:** render every page before and after
+(`scripts/check-pages.mjs` has no dump option yet: write each `html` to a file at its fetch), mask
+`version: "<timestamp>"` and the `at:` stamp, and diff with whitespace runs collapsed — a space that
+appears or vanishes still shows. Separately confirm no `pre` / `whitespace-pre*` element sits in a
+changed line. prettier-plugin-svelte 4.2's reformat (119 files, 2026-11-22) passed this.
+
 ## The dashboard DB
 
 **One watcher per process.** `app.ts` keeps its state on `globalThis`: Vite re-imports server

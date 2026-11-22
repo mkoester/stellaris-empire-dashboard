@@ -610,6 +610,20 @@ Without the mod: the estimate leaves out jobs (bureaucrats and priests under som
   `sdash_ef_mult` against the tooltip, the fund against the dashboard's popup, and the second
   save's booked `edicts` unity against the what-if's "pays".
 
+### 41. Arkship spinal modules and contract ships — contracts tab (from 2026-11-22)
+
+`acceptNeeds()` names Stellar Ignition's Stellar Igniter and Deep Scan's System Scanner but never
+judges them met: both are spinal modules, and no save has shown one on the player's arkship yet
+(Roaming Cybergang 2227.09.01: only utility modules, in the arkship station's `modules`). Also
+assumed: Pest Control and the Heirs' station count a battle won by any fleet of ours, so the Where
+column says "military fleet" — whether an arkship's battle counts is not checked.
+
+- **Do:** in a throwaway nomad game, research and build a spinal module on an arkship
+  (`research_technology tech_arkship_stellar_igniter`), save; win a fight against space fauna
+  with the arkship alone during a Pest Control contract.
+- **Send:** the save, and whether the contract counted the arkship's win. Check: where the save
+  stores the spinal module (the starbase's `modules`, or elsewhere), then let `acceptNeeds()` read it.
+
 ## C. Not in the game
 
 ### 37. Upkeep what-ifs and the net in trade — government, species, traditions, tech tabs (from 2026-11-15)
