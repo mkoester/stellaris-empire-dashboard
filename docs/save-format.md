@@ -523,7 +523,12 @@ star_class planet=… hyperlane starbases inner_radius outer_radius }` (radii 39
   Compass: the Caravaneers). Reading every `country` costs ~250 ms per save (51 countries).
   First contacts: top-level `first_contacts.contacts.<id> = { owner country name location leader
 date days_left difficulty clues stage status }` (`leader=4294967295`: none; `status`
-  in_progress / finished / aborted; stages have no localisation). Relations
+  in_progress / finished / aborted; stages have no localisation). **`stage` counts one behind
+  the game**: every chain starts at `base_contact_set` (the game's stage 1), so
+  `<type>_stage_<n>` is the game's stage n + 1. **`difficulty` is the stage's alone**; the game
+  shows it plus the contacted country's `first_contact_defense_add` (only the cautious protocol,
+  +2) plus 2 for a xenophobe, fanatic or not (engine-side, in no file) — all 7 contacts of 2228.04.09
+  (`firstContactDefense()`, `docs/open-checks.md` 43). Relations
   `country.relations_manager.relation = { country contact communications hostile
 relation_current trust threat border_range pre_communications_name }` (`border_range`
   2147483647: not bordering — a nomad's with every empire, 2217.06.01; pacts as flags, see "Pacts

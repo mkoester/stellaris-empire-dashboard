@@ -149,6 +149,9 @@ rendering — Svelte's dev-only `node_invalid_placement_ssr` (a `<ul>` from a co
 wrong file (`Panel.svelte:576`, an 18-line file, for a `<p>` on `/expansion`, 2026-11-19): find the
 page by the check, not by the message. About 2 min for five campaigns (450 pages);
 narrow with `--campaign <part>` / `--route /path`. Hydration warnings need a browser: not covered.
+**A map draws in the browser only** (`GalaxyMap` needs its size): its systems, rings and ship
+marks are not in the server's HTML, so a check of what a map shows reads the page data
+(`ownMap`, `systems` in the HTML's inline data or `__data.json`), never greps the SVG.
 Open: a test DB and running it before releases (`docs/testing.md`, "The page check").
 
 - The procedure on a DB copy, replaying a live month, the real-save test, reading a save ad hoc,
@@ -264,7 +267,9 @@ on format 3: **upload a mod with a new format only after the dashboard reading i
 `system-entered`): `parseLine` returns null for an unknown event kind, so older dashboards skip it
 without a format bump — a new head of its own (`tick-colony|…`) falls through to the resource
 parse and throws per line there. Values the save can carry go into variables instead (`sdash_nc`,
-`sdash_stab_*`), with no line at all.
+`sdash_stab_*`), with no line at all. **The save leaves a variable at 0 out**, so a missing one
+says nothing about whether the mod ran: export a marker beside it where 0 matters (`sdash_fcd_on`
+on our country for every country's `sdash_fcd`, 0.16.0).
 Drop an old format by raising `FEED_FORMATS.min`, never by erroring.
 
 The line formats, the table of lines, what each mod version exports, the daily tick and exact
