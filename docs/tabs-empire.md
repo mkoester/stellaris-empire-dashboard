@@ -288,7 +288,8 @@ events are the game's own terms for one panel each, `/situations` redirects; `#l
 readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,
 situations, a link to events | anomalies, dig sites, special projects), the first-contact map
 below them at full width (the user's ask, 2026-11-15): first
-contacts as a table (age in months, difficulty, clues, stage — its number alone, `contactStage()`:
+contacts as a table (age in months, difficulty, clues, stage — its number alone, as the game
+counts it: the key's + 1, since every chain starts at `base_contact_set`, `contactStage()`:
 the game's stage keys name the contact's kind and way, spoilers, the user's ask 2026-11-17 —, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
 an envoy). **Difficulty is ≈** (the user's report 2026-11-22, screenshots against the 2228.04.09
