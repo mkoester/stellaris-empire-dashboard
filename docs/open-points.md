@@ -230,8 +230,11 @@ screen, trade calibration, stored research, releases).
   `calculate_ethics_divergence` in `script_values/01_script_values_paragon.txt` turns it into a
   value (`complex_trigger_modifier`, `mode = add`). The companion mod could export that per empire
   to check our steps (whether it counts only opposed axes is unknown).
-- **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
-  (`is_rival=yes`); no AI rivalled us yet (2205.06).
+- **Rivals of us, confirmed** (2026-11-22, Roaming Cybergang autosave 2234.09.01): `rivalsOfUs`
+  reads another empire's relation to us (`is_rival=yes`) — the Backattan Empire (16777242) has it
+  on its relation to us, and our relation to it has none; ours (Havariggan Purifiers 40,
+  Prikkiki-Ti 16777286, country 16) sit on our relations only. A rivalry is one-sided in the save.
+  Still to see: the tab against the game's diplomacy screen.
 - **Galactic Community: session timing, solved** (2214.01.01): `galactic_community.days` counts
   the days a resolution has been on the floor, up to `RESOLUTION_VOTE_TIMER` (1440) — the game's
   "Senate is in session 899" was 1440 − 541; after the vote `voting` and `days` go and `cooldown`
