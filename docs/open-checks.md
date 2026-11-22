@@ -375,7 +375,12 @@ tab's table should list what the outliner lists.
 reaches its planet or arkship from it; `local_pop_amount` holds the pops moved and reads as a
 variable in the pop group's scope (as vanilla's refugees.4 checks it); the hook fires for a
 player's resettlement (vanilla's bio.751 shows it fires for an event's `resettle_pop_group` too).
-No line has been seen yet.
+**Seen 2026-11-22** (Roaming Cyber Gang, 2228.04.09, one resettlement ordered): two lines, one per
+pop group — `Selborne|Farleigh|100|Robot` and `…|32|Robot` — and no `sdash` line in `error.log`;
+so From, `carrier` and `local_pop_amount` work. The save books the user's earlier resettlement
+(unemployed robots to the new arkship) in the same unit: 2227.09.01 Selborne −239, Farleigh +239,
+on the migration tab as one exact flow. **Still open:** the 2228.05.01 autosave's
+`GROWTH_CAT_RESETTLE` on both (−132 / +132?) against the lines, and the tab's flow for 2228.04.
 
 - **Do:** with mod 0.16.0 linked, resettle one pop group between two of your colonies; let the
   month end (an autosave).
@@ -386,8 +391,12 @@ No line has been seen yet.
 
 ### 43. First contact difficulty — frontier and contacts tabs (from 2026-11-22)
 
-**Seen** (2228.04.09, the user's First Contacts screenshots, same moment as the save): the game
-shows the stage's `difficulty` plus something. +2 for a cautious protocol (`first_contact_defense_add`,
+**Seen** (2228.04.09, the user's First Contacts screenshots, same moment as the save; the
+detail windows 2026-11-22 16:23: Gimel stage 3, difficulty 11, skill bonus 7, insights 7, 40 %;
+Gamma stage 2, difficulty 7, skill bonus 7, insights 0, 10 % — the tooltip gives no breakdown): the game
+shows the stage's `difficulty` plus something. Not the source either (checked in the 4.5 files):
+the Isolationist diplomatic stance shown under Gimel's species (no first contact modifier), nor
+`intel_encryption_add` (none of its sources fits). +2 for a cautious protocol (`first_contact_defense_add`,
 the only source in the 4.5 files) explains Xi 9, Phi 7, Caravaneers 5 and Artisan Troupe 3, but
 Gimel (cautious, stage 7) showed 11, and Gamma and Epsilon (attack allowed, stage 5) showed 7: +2
 from elsewhere. The dashboard marks difficulty ≈ until this is known.
