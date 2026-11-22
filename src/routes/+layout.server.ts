@@ -40,6 +40,8 @@ import { settleTab } from '#lib/server/settle.ts';
 import { slaveTab } from '#lib/server/slaveTab.ts';
 import { emptyTabsAt } from '#lib/server/tabData.ts';
 import { galaxyRings } from '#lib/server/quadrants.ts';
+import { ownMapAt } from '#lib/server/ownMap.ts';
+import type { MapOwn } from '#lib/mapLayers.ts';
 import type { MapFit, MapWidth } from '#lib/mapView.ts';
 import type { QuadrantView } from '#lib/quadrants.ts';
 import type { ChartEvents, CustomTab } from '#lib/settings.ts';
@@ -73,7 +75,9 @@ export function load({ url }) {
 			},
 			settle: { nomad: false, blocked: null as string | null },
 			empty: {} as Record<string, string>,
-			quadrants: null as { view: QuadrantView; inner: number; outer: number } | null
+			quadrants: null as { view: QuadrantView; inner: number; outer: number } | null,
+			ownMap: null as ReturnType<typeof ownMapAt>,
+			mapOwn: null as MapOwn | null
 		};
 	const db = getDb();
 	const head = headId(db);
@@ -130,6 +134,9 @@ export function load({ url }) {
 			const r = galaxyRings(campaign);
 			return r && { view: setting('quadrants'), ...r };
 		})(),
+		// our own on every map (GalaxyMap reads them from the page data), and which of it to draw
+		ownMap: ownMapAt(shown),
+		mapOwn: setting('mapOwn'),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
 		// a newer release on GitHub (`server/updates.ts`; release builds only)

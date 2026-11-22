@@ -198,13 +198,20 @@ Stabilization researched** (`canExploreWormholes()`; the bypass's `requires_expl
 (Roaming Cyber Gang 2226.08.01, the user's report 2026-11-20). `wormholePairs` (spoiler) shows
 every pair (`wormholeLinks()` stores them all), both ends. Fit
 buttons: capital, my empire (a nomad's: **my waystations**, starbase level `waystation_*`;
-disabled without one), explored, the page's own, everything; the map and systems tabs pass `own`
-(`ownOnMap()` in `#lib/mapLayers.ts`), which adds "my stations and ships" and our ships as a
-marker per system (`Route.systemId`, READER 38) — all, fleets or civilian, the profile's
-`mapFilter.ships`, shared by both tabs (the user's ask 2026-10-31). **A nomad's arkships**
+disabled without one), explored, the page's own, everything. **Our own on every map** (the
+user's ask 2026-11-22; before, the map and systems tabs alone, 2026-10-31): the layout hands every
+`GalaxyMap` `ownMap` (`server/ownMap.ts`: `ownOnMap()` in `#lib/mapLayers.ts` on the branch's latest
+save, `latestSave()` alone, kept per tip), which adds "my stations and ships", our colonies (a sky
+ring around the system, `colonySystems()`: the planet's system from the galaxy's bodies, arkship
+colonies left to the hexagon), our arkships and our ships as a marker per system
+(`Route.systemId`, READER 38). Three toolbar switches — my colonies & arkships, my fleets, my
+civilian ships, each shown when there is something to switch — are the profile's `mapOwn`, the
+same on every map (default colonies on, ships off; a profile from before starts from its old
+`mapFilter.ships` choice, `mapOwnFromShips()`). A page's own `own`/`arkships` props override the
+layout's (the migration circle orders the arkships). **A nomad's arkships**
 (`Snapshot.arkships`, READER 41; `arkships()` in save.ts: the ships carrying a colony we control,
 with size, tier, planet size and system — the ship's `coordinate.origin`, else its fleet's,
-`shipSystemId()`) are drawn on the map, systems and migration maps whatever the ships filter (a
+`shipSystemId()`) are drawn with the colonies switch (a
 violet hexagon above the system, the capital ringed; `GalaxyMap` `arkships`), with a fit "my
 arkships" (the user's ask 2026-11-01). **The capital button** goes to `capitalId()`
 (`server/mapSystems.ts`): the capital arkship where it is now, else `knownSystems`' capital, which

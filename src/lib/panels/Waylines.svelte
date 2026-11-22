@@ -10,7 +10,6 @@
 		type MapMark
 	} from '#lib/MapLines.svelte';
 	import type { MapWidth } from '#lib/mapView.ts';
-	import type { OwnOnMap } from '#lib/mapLayers.ts';
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import { goalKey } from '#lib/planner/replay.ts';
 	import ResourceChips from '#lib/ResourceChips.svelte';
@@ -19,7 +18,7 @@
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
 	import type { Territory } from '#lib/territories.ts';
-	import type { Arkship, Explanation } from '#lib/types.ts';
+	import type { Explanation } from '#lib/types.ts';
 	import { TIER_FACTOR, TIER_SLOTS, UNLICENSED_FLOOR, UNLICENSED_OPINION } from '#lib/waylines.ts';
 	import Panel from './Panel.svelte';
 
@@ -41,8 +40,6 @@
 				owned: boolean;
 			}[];
 			territories: Territory[];
-			own: OwnOnMap;
-			arkships: Arkship[];
 		};
 	} = $props();
 
@@ -505,8 +502,6 @@
 			heightKey="waylines-map-height"
 			label="waylines"
 			territories={map.territories}
-			own={map.own}
-			arkships={map.arkships}
 			bind:hovered
 			bind:selected
 			bind:width

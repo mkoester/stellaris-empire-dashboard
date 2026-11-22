@@ -19,7 +19,8 @@
 		type View
 	} from './mapView.ts';
 	import type { Territory } from './territories.ts';
-	import { MAP_SHIPS, type MapShips, type OwnOnMap } from './mapLayers.ts';
+	import { DEFAULT_MAP_OWN, MAP_OWN_INFO, type MapOwn, type OwnOnMap } from './mapLayers.ts';
+	import { putSettings } from './settings.ts';
 	import type { Arkship } from './types.ts';
 	import { specialStar, starTitle, STAR_LEGEND, type StarEffect } from './stars.ts';
 
@@ -29,13 +30,15 @@
 	// (bindable) is the system under the pointer, here or in a table beside: it gets a ring. Binding
 	// `selected` makes a click (not a drag) pick the system under the pointer, again to unpick; the
 	// picked one keeps a ring of its own. `territories` are drawn as empire borders (#lib/borders.ts).
-	// `own` (map and systems tabs) adds a nomad's "my waystations" in place of "my empire", the fit
-	// "my stations and ships" and our ships drawn per system, which `ships` picks (`onShips` stores it).
+	// Our own comes with the layout's data (`ownMap`, every map alike; `own`/`arkships` override
+	// it): a nomad's "my waystations" in place of "my empire", the fit "my stations and ships", and
+	// drawn per system our colonies and arkships, military fleets and civilian ships — each a
+	// switch in the toolbar, the profile's (`mapOwn`), the same on every map.
 	// Stars that change the fight in their system (#lib/stars.ts: pulsars, neutron stars, black
 	// holes, …) get an icon left of the system, their effects as its hover, one legend entry below;
 	// the toolbar's "special stars" hides them (per browser, every map; ⚙'s default until then).
-	// `arkships` (a nomad's) are drawn always, as a hexagon above their system, the capital ringed,
-	// with a fit "my arkships".
+	// `arkships` (a nomad's) are drawn with the colonies, as a hexagon above their system, the
+	// capital ringed, with a fit "my arkships"; a system with colonies of ours gets a ring.
 	// "full window" lays the map over the whole browser window (Esc leaves it), for every map, per
 	// viewer; `controls` (the page's own, e.g. the map tab's modes) go under the toolbar, so they
 	// stay in reach there.
@@ -70,10 +73,8 @@
 		hovered = $bindable(null),
 		selected = $bindable(),
 		onsystemmenu,
-		own,
-		ships = 'off',
-		onShips,
-		arkships = []
+		own: ownProp,
+		arkships: arkshipsProp
 	}: {
 		systems: System[];
 		fill?: Record<number, string>; // system id → colour, instead of the own/other tint
@@ -94,10 +95,16 @@
 		// a right-click on a system (the nearest within 8px), with the pointer's place in the window
 		onsystemmenu?: (systemId: number, at: { x: number; y: number }) => void;
 		own?: OwnOnMap;
-		ships?: MapShips;
-		onShips?: (v: MapShips) => void;
 		arkships?: Arkship[];
 	} = $props();
+	const own: OwnOnMap | undefined = $derived(ownProp ?? page.data.ownMap?.own);
+	const arkships: Arkship[] = $derived(arkshipsProp ?? page.data.ownMap?.arkships ?? []);
+	// which of our own to draw: the profile's, changed here at once (every map, so stored)
+	let ownOn: MapOwn = $derived(page.data.mapOwn ?? DEFAULT_MAP_OWN);
+	const setOwn = (k: keyof MapOwn, on: boolean) => {
+		ownOn = { ...ownOn, [k]: on };
+		putSettings({ mapOwn: ownOn }).catch((e) => console.error(e));
+	};
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 	const uid = $props.id(); // several maps on a page: their gradients' ids
 
@@ -343,17 +350,26 @@
 	const shipsAt = $derived.by(() => {
 		const at = new Map<number, string[]>();
 		for (const x of own?.ships ?? [])
-			if (ships === 'all' || (ships === 'fleets') === (x.kind === 'fleet'))
+			if (x.kind === 'fleet' ? ownOn.fleets : ownOn.civilian)
 				at.set(x.systemId, [...(at.get(x.systemId) ?? []), x.name]);
-		return ships === 'off' ? new Map<number, string[]>() : at;
+		return at;
 	});
-	// our arkships per system
+	// our colonies and arkships per system, unless the viewer hid them
+	const coloniesAt = $derived(ownOn.colonies ? (own?.colonies ?? []) : []);
 	const arksAt = $derived.by(() => {
 		const at = new Map<number, Arkship[]>();
-		for (const a of arkships)
+		for (const a of ownOn.colonies ? arkships : [])
 			if (a.systemId !== null) at.set(a.systemId, [...(at.get(a.systemId) ?? []), a]);
 		return at;
 	});
+	// what there is to switch: arkships count as colonies
+	const ownKinds = $derived(
+		(Object.keys(MAP_OWN_INFO) as (keyof MapOwn)[]).filter((k) =>
+			k === 'colonies'
+				? (own?.colonies.length ?? 0) > 0 || arkships.length > 0
+				: (own?.ships ?? []).some((x) => (x.kind === 'fleet') === (k === 'fleets'))
+		)
+	);
 	const arkPoints = $derived(points([...arksAt.keys()]));
 	const hexagon = (x: number, y: number, r: number) =>
 		Array.from({ length: 6 }, (_, i) => {
@@ -588,18 +604,19 @@
 		<span class="ml-2 text-gray-500">zoom</span>
 		<button class={button} onclick={() => zoomBy(1.5)} aria-label="zoom in">+</button>
 		<button class={button} onclick={() => zoomBy(1 / 1.5)} aria-label="zoom out">−</button>
-		{#if own}
-			<label class="ml-2 flex items-center gap-1">
-				ships
-				<select
-					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
-					value={ships}
-					onchange={(e) => onShips?.((e.currentTarget as HTMLSelectElement).value as MapShips)}
-				>
-					{#each MAP_SHIPS as o (o)}<option value={o}>{o}</option>{/each}
-				</select>
+		{#each ownKinds as k (k)}
+			<label
+				class="ml-2 flex items-center gap-1"
+				title="my {MAP_OWN_INFO[k]} — on every map of this profile"
+			>
+				<input
+					type="checkbox"
+					checked={ownOn[k]}
+					onchange={(e) => setOwn(k, e.currentTarget.checked)}
+				/>
+				{`my ${MAP_OWN_INFO[k]}`}
 			</label>
-		{/if}
+		{/each}
 		{#if anySpecial}
 			<label
 				class="ml-2 flex items-center gap-1"
@@ -811,6 +828,28 @@
 									star.binary
 								)}
 							</g>
+						{/each}
+						{#each coloniesAt as c (c.systemId)}
+							{@const s = byId.get(c.systemId)}
+							{#if s}
+								{@const p = at(s)}
+								<g class="fill-sky-600 dark:fill-sky-400">
+									<title>{c.names.join('\n')}</title><circle
+										cx={p.x}
+										cy={p.y}
+										r="6"
+										fill="none"
+										class="stroke-sky-600 dark:stroke-sky-400"
+										stroke-width="1.25"
+									/>{#if c.names.length > 1}<text
+											class="text-[9px] font-semibold"
+											x={p.x + 6}
+											y={p.y - 4}
+										>
+											{c.names.length}
+										</text>{/if}
+								</g>
+							{/if}
 						{/each}
 						{#each [...shipsAt] as [id, names] (id)}
 							{@const s = byId.get(id)}

@@ -4,8 +4,11 @@ import {
 	digSiteDone,
 	firstSeen,
 	mapMarkers,
+	colonySystems,
+	mapOwnFromShips,
 	ownOnMap,
 	parseMapFilter,
+	parseMapOwn,
 	tracked
 } from './mapLayers.ts';
 import type { GalaxySystem, Snapshot } from './types.ts';
@@ -348,19 +351,79 @@ describe('parseMapFilter', () => {
 	it('keeps known layers only', () => {
 		expect(parseMapFilter({ hidden: ['ruins', 'nonsense'] })).toEqual({
 			hidden: ['ruins'],
-			ships: 'off',
 			mode: 'empire'
 		});
-	});
-
-	it('keeps a known ships choice, else none', () => {
-		expect(parseMapFilter({ ships: 'fleets' }).ships).toBe('fleets');
-		expect(parseMapFilter({ ships: 'boats' }).ships).toBe('off');
 	});
 
 	it('keeps a known map mode, else empire', () => {
 		expect(parseMapFilter({ mode: 'opinion' }).mode).toBe('opinion');
 		expect(parseMapFilter({ mode: 'weather' }).mode).toBe('empire');
+	});
+});
+
+describe('parseMapOwn', () => {
+	it('keeps booleans, else the default (colonies on, ships off)', () => {
+		expect(parseMapOwn({ fleets: true, civilian: 'yes' })).toEqual({
+			colonies: true,
+			fleets: true,
+			civilian: false
+		});
+		expect(parseMapOwn(null)).toEqual({ colonies: true, fleets: false, civilian: false });
+	});
+});
+
+describe('mapOwnFromShips', () => {
+	it("takes the old ship picker's choice", () => {
+		expect(mapOwnFromShips('all')).toEqual({ colonies: true, fleets: true, civilian: true });
+		expect(mapOwnFromShips('fleets')).toEqual({ colonies: true, fleets: true, civilian: false });
+		expect(mapOwnFromShips('civilian')).toEqual({
+			colonies: true,
+			fleets: false,
+			civilian: true
+		});
+		expect(mapOwnFromShips('off')).toEqual({ colonies: true, fleets: false, civilian: false });
+		expect(mapOwnFromShips(undefined)).toEqual({
+			colonies: true,
+			fleets: false,
+			civilian: false
+		});
+	});
+});
+
+describe('colonySystems', () => {
+	const galaxy = [
+		{ id: 1, bodies: [{ id: 10 }, { id: 11 }] },
+		{ id: 2, bodies: [{ id: 20 }] },
+		{ id: 3, bodies: null }
+	] as unknown as GalaxySystem[];
+
+	it("groups colonies by their planet's system", () => {
+		expect(
+			colonySystems(
+				[
+					{ planetId: 10, name: 'Earth' },
+					{ planetId: 11, name: 'Mars' },
+					{ planetId: 20, name: 'Kepler' }
+				],
+				galaxy
+			)
+		).toEqual([
+			{ systemId: 1, names: ['Earth', 'Mars'] },
+			{ systemId: 2, names: ['Kepler'] }
+		]);
+	});
+
+	it('leaves out arkship colonies and planets the galaxy lacks', () => {
+		expect(
+			colonySystems(
+				[
+					{ planetId: -5, name: 'Ark' },
+					{ planetId: 99, name: 'Far' }
+				],
+				galaxy
+			)
+		).toEqual([]);
+		expect(colonySystems([{ planetId: 10, name: 'Earth' }], null)).toEqual([]);
 	});
 });
 
@@ -391,5 +454,6 @@ describe('ownOnMap', () => {
 			{ systemId: 4, kind: 'fleet', name: '1st Fleet' },
 			{ systemId: 5, kind: 'civilian', name: 'Ark (Logistic Ship)' }
 		]);
+		expect(o.colonies).toEqual([]);
 	});
 });

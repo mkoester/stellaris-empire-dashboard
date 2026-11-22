@@ -61,13 +61,38 @@ export const LAYER_INFO: Record<MapLayer, { label: string; symbol: string; color
 	planned: { label: 'planned goals', symbol: '◆', color: '#0e8fd0' }
 };
 
-// our own ships on the map and systems tabs: none, all, military fleets or civilian ships
-export const MAP_SHIPS = ['off', 'all', 'fleets', 'civilian'] as const;
-export type MapShips = (typeof MAP_SHIPS)[number];
-
 // `mode`: what colours the borders or systems (#lib/mapModes.ts)
-export type MapFilter = { hidden: MapLayer[]; ships: MapShips; mode: MapMode };
-export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], ships: 'off', mode: 'empire' };
+export type MapFilter = { hidden: MapLayer[]; mode: MapMode };
+export const DEFAULT_MAP_FILTER: MapFilter = { hidden: [], mode: 'empire' };
+
+/**
+ * What of our own every map draws, one switch each and the same on every map (the profile's):
+ * our colonies and a nomad's arkships, our military fleets, our civilian ships. Until 2026-11-22
+ * the map and systems tabs alone had a ship picker (`mapFilter.ships`), read here once as the
+ * start for profiles that had one.
+ */
+export type MapOwn = { colonies: boolean; fleets: boolean; civilian: boolean };
+export const DEFAULT_MAP_OWN: MapOwn = { colonies: true, fleets: false, civilian: false };
+export const MAP_OWN_INFO: Record<keyof MapOwn, string> = {
+	colonies: 'colonies & arkships',
+	fleets: 'fleets',
+	civilian: 'civilian ships'
+};
+
+export function parseMapOwn(v: unknown): MapOwn {
+	const o = (v && typeof v === 'object' ? v : {}) as Partial<Record<keyof MapOwn, unknown>>;
+	const flag = (k: keyof MapOwn) => (typeof o[k] === 'boolean' ? o[k] : DEFAULT_MAP_OWN[k]);
+	return { colonies: flag('colonies'), fleets: flag('fleets'), civilian: flag('civilian') };
+}
+
+/** The old ship picker's choice (`mapFilter.ships`) as the switches, for a profile without them. */
+export function mapOwnFromShips(ships: unknown): MapOwn {
+	return {
+		...DEFAULT_MAP_OWN,
+		fleets: ships === 'all' || ships === 'fleets',
+		civilian: ships === 'all' || ships === 'civilian'
+	};
+}
 
 // a contact's stage by its number, if it has one (`contactStage()`)
 const stageOf = (stage: string) => {
@@ -81,7 +106,6 @@ export function parseMapFilter(v: unknown): MapFilter {
 		hidden: Array.isArray(o.hidden)
 			? MAP_LAYERS.filter((l) => (o.hidden as unknown[]).includes(l))
 			: [],
-		ships: MAP_SHIPS.find((s) => s === o.ships) ?? 'off',
 		mode: parseMapMode(o.mode)
 	};
 }
@@ -89,13 +113,37 @@ export function parseMapFilter(v: unknown): MapFilter {
 /** One of our ships or fleets where it is: `fleet` military, `civilian` the rest. */
 export type MapShip = { systemId: number; kind: 'fleet' | 'civilian'; name: string };
 
+/** A system with colonies of ours, and their names. */
+export type MapColony = { systemId: number; names: string[] };
+
 /**
- * What the map and systems tabs fit and draw of our own (system ids): a nomad's waystations
- * (starbase level `waystation_*`, instead of "my empire"), every system with a station of ours
- * (starbases, outposts, waystations, the arkship's, mining and research stations), and our ships
- * where they are (`Route.systemId`, READER 38 — none in older snapshots).
+ * Our planet colonies by system: the planet's system from the campaign's galaxy reading (its
+ * bodies). Arkship colonies (planet id below 0, `colonyPlaces()`) are drawn as arkships instead;
+ * a colony whose planet the galaxy lacks is left out.
  */
-export function ownOnMap(s: Snapshot) {
+export function colonySystems(
+	colonies: Pick<Snapshot['colonies'][number], 'planetId' | 'name'>[],
+	galaxy: Pick<GalaxySystem, 'id' | 'bodies'>[] | null
+): MapColony[] {
+	const systemOf = new Map(
+		(galaxy ?? []).flatMap((g) => (g.bodies ?? []).map((b) => [b.id, g.id] as const))
+	);
+	const out = new Map<number, string[]>();
+	for (const c of colonies) {
+		const id = c.planetId >= 0 ? systemOf.get(c.planetId) : undefined;
+		if (id !== undefined) out.set(id, [...(out.get(id) ?? []), c.name]);
+	}
+	return [...out].map(([systemId, names]) => ({ systemId, names }));
+}
+
+/**
+ * What every map fits and draws of our own (system ids): a nomad's waystations (starbase level
+ * `waystation_*`, instead of "my empire"), every system with a station of ours (starbases,
+ * outposts, waystations, the arkship's, mining and research stations), our ships where they are
+ * (`Route.systemId`, READER 38 — none in older snapshots) and our colonies' systems (`galaxy`:
+ * the campaign's galaxy reading, none without it).
+ */
+export function ownOnMap(s: Snapshot, galaxy: Pick<GalaxySystem, 'id' | 'bodies'>[] | null = null) {
 	const ships: MapShip[] = [
 		...(s.fleets ?? []).map((f) => ({
 			id: f.route.systemId,
@@ -120,7 +168,8 @@ export function ownOnMap(s: Snapshot) {
 			...(s.stations ?? []).map((x) => x.systemId),
 			...(s.orbitalStations ?? []).map((x) => x.systemId)
 		]),
-		ships
+		ships,
+		colonies: colonySystems(s.colonies ?? [], galaxy)
 	};
 }
 export type OwnOnMap = ReturnType<typeof ownOnMap>;

@@ -6,7 +6,6 @@ import {
 	firstSeen,
 	mapMarkers,
 	contractMarkers,
-	ownOnMap,
 	tracked
 } from '#lib/mapLayers.ts';
 import { diplomacyView } from '#lib/diplomacy.ts';
@@ -16,13 +15,7 @@ import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import {
-	arkshipsOf,
-	campaignGalaxy,
-	capitalId,
-	reveal,
-	territoriesOf
-} from '#lib/server/mapSystems.ts';
+import { campaignGalaxy, capitalId, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display, setting } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
 import { plannedSystems } from '#lib/server/planner.ts';
@@ -70,9 +63,6 @@ export function load({ url }) {
 		...rest,
 		seenAt: s?.date ?? null,
 		filter: setting('mapFilter'),
-		// our stations and ships, for the fit buttons and the ships drawn
-		own: ownOnMap(b.latest),
-		arkships: arkshipsOf(snaps),
 		wanderlust,
 		// per category: found, still open, finishable by what we found (#lib/wanderlust.ts)
 		wanderlustOutlook: wanderlust && outlook(wanderlust, g),
