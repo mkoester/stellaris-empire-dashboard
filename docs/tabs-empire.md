@@ -292,13 +292,12 @@ contacts as a table (age in months, difficulty, clues, stage — its number alon
 counts it: the key's + 1, since every chain starts at `base_contact_set`, `contactStage()`:
 the game's stage keys name the contact's kind and way, spoilers, the user's ask 2026-11-17 —, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
-an envoy). **Difficulty is ≈** (the user's report 2026-11-22, screenshots against the 2228.04.09
-save): the save's `difficulty` is the stage's; the game shows more. Since READER 76 the reading
-adds `first_contact_defense_add` from the contact's cautious protocol (+2, the only source in the
-4.5 files; `firstContactDefense()`), which matched Xi, Phi, Caravaneers and Artisan Troupe — but
-Gimel (cautious), Gamma and Epsilon (attack allowed) showed 2 more still. Companion mod 0.16.0
-exports the game's own sum (READER 77), and the ≈ goes where it is read — unconfirmed in game
-(`docs/open-checks.md` 43). Difficulty and clues carry ▲/▼ since the previous save
+an envoy). **Difficulty as the game shows it** (the user's report 2026-11-22, screenshots against
+the 2228.04.09 save): the save's `difficulty` is the stage's; the game adds the country's
+`first_contact_defense_add` (the cautious protocol's +2; companion mod 0.16.0 exports the engine's
+sum, else ≈ from the protocol) and +2 for a xenophobe, fanatic or not (engine-side, fitted:
+`firstContactDefense()`, READER 78). That matched all 7 contacts; the tooltip names the parts
+(`difficultyTitle()`). Open: `docs/open-checks.md` 43. Difficulty and clues carry ▲/▼ since the previous save
 (`contactChanges()`), here, on the contacts tab's first-contact cell and nowhere else; situations, anomalies, special projects (no progress in the save), dig sites (named,
 with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
 events. **The user's asks 2026-11-20:** situations' progress and ±/mo to two decimals; a ±/mo the

@@ -383,11 +383,30 @@ describe('firstContacts', () => {
 		]);
 	});
 
+	it('adds 2 for a xenophobe, fanatic or not (2228.04.09: Gimel 11, Gamma and Epsilon 7)', () => {
+		const gimel = {
+			ethos: { ethics: ['ethic_fanatic_xenophobe', 'ethic_pacifist'] },
+			variables: { sdash_fcd: 2 } // the cautious protocol, as the mod exported it
+		};
+		expect(firstContactDefense(gimel, true)).toEqual({
+			defense: 4,
+			exact: true,
+			parts: [
+				{ label: 'their first contact modifiers', value: 2 },
+				{ label: 'xenophobe', value: 2 }
+			]
+		});
+		const gamma = { ethos: { ethics: ['ethic_xenophobe', 'ethic_fanatic_militarist'] } };
+		expect(firstContactDefense(gamma, true).defense).toBe(2);
+		expect(firstContactDefense({ ethos: { ethics: ['ethic_xenophile'] } }, true).defense).toBe(0);
+	});
+
 	it('adds nothing for a country without the policy, or unknown', () => {
 		expect(firstContactDefense({ active_policies: [] }, false)).toEqual({
 			defense: 0,
-			exact: false
+			exact: false,
+			parts: []
 		});
-		expect(firstContactDefense(undefined, false)).toEqual({ defense: 0, exact: false });
+		expect(firstContactDefense(undefined, false)).toEqual({ defense: 0, exact: false, parts: [] });
 	});
 });

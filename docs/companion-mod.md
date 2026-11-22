@@ -55,10 +55,11 @@ shows format 2.
   upkeep only beyond the fund's room (`#lib/edictFund.ts`); without the mod the fund is ≈, a lower
   bound from what the empire holds. In game: `docs/open-checks.md` 40.
 - **First contact difficulty** (0.16.0, the user's report 2026-11-22): no log line — each month
-  every country's `first_contact_defense_add` (the game's own sum; the files know only the cautious
-  protocol's +2, which explained 4 of 7 contacts) into its `sdash_fcd`, and `sdash_fcd_on` on ours
-  so a 0 the save leaves out reads as 0. Read as `FirstContact.defense` with `defenseExact`
-  (READER 77); without them the protocol's +2, marked ≈. In game: `docs/open-checks.md` 43.
+  every country's `first_contact_defense_add` (the engine's sum; 2228.06.01 it read exactly the
+  cautious protocol's +2) into its `sdash_fcd`, and `sdash_fcd_on` on ours so a 0 the save leaves
+  out reads as 0. Part of `FirstContact.defense` with `defenseExact` (READER 77), beside the
+  xenophobe +2 the save tells anyway; without the export the protocol's +2, marked ≈. In game:
+  `docs/open-checks.md` 43.
 - **Specimens Output** (0.15.0, the archive tab 2026-11-21): no log line — each month
   `export_modifier_to_variable` exports our `specimens_produces_mult` and the three
   `<category>_specimens_produces_mult` (4.5.4 modifiers.log, Economic Units) into `sdash_sp`,

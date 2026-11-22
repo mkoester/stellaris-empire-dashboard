@@ -347,9 +347,12 @@ export const difficultyText = (f: Pick<FirstContact, 'difficulty' | 'defenseExac
 	`${f.defenseExact ? '' : '≈'}${f.difficulty}`;
 
 /** What a first contact's difficulty is made of, for its tooltip. */
-export function difficultyTitle(f: Pick<FirstContact, 'difficulty' | 'defense' | 'defenseExact'>) {
+export function difficultyTitle(
+	f: Pick<FirstContact, 'difficulty' | 'defense' | 'defenseExact' | 'defenseParts'>
+) {
 	const stage = f.difficulty - (f.defense ?? 0);
-	if (f.defenseExact)
-		return `the stage's ${stage}, +${f.defense} from the country (the game's own)`;
-	return `≈ the stage's ${stage}${f.defense ? `, +${f.defense} for their cautious protocol` : ''}; the game may show 2 more — the companion mod (0.16.0) reads the game's own`;
+	const parts = (f.defenseParts ?? []).map((p) => `, +${p.value} ${p.label}`).join('');
+	return f.defenseExact
+		? `the stage's ${stage}${parts}`
+		: `≈ the stage's ${stage}${parts}; companion mod 0.16.0 reads their modifiers as the game sums them`;
 }

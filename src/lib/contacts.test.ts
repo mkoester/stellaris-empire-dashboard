@@ -305,8 +305,16 @@ describe('difficultyText', () => {
 		expect(difficultyText({ difficulty: 9, defenseExact: false })).toBe('≈9');
 		expect(difficultyText({ difficulty: 9 })).toBe('≈9');
 		expect(difficultyText({ difficulty: 11, defenseExact: true })).toBe('11');
-		expect(difficultyTitle({ difficulty: 11, defense: 4, defenseExact: true })).toBe(
-			"the stage's 7, +4 from the country (the game's own)"
-		);
+		expect(
+			difficultyTitle({
+				difficulty: 11,
+				defense: 4,
+				defenseExact: true,
+				defenseParts: [
+					{ label: 'their first contact modifiers', value: 2 },
+					{ label: 'xenophobe', value: 2 }
+				]
+			})
+		).toBe("the stage's 7, +2 their first contact modifiers, +2 xenophobe");
 	});
 });

@@ -108,9 +108,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
   shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
-  2026-11-22: `develop` has 77 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
+  2026-11-22: `develop` has 78 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
   chapters, planet flags, waystations, the home system surveyed, name templates, every contact's tech
-  gap, the Edict Fund, contracts completed, contract passengers aboard arkships, dig sites excavated by our fleets only, transport contracts' pickup and drop-off, cosmic storms and prescripted name templates, event chains, precursor intel, Grand Archive specimens, fallen-hive fragment names, scope-command name placeholders, first contacts' difficulty with the contact's protocol and the mod's export; the highway: the Ancient Highway mod) — that merge takes 78,
+  gap, the Edict Fund, contracts completed, contract passengers aboard arkships, dig sites excavated by our fleets only, transport contracts' pickup and drop-off, cosmic storms and prescripted name templates, event chains, precursor intel, Grand Archive specimens, fallen-hive fragment names, scope-command name placeholders, first contacts' difficulty with the contact's protocol, the mod's export and xenophobes; the highway: the Ancient Highway mod) — that merge takes 79,
   and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
   in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append

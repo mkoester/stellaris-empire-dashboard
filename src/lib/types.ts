@@ -798,6 +798,8 @@ export type FirstContact = {
 	// `defense` from companion mod 0.16.0's export (the game's own sum), not the protocol's
 	// estimate; READER 77
 	defenseExact?: boolean;
+	// what `defense` is made of (their modifiers or protocol, xenophobe); READER 78
+	defenseParts?: { label: string; value: number }[];
 	clues: number;
 	stage: string;
 	status: string; // in_progress, finished, aborted

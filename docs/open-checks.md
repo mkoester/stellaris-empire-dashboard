@@ -402,15 +402,16 @@ the only source in the 4.5 files) explains Xi 9, Phi 7, Caravaneers 5 and Artisa
 Gimel (cautious, stage 7) showed 11, and Gamma and Epsilon (attack allowed, stage 5) showed 7: +2
 from elsewhere. The dashboard marks difficulty ≈ until this is known.
 
-Companion mod 0.16.0 now exports every country's `first_contact_defense_add` each month
-(`sdash_fcd`, `sdash_fcd_on` on ours; READER 77), and the dashboard drops the ≈ where it is there
-— on the assumption that the extra +2 is that modifier.
+**Found 2026-11-22.** Companion mod 0.16.0's export of every country's
+`first_contact_defense_add` (`sdash_fcd`, 2228.06.01 autosave) read exactly the protocol: 2 for
+the cautious, 0 for the rest — not the extra. What Gimel, Gamma and Epsilon share is the
+**xenophobe** ethic (Gimel fanatic): +2, engine-side, in no game file. Stage + modifier +
+xenophobe matches all 7 contacts on the screenshots (`firstContactDefense()`, READER 78).
 
-- **Do:** restart the game with the mod as linked, let a month pass (an autosave).
-- **Send:** nothing — check the save: `sdash_fcd` on Gimel's (16777225), Gamma's (1) and Epsilon's
-  (16777244) country, expected 4, 2, 2; the frontier tab against the First Contacts screen. If
-  they read 2, 0, 0, the extra is not the modifier: put the ≈ back (`defenseExact`) and look for
-  what the three share.
+- **Do:** at the next look at the First Contacts screen, compare a few contacts with the frontier
+  tab — Pi Aliens (new at 2228.06.01, stage 5, neither cautious nor xenophobe) should read 5;
+  ideally a fanatic xenophile or a gestalt, to rule out other ethic terms.
+- **Send:** the screenshots. Check: each matches; a miss names the next term to fit.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
