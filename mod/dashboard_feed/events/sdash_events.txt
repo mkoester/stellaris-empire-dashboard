@@ -552,6 +552,33 @@ pop_group_event = {
 	}
 }
 
+# 0.16.0: our pops resettled (on_pop_group_resettled): from, to, how many, species — the pairs
+# the save does not have (it holds each colony's signed total, GROWTH_CAT_RESETTLE). Both ends by
+# their carrier, a planet or an arkship, saved as event targets so loc prints their names; the
+# amount (`local_pop_amount`, as vanilla's refugees.4 reads it) through our country's variable
+# sdash_rs, since loc reaches country variables (as sdash.30). Also fires for resettlement an
+# event does (bio.751's resettle_pop_group), not only the player's.
+pop_group_event = {
+	id = sdash.31
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		set_variable = { which = sdash_rs_tmp value = local_pop_amount }
+		owner = {
+			set_variable = { which = sdash_rs value = prev.sdash_rs_tmp }
+			save_event_target_as = sdash_rs_owner
+		}
+		colony = { carrier = { save_event_target_as = sdash_rs_to } }
+		From = { carrier = { save_event_target_as = sdash_rs_from } }
+		log = "SDASH|2|[GetDate]|event|resettled|[sdash_rs_from.GetName]|[sdash_rs_to.GetName]|[sdash_rs_owner.sdash_rs]|[Root.GetSpeciesName]"
+	}
+}
+
 # 0.13.0: a tech researched (on_tech_increased) — its field draws new cards ("Whenever we finish
 # researching a Technology, up to N new options will be generated", 4.5.4 SELECT_TECHNOLOGY_DESC),
 # so the options are logged the next day: on the day itself it is not known whether the game has

@@ -248,8 +248,13 @@ construct_mining_stations … = yes/no } }` — the task is the sub-order. `auto
 current_month_growth_details = { key = { GROWTH_CAT_… } value = { … } } species = { … categories
 } }`. Details are amounts; **emigration counts against the colony** (Earth 2204.07: growth 3,
   emigration 18 → −15), immigration for it; a single entry is a scalar, not a list.
+  **Resettlement** is its own cause, `GROWTH_CAT_RESETTLE`, **signed**: negative on the colony
+  pops left, positive where they arrived — 2228.04.01 (Roaming Cyber Gang's galaxy): 16 colonies,
+  8 negative, summing to 0. `GROWTH_CAT_MIGRATION` appears only in pop groups' own
+  `last_month_growth_details`, not in a colony's. Automatic migration stays `IMMIGRATION`/`EMIGRATION`.
   **No source→destination pairs**: `/migration` shows exact flows only with one sender or one
-  receiver, else a proportional split marked as estimated (`#lib/migration.ts`).
+  receiver, else a proportional split marked as estimated (`#lib/migration.ts`); resettlement
+  likewise from `resettle`, or exact from the companion mod's `resettled` lines (0.16.0).
 - Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
   (adopt and finish entries included), `tradition_categories`, `last_picked_tradition`; perks
   `country.ascension_perks` (both seen filled 2026-10-19).

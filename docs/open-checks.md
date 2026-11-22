@@ -369,6 +369,37 @@ tab's table should list what the outliner lists.
 - **Send:** the screenshots and the date, with the fleets tab's design detail and the starbases
   tab beside them. Check: which lines differ only by empire modifiers; the cooldown's unit.
 
+### 42. Resettlement, exact — migration tab, companion mod 0.16.0 (from 2026-11-22)
+
+**Assumed** (`sdash.31` on `on_pop_group_resettled`): From is the previous colony and `carrier`
+reaches its planet or arkship from it; `local_pop_amount` holds the pops moved and reads as a
+variable in the pop group's scope (as vanilla's refugees.4 checks it); the hook fires for a
+player's resettlement (vanilla's bio.751 shows it fires for an event's `resettle_pop_group` too).
+No line has been seen yet.
+
+- **Do:** with mod 0.16.0 linked, resettle one pop group between two of your colonies; let the
+  month end (an autosave).
+- **Send:** the `SDASH|…|event|resettled|…` line in `logs/game.log` and any `sdash` line in
+  `logs/error.log` (copy both before restarting); the migration tab's violet flow for that month.
+  Check: from, to and pops against what you ordered; the save's `GROWTH_CAT_RESETTLE` on both
+  colonies (−n / +n) against the line.
+
+### 43. First contact difficulty — frontier and contacts tabs (from 2026-11-22)
+
+**Seen** (2228.04.09, the user's First Contacts screenshots, same moment as the save): the game
+shows the stage's `difficulty` plus something. +2 for a cautious protocol (`first_contact_defense_add`,
+the only source in the 4.5 files) explains Xi 9, Phi 7, Caravaneers 5 and Artisan Troupe 3, but
+Gimel (cautious, stage 7) showed 11, and Gamma and Epsilon (attack allowed, stage 5) showed 7: +2
+from elsewhere. The dashboard marks difficulty ≈ until this is known.
+
+- **Do:** hover the Difficulty number of Gimel and Gamma on the First Contacts screen; in the
+  console, `effect` a `check_modifier_value` or (better) a mod event exporting
+  `first_contact_defense_add` of those countries (`export_modifier_to_variable`, as the Edict Fund
+  export) to see whether the extra +2 is that modifier.
+- **Send:** the tooltips and the variable values. Check: if the modifier holds the whole extra,
+  export it monthly per open contact (a new mod version) and drop the ≈; else find what else the
+  three share.
+
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 
 Setup as in `docs/testing.md` → "Testing in a throwaway game".

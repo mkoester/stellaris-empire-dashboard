@@ -130,6 +130,18 @@ describe('parseLine', () => {
 		});
 	});
 
+	it('reads a resettlement (mod 0.16.0)', () => {
+		// from, to, pops, species — the line sdash.31 writes
+		expect(parseLine('SDASH|2|2228.03.14|event|resettled|Earth|Mars|3|Human')).toEqual({
+			kind: 'event',
+			event: {
+				date: '2228.03.14',
+				kind: 'resettled',
+				fields: ['Earth', 'Mars', '3', 'Human']
+			}
+		});
+	});
+
 	it('skips a newer mod\'s event kinds, refuses wrong field counts (a "|" in a name)', () => {
 		expect(parseLine('SDASH|2|2201.03.07|event|nonsense|x')).toBeNull();
 		expect(() => parseLine('SDASH|2|2201.03.07|event|colony-jobs|New|Hope|1|2|3')).toThrow(

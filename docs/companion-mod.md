@@ -27,6 +27,7 @@ shows format 2.
 | `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0)      | at once                                                       | queued/cancelled, edict, decision, … (`#lib/spending.ts`)                                                                         |
 | `event\|multiplayer` (0.11.0)                                             | monthly                                                       | `is_multiplayer` holds (see `docs/no-cheats.md`)                                                                                  |
 | `event\|slave-sold\|<species>\|<pops>\|<buyer>\|<seller>` (0.12.0)        | each sale, galaxy-wide                                        | `on_slave_sold_on_market` (This = pop group, From = buyer, FromFrom = seller)                                                     |
+| `event\|resettled\|<from>\|<to>\|<pops>\|<species>` (0.16.0)              | each resettlement of our pops                                 | `on_pop_group_resettled` (This = pop group, From = previous colony); `/migration`'s exact resettle pairs                          |
 | `event\|tech-option\|<tech>` × n, then `event\|tech-options-end` (0.13.0) | the 2nd of each month, and the day after a tech is researched | `sdash.6`, scheduled a day ahead by `sdash.1` and `sdash.7` (`on_tech_increased`), once a day at most (format 3: with the run id) |
 
 - **Diplomatic weight** (0.4.0): no log line — each month the player's event exports every

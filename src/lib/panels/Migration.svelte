@@ -22,6 +22,7 @@
 				name: c.name,
 				out: -(c.growth!.by.emigration ?? 0),
 				in: c.growth!.by.immigration ?? 0,
+				resettled: c.growth!.by.resettle ?? 0,
 				growth: c.growth!.by.growth ?? 0,
 				net: c.growth!.net
 			}))
@@ -33,6 +34,14 @@
 		{ id: 'name', label: 'Colony', value: (r) => r.name },
 		{ id: 'out', label: 'Leaving', value: (r) => r.out, cell: out, right: true },
 		{ id: 'in', label: 'Arriving', value: (r) => r.in, cell: inCell, right: true },
+		{
+			id: 'resettled',
+			label: 'Resettled',
+			value: (r) => r.resettled,
+			cell: resettled,
+			right: true,
+			title: 'pops you resettled here (+) or away (−); not migration'
+		},
 		{ id: 'growth', label: 'Growth', value: (r) => r.growth, cell: growth, right: true },
 		{ id: 'net', label: 'Net', value: (r) => r.net, cell: net, right: true }
 	];
@@ -44,12 +53,15 @@
 {#snippet inCell(r: Row)}<span class={r.in ? 'text-green-600' : 'text-gray-500'}>
 		{r.in ? `+${fmt(r.in)}` : '0'}
 	</span>{/snippet}
+{#snippet resettled(r: Row)}<span class={r.resettled ? '' : 'text-gray-500'}>
+		{signed(r.resettled)}
+	</span>{/snippet}
 {#snippet growth(r: Row)}{signed(r.growth)}{/snippet}
 {#snippet net(r: Row)}<b>{signed(r.net)}</b>{/snippet}
 
 <Panel
 	title="Migration"
-	note="Last month, in pops. Emigrants leave for the empire's other colonies."
+	note="Last month, in pops. Emigrants leave for the empire's other colonies; resettled pops are the ones you moved."
 >
 	<div class="mb-1">
 		moving: <b>{fmt(total)}</b> a month · <a class="underline" href={details}>details</a>

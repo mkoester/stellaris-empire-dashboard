@@ -143,7 +143,7 @@ describe('pops and their monthly change', () => {
 	it('leaves out the causes that only regroup pops', () => {
 		expect(popCause('promotion')).toBeNull();
 		expect(popCause('ethics')).toBeNull();
-		expect(popCause('resettle')).toBe('migration');
+		expect(popCause('resettle')).toBe('resettled');
 		expect(popCause('decline')).toBe('other');
 	});
 });
