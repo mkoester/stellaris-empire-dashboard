@@ -55,6 +55,11 @@ export type MapWidth = (typeof MAP_WIDTHS)[number];
 export const MAP_WIDTH_KEY = 'galaxy-map-width';
 // '1' while the viewer has the map over the whole browser window (GalaxyMap's "full window")
 export const MAP_FULL_KEY = 'galaxy-map-full';
+// '1' / '0' once the viewer ticks a map's "special stars" (every map, per browser), else ⚙'s default
+export const MAP_STARS_KEY = 'galaxy-map-stars';
+/** This browser's pick of the special stars, else the profile's default. */
+export const mapStars = (stored: string | null, fallback: boolean) =>
+	stored === '1' ? true : stored === '0' ? false : fallback;
 export const parseMapWidth = (stored: unknown, fallback: MapWidth = 'normal'): MapWidth =>
 	MAP_WIDTHS.find((m) => m === stored) ?? fallback;
 /** The width buttons' labels, also the settings' choice of the default width. */

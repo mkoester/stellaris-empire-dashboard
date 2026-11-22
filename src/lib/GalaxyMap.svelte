@@ -7,7 +7,9 @@
 	import {
 		fit,
 		MAP_FULL_KEY,
+		MAP_STARS_KEY,
 		MAP_WIDTH_KEY,
+		mapStars,
 		pan,
 		parseMapWidth,
 		toScreen,
@@ -30,7 +32,8 @@
 	// `own` (map and systems tabs) adds a nomad's "my waystations" in place of "my empire", the fit
 	// "my stations and ships" and our ships drawn per system, which `ships` picks (`onShips` stores it).
 	// Stars that change the fight in their system (#lib/stars.ts: pulsars, neutron stars, black
-	// holes, …) get an icon left of the system, their effects as its hover, one legend entry below.
+	// holes, …) get an icon left of the system, their effects as its hover, one legend entry below;
+	// the toolbar's "special stars" hides them (per browser, every map; ⚙'s default until then).
 	// `arkships` (a nomad's) are drawn always, as a hexagon above their system, the capital ringed,
 	// with a fit "my arkships".
 	// "full window" lays the map over the whole browser window (Esc leaves it), for every map, per
@@ -305,6 +308,7 @@
 		// this browser's pick, else ⚙'s default width
 		width = parseMapWidth(recall(MAP_WIDTH_KEY), page.data.mapDefaults?.width);
 		fullWindow = recall(MAP_FULL_KEY) === '1';
+		starsOn = mapStars(recall(MAP_STARS_KEY), page.data.mapDefaults?.stars ?? true);
 		const html = document.documentElement;
 		const measure = () => {
 			vw = html.clientWidth;
@@ -356,9 +360,15 @@
 			const t = (Math.PI / 3) * i - Math.PI / 2;
 			return `${i ? 'L' : 'M'}${(x + r * Math.cos(t)).toFixed(1)},${(y + r * Math.sin(t)).toFixed(1)}`;
 		}).join('') + 'Z';
-	// systems whose star changes the fight there
+	// systems whose star changes the fight there, unless the viewer hid them
+	let starsOn = $state(true);
+	const setStars = (on: boolean) => {
+		starsOn = on;
+		keep(MAP_STARS_KEY, on ? '1' : '0');
+	};
+	const anySpecial = $derived(systems.some((s) => specialStar(s.star)));
 	const specials = $derived(
-		systems.flatMap((s) => {
+		(starsOn ? systems : []).flatMap((s) => {
 			const star = specialStar(s.star);
 			return star ? [{ s, star }] : [];
 		})
@@ -578,6 +588,17 @@
 					{#each MAP_SHIPS as o (o)}<option value={o}>{o}</option>{/each}
 				</select>
 			</label>
+		{/if}
+		{#if anySpecial}
+			<label
+				class="ml-2 flex items-center gap-1"
+				title="icons for pulsars, neutron stars, black holes and other stars that change the fight in their system — on every map in this browser"
+				><input
+					type="checkbox"
+					checked={starsOn}
+					onchange={(e) => setStars(e.currentTarget.checked)}
+				/> special stars</label
+			>
 		{/if}
 		{#if hasSectors}
 			<label class="ml-2 flex items-center gap-1"

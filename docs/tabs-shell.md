@@ -185,7 +185,10 @@ emergency FTL minimum days +50 %), toxoid star (armor −100 %), the `sc_crisis_
 originals; the Astral Scar's is empty — get an icon per effect left of the system (a dot for a
 binary), their effects in its hover, and one "special stars" legend entry below every map
 (`GalaxyMap` draws it; `mapView()` passes `star` on, unknown systems' too: the game shows every
-star's class). Re-check on game updates. Explored wormholes are dashed arcs, behind the profile's `wormholeLinks` switch (on). Explored =
+star's class). Re-check on game updates. The toolbar's **special stars** checkbox hides the icons
+and the legend entry (the user's ask 2026-11-22: "sometimes it is distracting"; the system's hover
+still names the star) — per browser for every map (`MAP_STARS_KEY`), ⚙'s **Show special stars**
+(`Display.mapStars`, per profile, default on) until a browser picks. Explored wormholes are dashed arcs, behind the profile's `wormholeLinks` switch (on). Explored =
 **both ends visited**: the save marks no wormhole as explored (bypasses carry no such field, the
 country only `seen_bypass_types`), and exploring one is a fleet's jump through it (4.5.2
 `common/bypass/00_bypasses.txt`, `on_pre_explore`), which visits the far end; one end visited is
@@ -252,7 +255,7 @@ wide + table = that with the page's table beside the map) — one localStorage k
 to ⚙'s **A map opens fitted to** (`mapFit`: explored — the default —, my empire, everything;
 everything where that set is empty), following the size; the "everything" button follows it too
 (the user's ask, 2026-11-17). ⚙ shows what this browser keeps of its own — its width pick, how many
-map heights were dragged — each with a reset (`forget()` in `#lib/browserStore.ts`), so a default
+map heights were dragged, its special stars pick — each with a reset (`forget()` in `#lib/browserStore.ts`), so a default
 can take effect again. A page with a table of what its map shows (map: Found;
 systems; megastructures; frontier: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and

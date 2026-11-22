@@ -17,6 +17,7 @@
 	import { forget, recall } from '#lib/browserStore.ts';
 	import {
 		MAP_FITS,
+		MAP_STARS_KEY,
 		MAP_WIDTH_KEY,
 		MAP_WIDTH_LABELS,
 		MAP_WIDTHS,
@@ -29,10 +30,12 @@
 	// what this browser keeps of its own about maps (localStorage): its width pick overrides the
 	// profile's default width; map heights per map. Each with a reset (the user's ask 2026-11-17).
 	let widthPick: string | null = $state(null);
+	let starsPick: string | null = $state(null);
 	let heights = $state(0);
 	const isHeight = (k: string) => /-map-height(-side)?(-square)?$/.test(k);
 	const readBrowser = () => {
 		widthPick = recall(MAP_WIDTH_KEY);
+		starsPick = recall(MAP_STARS_KEY);
 		try {
 			heights = Object.keys(localStorage).filter(isHeight).length;
 		} catch {
@@ -42,6 +45,10 @@
 	onMount(readBrowser);
 	const resetWidth = () => {
 		forget((k) => k === MAP_WIDTH_KEY);
+		readBrowser();
+	};
+	const resetStars = () => {
+		forget((k) => k === MAP_STARS_KEY);
 		readBrowser();
 	};
 	const resetHeights = () => {
@@ -352,6 +359,22 @@
 					>until a map's width buttons pick one in this browser</span
 				></label
 			>
+			<label class="block"
+				><input
+					type="checkbox"
+					checked={data.display.mapStars}
+					onchange={(e) =>
+						act(() =>
+							putSettings({
+								display: { ...data.display, mapStars: e.currentTarget.checked }
+							})
+						)}
+				/>
+				Show special stars (pulsars, neutron stars, black holes, …) on maps
+				<span class="text-sm text-gray-500"
+					>until a map's “special stars” checkbox picks in this browser</span
+				></label
+			>
 			<p class="mt-1 text-sm text-gray-500">
 				This browser:
 				{#if widthPick}width “{MAP_WIDTH_LABELS[widthPick as MapWidth] ?? widthPick}”, picked on a
@@ -364,6 +387,11 @@
 					: ''}{#if heights}<button
 						class="ml-1 rounded border border-gray-300 px-2 dark:border-gray-700"
 						onclick={resetHeights}>reset heights</button
+					>{/if}{starsPick
+					? ` · special stars ${starsPick === '1' ? 'shown' : 'hidden'}, picked on a map`
+					: ''}{#if starsPick}<button
+						class="ml-1 rounded border border-gray-300 px-2 dark:border-gray-700"
+						onclick={resetStars}>reset to the default</button
 					>{/if}
 			</p>
 			{#each groups as g (g.title)}

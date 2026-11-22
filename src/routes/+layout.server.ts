@@ -58,7 +58,7 @@ export function load({ url }) {
 			gone: [],
 			tradeoffs: false,
 			slaveMarket: false,
-			mapDefaults: { fit: 'explored' as MapFit, width: 'normal' as MapWidth },
+			mapDefaults: { fit: 'explored' as MapFit, width: 'normal' as MapWidth, stars: true },
 			loaded: null,
 			feed: null,
 			head: null,
@@ -106,7 +106,11 @@ export function load({ url }) {
 		// the slave market tab: where slavery is allowed, else as ⚙ says
 		slaveMarket: slaveTab(shown, display().slaveMarket),
 		// every map's start: what it fits, and its width until this browser's buttons pick one
-		mapDefaults: { fit: display().mapFit, width: display().mapWidth },
+		mapDefaults: {
+			fit: display().mapFit,
+			width: display().mapWidth,
+			stars: display().mapStars
+		},
 		loaded: loadedNode ? { node: loadedNode.id, date: loadedNode.date } : null,
 		// the companion mod writes a log format this build skips: which side to update
 		feed: (() => {

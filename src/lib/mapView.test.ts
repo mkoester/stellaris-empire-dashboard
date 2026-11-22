@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { K_MAX, fit, pan, parseMapWidth, toGalaxy, toScreen, zoomAt } from './mapView.ts';
+import { K_MAX, fit, mapStars, pan, parseMapWidth, toGalaxy, toScreen, zoomAt } from './mapView.ts';
 
 const size = { w: 800, h: 400 };
 // 2207.03 save: Sol, Alpha Centauri (west of Sol in game), Sirius (east)
@@ -61,5 +61,12 @@ describe('mapView', () => {
 		expect(parseMapWidth('side')).toBe('side');
 		expect(parseMapWidth(null)).toBe('normal');
 		expect(parseMapWidth('huge')).toBe('normal');
+	});
+
+	it('special stars: this browser’s pick, else the profile’s default', () => {
+		expect(mapStars('0', true)).toBe(false);
+		expect(mapStars('1', false)).toBe(true);
+		expect(mapStars(null, true)).toBe(true);
+		expect(mapStars(null, false)).toBe(false);
 	});
 });

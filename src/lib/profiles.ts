@@ -37,6 +37,7 @@ export type Display = {
 	slaveMarket: SlaveMarketMode; // the slave market tab where slavery is not allowed
 	mapFit: MapFit; // what a map shows when a page opens
 	mapWidth: MapWidth; // a map's width until a browser's width button picks one
+	mapStars: boolean; // special stars' icons on every map, until a browser's checkbox picks
 	showSpoilers: boolean; // ⚙ lists the spoiler switches; off, they are off (#lib/displaySwitches.ts)
 	showCheats: boolean; // likewise the cheats
 	habitatsAlways: boolean; // habitat sites before habitats can be built (cheat)
@@ -81,6 +82,7 @@ export const DEFAULT_DISPLAY: Display = {
 	slaveMarket: 'mine',
 	mapFit: 'explored',
 	mapWidth: 'normal',
+	mapStars: true,
 	showSpoilers: false,
 	showCheats: false,
 	habitatsAlways: false,
@@ -176,6 +178,7 @@ export function parseDisplay(v: unknown): Display {
 				: DEFAULT_DISPLAY.slaveMarket,
 		mapFit: parseMapFit(o.mapFit),
 		mapWidth: parseMapWidth(o.mapWidth),
+		mapStars: o.mapStars !== false,
 		// a profile from before the gates keeps what it had on
 		showSpoilers: typeof o.showSpoilers === 'boolean' ? o.showSpoilers : anyOn(o, 'spoiler'),
 		showCheats: typeof o.showCheats === 'boolean' ? o.showCheats : anyOn(o, 'cheat'),

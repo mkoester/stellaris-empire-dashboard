@@ -21,6 +21,7 @@ describe('SWITCHES', () => {
 					'slaveMarket',
 					'mapFit',
 					'mapWidth',
+					'mapStars',
 					'showSpoilers',
 					'showCheats'
 				].includes(k)
