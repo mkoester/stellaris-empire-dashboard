@@ -358,14 +358,36 @@ describe('firstContacts', () => {
 	};
 
 	it("gives the difficulty the game shows: the stage's plus a cautious country's 2", () => {
-		expect(firstContacts(raw).map((c) => [c.countryId, c.difficulty, c.defense])).toEqual([
-			[49, 5, 2],
-			[43, 3, 0]
+		expect(
+			firstContacts(raw).map((c) => [c.countryId, c.difficulty, c.defense, c.defenseExact])
+		).toEqual([
+			[49, 5, 2, false],
+			[43, 3, 0, false]
+		]);
+	});
+
+	it("takes the companion mod's export of the game's own sum (0.16.0), a missing one as 0", () => {
+		const withMod = {
+			...raw,
+			country: { variables: { sdash_fcd_on: 1 } },
+			countryBlocks: {
+				'49': { ...raw.countryBlocks['49'], variables: { sdash_fcd: 4 } },
+				'43': raw.countryBlocks['43'] // 0: the save leaves the variable out
+			}
+		};
+		expect(
+			firstContacts(withMod).map((c) => [c.countryId, c.difficulty, c.defense, c.defenseExact])
+		).toEqual([
+			[49, 7, 4, true],
+			[43, 3, 0, true]
 		]);
 	});
 
 	it('adds nothing for a country without the policy, or unknown', () => {
-		expect(firstContactDefense({ active_policies: [] })).toBe(0);
-		expect(firstContactDefense(undefined)).toBe(0);
+		expect(firstContactDefense({ active_policies: [] }, false)).toEqual({
+			defense: 0,
+			exact: false
+		});
+		expect(firstContactDefense(undefined, false)).toEqual({ defense: 0, exact: false });
 	});
 });

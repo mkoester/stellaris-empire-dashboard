@@ -49,6 +49,16 @@ country_event = {
 		# effect as for the colonies' stability below (scopes include country).
 		export_modifier_to_variable = { modifier = country_edict_fund_add variable = sdash_ef_add }
 		export_modifier_to_variable = { modifier = country_edict_fund_mult variable = sdash_ef_mult }
+		# 0.16.0: what each country adds to the difficulty of first contact with it
+		# (first_contact_defense_add), which the game sums engine-side and does not save — the
+		# cautious protocol's +2 explained only 4 of 7 contacts (2228.04.09). Into each country's
+		# sdash_fcd (the save leaves a 0 out), read from the save only; sdash_fcd_on on ours says
+		# the export ran, so a missing sdash_fcd reads as 0. Modifier from 4.5.4 modifiers.log
+		# (Countries).
+		every_country = {
+			export_modifier_to_variable = { modifier = first_contact_defense_add variable = sdash_fcd }
+		}
+		set_variable = { which = sdash_fcd_on value = 1 }
 		# 0.15.0: the Grand Archive's output modifiers, which the game does not save — each
 		# exhibition's bonuses are × (1 + its category's + the general one). Into sdash_sp (general),
 		# sdash_sp_aw, sdash_sp_hi, sdash_sp_xg, read from the save only. Modifiers from 4.5.4

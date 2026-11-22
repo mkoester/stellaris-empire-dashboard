@@ -13,7 +13,9 @@ import {
 	empireTags,
 	splinterOf,
 	changeMark,
-	contactChanges
+	contactChanges,
+	difficultyText,
+	difficultyTitle
 } from './contacts.ts';
 import type { CountryInfo, FirstContact, Relation } from './types.ts';
 
@@ -295,5 +297,16 @@ describe('changeMark', () => {
 		expect(changeMark(-1)).toBe('▼1');
 		expect(changeMark(0)).toBe('');
 		expect(changeMark(null)).toBe('');
+	});
+});
+
+describe('difficultyText', () => {
+	it("is ≈ unless the country's part is the game's own", () => {
+		expect(difficultyText({ difficulty: 9, defenseExact: false })).toBe('≈9');
+		expect(difficultyText({ difficulty: 9 })).toBe('≈9');
+		expect(difficultyText({ difficulty: 11, defenseExact: true })).toBe('11');
+		expect(difficultyTitle({ difficulty: 11, defense: 4, defenseExact: true })).toBe(
+			"the stage's 7, +4 from the country (the game's own)"
+		);
 	});
 });

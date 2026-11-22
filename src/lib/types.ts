@@ -793,9 +793,11 @@ export type FirstContact = {
 	// as the game shows it: the stage's (`difficulty` in the save) plus `defense`; since READER 76,
 	// the stage's alone before
 	difficulty: number;
-	// what the contacted country adds (its cautious protocol: +2, `firstContactDefense()`);
-	// READER 76, absent before
+	// what the contacted country adds (`firstContactDefense()`); READER 76, absent before
 	defense?: number;
+	// `defense` from companion mod 0.16.0's export (the game's own sum), not the protocol's
+	// estimate; READER 77
+	defenseExact?: boolean;
 	clues: number;
 	stage: string;
 	status: string; // in_progress, finished, aborted

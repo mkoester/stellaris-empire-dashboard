@@ -4,7 +4,7 @@
 	import { fromTable, techMarkFlags } from '#lib/outcomes.ts';
 	import { resolve } from '$app/paths';
 	import { contactStage, fmt, pretty } from '#lib/format.ts';
-	import { changeMark } from '#lib/contacts.ts';
+	import { changeMark, difficultyText, difficultyTitle } from '#lib/contacts.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { mergeGainRows, type GainRow, type GainSource } from '#lib/outcomeGains.ts';
 	import { colorOf } from '#lib/colors.ts';
@@ -111,7 +111,7 @@
 			right: true,
 			cell: difficulty,
 			title:
-				"≈ the stage's difficulty, +2 where they keep the cautious protocol; in game some contacts showed 2 more, from a source not yet known (2228.04.09); ▲▼ since the previous save"
+				"the stage's difficulty plus what the country adds (≈ without companion mod 0.16.0); ▲▼ since the previous save"
 		},
 		{ id: 'clues', label: 'Clues', value: (r) => r.clues, right: true, cell: clues },
 		{ id: 'stage', label: 'Stage', value: (r) => contactStage(r.stage), cell: stage, right: true },
@@ -464,11 +464,9 @@
 {/snippet}
 {#snippet difficulty(r: ContactRow)}<span
 		style:color={hard(r.difficulty)}
-		title="≈ the stage's {r.difficulty - (r.defense ?? 0)}{r.defense
-			? `, +${r.defense} for their cautious protocol`
-			: ''}; the game may show 2 more"
+		title={difficultyTitle(r)}
 	>
-		≈{r.difficulty}
+		{difficultyText(r)}
 	</span><span class="text-xs text-gray-500">
 		{changeMark(data.contactChanges[r.id]?.difficulty)}
 	</span>{/snippet}

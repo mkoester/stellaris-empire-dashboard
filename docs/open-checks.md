@@ -379,8 +379,9 @@ player's resettlement (vanilla's bio.751 shows it fires for an event's `resettle
 pop group — `Selborne|Farleigh|100|Robot` and `…|32|Robot` — and no `sdash` line in `error.log`;
 so From, `carrier` and `local_pop_amount` work. The save books the user's earlier resettlement
 (unemployed robots to the new arkship) in the same unit: 2227.09.01 Selborne −239, Farleigh +239,
-on the migration tab as one exact flow. **Still open:** the 2228.05.01 autosave's
-`GROWTH_CAT_RESETTLE` on both (−132 / +132?) against the lines, and the tab's flow for 2228.04.
+on the migration tab as one exact flow. **Confirmed** by the 2228.05.01 autosave: Selborne
+(colony 0) −132, Farleigh (colony 178) +132 = the two lines. Still to see: the tab's flow for
+2228.04, drawn from the lines.
 
 - **Do:** with mod 0.16.0 linked, resettle one pop group between two of your colonies; let the
   month end (an autosave).
@@ -401,13 +402,15 @@ the only source in the 4.5 files) explains Xi 9, Phi 7, Caravaneers 5 and Artisa
 Gimel (cautious, stage 7) showed 11, and Gamma and Epsilon (attack allowed, stage 5) showed 7: +2
 from elsewhere. The dashboard marks difficulty ≈ until this is known.
 
-- **Do:** hover the Difficulty number of Gimel and Gamma on the First Contacts screen; in the
-  console, `effect` a `check_modifier_value` or (better) a mod event exporting
-  `first_contact_defense_add` of those countries (`export_modifier_to_variable`, as the Edict Fund
-  export) to see whether the extra +2 is that modifier.
-- **Send:** the tooltips and the variable values. Check: if the modifier holds the whole extra,
-  export it monthly per open contact (a new mod version) and drop the ≈; else find what else the
-  three share.
+Companion mod 0.16.0 now exports every country's `first_contact_defense_add` each month
+(`sdash_fcd`, `sdash_fcd_on` on ours; READER 77), and the dashboard drops the ≈ where it is there
+— on the assumption that the extra +2 is that modifier.
+
+- **Do:** restart the game with the mod as linked, let a month pass (an autosave).
+- **Send:** nothing — check the save: `sdash_fcd` on Gimel's (16777225), Gamma's (1) and Epsilon's
+  (16777244) country, expected 4, 2, 2; the frontier tab against the First Contacts screen. If
+  they read 2, 0, 0, the extra is not the modifier: put the ≈ back (`defenseExact`) and look for
+  what the three share.
 
 ## B. Throwaway-game sessions (console cheats; separate `DASHBOARD_DB`)
 

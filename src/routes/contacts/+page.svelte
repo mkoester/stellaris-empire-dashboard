@@ -9,6 +9,8 @@
 		shown,
 		type ContactColumn,
 		changeMark,
+		difficultyText,
+		difficultyTitle,
 		type ContactRow,
 		type ContactView
 	} from '#lib/contacts.ts';
@@ -22,9 +24,6 @@
 	import type { Column } from '#lib/sort.ts';
 
 	let { data } = $props();
-	// first contact difficulty: the save's stage value and the protocol, short of the game's own
-	const ESTIMATE =
-		"≈ the stage's difficulty, +2 where they keep the cautious protocol; in game some contacts showed 2 more, from a source not yet known (2228.04.09)";
 	followGame(() => data.isHead);
 
 	// the view is the profile's: changed here, stored at once
@@ -131,11 +130,11 @@
 {#snippet fc(r: ContactRow)}{#if r.firstContact}{@const f = r.firstContact}{@const n = contactStage(
 			f.stage
 		)}{@const d = data.changes[f.id]}<span
-			title="difficulty {ESTIMATE}; ▲▼ since the previous save"
+			title="difficulty: {difficultyTitle(f)}; ▲▼ since the previous save"
 		>
-			{n === null ? '' : `stage ${n}, `}{f.clues} clues{changeMark(d?.clues)} · difficulty ≈{f.difficulty}{changeMark(
-				d?.difficulty
-			)}
+			{n === null ? '' : `stage ${n}, `}{f.clues} clues{changeMark(d?.clues)} · difficulty {difficultyText(
+				f
+			)}{changeMark(d?.difficulty)}
 		</span>{:else}–{/if}{/snippet}
 
 <header class="mb-4 flex items-start gap-4">

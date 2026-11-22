@@ -341,3 +341,15 @@ export function contactChanges(
 
 /** A change as an arrow: "▲2", "▼1", nothing when none or unknown. */
 export const changeMark = (n: number | null | undefined) => (!n ? '' : n > 0 ? `▲${n}` : `▼${-n}`);
+
+/** A first contact's difficulty as shown: ≈ unless the country's part is the game's own sum. */
+export const difficultyText = (f: Pick<FirstContact, 'difficulty' | 'defenseExact'>) =>
+	`${f.defenseExact ? '' : '≈'}${f.difficulty}`;
+
+/** What a first contact's difficulty is made of, for its tooltip. */
+export function difficultyTitle(f: Pick<FirstContact, 'difficulty' | 'defense' | 'defenseExact'>) {
+	const stage = f.difficulty - (f.defense ?? 0);
+	if (f.defenseExact)
+		return `the stage's ${stage}, +${f.defense} from the country (the game's own)`;
+	return `≈ the stage's ${stage}${f.defense ? `, +${f.defense} for their cautious protocol` : ''}; the game may show 2 more — the companion mod (0.16.0) reads the game's own`;
+}
