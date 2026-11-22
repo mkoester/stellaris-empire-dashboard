@@ -142,11 +142,11 @@
 </script>
 
 {#snippet nameCell(r: Row)}{r.name}{#if r.internal}<span class="text-gray-500">
-			· internal</span
-		>{/if}{#if r.special}<span class="text-gray-500"> · special</span>{/if}{/snippet}
-{#snippet kindCell(r: Row)}<span style:color={KIND_INFO[r.kind].color}
-		>{KIND_INFO[r.kind].symbol}</span
-	>{` ${r.kind}`}{/snippet}
+			· internal
+		</span>{/if}{#if r.special}<span class="text-gray-500"> · special</span>{/if}{/snippet}
+{#snippet kindCell(r: Row)}<span style:color={KIND_INFO[r.kind].color}>
+		{KIND_INFO[r.kind].symbol}
+	</span>{` ${r.kind}`}{/snippet}
 {#snippet issuerCell(r: Row)}<EmpireName name={r.issuerName} wrap />{/snippet}
 {#snippet operatorCell(r: Row)}{#if r.operatorName}<EmpireName
 			name={r.operatorName}
@@ -171,34 +171,44 @@
 			: where(r).label === 'remote'
 				? 'text-green-700 dark:text-green-400'
 				: ''}
-		title={where(r).title}>{where(r).label}</span
-	>{/snippet}
+		title={where(r).title}
+	>
+		{where(r).label}
+	</span>{/snippet}
 {#snippet whyCell(r: Row)}<span
 		class={r.why === 'spoiler'
 			? 'text-amber-600'
 			: r.why === 'cheat'
 				? 'text-red-600'
-				: 'text-gray-500'}>{WHY_LABEL[r.why]}</span
-	>{/snippet}
+				: 'text-gray-500'}
+	>
+		{WHY_LABEL[r.why]}
+	</span>{/snippet}
 
-{#snippet rewardCell(r: Row)}{#if r.detail.trade !== null}<span title={APPROX}
-			>≈{r.detail.trade.toFixed(2)}</span
-		>{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
+{#snippet rewardCell(r: Row)}{#if r.detail.trade !== null}<span title={APPROX}>
+			≈{r.detail.trade.toFixed(2)}
+		</span>{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
 {#snippet workCell(r: Row)}{#if r.detail.research !== null}{fmt(r.detail.research)} research{:else if work(r) !== null}{work(
 			r
-		)} days{:else if r.detail.steps}{r.detail.steps} steps{:else}<span class="text-gray-500">–</span
-		>{/if}{/snippet}
+		)} days{:else if r.detail.steps}{r.detail.steps} steps{:else}<span class="text-gray-500">
+			–
+		</span>{/if}{/snippet}
 {#snippet shipCell(r: Row)}{#if r.detail.aboard}<span
 			class="font-semibold"
 			title={`${r.detail.aboard.who} came aboard ${r.detail.aboard.since ?? 'on an unknown day'}; the game does not show which arkship carries them`}
-			>{r.detail.aboard.who} aboard {r.detail.aboard.name}</span
-		>{:else if r.detail.remote}<span class="text-gray-500">none needed</span
-		>{:else if r.detail.nearest}{@const n = r.detail.nearest}{n.name}<span class="text-gray-500"
-			>{` (${n.kind})`}</span
-		>{n.jumps === null ? ' · no known route' : ` · ${n.jumps} jumps`}{:else}<span
+		>
+			{r.detail.aboard.who} aboard {r.detail.aboard.name}
+		</span>{:else if r.detail.remote}<span class="text-gray-500">
+			none needed
+		</span>{:else if r.detail.nearest}{@const n = r.detail.nearest}{n.name}<span
 			class="text-gray-500"
-			>{r.detail.ships.length ? `no ${r.detail.ships.join(' or ')}` : 'none'}</span
-		>{/if}{/snippet}
+		>
+			{` (${n.kind})`}
+		</span>{n.jumps === null ? ' · no known route' : ` · ${n.jumps} jumps`}{:else}<span
+			class="text-gray-500"
+		>
+			{r.detail.ships.length ? `no ${r.detail.ships.join(' or ')}` : 'none'}
+		</span>{/if}{/snippet}
 {#snippet details(r: Row)}
 	{@const d = r.detail}
 	<details class="text-sm">
@@ -234,11 +244,11 @@
 				</dd>
 				<dt class="text-gray-500">Reward</dt>
 				<dd>
-					{#if d.reward.length}<span title={APPROX}
-							>{d.reward
+					{#if d.reward.length}<span title={APPROX}>
+							{d.reward
 								.map((l) => `${l.scaled ? '≈' : ''}${fmt(l.amount)} ${word(l.resource)}`)
-								.join(' + ')}</span
-						>{d.trust ? ` · +${d.trust} trust` : ''}{d.opinion
+								.join(' + ')}
+						</span>{d.trust ? ` · +${d.trust} trust` : ''}{d.opinion
 							? ` · +${d.opinion} opinion`
 							: ''}{#if d.partial.length}<div class="text-gray-500">
 								partial success: {d.partial
@@ -318,22 +328,22 @@
 
 {#if c.known && !c.nomadic && data.spoilers && !data.all}
 	<div class="mb-4 text-sm">
-		<label class="flex items-center gap-1"
-			>others’ contracts
+		<label class="flex items-center gap-1">
+			others’ contracts
 			<select
 				class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 				value={c.range}
 				onchange={(e) => void setRange(e.currentTarget.value)}
 			>
-				{#each CONTRACT_RANGES as r (r)}<option value={r}
-						>{r === 'mine'
+				{#each CONTRACT_RANGES as r (r)}<option value={r}>
+						{r === 'mine'
 							? 'in my systems'
 							: r === 'all'
 								? 'anywhere'
-								: `up to +${r} beyond the border`}</option
-					>{/each}
-			</select></label
-		>
+								: `up to +${r} beyond the border`}
+					</option>{/each}
+			</select>
+		</label>
 	</div>
 {/if}
 
@@ -359,17 +369,19 @@
 		>
 			{#snippet layer(at)}
 				<ContractMarks marks={data.marks} {at} place={byId} />
-				<defs
-					><marker
+				<defs>
+					<marker
 						id="contract-arrow"
 						viewBox="0 0 10 10"
 						refX="9"
 						refY="5"
 						markerWidth="7"
 						markerHeight="7"
-						orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c9822b" /></marker
-					></defs
-				>
+						orient="auto-start-reverse"
+					>
+						<path d="M0,0 L10,5 L0,10 z" fill="#c9822b" />
+					</marker>
+				</defs>
 				{#each arrows as w (w.id)}
 					{@const p = at(w.a)}
 					{@const q = at(w.b)}
@@ -381,8 +393,10 @@
 						stroke="#c9822b"
 						stroke-width="3"
 						marker-end="url(#contract-arrow)"
-						pointer-events="none"><title>{w.title}</title></line
+						pointer-events="none"
 					>
+						<title>{w.title}</title>
+					</line>
 				{/each}
 			{/snippet}
 		</GalaxyMap>

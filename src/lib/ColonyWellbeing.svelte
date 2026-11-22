@@ -35,11 +35,9 @@
 			{#if a && colony.amenities != null && colony.amenitiesUsage != null}
 				{fmt(colony.amenities)} for {fmt(colony.amenitiesUsage)} needed ({Math.round(a.ratio * 100)} %)
 				→
-				<span class={tone(a.effect)} title={ASSUMED}
-					>≈ {a.on === 'happiness'
-						? `${pct(a.effect)} happiness`
-						: `${pts(a.effect)} stability`}</span
-				>
+				<span class={tone(a.effect)} title={ASSUMED}>
+					≈ {a.on === 'happiness' ? `${pct(a.effect)} happiness` : `${pts(a.effect)} stability`}
+				</span>
 				<div class="text-xs text-gray-500">
 					{#if a.short > 0}
 						short by <b class="text-red-600">{fmt(a.short)}</b>: the penalty grows to its full
@@ -73,8 +71,9 @@
 				<span
 					class="text-gray-500"
 					title="happiness weighted by political power: what stability uses"
-					>{colony.approval != null ? 'approval rating' : 'pops-weighted'}</span
 				>
+					{colony.approval != null ? 'approval rating' : 'pops-weighted'}
+				</span>
 				→ <span class={tone(st)} title={ASSUMED}>≈ {pts(st)} stability</span>
 				<div class="text-xs text-gray-500">
 					{rules.baseHappiness * 100} % moves stability neither way; it reaches {pts(
@@ -89,9 +88,9 @@
 			{Math.round(colony.stability * 10) / 10}
 			{#if colony.stability < rules.lowStability}<span class="text-red-600">low</span>{/if}
 			→
-			<span class={tone(stabilityOutput(colony.stability, rules))} title={ASSUMED}
-				>≈ {pct(stabilityOutput(colony.stability, rules))} job output</span
-			>
+			<span class={tone(stabilityOutput(colony.stability, rules))} title={ASSUMED}>
+				≈ {pct(stabilityOutput(colony.stability, rules))} job output
+			</span>
 			<div class="text-xs text-gray-500">
 				{rules.baseStability} is neutral; job output reaches {pct(rules.outputHigh)} at {rules.maxStability}
 				and {pct(rules.outputLow)} at {rules.minStability}; below {rules.lowStability} the game warns

@@ -29,6 +29,7 @@
 		? 'border-amber-500/60 text-amber-600'
 		: 'border-gray-300 dark:border-gray-700'} {mark?.fanatic ? 'font-semibold' : ''}"
 	title={short ? name : undefined}
-	>{#if mark}<span class="inline-block size-2 rounded-full" style:background={colorOf(mark.color)}
-		></span>{/if}<InfoPopup {explanation}>{short && mark ? mark.short : name}</InfoPopup></span
 >
+	{#if mark}<span class="inline-block size-2 rounded-full" style:background={colorOf(mark.color)}
+		></span>{/if}<InfoPopup {explanation}>{short && mark ? mark.short : name}</InfoPopup>
+</span>

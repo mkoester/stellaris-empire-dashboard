@@ -52,9 +52,9 @@
 									<td class="py-0.5 pr-3 text-gray-500" title={hint ?? r.key}>{r.label}</td>
 									<td class="py-0.5 text-right" title={hint}>
 										{#if r.key === 'difficulty' && data.difficultyCard}
-											<span class={toneOf(r.raw)}
-												><InfoPopup explanation={data.difficultyCard}>{r.value}</InfoPopup></span
-											>
+											<span class={toneOf(r.raw)}>
+												<InfoPopup explanation={data.difficultyCard}>{r.value}</InfoPopup>
+											</span>
 										{:else}{r.value}{/if}
 									</td>
 								</tr>
@@ -75,8 +75,9 @@
 						<th class="pr-4">Non-playable countries</th>
 						<th
 							title="a tech's cost × (1 + this × its tier), at this game's Tech and Tradition Difficulty Scaling (measured in game for techs; how traditions scale is not known)"
-							>Tech cost a tier</th
 						>
+							Tech cost a tier
+						</th>
 					</tr>
 				</thead>
 				<tbody>

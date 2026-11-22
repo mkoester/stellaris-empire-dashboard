@@ -63,8 +63,10 @@
 		{#each [['all', 'all'], ['sector', 'per sector']] as const as [mode, label] (mode)}
 			<button
 				class="px-2 py-0.5 {view.mode === mode ? 'bg-blue-600 text-white' : ''}"
-				onclick={() => (view.mode = mode)}>{label}</button
+				onclick={() => (view.mode = mode)}
 			>
+				{label}
+			</button>
 		{/each}
 	</span>
 	<input
@@ -79,8 +81,8 @@
 		set: (v: string) => void,
 		show = (o: string) => o
 	)}
-		<label
-			>{label}
+		<label>
+			{label}
 			<select
 				class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 				value={get()}
@@ -88,8 +90,8 @@
 			>
 				<option value="">any</option>
 				{#each options as o (o)}<option value={o}>{show(o)}</option>{/each}
-			</select></label
-		>
+			</select>
+		</label>
 	{/snippet}
 	{@render select(
 		'sector',
@@ -112,26 +114,26 @@
 		pretty
 	)}
 	{#if data.species.length}
-		<label
-			>habitability for
+		<label>
+			habitability for
 			<select
 				class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 				value={speciesId}
 				onchange={(e) => (view.species = e.currentTarget.value)}
 			>
-				{#each data.species as s, i (s.id)}<option value={s.id}
-						>{i ? s.name : `${s.name} (main)`}</option
-					>{/each}
-			</select></label
-		>
+				{#each data.species as s, i (s.id)}<option value={s.id}>
+						{i ? s.name : `${s.name} (main)`}
+					</option>{/each}
+			</select>
+		</label>
 	{/if}
 	<label><input type="checkbox" bind:checked={view.filters.attention} /> needs attention</label>
 	<label><input type="checkbox" bind:checked={view.filters.freeDistricts} /> free districts</label>
 	<label><input type="checkbox" bind:checked={view.filters.blockers} /> blockers</label>
 	{#if filtered}
-		<button class="underline" onclick={() => (view.filters = { ...NO_FILTERS })}
-			>clear filters</button
-		>
+		<button class="underline" onclick={() => (view.filters = { ...NO_FILTERS })}>
+			clear filters
+		</button>
 	{/if}
 	<details class="relative">
 		<summary class="cursor-pointer">columns</summary>
@@ -139,8 +141,8 @@
 			class="absolute z-40 mt-1 grid w-56 gap-0.5 rounded border border-gray-300 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900"
 		>
 			{#each COLUMNS as c (c.id)}
-				<label
-					><input
+				<label>
+					<input
 						type="checkbox"
 						checked={view.columns.includes(c.id)}
 						onchange={(e) =>
@@ -148,8 +150,8 @@
 								? COLUMNS.map((x) => x.id).filter((id) => id === c.id || view.columns.includes(id))
 								: view.columns.filter((id) => id !== c.id))}
 					/>
-					{c.label}</label
-				>
+					{c.label}
+				</label>
 			{/each}
 		</div>
 	</details>
@@ -172,10 +174,11 @@
 		Deficit fee: ≈ <span class="text-red-600">−{fmt(l.model)} trade</span> a month over all colonies
 		{#if l.booked !== null}
 			· the budget booked {fmt(l.booked)}
-			{#if l.off !== null && Math.abs(l.off) < 0.05}<span class="text-green-700">✓</span
-				>{:else}<span class="text-amber-600"
-					>⚠ {l.off === null ? 'off' : `off by ${Math.round(l.off * 100)} %`}</span
-				>{/if}
+			{#if l.off !== null && Math.abs(l.off) < 0.05}<span class="text-green-700">
+					✓
+				</span>{:else}<span class="text-amber-600">
+					⚠ {l.off === null ? 'off' : `off by ${Math.round(l.off * 100)} %`}
+				</span>{/if}
 		{/if}
 	</p>
 {/if}
@@ -209,15 +212,15 @@
 				style:border-color={colors[g.sector]}
 			>
 				{g.sector}
-				<span class="text-sm font-normal text-gray-500"
-					>{g.rows.length} colon{g.rows.length === 1 ? 'y' : 'ies'} · {fmt(t.pops)} pops</span
-				>
+				<span class="text-sm font-normal text-gray-500">
+					{g.rows.length} colon{g.rows.length === 1 ? 'y' : 'ies'} · {fmt(t.pops)} pops
+				</span>
 				<span class="flex flex-wrap gap-x-2 text-sm font-normal tabular-nums">
 					{#each netKeys.filter((k) => t.net[k]) as k (k)}
-						<span title="net {pretty(k)} per month"
-							><span style:color={colorOf(k)}>{pretty(k)}</span>
-							<span class={t.net[k] < 0 ? 'text-red-600' : ''}>{signed(t.net[k])}</span></span
-						>
+						<span title="net {pretty(k)} per month">
+							<span style:color={colorOf(k)}>{pretty(k)}</span>
+							<span class={t.net[k] < 0 ? 'text-red-600' : ''}>{signed(t.net[k])}</span>
+						</span>
 					{/each}
 				</span>
 			</h2>

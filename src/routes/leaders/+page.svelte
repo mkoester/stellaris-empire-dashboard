@@ -122,9 +122,9 @@
 	<b class="border-l-4 pl-1" style:border-color={colorOf(`class-${r.class}`)}>{r.name ?? '?'}</b>
 {/snippet}
 {#snippet cls(r: { class: string })}
-	<span class="rounded px-1 text-xs text-white" style:background={colorOf(`class-${r.class}`)}
-		>{r.class}</span
-	>
+	<span class="rounded px-1 text-xs text-white" style:background={colorOf(`class-${r.class}`)}>
+		{r.class}
+	</span>
 {/snippet}
 {#snippet level(r: { level?: number; bonus?: number })}
 	{r.level ?? '–'}{#if r.bonus}<span class="text-gray-500"> +{r.bonus}</span>{/if}
@@ -136,15 +136,15 @@
 {/snippet}
 {#snippet bonusList(list: Bonus[])}
 	{#each list as b, i (i)}<div class="text-xs">
-			<span class={b.wasted ? 'line-through opacity-60' : ''}
-				>{#each b.modifiers as m, j (j)}{j ? ', ' : ''}<span class={modifierColor(m)}
-						>{formatModifierValue(m)}</span
-					>
+			<span class={b.wasted ? 'line-through opacity-60' : ''}>
+				{#each b.modifiers as m, j (j)}{j ? ', ' : ''}<span class={modifierColor(m)}>
+						{formatModifierValue(m)}
+					</span>
 					{modifierLabel(m)}{/each}
-				<span class="text-gray-500">({b.source})</span></span
-			>{#if b.note}<span class={b.wasted ? 'ml-1 text-amber-600' : 'ml-1 text-gray-500'}
-					>— {b.note}</span
-				>{/if}
+				<span class="text-gray-500">({b.source})</span>
+			</span>{#if b.note}<span class={b.wasted ? 'ml-1 text-amber-600' : 'ml-1 text-gray-500'}>
+					— {b.note}
+				</span>{/if}
 		</div>{/each}
 {/snippet}
 {#snippet bonuses(r: Leader)}
@@ -186,28 +186,32 @@
 	<!-- each trait with a badge for every role it acts in -->
 	{#each r.traits ?? [] as t, i (t)}{i ? ' · ' : ''}<InfoPopup
 			explanation={data.explain[`ltrait:${t}`]}
-			>{data.explain[`ltrait:${t}`]?.title ?? pretty(t.replace(/^(leader_)?trait_/, ''))}</InfoPopup
-		>{#each data.traitRoles[`${r.class}:${t}`] ?? [] as k (k)}<RoleBadge kind={k} />{/each}{/each}
+		>
+			{data.explain[`ltrait:${t}`]?.title ?? pretty(t.replace(/^(leader_)?trait_/, ''))}
+		</InfoPopup>{#each data.traitRoles[`${r.class}:${t}`] ?? [] as k (k)}<RoleBadge
+				kind={k}
+			/>{/each}{/each}
 {/snippet}
 
 {#snippet modCell(r: SourceRow)}{modifierLabel(r.mod)}{/snippet}
-{#snippet totalCell(r: SourceRow)}<span class={modifierColor(r.mod)}
-		>{formatModifierValue(r.mod)}</span
-	>{/snippet}
+{#snippet totalCell(r: SourceRow)}<span class={modifierColor(r.mod)}>
+		{formatModifierValue(r.mod)}
+	</span>{/snippet}
 {#snippet sourcesCell(r: SourceRow)}
-	{#each r.sources as x, i (x.ref)}{i ? ' · ' : ''}<span class="whitespace-nowrap"
-			><span class="text-xs text-gray-500">{x.ref.slice(0, x.ref.indexOf(':'))}</span>
-			<InfoPopup explanation={data.explain[x.ref]}
-				>{data.explain[x.ref]?.title ?? x.ref.slice(x.ref.indexOf(':') + 1)}</InfoPopup
-			>{#if r.sources.length > 1 || x.holds === null}
-				<span class={modifierColor({ ...r.mod, value: x.value })}
-					>{formatModifierValue({ ...r.mod, value: x.value * x.count })}</span
-				>{/if}{#if x.holds === null}<span
+	{#each r.sources as x, i (x.ref)}{i ? ' · ' : ''}<span class="whitespace-nowrap">
+			<span class="text-xs text-gray-500">{x.ref.slice(0, x.ref.indexOf(':'))}</span>
+			<InfoPopup explanation={data.explain[x.ref]}>
+				{data.explain[x.ref]?.title ?? x.ref.slice(x.ref.indexOf(':') + 1)}
+			</InfoPopup>{#if r.sources.length > 1 || x.holds === null}
+				<span class={modifierColor({ ...r.mod, value: x.value })}>
+					{formatModifierValue({ ...r.mod, value: x.value * x.count })}
+				</span>{/if}{#if x.holds === null}<span
 					class="text-amber-600"
 					title="triggered: the save cannot tell whether its condition holds — not in the total"
-					>?</span
-				>{/if}</span
-		>{/each}
+				>
+					?
+				</span>{/if}
+		</span>{/each}
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -219,22 +223,23 @@
 	<div class="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
 		<span class="text-gray-500" title="none ticked: all three">only</span>
 		{#each LEADER_CLASSES as c (c)}
-			<label class="flex items-center gap-1"
-				><input type="checkbox" checked={classes.includes(c)} onchange={() => toggle(c)} />
-				<span class="rounded px-1 text-xs text-white" style:background={colorOf(`class-${c}`)}
-					>{c}</span
-				>
+			<label class="flex items-center gap-1">
+				<input type="checkbox" checked={classes.includes(c)} onchange={() => toggle(c)} />
+				<span class="rounded px-1 text-xs text-white" style:background={colorOf(`class-${c}`)}>
+					{c}
+				</span>
 				<span
 					class={data.limits && hired(c) > data.limits[c] ? 'text-amber-600' : 'text-gray-500'}
 					title="hired / limit — a soft one: more cost more upkeep"
-					>{hired(c)}{data.limits ? ` / ${data.limits[c]}` : ''}</span
-				></label
-			>
+				>
+					{hired(c)}{data.limits ? ` / ${data.limits[c]}` : ''}
+				</span>
+			</label>
 		{/each}
-		<label class="flex items-center gap-1"
-			><input type="checkbox" bind:checked={envoys} /> envoys
-			<span class="text-gray-500">{hired('envoy')}</span></label
-		>
+		<label class="flex items-center gap-1">
+			<input type="checkbox" bind:checked={envoys} /> envoys
+			<span class="text-gray-500">{hired('envoy')}</span>
+		</label>
 	</div>
 	<details class="mb-3 text-sm">
 		<summary class="cursor-pointer text-gray-500">
@@ -242,9 +247,12 @@
 		</summary>
 		<div class="mt-2 grid gap-4 md:grid-cols-3">
 			{#each data.classSkill as c (c.cls)}<div>
-					<span class="rounded px-1 text-xs text-white" style:background={colorOf(`class-${c.cls}`)}
-						>{c.cls}</span
+					<span
+						class="rounded px-1 text-xs text-white"
+						style:background={colorOf(`class-${c.cls}`)}
 					>
+						{c.cls}
+					</span>
 					{#each c.roles as r (r.role)}<div class="mt-1">
 							<div class="text-xs font-semibold">
 								<RoleBadge kind={r.role.split(':')[0]} />{r.role}
@@ -277,9 +285,9 @@
 	{:else}<p class="text-sm text-gray-500">Nothing the empire holds acts on leaders.</p>{/if}
 
 	<h2 class="mt-6 mb-2 text-lg font-semibold">
-		Recruitable{#if data.poolKnown}<span class="ml-2 text-sm font-normal text-gray-500"
-				>{LEADER_CLASSES.map((c) => `${recruitable(c)} ${c}s`).join(' · ')}</span
-			>{/if}
+		Recruitable{#if data.poolKnown}<span class="ml-2 text-sm font-normal text-gray-500">
+				{LEADER_CLASSES.map((c) => `${recruitable(c)} ${c}s`).join(' · ')}
+			</span>{/if}
 	</h2>
 	{#if !data.poolKnown}
 		<p class="text-sm text-amber-600">Not read from this save yet; it fills after the next one.</p>

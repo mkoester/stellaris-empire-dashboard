@@ -19,10 +19,10 @@
 	{@const s = place.get(m.systemId)}
 	{#if s}
 		{@const p = at(s)}
-		<text x={p.x - 6} y={p.y - 5} text-anchor="end" class="text-[12px] font-bold"
-			><title>{m.title}</title>{#each m.kinds as k (k)}<tspan fill={KIND_INFO[k].color}
-					>{KIND_INFO[k].symbol}</tspan
-				>{/each}</text
-		>
+		<text x={p.x - 6} y={p.y - 5} text-anchor="end" class="text-[12px] font-bold">
+			<title>{m.title}</title>{#each m.kinds as k (k)}<tspan fill={KIND_INFO[k].color}>
+					{KIND_INFO[k].symbol}
+				</tspan>{/each}
+		</text>
 	{/if}
 {/each}

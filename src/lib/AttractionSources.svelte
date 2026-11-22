@@ -120,70 +120,85 @@
 				? m.kind === 'building'
 					? 'this many built (each one counts)'
 					: 'on this many colonies'
-				: ''}>{mark(m.applies)}</span
-	>{/snippet}
+				: ''}
+	>
+		{mark(m.applies)}
+	</span>{/snippet}
 {#snippet nameCell(m: Source)}<InfoPopup
 		explanation={m.ref ? explain[m.ref] : undefined}
-		ref={m.ref ?? undefined}>{m.name}</InfoPopup
-	>{#if m.scope && m.scope !== 'country'}<span class="text-xs text-gray-500">
-			· {m.scope}</span
-		>{/if}{/snippet}
+		ref={m.ref ?? undefined}
+	>
+		{m.name}
+	</InfoPopup>{#if m.scope && m.scope !== 'country'}<span class="text-xs text-gray-500">
+			· {m.scope}
+		</span>{/if}{/snippet}
 {#snippet kindCell(m: Source)}<span class="text-gray-500">{kindOf(m)}</span>{/snippet}
-{#snippet valueCell(m: Source)}<span class={m.value < 0 ? 'text-red-600' : ''}>{pct(m.value)}</span
-	>{#if m.after !== undefined}<span
+{#snippet valueCell(m: Source)}<span class={m.value < 0 ? 'text-red-600' : ''}>
+		{pct(m.value)}
+	</span>{#if m.after !== undefined}<span
 			class="text-xs text-gray-500"
-			title="while preparing, then after launch">&nbsp;then {pct(m.after)}</span
-		>{/if}{/snippet}
-{#snippet needsCell(m: Source)}{#if m.unlock.forUs === false}<span class="text-gray-500"
-			>— not for us</span
-		>{:else}{#if m.unlock.available !== null}<span
+			title="while preparing, then after launch"
+		>
+			&nbsp;then {pct(m.after)}
+		</span>{/if}{/snippet}
+{#snippet needsCell(m: Source)}{#if m.unlock.forUs === false}<span class="text-gray-500">
+			— not for us
+		</span>{:else}{#if m.unlock.available !== null}<span
 				class={m.unlock.available ? 'text-green-700 dark:text-green-500' : 'text-gray-500'}
-				>{m.unlock.available ? '✓ ' : '✗ '}</span
-			>{/if}<span class="text-xs"
-			>{#each m.unlock.needs as n, i (i)}{i
+			>
+				{m.unlock.available ? '✓ ' : '✗ '}
+			</span>{/if}<span class="text-xs">
+			{#each m.unlock.needs as n, i (i)}{i
 					? n.any && m.unlock.needs[i - 1].any
 						? ' or '
 						: ' · '
-					: ''}<span class={n.authority?.forUs === false ? 'opacity-50' : ''}
-					><InfoPopup explanation={n.ref ? explain[n.ref] : undefined} ref={n.ref ?? undefined}
-						>{n.text}</InfoPopup
-					>{#if n.authority}{@render authorityBadge(n.authority)}{/if}</span
-				>{/each}{#if m.holders.length}<span class="text-gray-500"
-					>&nbsp;— have it: {m.holders
+					: ''}<span class={n.authority?.forUs === false ? 'opacity-50' : ''}>
+					<InfoPopup explanation={n.ref ? explain[n.ref] : undefined} ref={n.ref ?? undefined}>
+						{n.text}
+					</InfoPopup>{#if n.authority}{@render authorityBadge(n.authority)}{/if}
+				</span>{/each}{#if m.holders.length}<span class="text-gray-500">
+					&nbsp;— have it: {m.holders
 						.map((l) => `${l.name}${l.council ? ' (on the council)' : ''}`)
-						.join(', ')}</span
-				>{/if}</span
-		>{/if}{/snippet}
+						.join(', ')}
+				</span>{/if}
+		</span>{/if}{/snippet}
 {#snippet authorityBadge(a: NonNullable<Need['authority']>)}{#each a.require as k (k)}&nbsp;<span
 			class="rounded bg-gray-100 px-1 text-[10px] text-gray-700 dark:bg-gray-800 dark:text-gray-300"
-			><InfoPopup explanation={explain[`authority:${k}`]}
-				>{explain[`authority:${k}`]?.title ?? k}</InfoPopup
-			></span
-		>{:else}&nbsp;<span
+		>
+			<InfoPopup explanation={explain[`authority:${k}`]}>
+				{explain[`authority:${k}`]?.title ?? k}
+			</InfoPopup>
+		</span>{:else}&nbsp;<span
 			class="rounded bg-gray-100 px-1 text-[10px] text-gray-700 dark:bg-gray-800 dark:text-gray-300"
 			title="not for {a.forbid
 				.map((k) => (k === 'gestalt' ? 'gestalt empires' : (explain[`authority:${k}`]?.title ?? k)))
-				.join(', ')}">{a.forbid.includes('gestalt') ? 'non-gestalt' : 'any authority'}</span
-		>{/each}{#if a.forUs === false}<span class="text-[10px] text-gray-500">&nbsp;not ours</span
-		>{/if}{/snippet}
+				.join(', ')}"
+		>
+			{a.forbid.includes('gestalt') ? 'non-gestalt' : 'any authority'}
+		</span>{/each}{#if a.forUs === false}<span class="text-[10px] text-gray-500">
+			&nbsp;not ours
+		</span>{/if}{/snippet}
 {#snippet changeCell(m: Source)}<span class={TONE[m.change.how]}>{m.change.label}</span>{/snippet}
 {#snippet ruleApplies(r: RuleRow)}<span
 		class={r.applies ? 'font-semibold text-green-700 dark:text-green-500' : 'text-gray-500'}
 		title={r.applies === null
 			? 'the save cannot tell (a script value, or what it asks is not read)'
-			: ''}>{r.applies === null ? '?' : r.applies ? '✓' : '✗'}</span
-	>{/snippet}
+			: ''}
+	>
+		{r.applies === null ? '?' : r.applies ? '✓' : '✗'}
+	</span>{/snippet}
 {#snippet ruleEffect(r: RuleRow)}{#if r.kind === 'country'}<b
 			class={(r.factor ?? 1) < (r.op === 'add' ? 0 : 1) ? 'text-red-600' : ''}
 			title={r.per ? `${r.perValue} per ruler or councilor with the ethic` : undefined}
-			>{r.op === 'add'
+		>
+			{r.op === 'add'
 				? r.factor !== null
 					? plus(r.factor)
 					: '+ script value'
 				: r.factor !== null
 					? times(r.factor)
-					: '× script value'}</b
-		>{:else}<span class="text-gray-500">reason</span>{/if}{/snippet}
+					: '× script value'}
+		</b>{:else}<span class="text-gray-500">reason</span>{/if}{/snippet}
 {#snippet ruleWhat(r: RuleRow)}
 	{r.description ?? ''}
 	<div class="text-xs text-gray-500">if: {describe(r.trigger)}</div>
@@ -196,8 +211,10 @@
 			class="rounded border px-2 {show === k
 				? 'border-sky-500 text-sky-600 dark:text-sky-400'
 				: 'border-gray-300 dark:border-gray-700'}"
-			onclick={() => (show = k)}>{label}</button
+			onclick={() => (show = k)}
 		>
+			{label}
+		</button>
 	{/each}
 </div>
 
@@ -209,34 +226,35 @@
 		open={g.ours || g.target === 'government'}
 	>
 		<summary class="cursor-pointer">
-			<span class="font-semibold"
-				>{#if g.target.startsWith('ethic_')}<EthicChip
+			<span class="font-semibold">
+				{#if g.target.startsWith('ethic_')}<EthicChip
 						ethic={g.target}
 						name={g.name}
 						{axes}
 						explanation={explain[`ethic:${g.target}`]}
-					/>{:else}{g.name}{/if}</span
-			>
+					/>{:else}{g.name}{/if}
+			</span>
 			{#if g.ours}<span class="text-xs text-gray-500">ours</span>{/if}
 			{#if g.weight !== null}
 				<span
 					class="text-sm"
 					title="the empire-wide factor on this ethic, as the save holds it (ethics_attraction); the known part is the rules below that apply, in order onto 1 (× multiplies, + adds)"
-					>· empire-wide <b>{times(g.weight)}</b>{#if g.computed}<span class="text-gray-500"
-							>&nbsp;(known {times(
+				>
+					· empire-wide <b>{times(g.weight)}</b>{#if g.computed}<span class="text-gray-500">
+							&nbsp;(known {times(
 								g.computed.known
 							)}{#if Math.abs(g.weight - g.computed.known) > 0.005}, {g.computed.additive
 									? plus(g.weight - g.computed.known)
 									: times(g.weight / (g.computed.known || 1))} from {g.computed.open} rule{g
 									.computed.open === 1
 									? ''
-									: 's'} the save cannot tell{/if})</span
-						>{/if}</span
-				>
+									: 's'} the save cannot tell{/if})
+						</span>{/if}
+				</span>
 			{/if}
-			<span class="text-sm text-gray-500"
-				>· {g.modifiers.filter((m) => on(m.applies)).length} of {g.modifiers.length} modifiers apply</span
-			>
+			<span class="text-sm text-gray-500">
+				· {g.modifiers.filter((m) => on(m.applies)).length} of {g.modifiers.length} modifiers apply
+			</span>
 		</summary>
 		{#if rules.length}
 			<h4 class="mt-2 text-sm font-semibold">The ethic's own rules</h4>

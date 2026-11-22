@@ -60,9 +60,9 @@
 			<ul class="space-y-1 text-sm">
 				{#each data.uncollected as u (u.what)}
 					<li>
-						<span class="font-semibold text-amber-600 tabular-nums"
-							>{u.estimated ? '≈ ' : ''}{signed(u.amount)}</span
-						>
+						<span class="font-semibold text-amber-600 tabular-nums">
+							{u.estimated ? '≈ ' : ''}{signed(u.amount)}
+						</span>
 						{u.what} — <span class="text-gray-500">{u.how}</span>
 					</li>
 				{/each}
@@ -110,12 +110,13 @@
 								class:opacity-50={r.blocked}
 								title={r.blocked ?? undefined}
 							>
-								<span class="flex-1"
-									>{r.name}{#if r.note}<span class="text-xs text-gray-500">{` · ${r.note}`}</span
-										>{/if}{#if r.blocked}<span class="text-xs text-gray-500"
-											>{` · ${r.blocked}`}</span
-										>{/if}</span
-								>
+								<span class="flex-1">
+									{r.name}{#if r.note}<span class="text-xs text-gray-500">
+											{` · ${r.note}`}
+										</span>{/if}{#if r.blocked}<span class="text-xs text-gray-500">
+											{` · ${r.blocked}`}
+										</span>{/if}
+								</span>
 								<span class="shrink-0 tabular-nums">{r.cost}</span>
 							</li>
 						{/each}
@@ -137,9 +138,9 @@
 	<section class="rounded border border-gray-300 p-2 dark:border-gray-700">
 		<h2 class="mb-1 font-semibold">
 			This month
-			{#if data.budgetDate}<span class="text-sm font-normal text-gray-500"
-					>as of {data.budgetDate}</span
-				>{/if}
+			{#if data.budgetDate}<span class="text-sm font-normal text-gray-500">
+					as of {data.budgetDate}
+				</span>{/if}
 		</h2>
 		{#if month === null}
 			<p class="text-sm text-gray-500">No save with a budget yet.</p>
@@ -171,18 +172,18 @@
 						{#each u.named as n, i (i)}
 							<tr class="text-xs">
 								<td class="p-1">{n.date} · {n.label}</td>
-								<td class="p-1 text-right" title={n.approx ? 'base cost, before modifiers' : ''}
-									>{n.approx ? '≈ ' : ''}{signed(n.amount)}</td
-								>
+								<td class="p-1 text-right" title={n.approx ? 'base cost, before modifiers' : ''}>
+									{n.approx ? '≈ ' : ''}{signed(n.amount)}
+								</td>
 							</tr>
 						{/each}
 						<tr
 							class="text-xs {Math.abs(u.unexplained) >= 0.01 ? 'text-amber-600' : 'text-gray-500'}"
 						>
 							<td class="p-1">{data.lostAtCap ? 'lost at the storage cap' : 'unexplained'}</td>
-							<td class="p-1 text-right"
-								>{Math.abs(u.unexplained) >= 0.01 ? signed(u.unexplained) : '–'}</td
-							>
+							<td class="p-1 text-right">
+								{Math.abs(u.unexplained) >= 0.01 ? signed(u.unexplained) : '–'}
+							</td>
 						</tr>
 					</tbody>
 				</table>

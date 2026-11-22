@@ -286,13 +286,13 @@
 	{@const costs = Object.entries(c.cost)
 		.map(([r, v]) => `${fmt(v)} ${pretty(r)}`)
 		.join(', ')}
-	<span class="basis-full pl-1 text-xs text-gray-500" title={costTip(c)}
-		>{#if c.overCap.length}{`≈ ${costs}`}<span class="ml-1 text-red-600"
-				>{`exceeds storage: ${c.overCap.map(pretty).join(', ')}`}</span
-			>{:else}{`≈ ${costs} · `}<span class="font-semibold text-gray-900 dark:text-gray-100"
-				>{`start ${formatMonths(c.alone.now.start)}`}</span
-			>{` (avg ${formatMonths(c.alone.avg.start)}) · built ${c.days === null ? '?' : pair(c.alone, 'finish')}`}{#if c.ordered}{` · in plan order: start ${pair(c.ordered, 'start')}, built ${c.days === null ? '?' : pair(c.ordered, 'finish')}`}{/if}{/if}</span
-	>
+	<span class="basis-full pl-1 text-xs text-gray-500" title={costTip(c)}>
+		{#if c.overCap.length}{`≈ ${costs}`}<span class="ml-1 text-red-600">
+				{`exceeds storage: ${c.overCap.map(pretty).join(', ')}`}
+			</span>{:else}{`≈ ${costs} · `}<span class="font-semibold text-gray-900 dark:text-gray-100">
+				{`start ${formatMonths(c.alone.now.start)}`}
+			</span>{` (avg ${formatMonths(c.alone.avg.start)}) · built ${c.days === null ? '?' : pair(c.alone, 'finish')}`}{#if c.ordered}{` · in plan order: start ${pair(c.ordered, 'start')}, built ${c.days === null ? '?' : pair(c.ordered, 'finish')}`}{/if}{/if}
+	</span>
 {/snippet}
 
 {#snippet badges(r: {
@@ -309,8 +309,10 @@
 			class="ml-1 rounded border px-1 text-[10px]"
 			style:color={colorOf(`${r.area}_research`)}
 			style:border-color={colorOf(`${r.area}_research`)}
-			title="research area">{r.area}</span
-		>{/if}{#if r.badge}<span
+			title="research area"
+		>
+			{r.area}
+		</span>{/if}{#if r.badge}<span
 			class="ml-1 rounded px-1 text-[10px] {focus
 				? 'border'
 				: tree
@@ -330,15 +332,20 @@
 						? 'the focus area it gives points to, and how many (all: every area)'
 						: r.kind === 'focus_reward'
 							? 'the focus area whose points unlock it'
-							: 'tech tier'}>{r.badge}</span
-		>{/if}{#if r.ascension}<span
+							: 'tech tier'}
+		>
+			{r.badge}
+		</span>{/if}{#if r.ascension}<span
 			class="ml-1 rounded bg-amber-100 px-1 text-[10px] text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-			title="ascension path">ascension</span
-		>{/if}{#if r.auto}<span
+			title="ascension path"
+		>
+			ascension
+		</span>{/if}{#if r.auto}<span
 			class="ml-1 rounded bg-gray-100 px-1 text-[10px] text-gray-500 dark:bg-gray-800"
 			title="added by itself: a tradition of an adopted or planned tree, a perk taken, or what a planned tech needs"
-			>auto</span
-		>{/if}
+		>
+			auto
+		</span>{/if}
 {/snippet}
 
 <!-- − want: a tech planned for later (wanted, not yet; the user's ask 2026-11-16) -->
@@ -347,26 +354,31 @@
 			class="rounded border border-gray-300 px-1 text-xs text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
 			title="add for later: want {t.label}, but not yet — Upcoming says to pick another card while it is on offer"
 			aria-label="later {t.label}"
-			onclick={() => addGoal(t.kind, t.target, 'later')}>− want</button
-		>{/if}{/snippet}
+			onclick={() => addGoal(t.kind, t.target, 'later')}
+		>
+			− want
+		</button>{/if}{/snippet}
 
 {#snippet group(name: string | null)}{#if name}<span
 			class="mr-1 rounded bg-sky-50 px-1 text-[10px] text-sky-800 dark:bg-sky-950 dark:text-sky-200"
-			title="planner group">{name}</span
-		>{/if}{/snippet}
+			title="planner group"
+		>
+			{name}
+		</span>{/if}{/snippet}
 
 {#snippet name(r: Row)}
-	<span class={r.polarity === 'avoid' ? 'text-red-700 dark:text-red-400' : ''}
-		>{#if r.polarity === 'avoid'}<span title="to avoid"
-				>⊘
+	<span class={r.polarity === 'avoid' ? 'text-red-700 dark:text-red-400' : ''}>
+		{#if r.polarity === 'avoid'}<span title="to avoid">
+				⊘
 			</span>{:else if r.polarity === 'later'}<span
 				class="text-gray-500"
 				title="later: wanted, but not yet — Upcoming says to pick another card while it is on offer"
-				>⏸
-			</span>{/if}<InfoPopup explanation={r.ref ? data.explain[r.ref] : undefined}
-			>{r.label}</InfoPopup
-		>{@render badges(r)}</span
-	>
+			>
+				⏸
+			</span>{/if}<InfoPopup explanation={r.ref ? data.explain[r.ref] : undefined}>
+			{r.label}
+		</InfoPopup>{@render badges(r)}
+	</span>
 {/snippet}
 
 {#snippet goalRow(r: Row, group: string, ids: string[], shown: string[], draggable: boolean)}
@@ -403,26 +415,30 @@
 					type="button"
 					title="move up"
 					disabled={busy}
-					onclick={() => step(group, ids, shown, r.id, -1)}>▲</button
+					onclick={() => step(group, ids, shown, r.id, -1)}
 				>
+					▲
+				</button>
 				<button
 					type="button"
 					title="move down"
 					disabled={busy}
-					onclick={() => step(group, ids, shown, r.id, 1)}>▼</button
+					onclick={() => step(group, ids, shown, r.id, 1)}
 				>
+					▼
+				</button>
 			</span>
 		{/if}
 		<span class="min-w-48 flex-1">{@render name(r)}</span>
 		{@render status(r)}
 		{#if r.manual}
-			<label class="text-xs"
-				><input
+			<label class="text-xs">
+				<input
 					type="checkbox"
 					checked={r.checked}
 					onchange={() => op(r, r.checked ? 'uncheck' : 'check')}
-				/> done</label
-			>
+				/> done
+			</label>
 		{/if}
 		<span class="flex gap-1 text-xs">
 			{#if r.kind === 'tech' && r.polarity !== 'avoid'}
@@ -433,16 +449,18 @@
 						? 'want it now again'
 						: 'later: still wanted, but not yet — Upcoming says to pick another card while it is on offer'}
 					onclick={() => op(r, 'edit', { polarity: r.polarity === 'later' ? 'want' : 'later' })}
-					>{r.polarity === 'later' ? '+ want' : '− want'}</button
 				>
+					{r.polarity === 'later' ? '+ want' : '− want'}
+				</button>
 			{/if}
 			<button
 				type="button"
 				class="text-gray-500 hover:text-current"
 				title={r.polarity === 'avoid' ? 'switch to: want this' : 'switch to: avoid this'}
 				onclick={() => op(r, 'edit', { polarity: r.polarity === 'avoid' ? 'want' : 'avoid' })}
-				>{r.polarity} ⇄</button
 			>
+				{r.polarity} ⇄
+			</button>
 			<button
 				type="button"
 				class="text-gray-500 hover:text-current"
@@ -450,26 +468,34 @@
 				onclick={() => {
 					editing = r.id;
 					draft = r.note;
-				}}>✎</button
+				}}
 			>
+				✎
+			</button>
 			<button
 				type="button"
 				class="text-gray-500 hover:text-current"
 				title="park: keep it as a potential step, out of the plan"
-				onclick={() => op(r, 'park')}>park</button
+				onclick={() => op(r, 'park')}
 			>
+				park
+			</button>
 			<button
 				type="button"
 				class="text-gray-500 hover:text-current"
 				title="history of this goal"
-				onclick={() => (historyGoal = historyGoal === r.id ? null : r.id)}>⏱</button
+				onclick={() => (historyGoal = historyGoal === r.id ? null : r.id)}
 			>
+				⏱
+			</button>
 			<button
 				type="button"
 				class="text-gray-500 hover:text-red-600"
 				title="remove"
-				onclick={() => remove(r)}>✕</button
+				onclick={() => remove(r)}
 			>
+				✕
+			</button>
 		</span>
 		{#if editing === r.id}
 			<div class="flex w-full gap-1 pl-8">
@@ -556,9 +582,9 @@
 							onclick={() => fold(g.id)}
 						>
 							<span class="w-4 text-gray-400">{folded.includes(g.id) ? '▸' : '▾'}</span>{g.name}
-							<span class="text-sm font-normal text-gray-500"
-								>{open.length} open{done.length ? `, ${done.length} done` : ''}</span
-							>
+							<span class="text-sm font-normal text-gray-500">
+								{open.length} open{done.length ? `, ${done.length} done` : ''}
+							</span>
 						</button>
 						{#if g.id === 'research' && !folded.includes(g.id)}
 							<div class="mb-1 ml-6 flex items-center gap-1 text-xs">
@@ -574,8 +600,10 @@
 											? 'color-mix(in srgb, currentColor 15%, transparent)'
 											: ''}
 										aria-pressed={areas.includes(a)}
-										onclick={() => toggleArea(a)}>{a}</button
+										onclick={() => toggleArea(a)}
 									>
+										{a}
+									</button>
 								{/each}
 								{#if areas.length}<span class="text-gray-500">(none on: all)</span>{/if}
 							</div>
@@ -614,8 +642,8 @@
 
 		<Panel title="Add a goal">
 			<form class="flex flex-wrap items-end gap-2 text-sm" onsubmit={submit}>
-				<label class="flex flex-col"
-					><span class="text-xs text-gray-500">kind</span>
+				<label class="flex flex-col">
+					<span class="text-xs text-gray-500">kind</span>
 					<select
 						class="rounded border border-gray-300 bg-transparent px-1 py-0.5 dark:border-gray-700"
 						bind:value={kind}
@@ -631,8 +659,8 @@
 					</select>
 				</label>
 				{#each kindInfo?.fields ?? [] as f (f)}
-					<label class="flex flex-col"
-						><span class="text-xs text-gray-500">{f}</span>
+					<label class="flex flex-col">
+						<span class="text-xs text-gray-500">{f}</span>
 						{#if f === 'count' || f === 'tier'}
 							<input
 								type="number"
@@ -658,8 +686,8 @@
 					</label>
 				{/each}
 				{#if kindInfo?.manual}
-					<label class="flex flex-col"
-						><span class="text-xs text-gray-500">what</span>
+					<label class="flex flex-col">
+						<span class="text-xs text-gray-500">what</span>
 						<input
 							class="w-80 rounded border border-gray-300 bg-transparent px-1 py-0.5 dark:border-gray-700"
 							bind:value={title}
@@ -667,8 +695,8 @@
 						/>
 					</label>
 				{/if}
-				<label class="flex flex-col"
-					><span class="text-xs text-gray-500">I</span>
+				<label class="flex flex-col">
+					<span class="text-xs text-gray-500">I</span>
 					<select
 						class="rounded border border-gray-300 bg-transparent px-1 py-0.5 dark:border-gray-700"
 						bind:value={polarity}
@@ -678,8 +706,8 @@
 						<option value="avoid">avoid it</option>
 					</select>
 				</label>
-				<label class="flex flex-col"
-					><span class="text-xs text-gray-500">note</span>
+				<label class="flex flex-col">
+					<span class="text-xs text-gray-500">note</span>
 					<input
 						class="w-56 rounded border border-gray-300 bg-transparent px-1 py-0.5 dark:border-gray-700"
 						bind:value={note}
@@ -688,8 +716,10 @@
 				<button
 					type="submit"
 					class="rounded bg-sky-600 px-3 py-1 text-white disabled:opacity-40"
-					disabled={!formTarget || (kindInfo?.manual && !title.trim())}>add</button
+					disabled={!formTarget || (kindInfo?.manual && !title.trim())}
 				>
+					add
+				</button>
 			</form>
 		</Panel>
 
@@ -702,14 +732,16 @@
 						>
 							<span class="min-w-48 flex-1">{@render name(r)}</span>
 							{@render status(r)}
-							<button type="button" class="text-xs text-sky-600" onclick={() => op(r, 'unpark')}
-								>plan again</button
-							>
+							<button type="button" class="text-xs text-sky-600" onclick={() => op(r, 'unpark')}>
+								plan again
+							</button>
 							<button
 								type="button"
 								class="text-xs text-gray-500 hover:text-red-600"
-								onclick={() => remove(r)}>✕</button
+								onclick={() => remove(r)}
 							>
+								✕
+							</button>
 						</li>
 					{/each}
 				</ul>
@@ -723,9 +755,9 @@
 			<div class="mb-2 flex items-center gap-3 text-xs">
 				<label><input type="checkbox" bind:checked={showOrders} /> show reordering</label>
 				{#if historyGoal}
-					<button type="button" class="text-sky-600" onclick={() => (historyGoal = null)}
-						>show every goal</button
-					>
+					<button type="button" class="text-sky-600" onclick={() => (historyGoal = null)}>
+						show every goal
+					</button>
 				{/if}
 			</div>
 			<div class="grid gap-4 md:grid-cols-2">
@@ -736,8 +768,9 @@
 						<li class="py-0.5">
 							<span class="text-gray-500 tabular-nums">{h.date ?? '?'}</span>
 							<b>{h.op}</b>
-							{@render group(h.group)}<InfoPopup ref={h.ref ?? undefined}>{h.label}</InfoPopup
-							>{#if h.kind}{@render badges({
+							{@render group(h.group)}<InfoPopup ref={h.ref ?? undefined}>
+								{h.label}
+							</InfoPopup>{#if h.kind}{@render badges({
 									kind: h.kind,
 									badge: h.badge,
 									ascension: h.ascension,
@@ -756,13 +789,15 @@
 						.sort((a, b) => b.date.localeCompare(a.date)) as d (d.goal)}
 						<li class="py-0.5">
 							<span class="text-gray-500 tabular-nums">{d.exact ? '' : 'by '}{d.date}</span>
-							<b class={d.avoid ? 'text-red-600' : 'text-green-700 dark:text-green-400'}
-								>{d.avoid ? 'happened' : 'reached'}</b
-							>
+							<b class={d.avoid ? 'text-red-600' : 'text-green-700 dark:text-green-400'}>
+								{d.avoid ? 'happened' : 'reached'}
+							</b>
 							{@render group(d.group)}<InfoPopup
 								explanation={d.ref ? data.explain[d.ref] : undefined}
-								ref={d.ref ?? undefined}>{d.label}</InfoPopup
-							>{@render badges(d)}
+								ref={d.ref ?? undefined}
+							>
+								{d.label}
+							</InfoPopup>{@render badges(d)}
 						</li>
 					{:else}
 						<li class="text-gray-500">Nothing reached yet.</li>
@@ -796,8 +831,10 @@
 									...(g.state === 'blocked' ? { parked: true } : {})
 								}
 							}))
-						)}>copy all here</button
+						)}
 				>
+					copy all here
+				</button>
 				<ul class="text-sm">
 					{#each data.others as g (g.id)}
 						<li
@@ -805,9 +842,9 @@
 						>
 							<span class="min-w-40 flex-1">{@render name(g)}</span>
 							{@render status(g)}
-							<button type="button" class="text-xs text-sky-600" onclick={() => copy(g)}
-								>{g.state === 'blocked' ? 'copy, parked' : 'copy here'}</button
-							>
+							<button type="button" class="text-xs text-sky-600" onclick={() => copy(g)}>
+								{g.state === 'blocked' ? 'copy, parked' : 'copy here'}
+							</button>
 						</li>
 					{/each}
 				</ul>
@@ -823,8 +860,8 @@
 					{@const list = s.techs.filter(inArea)}
 					{#if list.length}
 						<details class="mt-1">
-							<summary class="cursor-pointer font-semibold"
-								>{s.name}
+							<summary class="cursor-pointer font-semibold">
+								{s.name}
 								<span class="text-sm font-normal text-gray-500">({list.length}) · {s.why}</span>
 								<button
 									type="button"
@@ -839,9 +876,11 @@
 												data: { kind: t.kind, target: t.target, polarity: 'want' }
 											}))
 										);
-									}}>+ add all</button
-								></summary
-							>
+									}}
+								>
+									+ add all
+								</button>
+							</summary>
 							<ul class="text-sm">
 								{#each list as t (t.tech)}
 									<li
@@ -853,16 +892,19 @@
 												class="rounded border border-sky-300 px-1 text-xs text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900"
 												title="add: want {t.label}"
 												aria-label="want {t.label}"
-												onclick={() => addGoal(t.kind, t.target, 'want')}>+ want</button
+												onclick={() => addGoal(t.kind, t.target, 'want')}
 											>
+												+ want
+											</button>
 											{@render later(t)}
 										</span>
-										<span class="flex-1"
-											><InfoPopup explanation={t.ref ? data.explain[t.ref] : undefined}
-												>{t.label}</InfoPopup
-											>{@render badges(t)}<span class="text-xs text-gray-500">{` · ${t.why}`}</span
-											></span
-										>
+										<span class="flex-1">
+											<InfoPopup explanation={t.ref ? data.explain[t.ref] : undefined}>
+												{t.label}
+											</InfoPopup>{@render badges(t)}<span class="text-xs text-gray-500">
+												{` · ${t.why}`}
+											</span>
+										</span>
 									</li>
 								{/each}
 							</ul>
@@ -878,10 +920,10 @@
 		>
 			{#each suggestionsBy as g (g.id)}
 				<details class="mt-1">
-					<summary class="cursor-pointer font-semibold"
-						>{g.name}
-						<span class="text-sm font-normal text-gray-500">({g.list.length})</span></summary
-					>
+					<summary class="cursor-pointer font-semibold">
+						{g.name}
+						<span class="text-sm font-normal text-gray-500">({g.list.length})</span>
+					</summary>
 					<ul class="text-sm">
 						{#each g.list as s, i (i)}
 							<!-- the buttons first, at a fixed width, and the whole row lit on hover: which
@@ -896,28 +938,32 @@
 										class="rounded border border-sky-300 px-1 text-xs text-sky-700 hover:bg-sky-100 dark:border-sky-700 dark:text-sky-300 dark:hover:bg-sky-900"
 										title="add: want {s.label}"
 										aria-label="want {s.label}"
-										onclick={() => addGoal(s.kind, s.target, 'want')}>+ want</button
+										onclick={() => addGoal(s.kind, s.target, 'want')}
 									>
+										+ want
+									</button>
 									{@render later(s)}
 									<button
 										type="button"
 										class="rounded border border-red-300 px-1 text-xs text-red-700 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
 										title="add: avoid {s.label}"
 										aria-label="avoid {s.label}"
-										onclick={() => addGoal(s.kind, s.target, 'avoid')}>⊘</button
+										onclick={() => addGoal(s.kind, s.target, 'avoid')}
 									>
+										⊘
+									</button>
 								</span>
-								<span class="flex-1"
-									><InfoPopup explanation={s.ref ? data.explain[s.ref] : undefined}
-										>{s.label}</InfoPopup
-									>{@render badges(s)}{#if s.why}<span
+								<span class="flex-1">
+									<InfoPopup explanation={s.ref ? data.explain[s.ref] : undefined}>
+										{s.label}
+									</InfoPopup>{@render badges(s)}{#if s.why}<span
 											class="text-xs text-gray-500"
 											class:cursor-help={s.tip}
 											title={s.tip ?? undefined}
 										>
-											· {s.why}</span
-										>{/if}</span
-								>
+											· {s.why}
+										</span>{/if}
+								</span>
 							</li>
 						{/each}
 					</ul>

@@ -118,9 +118,9 @@
 		</marker>
 	</defs>
 	{#each arcs as a (a.key)}
-		<path d={a.d} fill="none" stroke="currentColor" stroke-width="4" opacity="0.25"
-			><title>{a.label}</title></path
-		>
+		<path d={a.d} fill="none" stroke="currentColor" stroke-width="4" opacity="0.25">
+			<title>{a.label}</title>
+		</path>
 	{/each}
 	{#each edges as e, i (`${e.kind}:${e.from}:${e.to}`)}
 		{#if at.has(e.from) && at.has(e.to)}
@@ -133,8 +133,9 @@
 				stroke-dasharray={e.stale ? '4 3' : undefined}
 				marker-end={e.kind === 'subject' ? 'url(#dip-arrow)' : undefined}
 				opacity={edgeOpacity(e)}
-				><title>{edgeLabel(e.kind)}{e.stale ? ` — unverified since ${e.asOf}` : ''}</title></path
 			>
+				<title>{edgeLabel(e.kind)}{e.stale ? ` — unverified since ${e.asOf}` : ''}</title>
+			</path>
 		{/if}
 	{/each}
 	{#each nodes.filter((n) => at.has(n.id)) as n (n.id)}
@@ -162,18 +163,22 @@
 				y={p.y + 4}
 				text-anchor={right ? 'start' : 'end'}
 				class="fill-current text-[12px] {n.us ? 'font-bold' : ''}"
-				>{n.name}{#each marks(n) as m, i (i)}<tspan
+			>
+				{n.name}{#each marks(n) as m, i (i)}<tspan
 						dx={i ? 3 : 6}
 						class="text-[10px] {m.fanatic ? 'font-bold' : 'font-normal'}"
 						fill={colorOf(m.color)}
-						opacity={n.government?.stale ? 0.5 : 1}>{m.short}</tspan
-					>{/each}{#each details?.(n) ?? [] as l, i (i)}<tspan
+						opacity={n.government?.stale ? 0.5 : 1}
+					>
+						{m.short}
+					</tspan>{/each}{#each details?.(n) ?? [] as l, i (i)}<tspan
 						x={p.x + (right ? 12 : -12)}
 						dy={i ? 11 : 13}
 						class="text-[10px] font-normal {l.stale ? 'fill-amber-600' : 'fill-gray-500'}"
-						>{l.text}</tspan
-					>{/each}</text
-			>
+					>
+						{l.text}
+					</tspan>{/each}
+			</text>
 		</g>
 	{/each}
 </svg>

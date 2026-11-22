@@ -38,12 +38,12 @@
 	];
 </script>
 
-{#snippet out(r: Row)}<span class={r.out ? 'text-red-600' : 'text-gray-500'}
-		>{r.out ? `−${fmt(r.out)}` : '0'}</span
-	>{/snippet}
-{#snippet inCell(r: Row)}<span class={r.in ? 'text-green-600' : 'text-gray-500'}
-		>{r.in ? `+${fmt(r.in)}` : '0'}</span
-	>{/snippet}
+{#snippet out(r: Row)}<span class={r.out ? 'text-red-600' : 'text-gray-500'}>
+		{r.out ? `−${fmt(r.out)}` : '0'}
+	</span>{/snippet}
+{#snippet inCell(r: Row)}<span class={r.in ? 'text-green-600' : 'text-gray-500'}>
+		{r.in ? `+${fmt(r.in)}` : '0'}
+	</span>{/snippet}
 {#snippet growth(r: Row)}{signed(r.growth)}{/snippet}
 {#snippet net(r: Row)}<b>{signed(r.net)}</b>{/snippet}
 

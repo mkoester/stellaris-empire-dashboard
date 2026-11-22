@@ -34,9 +34,9 @@
 		</p>
 		{#if data.status === 'running'}
 			<p class="mt-2">
-				Running. New folders apply at the next start. <a class="underline" href={resolve('/')}
-					>Back to the dashboard</a
-				>
+				Running. New folders apply at the next start. <a class="underline" href={resolve('/')}>
+					Back to the dashboard
+				</a>
 			</p>
 		{/if}
 		{#if form?.restart}
@@ -73,8 +73,8 @@
 					have their own game folders.
 				</p>
 			{/each}
-			<label class="flex flex-col gap-1"
-				>folder
+			<label class="flex flex-col gap-1">
+				folder
 				<input class={field} name="gameDir" bind:value={gameDir} required />
 			</label>
 			{#if form?.errors?.gameDir}<p class="text-red-600">{form.errors.gameDir}</p>{/if}
@@ -85,17 +85,17 @@
 			{#each data.found.users as u (u.dir)}
 				<button type="button" class={choice(u.dir === userDir)} onclick={() => (userDir = u.dir)}>
 					<span class="font-mono">{u.dir}</span>
-					<span class="text-gray-500"
-						>{u.source} · {u.saves} saves · newest {date(u.newestSave)}</span
-					>
+					<span class="text-gray-500">
+						{u.source} · {u.saves} saves · newest {date(u.newestSave)}
+					</span>
 				</button>
 			{:else}
 				<p class="text-gray-500">
 					None found. Usually <code>Documents\Paradox Interactive\Stellaris</code> on Windows.
 				</p>
 			{/each}
-			<label class="flex flex-col gap-1"
-				><span>folder (the one holding <code>save games</code>)</span>
+			<label class="flex flex-col gap-1">
+				<span>folder (the one holding <code>save games</code>)</span>
 				<input class={field} name="userDir" bind:value={userDir} required />
 			</label>
 			{#if form?.errors?.userDir}<p class="text-red-600">{form.errors.userDir}</p>{/if}
@@ -104,12 +104,14 @@
 		<div class="flex items-center gap-3">
 			<button
 				class="rounded bg-blue-600 px-4 py-2 font-semibold text-white disabled:opacity-50"
-				disabled={busy}>{data.status === 'running' ? 'Save' : 'Start'}</button
+				disabled={busy}
 			>
+				{data.status === 'running' ? 'Save' : 'Start'}
+			</button>
 			{#if busy}
-				<span class="text-gray-500"
-					>Starting — the first start reads the game data and every save, which can take a minute.</span
-				>
+				<span class="text-gray-500">
+					Starting — the first start reads the game data and every save, which can take a minute.
+				</span>
 			{/if}
 		</div>
 	</form>

@@ -70,35 +70,35 @@
 	{:else}
 		<svg viewBox="0 0 {W} {H}" class="w-full max-w-3xl" role="img" aria-label="Migration per month">
 			<line x1={PAD_L} x2={W} y1={zero} y2={zero} class="stroke-gray-400" />
-			<text x={PAD_L - 4} y="12" text-anchor="end" class="fill-gray-500 text-[10px]"
-				>+{fmt(max)}</text
-			>
-			<text x={PAD_L - 4} y={H - PAD_B - 2} text-anchor="end" class="fill-gray-500 text-[10px]"
-				>−{fmt(max)}</text
-			>
+			<text x={PAD_L - 4} y="12" text-anchor="end" class="fill-gray-500 text-[10px]">
+				+{fmt(max)}
+			</text>
+			<text x={PAD_L - 4} y={H - PAD_B - 2} text-anchor="end" class="fill-gray-500 text-[10px]">
+				−{fmt(max)}
+			</text>
 			{#each segments as s, i (i)}
-				<rect x={s.x} y={s.y} width={Math.max(step - 2, 1)} height={s.h} rx="1" fill={s.fill}
-					><title>{s.tip}</title></rect
-				>
+				<rect x={s.x} y={s.y} width={Math.max(step - 2, 1)} height={s.h} rx="1" fill={s.fill}>
+					<title>{s.tip}</title>
+				</rect>
 			{/each}
 			{#each months as m, col (m)}
 				{#if col % 6 === 0}
-					<text x={PAD_L + col * step} y={H - 6} class="fill-gray-500 text-[10px]"
-						>{gameMonth(x[m])}</text
-					>
+					<text x={PAD_L + col * step} y={H - 6} class="fill-gray-500 text-[10px]">
+						{gameMonth(x[m])}
+					</text>
 				{/if}
 			{/each}
 		</svg>
 		<div class="mt-1 flex flex-wrap gap-x-4 text-xs">
 			{#each colonies as c, i (c.key)}
-				<span
-					><span
+				<span>
+					<span
 						class="inline-block h-2.5 w-2.5 rounded-sm align-middle"
 						style:background={colorOf(i)}
 					></span>
 					{c.name}{#if !c.own}
-						({#if c.owner}<EmpireName name={c.owner} bold={false} />{/if}){/if}</span
-				>
+						({#if c.owner}<EmpireName name={c.owner} bold={false} />{/if}){/if}
+				</span>
 			{/each}
 		</div>
 	{/if}

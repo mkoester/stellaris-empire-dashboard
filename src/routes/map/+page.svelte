@@ -218,8 +218,10 @@
 {#snippet ongoing(r: Marker)}{r.ongoing ? '✓' : r.ongoing === false ? 'waiting' : '–'}{/snippet}
 {#snippet name(r: Marker)}{#if r.tip}<span
 			class="cursor-help underline decoration-dotted"
-			title={r.tip}>{r.label}</span
-		>{:else}{r.label}{/if}{/snippet}
+			title={r.tip}
+		>
+			{r.label}
+		</span>{:else}{r.label}{/if}{/snippet}
 {#snippet what(r: Marker)}
 	<span style:color={LAYER_INFO[r.layer].color}>{LAYER_INFO[r.layer].symbol}</span>
 	{LAYER_INFO[r.layer].label}
@@ -243,10 +245,9 @@
 	</Panel>
 
 	<details bind:open={showDone}>
-		<summary class="cursor-pointer text-xl font-semibold"
-			>Found &amp; done <span class="text-base font-normal text-gray-500">{done.length}</span
-			></summary
-		>
+		<summary class="cursor-pointer text-xl font-semibold">
+			Found &amp; done <span class="text-base font-normal text-gray-500">{done.length}</span>
+		</summary>
 		<p class="my-2 text-sm text-gray-500">
 			Resolved anomalies, excavated dig sites, finished first contacts and the stations of empires
 			met, finished special projects, counted Wanderlust targets, claimed ruins, and entry popups
@@ -275,8 +276,8 @@
 {/if}
 
 <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
-	<label class="flex items-center gap-1"
-		>find system
+	<label class="flex items-center gap-1">
+		find system
 		<input
 			class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 			list="system-names"
@@ -284,8 +285,8 @@
 			bind:value={query}
 			oninput={() => go(find(query, false))}
 			onkeydown={(e) => e.key === 'Enter' && go(find(query, true))}
-		/></label
-	>
+		/>
+	</label>
 	<datalist id="system-names">
 		{#each names as [n, id] (id)}<option value={n}></option>{/each}
 	</datalist>
@@ -308,8 +309,10 @@
 					title={c.done
 						? 'done'
 						: `${c.need} more to visit; ${c.open} found and not yet counted${c.finishable ? ': enough to finish it' : ''}`}
-					>{wanderlustName(c.key)} {c.seen} / {c.count}{c.done ? ' ✓' : ` (${c.found} found)`}</span
-				>{/each}{/if}
+				>
+					{wanderlustName(c.key)}
+					{c.seen} / {c.count}{c.done ? ' ✓' : ` (${c.found} found)`}
+				</span>{/each}{/if}
 	</p>
 {/if}
 
@@ -353,8 +356,10 @@
 								: ''}"
 							aria-pressed={filter.mode === m}
 							title={MODE_INFO[m].note}
-							onclick={() => setMode(m)}>{MODE_INFO[m].label}</button
+							onclick={() => setMode(m)}
 						>
+							{MODE_INFO[m].label}
+						</button>
 					{/each}
 					{#if filter.mode !== 'empire'}
 						<span class="text-gray-500">{MODE_INFO[filter.mode].note}</span>
@@ -376,11 +381,11 @@
 				{/if}
 				<div class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
 					{#each MAP_LAYERS as l (l)}
-						<label class="flex items-center gap-1"
-							><input type="checkbox" checked={on(l)} onchange={() => toggle(l)} />
+						<label class="flex items-center gap-1">
+							<input type="checkbox" checked={on(l)} onchange={() => toggle(l)} />
 							<span style:color={LAYER_INFO[l].color}>{LAYER_INFO[l].symbol}</span>
-							{LAYER_INFO[l].label} <span class="text-gray-500">{count(l)}</span></label
-						>
+							{LAYER_INFO[l].label} <span class="text-gray-500">{count(l)}</span>
+						</label>
 					{/each}
 				</div>
 			{/snippet}
@@ -395,8 +400,10 @@
 								x={p.x + 6 + i * 11}
 								y={p.y - 5}
 								opacity={m.done ? 0.4 : 1}
-								fill={LAYER_INFO[m.layer].color}>{LAYER_INFO[m.layer].symbol}</text
+								fill={LAYER_INFO[m.layer].color}
 							>
+								{LAYER_INFO[m.layer].symbol}
+							</text>
 						{/each}
 					{/if}
 				{/each}

@@ -69,12 +69,14 @@
 			<button
 				class="{button} {view.layout === l ? 'bg-gray-200 dark:bg-gray-800' : ''}"
 				aria-pressed={view.layout === l}
-				onclick={() => onView?.({ ...view, layout: l })}>{l}</button
+				onclick={() => onView?.({ ...view, layout: l })}
 			>
+				{l}
+			</button>
 		{/each}
 		{#if view.layout === 'circle' && arkships.length > 1}
-			<label class="ml-2 flex items-center gap-1"
-				>arkships clockwise
+			<label class="ml-2 flex items-center gap-1">
+				arkships clockwise
 				<select
 					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 					value={view.order}
@@ -136,12 +138,13 @@
 						stroke-width={Math.max(2, (f.pops / max) * 10)}
 						stroke-dasharray={f.estimated ? '6 4' : undefined}
 						marker-end="url(#arrow-{f.from.ownerId})"
-						><title
-							>{f.from.name} → {f.to.name}: {fmt(f.pops)} pops/month{f.estimated
-								? ' (estimated)'
-								: ''}</title
-						></path
 					>
+						<title>
+							{f.from.name} → {f.to.name}: {fmt(f.pops)} pops/month{f.estimated
+								? ' (estimated)'
+								: ''}
+						</title>
+					</path>
 				{/each}
 				{#each rows as r (r.colonyId)}
 					<circle
@@ -151,13 +154,14 @@
 						fill={colors[r.ownerId]}
 						stroke="white"
 						stroke-width="2"
-						><title
-							>{r.name} ({r.owner}) · +{fmt(r.immigration)} / −{fmt(r.emigration)} last month</title
-						></circle
 					>
-					<text x={at(r).x + 10} y={at(r).y + 4 + labelDy(r)} class="fill-current text-[11px]"
-						>{r.name}</text
-					>
+						<title>
+							{r.name} ({r.owner}) · +{fmt(r.immigration)} / −{fmt(r.emigration)} last month
+						</title>
+					</circle>
+					<text x={at(r).x + 10} y={at(r).y + 4 + labelDy(r)} class="fill-current text-[11px]">
+						{r.name}
+					</text>
 				{/each}
 			{/snippet}
 		</GalaxyMap>

@@ -502,21 +502,22 @@
 				<span
 					class="flex items-center gap-1"
 					title={`Stars that change the fight in their system (a dot: a binary system):\n${STAR_LEGEND.map((l) => l.title).join('\n')}`}
-					><svg width="58" height="14" viewBox="-7 -7 58 14" aria-hidden="true"
-						>{#each STAR_LEGEND as l, i (l.effect)}<g transform="translate({i * 14},0)"
-								><title>{l.title}</title>{@render starIcon(l.effect, false)}</g
-							>{/each}</svg
-					>special stars</span
 				>
+					<svg width="58" height="14" viewBox="-7 -7 58 14" aria-hidden="true">
+						{#each STAR_LEGEND as l, i (l.effect)}<g transform="translate({i * 14},0)">
+								<title>{l.title}</title>{@render starIcon(l.effect, false)}
+							</g>{/each}
+					</svg>special stars
+				</span>
 			{/if}
 			{#each shown as t (t.key)}
-				<span class="flex items-center gap-1"
-					><span
+				<span class="flex items-center gap-1">
+					<span
 						class="inline-block h-2.5 w-2.5 rounded-sm border"
 						style:background={t.color}
 						style:border-style={t.guess ? 'dashed' : 'solid'}
-					></span>{t.label}</span
-				>
+					></span>{t.label}
+				</span>
 			{/each}
 		</div>
 	{/if}
@@ -534,52 +535,62 @@
 	style={full ? `width: ${vw}px; margin-inline: calc(50% - ${vw / 2}px)` : ''}
 >
 	<div class="mb-2 flex shrink-0 flex-wrap items-center gap-2 text-sm">
-		<button class={button} disabled={!capital} onclick={() => capital && toCapital(capital)}
-			>capital</button
-		>
+		<button class={button} disabled={!capital} onclick={() => capital && toCapital(capital)}>
+			capital
+		</button>
 		<span class="ml-2 text-gray-500">fit</span>
 		<button
 			class={button}
 			disabled={!home.points.length}
-			onclick={() => (view = fit(home.points, size))}>{home.label}</button
+			onclick={() => (view = fit(home.points, size))}
 		>
+			{home.label}
+		</button>
 		{#if arkships.length}
 			<button
 				class={button}
 				disabled={!arkPoints.length}
-				onclick={() => (view = fit(arkPoints, size))}>my arkships</button
+				onclick={() => (view = fit(arkPoints, size))}
 			>
+				my arkships
+			</button>
 		{/if}
 		{#if own}
 			<button
 				class={button}
 				disabled={!stationsAndShips.length}
-				onclick={() => (view = fit(stationsAndShips, size))}>my stations and ships</button
+				onclick={() => (view = fit(stationsAndShips, size))}
 			>
+				my stations and ships
+			</button>
 		{/if}
-		<button class={button} disabled={!explored.length} onclick={() => (view = fit(explored, size))}
-			>explored</button
-		>
+		<button class={button} disabled={!explored.length} onclick={() => (view = fit(explored, size))}>
+			explored
+		</button>
 		{#each focus as f (f.label)}
 			<button
 				class={button}
 				disabled={!f.points.length}
-				onclick={() => (view = fit(f.points, size))}>{f.label}</button
+				onclick={() => (view = fit(f.points, size))}
 			>
+				{f.label}
+			</button>
 		{/each}
 		<button
 			class={button}
 			onclick={() => {
 				view = null;
 				all = true;
-			}}>everything</button
+			}}
 		>
+			everything
+		</button>
 		<span class="ml-2 text-gray-500">zoom</span>
 		<button class={button} onclick={() => zoomBy(1.5)} aria-label="zoom in">+</button>
 		<button class={button} onclick={() => zoomBy(1 / 1.5)} aria-label="zoom out">−</button>
 		{#if own}
-			<label class="ml-2 flex items-center gap-1"
-				>ships
+			<label class="ml-2 flex items-center gap-1">
+				ships
 				<select
 					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 					value={ships}
@@ -593,17 +604,18 @@
 			<label
 				class="ml-2 flex items-center gap-1"
 				title="icons for pulsars, neutron stars, black holes and other stars that change the fight in their system — on every map in this browser"
-				><input
+			>
+				<input
 					type="checkbox"
 					checked={starsOn}
 					onchange={(e) => setStars(e.currentTarget.checked)}
-				/> special stars</label
-			>
+				/> special stars
+			</label>
 		{/if}
 		{#if hasSectors}
-			<label class="ml-2 flex items-center gap-1"
-				><input type="checkbox" bind:checked={sectors} /> sectors</label
-			>
+			<label class="ml-2 flex items-center gap-1">
+				<input type="checkbox" bind:checked={sectors} /> sectors
+			</label>
 		{/if}
 		<span class="ml-2 text-gray-500">width</span>
 		{#each offered as [m, text, title] (m)}
@@ -612,16 +624,19 @@
 				class="{button} {active ? 'bg-gray-200 dark:bg-gray-800' : ''}"
 				aria-pressed={active}
 				{title}
-				onclick={() => setWidth(m)}>{text}</button
+				onclick={() => setWidth(m)}
 			>
+				{text}
+			</button>
 		{/each}
 		<button
 			class="{button} {fullWindow ? 'bg-gray-200 dark:bg-gray-800' : ''}"
 			aria-pressed={fullWindow}
 			title={fullWindow ? 'back to the page (Esc)' : 'the map over the whole browser window'}
 			onclick={() => setFullWindow(!fullWindow)}
-			>{fullWindow ? '✕ full window' : '⛶ full window'}</button
 		>
+			{fullWindow ? '✕ full window' : '⛶ full window'}
+		</button>
 	</div>
 	{#if controls}<div class="mb-2 shrink-0">{@render controls()}</div>{/if}
 	<div
@@ -706,8 +721,10 @@
 										fill-opacity="0.6"
 										font-size="12"
 										text-anchor="middle"
-										dominant-baseline="middle">{m.name}</text
+										dominant-baseline="middle"
 									>
+										{m.name}
+									</text>
 								{/each}
 							</g>
 						{/if}
@@ -748,8 +765,10 @@
 								d={arc(a, b)}
 								fill="none"
 								stroke-width="1.5"
-								stroke-dasharray="5 4"><title>{via} {a.name} – {b.name}</title></path
+								stroke-dasharray="5 4"
 							>
+								<title>{via} {a.name} – {b.name}</title>
+							</path>
 						{/each}
 						{#each systems as s (s.id)}
 							<!-- a wider invisible target, so a 3px system is easy to point at -->
@@ -761,14 +780,15 @@
 								fill="transparent"
 								onpointerenter={() => (hovered = s.id)}
 								onpointerleave={() => (hovered = null)}
-								><title
-									>{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{specialStar(
+							>
+								<title>
+									{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{specialStar(
 										s.star
 									)
 										? ` — ${starTitle(specialStar(s.star)!)}`
-										: ''}{titles[s.id] ? ` — ${titles[s.id]}` : ''}</title
-								></circle
-							>
+										: ''}{titles[s.id] ? ` — ${titles[s.id]}` : ''}
+								</title>
+							</circle>
 							<circle
 								cx={at(s).x}
 								cy={at(s).y}
@@ -785,40 +805,40 @@
 						{/each}
 						{#each specials as { s, star } (s.id)}
 							{@const p = at(s)}
-							<g transform="translate({p.x - 12},{p.y})"
-								><title>{s.name} — {starTitle(star)}</title>{@render starIcon(
+							<g transform="translate({p.x - 12},{p.y})">
+								<title>{s.name} — {starTitle(star)}</title>{@render starIcon(
 									star.effect,
 									star.binary
-								)}</g
-							>
+								)}
+							</g>
 						{/each}
 						{#each [...shipsAt] as [id, names] (id)}
 							{@const s = byId.get(id)}
 							{#if s}
 								{@const p = at(s)}
-								<g class="fill-emerald-600 dark:fill-emerald-400"
-									><title>{names.join('\n')}</title><path
+								<g class="fill-emerald-600 dark:fill-emerald-400">
+									<title>{names.join('\n')}</title><path
 										d="M{p.x - 4},{p.y + 9}l4,-7l4,7z"
 										class="stroke-white dark:stroke-gray-900"
 										stroke-width="0.75"
 									/>{#if names.length > 1}<text
 											class="text-[10px] font-semibold"
 											x={p.x + 5}
-											y={p.y + 10}>{names.length}</text
-										>{/if}</g
-								>
+											y={p.y + 10}
+										>
+											{names.length}
+										</text>{/if}
+								</g>
 							{/if}
 						{/each}
 						{#each [...arksAt] as [id, arks] (id)}
 							{@const s = byId.get(id)}
 							{#if s}
 								{@const p = at(s)}
-								<g class="pointer-events-none fill-violet-600 dark:fill-violet-400"
-									><title
-										>{arks
-											.map((a) => `${a.name}${a.capital ? ' (capital)' : ''}`)
-											.join('\n')}</title
-									>{#if arks.some((a) => a.capital)}<circle
+								<g class="pointer-events-none fill-violet-600 dark:fill-violet-400">
+									<title>
+										{arks.map((a) => `${a.name}${a.capital ? ' (capital)' : ''}`).join('\n')}
+									</title>{#if arks.some((a) => a.capital)}<circle
 											cx={p.x}
 											cy={p.y - 10}
 											r="8.5"
@@ -832,9 +852,11 @@
 									/>{#if arks.length > 1}<text
 											class="text-[10px] font-semibold"
 											x={p.x + 9}
-											y={p.y - 7}>{arks.length}</text
-										>{/if}</g
-								>
+											y={p.y - 7}
+										>
+											{arks.length}
+										</text>{/if}
+								</g>
 							{/if}
 						{/each}
 						{@render layer?.(at, v.k)}
@@ -852,8 +874,10 @@
 								<text
 									class="pointer-events-none fill-current text-xs font-semibold"
 									x={p.x + 16}
-									y={p.y - 12}>{byId.get(selected)!.name}</text
+									y={p.y - 12}
 								>
+									{byId.get(selected)!.name}
+								</text>
 							{/if}
 						{/if}
 						{#if hovered !== null && byId.get(hovered)}
@@ -869,8 +893,10 @@
 							<text
 								class="pointer-events-none fill-current text-xs font-semibold"
 								x={p.x + 14}
-								y={p.y - 10}>{byId.get(hovered)!.name}</text
+								y={p.y - 10}
 							>
+								{byId.get(hovered)!.name}
+							</text>
 						{/if}
 					</svg>
 				{/if}

@@ -29,9 +29,9 @@
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Bonuses</h1>
-	<span class="shrink-0 text-2xl font-bold tabular-nums"
-		>{data.bonuses?.date ?? data.latest.date}</span
-	>
+	<span class="shrink-0 text-2xl font-bold tabular-nums">
+		{data.bonuses?.date ?? data.latest.date}
+	</span>
 </header>
 
 <p class="mb-4 text-sm text-gray-500">

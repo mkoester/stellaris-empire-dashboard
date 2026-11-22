@@ -21,18 +21,18 @@
 <span>
 	{#if colony}<b>{h.colony}</b>:
 	{/if}{name(h.blocker)} —
-	<b class={h.atLimit ? 'text-green-600' : ''}
-		>+{h.districts} district{h.districts === 1 ? '' : 's'}</b
-	>{#if h.atLimit}<span class="text-green-600"> (at its limit)</span>{/if}{#if h.feature}, then {name(
+	<b class={h.atLimit ? 'text-green-600' : ''}>
+		+{h.districts} district{h.districts === 1 ? '' : 's'}
+	</b>{#if h.atLimit}<span class="text-green-600"> (at its limit)</span>{/if}{#if h.feature}, then {name(
 			h.feature
 		)}{/if}
 	<span class="text-gray-500">· {h.days ?? '?'} days{cost ? `, ${cost}` : ''}</span>
 	{#if h.clearing}<span class="text-blue-600">· being cleared</span>
-	{:else if h.missing.length}<span class="text-amber-600"
-			>· needs {#each h.missing as t, i (t)}{i ? ', ' : ''}<InfoPopup ref="tech:{t}"
-					>{name(t)}</InfoPopup
-				>{/each}</span
-		>
+	{:else if h.missing.length}<span class="text-amber-600">
+			· needs {#each h.missing as t, i (t)}{i ? ', ' : ''}<InfoPopup ref="tech:{t}">
+					{name(t)}
+				</InfoPopup>{/each}
+		</span>
 	{:else if h.lodge}<span class="text-amber-600">· not while the Ranger Lodge stands</span>
 	{/if}
 </span>

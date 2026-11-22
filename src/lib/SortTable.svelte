@@ -78,8 +78,9 @@
 							? 'font-semibold'
 							: 'font-normal'}"
 						onclick={() => onSort(c.id)}
-						>{c.label}{#if sort.column === c.id}{sort.desc ? ' ▼' : ' ▲'}{/if}</button
 					>
+						{c.label}{#if sort.column === c.id}{sort.desc ? ' ▼' : ' ▲'}{/if}
+					</button>
 				</th>
 			{/each}
 		</tr>

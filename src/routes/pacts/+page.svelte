@@ -23,9 +23,9 @@
 {#snippet upkeep(key: string)}
 	{@const t = typeOf(key)}
 	{#if t}
-		<span class="text-sm font-normal text-gray-500"
-			>{t.partners.length} × · upkeep {fmt(t.upkeep)} influence a month</span
-		>
+		<span class="text-sm font-normal text-gray-500">
+			{t.partners.length} × · upkeep {fmt(t.upkeep)} influence a month
+		</span>
 	{/if}
 {/snippet}
 
@@ -62,19 +62,19 @@
 							title={r.why.length ? r.why.join('\n') : undefined}
 						>
 							<td class="p-1">{i + 1}</td>
-							<td class="p-1"
-								><EmpireName name={r.name} />{#if r.why.length}<span class="ml-1 text-xs"
-										>· {r.why[0]}</span
-									>{/if}</td
-							>
-							<td class="p-1 text-right"
-								>{Object.entries(r.gain)
+							<td class="p-1">
+								<EmpireName name={r.name} />{#if r.why.length}<span class="ml-1 text-xs">
+										· {r.why[0]}
+									</span>{/if}
+							</td>
+							<td class="p-1 text-right">
+								{Object.entries(r.gain)
 									.map(([k, v]) => `${fmt(v)} ${pretty(k.replace('_research', ''))}`)
-									.join(', ') || '—'}</td
-							>
+									.join(', ') || '—'}
+							</td>
 							<td class="p-1 text-right">≈ {fmt(r.value)}</td>
-							<td class="p-1 text-right"
-								><InfoPopup
+							<td class="p-1 text-right">
+								<InfoPopup
 									explanation={{
 										title: `${r.name}: acceptance ≈`,
 										description: null,
@@ -84,13 +84,14 @@
 											.join('\n'),
 										facts: []
 									}}
-									>{r.total !== null
+								>
+									{r.total !== null
 										? `${r.total > 0 ? '≤ ' : ''}${signed(r.total)}`
 										: r.accepts === false
 											? '< 0'
-											: '?'}</InfoPopup
-								></td
-							>
+											: '?'}
+								</InfoPopup>
+							</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -161,11 +162,13 @@
 					{#each data.abroad as a (a.countryId)}
 						{#each a.species as sp, i (sp.name)}
 							<tr>
-								<td class="p-1"
-									>{#if i === 0}<EmpireName name={nameOf(a.countryId)} />{#if a.partner}<span
-												class="ml-1 text-xs text-gray-500">migration treaty</span
-											>{/if}{/if}</td
-								>
+								<td class="p-1">
+									{#if i === 0}<EmpireName name={nameOf(a.countryId)} />{#if a.partner}<span
+												class="ml-1 text-xs text-gray-500"
+											>
+												migration treaty
+											</span>{/if}{/if}
+								</td>
 								<td class="p-1">{sp.name}</td>
 								<td class="p-1 text-right">{fmt(sp.pops)}</td>
 								<td class="p-1 text-right">{sp.since === null ? '' : signed(sp.since)}</td>
@@ -197,9 +200,9 @@
 						<ul class="text-sm">
 							<li>
 								our {m.ourSpecies ?? 'main species'} there:
-								<span class="font-semibold tabular-nums"
-									>{fmt(m.series.lines[Object.keys(m.series.lines)[0]].at(-1) ?? 0)}</span
-								>
+								<span class="font-semibold tabular-nums">
+									{fmt(m.series.lines[Object.keys(m.series.lines)[0]].at(-1) ?? 0)}
+								</span>
 							</li>
 							{#each m.oursThere as s (s.name)}
 								<li class="text-gray-500">our {s.name} there: {fmt(s.pops)}</li>
@@ -285,8 +288,10 @@
 								2
 							)} → with +25 % ×{(sp.factor + 0.25).toFixed(2)}, {Math.round(
 								(25 / (sp.factor + 0.25)) * 10
-							) / 10} % of a tech's time saved">×{sp.factor.toFixed(2)}</span
+							) / 10} % of a tech's time saved"
 						>
+							×{sp.factor.toFixed(2)}
+						</span>
 					{:else}<span class="text-gray-500">not measured yet</span>{/if}
 				{/each}
 			</p>
@@ -307,14 +312,14 @@
 						<tr>
 							<td class="p-1"><InfoPopup ref="tech:{cur.tech}">{cur.name}</InfoPopup></td>
 							<td class="p-1">{cur.area}</td>
-							<td class="p-1"
-								>{#each by as p, i (p.countryId)}{i ? ', ' : ''}<EmpireName
+							<td class="p-1">
+								{#each by as p, i (p.countryId)}{i ? ', ' : ''}<EmpireName
 										name={p.name}
-									/>{/each}{by.length ? '' : '–'}</td
-							>
-							<td class="p-1 text-right"
-								>{by.length ? signed((r.monthly[cur.area] ?? 0) * 0.25) : '–'}</td
-							>
+									/>{/each}{by.length ? '' : '–'}
+							</td>
+							<td class="p-1 text-right">
+								{by.length ? signed((r.monthly[cur.area] ?? 0) * 0.25) : '–'}
+							</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -345,13 +350,13 @@
 												<td class="p-1">{c.area}</td>
 												<td class="p-1 text-right">{c.ours}</td>
 												<td class="p-1 text-right">{c.theirs}</td>
-												<td class="p-1 text-gray-500"
-													>{c.theirs > c.ours
+												<td class="p-1 text-gray-500">
+													{c.theirs > c.ours
 														? `we, at least ${c.theirs - c.ours} techs`
 														: c.theirs < c.ours
 															? `they, at least ${c.ours - c.theirs} techs`
-															: 'unknown: as many techs each'}</td
-												>
+															: 'unknown: as many techs each'}
+												</td>
 											</tr>
 										{/each}
 									</tbody>
@@ -370,11 +375,11 @@
 										{#each p.ours.techs as t (t.key)}
 											<li class={t.inReach ? '' : 'text-gray-500'}>
 												<InfoPopup ref="tech:{t.key}">{t.name}</InfoPopup>
-												<span class="text-xs"
-													>({t.area}, {t.cost ? fmt(t.cost) : 'cost unknown'}{t.inReach
+												<span class="text-xs">
+													({t.area}, {t.cost ? fmt(t.cost) : 'cost unknown'}{t.inReach
 														? ', in reach'
-														: ''})</span
-												>
+														: ''})
+												</span>
 											</li>
 										{/each}
 										{#if p.ours.more}<li class="text-gray-500">… {p.ours.more} more</li>{/if}
@@ -407,18 +412,16 @@
 					<tbody>
 						{#each r.hints as h (h.key)}
 							<tr>
-								<td class="p-1"
-									><InfoPopup ref="tech:{h.key}">{h.name}</InfoPopup>{h.offered
-										? ' · on offer'
-										: ''}</td
-								>
+								<td class="p-1">
+									<InfoPopup ref="tech:{h.key}">{h.name}</InfoPopup>{h.offered ? ' · on offer' : ''}
+								</td>
 								<td class="p-1">{h.area}</td>
 								<td class="p-1 text-right">{fmt(h.saved)}</td>
-								<td class="p-1"
-									>{#each h.partners as id, i (id)}{i ? ', ' : ''}<EmpireName
+								<td class="p-1">
+									{#each h.partners as id, i (id)}{i ? ', ' : ''}<EmpireName
 											name={nameOf(id)}
-										/>{/each}</td
-								>
+										/>{/each}
+								</td>
 							</tr>
 						{/each}
 					</tbody>

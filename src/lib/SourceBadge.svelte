@@ -57,6 +57,6 @@
 	const k = $derived(KIND[kind]);
 </script>
 
-<span class="rounded px-1 text-[0.7rem] leading-tight whitespace-nowrap {k.tone}" title={k.title}
-	>{k.label}</span
->
+<span class="rounded px-1 text-[0.7rem] leading-tight whitespace-nowrap {k.tone}" title={k.title}>
+	{k.label}
+</span>

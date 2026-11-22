@@ -135,15 +135,19 @@
 			name={o.label}
 		/>{:else}{o.label}{/if}{/snippet}
 
-{#snippet cost(o: Option)}{#each res(o.cost) as [k, v] (k)}<span class="mr-2 whitespace-nowrap"
-			><span style:color={colorOf(k)}>{pretty(k)}</span> {fmt(v)}</span
-		>{/each}{/snippet}
+{#snippet cost(o: Option)}{#each res(o.cost) as [k, v] (k)}<span class="mr-2 whitespace-nowrap">
+			<span style:color={colorOf(k)}>{pretty(k)}</span>
+			{fmt(v)}
+		</span>{/each}{/snippet}
 {#snippet flows(o: Option)}{#each res(o.output) as [k, v] (k)}<span
 			class="mr-2 whitespace-nowrap text-green-700"
-			>+{fmt(v)} <span style:color={colorOf(k)}>{pretty(k)}</span></span
-		>{/each}{#each res(o.upkeep) as [k, v] (k)}<span class="mr-2 whitespace-nowrap text-red-600"
-			>−{fmt(v)} <span style:color={colorOf(k)}>{pretty(k)}</span></span
-		>{/each}{/snippet}
+		>
+			+{fmt(v)} <span style:color={colorOf(k)}>{pretty(k)}</span>
+		</span>{/each}{#each res(o.upkeep) as [k, v] (k)}<span
+			class="mr-2 whitespace-nowrap text-red-600"
+		>
+			−{fmt(v)} <span style:color={colorOf(k)}>{pretty(k)}</span>
+		</span>{/each}{/snippet}
 {#snippet pops(o: Option)}{#if o.colony !== null && t}{fmt(o.pops)} / {fmt(
 			t.start.idle[o.colony] ?? 0
 		)}{/if}{/snippet}
@@ -192,11 +196,11 @@
 											month: picked[i]?.month ?? p.month
 										})}
 								/>
-								<span class="flex-1"
-									><InfoPopup explanation={data.explain[p.ref]}>{p.label}</InfoPopup>
+								<span class="flex-1">
+									<InfoPopup explanation={data.explain[p.ref]}>{p.label}</InfoPopup>
 									<span class="text-xs text-gray-500">({p.source})</span>
-									<span class="text-xs">{p.changes.map(describe).join('; ')}</span></span
-								>
+									<span class="text-xs">{p.changes.map(describe).join('; ')}</span>
+								</span>
 								<span class="text-xs text-gray-500">month</span>
 								<input
 									class="w-14 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
@@ -252,36 +256,36 @@
 						min="0"
 						bind:value={c.month}
 					/>
-					<button class="text-red-600" onclick={() => (own = own.filter((_, j) => j !== i))}
-						>✕</button
-					>
+					<button class="text-red-600" onclick={() => (own = own.filter((_, j) => j !== i))}>
+						✕
+					</button>
 				</div>
 			{/each}
 			<button class="mt-1 rounded border px-2 text-sm" onclick={addChange}>+ change</button>
 			<h2 class="mt-4 mb-1 font-semibold">Weights (value of one unit, in trade)</h2>
 			<div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
 				{#each keys as k (k)}
-					<label class="whitespace-nowrap"
-						><span style:color={colorOf(k)}>{pretty(k)}</span>
+					<label class="whitespace-nowrap">
+						<span style:color={colorOf(k)}>{pretty(k)}</span>
 						<input
 							class="w-14 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 							type="number"
 							step="0.5"
 							min="0"
 							bind:value={() => weights[k], (v) => (edited[k] = v)}
-						/></label
-					>
+						/>
+					</label>
 				{/each}
-				<label class="whitespace-nowrap"
-					>horizon (months)
+				<label class="whitespace-nowrap">
+					horizon (months)
 					<input
 						class="w-16 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 						type="number"
 						min="6"
 						max="240"
 						bind:value={months}
-					/></label
-				>
+					/>
+				</label>
 			</div>
 		</div>
 	</section>
@@ -304,10 +308,10 @@
 	<section class="mt-4 grid gap-2 text-sm md:grid-cols-2 xl:grid-cols-3">
 		{#each runs as r (r.name)}
 			<details>
-				<summary
-					>{r.name}: <b>{fmt(r.value.at(-1) ?? 0)}</b> after {months} months, net
-					<b>{fmt(r.net.at(-1) ?? 0)}</b>/mo · {r.bought.length} built</summary
-				>
+				<summary>
+					{r.name}: <b>{fmt(r.value.at(-1) ?? 0)}</b> after {months} months, net
+					<b>{fmt(r.net.at(-1) ?? 0)}</b>/mo · {r.bought.length} built
+				</summary>
 				<ul class="ml-4 text-xs">
 					{#each r.bought as b, i (i)}<li>month {b.month}: {b.label}</li>{/each}
 				</ul>

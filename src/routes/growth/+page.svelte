@@ -123,28 +123,35 @@
 	]);
 </script>
 
-{#snippet name(r: GrowthRow)}<a class="hover:underline" href={href(r.planetId)}>{r.name}</a
-	>{/snippet}
-{#snippet designation(r: GrowthRow)}<span class="text-gray-500"
-		><Designation key={r.designation} /></span
-	>{/snippet}
+{#snippet name(r: GrowthRow)}<a class="hover:underline" href={href(r.planetId)}>
+		{r.name}
+	</a>{/snippet}
+{#snippet designation(r: GrowthRow)}<span class="text-gray-500">
+		<Designation key={r.designation} />
+	</span>{/snippet}
 {#snippet pops(r: GrowthRow)}{fmt(r.pops)}{/snippet}
 {#snippet growth(r: GrowthRow)}{#if r.growth !== null}<span
-			title="{r.samples} saves; latest {r.last ?? '–'}">{fmt(r.growth)}</span
-		>{/if}{/snippet}
+			title="{r.samples} saves; latest {r.last ?? '–'}"
+		>
+			{fmt(r.growth)}
+		</span>{/if}{/snippet}
 {#snippet assembly(r: GrowthRow)}{r.assembly === null ? '' : fmt(r.assembly)}{/snippet}
 {#snippet per100(r: GrowthRow)}{r.monthsPer100 === null ? '' : fmt(r.monthsPer100)}{/snippet}
 {#snippet housing(r: GrowthRow)}{#if r.housing !== null && r.housingUsed !== null}<span
-			title="{fmt(r.housingUsed)} of {fmt(r.housing)}">{pct(r.housingUsed / r.housing)}</span
-		>{/if}{/snippet}
+			title="{fmt(r.housingUsed)} of {fmt(r.housing)}"
+		>
+			{pct(r.housingUsed / r.housing)}
+		</span>{/if}{/snippet}
 {#snippet capacity(r: GrowthRow)}{#if r.capacity !== null}<span
 			title="{fmt(r.housing ?? 0)} housing + {r.free} × 400{r.queued
 				? ` (${r.queued} queued district${r.queued > 1 ? 's' : ''} counted as taken)`
-				: ''}">{fmt(r.capacity)}</span
-		>{/if}{/snippet}
+				: ''}"
+		>
+			{fmt(r.capacity)}
+		</span>{/if}{/snippet}
 {#snippet free(r: GrowthRow)}{r.free ?? ''}{#if r.blocked}<span class="text-gray-500">
-			(+{r.blocked})</span
-		>{/if}{/snippet}
+			(+{r.blocked})
+		</span>{/if}{/snippet}
 {#snippet hab(r: GrowthRow)}{pct(r.habitability)}{/snippet}
 {#snippet laterCell(r: GrowthRow)}{@const p = later(r)}{p === null ? '' : fmt(p)}{/snippet}
 {#snippet stopsCell(r: GrowthRow)}{@const m = stops(r)}{m === null ? '' : yearsOf(m)}{/snippet}

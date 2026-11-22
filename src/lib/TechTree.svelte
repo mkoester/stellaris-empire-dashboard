@@ -127,12 +127,14 @@
 				class="rounded px-2 py-0.5 {a === area
 					? 'bg-sky-600 text-white'
 					: 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'}"
-				onclick={() => (area = a)}>{`${a} ${doneIn(a)}/${count(a)}`}</button
+				onclick={() => (area = a)}
 			>
+				{`${a} ${doneIn(a)}/${count(a)}`}
+			</button>
 		{/each}
 	</span>
-	<label class="flex items-center gap-1"
-		>show
+	<label class="flex items-center gap-1">
+		show
 		<select
 			class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 			bind:value={focus}
@@ -141,13 +143,15 @@
 			<option value="reach">within reach and on offer</option>
 			<option value="wanted">wanted, with what they need</option>
 			<option value="path">the clicked tech's path</option>
-		</select></label
-	>
+		</select>
+	</label>
 	<span class="flex flex-wrap gap-2 text-xs text-gray-500">
-		{#each Object.keys(STYLE) as s (s)}<span class="rounded border px-1 {STYLE[s]}">{s}</span
-			>{/each}
-		{#each Object.keys(PLAN) as s (s)}<span class="rounded px-1 {PLAN[s as Stance]}">{s}</span
-			>{/each}
+		{#each Object.keys(STYLE) as s (s)}<span class="rounded border px-1 {STYLE[s]}">
+				{s}
+			</span>{/each}
+		{#each Object.keys(PLAN) as s (s)}<span class="rounded px-1 {PLAN[s as Stance]}">
+				{s}
+			</span>{/each}
 	</span>
 </div>
 
@@ -155,15 +159,17 @@
 	<div class="mb-2 rounded border border-gray-200 p-2 text-sm dark:border-gray-800">
 		<div class="flex flex-wrap items-baseline gap-2">
 			<span class="font-semibold">{sel.name}</span>
-			<span class="text-gray-500"
-				>{`${sel.area}, tier ${sel.tier ?? '–'}${sel.cost === null ? '' : `, ${fmt(sel.cost)}`} — ${standing(sel.key)}`}</span
-			>
+			<span class="text-gray-500">
+				{`${sel.area}, tier ${sel.tier ?? '–'}${sel.cost === null ? '' : `, ${fmt(sel.cost)}`} — ${standing(sel.key)}`}
+			</span>
 			<WantButtons tech={sel.key} label={sel.name} />
 			<button
 				type="button"
 				class="ml-auto text-xs text-gray-500 hover:text-current"
-				onclick={() => (selected = null)}>close</button
+				onclick={() => (selected = null)}
 			>
+				close
+			</button>
 		</div>
 		{#if prereqs(sel).length}<p>
 				<span class="text-gray-500">Needs:</span>
@@ -174,8 +180,10 @@
 						onclick={() => {
 							selected = p;
 							area = byKey.get(p)?.area ?? area;
-						}}>{name(p)}{done.has(p) ? ' ✓' : ''}</button
-					>{/each}
+						}}
+					>
+						{name(p)}{done.has(p) ? ' ✓' : ''}
+					</button>{/each}
 			</p>{/if}
 		{#if leadsTo.length}<p>
 				<span class="text-gray-500">Leads to:</span>
@@ -186,8 +194,10 @@
 						onclick={() => {
 							selected = p;
 							area = byKey.get(p)?.area ?? area;
-						}}>{name(p)}</button
-					>{/each}
+						}}
+					>
+						{name(p)}
+					</button>{/each}
 			</p>{/if}
 	</div>
 {/if}
@@ -243,14 +253,14 @@
 					<span>{`T${t.tier ?? '–'}`}</span>
 					{#if t.rare}<span class="text-purple-600" title="rare">★</span>{/if}
 					{#if t.dangerous}<span class="text-red-600" title="dangerous">⚠</span>{/if}
-					{#if foreign(t).length}<span title="needs {foreign(t).map(name).join(', ')}"
-							>{`↖ ${[...new Set(foreign(t).map((k) => byKey.get(k)?.area))].join(', ')}`}</span
-						>{/if}
+					{#if foreign(t).length}<span title="needs {foreign(t).map(name).join(', ')}">
+							{`↖ ${[...new Set(foreign(t).map((k) => byKey.get(k)?.area))].join(', ')}`}
+						</span>{/if}
 					{#if p}<span class="rounded px-0.5 {PLAN[p]}">{p}</span>{/if}
 					{#if s !== 'researched'}
-						<span class="ml-auto hidden group-hover:inline-flex"
-							><WantButtons tech={t.key} label={t.name} /></span
-						>
+						<span class="ml-auto hidden group-hover:inline-flex">
+							<WantButtons tech={t.key} label={t.name} />
+						</span>
 					{/if}
 				</span>
 			</div>

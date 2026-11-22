@@ -36,15 +36,17 @@
 	);
 </script>
 
-<span class={wrap ? '' : 'whitespace-nowrap'}
-	><span class="whitespace-nowrap"
-		>{#if hex}<span
+<span class={wrap ? '' : 'whitespace-nowrap'}>
+	<span class="whitespace-nowrap">
+		{#if hex}<span
 				class="mr-1 inline-block h-2.5 w-2.5 rounded-sm border border-gray-400 align-baseline dark:border-gray-600"
 				style:background={hex}
 				title="its colour on the galaxy map"
-			></span>{/if}{#if bold}<b>{first}</b>{:else}{first}{/if}</span
-	>{#if rest}{#if bold}<b>{rest}</b>{:else}{rest}{/if}{/if}{#if tag}<span
+			></span>{/if}{#if bold}<b>{first}</b>{:else}{first}{/if}
+	</span>{#if rest}{#if bold}<b>{rest}</b>{:else}{rest}{/if}{/if}{#if tag}<span
 			class="ml-1 rounded border border-gray-300 px-1 text-xs font-normal text-gray-500 dark:border-gray-700"
-			title="one of the fragments of a shattered fallen hive empire">{tag}</span
-		>{/if}<EmpireBadges {kind} {nomadic} /></span
->
+			title="one of the fragments of a shattered fallen hive empire"
+		>
+			{tag}
+		</span>{/if}<EmpireBadges {kind} {nomadic} />
+</span>

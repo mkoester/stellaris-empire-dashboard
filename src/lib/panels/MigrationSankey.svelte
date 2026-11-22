@@ -43,12 +43,11 @@
 					stroke-opacity="0.45"
 					stroke-width={Math.max(2, (f.pops / max) * BAND_MAX)}
 					stroke-dasharray={f.estimated ? '6 4' : undefined}
-					><title
-						>{f.from.name} → {f.to.name}: {fmt(f.pops)} pops/month{f.estimated
-							? ' (estimated)'
-							: ''}</title
-					></path
 				>
+					<title>
+						{f.from.name} → {f.to.name}: {fmt(f.pops)} pops/month{f.estimated ? ' (estimated)' : ''}
+					</title>
+				</path>
 			{/each}
 			{#each senders as s (s.colonyId)}
 				<rect
@@ -65,8 +64,9 @@
 					text-anchor="end"
 					dominant-baseline="middle"
 					class="fill-current text-[12px]"
-					>{s.name} <tspan class="opacity-60">−{fmt(s.emigration)}</tspan></text
 				>
+					{s.name} <tspan class="opacity-60">−{fmt(s.emigration)}</tspan>
+				</text>
 			{/each}
 			{#each receivers as r (r.colonyId)}
 				<rect
@@ -82,8 +82,9 @@
 					y={y(receivers, r.colonyId)}
 					dominant-baseline="middle"
 					class="fill-current text-[12px]"
-					>{r.name} <tspan class="opacity-60">+{fmt(r.immigration)}</tspan></text
 				>
+					{r.name} <tspan class="opacity-60">+{fmt(r.immigration)}</tspan>
+				</text>
 			{/each}
 		</svg>
 	{/if}

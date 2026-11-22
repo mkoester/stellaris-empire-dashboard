@@ -87,13 +87,15 @@
 		axes={data.axes}
 		explanation={data.explain[`ethic:${r.key}`]}
 	/>
-	{#if r.held}<span class="text-xs text-gray-500" title="one of our governing ethics">ours</span
-		>{/if}
+	{#if r.held}<span class="text-xs text-gray-500" title="one of our governing ethics">
+			ours
+		</span>{/if}
 	{#if r.dropped}<span
 			class="text-xs text-amber-600"
 			title="our governing ethic with the least attraction: embracing a faction of an ethic we do not hold removes it"
-			>lost on the next new ethic</span
-		>{/if}
+		>
+			lost on the next new ethic
+		</span>{/if}
 {/snippet}
 {#snippet share(r: EthicRow)}{pct(r.share)}{/snippet}
 {#snippet attraction(r: EthicRow)}<span
@@ -101,14 +103,16 @@
 			? 'text-green-700 dark:text-green-500'
 			: r.attraction < r.share - 0.005
 				? 'text-red-600'
-				: ''}>{(Math.floor(r.average * 100 + 1e-9) / 100).toFixed(2)} ({pct(r.attraction)})</span
-	>{/snippet}
+				: ''}
+	>
+		{(Math.floor(r.average * 100 + 1e-9) / 100).toFixed(2)} ({pct(r.attraction)})
+	</span>{/snippet}
 {#snippet change(r: EthicRow)}{signed(r.change)}{/snippet}
 {#snippet weight(r: EthicRow)}{r.weight ?? ''}{/snippet}
 {#snippet colonyCell(c: ColonyRow, id: string)}
 	{#if c.pops[id]}{c.pops[id]}{#if c.change[id]}<span class="text-xs text-gray-500">
-				({signed(c.change[id])})</span
-			>{/if}{/if}
+				({signed(c.change[id])})
+			</span>{/if}{/if}
 {/snippet}
 
 <div class="flex flex-col gap-8">

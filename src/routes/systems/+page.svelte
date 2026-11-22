@@ -205,11 +205,11 @@
 {/snippet}
 
 {#snippet starbase(r: Row)}
-	{#if r.level}{pretty(r.level)}<span class="text-gray-500"
-			>{r.modules.length + r.buildings.length
-				? ` +${r.modules.length + r.buildings.length}`
-				: ''}</span
-		>{:else if !r.owned}<span class="text-gray-500">{r.ownerId === null ? '' : 'other'}</span>{/if}
+	{#if r.level}{pretty(r.level)}<span class="text-gray-500">
+			{r.modules.length + r.buildings.length ? ` +${r.modules.length + r.buildings.length}` : ''}
+		</span>{:else if !r.owned}<span class="text-gray-500">
+			{r.ownerId === null ? '' : 'other'}
+		</span>{/if}
 {/snippet}
 {#snippet deposits(r: Row)}<ResourceChips flows={r.facts.deposits} />{/snippet}
 {#snippet even(r: Row)}{@const t = totals(r)}{t === null
@@ -222,9 +222,9 @@
 {#snippet numCell(v: number | null)}{v === null ? '' : fmt(v)}{/snippet}
 {#snippet investedCell(r: Row)}{@render numCell(totals(r)?.invested ?? null)}{/snippet}
 {#snippet earnedCell(r: Row)}{@render numCell(totals(r)?.earned ?? null)}{/snippet}
-{#snippet netCell(r: Row)}{@const t = totals(r)}<span class={t && t.net < 0 ? 'text-red-600' : ''}
-		>{t ? fmt(t.net) : ''}</span
-	>{/snippet}
+{#snippet netCell(r: Row)}{@const t = totals(r)}<span class={t && t.net < 0 ? 'text-red-600' : ''}>
+		{t ? fmt(t.net) : ''}
+	</span>{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Systems</h1>
@@ -236,35 +236,35 @@
 {/if}
 
 <div class="mb-4 flex flex-wrap items-center gap-4 text-sm">
-	<label class="flex items-center gap-1"
-		>systems
+	<label class="flex items-center gap-1">
+		systems
 		<select
 			class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 			value={view.range}
 			onchange={(e) => save({ ...view, range: e.currentTarget.value })}
 		>
-			{#each SYSTEM_RANGES as r (r)}<option value={r}
-					>{r === 'mine' || r === 'all' ? r : `mine and up to +${r} beyond the border`}</option
-				>{/each}
-		</select></label
-	>
-	<label class="flex items-center gap-1"
-		><input
+			{#each SYSTEM_RANGES as r (r)}<option value={r}>
+					{r === 'mine' || r === 'all' ? r : `mine and up to +${r} beyond the border`}
+				</option>{/each}
+		</select>
+	</label>
+	<label class="flex items-center gap-1">
+		<input
 			type="checkbox"
 			checked={view.colonies}
 			onchange={(e) => save({ ...view, colonies: e.currentTarget.checked })}
-		/> include colonies</label
-	>
-	<label class="flex items-center gap-1"
-		>projection
+		/> include colonies
+	</label>
+	<label class="flex items-center gap-1">
+		projection
 		<select
 			class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 			value={view.months}
 			onchange={(e) => save({ ...view, months: Number(e.currentTarget.value) })}
 		>
 			{#each PROJECTION_MONTHS as m (m)}<option value={m}>{m} months</option>{/each}
-		</select></label
-	>
+		</select>
+	</label>
 </div>
 
 <div class="flex flex-col gap-6">

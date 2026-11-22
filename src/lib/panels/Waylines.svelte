@@ -329,24 +329,27 @@
 </script>
 
 {#snippet module(p: WayPick)}
-	<InfoPopup explanation={explain(p.key)}
-		><span class={p.maybe ? 'text-gray-500' : ''} title={p.why}>{p.name}</span></InfoPopup
-	>
+	<InfoPopup explanation={explain(p.key)}>
+		<span class={p.maybe ? 'text-gray-500' : ''} title={p.why}>{p.name}</span>
+	</InfoPopup>
 {/snippet}
 {#snippet depositsCell(r: WaySite)}<ResourceChips flows={r.deposits} />{#if r.preFtl}<span
 			class="ml-1 text-xs whitespace-nowrap text-gray-500"
 			title="{r.preFtl}: a Research Observatory here collects society research by your interference policy (≈ if no one has an observation post there)"
-			>👁 pre-FTL</span
-		>{/if}{/snippet}
+		>
+			👁 pre-FTL
+		</span>{/if}{/snippet}
 {#snippet worthCell(r: WaySite)}<span
 		class="tabular-nums"
 		title={at(r)
 			.best.map((p) => `${p.name}: ${p.why || 'nothing here'} → ${round(p.worth)} trade`)
-			.join('\n')}>{round(at(r).worth)}</span
-	>{/snippet}
-{#snippet bestCell(r: WaySite)}{#each at(r).best as p, i (p.key)}{#if i}<span class="text-gray-400"
-				>+</span
-			>{/if}{@render module(p)}<AddGoal
+			.join('\n')}
+	>
+		{round(at(r).worth)}
+	</span>{/snippet}
+{#snippet bestCell(r: WaySite)}{#each at(r).best as p, i (p.key)}{#if i}<span class="text-gray-400">
+				+
+			</span>{/if}{@render module(p)}<AddGoal
 			kind="station_module"
 			target={{ system: r.id, module: p.key }}
 			title="plan this module here"
@@ -360,12 +363,9 @@
 					? 'text-red-600'
 					: 'text-gray-500'}
 			title={troubleText(r)}
-			>{r.trouble.kind === 'unlicensed'
-				? '⚠ '
-				: r.trouble.kind === 'taken'
-					? '✕ '
-					: ''}{r.owner}</span
 		>
+			{r.trouble.kind === 'unlicensed' ? '⚠ ' : r.trouble.kind === 'taken' ? '✕ ' : ''}{r.owner}
+		</span>
 	{/if}
 {/snippet}
 {#snippet planCell(r: WaySite)}
@@ -380,20 +380,26 @@
 				onclick={(e) => {
 					e.stopPropagation();
 					void planChain(r);
-				}}>+ wayline ({r.chain.length + 1})</button
+				}}
 			>
+				+ wayline ({r.chain.length + 1})
+			</button>
 		{/if}
 	{/if}
 {/snippet}
 {#snippet ownModules(r: WayStation)}{#each r.modules as m, i (`${m}-${i}`)}{#if i}<span
-				class="text-gray-400">+</span
-			>{/if}<InfoPopup explanation={explain(m)}>{explain(m)?.title ?? m}</InfoPopup
-		>{#if r.planned}<AddGoal
+				class="text-gray-400"
+			>
+				+
+			</span>{/if}<InfoPopup explanation={explain(m)}>
+			{explain(m)?.title ?? m}
+		</InfoPopup>{#if r.planned}<AddGoal
 				kind="station_module"
 				target={{ system: r.id, module: m }}
 			/>{/if}{/each}{/snippet}
-{#snippet ownName(r: WayStation)}<span class={r.planned ? 'italic' : ''}>{r.name}</span
-	>{#if r.planned}<AddGoal kind="waystation" target={{ system: r.id }} />{/if}{/snippet}
+{#snippet ownName(r: WayStation)}<span class={r.planned ? 'italic' : ''}>
+		{r.name}
+	</span>{#if r.planned}<AddGoal kind="waystation" target={{ system: r.id }} />{/if}{/snippet}
 {#snippet ownNext(r: WayStation)}{#each r.next as p (p.key)}{@render module(p)}<AddGoal
 			kind="station_module"
 			target={{ system: r.id, module: p.key }}
@@ -404,8 +410,10 @@
 			class={r.fill > 0.8 ? 'text-amber-600' : ''}
 			title="how full its stockpile is (the game's monthly value){r.collecting
 				? '; a logistic ship is collecting it'
-				: ''}">{`${Math.round(r.fill * 100)} %${r.collecting ? ' ⇢' : ''}`}</span
-		>{/if}{/snippet}
+				: ''}"
+		>
+			{`${Math.round(r.fill * 100)} %${r.collecting ? ' ⇢' : ''}`}
+		</span>{/if}{/snippet}
 {#snippet ownStock(r: WayStation)}<ResourceChips flows={r.stockpile} />{/snippet}
 {#snippet table()}
 	<div class="flex flex-col gap-4">
@@ -461,10 +469,9 @@
 						: 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700'}"
 					title={`Waystation ${'I'.repeat(t)}: ${TIER_SLOTS[t - 1]} slots, ×${TIER_FACTOR[t - 1]} collection${w.tiers.includes(t) ? '' : ` — needs Waystations ${'I'.repeat(t)} first`}`}
 					onclick={() => (tier = t)}
-					>{`${'I'.repeat(t)} · ${TIER_SLOTS[t - 1]} slots`}{w.tiers.includes(t)
-						? ''
-						: ' (later)'}</button
 				>
+					{`${'I'.repeat(t)} · ${TIER_SLOTS[t - 1]} slots`}{w.tiers.includes(t) ? '' : ' (later)'}
+				</button>
 			{/each}
 			<span class="ml-4 text-gray-500">value as</span>
 			{#each [['colour', 'colour'], ['dots', 'dots by size']] as [k, label] (k)}
@@ -476,8 +483,10 @@
 					title={k === 'dots'
 						? 'a green dot on each site, its area proportional to the trade a month'
 						: 'each site coloured by the trade a month'}
-					onclick={() => (show = k as 'colour' | 'dots')}>{label}</button
+					onclick={() => (show = k as 'colour' | 'dots')}
 				>
+					{label}
+				</button>
 			{/each}
 		</div>
 		<GalaxyMap
@@ -529,9 +538,9 @@
 				<div>
 					<h3 class="font-semibold">
 						Wayline {i + 1}
-						<span class="font-normal text-gray-500"
-							>{`${l.built} built${l.systems.length > l.built ? `, ${l.systems.length - l.built} planned` : ''}`}{#if l.point !== null && l.systems.length > 1}{`, collection point ${name(l.point)}`}{/if}</span
-						>
+						<span class="font-normal text-gray-500">
+							{`${l.built} built${l.systems.length > l.built ? `, ${l.systems.length - l.built} planned` : ''}`}{#if l.point !== null && l.systems.length > 1}{`, collection point ${name(l.point)}`}{/if}
+						</span>
 					</h3>
 					<ul class="ml-4 list-disc">
 						{#each l.systems as id (id)}
@@ -541,22 +550,21 @@
 									<span class="italic">{st.name}</span>
 									<span class="text-gray-500">planned</span>
 									<AddGoal kind="waystation" target={{ system: id }} />
-									{#each st.modules as m (m)}<span class="ml-1"
-											><InfoPopup explanation={explain(m)}>{explain(m)?.title ?? m}</InfoPopup
-											></span
-										>{/each}
+									{#each st.modules as m (m)}<span class="ml-1">
+											<InfoPopup explanation={explain(m)}>{explain(m)?.title ?? m}</InfoPopup>
+										</span>{/each}
 								{:else if st}
 									<span class="font-medium">{st.name}</span>
 									<span class="text-gray-500">{`tier ${st.tier}`}</span>
-									{#each st.modules as m (m)}<span class="ml-1"
-											><InfoPopup explanation={explain(m)}>{explain(m)?.title ?? m}</InfoPopup
-											></span
-										>{/each}
+									{#each st.modules as m (m)}<span class="ml-1">
+											<InfoPopup explanation={explain(m)}>{explain(m)?.title ?? m}</InfoPopup>
+										</span>{/each}
 									{#if st.fill !== null}<span
 											class="ml-2 {st.fill > 0.8 ? 'text-amber-600' : 'text-gray-500'}"
 											title="how full its stockpile is (the game's monthly value)"
-											>{`${Math.round(st.fill * 100)} % full`}</span
-										>{/if}
+										>
+											{`${Math.round(st.fill * 100)} % full`}
+										</span>{/if}
 									{#if st.collecting}<span class="ml-1 text-gray-500">(being collected)</span>{/if}
 									<ResourceChips flows={st.stockpile} />
 									{#if st.next.length}
@@ -579,9 +587,10 @@
 							<span
 								class="ml-1 {m.have ? 'text-green-600' : m.maybe ? 'text-gray-400' : ''}"
 								title={m.have ? 'on this wayline' : 'not on this wayline yet'}
-								>{m.have ? '✓' : '·'}
-								<InfoPopup explanation={explain(m.key)}>{m.name}</InfoPopup></span
 							>
+								{m.have ? '✓' : '·'}
+								<InfoPopup explanation={explain(m.key)}>{m.name}</InfoPopup>
+							</span>
 						{/each}
 					</p>
 				</div>

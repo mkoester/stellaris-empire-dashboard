@@ -56,8 +56,9 @@
 	]);
 </script>
 
-{#snippet resource(r: Row)}<span style:color={colorOf(r.resource)}>{pretty(r.resource)}</span
-	>{/snippet}
+{#snippet resource(r: Row)}<span style:color={colorOf(r.resource)}>
+		{pretty(r.resource)}
+	</span>{/snippet}
 {#snippet base(r: Row)}<span class="text-gray-500">{money(r.base)}</span>{/snippet}
 {#snippet priceCell(r: Row)}<b>{money(r.price)}</b>{/snippet}
 {#snippet vs(r: Row)}<span class="text-gray-500">{signed(r.fluctuation)}</span>{/snippet}
@@ -66,11 +67,12 @@
 {#snippet orders(r: Row)}
 	{#each r.orders as o, i (i)}
 		{@const limit = monthlyLimit(o, galactic)}
-		<span class="mr-3 whitespace-nowrap"
-			>{o.kind}
-			<b class={limit !== null && o.amount > limit ? 'text-red-600' : ''}>{fmt(o.amount)}</b
-			>{#if limit !== null}<span class="text-gray-500">&thinsp;/&thinsp;{limit}</span>{/if}</span
-		>
+		<span class="mr-3 whitespace-nowrap">
+			{o.kind}
+			<b class={limit !== null && o.amount > limit ? 'text-red-600' : ''}>
+				{fmt(o.amount)}
+			</b>{#if limit !== null}<span class="text-gray-500">&thinsp;/&thinsp;{limit}</span>{/if}
+		</span>
 	{/each}
 {/snippet}
 
@@ -100,14 +102,14 @@
 	{#if data.fee}
 		<p class="mb-4 text-sm">
 			Market fee <b>{pct(data.fee.fee)}</b>
-			<span class="text-gray-500"
-				>= base 30 %{#each data.fee.sources as s (s.key)}, {s.name}{s.count > 1
+			<span class="text-gray-500">
+				= base 30 %{#each data.fee.sources as s (s.key)}, {s.name}{s.count > 1
 						? ` ×${s.count}`
 						: ''}
 					{s.fee < 0 ? '−' : '+'}{pct(Math.abs(s.fee * s.count))}{/each}{data.fee.fee === 0.05
 					? ' (5 % at least)'
-					: ''} — not counted: an enclave trader councilor (−1 %)</span
-			>
+					: ''} — not counted: an enclave trader councilor (−1 %)
+			</span>
 		</p>
 	{/if}
 

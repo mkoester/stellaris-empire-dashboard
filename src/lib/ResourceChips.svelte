@@ -31,10 +31,10 @@
 </script>
 
 {#each shown as [k, v] (k)}
-	<span class="mr-3 whitespace-nowrap"
-		><span class={v < 0 ? 'text-red-600' : 'text-green-600'}
-			>{v < 0 ? '−' : '+'}{amount(Math.abs(v))}</span
-		>
-		<span style:color={colorOf(k)}>{pretty(k)}</span></span
-	><wbr />
+	<span class="mr-3 whitespace-nowrap">
+		<span class={v < 0 ? 'text-red-600' : 'text-green-600'}>
+			{v < 0 ? '−' : '+'}{amount(Math.abs(v))}
+		</span>
+		<span style:color={colorOf(k)}>{pretty(k)}</span>
+	</span><wbr />
 {/each}

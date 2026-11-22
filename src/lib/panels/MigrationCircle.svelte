@@ -83,12 +83,11 @@
 					stroke-width={Math.max(2, (f.pops / max) * 10)}
 					stroke-dasharray={f.estimated ? '6 4' : undefined}
 					marker-end="url(#circle-arrow-{f.from.ownerId})"
-					><title
-						>{f.from.name} → {f.to.name}: {fmt(f.pops)} pops/month{f.estimated
-							? ' (estimated)'
-							: ''}</title
-					></path
 				>
+					<title>
+						{f.from.name} → {f.to.name}: {fmt(f.pops)} pops/month{f.estimated ? ' (estimated)' : ''}
+					</title>
+				</path>
 			{/if}
 		{/each}
 		{#each slots as s, i (i)}
@@ -106,18 +105,19 @@
 						stroke-width="2"
 					/>
 				{/if}
-				<circle cx={p.x} cy={p.y} r="6" fill={colors[r.ownerId]} stroke="white" stroke-width="2"
-					><title
-						>{r.name} ({r.owner}) · +{fmt(r.immigration)} / −{fmt(r.emigration)} last month</title
-					></circle
-				>
+				<circle cx={p.x} cy={p.y} r="6" fill={colors[r.ownerId]} stroke="white" stroke-width="2">
+					<title>
+						{r.name} ({r.owner}) · +{fmt(r.immigration)} / −{fmt(r.emigration)} last month
+					</title>
+				</circle>
 				<text
 					x={p.x + (right ? 14 : -14)}
 					y={p.y + 4}
 					text-anchor={right ? 'start' : 'end'}
 					class="text-[12px] {r.own ? 'fill-current' : 'fill-gray-500'}"
-					>{r.name}{capitalOf.has(r.colonyId) ? ' (capital)' : ''}</text
 				>
+					{r.name}{capitalOf.has(r.colonyId) ? ' (capital)' : ''}
+				</text>
 			{/if}
 		{/each}
 	</svg>
