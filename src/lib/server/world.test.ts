@@ -7,6 +7,8 @@ import {
 	stationsSeen,
 	storms,
 	eventChains,
+	firstContactDefense,
+	firstContacts,
 	precursorIntel,
 	surveyedPlanets,
 	wormholeLinks
@@ -318,5 +320,52 @@ describe('precursorIntel', () => {
 				}
 			]
 		});
+	});
+});
+
+describe('firstContacts', () => {
+	// shaped like 2228.04.01 (roamingcybergang): the game showed Caravaneers 5 and Artisan Troupe 3
+	const raw = {
+		countryId: 0,
+		leaders: {},
+		firstContacts: {
+			'274': {
+				owner: 0,
+				country: 49,
+				location: 716,
+				difficulty: 3,
+				clues: 0,
+				status: 'in_progress'
+			},
+			'275': {
+				owner: 0,
+				country: 43,
+				location: 138,
+				difficulty: 3,
+				clues: 0,
+				status: 'in_progress'
+			},
+			'1': { owner: 7, country: 0, difficulty: 7 } // someone else's contact with us
+		},
+		countryBlocks: {
+			'49': {
+				active_policies: [{ policy: 'first_contact_protocol', selected: 'first_contact_cautious' }]
+			},
+			'43': {
+				active_policies: [{ policy: 'first_contact_protocol', selected: 'first_contact_proactive' }]
+			}
+		}
+	};
+
+	it("gives the difficulty the game shows: the stage's plus a cautious country's 2", () => {
+		expect(firstContacts(raw).map((c) => [c.countryId, c.difficulty, c.defense])).toEqual([
+			[49, 5, 2],
+			[43, 3, 0]
+		]);
+	});
+
+	it('adds nothing for a country without the policy, or unknown', () => {
+		expect(firstContactDefense({ active_policies: [] })).toBe(0);
+		expect(firstContactDefense(undefined)).toBe(0);
 	});
 });

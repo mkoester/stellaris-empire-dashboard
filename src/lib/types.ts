@@ -249,6 +249,9 @@ export type MigrationColony = {
 	y: number;
 	immigration: number;
 	emigration: number;
+	// resettled last month, signed (negative: pops left), our colonies only — filled from their
+	// growth causes (`GROWTH_CAT_RESETTLE`) where the frames are built, not stored
+	resettled?: number;
 };
 
 /** A starbase: its own build queue (modules, buildings) and, with a shipyard, the ship queue. */
@@ -592,7 +595,7 @@ export type SpendLogKind =
 	| 'colonization-started'
 	| 'megastructure-started';
 /** Mod 0.12.0: a pop group sold on the Slave Market (species, pops, buyer, seller — names). */
-export type MarketLogKind = 'slave-sold';
+export type MarketLogKind = 'slave-sold' | 'resettled';
 
 /** One `SDASH|2|<date>|event|…` line of the companion mod; fields as `feed.ts` documents them. */
 export type LogEvent = {
@@ -787,7 +790,12 @@ export type FirstContact = {
 	date: string; // discovered
 	daysLeft: number | null; // to the envoy's next roll
 	lastRoll?: number | null; // `last_roll`; absent before READER 22
+	// as the game shows it: the stage's (`difficulty` in the save) plus `defense`; since READER 76,
+	// the stage's alone before
 	difficulty: number;
+	// what the contacted country adds (its cautious protocol: +2, `firstContactDefense()`);
+	// READER 76, absent before
+	defense?: number;
 	clues: number;
 	stage: string;
 	status: string; // in_progress, finished, aborted

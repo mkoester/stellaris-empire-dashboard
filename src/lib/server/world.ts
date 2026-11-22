@@ -399,14 +399,28 @@ export function diplomacy(
 	});
 }
 
+/**
+ * What a country adds to the difficulty of first contact with it (`first_contact_defense_add`):
+ * the "cautious" first contact protocol, +2 (4.5 `common/policies/00_policies.txt`, the only
+ * source in the game files). The game sums the modifier engine-side; a mod's other source is missed.
+ */
+export function firstContactDefense(block: Raw | undefined): number {
+	const cautious = items(block?.active_policies).some(
+		(p) => p?.policy === 'first_contact_protocol' && p?.selected === 'first_contact_cautious'
+	);
+	return cautious ? 2 : 0;
+}
+
 /** Our first contacts: `first_contacts.contacts.<id>` with `owner` = us. */
 export function firstContacts(
-	raw: Pick<RawSave, 'countryId' | 'firstContacts' | 'leaders'>
+	raw: Pick<RawSave, 'countryId' | 'firstContacts' | 'leaders'> &
+		Partial<Pick<RawSave, 'countryBlocks'>>
 ): FirstContact[] {
 	return Object.entries(raw.firstContacts).flatMap(([id, c]) => {
 		if (!c || typeof c !== 'object' || c.owner !== raw.countryId) return [];
 		const leaderId = idOrNull(c.leader);
 		const l = leaderId === null ? undefined : raw.leaders[String(leaderId)];
+		const defense = firstContactDefense(raw.countryBlocks?.[String(num(c.country))]);
 		return [
 			{
 				id: Number(id),
@@ -418,7 +432,10 @@ export function firstContacts(
 				date: String(c.date ?? ''),
 				daysLeft: numOrNull(c.days_left),
 				lastRoll: numOrNull(c.last_roll),
-				difficulty: num(c.difficulty),
+				// as the game's First Contact screen shows it: the stage's plus the country's
+				// (Caravaneers, cautious: 3 + 2 = 5; Artisan Troupe, proactive: 3; 2228.04)
+				difficulty: num(c.difficulty) + defense,
+				defense,
 				clues: num(c.clues),
 				stage: String(c.stage ?? ''),
 				status: String(c.status ?? '')

@@ -1030,7 +1030,7 @@ export function rolls(
 			kind: 'roll' as const,
 			sub: 'first contact',
 			what: `Next roll: ${c.name}`,
-			detail: `${c.leaderName ?? 'envoy'} · ${c.clues} clues · difficulty ${c.difficulty}`,
+			detail: `${c.leaderName ?? 'envoy'} · ${c.clues} clues · difficulty ≈${c.difficulty}`,
 			tint: 'roll',
 			exact: true,
 			act: false
