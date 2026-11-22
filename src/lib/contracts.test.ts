@@ -13,6 +13,7 @@ import {
 	kindOf,
 	parseContractView,
 	remoteOf,
+	shipsOf,
 	type ContractContext,
 	type DetailContext
 } from './contracts.ts';
@@ -298,6 +299,7 @@ describe('contractDetail', () => {
 		]);
 		expect(d.trade).toBe(950);
 		expect(d.projects[0].needs).toEqual(['an arkship']);
+		expect(d.ships).toEqual(['arkship']);
 		expect(d.needsArkship).toBe(true);
 		expect(d.arkshipBranches).toBe(true);
 		expect(d.missingTechs).toEqual(['T:tech_x']);
@@ -313,6 +315,13 @@ describe('contractDetail', () => {
 		expect(d.bonus).toBe(1.5);
 		expect(d.reward.map((l) => l.amount)).toEqual([1125, 225, 50]);
 		expect(d.missingTechs).toEqual([]);
+	});
+
+	it('Scan Debris has no project and needs a science ship, no arkship', () => {
+		const scan = { ...row, key: 'contract_scan_debris' };
+		const d = contractDetail(scan, { ...STARTUP, projects: [] }, dctx());
+		expect(d.ships).toEqual(['science ship']);
+		expect(d.needsArkship).toBe(false);
 	});
 
 	it('an older data DB: no details, the arkships still placed', () => {
@@ -394,5 +403,25 @@ describe('remoteOf', () => {
 	it('unknown with a data DB before the location column', () => {
 		expect(remoteOf('contract_harvest_energy', type(null, []))).toBe(null);
 		expect(remoteOf('contract_harvest_energy', undefined)).toBe(null);
+	});
+});
+
+describe('shipsOf', () => {
+	const p = (requirements: Record<string, unknown>) =>
+		({ requirements }) as unknown as ContractProject;
+	it('names the ships of a project-less contract from the table', () => {
+		expect(shipsOf('contract_build_waystation', [])).toEqual(['construction ship', 'arkship']);
+		expect(shipsOf('contract_harvest_minerals', [])).toEqual(['construction ship', 'arkship']);
+	});
+	it('reads the projects’ requirements, each ship once, a leader not counted', () => {
+		expect(
+			shipsOf('contract_x', [
+				p({ carries_colony: 1 }),
+				p({ carries_colony: 1, shipclass_science_ship: 1, leader: 'scientist' })
+			])
+		).toEqual(['arkship', 'science ship']);
+	});
+	it('knows nothing of a mod’s contract without projects', () => {
+		expect(shipsOf('ahw_contract_repair_gate', [])).toEqual([]);
 	});
 });

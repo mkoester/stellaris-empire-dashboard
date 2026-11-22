@@ -395,6 +395,17 @@ planet's carrier flag or a star's flag); `Contract.pickup`/`dropoff` (READER 69)
 systems, for our active ones. The Where column shows "pickup → drop-off" (Prisoner Disposal: "your
 choice"), and hovering the row or either system draws an arrow on the map. Roaming Cyber Gang
 2226.08.01: Diplomatic Support Mishar → Slerpanor; the arrow not yet seen in a browser.
+**Where names the place of the work, not of the issue, and the ships that count** (the user's ask
+2026-11-22: "at Dorellion (science ship)"): `shipsOf()` reads the projects' requirements
+(`carries_colony` → arkship), and for the contracts without a project a table, `DONE_BY`, read from
+the events that count their progress (its comment cites each). Scan Debris is a science ship's
+debris scan; Build Waystation counts only a waystation built in the contract's own system
+(nomads.3054 checks that system's star flag; the description's "in this Empire's system" means it),
+by a construction ship or an arkship; Harvest either of those; Deep Scan, Stellar Ignition and
+Intercept Raid an arkship; Pest Control, the Heirs' station and Raid Planet a military fleet
+(whether an arkship's won battle counts is not checked). Raid Planet's place is any colony of the
+system's owner. A transport not yet taken shows where it goes (`TRANSPORT.to`: the issuer's capital,
+your choice, set after the pickup). A mod's contract without projects shows no ship.
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
 name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the

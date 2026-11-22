@@ -4,10 +4,12 @@
 	import EmpireName from '#lib/EmpireName.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import {
+		AT_OWNER,
 		branchLine,
 		COLONY_SUPPORT,
 		CONTRACT_RANGES,
 		KIND_INFO,
+		TRANSPORT,
 		WHY_LABEL
 	} from '#lib/contracts.ts';
 	import { followGame } from '#lib/live.ts';
@@ -42,7 +44,9 @@
 		return days.length === 1 && r.detail.steps ? r.detail.steps * (days[0] as number) : null;
 	};
 	const name = (id: number | null) => (id === null ? null : (c.systemNames[id] ?? `system ${id}`));
-	// remote, at its system, or a transport's way: pickup → drop-off where the save marks them
+	// where the work is done, not where the contract is issued: remote, at its system, the
+	// system owner's colonies (a raid), or a transport's way; with the ships that can do it
+	const by = (r: Row) => (r.detail.ships.length ? ` (${r.detail.ships.join(' or ')})` : '');
 	const where = (r: Row): { label: string; title: string } => {
 		const d = r.detail;
 		if (d.remote === null)
@@ -54,17 +58,26 @@
 					? `research projects only (${fmt(d.research)} research): done from anywhere`
 					: 'no trip asked: done from anywhere'
 			};
+		const to = TRANSPORT[r.key]?.to ?? 'your choice';
 		if (d.transport && (r.pickup !== null || r.dropoff !== null))
 			return {
-				label: `${name(r.pickup) ?? '?'} → ${name(r.dropoff) ?? 'your choice'}`,
+				label: `${name(r.pickup) ?? '?'} → ${name(r.dropoff) ?? to}${by(r)}`,
 				title: 'pick up → deliver, as the save marks them; hover for the arrow on the map'
 			};
 		if (d.transport)
 			return {
-				label: `transport from ${system(r) ?? '?'}`,
-				title: 'pick up there; where to is marked once you take it'
+				label: `${system(r) ?? '?'} → ${to}${by(r)}`,
+				title: 'pick up there; the drop-off is marked once you take it'
 			};
-		return { label: `at ${system(r) ?? '?'}`, title: 'a ship has to be at its system' };
+		if (AT_OWNER.has(r.key))
+			return {
+				label: `colonies of ${system(r) ?? '?'}'s owner${by(r)}`,
+				title: "bombard any colony of the empire that owns the contract's system"
+			};
+		return {
+			label: `at ${system(r) ?? '?'}${by(r)}`,
+			title: `a ship has to be at its system${d.ships.length ? '' : '; which ships count is not known'}`
+		};
 	};
 	// a transport's arrow, while its row or one of its systems is hovered
 	const arrows = $derived(
@@ -92,7 +105,8 @@
 			label: 'Where',
 			value: (r) => where(r).label,
 			cell: whereCell,
-			title: 'remote: done from anywhere (research projects only); else a ship has to go there'
+			title:
+				'where the work is done, and which ships can do it — remote: from anywhere (research projects only)'
 		},
 		{
 			id: 'jumps',

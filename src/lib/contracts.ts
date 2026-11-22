@@ -224,16 +224,22 @@ export function aboardOf(r: ContractRow, arkships: Arkship[]): Aboard | null {
  */
 export const TRANSPORT: Record<
 	string,
-	{ pickup: string; dropoff: { planet: string } | { star: string } | null }
+	{ pickup: string; dropoff: { planet: string } | { star: string } | null; to: string }
 > = {
 	contract_diplomatic_support: {
 		pickup: 'diplomatic_support_pickup_planet',
-		dropoff: { planet: 'diplomatic_support_dropoff_planet' }
+		dropoff: { planet: 'diplomatic_support_dropoff_planet' },
+		to: "the issuer's capital"
 	},
-	contract_prisoner_disposal: { pickup: 'prisoner_disposal_pickup_planet', dropoff: null },
+	contract_prisoner_disposal: {
+		pickup: 'prisoner_disposal_pickup_planet',
+		dropoff: null,
+		to: 'your choice'
+	},
 	contract_sightseeing_tour: {
 		pickup: 'sightseeing_tour_start',
-		dropoff: { star: 'sightseeing_tour_destination_system' }
+		dropoff: { star: 'sightseeing_tour_destination_system' },
+		to: 'set after the pickup'
 	}
 };
 
@@ -296,6 +302,52 @@ export function arkshipKind(size: string): ArkshipKind {
 			: 'civilian';
 }
 
+// ── Which ships do the work ───────────────────────────────────────────────────────────────
+
+/** A project requirement's ship, as the Where column names it. */
+const SHIP: Record<string, string> = {
+	carries_colony: 'arkship',
+	shipclass_science_ship: 'science ship',
+	shipclass_military: 'military fleet',
+	shipclass_constructor: 'construction ship'
+};
+
+/**
+ * Contracts without a special project and the ships whose action counts (4.5.x
+ * `common/missions/missions/02_contracts.txt`, `events/nomads_events_1.txt`): Scan Debris on
+ * `on_debris_researched`/`_scavenged` (a science ship's, nomads.3035); Build Waystation on
+ * `on_waystation_built` in the contract's own system (nomads.3054; the waystation megastructure
+ * lets construction ships and arkships build it); Harvest on `on_harvest_resources` (nomads.4100,
+ * "Arkship & Logistic Ship"); Deep Scan and Stellar Ignition are arkship actions
+ * (`scripted_actions/03_arkships.txt`, the System Scanner, the Stellar Igniter); Intercept Raid
+ * springs only when an arkship enters (nomads.520 `is_arkship_fleet`), then a battle; Pest
+ * Control and the Heirs' station on a space battle won (nomads.3055, nomads.530) — whether an
+ * arkship's battle counts is not checked; Raid Planet bombards. Re-check on game updates.
+ */
+const DONE_BY: Record<string, string[]> = {
+	contract_scan_debris: ['science ship'],
+	contract_build_waystation: ['construction ship', 'arkship'],
+	contract_deep_scan: ['arkship'],
+	contract_stellar_ignition: ['arkship'],
+	contract_intercept_raid_heirs: ['arkship'],
+	contract_pest_control: ['military fleet'],
+	contract_destroy_station_heirs: ['military fleet'],
+	contract_destroy_station_heirs_start: ['military fleet'],
+	contract_raid_planet_small: ['military fleet']
+};
+const HARVEST = 'contract_harvest_';
+
+/** Raid Planet: any colony of the contract system's owner (`raid_target`, on_accept). */
+export const AT_OWNER = new Set(['contract_raid_planet_small']);
+
+/** The ships that can do a contract, alternatives in order; [] when none or not known. */
+export function shipsOf(key: string, projects: ContractProject[]): string[] {
+	if (DONE_BY[key]) return DONE_BY[key];
+	if (key.startsWith(HARVEST)) return ['construction ship', 'arkship'];
+	const all = projects.flatMap((p) => Object.keys(p.requirements).flatMap((k) => SHIP[k] ?? []));
+	return [...new Set(all)];
+}
+
 const NEEDS: Record<string, string> = {
 	carries_colony: 'an arkship',
 	shipclass_science_ship: 'a science ship',
@@ -341,7 +393,8 @@ export type ContractDetail = {
 	failedOpinion: number | null;
 	timeToComplete: number | null;
 	missingTechs: string[];
-	needsArkship: boolean; // a project needs one, or the contract has none (travel by arkship)
+	ships: string[]; // `shipsOf()`: what can do the work; [] for a remote one or when not known
+	needsArkship: boolean; // an arkship can do it, or nothing is known (travel by arkship)
 	arkshipBranches: boolean; // the outcome differs by arkship type
 	arkships: ArkshipFit[]; // ours, nearest first
 	aboard: Aboard | null; // the arkship carrying this contract's passengers
@@ -394,9 +447,9 @@ export function contractDetail(
 	const partial = rw && rw.scaled.length > 1 ? [...scaledLines(rw.scaled[1], bonus), ...fixed] : [];
 	const projects = (type?.projects ?? []).map((p) => ({ ...p, needs: needsOf(p.requirements) }));
 	const remote = remoteOf(r.key, type);
+	const ships = remote ? [] : shipsOf(r.key, type?.projects ?? []);
 	const needsArkship =
-		!remote &&
-		(!projects.length || projects.some((p) => p.requirements.carries_colony !== undefined));
+		!remote && (ships.includes('arkship') || (!ships.length && !projects.length));
 	const from = (a: Arkship) =>
 		a.systemId === null || r.systemId === null
 			? null
@@ -425,6 +478,7 @@ export function contractDetail(
 		missingTechs: (type?.operatorTechs ?? [])
 			.filter((t) => !ctx.researched.has(t))
 			.map(ctx.techName),
+		ships,
 		needsArkship,
 		arkshipBranches: projects.some((p) => p.arkshipBranches),
 		arkships,
