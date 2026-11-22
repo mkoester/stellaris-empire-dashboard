@@ -292,7 +292,9 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   `carrier_event` and `[This.GetName]` work. `megastructure-started` (`sdash.28`,
   `[From.GetName]`) printed "Wir" for the Grand Archive (2231.04.29) but **nothing** on 2230.04.01
   and 06.23; the timeline has megastructures finished 2230.12.18 (id 118) and 2232.03.02
-  (16777334) that no save holds — what they were, and why From has no name, is open. Still open:
+  (16777334) that no save holds — what they were, and why From has no name, is open. A megastructure
+  **upgrade** fires no line at all (the user started the Ancient Highway's gate repair, 2026-11-22):
+  `on_megastructure_build_start` is for new builds only. Still open:
   whether a colonization's planet already has an `owner`. An older
   dashboard skips the new kinds (`parseLine` returns null for an unknown kind).
 - **Companion mod 0.2.0, not yet run in game** (written 2026-10-20 from 4.5.2's script docs):
