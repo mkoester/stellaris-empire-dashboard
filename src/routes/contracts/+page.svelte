@@ -38,7 +38,6 @@
 	let sort = $state({ column: '', desc: false }); // ours first, then by days left
 
 	const word = (k: string) => k.replaceAll('_', ' ');
-	const nearest = (r: Row) => (r.detail.needsArkship ? (r.detail.arkships[0] ?? null) : null);
 	const work = (r: Row) => {
 		const days = [...new Set(r.detail.projects.map((p) => p.days).filter((d) => d !== null))];
 		return days.length === 1 && r.detail.steps ? r.detail.steps * (days[0] as number) : null;
@@ -109,13 +108,6 @@
 				'where the work is done, and which ships can do it — remote: from anywhere (research projects only)'
 		},
 		{
-			id: 'jumps',
-			label: 'Beyond',
-			value: (r) => r.jumps,
-			right: true,
-			title: 'jumps beyond our border, along known hyperlanes'
-		},
-		{
 			id: 'state',
 			label: 'State',
 			value: (r) => (r.state === 'offered' ? (r.daysLeft ?? 0) : -1),
@@ -139,11 +131,11 @@
 			title: 'steps × days of each project, travel not counted'
 		},
 		{
-			id: 'arkship',
-			label: 'Nearest arkship',
-			value: (r) => nearest(r)?.jumps ?? null,
-			cell: arkshipCell,
-			title: 'jumps along known hyperlanes from our nearest arkship'
+			id: 'ship',
+			label: 'Nearest ship',
+			value: (r) => r.detail.nearest?.jumps ?? null,
+			cell: shipCell,
+			title: 'our nearest ship of a kind that can do it (Where), in jumps along known hyperlanes'
 		},
 		{ id: 'why', label: 'Shown', value: (r) => r.why, cell: whyCell }
 	];
@@ -155,10 +147,11 @@
 {#snippet kindCell(r: Row)}<span style:color={KIND_INFO[r.kind].color}
 		>{KIND_INFO[r.kind].symbol}</span
 	>{` ${r.kind}`}{/snippet}
-{#snippet issuerCell(r: Row)}<EmpireName name={r.issuerName} />{/snippet}
-{#snippet operatorCell(r: Row)}{#if r.operatorName}<EmpireName name={r.operatorName} />{:else}<span
-			class="text-gray-500">–</span
-		>{/if}{/snippet}
+{#snippet issuerCell(r: Row)}<EmpireName name={r.issuerName} wrap />{/snippet}
+{#snippet operatorCell(r: Row)}{#if r.operatorName}<EmpireName
+			name={r.operatorName}
+			wrap
+		/>{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
 {#snippet stateCell(r: Row)}{#if r.state === 'offered'}offered{r.daysLeft === null
 			? ''
 			: `, ${r.daysLeft} days`}{:else}taken{r.accepted ? ` ${r.accepted}` : ''}{/if}{/snippet}
@@ -185,14 +178,16 @@
 			r
 		)} days{:else if r.detail.steps}{r.detail.steps} steps{:else}<span class="text-gray-500">–</span
 		>{/if}{/snippet}
-{#snippet arkshipCell(r: Row)}{#if r.detail.aboard}<span
+{#snippet shipCell(r: Row)}{#if r.detail.aboard}<span
 			class="font-semibold"
 			title={`${r.detail.aboard.who} came aboard ${r.detail.aboard.since ?? 'on an unknown day'}; the game does not show which arkship carries them`}
 			>{r.detail.aboard.who} aboard {r.detail.aboard.name}</span
-		>{:else if !r.detail.needsArkship}<span class="text-gray-500">no arkship needed</span
-		>{:else if nearest(r)}{nearest(r)?.name}{nearest(r)?.jumps === null
-			? ' · no known route'
-			: ` · ${nearest(r)?.jumps} jumps`}{:else}<span class="text-gray-500">none</span
+		>{:else if r.detail.remote}<span class="text-gray-500">none needed</span
+		>{:else if r.detail.nearest}{@const n = r.detail.nearest}{n.name}<span class="text-gray-500"
+			>{` (${n.kind})`}</span
+		>{n.jumps === null ? ' · no known route' : ` · ${n.jumps} jumps`}{:else}<span
+			class="text-gray-500"
+			>{r.detail.ships.length ? `no ${r.detail.ships.join(' or ')}` : 'none'}</span
 		>{/if}{/snippet}
 {#snippet details(r: Row)}
 	{@const d = r.detail}
@@ -240,7 +235,7 @@
 				</dd>
 				<dt class="text-gray-500">Cost / risk</dt>
 				<dd>
-					No resources: the arkship is busy for the trip and the work.{d.timeToComplete
+					No resources: the ship is busy for the trip and the work.{d.timeToComplete
 						? ` ${d.timeToComplete} days to finish once accepted.`
 						: ''}{d.failedOpinion !== null
 						? ` Failing or cancelling: ${d.failedOpinion} opinion with ${r.issuerName}.`

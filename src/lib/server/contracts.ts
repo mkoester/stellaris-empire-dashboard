@@ -17,6 +17,11 @@ import { campaignGalaxy } from './mapSystems.ts';
 import { setting } from './settings.ts';
 import { valuesOf } from './unitCosts.ts';
 
+const CIVILIAN_KIND: Record<string, string> = {
+	science_ship: 'science ship',
+	constructor: 'construction ship'
+};
+
 export type ContractsAt = {
 	rows: (ContractRow & { detail: ContractDetail })[];
 	known: boolean; // a save of the branch was read with contracts (READER 52)
@@ -57,6 +62,18 @@ export function contractsAt(snaps: Snapshot[], shown: Display): ContractsAt {
 		completed: save.contractsCompleted,
 		researched: new Set(save.progress?.researched ?? []),
 		arkships: save.arkships ?? [],
+		// civilian classes as the save names them (`shipclass_` dropped): science_ship, constructor
+		ships: [
+			...(save.civilianShips ?? []).flatMap((x) => {
+				const kind = CIVILIAN_KIND[x.kind];
+				return kind ? [{ name: x.name, kind, systemId: x.route.systemId ?? null }] : [];
+			}),
+			...(save.fleets ?? []).map((f) => ({
+				name: f.name,
+				kind: 'military fleet',
+				systemId: f.route.systemId ?? null
+			}))
+		],
 		lanes: graph(
 			known.flatMap((x) => x.lanes.map((to): [number, number] => [x.id, to])),
 			[]

@@ -372,6 +372,12 @@ export const contractBonus = (completed: number | null) =>
 
 export type RewardLine = { resource: string; amount: number; scaled: boolean };
 
+/** One of our ships or fleets that could do contracts: its kind as `shipsOf()` names them. */
+export type OurShip = { name: string; kind: string; systemId: number | null };
+
+/** The nearest of our ships of a kind that can do the contract. */
+export type ShipFit = { name: string; kind: string; jumps: number | null };
+
 export type ArkshipFit = {
 	name: string;
 	kind: ArkshipKind;
@@ -395,6 +401,7 @@ export type ContractDetail = {
 	missingTechs: string[];
 	ships: string[]; // `shipsOf()`: what can do the work; [] for a remote one or when not known
 	needsArkship: boolean; // an arkship can do it, or nothing is known (travel by arkship)
+	nearest: ShipFit | null; // of our ships of a kind in `ships` (arkships when not known)
 	arkshipBranches: boolean; // the outcome differs by arkship type
 	arkships: ArkshipFit[]; // ours, nearest first
 	aboard: Aboard | null; // the arkship carrying this contract's passengers
@@ -407,6 +414,7 @@ export type DetailContext = {
 	completed: number | null; // Snapshot.contractsCompleted
 	researched: Set<string>;
 	arkships: Arkship[];
+	ships: OurShip[]; // our science ships, construction ships and military fleets
 	lanes: Graph; // the known lanes, as the tab counts jumps
 	values: Resources; // valuesOf(): one unit in trade
 	systemName: string | null;
@@ -450,13 +458,32 @@ export function contractDetail(
 	const ships = remote ? [] : shipsOf(r.key, type?.projects ?? []);
 	const needsArkship =
 		!remote && (ships.includes('arkship') || (!ships.length && !projects.length));
-	const from = (a: Arkship) =>
-		a.systemId === null || r.systemId === null
-			? null
-			: (distances(ctx.lanes, [a.systemId]).jumps.get(r.systemId) ?? null);
-	const arkships = ctx.arkships
-		.map((a) => ({ name: a.name, kind: arkshipKind(a.size), capital: a.capital, jumps: from(a) }))
-		.sort((a, b) => (a.jumps ?? Infinity) - (b.jumps ?? Infinity) || a.name.localeCompare(b.name));
+	// the lanes go both ways: one search from the contract's system serves every ship
+	const reach = r.systemId === null ? null : distances(ctx.lanes, [r.systemId]).jumps;
+	const from = (systemId: number | null) =>
+		systemId === null || reach === null ? null : (reach.get(systemId) ?? null);
+	const near = <T extends { name: string; jumps: number | null }>(xs: T[]) =>
+		xs.sort(
+			(a, b) => (a.jumps ?? Infinity) - (b.jumps ?? Infinity) || a.name.localeCompare(b.name)
+		);
+	const arkships = near(
+		ctx.arkships.map((a) => ({
+			name: a.name,
+			kind: arkshipKind(a.size),
+			capital: a.capital,
+			jumps: from(a.systemId)
+		}))
+	);
+	const able = ships.length ? ships : needsArkship ? ['arkship'] : [];
+	const nearest =
+		near([
+			...(able.includes('arkship')
+				? arkships.map((a) => ({ name: a.name, kind: 'arkship', jumps: a.jumps }))
+				: []),
+			...ctx.ships
+				.filter((x) => able.includes(x.kind))
+				.map((x) => ({ name: x.name, kind: x.kind, jumps: from(x.systemId) }))
+		])[0] ?? null;
 	return {
 		detailed: type?.detailed ?? false,
 		description:
@@ -480,6 +507,7 @@ export function contractDetail(
 			.map(ctx.techName),
 		ships,
 		needsArkship,
+		nearest,
 		arkshipBranches: projects.some((p) => p.arkshipBranches),
 		arkships,
 		aboard: aboardOf(r, ctx.arkships),

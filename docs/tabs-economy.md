@@ -368,8 +368,7 @@ arkship): `contractDetail()` from the data DB's `contract` (`description` with `
 contract_completed`, `Snapshot.contractsCompleted`, READER 66) plus unscaled influence; the other
 factor `nomadic_contract_value_mult` is not read, so the scaled amounts and the trade total carry
 ≈ (a lower bound). Cost to the operator: no resources — the arkship's time, and the issuer's
-opinion on failure. Arkships: jumps from each along the known lanes (the graph the Beyond column
-uses), nearest first; **no days** — a jump's duration is not read (`docs/open-checks.md` 32). A
+opinion on failure. Arkships: jumps from each along the known lanes, nearest first; **no days** — a jump's duration is not read (`docs/open-checks.md` 32). A
 contract without projects (Diplomatic Support: the AI's travel project only, a player gets points
 of interest) counts as an arkship's job. `arkship_branches` (Colony Startup only, 4.5.x) changes
 the _issuer's_ colony bonus, not our reward: `branchLine()` says so and names what our nearest
@@ -379,7 +378,7 @@ issuers we never met (it reached every page until 2026-11-18).
 random and no panel says which): Diplomatic Support, Prisoner Disposal and the Sightseeing Tour
 mark the carrying arkship's _fleet_ with a flag (`CONTRACT_CARGO`); `arkships()` keeps those
 flags as `Arkship.cargo` with the day set (READER 67; a flag's value is its hour, `flagDate()`),
-and `aboardOf()` names the ship in the Nearest arkship column and the details. The flag names no
+and `aboardOf()` names the ship in the Nearest ship column and the details. The flag names no
 contract, but a nomad can hold only one of each type (`already_doing_same_contract`), so the key
 links them exactly — no guessing. Checked on Roaming Cybergang 2225.08.21: Farleigh, as the save's
 `carrying_delegates`.
@@ -406,6 +405,12 @@ Intercept Raid an arkship; Pest Control, the Heirs' station and Raid Planet a mi
 (whether an arkship's won battle counts is not checked). Raid Planet's place is any colony of the
 system's owner. A transport not yet taken shows where it goes (`TRANSPORT.to`: the issuer's capital,
 your choice, set after the pickup). A mod's contract without projects shows no ship.
+**Nearest ship** (2026-11-22, replacing Nearest arkship and the Beyond column) is our nearest ship
+of a kind that can do it: arkships, science ships and construction ships (`civilianShips`, class
+`science_ship` / `constructor`), military fleets (`fleets`); arkships alone where nothing is known.
+Beyond (jumps past our border) was dropped, the user's question: a nomad owns no system, so it was
+always `–`, and for a settled empire it only repeated the range filter, which still uses it.
+Issuer and Taken by wrap (`EmpireName`'s `wrap`), so the table fits beside the map.
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
 name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the

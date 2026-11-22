@@ -282,6 +282,11 @@ describe('contractDetail', () => {
 			ark({ name: 'Arden', size: 'science_arkship_tier_2', systemId: 3, capital: false }),
 			ark({ name: 'Lost', systemId: 4, capital: false })
 		],
+		ships: [
+			{ name: 'Probe', kind: 'science ship', systemId: 1 },
+			{ name: 'Lens', kind: 'science ship', systemId: 2 },
+			{ name: 'Guard', kind: 'military fleet', systemId: 10 }
+		],
 		lanes,
 		values: { society_research: 1, influence: 1, trade: 1 },
 		systemName: 'Ulmar',
@@ -322,6 +327,21 @@ describe('contractDetail', () => {
 		const d = contractDetail(scan, { ...STARTUP, projects: [] }, dctx());
 		expect(d.ships).toEqual(['science ship']);
 		expect(d.needsArkship).toBe(false);
+		// the contract is at 10: Lens at 2 is two jumps off, the fleet there does not count
+		expect(d.nearest).toEqual({ name: 'Lens', kind: 'science ship', jumps: 2 });
+		expect(
+			contractDetail(scan, { ...STARTUP, projects: [] }, dctx({ ships: [] })).nearest
+		).toBeNull();
+	});
+
+	it('the nearest of every able kind: Build Waystation takes an arkship or a construction ship', () => {
+		const way = { ...row, key: 'contract_build_waystation' };
+		const d = contractDetail(
+			way,
+			{ ...STARTUP, projects: [] },
+			dctx({ ships: [{ name: 'Builder', kind: 'construction ship', systemId: 10 }] })
+		);
+		expect(d.nearest).toEqual({ name: 'Builder', kind: 'construction ship', jumps: 0 });
 	});
 
 	it('an older data DB: no details, the arkships still placed', () => {
