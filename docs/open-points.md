@@ -306,6 +306,11 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   only for saves read since 2026-10-17; older ones' saves are gone.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
+  The month slider marks where pops moved (the user's ask 2026-11-22): one lane each for
+  migration and resettlement under the track (`FrameSlider` `lanes`), consecutive months joined
+  into one band (`runs()` in `#lib/frameRuns.ts`) so a game with much migration shows areas, not a
+  row of ticks; a click on a band picks its first month, ◀ ▶ step to the previous or next marked
+  month. Not yet seen in a browser (the bands' line-up with the thumb).
   The map has a **circle** mode (the user's ask 2026-11-01; the profile's `migrationView`: layout
   and order, `MigrationCircle.svelte`, geometry shared with the diplomacy circle in `#lib/circle.ts`):
   our arkships clockwise from 12 o'clock — oldest first (`arkshipFirstSeen()`: the first save

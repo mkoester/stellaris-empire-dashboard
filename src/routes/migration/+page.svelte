@@ -1,7 +1,14 @@
 <script lang="ts">
 	import FrameSlider from '#lib/FrameSlider.svelte';
 	import { followGame } from '#lib/live.ts';
-	import { flows, ownerColors, resettleFlows, type MigrationView } from '#lib/migration.ts';
+	import {
+		CATEGORICAL,
+		flows,
+		ownerColors,
+		RESETTLE_COLOR,
+		resettleFlows,
+		type MigrationView
+	} from '#lib/migration.ts';
 	import { putSettings } from '#lib/settings.ts';
 	import MigrationBars from '#lib/panels/MigrationBars.svelte';
 	import MigrationHeatmap from '#lib/panels/MigrationHeatmap.svelte';
@@ -24,6 +31,19 @@
 	const exactMoves = $derived(!!frame?.moves?.length);
 	const colors = $derived(ownerColors(rows));
 	const estimated = $derived(monthFlows.some((f) => f.estimated));
+	// the months pops moved, under the slider: migration and resettlement, each a lane
+	const lanes = $derived([
+		{
+			label: 'migration',
+			color: CATEGORICAL[0],
+			on: data.frames.map((f) => flows(f.rows).length > 0)
+		},
+		{
+			label: 'resettlement',
+			color: RESETTLE_COLOR,
+			on: data.frames.map((f) => resettleFlows(f.rows, f.moves).length > 0)
+		}
+	]);
 	let view: MigrationView = $derived(data.view);
 	const setView = (v: MigrationView) => {
 		view = v;
@@ -59,6 +79,7 @@
 		<FrameSlider
 			dates={data.frames.map((f) => f.date)}
 			bind:picked
+			{lanes}
 			label="month shown by the flow diagram and the map"
 		/>
 		<MigrationSankey flows={monthFlows} {colors} />
