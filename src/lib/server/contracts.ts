@@ -41,6 +41,9 @@ export function contractsAt(snaps: Snapshot[], shown: Display): ContractsAt {
 	const known = discovered(systems, { whole: shown.wholeGalaxy, stars: shown.unknownStars });
 	const isNomad = nomadic(s);
 	const data = getGameData();
+	// the latest save's: a month from the feed alone carries none of these
+	const save = snaps.findLast((x) => x.kind === 'save') ?? s;
+	const researched = new Set(save.progress?.researched ?? []);
 	const rows = contractRows(s.contracts, {
 		me: s.countryId,
 		nomadic: isNomad,
@@ -50,17 +53,20 @@ export function contractsAt(snaps: Snapshot[], shown: Display): ContractsAt {
 		range,
 		spoilers: shown.contractSpoilers,
 		all: shown.contractsAll,
-		types: data.contractTypes
+		types: data.contractTypes,
+		researched
 	});
 	const used = new Set(rows.flatMap((r) => [r.systemId, r.pickup, r.dropoff]));
 	const names = Object.fromEntries(
 		systems.filter((x) => used.has(x.id)).map((x) => [x.id, x.name])
 	);
-	// the latest save's: a month from the feed alone carries none of these
-	const save = snaps.findLast((x) => x.kind === 'save') ?? s;
 	const detailCtx = {
 		completed: save.contractsCompleted,
-		researched: new Set(save.progress?.researched ?? []),
+		researched,
+		// an arkship's modules (its station's; spinal ones not seen in a save yet)
+		arkshipModules: new Set(
+			(save.stations ?? []).filter((x) => x.arkship).flatMap((x) => x.modules)
+		),
 		arkships: save.arkships ?? [],
 		// civilian classes as the save names them (`shipclass_` dropped): science_ship, constructor
 		ships: [

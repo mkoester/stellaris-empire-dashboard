@@ -1152,6 +1152,9 @@ export type ContractType = {
 	reward: ContractReward | null;
 	failedOpinion: number | null; // the issuer's opinion of us on failure or cancel
 	operatorTechs: string[]; // techs the operator needs
+	// techs before the game offers it at all (`potential_operator`): groups, any one tech of each;
+	// null with a data DB before 2026-11-22 (offered as before)
+	offerTechs: string[][] | null;
 	projects: ContractProject[]; // the special projects of its event chain
 	// the game's `location = yes`: the contract has a system; null with a data DB before
 	// 2026-11-20, which also lacks the projects defined by inline scripts (the onboard ones)

@@ -5,8 +5,9 @@
 // result (`count_visible_contracts`). So the rules here are ours (the user's call 2026-11-07):
 // - nomad: what we operate, and the offers of issuers we have communications with — an issuer
 //   needs communications with a nomad to issue at all (`can_issue_contracts_trigger`, 4.5.x
-//   `scripted_triggers/09_scripted_triggers_nomads.txt`). Spoiler: offers of the others. Cheat:
-//   everything, other operators' contracts too.
+//   `scripted_triggers/09_scripted_triggers_nomads.txt`) — whose `potential_operator` techs we
+//   have (`offerTechs`: the game offers Clear Blockers only with Planetary Engineering). Spoiler:
+//   offers of the others. Cheat: everything, other operators' contracts too.
 // - settled: the contracts we issued. Spoiler: others' contracts in systems up to the picked range
 //   beyond our border. Cheat: everything. What the game itself shows a settled empire of other
 //   empires' contracts is not known yet (docs/open-checks.md).
@@ -24,6 +25,7 @@ export type ContractRow = Contract & {
 	internal: boolean; // the nomad's own (`*_internal`, Forever Cruise's crew and passengers)
 	special: boolean; // `*_special` categories
 	why: ContractWhy;
+	unoffered: string[][]; // offer techs we lack (`unoffered()`): the game does not offer it to us
 	jumps: number | null; // beyond our border, along known lanes; null: not reachable that way
 };
 
@@ -87,17 +89,23 @@ export function inRange(jumps: number | null, range: string): boolean {
 	return jumps <= (range === 'mine' ? 0 : Number(range));
 }
 
+/** The offer techs (`ContractType.offerTechs`) we lack: each group with none of its techs. */
+export function unoffered(type: ContractType | undefined, researched: Set<string>): string[][] {
+	return (type?.offerTechs ?? []).filter((g) => !g.some((t) => researched.has(t)));
+}
+
 /** Why the player may see a contract: always (mine, offered), behind the spoiler, or a cheat. */
 export function whyOf(
 	c: Contract,
 	me: number,
 	nomadic: boolean,
 	talking: Set<number>,
-	nearBorder: boolean
+	nearBorder: boolean,
+	offerable = true // the game offers it to us: `unoffered()` is empty
 ): ContractWhy {
 	if (nomadic) {
 		if (c.operator === me) return 'mine';
-		if (c.state === 'offered') return talking.has(c.issuer) ? 'offered' : 'spoiler';
+		if (c.state === 'offered') return talking.has(c.issuer) && offerable ? 'offered' : 'spoiler';
 		return 'cheat';
 	}
 	if (c.issuer === me) return 'mine';
@@ -113,6 +121,7 @@ export type ContractContext = {
 	spoilers: boolean; // contractSpoilers
 	all: boolean; // contractsAll
 	types: Record<string, ContractType>;
+	researched: Set<string>;
 };
 
 const ORDER: Record<ContractWhy, number> = { mine: 0, offered: 1, spoiler: 2, cheat: 3 };
@@ -124,6 +133,7 @@ export function contractRows(contracts: Contract[], ctx: ContractContext): Contr
 			const jumps = c.systemId === null ? null : (ctx.jumps.get(c.systemId) ?? null);
 			const type = ctx.types[c.key];
 			const category = type?.category ?? null;
+			const missing = unoffered(type, ctx.researched);
 			return {
 				...c,
 				name: type?.name ?? c.key,
@@ -131,7 +141,8 @@ export function contractRows(contracts: Contract[], ctx: ContractContext): Contr
 				kind: kindOf(category),
 				internal: category?.endsWith('_internal') ?? false,
 				special: category?.endsWith('_special') ?? false,
-				why: whyOf(c, ctx.me, ctx.nomadic, ctx.talking, inRange(jumps, ctx.range)),
+				why: whyOf(c, ctx.me, ctx.nomadic, ctx.talking, inRange(jumps, ctx.range), !missing.length),
+				unoffered: missing,
 				jumps
 			};
 		})
@@ -348,6 +359,27 @@ export function shipsOf(key: string, projects: ContractProject[]): string[] {
 	return [...new Set(all)];
 }
 
+/**
+ * What `possible_operator` asks beyond techs, for the contracts that need a certain arkship (4.5.x
+ * `02_contracts.txt`; Deep Scan's `has_deep_scan_capability`, `09_scripted_triggers_nomads.txt`):
+ * unmet, or not checkable. Spinal modules (the Stellar Igniter, the System Scanner) were not seen
+ * in a save yet (none of the player's arkships had one, Roaming Cybergang 2227.09.01): not
+ * checked — named only. Re-check on game updates.
+ */
+export function acceptNeeds(key: string, arkships: Arkship[], modules: Set<string>): string[] {
+	if (key === 'contract_stellar_ignition')
+		return ['an arkship with the Stellar Igniter (a spinal module: not checked)'];
+	if (key === 'contract_deep_scan')
+		return arkships.some((a) => arkshipKind(a.size) === 'science' && a.tier >= 2) ||
+			modules.has('arkship_sensor_array') ||
+			modules.has('arkship_system_scanner')
+			? []
+			: [
+					'a science arkship of tier 2 or 3, or an arkship with a Sensor Array or a System Scanner (a spinal module: not checked)'
+				];
+	return [];
+}
+
 const NEEDS: Record<string, string> = {
 	carries_colony: 'an arkship',
 	shipclass_science_ship: 'a science ship',
@@ -398,7 +430,9 @@ export type ContractDetail = {
 	opinion: number | null;
 	failedOpinion: number | null;
 	timeToComplete: number | null;
-	missingTechs: string[];
+	missingTechs: string[]; // to accept it (`possible_operator`)
+	unoffered: string[]; // to be offered it at all, each "A or B"; only for an offer
+	acceptNeeds: string[]; // `acceptNeeds()`: an arkship it needs, unmet or not checked
 	ships: string[]; // `shipsOf()`: what can do the work; [] for a remote one or when not known
 	needsArkship: boolean; // an arkship can do it, or nothing is known (travel by arkship)
 	nearest: ShipFit | null; // of our ships of a kind in `ships` (arkships when not known)
@@ -414,6 +448,7 @@ export type DetailContext = {
 	completed: number | null; // Snapshot.contractsCompleted
 	researched: Set<string>;
 	arkships: Arkship[];
+	arkshipModules: Set<string>; // our arkships' stations' modules
 	ships: OurShip[]; // our science ships, construction ships and military fleets
 	lanes: Graph; // the known lanes, as the tab counts jumps
 	values: Resources; // valuesOf(): one unit in trade
@@ -505,6 +540,9 @@ export function contractDetail(
 		missingTechs: (type?.operatorTechs ?? [])
 			.filter((t) => !ctx.researched.has(t))
 			.map(ctx.techName),
+		unoffered:
+			r.state === 'offered' ? r.unoffered.map((g) => g.map(ctx.techName).join(' or ')) : [],
+		acceptNeeds: acceptNeeds(r.key, ctx.arkships, ctx.arkshipModules),
 		ships,
 		needsArkship,
 		nearest,

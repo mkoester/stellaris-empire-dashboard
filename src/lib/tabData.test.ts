@@ -63,6 +63,13 @@ describe('emptyTabs', () => {
 			});
 		expect(emptyTabs([nomad(true)]).contracts).toBeUndefined();
 		expect(emptyTabs([nomad(false)]).contracts).toBeDefined();
+		// an offer the game does not show us for lack of a tech dims the tab like the page
+		const gated = {
+			contract_x: { offerTechs: [['tech_planetary_engineering']] }
+		} as unknown as Parameters<typeof emptyTabs>[1];
+		const x = { ...offer, key: 'contract_x' };
+		const nomadX = { ...nomad(true), contracts: [x] as unknown as Snapshot['contracts'] };
+		expect(emptyTabs([nomadX], gated).contracts).toBeDefined();
 		// a settled empire is offered nothing: another empire's offer stays behind the spoiler
 		const settled = blank({
 			contracts: [offer] as unknown as Snapshot['contracts'],

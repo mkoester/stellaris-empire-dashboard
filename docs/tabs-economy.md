@@ -411,6 +411,20 @@ of a kind that can do it: arkships, science ships and construction ships (`civil
 Beyond (jumps past our border) was dropped, the user's question: a nomad owns no system, so it was
 always `–`, and for a settled empire it only repeated the range filter, which still uses it.
 Issuer and Taken by wrap (`EmpireName`'s `wrap`), so the table fits beside the map.
+**What the game asks before it offers or lets us accept** (the user's ask 2026-11-22: "if it is
+offered to me, I have everything I need"). That holds in the game; the dashboard listed more: an
+offer counted as offered to a nomad on communications alone. Now the techs of `potential_operator`
+count too (data DB `contract.offer_techs_json`, 2026-11-22: groups, any one tech each — Clear
+Blockers: Planetary Engineering; Build Waystation: Waystations I; Stellar Ignition: its igniter
+tech; Deep Scan: any of arkship tier 2 or 3, Sensors 2, System Scanner). An offer we lack one for is
+a spoiler, "not offered to you: needs …" in its State cell, and does not undim the tab
+(`unoffered()`, `whyOf()`'s `offerable`, `emptyTabs()`'s contract types). A data DB without the
+column changes nothing. `potential_operator`'s other conditions (not at war with the issuer; Build
+Waystation's `benefits_from_waystation_network`) and Raid Planet's bombardment policy and pacts are
+not checked. To accept (`possible_operator`): the techs as before, and `acceptNeeds()` — Deep Scan
+wants a science arkship of tier 2+ or a Sensor Array or System Scanner, Stellar Ignition an arkship
+with the Stellar Igniter. The igniter and the scanner are spinal modules, which no save has shown
+yet (Roaming Cybergang 2227.09.01: no player arkship had one): named, never judged met.
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
 name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the

@@ -154,7 +154,17 @@
 		/>{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
 {#snippet stateCell(r: Row)}{#if r.state === 'offered'}offered{r.daysLeft === null
 			? ''
-			: `, ${r.daysLeft} days`}{:else}taken{r.accepted ? ` ${r.accepted}` : ''}{/if}{/snippet}
+			: `, ${r.daysLeft} days`}{#if r.detail.unoffered.length}<div
+				class="text-xs text-amber-600"
+				title="the game offers it only with these researched"
+			>
+				not offered to you: needs {r.detail.unoffered.join(', ')}
+			</div>{:else if r.detail.missingTechs.length || r.detail.acceptNeeds.length}<div
+				class="text-xs text-amber-600"
+				title="the game lets you accept it only with these"
+			>
+				to accept: needs {[...r.detail.missingTechs, ...r.detail.acceptNeeds].join('; ')}
+			</div>{/if}{:else}taken{r.accepted ? ` ${r.accepted}` : ''}{/if}{/snippet}
 {#snippet whereCell(r: Row)}<span
 		class={where(r).label === '–'
 			? 'text-gray-500'
@@ -214,9 +224,13 @@
 								{branchLine(d.arkships)}
 							</div>{/if}{/each}
 					{#if d.steps && d.steps > 1}<div>{d.steps} steps, one project each</div>{/if}
+					{#if d.unoffered.length}<div class="text-amber-600">
+							The game does not offer it to you before {d.unoffered.join(', ')} is researched.
+						</div>{/if}
 					{#if d.missingTechs.length}<div class="text-amber-600">
 							needs {d.missingTechs.join(', ')}, not researched
 						</div>{/if}
+					{#each d.acceptNeeds as n (n)}<div class="text-amber-600">needs {n}</div>{/each}
 				</dd>
 				<dt class="text-gray-500">Reward</dt>
 				<dd>

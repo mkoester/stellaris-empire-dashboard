@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { graph } from './galaxyGraph.ts';
 import {
+	acceptNeeds,
 	aboardOf,
 	arkshipKind,
 	branchLine,
@@ -31,6 +32,7 @@ const plain = (name: string, category: string, timeToAccept: number | null): Con
 	reward: null,
 	failedOpinion: null,
 	operatorTechs: [],
+	offerTechs: null,
 	projects: [],
 	location: null
 });
@@ -94,6 +96,7 @@ const ctx = (o: Partial<ContractContext>): ContractContext => ({
 		contract_raid_planet_small: plain('Raid Planet', 'military_contract', 1800),
 		contract_eternal_chorus: plain('Eternal Chorus', 'science_contract_internal', null)
 	},
+	researched: new Set(),
 	...o
 });
 
@@ -118,6 +121,24 @@ describe('contractRows', () => {
 				[2, 'spoiler'],
 				[5, 'spoiler']
 			]);
+		});
+		it('an offer whose offer techs we lack is a spoiler, as the game does not offer it', () => {
+			const types = {
+				...ctx({}).types,
+				contract_colony_startup: {
+					...plain('Colony Startup', 'diplomacy_contract', 1800),
+					offerTechs: [['tech_a', 'tech_b']]
+				}
+			};
+			const why = (researched: string[]) =>
+				contractRows(contracts, ctx({ ...n, types, researched: new Set(researched) })).find(
+					(r) => r.id === 1
+				);
+			expect(why([])).toBeUndefined();
+			expect(
+				contractRows(contracts, ctx({ ...n, types, spoilers: true })).find((r) => r.id === 1)
+			).toMatchObject({ why: 'spoiler', unoffered: [['tech_a', 'tech_b']] });
+			expect(why(['tech_b'])).toMatchObject({ why: 'offered', unoffered: [] });
 		});
 		it('cheat: everything, other operators too', () => {
 			expect(ids({ ...n, all: true }).map(([id]) => id)).toEqual([6, 3, 1, 2, 5, 4]);
@@ -277,6 +298,7 @@ describe('contractDetail', () => {
 	const dctx = (o: Partial<DetailContext> = {}): DetailContext => ({
 		completed: 0,
 		researched: new Set(),
+		arkshipModules: new Set(),
 		arkships: [
 			ark({}),
 			ark({ name: 'Arden', size: 'science_arkship_tier_2', systemId: 3, capital: false }),
@@ -443,5 +465,28 @@ describe('shipsOf', () => {
 	});
 	it('knows nothing of a mod’s contract without projects', () => {
 		expect(shipsOf('ahw_contract_repair_gate', [])).toEqual([]);
+	});
+});
+
+describe('acceptNeeds', () => {
+	const a = (size: string, tier: number) => ({ size, tier }) as Arkship;
+	it('Deep Scan: a science arkship of tier 2+, or a sensor module', () => {
+		expect(acceptNeeds('contract_deep_scan', [a('science_arkship_tier_2', 2)], new Set())).toEqual(
+			[]
+		);
+		expect(
+			acceptNeeds(
+				'contract_deep_scan',
+				[a('military_arkship_tier_1', 1)],
+				new Set(['arkship_sensor_array'])
+			)
+		).toEqual([]);
+		expect(
+			acceptNeeds('contract_deep_scan', [a('science_arkship_tier_1', 1)], new Set())
+		).toHaveLength(1);
+	});
+	it('Stellar Ignition is named, not checked; others need nothing', () => {
+		expect(acceptNeeds('contract_stellar_ignition', [], new Set())[0]).toMatch(/not checked/);
+		expect(acceptNeeds('contract_scan_debris', [], new Set())).toEqual([]);
 	});
 });
