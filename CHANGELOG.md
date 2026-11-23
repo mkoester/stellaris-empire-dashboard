@@ -4,7 +4,10 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.0] - 2026-11-23
+
+Built for Stellaris 4.6.0 "Corona Borealis" and Willpower; bundles stellaris-data-extraction
+0.1.25 (the 4.6 game data).
 
 ### Fixed
 
@@ -17,8 +20,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- The Cultural Envoy among the civilian ships; the companion mod asks for Willpower's four new
-  techs.
+- The Cultural Envoy among the civilian ships.
+- Companion mod 0.16.1: asks for Willpower's four new techs, supports 4.6, and no longer writes an
+  `error.log` line for each new colony's first month.
 
 ## [0.1.31] - 2026-11-23
 
