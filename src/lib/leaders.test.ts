@@ -6,6 +6,7 @@ import {
 	leaderOrder,
 	leaderRoles,
 	leaderUpkeep,
+	skillModifiers,
 	traitRoles,
 	upkeepFactors
 } from './leaders.ts';
@@ -117,6 +118,15 @@ describe('leaderRoles', () => {
 		const fleet = roles.find((r) => r.kind === 'fleet')!;
 		expect(fleet.bonuses).toEqual([
 			{ source: 'Commander × 4', modifiers: [mod('ship_fire_rate_mult', 0.12)] }
+		]);
+	});
+
+	it('reads the governor effects under their 4.6 name too', () => {
+		const explain = {
+			'modifier:skill_official_colony_governor': ex([mod('planet_stability_add', 1)])
+		};
+		expect(skillModifiers('skill_official_planet_governor', explain)).toEqual([
+			mod('planet_stability_add', 1)
 		]);
 	});
 

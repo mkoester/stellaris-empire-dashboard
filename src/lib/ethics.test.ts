@@ -8,8 +8,9 @@ import {
 	sortEthics
 } from './ethics.ts';
 
-// as the data DB has them (4.5.2): category_value − 2
+// as GameData.ethicAxes has them: the cost signed by the pole (4.6 adds absolute ±3)
 const AXES = {
+	ethic_absolute_pacifist: { axis: 'mil', pos: 3 },
 	ethic_fanatic_authoritarian: { axis: 'col', pos: -2 },
 	ethic_authoritarian: { axis: 'col', pos: -1 },
 	ethic_egalitarian: { axis: 'col', pos: 1 },
@@ -29,6 +30,17 @@ const DEFINES = {
 	FEDERATION_OPPOSING_ETHICS_PENALTY: -0.5
 };
 const p = (...ethics: string[]) => profile(ethics, AXES);
+
+describe('ethicMark', () => {
+	it('marks fanatic and absolute ethics alike', () => {
+		expect(ethicMark('ethic_absolute_pacifist', AXES)).toEqual({
+			short: 'PA',
+			fanatic: true,
+			color: 'ethic-mil-1'
+		});
+		expect(ethicMark('ethic_pacifist', AXES)?.fanatic).toBe(false);
+	});
+});
 
 describe('ethicDistance', () => {
 	it('counts the steps apart on every axis', () => {

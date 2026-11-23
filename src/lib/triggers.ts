@@ -192,11 +192,13 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			// a scope we cannot look into — but with no situation running, none matches
 			return f.situations === 0 ? value === 'no' : null;
 		default: {
-			// is_<ethic> (the ethic or its fanatic form), is_fanatic_<ethic>: 4.5.2
+			// is_<ethic> (any tier), is_fanatic_<ethic> (fanatic or, 4.6, absolute):
 			// scripted_triggers/00_scripted_triggers.txt
 			const e = ETHICS.exec(name);
 			if (!e) return scripted(name, value, f);
-			const fanatic = f.government.includes(`ethic_fanatic_${e[2]}`);
+			const fanatic =
+				f.government.includes(`ethic_fanatic_${e[2]}`) ||
+				f.government.includes(`ethic_absolute_${e[2]}`);
 			return yes(e[1] ? fanatic : fanatic || f.government.includes(`ethic_${e[2]}`));
 		}
 	}

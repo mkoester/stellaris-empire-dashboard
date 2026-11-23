@@ -182,6 +182,7 @@ describe('shipName', () => {
 	it('names a ship by its size as the game does, the class only when the size is unknown', () => {
 		expect(shipName('nomads_constructor', 'constructor')).toBe('Logistic Ship');
 		expect(shipName('constructor', 'constructor')).toBe('Construction Ship');
+		expect(shipName('cultural_envoy_ship', 'cultural_envoy')).toBe('Cultural Envoy');
 		expect(shipName(undefined, 'constructor')).toBe('Construction Ship');
 		expect(shipName(undefined, 'science_ship')).toBe('Science Ship');
 		expect(shipName('corvette')).toBe(pretty('corvette'));

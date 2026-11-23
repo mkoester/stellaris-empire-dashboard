@@ -92,7 +92,10 @@ export function load({ url }) {
 					: target === 'shift'
 						? 'Ethics shift speed'
 						: names[target],
-			ours: government.some((k) => k.startsWith('ethic_') && k.replace('fanatic_', '') === target),
+			ours: government.some(
+				(k) =>
+					k.startsWith('ethic_') && k.replace(/^ethic_(fanatic|absolute)_/, 'ethic_') === target
+			),
 			// the empire-wide factor: the save's, and the product of the rules that apply
 			weight: weights[target] ?? null,
 			computed: rules.length ? countryFactor(rules) : null,

@@ -419,7 +419,9 @@ export function firstContactDefense(
 	const modifier = exported
 		? { label: 'their first contact modifiers', value: num(block?.variables?.sdash_fcd) }
 		: { label: 'cautious protocol', value: cautious ? 2 : 0 };
-	const xenophobe = items(block?.ethos?.ethics).some((e) => /^ethic_(fanatic_)?xenophobe$/.test(e));
+	const xenophobe = items(block?.ethos?.ethics).some((e) =>
+		/^ethic_((fanatic|absolute)_)?xenophobe$/.test(e)
+	);
 	const parts = [modifier, { label: 'xenophobe', value: xenophobe ? 2 : 0 }].filter(
 		(p) => p.value !== 0
 	);

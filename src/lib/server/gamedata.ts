@@ -838,11 +838,17 @@ export function loadGameData(file: string): GameData {
 				])
 			),
 			ethicAxes: Object.fromEntries(
-				rows<{ key: string; category: string | null; category_value: number | null }>(
-					'SELECT key, category, category_value FROM ethic WHERE category IS NOT NULL'
+				// from the tier (`cost`: 1 regular, 2 fanatic, 3 absolute) and the pole, not
+				// `category_value`, whose scale 4.6 widened (0…4 → 0…6): a player's zip may bundle an
+				// older extractor
+				rows<{ key: string; category: string | null; cost: number; category_opposite: number }>(
+					'SELECT key, category, cost, category_opposite FROM ethic WHERE category IS NOT NULL'
 				).map((e) => [
 					e.key,
-					{ axis: e.category!, pos: e.category === 'hive' ? 0 : (e.category_value ?? 2) - 2 }
+					{
+						axis: e.category!,
+						pos: e.category === 'hive' ? 0 : (e.category_opposite ? 1 : -1) * e.cost
+					}
 				])
 			),
 			ethicOrder: rows<{ key: string }>('SELECT key FROM ethic ORDER BY sort_order').map(
