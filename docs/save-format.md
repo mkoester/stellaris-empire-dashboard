@@ -633,5 +633,7 @@ Not read yet: notes for an Ideology map mode. Seven ideologies, founded with `de
 - Countries: `country.<id>.modules.standard_ideology_module` holds `adopted_ideology = <id>` and
   `detected_ideologies = { ideology ids }` — the foreign ones it knows (two of nine countries had
   one; ours none, and the player's Ideologies screen said "We do not know of any other
-  Ideology"). A map mode shows ours and the detected ones; everything else is `intel: true`.
-  Also `flags.ideology_initiated`; factions carry `adopted_ideology` too.
+  Ideology"). The game's own Ideological Map Mode (Ctrl+L) still drew all seven ideologies'
+  reach, as clouds in their flag colour with their flag icons, the same day (screenshot
+  `2026_11_23_1`): reach on the map is not intel-gated, so a dashboard map mode needs no
+  `intel` flag for it. Also `flags.ideology_initiated`; factions carry `adopted_ideology` too.
