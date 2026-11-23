@@ -90,6 +90,11 @@ not see them (Node 26.13.1, a security release, was caught by hand on 2026-11-22
 appears or vanishes still shows. Separately confirm no `pre` / `whitespace-pre*` element sits in a
 changed line. prettier-plugin-svelte 4.2's reformat (119 files, 2026-11-22) passed this.
 
+**Read what `prettier --write` did to a Markdown list item before keeping it.** A code span
+wrapped across lines inside a list item (the federation save shape in `docs/open-points.md`,
+2026-11-23) came back with its continuation lines at column 0, out of the list. Keep such a span
+on one line of its own; Prettier leaves an over-long one alone.
+
 ## The dashboard DB
 
 **One watcher per process.** `app.ts` keeps its state on `globalThis`: Vite re-imports server
