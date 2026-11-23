@@ -73,8 +73,9 @@ own screen next to the dashboard's helps most.
   (marked, and correctable on the timeline page).
 - **Multiplayer and Ironman detection are new** (above): checked against two multiplayer saves so
   far, each with one human player, and one Ironman save.
-- **Game versions 4.3–4.5.** Numbers are checked against the game's own screens, but not all of
-  them yet, and mostly on Linux; the Windows and macOS zips have been run, with less mileage.
+- **Game versions 4.3–4.6.** Willpower's ideologies are not shown yet. Numbers are checked against
+  the game's own screens, but not all of them yet, and mostly on Linux; the Windows and macOS zips
+  have been run, with less mileage.
 - **English game texts only.**
 
 Planning an empire before you play? The

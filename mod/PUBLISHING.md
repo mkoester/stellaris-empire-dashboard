@@ -79,7 +79,7 @@ Hidden events only: once a month (and a light daily tick) it writes lines to [i]
 
 [h2]Compatibility[/h2]
 [list]
-[*]Built for Stellaris 4.5.x (supported version v4.5.*, tested on 4.5.2).
+[*]Built for Stellaris 4.6.x (supported version v4.6.*, tested on 4.6.0).
 [*]Compatible with practically everything — it overrides nothing.
 [*]Can be enabled in a running game: it starts with the next load.
 [/list]
@@ -114,7 +114,7 @@ How it works
 Hidden events only: once a month (and a light daily tick) it writes lines to logs/game.log and stores a few country variables in your save. It changes no vanilla file, no UI, no balance.
 
 Compatibility
-• Built for Stellaris 4.5.x (supported version v4.5.*, tested on 4.5.2).
+• Built for Stellaris 4.6.x (supported version v4.6.*, tested on 4.6.0).
 • Compatible with practically everything — it overrides nothing.
 • Can be enabled in a running game: it starts with the next load.
 
