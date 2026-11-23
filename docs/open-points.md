@@ -219,9 +219,9 @@ screen, trade calibration, stored research, releases).
   game's diplomacy screen shows at which intel is from the files only. Check: a screenshot of an
   empire's diplomacy view at intel < 50 (no pacts expected) and one ≥ 50 against the tab; at the
   first intel drop (lost embassy or pact), whether the tab marks its facts "unverified since".
-  Federations, first seen 2026-11-22 (Roaming Cybergang, 2227–2234): `federation.0 = { name = {
-  key="NAME_FE_Federation" } federation_progression = { federation_type cohesion laws … } members
-  = { <ids> } leader }` — three fallen empires, each with `federation=0`.
+  Federations, first seen 2026-11-22 (Roaming Cybergang, 2227–2234):
+  `federation.0 = { name = { key="NAME_FE_Federation" } federation_progression = { federation_type cohesion laws … } members = { <ids> } leader }`
+  — three fallen empires, each with `federation=0`.
 - **Diplomacy tab, ethics**: check the chips against the game's contacts screen (ethics column)
   for two or three empires, and `federation fit` against a real federation's cohesion tooltip
   ("Opposing ethics(N)", the defines' lines) — how a fanatic ethic and a gestalt count.
