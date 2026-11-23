@@ -13,7 +13,6 @@ import { planSummary } from '#lib/server/planner.ts';
 import { territoriesOf, reveal } from '#lib/server/mapSystems.ts';
 import { valuesOf } from '#lib/server/unitCosts.ts';
 import { waylinesOf } from '#lib/server/waylines.ts';
-import { ownOnMap } from '#lib/mapLayers.ts';
 import { mapView } from '#lib/situations.ts';
 
 // Where to expand next: surveyed planets nobody owns, within a chosen range of the borders. A nomad
@@ -49,9 +48,7 @@ export function load({ url }) {
 		...(waylines && {
 			map: {
 				systems: mapView(g?.systems ?? [], reveal(b.snaps)),
-				territories: territoriesOf(b.snaps),
-				own: ownOnMap(b.latest),
-				arkships
+				territories: territoriesOf(b.snaps)
 			},
 			explain: pick(
 				getExplanations(),

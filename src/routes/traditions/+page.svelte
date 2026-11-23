@@ -61,11 +61,11 @@
 			<ul class="space-y-1 text-sm">
 				{#each t.all as x (x.key)}
 					<li class={x.active ? '' : 'text-gray-500 opacity-70'}>
-						<b class="font-semibold"
-							><InfoPopup explanation={data.explain[`tradition:${x.key}`]}>{x.name}</InfoPopup></b
-						>{#if ROLE[x.role]}<span class="text-xs text-gray-500">
-								· when {ROLE[x.role]}</span
-							>{/if}{x.active ? ' ✓' : ''}{#if !x.active}<AddGoal
+						<b class="font-semibold">
+							<InfoPopup explanation={data.explain[`tradition:${x.key}`]}>{x.name}</InfoPopup>
+						</b>{#if ROLE[x.role]}<span class="text-xs text-gray-500">
+								· when {ROLE[x.role]}
+							</span>{/if}{x.active ? ' ✓' : ''}{#if !x.active}<AddGoal
 								kind="tradition"
 								target={{ tradition: x.key }}
 							/>{/if}
@@ -93,8 +93,7 @@
 						title="plan to adopt this tree"
 					/>{/if}{/each}
 		</p>
-		{#each data.otherTrees.filter((t) => t.adopt && data.whatIfs?.[`tradition:${t.adopt}`]) as t (t.key)}<div
-			>
+		{#each data.otherTrees.filter((t) => t.adopt && data.whatIfs?.[`tradition:${t.adopt}`]) as t (t.key)}<div>
 				<WhatIfLine what={data.whatIfs?.[`tradition:${t.adopt}`]} label={`adopting ${t.name}`} />
 			</div>{/each}
 	</Panel>
@@ -109,8 +108,10 @@
 				</div>{/each}
 			<div class="mt-2 text-gray-500">
 				{#each open as p, i (p.key)}{i ? ' · ' : ''}<InfoPopup
-						explanation={data.explain[`perk:${p.key}`]}>{p.name}</InfoPopup
-					><AddGoal kind="perk" target={{ perk: p.key }} />{/each}
+						explanation={data.explain[`perk:${p.key}`]}
+					>
+						{p.name}
+					</InfoPopup><AddGoal kind="perk" target={{ perk: p.key }} />{/each}
 			</div>
 			{#each open.filter((p) => data.whatIfs?.[`perk:${p.key}`]) as p (p.key)}<div>
 					<WhatIfLine what={data.whatIfs?.[`perk:${p.key}`]} label={p.name} />

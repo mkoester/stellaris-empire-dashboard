@@ -85,17 +85,19 @@
 			bind:this={anchor}
 			tabindex="0"
 			role="button"
-			class="cursor-help underline decoration-dotted underline-offset-2">{@render children()}</span
+			class="cursor-help underline decoration-dotted underline-offset-2"
 		>
+			{@render children()}
+		</span>
 		<span
 			bind:this={card}
 			popover="manual"
 			class="m-0 w-80 max-w-[90vw] overflow-auto rounded-lg border border-gray-300 bg-white p-2.5 text-left text-xs font-normal text-gray-900 shadow-xl dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
 			style="position: fixed; inset: auto; max-height: 80vh"
 		>
-			{#if shown}<ExplanationCard explanation={shown} />{:else}<span class="opacity-60"
-					>{fetched === 'missing' ? 'Nothing known about it.' : 'Loading…'}</span
-				>{/if}
+			{#if shown}<ExplanationCard explanation={shown} />{:else}<span class="opacity-60">
+					{fetched === 'missing' ? 'Nothing known about it.' : 'Loading…'}
+				</span>{/if}
 		</span>
 	</span>
 {:else}

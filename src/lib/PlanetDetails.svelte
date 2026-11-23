@@ -64,30 +64,34 @@
 			.join('\n');
 </script>
 
-{#snippet districtCell(t: Cap)}<span title={sourceText(t.sources)}
-		><DistrictName name={nameOf(names, t.district)} color={colors[t.district]} /></span
-	>{/snippet}
+{#snippet districtCell(t: Cap)}<span title={sourceText(t.sources)}>
+		<DistrictName name={nameOf(names, t.district)} color={colors[t.district]} />
+	</span>{/snippet}
 {#snippet capCell(t: Cap)}{t.cap ?? '–'}{#if t.sources.some((s) => s.blocked)}<span
 			class="text-amber-600"
-			title="includes features behind blockers">*</span
-		>{/if}{/snippet}
+			title="includes features behind blockers"
+		>
+			*
+		</span>{/if}{/snippet}
 {#snippet freeCell(t: Cap)}<span
 		class="font-semibold"
 		title={t.cap !== null && free(t.cap, t.built) < t.cap - t.built
 			? `${t.cap - t.built} by its cap, but the planet's limit is reached`
-			: ''}>{freeOf(t) ?? ''}</span
-	>{/snippet}
+			: ''}
+	>
+		{freeOf(t) ?? ''}
+	</span>{/snippet}
 
 <div class="flex flex-col gap-3 text-sm">
 	<div>
 		<div class="mb-1 font-semibold">
 			Districts {caps.built}{#if caps.limit !== null}
 				/ {caps.limit}{/if}
-			<span class="font-normal text-gray-500"
-				>{caps.limit === null
+			<span class="font-normal text-gray-500">
+				{caps.limit === null
 					? '— a habitat’s limit depends on its capital tier and system, not computed'
-					: `— size + ${caps.limitSources.length ? sourceText(caps.limitSources).replaceAll('\n', ', ') : 'nothing else'}`}</span
-			>
+					: `— size + ${caps.limitSources.length ? sourceText(caps.limitSources).replaceAll('\n', ', ') : 'nothing else'}`}
+			</span>
 		</div>
 		<SortTable
 			rows={caps.types}
@@ -102,9 +106,9 @@
 			<div class="mb-1 font-semibold">Features</div>
 			{#each features as d, i (i)}
 				<div>
-					<InfoPopup explanation={explain[`deposit:${d.key}`]}
-						>{title(`deposit:${d.key}`)}</InfoPopup
-					>
+					<InfoPopup explanation={explain[`deposit:${d.key}`]}>
+						{title(`deposit:${d.key}`)}
+					</InfoPopup>
 					<Effects explanation={explain[`deposit:${d.key}`]} />
 				</div>
 			{/each}
@@ -114,23 +118,24 @@
 	{#if blocked.length}
 		<div>
 			<div class="mb-1 font-semibold">
-				Blockers <span class="font-normal text-gray-500"
-					>— each takes districts from the limit until cleared</span
-				>
+				Blockers <span class="font-normal text-gray-500">
+					— each takes districts from the limit until cleared
+				</span>
 			</div>
 			{#each blocked as d, i (i)}
 				<div class="mb-1">
 					<span class="text-amber-600">⛔</span>
-					<InfoPopup explanation={explain[`deposit:${d.key}`]}
-						>{title(`deposit:${d.key}`)}</InfoPopup
-					>
-					<span class="text-xs text-gray-500">{explain[`deposit:${d.key}`]?.facts.join(' · ')}</span
-					>
+					<InfoPopup explanation={explain[`deposit:${d.key}`]}>
+						{title(`deposit:${d.key}`)}
+					</InfoPopup>
+					<span class="text-xs text-gray-500">
+						{explain[`deposit:${d.key}`]?.facts.join(' · ')}
+					</span>
 					{#if d.swap}
 						<div class="ml-5">
-							hides <InfoPopup explanation={explain[`deposit:${d.swap}`]}
-								>{title(`deposit:${d.swap}`)}</InfoPopup
-							>
+							hides <InfoPopup explanation={explain[`deposit:${d.swap}`]}>
+								{title(`deposit:${d.swap}`)}
+							</InfoPopup>
 							<Effects explanation={explain[`deposit:${d.swap}`]} />
 						</div>
 					{/if}
@@ -151,9 +156,9 @@
 				<div class="mb-1">
 					<div class="flex justify-between gap-3">
 						<InfoPopup explanation={explain[`modifier:${m.key}`]}>{m.name}</InfoPopup>
-						<span class="shrink-0 text-gray-500 tabular-nums" title={m.until ?? ''}
-							>{m.until ? timeLeft(date, m.until) : 'permanent'}</span
-						>
+						<span class="shrink-0 text-gray-500 tabular-nums" title={m.until ?? ''}>
+							{m.until ? timeLeft(date, m.until) : 'permanent'}
+						</span>
 					</div>
 					<Effects explanation={explain[`modifier:${m.key}`]} />
 				</div>

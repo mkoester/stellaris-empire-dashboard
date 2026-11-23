@@ -43,8 +43,10 @@
 			onclick={() => {
 				item.action();
 				onclose();
-			}}>{item.label}</button
+			}}
 		>
+			{item.label}
+		</button>
 	{:else}
 		<div class="px-3 py-1 text-gray-500">nothing to plan here</div>
 	{/each}

@@ -59,9 +59,9 @@
 </script>
 
 {#snippet perkList(keys: string[])}
-	{#each keys as k, i (k)}{i ? ', ' : ''}<InfoPopup explanation={explain[`specialistperk:${k}`]}
-			>{perkNames[k] ?? k}</InfoPopup
-		>{/each}
+	{#each keys as k, i (k)}{i ? ', ' : ''}<InfoPopup explanation={explain[`specialistperk:${k}`]}>
+			{perkNames[k] ?? k}
+		</InfoPopup>{/each}
 {/snippet}
 
 <section class="rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
@@ -72,19 +72,22 @@
 				loyalty <b class={tone(s.loyalty)}>{s.loyalty === null ? '?' : fmt(s.loyalty)}</b>
 				{#if d.trend !== null}<span
 						class={tone(d.trend)}
-						title="its change a month between the last two saves">{signed(d.trend)} a month</span
-					>{/if}
+						title="its change a month between the last two saves"
+					>
+						{signed(d.trend)} a month
+					</span>{/if}
 				{#if d.fromOpinion !== null}<span
 						class="text-gray-500"
 						title="each month the subject's opinion of its overlord × 0.01 is added to its loyalty (SUBJECT_MONTHLY_LOYALTY_OPINION_MULTIPLIER)"
-						>{` (${signed(d.fromOpinion)} of it from opinion)`}</span
-					>{/if}
+					>
+						{` (${signed(d.fromOpinion)} of it from opinion)`}
+					</span>{/if}
 			</div>
 			<div>
 				{#if d.renegotiation === null}
-					<span class="text-gray-500"
-						>renegotiation: unknown until a save is read again by this version</span
-					>
+					<span class="text-gray-500">
+						renegotiation: unknown until a save is read again by this version
+					</span>
 				{:else if d.renegotiation.now}
 					renegotiation <b class="text-green-600">possible now</b>
 				{:else}
@@ -93,26 +96,28 @@
 				<span
 					class="text-gray-500"
 					title="AGREEMENT_PROPOSE_INFLUENCE_COST + |loyalty change| × AGREEMENT_LOYALTY_DELTA_MULT (4.5.4 defines); an agreement can change every AGREEMENT_CHANGE_COOLDOWN_MONTHS"
-					>{` · a proposal costs ≈ ${d.proposalBase} influence + 5 per point of loyalty it moves`}</span
 				>
+					{` · a proposal costs ≈ ${d.proposalBase} influence + 5 per point of loyalty it moves`}
+				</span>
 			</div>
 			{#if d.holdings}
 				<div title="colonies of this subject with our holdings, against the deal's holdings limit">
-					our holdings on its colonies <b
-						>{d.holdings.used}{d.holdings.limit !== null ? ` / ${d.holdings.limit}` : ''}</b
-					>
+					our holdings on its colonies <b>
+						{d.holdings.used}{d.holdings.limit !== null ? ` / ${d.holdings.limit}` : ''}
+					</b>
 				</div>
 			{/if}
 			{#if d.specialist}
 				{@const sp = d.specialist}
 				<div>
-					specialisation <b>{sp.name}</b> level {sp.level}{#if sp.xpNext !== null}<span
-							>{`, ${fmt(sp.xp)} / ${fmt(sp.xpNext)} XP`}</span
-						>{#if sp.months !== null}<span
+					specialisation <b>{sp.name}</b> level {sp.level}{#if sp.xpNext !== null}<span>
+							{`, ${fmt(sp.xp)} / ${fmt(sp.xpNext)} XP`}
+						</span>{#if sp.months !== null}<span
 								class="text-gray-500"
 								title="XP a month = loyalty × 0.1 (SUBJECT_XP_LOYALTY_MULTIPLIER), at today's loyalty"
-								>{` — level ${sp.level + 1} in ≈ ${fmt(sp.months / 12)} years (${fmt(sp.perMonth ?? 0)} XP a month)`}</span
-							>{/if}{:else}<span class="text-gray-500">, the top level</span>{/if}
+							>
+								{` — level ${sp.level + 1} in ≈ ${fmt(sp.months / 12)} years (${fmt(sp.perMonth ?? 0)} XP a month)`}
+							</span>{/if}{:else}<span class="text-gray-500">, the top level</span>{/if}
 				</div>
 				{#if sp.perks.length}<div class="text-gray-500">
 						now: {@render perkList(sp.perks)}
@@ -130,20 +135,23 @@
 		<div class="space-y-1">
 			{#if d.stance}
 				<div>
-					its opinion of us <b class={tone(d.stance.opinion)}
-						>{d.stance.opinion === null ? '?' : signed(d.stance.opinion)}</b
-					>
+					its opinion of us <b class={tone(d.stance.opinion)}>
+						{d.stance.opinion === null ? '?' : signed(d.stance.opinion)}
+					</b>
 					· trust <b>{d.stance.trust === null ? '?' : fmt(d.stance.trust)}</b>
 				</div>
 				<div>
 					{#if d.stance.wars.length}at war: {d.stance.wars.join(', ')}{:else}<span
-							class="text-gray-500">at peace</span
-						>{/if}
+							class="text-gray-500"
+						>
+							at peace
+						</span>{/if}
 					{#if d.stance.inBreach}<span
 							class="text-amber-600"
 							title="`is_in_breach_of_any`: it breaks a Galactic Community resolution in force"
-							>· in breach of a resolution</span
-						>{/if}
+						>
+							· in breach of a resolution
+						</span>{/if}
 				</div>
 				{#if policies.length}
 					<div class="text-gray-500">
@@ -161,9 +169,9 @@
 					class="flex flex-wrap gap-x-3"
 					title="cheat: the game compares these only as Inferior, Equivalent or Superior"
 				>
-					{#each POWER as [k, label] (k)}{#if d.power[k] !== null}<span
-								>{label} <b>{fmt(d.power[k] ?? 0)}</b></span
-							>{/if}{/each}
+					{#each POWER as [k, label] (k)}{#if d.power[k] !== null}<span>
+								{label} <b>{fmt(d.power[k] ?? 0)}</b>
+							</span>{/if}{/each}
 				</div>
 			{:else if d.hasPower && !subjectNumbers}
 				<div class="text-xs text-gray-500">

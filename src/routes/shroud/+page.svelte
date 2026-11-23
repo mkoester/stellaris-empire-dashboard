@@ -14,12 +14,12 @@
 	const fmt = (v: number) => (Math.abs(v) < 1 ? v.toFixed(1) : String(Math.round(v)));
 </script>
 
-{#snippet weightUp(d: DeedRow)}<span class="text-green-600"
-		>{d.weight > 0 ? '+' : ''}{fmt(d.weight)}</span
-	>{/snippet}
-{#snippet weightDown(d: DeedRow)}<span class="text-red-600"
-		>{d.weight > 0 ? '+' : ''}{fmt(d.weight)}</span
-	>{/snippet}
+{#snippet weightUp(d: DeedRow)}<span class="text-green-600">
+		{d.weight > 0 ? '+' : ''}{fmt(d.weight)}
+	</span>{/snippet}
+{#snippet weightDown(d: DeedRow)}<span class="text-red-600">
+		{d.weight > 0 ? '+' : ''}{fmt(d.weight)}
+	</span>{/snippet}
 {#snippet deeds(rows: DeedRow[], tone: string)}
 	<div class="text-sm">
 		<SortTable
@@ -75,8 +75,9 @@
 		{#each data.cards as c (c.key)}
 			<Panel title={c.name}>
 				<div class="mb-2 flex flex-wrap items-baseline gap-x-4 text-sm">
-					<span class="tabular-nums">standing <b style:color={c.color}>{c.standing}</b> / 1000</span
-					>
+					<span class="tabular-nums">
+						standing <b style:color={c.color}>{c.standing}</b> / 1000
+					</span>
 					{#if c.preferred}<span class="text-gray-500">preferred patron</span>{/if}
 				</div>
 				{#if c.calling}

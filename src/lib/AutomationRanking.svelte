@@ -42,8 +42,9 @@
 	];
 </script>
 
-{#snippet colonyCell(r: AutomationRank)}<a class="underline" href={href(r.planetId)}>{r.colony}</a
-	>{/snippet}
+{#snippet colonyCell(r: AutomationRank)}<a class="underline" href={href(r.planetId)}>
+		{r.colony}
+	</a>{/snippet}
 {#snippet perCell(r: AutomationRank)}{fmt(perEnergy(r.option))}{/snippet}
 {#snippet whatCell(r: AutomationRank)}<AutomationLine o={r.option} />{/snippet}
 

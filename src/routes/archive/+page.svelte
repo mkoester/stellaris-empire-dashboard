@@ -60,9 +60,9 @@
 						: ''}
 			>
 				<span class="font-mono font-semibold {modifierColor(b)}">{formatModifierValue(b)}</span>
-				<span style:color={modifierTint(b.key)}
-					>{modifierLabel(b)}{b.applies === null ? ' (?)' : ''}</span
-				>
+				<span style:color={modifierTint(b.key)}>
+					{modifierLabel(b)}{b.applies === null ? ' (?)' : ''}
+				</span>
 				<span class="text-xs text-gray-500">{b.sources.join(', ')}</span>
 			</li>
 		{/each}
@@ -118,13 +118,15 @@
 								: 'not active: its bonuses do not apply until the exhibit is activated'}
 						>
 							<div class="flex items-baseline gap-2">
-								<span class="w-3 text-center" class:text-gray-400={!e.active}
-									>{e.active ? '●' : '○'}</span
-								>
+								<span class="w-3 text-center" class:text-gray-400={!e.active}>
+									{e.active ? '●' : '○'}
+								</span>
 								<span
 									class="flex-1 {e.rarity ? (RARITY_TONE[e.rarity] ?? '') : ''}"
-									title={e.rarity ?? ''}>{e.name}</span
+									title={e.rarity ?? ''}
 								>
+									{e.name}
+								</span>
 							</div>
 							<div class="pl-5 text-xs">
 								<SpecimenGives bonuses={e.bonuses} produces={e.produces} on={e.active} />
@@ -178,8 +180,10 @@
 							<div class="flex items-baseline gap-2">
 								<span
 									class="flex-1 {e.rarity ? (RARITY_TONE[e.rarity] ?? '') : ''}"
-									title={e.rarity ?? ''}>{e.name}</span
+									title={e.rarity ?? ''}
 								>
+									{e.name}
+								</span>
 								<span class="text-xs text-gray-500">{e.category ?? ''}</span>
 							</div>
 							<div class="text-xs">

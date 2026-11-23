@@ -43,8 +43,10 @@
 			<div>
 				{#if blockers.includes(d)}<span
 						class="text-amber-600"
-						title="blocker: clear it to free its district slots">⛔</span
-					>{/if}
+						title="blocker: clear it to free its district slots"
+					>
+						⛔
+					</span>{/if}
 				{nameOf(names, d)}
 			</div>
 		{:else}

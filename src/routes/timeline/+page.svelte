@@ -46,8 +46,10 @@
 				<button
 					class="text-xs text-gray-500 underline"
 					title="correct where this save branched off"
-					onclick={() => (editing = r.id)}>parent…</button
+					onclick={() => (editing = r.id)}
 				>
+					parent…
+				</button>
 			{/if}
 		</li>
 	{/each}

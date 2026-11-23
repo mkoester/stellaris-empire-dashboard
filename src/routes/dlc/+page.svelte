@@ -49,8 +49,9 @@
 {#snippet active(r: DlcRow)}{#if r.baseGame && !r.active}<span
 			class="text-gray-500"
 			title="merged into the base game: no script checks for it, and saves leave it out"
-			>base game</span
-		>{:else}{r.active === null ? '?' : r.active ? '✓' : '–'}{/if}{/snippet}
+		>
+			base game
+		</span>{:else}{r.active === null ? '?' : r.active ? '✓' : '–'}{/if}{/snippet}
 {#snippet gameplay(r: DlcRow)}{r.gameplay ? 'yes' : 'no'}{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -71,18 +72,22 @@
 			class="rounded border px-2 py-0.5 {grouped
 				? 'border-gray-300 dark:border-gray-700'
 				: 'border-blue-500 font-semibold'}"
-			onclick={() => (grouped = false)}>all</button
+			onclick={() => (grouped = false)}
 		>
+			all
+		</button>
 		<button
 			class="rounded border px-2 py-0.5 {grouped
 				? 'border-blue-500 font-semibold'
 				: 'border-gray-300 dark:border-gray-700'}"
-			onclick={() => (grouped = true)}>per category</button
+			onclick={() => (grouped = true)}
 		>
+			per category
+		</button>
 	</span>
-	<label class="flex items-center gap-1"
-		><input type="checkbox" bind:checked={activeOnly} /> active only</label
-	>
+	<label class="flex items-center gap-1">
+		<input type="checkbox" bind:checked={activeOnly} /> active only
+	</label>
 </div>
 
 <div class="mb-8 flex flex-col gap-6">

@@ -288,10 +288,17 @@ events are the game's own terms for one panel each, `/situations` redirects; `#l
 readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,
 situations, a link to events | anomalies, dig sites, special projects), the first-contact map
 below them at full width (the user's ask, 2026-11-15): first
-contacts as a table (age in months, difficulty, clues, stage — its number alone, `contactStage()`:
+contacts as a table (age in months, difficulty, clues, stage — its number alone, as the game
+counts it: the key's + 1, since every chain starts at `base_contact_set`, `contactStage()`:
 the game's stage keys name the contact's kind and way, spoilers, the user's ask 2026-11-17 —, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
-an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
+an envoy). **Difficulty as the game shows it** (the user's report 2026-11-22, screenshots against
+the 2228.04.09 save): the save's `difficulty` is the stage's; the game adds the country's
+`first_contact_defense_add` (the cautious protocol's +2; companion mod 0.16.0 exports the engine's
+sum, else ≈ from the protocol) and +2 for a xenophobe, fanatic or not (engine-side, fitted:
+`firstContactDefense()`, READER 78). That matched all 7 contacts; the tooltip names the parts
+(`difficultyTitle()`). Open: `docs/open-checks.md` 43. Difficulty and clues carry ▲/▼ since the previous save
+(`contactChanges()`), here, on the contacts tab's first-contact cell and nowhere else; situations, anomalies, special projects (no progress in the save), dig sites (named,
 with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
 events. **The user's asks 2026-11-20:** situations' progress and ±/mo to two decimals; a ±/mo the
 save gives as 0 (`last_month_progress`, kept 0 by a situation that script effects move rather than

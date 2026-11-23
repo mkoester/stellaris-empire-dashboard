@@ -45,8 +45,8 @@
 {#snippet demand(d: Demand)}
 	<b>{d.met === false && d.unfulfilledTitle ? d.unfulfilledTitle : d.title}</b>
 	{#if effect(d.fulfilled)}<span class="text-green-700 dark:text-green-500">
-			{effect(d.fulfilled)} if met</span
-		>{/if}
+			{effect(d.fulfilled)} if met
+		</span>{/if}
 	{#if effect(d.unfulfilled)}<span class="text-red-600"> {effect(d.unfulfilled)} if not</span>{/if}
 	{#if d.description}<div class="text-gray-500">{d.description}</div>{/if}
 	<div class="text-xs text-gray-500">how: {describe(d.trigger)}</div>
@@ -55,25 +55,25 @@
 <section class="text-sm">
 	<h3 class="mb-1 flex flex-wrap items-baseline gap-2 text-base font-semibold">
 		{f.name}
-		{#if f.ethic}<span class="text-sm font-normal"
-				><EthicChip
+		{#if f.ethic}<span class="text-sm font-normal">
+				<EthicChip
 					ethic={f.ethic}
 					name={names[f.ethic] ?? f.ethic}
 					{axes}
 					explanation={explain[`ethic:${f.ethic}`]}
-				/></span
-			>{/if}
-		{#if f.embrace?.promoted}<span class="text-sm font-normal text-green-700 dark:text-green-500"
-				>promoted</span
-			>{/if}
+				/>
+			</span>{/if}
+		{#if f.embrace?.promoted}<span class="text-sm font-normal text-green-700 dark:text-green-500">
+				promoted
+			</span>{/if}
 		{#if f.embrace?.suppressed}<span class="text-sm font-normal text-red-600">suppressed</span>{/if}
 	</h3>
 	{#if f.formed}
 		<p class="mb-1 tabular-nums">
 			support <b>{pct(f.formed.support)}</b> · approval
-			<b class={f.formed.approval < 0.5 ? 'text-red-600' : 'text-green-600'}
-				>{pct(f.formed.approval)}</b
-			>{f.formed.pops !== null
+			<b class={f.formed.approval < 0.5 ? 'text-red-600' : 'text-green-600'}>
+				{pct(f.formed.approval)}
+			</b>{f.formed.pops !== null
 				? ` · ${f.formed.pops} pops${f.formed.change ? ` (${f.formed.change > 0 ? '+' : ''}${f.formed.change})` : ''}`
 				: ''}
 		</p>
@@ -84,14 +84,15 @@
 				title="Embrace Faction shifts our ethics one step toward its ethic: {EMBRACE_UNITY} unity, support over {EMBRACE_SUPPORT *
 					100} %, once per 10 years empire-wide; every other faction −35 % approval for 10 years"
 			>
-				{#if e.fanatic}<span class="text-gray-500"
-						>embrace: we are already fanatic in its ethic</span
-					>
+				{#if e.fanatic}<span class="text-gray-500">
+						embrace: we are already fanatic in its ethic
+					</span>
 				{:else}
 					embrace: <span
 						class={e.possible ? 'font-semibold text-green-700 dark:text-green-500' : ''}
-						>{e.possible ? 'possible now' : 'not yet'}</span
 					>
+						{e.possible ? 'possible now' : 'not yet'}
+					</span>
 					· {mark(e.support)} support &gt; {EMBRACE_SUPPORT * 100} % · {mark(e.unity)}
 					{EMBRACE_UNITY} unity{#if e.cooldownUntil}
 						· ✗ cooldown until {e.cooldownUntil}{/if}

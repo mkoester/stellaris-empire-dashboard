@@ -84,4 +84,9 @@ describe('refusal', () => {
 			refusal(asked({ ...lan, method: 'POST', path: '/setup', client: '127.0.0.1' }))
 		).toBeNull();
 	});
+
+	it('a client without an address (its connection closed) is not this computer', () => {
+		expect(refusal(asked({ method: 'POST', path: '/setup', client: '' }))).toMatch(/only possible/);
+		expect(refusal(asked({ client: '' }))).toBeNull();
+	});
 });

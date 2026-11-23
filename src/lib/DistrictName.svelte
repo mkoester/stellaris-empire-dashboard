@@ -4,9 +4,9 @@
 	let { name, color }: { name: string; color?: string } = $props();
 </script>
 
-{#if color}<span class="district whitespace-nowrap" style:--c={color}
-		><span class="mr-1 inline-block size-2.5 rounded-sm bg-(--c) align-[-1px]"></span>{name}</span
-	>{:else}{name}{/if}
+{#if color}<span class="district whitespace-nowrap" style:--c={color}>
+		<span class="mr-1 inline-block size-2.5 rounded-sm bg-(--c) align-[-1px]"></span>{name}
+	</span>{:else}{name}{/if}
 
 <style>
 	.district {

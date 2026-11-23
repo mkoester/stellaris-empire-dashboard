@@ -17,6 +17,7 @@
 	import { forget, recall } from '#lib/browserStore.ts';
 	import {
 		MAP_FITS,
+		MAP_STARS_KEY,
 		MAP_WIDTH_KEY,
 		MAP_WIDTH_LABELS,
 		MAP_WIDTHS,
@@ -29,10 +30,12 @@
 	// what this browser keeps of its own about maps (localStorage): its width pick overrides the
 	// profile's default width; map heights per map. Each with a reset (the user's ask 2026-11-17).
 	let widthPick: string | null = $state(null);
+	let starsPick: string | null = $state(null);
 	let heights = $state(0);
 	const isHeight = (k: string) => /-map-height(-side)?(-square)?$/.test(k);
 	const readBrowser = () => {
 		widthPick = recall(MAP_WIDTH_KEY);
+		starsPick = recall(MAP_STARS_KEY);
 		try {
 			heights = Object.keys(localStorage).filter(isHeight).length;
 		} catch {
@@ -42,6 +45,10 @@
 	onMount(readBrowser);
 	const resetWidth = () => {
 		forget((k) => k === MAP_WIDTH_KEY);
+		readBrowser();
+	};
+	const resetStars = () => {
+		forget((k) => k === MAP_STARS_KEY);
 		readBrowser();
 	};
 	const resetHeights = () => {
@@ -187,20 +194,23 @@
 									class="underline"
 									onclick={() =>
 										act(() => profileAction({ action: 'create', name: p.name, copyOf: p.id }))}
-									>duplicate</button
 								>
+									duplicate
+								</button>
 								·
-								<a class="underline" href={resolve('/api/profiles/[id]', { id: p.id })} download
-									>export</a
-								>
+								<a class="underline" href={resolve('/api/profiles/[id]', { id: p.id })} download>
+									export
+								</a>
 								{#if data.profiles.length > 1}
 									·
 									<button
 										class="text-red-600 underline"
 										onclick={() =>
 											confirm(`Delete profile “${p.name}”?`) &&
-											act(() => profileAction({ action: 'delete', id: p.id }))}>delete</button
+											act(() => profileAction({ action: 'delete', id: p.id }))}
 									>
+										delete
+									</button>
 								{/if}
 							</td>
 						</tr>
@@ -224,18 +234,20 @@
 					/>
 					<button
 						class="rounded border border-gray-300 px-2 dark:border-gray-700"
-						disabled={!newName.trim()}>add</button
+						disabled={!newName.trim()}
 					>
+						add
+					</button>
 				</form>
-				<label class="cursor-pointer underline"
-					>import …<input
+				<label class="cursor-pointer underline">
+					import …<input
 						class="hidden"
 						type="file"
 						accept=".json,application/json"
 						multiple
 						onchange={(e) => importFiles(e.currentTarget.files)}
-					/></label
-				>
+					/>
+				</label>
 			</div>
 			{#if failure}<p class="mt-2 text-red-600">{failure}</p>{/if}
 		</section>
@@ -247,13 +259,13 @@
 				until you find it; <b>cheats</b> what it never tells a player. Hidden, their switches are off
 				— each comes back as it was when shown again.
 			</p>
-			<label class="block"
-				><input
+			<label class="block">
+				<input
 					type="checkbox"
 					checked={data.display.showSpoilers}
 					onchange={(e) => setDisplay({ showSpoilers: e.currentTarget.checked })}
-				/> show the spoiler settings</label
-			>
+				/> show the spoiler settings
+			</label>
 			{#if data.noCheats === 'ironman'}
 				<p class="mt-1">
 					<b>This is an Ironman game: the cheats are off</b>, and so are the spoilers that reveal
@@ -266,20 +278,20 @@
 					the dashboard, so it shows nothing here the game would not show you.
 				</p>
 			{:else}
-				<label class="mt-1 block"
-					><input
+				<label class="mt-1 block">
+					<input
 						type="checkbox"
 						checked={data.display.showCheats}
 						onchange={(e) => setDisplay({ showCheats: e.currentTarget.checked })}
-					/> show the cheat settings</label
-				>
+					/> show the cheat settings
+				</label>
 			{/if}
 		</section>
 		<section id="display" class="scroll-mt-4">
 			<h2 class="mb-1 text-xl font-semibold">Display</h2>
 			{#each [['colonyRowLine', 'Colonies tab, line between colonies'], ['expansionRowLine', 'Expansion, line between planets']] as const as [key, label] (key)}
-				<label class="block"
-					>{label}
+				<label class="block">
+					{label}
 					<select
 						class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 						value={data.display[key]}
@@ -291,11 +303,11 @@
 							)}
 					>
 						{#each Object.keys(ROW_LINES) as l (l)}<option value={l}>{l}</option>{/each}
-					</select></label
-				>
+					</select>
+				</label>
 			{/each}
-			<label class="block"
-				>Slave market tab, where slavery is not allowed
+			<label class="block">
+				Slave market tab, where slavery is not allowed
 				<select
 					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 					value={data.display.slaveMarket}
@@ -309,16 +321,15 @@
 							})
 						)}
 				>
-					{#each Object.entries(SLAVE_MARKET_MODES) as [m, label] (m)}<option value={m}
-							>{label}</option
-						>{/each}
+					{#each Object.entries(SLAVE_MARKET_MODES) as [m, label] (m)}<option value={m}>
+							{label}
+						</option>{/each}
 				</select>
-				<span class="text-sm text-gray-500">(an empire allowing slavery always sees it)</span
-				></label
-			>
+				<span class="text-sm text-gray-500">(an empire allowing slavery always sees it)</span>
+			</label>
 			<h3 class="mt-4 font-semibold">Maps</h3>
-			<label class="block"
-				>A map opens fitted to
+			<label class="block">
+				A map opens fitted to
 				<select
 					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 					value={data.display.mapFit}
@@ -329,13 +340,14 @@
 							})
 						)}
 				>
-					{#each Object.entries(MAP_FITS) as [m, label] (m)}<option value={m}>{label}</option
-						>{/each}
+					{#each Object.entries(MAP_FITS) as [m, label] (m)}<option value={m}>
+							{label}
+						</option>{/each}
 				</select>
-				<span class="text-sm text-gray-500">(everything where that is empty)</span></label
-			>
-			<label class="block"
-				>Map width
+				<span class="text-sm text-gray-500">(everything where that is empty)</span>
+			</label>
+			<label class="block">
+				Map width
 				<select
 					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 					value={data.display.mapWidth}
@@ -348,29 +360,56 @@
 				>
 					{#each MAP_WIDTHS as m (m)}<option value={m}>{MAP_WIDTH_LABELS[m]}</option>{/each}
 				</select>
-				<span class="text-sm text-gray-500"
-					>until a map's width buttons pick one in this browser</span
-				></label
-			>
+				<span class="text-sm text-gray-500">
+					until a map's width buttons pick one in this browser
+				</span>
+			</label>
+			<label class="block">
+				<input
+					type="checkbox"
+					checked={data.display.mapStars}
+					onchange={(e) =>
+						act(() =>
+							putSettings({
+								display: { ...data.display, mapStars: e.currentTarget.checked }
+							})
+						)}
+				/>
+				Show special stars (pulsars, neutron stars, black holes, …) on maps
+				<span class="text-sm text-gray-500">
+					until a map's “special stars” checkbox picks in this browser
+				</span>
+			</label>
 			<p class="mt-1 text-sm text-gray-500">
 				This browser:
 				{#if widthPick}width “{MAP_WIDTH_LABELS[widthPick as MapWidth] ?? widthPick}”, picked on a
 					map
 					<button
 						class="ml-1 rounded border border-gray-300 px-2 dark:border-gray-700"
-						onclick={resetWidth}>reset to the default</button
-					>{:else}the default width{/if}{heights
+						onclick={resetWidth}
+					>
+						reset to the default
+					</button>{:else}the default width{/if}{heights
 					? ` · ${heights} map height${heights === 1 ? '' : 's'} dragged`
 					: ''}{#if heights}<button
 						class="ml-1 rounded border border-gray-300 px-2 dark:border-gray-700"
-						onclick={resetHeights}>reset heights</button
-					>{/if}
+						onclick={resetHeights}
+					>
+						reset heights
+					</button>{/if}{starsPick
+					? ` · special stars ${starsPick === '1' ? 'shown' : 'hidden'}, picked on a map`
+					: ''}{#if starsPick}<button
+						class="ml-1 rounded border border-gray-300 px-2 dark:border-gray-700"
+						onclick={resetStars}
+					>
+						reset to the default
+					</button>{/if}
 			</p>
 			{#each groups as g (g.title)}
 				<h3 id="display-{g.title}" class="mt-4 scroll-mt-4 font-semibold">{g.title}</h3>
 				{#each g.items as s (s.key)}
-					<label class="mt-1 block"
-						><input
+					<label class="mt-1 block">
+						<input
 							type="checkbox"
 							checked={data.display[s.key]}
 							onchange={(e) => setDisplay({ [s.key]: e.currentTarget.checked })}
@@ -379,10 +418,12 @@
 						{#if s.kind !== 'normal'}<span
 								class="rounded px-1 text-[11px] {s.kind === 'cheat'
 									? 'bg-red-500/15 text-red-600'
-									: 'bg-amber-500/15 text-amber-600'}">{KIND_LABEL[s.kind]}</span
-							>{/if}
-						{#if s.note}<span class="text-gray-500">({s.note})</span>{/if}</label
-					>
+									: 'bg-amber-500/15 text-amber-600'}"
+							>
+								{KIND_LABEL[s.kind]}
+							</span>{/if}
+						{#if s.note}<span class="text-gray-500">({s.note})</span>{/if}
+					</label>
 				{/each}
 			{:else}
 				<p class="mt-2 text-gray-500">No display setting matches “{query}”.</p>
@@ -395,15 +436,15 @@
 				outermost (special systems such as the L-Cluster may lie beyond it) — and a cross dividing
 				the galaxy into sectors, on every map.
 			</p>
-			<label class="block"
-				><input
+			<label class="block">
+				<input
 					type="checkbox"
 					checked={data.quadrants.on}
 					onchange={(e) => setQuadrants({ on: e.currentTarget.checked })}
-				/> show them</label
-			>
-			<label class="mt-2 block"
-				>rings in between
+				/> show them
+			</label>
+			<label class="mt-2 block">
+				rings in between
 				<select
 					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 					value={data.quadrants.rings === null ? 'auto' : String(data.quadrants.rings)}
@@ -414,27 +455,29 @@
 				>
 					<option value="auto">by galaxy size</option>
 					{#each Array.from({ length: MAX_RINGS + 1 }, (_, i) => i) as n (n)}<option
-							value={String(n)}>{n}</option
-						>{/each}
-				</select></label
-			>
-			<label class="mt-2 block"
-				>sectors
+							value={String(n)}
+						>
+							{n}
+						</option>{/each}
+				</select>
+			</label>
+			<label class="mt-2 block">
+				sectors
 				<select
 					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 					value={String(data.quadrants.sectors)}
 					onchange={(e) => setQuadrants({ sectors: Number(e.currentTarget.value) as SectorCount })}
 				>
 					{#each SECTOR_COUNTS as n (n)}<option value={String(n)}>{n}</option>{/each}
-				</select></label
-			>
-			<label class="mt-2 block"
-				><input
+				</select>
+			</label>
+			<label class="mt-2 block">
+				<input
 					type="checkbox"
 					checked={data.quadrants.rotated}
 					onchange={(e) => setQuadrants({ rotated: e.currentTarget.checked })}
-				/> cross turned by half a sector (4 sectors: N, E, S, W instead of NE, SE, SW, NW)</label
-			>
+				/> cross turned by half a sector (4 sectors: N, E, S, W instead of NE, SE, SW, NW)
+			</label>
 		</section>
 		<section id="popWindow" class="scroll-mt-4">
 			<h2 class="mb-1 text-xl font-semibold">Pops charts</h2>
@@ -443,26 +486,26 @@
 				single month is off the rate by up to one. The charts draw each month faint and, over it,
 				its mean over the months around it.
 			</p>
-			<label class="block"
-				>months before
+			<label class="block">
+				months before
 				<select
 					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 					value={String(data.popWindow.back)}
 					onchange={(e) => setPopWindow({ back: Number(e.currentTarget.value) })}
 				>
 					{#each MONTH_CHOICES as n (n)}<option value={String(n)}>{n}</option>{/each}
-				</select></label
-			>
-			<label class="mt-2 block"
-				>months after
+				</select>
+			</label>
+			<label class="mt-2 block">
+				months after
 				<select
 					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 					value={String(data.popWindow.ahead)}
 					onchange={(e) => setPopWindow({ ahead: Number(e.currentTarget.value) })}
 				>
 					{#each MONTH_CHOICES as n (n)}<option value={String(n)}>{n}</option>{/each}
-				</select></label
-			>
+				</select>
+			</label>
 			<div class="mt-3 flex gap-0.5" aria-label="the months a point's mean takes in">
 				{#each strip as m (m.offset)}
 					<div
@@ -497,16 +540,16 @@
 				months. The net is the budget's, so one-time spending (construction, edicts, decisions) is
 				never in it.
 			</p>
-			<label class="block"
-				>months
+			<label class="block">
+				months
 				<select
 					class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 					value={String(data.incomeWindow)}
 					onchange={(e) => act(() => putSettings({ incomeWindow: Number(e.currentTarget.value) }))}
 				>
 					{#each INCOME_CHOICES as n (n)}<option value={String(n)}>{n}</option>{/each}
-				</select></label
-			>
+				</select>
+			</label>
 		</section>
 		<section id="games" class="scroll-mt-4">
 			<h2 class="mb-1 text-xl font-semibold">Games</h2>
@@ -536,8 +579,8 @@
 				Asks GitHub for the latest release at start and then every few hours; a newer one shows next
 				to the version in the tab bar. 0 never asks. Only a release build asks.
 			</p>
-			<label class="block"
-				>every
+			<label class="block">
+				every
 				<input
 					type="number"
 					min="0"
@@ -551,8 +594,8 @@
 							act(() => putSettings({ updateHours: h }));
 					}}
 				/>
-				hours</label
-			>
+				hours
+			</label>
 			<p class="mt-1 text-gray-500">
 				{#if !data.updates.release}This build (v{__APP_VERSION__}) is not a release: it never asks.{:else if data.updates.checkedAt === null}Not
 					asked yet.{:else}Last asked {new Date(data.updates.checkedAt).toLocaleString()}: {data
@@ -568,8 +611,10 @@
 			<p class="text-gray-500">
 				The game install and the folder with your saves: <a
 					class="underline"
-					href={resolve('/setup')}>change them</a
-				>.
+					href={resolve('/setup')}
+				>
+					change them
+				</a>.
 			</p>
 		</section>
 	</div>

@@ -79,7 +79,8 @@ const EVENT_FIELDS: Record<LogEvent['kind'], number> = {
 	'colonization-started': 1, // planet
 	'megastructure-started': 1, // system
 	'system-entered': 1, // mod 0.10.0: the system a ship of ours entered first
-	'slave-sold': 4 // mod 0.12.0: species, pops sold, buyer, seller (every sale in the galaxy)
+	'slave-sold': 4, // mod 0.12.0: species, pops sold, buyer, seller (every sale in the galaxy)
+	resettled: 4 // mod 0.16.0: from, to (colony names), pops, species — ours only
 };
 
 /**

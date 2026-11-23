@@ -1267,6 +1267,7 @@ type ContractRowDb = {
 	reward_json: string | null;
 	failed_opinion: number | null;
 	operator_techs_json: string | null;
+	offer_techs_json: string | null;
 	description: string | null;
 	location: number | null;
 };
@@ -1278,10 +1279,11 @@ function contractTypes(
 ): Record<string, ContractType> {
 	const detailed = columnsOf('contract').has('reward_json');
 	const placed = columnsOf('contract').has('location');
+	const offers = columnsOf('contract').has('offer_techs_json');
 	const list = rows<ContractRowDb>(
 		detailed
-			? `SELECT key, name, category, time_to_accept, time_to_complete, event_chain, steps, reward_json, failed_opinion, operator_techs_json, description, ${placed ? 'location' : 'NULL AS location'} FROM contract`
-			: 'SELECT key, name, category, time_to_accept, NULL AS time_to_complete, NULL AS event_chain, NULL AS steps, NULL AS reward_json, NULL AS failed_opinion, NULL AS operator_techs_json, NULL AS description, NULL AS location FROM contract'
+			? `SELECT key, name, category, time_to_accept, time_to_complete, event_chain, steps, reward_json, failed_opinion, operator_techs_json, ${offers ? 'offer_techs_json' : 'NULL AS offer_techs_json'}, description, ${placed ? 'location' : 'NULL AS location'} FROM contract`
+			: 'SELECT key, name, category, time_to_accept, NULL AS time_to_complete, NULL AS event_chain, NULL AS steps, NULL AS reward_json, NULL AS failed_opinion, NULL AS operator_techs_json, NULL AS offer_techs_json, NULL AS description, NULL AS location FROM contract'
 	);
 	const byChain = new Map<string, ContractProject[]>();
 	if (detailed && columnsOf('special_project').has('event_chain'))
@@ -1323,6 +1325,11 @@ function contractTypes(
 				reward: r.reward_json ? (JSON.parse(r.reward_json) as ContractReward) : null,
 				failedOpinion: r.failed_opinion,
 				operatorTechs: r.operator_techs_json ? (JSON.parse(r.operator_techs_json) as string[]) : [],
+				offerTechs: r.offer_techs_json
+					? (JSON.parse(r.offer_techs_json) as string[][])
+					: offers
+						? []
+						: null,
 				projects: r.event_chain ? (byChain.get(r.event_chain) ?? []) : [],
 				location: r.location === null ? null : r.location === 1
 			}

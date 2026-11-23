@@ -310,3 +310,49 @@ export const pageLatest = <
 				(s.relations ?? []).some((r) => r.countryId === c.id && r.communications)
 		) ?? null
 });
+
+/** A first contact's change since the previous save that read it; difficulty null where unknown. */
+export type ContactChange = { difficulty: number | null; clues: number };
+
+/**
+ * Each first contact's change between the branch's last two readings of them (`saves` in order):
+ * the difficulty rises with each stage, the clues with each roll. The difficulty compares only
+ * readings that both carry the country's part (`defense`, READER 76) — an older one holds the
+ * stage's alone. A contact new in the last reading has none.
+ */
+export function contactChanges(
+	saves: { firstContacts: FirstContact[] | null }[]
+): Record<number, ContactChange> {
+	const readings = saves.flatMap((s) => (s.firstContacts ? [s.firstContacts] : []));
+	const [prev, last] = readings.slice(-2);
+	if (!last) return {};
+	const before = new Map(prev.map((c) => [c.id, c]));
+	return Object.fromEntries(
+		last.flatMap((c) => {
+			const p = before.get(c.id);
+			if (!p) return [];
+			const known = c.defense !== undefined && p.defense !== undefined;
+			return [
+				[c.id, { difficulty: known ? c.difficulty - p.difficulty : null, clues: c.clues - p.clues }]
+			];
+		})
+	);
+}
+
+/** A change as an arrow: "▲2", "▼1", nothing when none or unknown. */
+export const changeMark = (n: number | null | undefined) => (!n ? '' : n > 0 ? `▲${n}` : `▼${-n}`);
+
+/** A first contact's difficulty as shown: ≈ unless the country's part is the game's own sum. */
+export const difficultyText = (f: Pick<FirstContact, 'difficulty' | 'defenseExact'>) =>
+	`${f.defenseExact ? '' : '≈'}${f.difficulty}`;
+
+/** What a first contact's difficulty is made of, for its tooltip. */
+export function difficultyTitle(
+	f: Pick<FirstContact, 'difficulty' | 'defense' | 'defenseExact' | 'defenseParts'>
+) {
+	const stage = f.difficulty - (f.defense ?? 0);
+	const parts = (f.defenseParts ?? []).map((p) => `, +${p.value} ${p.label}`).join('');
+	return f.defenseExact
+		? `the stage's ${stage}${parts}`
+		: `≈ the stage's ${stage}${parts}; companion mod 0.16.0 reads their modifiers as the game sums them`;
+}

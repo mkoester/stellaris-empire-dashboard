@@ -47,9 +47,9 @@
 		<header class="flex items-center gap-2">
 			<span class="tint"><Icon name={iconFor(d.type)} class="size-6" /></span>
 			<span class="font-semibold">{title}</span>
-			{#if count}<span class="ml-auto text-sm text-gray-500 tabular-nums"
-					>×{d.built}{cap != null ? ` / ${cap}` : ''}</span
-				>{/if}
+			{#if count}<span class="ml-auto text-sm text-gray-500 tabular-nums">
+					×{d.built}{cap != null ? ` / ${cap}` : ''}
+				</span>{/if}
 		</header>
 		{#if !d.zones.length}
 			<p class="mt-1 text-xs text-gray-500 italic">{empty}</p>

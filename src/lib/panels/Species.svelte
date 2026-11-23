@@ -42,8 +42,10 @@
 {#snippet cls(s: Row)}<span class="text-gray-500">{s.className}</span>{/snippet}
 {#snippet pops(s: Row)}{fmt(s.pops)}{/snippet}
 {#snippet traits(s: Row)}{#each s.traits as t, i (t.key)}{i ? ', ' : ''}<InfoPopup
-			explanation={explain[`trait:${t.key}`]}>{t.name}</InfoPopup
-		>{/each}{/snippet}
+			explanation={explain[`trait:${t.key}`]}
+		>
+			{t.name}
+		</InfoPopup>{/each}{/snippet}
 {#snippet points(s: Row)}{s.budget ? `${s.budget.points} / ${s.budget.maxPoints}` : '?'}{/snippet}
 {#snippet picks(s: Row)}{s.budget ? `${s.budget.picks} / ${s.budget.maxPicks}` : '?'}{/snippet}
 

@@ -1,6 +1,7 @@
 import { contractMarksAt } from '#lib/server/contracts.ts';
 import { error } from '@sveltejs/kit';
 import { pretty } from '#lib/format.ts';
+import { contactChanges } from '#lib/contacts.ts';
 import {
 	contactRows,
 	gone,
@@ -282,6 +283,8 @@ export function load({ url }) {
 		contacts: s
 			? contactRows(s.firstContacts ?? [], galaxy, s.relations ?? [], s.countries ?? [], s.date)
 			: [],
+		// each contact's difficulty and clues since the previous save
+		contactChanges: contactChanges(snaps),
 		// the map: every system, the contacts' places, other empires' stations if switched on
 		wholeGalaxy: opts.wholeGalaxy,
 		systems: mapView(

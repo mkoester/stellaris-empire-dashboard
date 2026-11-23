@@ -47,9 +47,9 @@
 	];
 </script>
 
-{#snippet ship(s: CivilianShip)}<span class="whitespace-nowrap"
-		>{s.name} <span class="text-gray-500">{shipLabel(s)}</span></span
-	>
+{#snippet ship(s: CivilianShip)}<span class="whitespace-nowrap">
+		{s.name} <span class="text-gray-500">{shipLabel(s)}</span>
+	</span>
 	<div class="text-xs text-gray-500">
 		{[s.stance, s.automation ? `automated: ${s.automation.join(', ') || 'nothing set'}` : 'manual']
 			.filter(Boolean)
@@ -57,17 +57,19 @@
 	</div>{/snippet}
 {#snippet doing(s: CivilianShip)}{#if s.order}{orderLabel(s.order)}{:else}
 		{@const idle = idleState(s)}
-		<span class={idle.act ? 'text-amber-600' : 'text-gray-500'}
-			>{idle.act ? '⚠ ' : ''}{idle.text}</span
-		>
+		<span class={idle.act ? 'text-amber-600' : 'text-gray-500'}>
+			{idle.act ? '⚠ ' : ''}{idle.text}
+		</span>
 	{/if}{/snippet}
-{#snippet progressCell(s: CivilianShip)}<span class="whitespace-nowrap">{progress(s)}</span
-	>{/snippet}
-{#snippet dueCell(s: CivilianShip)}<span class="whitespace-nowrap">{due[s.fleetId] ?? ''}</span
-	>{/snippet}
-{#snippet then(s: CivilianShip)}<span class="text-gray-500"
-		>{s.queue.map(orderLabel).join(' · ') || (s.order ? 'nothing queued' : '')}</span
-	>{/snippet}
+{#snippet progressCell(s: CivilianShip)}<span class="whitespace-nowrap">
+		{progress(s)}
+	</span>{/snippet}
+{#snippet dueCell(s: CivilianShip)}<span class="whitespace-nowrap">
+		{due[s.fleetId] ?? ''}
+	</span>{/snippet}
+{#snippet then(s: CivilianShip)}<span class="text-gray-500">
+		{s.queue.map(orderLabel).join(' · ') || (s.order ? 'nothing queued' : '')}
+	</span>{/snippet}
 
 <Panel
 	title="Civilian ships"

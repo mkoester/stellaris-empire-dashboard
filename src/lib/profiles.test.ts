@@ -36,6 +36,17 @@ describe('parseSettings', () => {
 		expect(s.display.colonyRowLine).toBe('thick');
 		expect(s.colonyView).toEqual({ ...DEFAULT_VIEW, mode: 'sector' });
 	});
+	it("starts the map switches from the old ship picker's choice", () => {
+		expect(parseSettings({ mapFilter: { ships: 'fleets' } }).mapOwn).toEqual({
+			colonies: true,
+			fleets: true,
+			civilian: false
+		});
+		// once stored, the switches win
+		expect(
+			parseSettings({ mapFilter: { ships: 'all' }, mapOwn: { colonies: false } }).mapOwn
+		).toEqual({ colonies: false, fleets: false, civilian: false });
+	});
 });
 
 describe('parsePatch', () => {

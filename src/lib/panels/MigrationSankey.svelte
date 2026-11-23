@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fmt } from '../format.ts';
-	import type { Flow } from '../migration.ts';
+	import { flowColor, flowTitle, type Flow } from '../migration.ts';
 	import Panel from './Panel.svelte';
 
 	// Variant 1: last month as a flow diagram — senders left, receivers right, band width ∝ pops.
@@ -12,6 +12,9 @@
 	const senders = $derived([...new Map(flows.map((f) => [f.from.colonyId, f.from])).values()]);
 	const receivers = $derived([...new Map(flows.map((f) => [f.to.colonyId, f.to])).values()]);
 	const max = $derived(Math.max(1, ...flows.map((f) => f.pops)));
+	// what a colony sent or took in, over the flows shown (migration and resettlement)
+	const sum = (pick: (f: Flow) => number, id: number) =>
+		flows.reduce((n, f) => n + (pick(f) === id ? f.pops : 0), 0);
 	const height = $derived(Math.max(senders.length, receivers.length, 1) * ROW + 16);
 	const y = (list: { colonyId: number }[], id: number) =>
 		16 + list.findIndex((c) => c.colonyId === id) * ROW + ROW / 2;
@@ -24,7 +27,7 @@
 
 <Panel
 	title="Monthly flow"
-	note="Who sends pops to whom in the month picked. Bands of estimated pairs are dashed."
+	note="Who sends pops to whom in the month picked. Bands of estimated pairs are dashed; resettlement in violet."
 >
 	{#if flows.length === 0}
 		<p class="text-gray-500">No migration last month.</p>
@@ -39,16 +42,13 @@
 				<path
 					d={band(f)}
 					fill="none"
-					stroke={colors[f.from.ownerId]}
+					stroke={flowColor(f, colors)}
 					stroke-opacity="0.45"
 					stroke-width={Math.max(2, (f.pops / max) * BAND_MAX)}
 					stroke-dasharray={f.estimated ? '6 4' : undefined}
-					><title
-						>{f.from.name} → {f.to.name}: {fmt(f.pops)} pops/month{f.estimated
-							? ' (estimated)'
-							: ''}</title
-					></path
 				>
+					<title>{flowTitle(f)}</title>
+				</path>
 			{/each}
 			{#each senders as s (s.colonyId)}
 				<rect
@@ -65,8 +65,9 @@
 					text-anchor="end"
 					dominant-baseline="middle"
 					class="fill-current text-[12px]"
-					>{s.name} <tspan class="opacity-60">−{fmt(s.emigration)}</tspan></text
 				>
+					{s.name} <tspan class="opacity-60">−{fmt(sum((f) => f.from.colonyId, s.colonyId))}</tspan>
+				</text>
 			{/each}
 			{#each receivers as r (r.colonyId)}
 				<rect
@@ -82,8 +83,9 @@
 					y={y(receivers, r.colonyId)}
 					dominant-baseline="middle"
 					class="fill-current text-[12px]"
-					>{r.name} <tspan class="opacity-60">+{fmt(r.immigration)}</tspan></text
 				>
+					{r.name} <tspan class="opacity-60">+{fmt(sum((f) => f.to.colonyId, r.colonyId))}</tspan>
+				</text>
 			{/each}
 		</svg>
 	{/if}

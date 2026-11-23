@@ -106,11 +106,13 @@
 			{#if ours.length}
 				<table class="text-sm">
 					<thead class="text-left text-gray-500">
-						<tr
-							><th class="pr-4">Colony</th><th class="pr-4">Owner</th><th class="pr-4">Kind</th><th
-								class="pr-4">Buildings</th
-							><th>Value ≈</th></tr
-						>
+						<tr>
+							<th class="pr-4">Colony</th><th class="pr-4">Owner</th><th class="pr-4">Kind</th><th
+								class="pr-4"
+							>
+								Buildings
+							</th><th>Value ≈</th>
+						</tr>
 					</thead>
 					<tbody>
 						{#each ours as e (e.colonyId + e.kind)}
@@ -119,11 +121,11 @@
 								<td class="pr-4"><EmpireName name={e.owner} /></td>
 								<td class="pr-4">{e.kind === 'corporate' ? 'branch office' : 'holding'}</td>
 								<td class="pr-4">{names(e)}</td>
-								<td title="≈ {INCOME_SCALE} × the colony’s trade"
-									>{e.kind === 'corporate' && e.trade !== null
+								<td title="≈ {INCOME_SCALE} × the colony’s trade">
+									{e.kind === 'corporate' && e.trade !== null
 										? `≈ ${fmt(officeValue(e.trade))} trade`
-										: ''}</td
-								>
+										: ''}
+								</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -136,11 +138,11 @@
 			{#if onOurs.length}
 				<table class="text-sm">
 					<thead class="text-left text-gray-500">
-						<tr
-							><th class="pr-4">Colony</th><th class="pr-4">Whose</th><th class="pr-4">Kind</th><th
-								>Buildings</th
-							></tr
-						>
+						<tr>
+							<th class="pr-4">Colony</th><th class="pr-4">Whose</th><th class="pr-4">Kind</th><th>
+								Buildings
+							</th>
+						</tr>
 					</thead>
 					<tbody>
 						{#each onOurs as e (e.colonyId + e.holder + e.kind)}
@@ -164,10 +166,10 @@
 			title="Branch office planner"
 			note="Where a new office brings the most trade for its influence. Estimated (≈): an office's income is half the colony's trade before modifiers; its cost 75 influence plus 5 a jump, counted from our capital. Each office adds {EMPIRE_SIZE} empire size; its buildings' output is not counted."
 		>
-			<label class="mb-2 block text-sm"
-				><input type="checkbox" bind:checked={all} /> also colonies without a commercial pact or with
-				an office already</label
-			>
+			<label class="mb-2 block text-sm">
+				<input type="checkbox" bind:checked={all} /> also colonies without a commercial pact or with an
+				office already
+			</label>
 			<div class="text-sm">
 				<SortTable rows={shown} columns={siteColumns} key={(r) => r.colonyId} bind:sort />
 			</div>

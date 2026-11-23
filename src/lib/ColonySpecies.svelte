@@ -24,12 +24,12 @@
 					<tr class={r.enslaved ? 'bg-amber-50 dark:bg-amber-950' : ''}>
 						<td class="pr-2">{r.name}</td>
 						<td class="pr-2 text-right tabular-nums">{fmt(r.pops)}</td>
-						<td class="pr-2 text-gray-500"
-							>{r.citizenship ?? '?'}{r.slavery ? ` (${r.slavery})` : ''}</td
-						>
-						<td class="text-right text-gray-500 tabular-nums"
-							>{r.habitability === null ? '' : `${Math.round(r.habitability * 100)} %`}</td
-						>
+						<td class="pr-2 text-gray-500">
+							{r.citizenship ?? '?'}{r.slavery ? ` (${r.slavery})` : ''}
+						</td>
+						<td class="text-right text-gray-500 tabular-nums">
+							{r.habitability === null ? '' : `${Math.round(r.habitability * 100)} %`}
+						</td>
 					</tr>
 				{/each}
 			</tbody>

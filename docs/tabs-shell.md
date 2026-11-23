@@ -185,7 +185,10 @@ emergency FTL minimum days +50 %), toxoid star (armor −100 %), the `sc_crisis_
 originals; the Astral Scar's is empty — get an icon per effect left of the system (a dot for a
 binary), their effects in its hover, and one "special stars" legend entry below every map
 (`GalaxyMap` draws it; `mapView()` passes `star` on, unknown systems' too: the game shows every
-star's class). Re-check on game updates. Explored wormholes are dashed arcs, behind the profile's `wormholeLinks` switch (on). Explored =
+star's class). Re-check on game updates. The toolbar's **special stars** checkbox hides the icons
+and the legend entry (the user's ask 2026-11-22: "sometimes it is distracting"; the system's hover
+still names the star) — per browser for every map (`MAP_STARS_KEY`), ⚙'s **Show special stars**
+(`Display.mapStars`, per profile, default on) until a browser picks. Explored wormholes are dashed arcs, behind the profile's `wormholeLinks` switch (on). Explored =
 **both ends visited**: the save marks no wormhole as explored (bypasses carry no such field, the
 country only `seen_bypass_types`), and exploring one is a fleet's jump through it (4.5.2
 `common/bypass/00_bypasses.txt`, `on_pre_explore`), which visits the far end; one end visited is
@@ -195,13 +198,20 @@ Stabilization researched** (`canExploreWormholes()`; the bypass's `requires_expl
 (Roaming Cyber Gang 2226.08.01, the user's report 2026-11-20). `wormholePairs` (spoiler) shows
 every pair (`wormholeLinks()` stores them all), both ends. Fit
 buttons: capital, my empire (a nomad's: **my waystations**, starbase level `waystation_*`;
-disabled without one), explored, the page's own, everything; the map and systems tabs pass `own`
-(`ownOnMap()` in `#lib/mapLayers.ts`), which adds "my stations and ships" and our ships as a
-marker per system (`Route.systemId`, READER 38) — all, fleets or civilian, the profile's
-`mapFilter.ships`, shared by both tabs (the user's ask 2026-10-31). **A nomad's arkships**
+disabled without one), explored, the page's own, everything. **Our own on every map** (the
+user's ask 2026-11-22; before, the map and systems tabs alone, 2026-10-31): the layout hands every
+`GalaxyMap` `ownMap` (`server/ownMap.ts`: `ownOnMap()` in `#lib/mapLayers.ts` on the branch's latest
+save, `latestSave()` alone, kept per tip), which adds "my stations and ships", our colonies (a sky
+ring around the system, `colonySystems()`: the planet's system from the galaxy's bodies, arkship
+colonies left to the hexagon), our arkships and our ships as a marker per system
+(`Route.systemId`, READER 38). Three toolbar switches — my colonies & arkships, my fleets, my
+civilian ships, each shown when there is something to switch — are the profile's `mapOwn`, the
+same on every map (default colonies on, ships off; a profile from before starts from its old
+`mapFilter.ships` choice, `mapOwnFromShips()`). A page's own `own`/`arkships` props override the
+layout's (the migration circle orders the arkships). **A nomad's arkships**
 (`Snapshot.arkships`, READER 41; `arkships()` in save.ts: the ships carrying a colony we control,
 with size, tier, planet size and system — the ship's `coordinate.origin`, else its fleet's,
-`shipSystemId()`) are drawn on the map, systems and migration maps whatever the ships filter (a
+`shipSystemId()`) are drawn with the colonies switch (a
 violet hexagon above the system, the capital ringed; `GalaxyMap` `arkships`), with a fit "my
 arkships" (the user's ask 2026-11-01). **The capital button** goes to `capitalId()`
 (`server/mapSystems.ts`): the capital arkship where it is now, else `knownSystems`' capital, which
@@ -252,7 +262,7 @@ wide + table = that with the page's table beside the map) — one localStorage k
 to ⚙'s **A map opens fitted to** (`mapFit`: explored — the default —, my empire, everything;
 everything where that set is empty), following the size; the "everything" button follows it too
 (the user's ask, 2026-11-17). ⚙ shows what this browser keeps of its own — its width pick, how many
-map heights were dragged — each with a reset (`forget()` in `#lib/browserStore.ts`), so a default
+map heights were dragged, its special stars pick — each with a reset (`forget()` in `#lib/browserStore.ts`), so a default
 can take effect again. A page with a table of what its map shows (map: Found;
 systems; megastructures; frontier: First contacts) defines it as a top-level snippet, passes it
 as `beside` and binds `width`: it renders the table itself unless `width === 'side'`. Legends and

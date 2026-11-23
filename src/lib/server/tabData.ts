@@ -1,5 +1,5 @@
 import { emptyTabs, megastructuresEmpty } from '#lib/tabData.ts';
-import { getDb } from './app.ts';
+import { getDb, getGameData } from './app.ts';
 import { galaxyOf, history } from './db.ts';
 
 let memo: { tip: number; empty: Record<string, string> } | null = null;
@@ -19,7 +19,10 @@ export function emptyTabsAt(tip: number | null): Record<string, string> {
 		snaps,
 		campaign ? (galaxyOf(db, campaign)?.systems ?? null) : null
 	);
-	const empty = { ...emptyTabs(snaps), ...(mega ? { megastructures: mega } : {}) };
+	const empty = {
+		...emptyTabs(snaps, getGameData().contractTypes),
+		...(mega ? { megastructures: mega } : {})
+	};
 	memo = { tip, empty };
 	return empty;
 }

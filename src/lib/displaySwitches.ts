@@ -12,6 +12,7 @@ export type SwitchKey = Exclude<
 	| 'slaveMarket'
 	| 'mapFit'
 	| 'mapWidth'
+	| 'mapStars'
 	| 'showSpoilers'
 	| 'showCheats'
 >;

@@ -37,5 +37,6 @@
 {#if k}<span class="ml-1 rounded px-1 text-xs {k.tone}">{k.label}</span>{/if}{#if nomadic}<span
 		class="ml-1 rounded bg-amber-100 px-1 text-xs text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
 		title="Nomadic: takes energy and minerals, never gives them (its operational reserves)"
-		>nomadic</span
-	>{/if}
+	>
+		nomadic
+	</span>{/if}

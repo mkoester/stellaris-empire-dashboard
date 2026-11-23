@@ -84,10 +84,13 @@
 		{card.title}
 		{#if pileText}<span
 				class="font-normal text-gray-500 tabular-nums"
-				title="the pile now: 1 + the bonuses that hold">{pileText}</span
-			>{/if}
-		{#if card.estimated}<span class="font-normal text-gray-500" title="≈ {card.estimated}">≈</span
-			>{/if}
+				title="the pile now: 1 + the bonuses that hold"
+			>
+				{pileText}
+			</span>{/if}
+		{#if card.estimated}<span class="font-normal text-gray-500" title="≈ {card.estimated}">
+				≈
+			</span>{/if}
 	</h3>
 
 	{#if card.lines.length}
@@ -114,12 +117,12 @@
 			bind:value={choice}
 		>
 			{#each card.presets as p, i (i)}
-				<option value={String(i)}
-					>{val(p.value)}{p.target ? ` ${pretty(p.target.replace(/^(job|cat):/, ''))}` : ''} — e.g. {p.example}{p.count >
+				<option value={String(i)}>
+					{val(p.value)}{p.target ? ` ${pretty(p.target.replace(/^(job|cat):/, ''))}` : ''} — e.g. {p.example}{p.count >
 					1
 						? ` (${p.count} sources)`
-						: ''}</option
-				>
+						: ''}
+				</option>
 			{/each}
 			<option value="own">my own value…</option>
 		</select>
@@ -149,9 +152,9 @@
 			{@const d = result.totals.empire_size}
 			<p class="text-sm tabular-nums">
 				{#if f.size <= f.base && f.size + d <= f.base}
-					<span class="text-gray-500"
-						>No cost effect: size {fmt(f.size)} stays under {f.base}, where costs start to grow.</span
-					>
+					<span class="text-gray-500">
+						No cost effect: size {fmt(f.size)} stays under {f.base}, where costs start to grow.
+					</span>
 				{:else}
 					{f.penalties
 						.map((pen) => `${pen.label} ${pct(sizeCostChange(f.size, d, f.base, pen.per))}`)

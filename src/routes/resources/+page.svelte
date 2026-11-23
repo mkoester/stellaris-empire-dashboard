@@ -54,9 +54,9 @@
 		<section class="rounded border border-gray-300 p-2 dark:border-gray-700">
 			<h2 class="mb-1 font-semibold">
 				<span style:color>{pretty(p.key)}</span> per month
-				{#if data.budgetDate}<span class="text-sm font-normal text-gray-500"
-						>as of {data.budgetDate}</span
-					>{/if}
+				{#if data.budgetDate}<span class="text-sm font-normal text-gray-500">
+						as of {data.budgetDate}
+					</span>{/if}
 			</h2>
 			{#if data.budget === null}
 				<p class="text-sm text-gray-500">No save with a budget yet.</p>
@@ -100,8 +100,9 @@
 											<td
 												class="p-1 text-right"
 												title={n.approx ? 'base cost, before modifiers' : ''}
-												>{n.approx ? '≈ ' : ''}{signed(n.amount)}</td
 											>
+												{n.approx ? '≈ ' : ''}{signed(n.amount)}
+											</td>
 										</tr>
 									{/each}
 									{#if p.unbooked.days.length}
@@ -117,11 +118,9 @@
 										</tr>
 										{#if open && p.unbooked.causes.length}
 											<tr class="text-xs text-gray-500">
-												<td class="p-1 pl-8" colspan="4"
-													>maybe: {p.unbooked.causes
-														.map((c) => `${c.label} (${c.date})`)
-														.join(', ')}</td
-												>
+												<td class="p-1 pl-8" colspan="4">
+													maybe: {p.unbooked.causes.map((c) => `${c.label} (${c.date})`).join(', ')}
+												</td>
 											</tr>
 										{/if}
 									{/if}

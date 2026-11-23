@@ -5,6 +5,10 @@
 	import {
 		ARKSHIP_ORDERS,
 		arkshipOrder,
+		flowColor,
+		flowKey,
+		flowPaints,
+		flowTitle,
 		type ArkshipOrder,
 		type Flow,
 		type MigrationView
@@ -47,7 +51,7 @@
 	const button = 'rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700';
 	const colonies = $derived(rows.filter((r) => r.own));
 
-	const senders = $derived([...new Set(flows.map((f) => f.from.ownerId))]);
+	const paints = $derived(flowPaints(flows, colors));
 	const max = $derived(Math.max(1, ...flows.map((f) => f.pops)));
 	const arc = (at: (p: Point) => Point, f: Flow) => {
 		const [a, b] = [at(f.from), at(f.to)];
@@ -69,12 +73,14 @@
 			<button
 				class="{button} {view.layout === l ? 'bg-gray-200 dark:bg-gray-800' : ''}"
 				aria-pressed={view.layout === l}
-				onclick={() => onView?.({ ...view, layout: l })}>{l}</button
+				onclick={() => onView?.({ ...view, layout: l })}
 			>
+				{l}
+			</button>
 		{/each}
 		{#if view.layout === 'circle' && arkships.length > 1}
-			<label class="ml-2 flex items-center gap-1"
-				>arkships clockwise
+			<label class="ml-2 flex items-center gap-1">
+				arkships clockwise
 				<select
 					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 					value={view.order}
@@ -112,9 +118,9 @@
 				<!-- one arrowhead per sender colour, 14px whatever the arc's width; refX puts the tip at
 				     the colony dot's edge (r 6 + stroke 2 = 8px ≈ 6 marker units) instead of under it -->
 				<defs>
-					{#each senders as ownerId (ownerId)}
+					{#each paints as [key, color] (key)}
 						<marker
-							id="arrow-{ownerId}"
+							id="arrow-{key}"
 							viewBox="0 0 10 10"
 							refX="16"
 							refY="5"
@@ -123,7 +129,7 @@
 							markerUnits="userSpaceOnUse"
 							orient="auto-start-reverse"
 						>
-							<path d="M 0 0 L 10 5 L 0 10 z" fill={colors[ownerId]} />
+							<path d="M 0 0 L 10 5 L 0 10 z" fill={color} />
 						</marker>
 					{/each}
 				</defs>
@@ -131,17 +137,14 @@
 					<path
 						d={arc(at, f)}
 						fill="none"
-						stroke={colors[f.from.ownerId]}
+						stroke={flowColor(f, colors)}
 						stroke-opacity="0.6"
 						stroke-width={Math.max(2, (f.pops / max) * 10)}
 						stroke-dasharray={f.estimated ? '6 4' : undefined}
-						marker-end="url(#arrow-{f.from.ownerId})"
-						><title
-							>{f.from.name} → {f.to.name}: {fmt(f.pops)} pops/month{f.estimated
-								? ' (estimated)'
-								: ''}</title
-						></path
+						marker-end="url(#arrow-{flowKey(f)})"
 					>
+						<title>{flowTitle(f)}</title>
+					</path>
 				{/each}
 				{#each rows as r (r.colonyId)}
 					<circle
@@ -151,13 +154,16 @@
 						fill={colors[r.ownerId]}
 						stroke="white"
 						stroke-width="2"
-						><title
-							>{r.name} ({r.owner}) · +{fmt(r.immigration)} / −{fmt(r.emigration)} last month</title
-						></circle
 					>
-					<text x={at(r).x + 10} y={at(r).y + 4 + labelDy(r)} class="fill-current text-[11px]"
-						>{r.name}</text
-					>
+						<title>
+							{r.name} ({r.owner}) · +{fmt(r.immigration)} / −{fmt(r.emigration)} last month{r.resettled
+								? ` · ${r.resettled > 0 ? '+' : '−'}${fmt(Math.abs(r.resettled))} resettled`
+								: ''}
+						</title>
+					</circle>
+					<text x={at(r).x + 10} y={at(r).y + 4 + labelDy(r)} class="fill-current text-[11px]">
+						{r.name}
+					</text>
 				{/each}
 			{/snippet}
 		</GalaxyMap>

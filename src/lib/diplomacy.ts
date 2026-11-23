@@ -247,8 +247,15 @@ export const EDGE_STYLES: Record<string, { short: string; color: string; width: 
 	closed_borders: { short: 'CB', color: '#6b7280', width: 1 }
 };
 export const EDGE_KINDS = Object.keys(EDGE_STYLES);
+// `is_rival` edges join any two empires, either way round: not "our rival" (contacts' wording)
 export const edgeLabel = (kind: string) =>
-	kind === 'war' ? 'at war' : kind === 'subject' ? 'overlord → subject' : agreementName(kind);
+	kind === 'war'
+		? 'at war'
+		: kind === 'subject'
+			? 'overlord → subject'
+			: kind === 'is_rival'
+				? 'rivalry'
+				: agreementName(kind);
 export const edgeStyle = (kind: string) =>
 	EDGE_STYLES[kind] ?? { short: kind, color: '#9ca3af', width: 1 };
 

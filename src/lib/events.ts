@@ -27,6 +27,7 @@ import type { Progress, QueueItem, Snapshot } from './types.ts';
 // (empire size, galaxy cost sliders) — other cost modifiers are unknown, hence "estimated".
 
 import { pretty } from './format.ts';
+import { difficultyText } from './contacts.ts';
 import { basePrice, price, priceRecovery } from './market.ts';
 import type { ActionKind, Colony, GameData, TimedModifier } from './types.ts';
 export type { GameData };
@@ -1030,7 +1031,7 @@ export function rolls(
 			kind: 'roll' as const,
 			sub: 'first contact',
 			what: `Next roll: ${c.name}`,
-			detail: `${c.leaderName ?? 'envoy'} · ${c.clues} clues · difficulty ${c.difficulty}`,
+			detail: `${c.leaderName ?? 'envoy'} · ${c.clues} clues · difficulty ${difficultyText(c)}`,
 			tint: 'roll',
 			exact: true,
 			act: false

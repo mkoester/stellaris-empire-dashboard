@@ -498,35 +498,40 @@
 })}<span
 		class={r.blocked.length ? 'text-gray-400' : (RARITY_TONE[r.rarity] ?? '')}
 		title={`${r.rarity}, ${r.blocked.length ? `not now: ${r.blocked.join('; ')}` : r.exhibited ? 'exhibited' : 'in storage'}`}
-		>{r.name}{r.blocked.length ? ' ⊘' : ''}</span
-	>{/snippet}
-{#snippet specimenPrice(r: TheirSpecimen)}<span class="tabular-nums">{tradeFmt(r.priceTrade)}</span
-	>{/snippet}
+	>
+		{r.name}{r.blocked.length ? ' ⊘' : ''}
+	</span>{/snippet}
+{#snippet specimenPrice(r: TheirSpecimen)}<span class="tabular-nums">
+		{tradeFmt(r.priceTrade)}
+	</span>{/snippet}
 {#snippet willingCell(r: { refused: string[] })}<span
 		class={r.refused.length ? 'text-red-600' : 'text-green-600'}
 		title={r.refused.length ? r.refused.join('; ') : 'nothing known stops them'}
-		>{r.refused.length ? 'refuses' : 'yes ≈'}</span
-	>{/snippet}
+	>
+		{r.refused.length ? 'refuses' : 'yes ≈'}
+	</span>{/snippet}
 {#snippet givesCell(r: Gives)}<SpecimenGives bonuses={r.bonuses} produces={r.produces} />{/snippet}
 {#snippet bidCell(r: OurSpecimen)}{#if r.refused.length}<span
 			class="text-gray-500"
 			title={`${r.refused.join('; ')}: it pays nothing, but takes it as a gift (the Backattan Empire, Suspicious, 2026-11-21)`}
-			>gift only</span
-		>{:else}<span class="tabular-nums">{tradeFmt(r.bidTrade)}</span>{/if}{/snippet}
+		>
+			gift only
+		</span>{:else}<span class="tabular-nums">{tradeFmt(r.bidTrade)}</span>{/if}{/snippet}
 
 {#snippet enclaveName(x: EnclaveRow)}<EmpireName
 		name={x.name}
 		bold={false}
 		kind="enclaves"
 	/>{/snippet}
-{#snippet sells(x: EnclaveRow)}<span style:color={colorOf(x.resource)}>{resName(x.resource)}</span
-	>{/snippet}
+{#snippet sells(x: EnclaveRow)}<span style:color={colorOf(x.resource)}>
+		{resName(x.resource)}
+	</span>{/snippet}
 {#snippet energyPer()}{fmt(enclaveUnitCost())}{/snippet}
 {#snippet tradePer(x: EnclaveRow)}{@const pay = enclavePay(x, x.resource)}{@const buy = marketPay(
 		x.resource
-	)}<span class={pay !== null && buy !== null && pay < buy ? 'text-green-600' : ''}
-		>{pay === null ? '–' : fmt(pay)}</span
-	>{/snippet}
+	)}<span class={pay !== null && buy !== null && pay < buy ? 'text-green-600' : ''}>
+		{pay === null ? '–' : fmt(pay)}
+	</span>{/snippet}
 {#snippet marketAt(x: EnclaveRow)}{@const buy = marketPay(x.resource)}{buy === null
 		? '–'
 		: fmt(buy)}{/snippet}
@@ -546,17 +551,17 @@
 	<span style:color={tint(w, willingSpan)}>{w ?? '?'}</span>
 {/snippet}
 {#snippet priceWilling(p: PriceRow)}
-	{#if p.willing !== undefined}<span style:color={tint(p.willing, willingSpan)}
-			>{p.willing ?? '?'}</span
-		>{/if}
+	{#if p.willing !== undefined}<span style:color={tint(p.willing, willingSpan)}>
+			{p.willing ?? '?'}
+		</span>{/if}
 {/snippet}
 {#snippet attitude(e: Empire)}
 	{@const t = termsOf(e)}
-	<span class={t.trades ? '' : 'text-red-600'}
-		>{e.attitude ? (data.attitudes[e.attitude]?.name ?? pretty(e.attitude)) : '–'}{t.trades
+	<span class={t.trades ? '' : 'text-red-600'}>
+		{e.attitude ? (data.attitudes[e.attitude]?.name ?? pretty(e.attitude)) : '–'}{t.trades
 			? ''
-			: ' — no trades'}</span
-	>
+			: ' — no trades'}
+	</span>
 {/snippet}
 {#snippet opinion(e: Empire)}
 	<span style:color={tint(e.opinion, opinionSpan)}>{e.opinion ?? '–'}</span>
@@ -573,22 +578,22 @@
 	{@const t = canGive(r, data.weNomadic)
 		? tone(v, giftScales.get(e.countryId) ?? null)
 		: { cls: '', color: null }}
-	<span class={v === 0 ? 'text-gray-400' : t.cls} style:color={t.color}
-		>{v === null ? '–' : `+${fmt(v)}`}</span
-	>
+	<span class={v === 0 ? 'text-gray-400' : t.cls} style:color={t.color}>
+		{v === null ? '–' : `+${fmt(v)}`}
+	</span>
 {/snippet}
 {#snippet opinionFrom(e: Empire)}
-	<span class="text-xs"
-		>{e.opinionModifiers
+	<span class="text-xs">
+		{e.opinionModifiers
 			.map((m) => `${modifierName(m.key)} ${m.value > 0 ? '+' : ''}${fmt(m.value)}`)
-			.join(' · ')}</span
-	>
+			.join(' · ')}
+	</span>
 {/snippet}
 {#snippet offerRate(o: Offer)}{fmt(o.r)}{/snippet}
 {#snippet vsMarket(o: Offer)}
-	<span class={market !== null && o.r > market ? 'text-green-600' : ''}
-		>{market ? `${fmt(o.r / market)} ×` : ''}</span
-	>
+	<span class={market !== null && o.r > market ? 'text-green-600' : ''}>
+		{market ? `${fmt(o.r / market)} ×` : ''}
+	</span>
 {/snippet}
 {#snippet offerTakes(o: Offer)}<span
 		title="at worth: up to {Math.round(
@@ -596,14 +601,17 @@
 		)} % of their storage — more counts nothing ({o.takesExact
 			? 'their storage, stored by companion mod 0.5.0'
 			: '≈ their base storage, fallen empires +120,000; silos and techs unknown without companion mod 0.5.0'})"
-		>{o.takes === null ? '–' : `${o.takesExact ? '' : '≈'}${fmt(o.takes)}`}</span
-	>{/snippet}
+	>
+		{o.takes === null ? '–' : `${o.takesExact ? '' : '≈'}${fmt(o.takes)}`}
+	</span>{/snippet}
 {#snippet offerSpare(o: Offer)}{o.spare === null ? '–' : fmt(o.spare)}{/snippet}
 {#snippet monthlyPerMonth(o: MonthlyRow)}<span
 		title={o.capped
 			? `their cap: ${Math.round(data.model.monthlyShare * 100)} % of their gross income of it — the lump buys more`
-			: ''}>{fmt(o.perMonth)}{o.capped ? ' (cap)' : ''}</span
-	>{/snippet}
+			: ''}
+	>
+		{fmt(o.perMonth)}{o.capped ? ' (cap)' : ''}
+	</span>{/snippet}
 {#snippet monthlyTotal(o: MonthlyRow)}{fmt(o.total)}{/snippet}
 {#snippet monthlyVsMarket(o: MonthlyRow)}
 	{@const x = market ? o.total / (lump * market) : null}
@@ -612,20 +620,25 @@
 {#snippet monthlySafe(o: MonthlyRow)}
 	{#if o.monthsLeft === null}<span
 			class="text-green-600"
-			title="their net income of it after paying">yes, net {fmt(o.netAfter)}/month left</span
-		>{:else}<span
+			title="their net income of it after paying"
+		>
+			yes, net {fmt(o.netAfter)}/month left
+		</span>{:else}<span
 			class={o.monthsLeft < years * 12 ? 'text-red-600' : ''}
 			title="paying puts them at {fmt(
 				o.netAfter
 			)}/month; the deal breaks when they cannot afford it"
-			>stockpile lasts {fmt(o.monthsLeft)} months</span
-		>{/if}
+		>
+			stockpile lasts {fmt(o.monthsLeft)} months
+		</span>{/if}
 {/snippet}
 {#snippet offerPerMonth(o: Offer)}<span
 		title={o.perMonth === null
 			? 'read before the dashboard knew their gross income: the next save tells'
-			: ''}>{o.perMonth === null ? '?' : fmt(o.perMonth)}</span
-	>{/snippet}
+			: ''}
+	>
+		{o.perMonth === null ? '?' : fmt(o.perMonth)}
+	</span>{/snippet}
 {#snippet priceCell(p: PriceRow, r: string)}
 	{@const x = p.prices[r]}
 	{@const pay = p.market ? null : tone(x.pay === null ? null : -x.pay, priceScales[r].pay)}
@@ -634,22 +647,27 @@
 	{#if priceMode !== 'offer'}<span
 			class={pay?.cls}
 			style:color={pay?.color}
-			title="trade we pay per {resName(r)}">{x.pay === null ? '–' : fmt(x.pay)}</span
-		>{/if}{#if priceMode === 'both'}<span class="text-gray-400">
+			title="trade we pay per {resName(r)}"
+		>
+			{x.pay === null ? '–' : fmt(x.pay)}
+		</span>{/if}{#if priceMode === 'both'}<span class="text-gray-400">
 			/
 		</span>{/if}{#if priceMode !== 'want'}<span
 			class="{receive?.cls ?? ''} {noGive && priceMode === 'both' ? 'opacity-40' : ''}"
 			style:color={receive?.color}
-			title="trade we receive per {resName(r)}">{x.receive === null ? '–' : fmt(x.receive)}</span
-		>{/if}
+			title="trade we receive per {resName(r)}"
+		>
+			{x.receive === null ? '–' : fmt(x.receive)}
+		</span>{/if}
 {/snippet}
 {#snippet needCell(e: Empire, r: string)}
 	{@const s = stance(r, e, data.resourceInfo, data.model)}
 	<span
 		class={s === 'needs' ? 'text-red-600' : s === 'plenty' ? 'text-green-600' : ''}
 		title="net {fmt(e.net[r] ?? 0)}/month"
-		>{s === 'needs' ? '↑ ' : s === 'plenty' ? '↓ ' : ''}{fmt(e.stockpile[r] ?? 0)}</span
 	>
+		{s === 'needs' ? '↑ ' : s === 'plenty' ? '↓ ' : ''}{fmt(e.stockpile[r] ?? 0)}
+	</span>
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -705,22 +723,22 @@
 				)} % of their gross income of it a month (measured). Trader enclaves take energy only."
 			>
 				<div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
-					<label
-						>we give <select
+					<label>
+						we give <select
 							class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 							bind:value={give}
 						>
 							{#each giveable as r (r)}<option value={r}>{resName(r)}</option>{/each}
-						</select></label
-					>
-					<label
-						>for <select
+						</select>
+					</label>
+					<label>
+						for <select
 							class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 							bind:value={get}
 						>
 							{#each data.tradable as r (r)}<option value={r}>{resName(r)}</option>{/each}
-						</select></label
-					>
+						</select>
+					</label>
 					<select
 						class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 						bind:value={dealMode}
@@ -729,29 +747,27 @@
 						<option value="monthly">we pay once, they pay monthly</option>
 					</select>
 					{#if dealMode === 'monthly'}
-						<label
-							><input
+						<label>
+							<input
 								type="number"
 								min="1"
 								step="100"
 								class="w-20 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 								bind:value={lump}
-							/> at once</label
-						>
-						<label
-							>for <select
+							/> at once
+						</label>
+						<label>
+							for <select
 								class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 								bind:value={years}
 							>
 								{#each [10, 15, 20, 25, 30] as y (y)}<option value={y}>{y}</option>{/each}
-							</select> years</label
-						>
+							</select> years
+						</label>
 					{/if}
-					<span class="text-gray-500"
-						>market: {market === null
-							? '–'
-							: `${fmt(market)} ${resName(get)} per ${resName(give)}`}</span
-					>
+					<span class="text-gray-500">
+						market: {market === null ? '–' : `${fmt(market)} ${resName(get)} per ${resName(give)}`}
+					</span>
 				</div>
 				{#if dealMode === 'monthly'}
 					<p class="mb-2 text-sm text-gray-500">
@@ -793,8 +809,10 @@
 							mode
 								? 'bg-gray-200 dark:bg-gray-800'
 								: ''}"
-							onclick={() => (priceMode = mode as typeof priceMode)}>{label}</button
+							onclick={() => (priceMode = mode as typeof priceMode)}
 						>
+							{label}
+						</button>
 					{/each}
 				</div>
 				<div class="overflow-x-auto">
@@ -825,8 +843,10 @@
 							mode
 								? 'bg-gray-200 dark:bg-gray-800'
 								: ''}"
-							onclick={() => (giftPer = mode as typeof giftPer)}>{label}</button
+							onclick={() => (giftPer = mode as typeof giftPer)}
 						>
+							{label}
+						</button>
 					{/each}
 				</div>
 				<div class="overflow-x-auto">

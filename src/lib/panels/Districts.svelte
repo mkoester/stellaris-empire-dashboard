@@ -80,9 +80,9 @@
 
 {#snippet buildings(r: Row)}{#if r.buildings !== null}{#each r.buildings as b, i (i)}{i
 				? ', '
-				: ''}{#if r.disabled[i]}<span class="text-gray-500 line-through" title="disabled"
-					><BuildingName key={b} name={nameOf(names, b)} /></span
-				> <span class="text-xs text-gray-500">disabled</span>{:else}<BuildingName
+				: ''}{#if r.disabled[i]}<span class="text-gray-500 line-through" title="disabled">
+					<BuildingName key={b} name={nameOf(names, b)} />
+				</span> <span class="text-xs text-gray-500">disabled</span>{:else}<BuildingName
 					key={b}
 					name={nameOf(names, b)}
 				/>{/if}{:else}none yet{/each}{/if}{/snippet}
@@ -103,8 +103,10 @@
 					? 'border-sky-600 bg-sky-50 dark:bg-sky-950'
 					: 'border-gray-300 dark:border-gray-600'}"
 				aria-pressed={view === v}
-				onclick={() => pick(v)}>{v}</button
+				onclick={() => pick(v)}
 			>
+				{v}
+			</button>
 		{/each}
 	</div>
 	{#if view === 'layout'}

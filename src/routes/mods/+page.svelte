@@ -77,41 +77,44 @@
 	];
 </script>
 
-{#snippet seen(u: Update)}<span class="text-gray-500 tabular-nums">{u.to.seenAt.slice(0, 10)}</span
-	>{/snippet}
+{#snippet seen(u: Update)}<span class="text-gray-500 tabular-nums">
+		{u.to.seenAt.slice(0, 10)}
+	</span>{/snippet}
 {#snippet modName(u: Update)}<b>{u.name}</b>{/snippet}
 {#snippet version(u: Update)}{#if u.from.version !== u.to.version}{u.from.version ?? '?'} → {u.to
 			.version ?? '?'}{:else}{u.to.version ??
 			''}{/if}{#if u.from.supportedVersion !== u.to.supportedVersion}
-		<span class="text-gray-500"
-			>for game {u.from.supportedVersion ?? '?'} → {u.to.supportedVersion ?? '?'}</span
-		>{/if}{/snippet}
-{#snippet updated(u: Update)}<span class="text-gray-500"
-		>{u.to.updated ? `updated ${u.to.updated.slice(0, 10)}` : ''}{u.to.gameDate
+		<span class="text-gray-500">
+			for game {u.from.supportedVersion ?? '?'} → {u.to.supportedVersion ?? '?'}
+		</span>{/if}{/snippet}
+{#snippet updated(u: Update)}<span class="text-gray-500">
+		{u.to.updated ? `updated ${u.to.updated.slice(0, 10)}` : ''}{u.to.gameDate
 			? ` · game ${u.to.gameDate}`
-			: ''}</span
-	>{/snippet}
+			: ''}
+	</span>{/snippet}
 
 {#snippet name(r: ModRow)}
 	{#if r.steamId}<a
 			class="hover:underline"
 			href="https://steamcommunity.com/sharedfiles/filedetails/?id={r.steamId}"
 			rel="external noreferrer"
-			target="_blank">{r.name}</a
-		>{:else}{r.name}{/if}{#if r.local && r.steamId}<span
+			target="_blank"
+		>
+			{r.name}
+		</a>{:else}{r.name}{/if}{#if r.local && r.steamId}<span
 			class="text-gray-500"
 			title="a local copy ({r.file}) beside the workshop version"
 		>
-			· local</span
-		>{/if}
+			· local
+		</span>{/if}
 {/snippet}
 {#snippet supported(r: ModRow)}
 	{r.supportedVersion ?? '–'}{#if r.supported === false}<span
 			class="text-amber-600"
 			title="does not claim to support {data.gameVersion}"
 		>
-			⚠</span
-		>{/if}
+			⚠
+		</span>{/if}
 {/snippet}
 {#snippet age(r: Row)}{r.age === null ? '' : ageLabel(r.age)}{/snippet}
 {#snippet inData(r: ModRow)}{data.dataMods === null
@@ -174,11 +177,11 @@
 {/if}
 
 <div class="mb-4 flex flex-wrap items-center gap-4 text-sm">
-	<label class="flex items-center gap-1"
-		><input type="checkbox" bind:checked={activeOnly} /> active only</label
-	>
-	<label class="flex items-center gap-1"
-		>tag
+	<label class="flex items-center gap-1">
+		<input type="checkbox" bind:checked={activeOnly} /> active only
+	</label>
+	<label class="flex items-center gap-1">
+		tag
 		<select
 			class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 			bind:value={tag}

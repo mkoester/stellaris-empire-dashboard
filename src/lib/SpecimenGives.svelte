@@ -24,17 +24,18 @@
 				class="whitespace-nowrap"
 				class:opacity-60={b.applies === null}
 				title={b.applies === null ? `only if ${b.condition} — the save does not tell` : ''}
-				><span class="font-mono font-semibold {on ? modifierColor(b) : ''}"
-					>{formatModifierValue(b)}</span
-				><span style:color={on ? modifierTint(b.key) : undefined}
-					>{` ${modifierLabel(b)}${b.applies === null ? ' (?)' : ''}`}</span
-				></span
 			>
+				<span class="font-mono font-semibold {on ? modifierColor(b) : ''}">
+					{formatModifierValue(b)}
+				</span><span style:color={on ? modifierTint(b.key) : undefined}>
+					{` ${modifierLabel(b)}${b.applies === null ? ' (?)' : ''}`}
+				</span>
+			</span>
 		{/each}
 		{#if Object.keys(produces).length}
-			<span class="whitespace-nowrap" class:opacity-50={!on} class:grayscale={!on}
-				><ResourceChips flows={produces} sign={1} /><span class="ml-1">a month</span></span
-			>
+			<span class="whitespace-nowrap" class:opacity-50={!on} class:grayscale={!on}>
+				<ResourceChips flows={produces} sign={1} /><span class="ml-1">a month</span>
+			</span>
 		{/if}
 	</span>
 {/if}

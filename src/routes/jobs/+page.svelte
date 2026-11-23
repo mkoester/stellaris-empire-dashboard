@@ -96,32 +96,39 @@
 	const marketOf = (s: Source) => marketValue(s.resource);
 </script>
 
-{#snippet colonyName(c: ColonyRow)}<span title={c.jobs.map((j) => data.jobNames[j] ?? j).join(', ')}
-		>{c.name}</span
-	>{/snippet}
-{#snippet designation(c: ColonyRow)}<span class="text-gray-500"
-		><Designation key={c.designation} /></span
-	>{/snippet}
+{#snippet colonyName(c: ColonyRow)}<span
+		title={c.jobs.map((j) => data.jobNames[j] ?? j).join(', ')}
+	>
+		{c.name}
+	</span>{/snippet}
+{#snippet designation(c: ColonyRow)}<span class="text-gray-500">
+		<Designation key={c.designation} />
+	</span>{/snippet}
 {#snippet ratio(c: ColonyRow, r: string)}{#if c.ratio[r] !== undefined}<span
 			class="{tone(c.ratio[r])} {best[r] === c.planetId ? 'font-bold' : ''}"
 			title="{fmt(c.actual[r] ?? 0)} made, {fmt(c.expected[r])} at the empire's mean"
-			>{Math.round(c.ratio[r] * 100)} %</span
-		>{/if}{/snippet}
+		>
+			{Math.round(c.ratio[r] * 100)} %
+		</span>{/if}{/snippet}
 {#snippet bestCell(c: ColonyRow)}{#each bestAt(c.planetId) as r (r)}<span
 			class="mr-2"
-			style:color={colorOf(r)}>{pretty(r)}</span
-		>{/each}{/snippet}
+			style:color={colorOf(r)}
+		>
+			{pretty(r)}
+		</span>{/each}{/snippet}
 {#snippet sourceName(s: Source)}{s.source.label}{#if s.source.pops}<span
 			class="text-xs text-gray-500"
 		>
-			· {fmt(s.source.pops)} pops</span
-		>{/if}{/snippet}
+			· {fmt(s.source.pops)} pops
+		</span>{/if}{/snippet}
 {#snippet amount(s: Source)}{fmt(s.amount)}/mo{/snippet}
 {#snippet uses(s: Source)}<ResourceChips flows={neg(s.source.uses)} />{/snippet}
 {#snippet perUnit(s: Source)}{fmt(s.perUnit)}{/snippet}
 {#snippet perUnitMarket(s: Source)}<span
-		class={s.perUnit < (marketOf(s) ?? -Infinity) ? 'text-green-600' : ''}>{fmt(s.perUnit)}</span
-	>{/snippet}
+		class={s.perUnit < (marketOf(s) ?? -Infinity) ? 'text-green-600' : ''}
+	>
+		{fmt(s.perUnit)}
+	</span>{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Jobs</h1>
@@ -157,11 +164,11 @@
 					<div>
 						<h2 class="mb-1 font-semibold">
 							<span style:color={colorOf(g.resource)}>{pretty(g.resource)}</span>
-							<span class="text-sm font-normal text-gray-500"
-								>{#if g.market !== null}market {fmt(g.market)} trade per unit{:else}worth {fmt(
+							<span class="text-sm font-normal text-gray-500">
+								{#if g.market !== null}market {fmt(g.market)} trade per unit{:else}worth {fmt(
 										g.value ?? 1
-									)} trade per unit (what it costs us){/if}</span
-							>
+									)} trade per unit (what it costs us){/if}
+							</span>
 						</h2>
 						<SortTable
 							rows={g.sources}

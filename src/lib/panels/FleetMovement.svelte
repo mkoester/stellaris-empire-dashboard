@@ -36,12 +36,12 @@
 	];
 </script>
 
-{#snippet fleet(f: Fleet)}<span class="whitespace-nowrap"
-		>{f.name} <span class="text-gray-500">{f.kind}</span></span
-	>{/snippet}
-{#snippet unknown(f: Fleet)}{@const u = unknownOf(f)}{#if u}<span class="text-amber-600"
-			>⚠ {u.system}</span
-		>
+{#snippet fleet(f: Fleet)}<span class="whitespace-nowrap">
+		{f.name} <span class="text-gray-500">{f.kind}</span>
+	</span>{/snippet}
+{#snippet unknown(f: Fleet)}{@const u = unknownOf(f)}{#if u}<span class="text-amber-600">
+			⚠ {u.system}
+		</span>
 		<span class="text-gray-500">in {jumps(u.jumps)}</span>{/if}{/snippet}
 {#snippet last(f: Fleet)}{@const l = f.route.stops.at(-1)}{#if l}{l.system}
 		<span class="text-gray-500">in {jumps(l.jumps)}</span>{:else}–{/if}{/snippet}
