@@ -247,7 +247,7 @@ export type FactionRow = Omit<GameData['factionTypes'][number], 'demands'> & {
 export function factionRows(types: GameData['factionTypes'], f: Facts): FactionRow[] {
 	const ethics = f.government
 		.filter((k) => k.startsWith('ethic_'))
-		.map((k) => k.replace('ethic_fanatic_', 'ethic_'));
+		.map((k) => k.replace(/^ethic_(fanatic|absolute)_/, 'ethic_'));
 	const rows = types.map((t) => ({
 		...t,
 		ours: t.ethic !== null && ethics.includes(t.ethic),

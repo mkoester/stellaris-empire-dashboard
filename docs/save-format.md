@@ -614,3 +614,26 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 - A colony's sector: its planet's system (`coordinate.origin`) in an owned sector's `systems`
   (`sectorBySystem()`; 2207.03.10: only the core sector, `type="core_sector"`, named after the
   capital). Habitability: `pop_groups.<id>.habitability` (0–1, seen 1 and 0.9), pops-weighted.
+
+## Ideologies (4.6.0 Willpower, read from a throwaway save, 2200.08.01, 2026-11-23)
+
+Not read yet: notes for an Ideology map mode. Seven ideologies, founded with `devtools.20`/`.21`.
+
+- Top level `ideologies = { ideologies = { <id> = { … } } }` — empty (`{ }`) before anyone founds
+  one, also in a campaign with the rule on. The rule: `galaxy.ideologies_enabled = yes`.
+- Per ideology: `type` (`"xenophile"`, `"xenophobe_pacifist"`: `common/ideologies/00_ideology_types.txt`),
+  `origin` (founder) and `custodian` (the Ideological Authority, a country id), `flag`
+  (`icon.category`/`file`, `background`, `color` — a named colour), `name` (a template:
+  `key="ideology_ajd_keyword"` with `%ADJECTIVE%` of the founder species and a noun — fill it
+  as `displayName()` does), `affected_empires = { <country> = { faction = <id> } }`,
+  `adopting_countries = { ids }`, `advocates = { leader ids }`.
+- Reach: `emitters` (each `emitter = { scope=colony|starbase id owner }` and its `reach`),
+  `low_priority_emitters` (same shape; starbases), `systems_within_reach` (`system`, the emitter
+  reaching it, `reach` there), `affected_systems = { system ids }` — what a map would colour.
+- Countries: `country.<id>.modules.standard_ideology_module` holds `adopted_ideology = <id>` and
+  `detected_ideologies = { ideology ids }` — the foreign ones it knows (two of nine countries had
+  one; ours none, and the player's Ideologies screen said "We do not know of any other
+  Ideology"). The game's own Ideological Map Mode (Ctrl+L) still drew all seven ideologies'
+  reach, as clouds in their flag colour with their flag icons, the same day (screenshot
+  `2026_11_23_1`): reach on the map is not intel-gated, so a dashboard map mode needs no
+  `intel` flag for it. Also `flags.ideology_initiated`; factions carry `adopted_ideology` too.

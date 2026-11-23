@@ -2,9 +2,9 @@ import type { EthicAxis } from './types.ts';
 
 // How close two empires' ethics are, for the diplomacy tab. Pure.
 //
-// Each ethic sits on one of four axes (4.5.2 `common/ethics/99_documentation.txt`): −2 fanatic,
-// −1 regular on the first pole, +1 / +2 on the second (`EthicAxis`); an axis an empire holds no
-// ethic on is 0. Gestalt consciousness is an axis of its own (`hive`).
+// Each ethic sits on one of four axes (`common/ethics/00_README.txt`): −3 absolute (4.6),
+// −2 fanatic, −1 regular on the first pole, +1 / +2 / +3 on the second (`EthicAxis`); an axis an
+// empire holds no ethic on is 0. Gestalt consciousness is an axis of its own (`hive`).
 
 export const AXES = ['col', 'xen', 'mil', 'spi'] as const;
 export type Axis = (typeof AXES)[number];
@@ -33,7 +33,8 @@ export function profile(ethics: string[], axes: Record<string, EthicAxis>): Prof
 }
 
 /**
- * Steps apart over the four axes, 0–16 (authoritarian vs. fanatic egalitarian: 3). Null between
+ * Steps apart over the four axes, 0–16 with regular and fanatic ethics (authoritarian vs.
+ * fanatic egalitarian: 3); an absolute ethic (±3) holds the whole budget on one axis. Null between
  * a gestalt and a non-gestalt empire: there is no common scale.
  */
 export function ethicDistance(a: Profile, b: Profile): number | null {
@@ -72,7 +73,7 @@ export function federationPenalty(
 	);
 }
 
-/** An ethic's short name — upper case when fanatic ("MI") — and its colour key in `colors.ts`. */
+/** An ethic's short name — upper case when fanatic or absolute ("MI") — and its colour key in `colors.ts`. */
 export function ethicMark(
 	ethic: string,
 	axes: Record<string, EthicAxis>
@@ -83,7 +84,7 @@ export function ethicMark(
 	const pole = a.pos < 0 ? 0 : 1;
 	const s = SHORT[a.axis]?.[pole];
 	if (!s) return null;
-	const fanatic = Math.abs(a.pos) === 2;
+	const fanatic = Math.abs(a.pos) >= 2;
 	return { short: fanatic ? s.toUpperCase() : s, fanatic, color: `ethic-${a.axis}-${pole}` };
 }
 

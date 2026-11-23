@@ -1261,9 +1261,9 @@ export type ActionKind =
 	| 'enclave';
 
 /**
- * An ethic's place on its axis (`col`, `xen`, `mil`, `spi`; gestalt `hive`): −2 fanatic, −1 regular
- * on the first pole (authoritarian, xenophobe, militarist, spiritualist), +1 / +2 on the second —
- * the game's `category_value` − 2 (4.5.2 `common/ethics/99_documentation.txt`).
+ * An ethic's place on its axis (`col`, `xen`, `mil`, `spi`; gestalt `hive`): −3 absolute (4.6),
+ * −2 fanatic, −1 regular on the first pole (authoritarian, xenophobe, militarist, spiritualist),
+ * +1 / +2 / +3 on the second — the ethic's cost, signed by `category_opposite`.
  */
 export type EthicAxis = { axis: string; pos: number };
 

@@ -219,6 +219,9 @@ country_event = {
 			if = {
 				limit = {
 					OR = {
+						# a colony's first month: no line logged yet (an unset _log variable is an
+						# error.log line per new colony, 4.6 throwaway game 2026-11-23)
+						NOT = { is_variable_set = sdash_fj_log }
 						NOT = { check_variable = { which = sdash_fj value = sdash_fj_log } }
 						NOT = { check_variable = { which = sdash_un value = sdash_un_log } }
 						NOT = { check_variable = { which = sdash_pp value = sdash_pp_log } }

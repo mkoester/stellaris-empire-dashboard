@@ -327,7 +327,7 @@ opinions of 228.
 **Ethics** (the user's ask 2026-10-27, `#lib/ethics.ts` pure): what government intel shows, as
 `EthicChip`s (a dot per pole, `ethic-*` in `colors.ts`, bold when fanatic, `ethic:` popups), short
 names on the circle (`Au`, `XI` fanatic, …), **steps apart from ours** — each ethic's place on its
-axis from the data DB (`ethic.category_value` − 2: −2…+2, `GameData.ethicAxes`), summed over the
+axis from the data DB (the ethic's `cost` signed by `category_opposite`: −3…+3, absolute ±3 since 4.6, `GameData.ethicAxes`), summed over the
 four axes, 0–16; gestalt against non-gestalt has no scale — and **changes seen**
 (`ethicsHistory()`: two visible readings in a row that differ, dated between them). Two more
 circle groupings: `ethics` (average linkage while the mean steps apart stay ≤

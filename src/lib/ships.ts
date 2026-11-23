@@ -22,6 +22,9 @@ const SIZE_NAMES: Record<string, string> = {
 	colonizer: 'Colony Ship',
 	nomads_constructor: 'Logistic Ship',
 	nomads_engineer_vessel: 'Logistics Vessel',
+	// 4.6 Willpower: named after the ideology's ethic in game (Liberation Vessel, Academy Ship,
+	// Divine Messenger; forceofwill_l_english.yml), "Cultural Envoy" otherwise
+	cultural_envoy_ship: 'Cultural Envoy',
 	mining_station: 'Mining Station',
 	research_station: 'Research Station',
 	starbase_outpost: 'Outpost'
@@ -30,7 +33,8 @@ const SIZE_NAMES: Record<string, string> = {
 const CLASS_NAMES: Record<string, string> = {
 	science_ship: 'Science Ship',
 	constructor: 'Construction Ship',
-	colonizer: 'Colony Ship'
+	colonizer: 'Colony Ship',
+	cultural_envoy: 'Cultural Envoy'
 };
 
 /** A ship's name as the game shows its size; else its class's, else the key made readable. */
