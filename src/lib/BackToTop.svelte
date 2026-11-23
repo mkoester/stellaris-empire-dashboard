@@ -12,6 +12,8 @@
 		type="button"
 		class="fixed right-4 bottom-4 z-40 rounded-full border border-gray-300 bg-white px-3 py-1 text-sm shadow hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800"
 		title="Back to the top"
-		onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>↑ top</button
+		onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
 	>
+		↑ top
+	</button>
 {/if}

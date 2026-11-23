@@ -29,20 +29,20 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { decoratedVersion } from './version.mjs';
 
-const NODE = '26.13.0';
+const NODE = '26.13.1';
 const NODE_SHA256 = {
-	'windows-x64': 'dcc60d59a0746999f99064a01c020445d54d84228c691cdbf25b49ac3b59150a', // win-x64.zip
-	'linux-x64': 'd28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997', // linux-x64.tar.xz
-	'macos-arm64': '6f5b3187d9df9fc007e881167905bc7d69ad26450ddc377c83d63256a2495b6e', // darwin-arm64.tar.xz
-	'macos-x64': '8bd636bc981a92e1ab930c02340eece2076eb1aaf94d14e421cdeeddc1292298' // darwin-x64.tar.xz
+	'windows-x64': 'e2edda75bfb089654705cf65a13b58933bfd5f57148e8ebda916f58a2474f1f7', // win-x64.zip
+	'linux-x64': '5c063e46bab0fbc1c17cc445d7ff129cbdcd0471be6ed83b6ab864f8143bc864', // linux-x64.tar.xz
+	'macos-arm64': 'af6202f5370a3a5209e85dc543758dfd9f44c8726626a236730cd603a67a8559', // darwin-arm64.tar.xz
+	'macos-x64': '2693310b2820f9350d29524f21344e1c623875bab773457d55b2aceb9670716f' // darwin-x64.tar.xz
 };
-const PYTHON = '3.14.8';
-const PYTHON_SHA256 = 'a93abe456ab01bd96d7a085b3cdb6566b3063f4241360d114142fbdb07f0a310'; // embed-amd64.zip
+const PYTHON = '3.14.10';
+const PYTHON_SHA256 = '90905e64a840557d8c1bc4f5b74db3d7ee85e3ffb217611cac1c7813acea4159'; // embed-amd64.zip
 // macOS: python-build-standalone's relocatable CPython, the same version as Windows'
-const PBS_RELEASE = '20261013';
+const PBS_RELEASE = '20261110';
 const PBS_SHA256 = {
-	'macos-arm64': '994adadc202c5df0b4570192cc9a70e3f2c131e512f4a125c56efa8562f44b28', // aarch64-apple-darwin
-	'macos-x64': 'f0137337ecf6234b30c9c955219dae2d71e1a00387c4d204d6c6929e24bf9a90' // x86_64-apple-darwin
+	'macos-arm64': 'f15ec3d15460dd66c2eb88639b152cd9040e7d1ece11e38bf89e8f53f0171e02', // aarch64-apple-darwin
+	'macos-x64': '85f8e54798e8e6aa58d2253f013d815c5616343cc0d15cbea882fca78bdfeae2' // x86_64-apple-darwin
 };
 const PBS_ARCH = { 'macos-arm64': 'aarch64', 'macos-x64': 'x86_64' };
 /** packages whose code ends up in the build; their licences (and their dependencies') ship along */

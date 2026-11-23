@@ -248,8 +248,13 @@ construct_mining_stations … = yes/no } }` — the task is the sub-order. `auto
 current_month_growth_details = { key = { GROWTH_CAT_… } value = { … } } species = { … categories
 } }`. Details are amounts; **emigration counts against the colony** (Earth 2204.07: growth 3,
   emigration 18 → −15), immigration for it; a single entry is a scalar, not a list.
+  **Resettlement** is its own cause, `GROWTH_CAT_RESETTLE`, **signed**: negative on the colony
+  pops left, positive where they arrived — 2228.04.01 (Roaming Cyber Gang's galaxy): 16 colonies,
+  8 negative, summing to 0. `GROWTH_CAT_MIGRATION` appears only in pop groups' own
+  `last_month_growth_details`, not in a colony's. Automatic migration stays `IMMIGRATION`/`EMIGRATION`.
   **No source→destination pairs**: `/migration` shows exact flows only with one sender or one
-  receiver, else a proportional split marked as estimated (`#lib/migration.ts`).
+  receiver, else a proportional split marked as estimated (`#lib/migration.ts`); resettlement
+  likewise from `resettle`, or exact from the companion mod's `resettled` lines (0.16.0).
 - Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
   (adopt and finish entries included), `tradition_categories`, `last_picked_tradition`; perks
   `country.ascension_perks` (both seen filled 2026-10-19).
@@ -518,7 +523,12 @@ star_class planet=… hyperlane starbases inner_radius outer_radius }` (radii 39
   Compass: the Caravaneers). Reading every `country` costs ~250 ms per save (51 countries).
   First contacts: top-level `first_contacts.contacts.<id> = { owner country name location leader
 date days_left difficulty clues stage status }` (`leader=4294967295`: none; `status`
-  in_progress / finished / aborted; stages have no localisation). Relations
+  in_progress / finished / aborted; stages have no localisation). **`stage` counts one behind
+  the game**: every chain starts at `base_contact_set` (the game's stage 1), so
+  `<type>_stage_<n>` is the game's stage n + 1. **`difficulty` is the stage's alone**; the game
+  shows it plus the contacted country's `first_contact_defense_add` (only the cautious protocol,
+  +2) plus 2 for a xenophobe, fanatic or not (engine-side, in no file) — all 7 contacts of 2228.04.09
+  (`firstContactDefense()`, `docs/open-checks.md` 43). Relations
   `country.relations_manager.relation = { country contact communications hostile
 relation_current trust threat border_range pre_communications_name }` (`border_range`
   2147483647: not bordering — a nomad's with every empire, 2217.06.01; pacts as flags, see "Pacts

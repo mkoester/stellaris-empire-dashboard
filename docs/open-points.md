@@ -13,7 +13,10 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   `docs/trade-calibration.md`); open: the × 1.5 at an empire that has built its archive (none of the
   six had one), the × 1.25 for filling an exhibition, a deal where they give a specimen;
   (5) whether `activated` is the bonus switch (the exhibit's own click) and `unlocked` the paid
-  exhibit; (6) the exhibitions' multiplier from companion mod 0.15.0 (`sdash_sp*`) against the
+  exhibit — Roaming Cybergang's 11–13 specimens were all `locked`, none `activated`, through
+  2231.04.29; after its Grand Archive was finished (timeline 2234.08.16) all 14 are `unlocked` and
+  `activated=yes` at once (autosave 2234.09.01), so the two still flip together; storage unseen
+  (no exhibition past 6); (6) the exhibitions' multiplier from companion mod 0.15.0 (`sdash_sp*`) against the
   Collection view's numbers, and `error.log` clean of `sdash_`.
 
 - **Waylines, our own (2026-11-16)**: the roaming tab was checked on the AI nomads' waystations
@@ -38,14 +41,18 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
   (`fircon.10`) sets `approach_study_insights` without the flag's approach; whether
   `set_situation_approach` runs that approach's `on_select` (which clears the flag) is not in the
   files. Check at the next Insight: the restarted situation's approach, the flag in the save, the
-  waystation's society research.
+  waystation's society research. **Answered** (2026-11-22, Roaming Cybergang): at 2227.10.01 the
+  situation (`approach_favor_insights`, progress 96.75) and `favored_insights`; at 2228.04.09 a new
+  one (`approach_study_insights`, progress 0.75) and **no flag** — the restart clears it, so the
+  flag does not outlive the situation. The waystation's society research is not checked.
 - **The galaxy setup reaches every page with `disabled_precursors`** (2026-11-20):
   `Snapshot.galaxySetup` (READER 42) carries which precursors the galaxy has, which the Precursors
   panel otherwise keeps for its cheat. Open, the user's call: drop it in `pageLatest()` and send it
   to the galaxy tab alone.
 - **The precursor and L-Gate panels, unchecked with a running chain (2026-11-20)**: Roaming
-  Cybergang has no precursor chain and 0 L-Gate insights, so artifacts, the home system and the
-  Precursor badge were seen on unit tests only. Check at the first precursor anomaly.
+  Cybergang had no precursor chain and 0 L-Gate insights, so artifacts, the home system and the
+  Precursor badge were seen on unit tests only. **Now checkable**: its timeline has
+  `timeline_first_precursor_discovered` on 2232.05.01 (`precursor_system_count=1`).
 - **The storms map mode, unchecked in a browser (2026-11-20)**: the fill and hover text are unit
   tested (`storms.test.ts`), not seen drawn; Roaming Cybergang has no Cosmic Weather Models, so the
   path ahead has not been shown on a real campaign. Compare with the game's Weather Forecast mode
@@ -212,7 +219,9 @@ screen, trade calibration, stored research, releases).
   game's diplomacy screen shows at which intel is from the files only. Check: a screenshot of an
   empire's diplomacy view at intel < 50 (no pacts expected) and one ≥ 50 against the tab; at the
   first intel drop (lost embassy or pact), whether the tab marks its facts "unverified since".
-  Federations (`federation.<id>.name`, `country.federation`) are not yet seen in a save.
+  Federations, first seen 2026-11-22 (Roaming Cybergang, 2227–2234):
+  `federation.0 = { name = { key="NAME_FE_Federation" } federation_progression = { federation_type cohesion laws … } members = { <ids> } leader }`
+  — three fallen empires, each with `federation=0`.
 - **Diplomacy tab, ethics**: check the chips against the game's contacts screen (ethics column)
   for two or three empires, and `federation fit` against a real federation's cohesion tooltip
   ("Opposing ethics(N)", the defines' lines) — how a fanatic ethic and a gestalt count.
@@ -221,15 +230,19 @@ screen, trade calibration, stored research, releases).
   `calculate_ethics_divergence` in `script_values/01_script_values_paragon.txt` turns it into a
   value (`complex_trigger_modifier`, `mode = add`). The companion mod could export that per empire
   to check our steps (whether it counts only opposed axes is unknown).
-- **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
-  (`is_rival=yes`); no AI rivalled us yet (2205.06).
+- **Rivals of us, confirmed** (2026-11-22, Roaming Cybergang autosave 2234.09.01): `rivalsOfUs`
+  reads another empire's relation to us (`is_rival=yes`) — the Backattan Empire (16777242) has it
+  on its relation to us, and our relation to it has none; ours (Havariggan Purifiers 40,
+  Prikkiki-Ti 16777286, country 16) sit on our relations only. A rivalry is one-sided in the save.
+  Still to see: the tab against the game's diplomacy screen.
 - **Galactic Community: session timing, solved** (2214.01.01): `galactic_community.days` counts
   the days a resolution has been on the floor, up to `RESOLUTION_VOTE_TIMER` (1440) — the game's
   "Senate is in session 899" was 1440 − 541; after the vote `voting` and `days` go and `cooldown`
   counts the recess down from `SENATE_RECESS_TIMER` (720). Resolution 9 (Regulatory
   Facilitation): days 1411 on 2213.12.01, `pass_date` 2213.12.30, cooldown 719 on 2214.01.01;
   `category_timers.<category>` = the pass date. `galacticCommunity()` gives `voteEnds` and
-  `nextVote` (READER 13), the galcom tab shows them. Still unknown: `election` (180), and
+  `nextVote` (READER 13), the galcom tab shows them. Still unknown: `election` (180; also in a
+  game with no community, unchanged 2227–2234 in Roaming Cybergang — likely a constant), and
   **votes are weighed by diplomatic weight**, which no country stores: companion mod 0.4.0
   exports it, else the tab estimates it (see "Galactic Community" in `docs/save-format.md`).
   Passed resolutions: `galactic_community.passed = { <ids> }`; resolution descriptions lose loc
@@ -274,13 +287,19 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
 - **Companion mod 0.4.0's diplomatic weight: confirmed** (2214.02.01, the first autosave with
   it): `variables.sdash_dw` on all 13 members, equal to the game's screen (642.41 → 642, …) and to
   the weights solved from the 2214.01.01 tallies. Open: the council's × 1.5 (no council yet).
-- **Companion mod 0.3.0's spending events, not yet run in game** (written 2026-10-22): whether
-  `carrier_event` is the right type for the "This = Colony" hooks (vanilla uses it for
-  `on_building_complete`), whether `[This.GetName]` there gives the planet's name as the save's
-  construction items name it, and whether a colonization's planet already has an `owner`. An older
+- **Companion mod 0.3.0's spending events** (written 2026-10-22; seen 2228–2234 in Roaming
+  Cybergang): `building-queued` / `-unqueued` print the planet's name (Selborne, Farleigh), so
+  `carrier_event` and `[This.GetName]` work. `megastructure-started` (`sdash.28`,
+  `[From.GetName]`) printed "Wir" for the Grand Archive (2231.04.29) but **nothing** on 2230.04.01
+  and 06.23; the timeline has megastructures finished 2230.12.18 (id 118) and 2232.03.02
+  (16777334) that no save holds — what they were, and why From has no name, is open. A megastructure
+  **upgrade** fires no line at all (the user started the Ancient Highway's gate repair, 2026-11-22):
+  `on_megastructure_build_start` is for new builds only. Still open:
+  whether a colonization's planet already has an `owner`. An older
   dashboard skips the new kinds (`parseLine` returns null for an unknown kind).
 - **Companion mod 0.2.0, not yet run in game** (written 2026-10-20 from 4.5.2's script docs):
-  the daily tick (one set of `tick` lines per date, also after save/load — never two), the `load`
+  the daily tick (one set of `tick` lines per date, also after save/load — never two: **confirmed**
+  2228.04.09–2234.09.01, two loads, no date twice), the `load`
   line's id against the loaded save's `sdash_tl`, each event line's names (do `[From.GetName]` in
   `on_war_beginning` and `[FromFromFrom.GetName]` in `on_space_battle_won` resolve, or print
   blank?), and whether event labels match the diffed ones (no duplicates on `/events`).
@@ -306,6 +325,11 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   only for saves read since 2026-10-17; older ones' saves are gone.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
+  The month slider marks where pops moved (the user's ask 2026-11-22): one lane each for
+  migration and resettlement under the track (`FrameSlider` `lanes`), consecutive months joined
+  into one band (`runs()` in `#lib/frameRuns.ts`) so a game with much migration shows areas, not a
+  row of ticks; a click on a band picks its first month, ◀ ▶ step to the previous or next marked
+  month. Not yet seen in a browser (the bands' line-up with the thumb).
   The map has a **circle** mode (the user's ask 2026-11-01; the profile's `migrationView`: layout
   and order, `MigrationCircle.svelte`, geometry shared with the diplomacy circle in `#lib/circle.ts`):
   our arkships clockwise from 12 o'clock — oldest first (`arkshipFirstSeen()`: the first save
@@ -320,6 +344,8 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
 - **The daily tick on the 1st, before or after the payout?** `unbooked()` takes the payout off
   the step that crosses a month start. Saves on the 1st are after it (checked); if the mod's tick
   or monthly line on the 1st runs before it, a month shows +payout on the 1st and −payout on the
-  2nd. Check on the first campaign played with mod 0.2.0.
+  2nd. **Answered** (2026-11-22, Roaming Cybergang): the tick on the 1st runs **before** it —
+  2229.03.01's tick energy 29559.20 = 02.28's, the payout (−23.61) shows in 03.02's tick; the
+  monthly line on the 1st (29535.59) is after it. Check `unbooked()` against that.
 - **Hint rules**: not started.
 - Cross-check the parsed numbers against the in-game UI.

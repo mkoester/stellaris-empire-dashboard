@@ -34,9 +34,9 @@
 {#if sorted.length}
 	<div class="mb-3 flex flex-wrap items-baseline gap-1 text-sm">
 		<span class="mr-1 text-gray-500">bonus</span>
-		<button type="button" class={chip(selected.length === 0)} onclick={() => (selected = [])}
-			>all</button
-		>
+		<button type="button" class={chip(selected.length === 0)} onclick={() => (selected = [])}>
+			all
+		</button>
 		{#each sorted as k (k)}
 			{@const off = !present.includes(k) && !selected.includes(k)}
 			<button
@@ -46,8 +46,10 @@
 				disabled={off}
 				title={off ? 'no specimen here gives it' : ''}
 				aria-pressed={selected.includes(k)}
-				onclick={() => toggle(k)}>{pretty(k)}</button
+				onclick={() => toggle(k)}
 			>
+				{pretty(k)}
+			</button>
 		{/each}
 	</div>
 {/if}

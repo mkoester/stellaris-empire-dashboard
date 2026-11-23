@@ -36,8 +36,10 @@
 		title="every tier of {r.name}"
 		aria-expanded={unfolded.includes(r.category)}
 		onclick={() => unfold(r.category)}
-		>{unfolded.includes(r.category) ? '▾' : '▸'} {r.name}{r.priority ? ' ★' : ''}</button
-	>{/snippet}
+	>
+		{unfolded.includes(r.category) ? '▾' : '▸'}
+		{r.name}{r.priority ? ' ★' : ''}
+	</button>{/snippet}
 {#snippet tiers(r: RewardRow)}{#if unfolded.includes(r.category)}
 		<ol class="mb-2 text-sm">
 			{#each r.tiers as t (t.key)}
@@ -48,22 +50,25 @@
 							? 'font-semibold'
 							: ''}
 				>
-					<span class="inline-block w-14 tabular-nums" style:color={tint(r.category)}
-						>Tier {t.tier}</span
-					>{@render reward(t)}<span class="ml-1 text-xs text-gray-500"
-						>{t.state === 'done'
+					<span class="inline-block w-14 tabular-nums" style:color={tint(r.category)}>
+						Tier {t.tier}
+					</span>{@render reward(t)}<span class="ml-1 text-xs text-gray-500">
+						{t.state === 'done'
 							? '✓ unlocked'
 							: t.state === 'current'
 								? `${r.progress} / ${t.cost} points`
-								: `${t.cost} points · ${t.left} more`}</span
-					>{#if t.state !== 'done'}<AddGoal kind="focus_reward" target={{ reward: t.key }} />{/if}
+								: `${t.cost} points · ${t.left} more`}
+					</span>{#if t.state !== 'done'}<AddGoal
+							kind="focus_reward"
+							target={{ reward: t.key }}
+						/>{/if}
 				</li>
 			{/each}
 		</ol>
 	{/if}{/snippet}
-{#snippet progress(r: RewardRow)}<span class="whitespace-nowrap"
-		>{r.progress}{r.now?.cost != null ? ` / ${r.now.cost}` : ''}</span
-	>{/snippet}
+{#snippet progress(r: RewardRow)}<span class="whitespace-nowrap">
+		{r.progress}{r.now?.cost != null ? ` / ${r.now.cost}` : ''}
+	</span>{/snippet}
 {#snippet rewardCell(r: RewardRow)}{#if r.now}{@render reward(r.now)}{/if}{#if r.next}<div
 			class="text-gray-500"
 		>
@@ -72,11 +77,13 @@
 
 {#snippet reward(r: Reward)}
 	{#each r.options.filter((o) => o.ours !== false) as o, i (o.tech)}{i ? ' or ' : ''}<InfoPopup
-			explanation={data.explain[`tech:${o.tech}`]}>{data.techNames[o.tech]}</InfoPopup
-		>{/each}
-	<InfoPopup explanation={data.explain[`focusreward:${r.key}`]}
-		><span class="text-gray-500">ⓘ</span></InfoPopup
-	>
+			explanation={data.explain[`tech:${o.tech}`]}
+		>
+			{data.techNames[o.tech]}
+		</InfoPopup>{/each}
+	<InfoPopup explanation={data.explain[`focusreward:${r.key}`]}>
+		<span class="text-gray-500">ⓘ</span>
+	</InfoPopup>
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -121,8 +128,10 @@
 							class="ml-1 rounded px-1 text-xs font-semibold text-white"
 							style:background={tint(g.category)}
 							title="focus progress for {data.view.rewards.find((r) => r.category === g.category)
-								?.name ?? g.category}">+{g.amount}</span
-						>{/each}
+								?.name ?? g.category}"
+						>
+							+{g.amount}
+						</span>{/each}
 					{#if c.requirement}<div>{c.requirement}</div>{/if}
 					{#if c.hint}<div class="text-gray-500">{c.hint}</div>{/if}
 				</div>
@@ -130,9 +139,9 @@
 			{#if done.length}
 				<h3 class="mt-3 mb-1 font-semibold">Done ({done.length})</h3>
 				<p class="text-sm">
-					{#each done as c, i (c.key)}{i ? ' · ' : ''}<span style:color={tint(c.category)}
-							>{c.name}</span
-						>{/each}
+					{#each done as c, i (c.key)}{i ? ' · ' : ''}<span style:color={tint(c.category)}>
+							{c.name}
+						</span>{/each}
 				</p>
 			{/if}
 		</Panel>

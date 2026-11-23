@@ -4,6 +4,37 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.31] - 2026-11-23
+
+### Added
+
+- Contacts: first contact difficulty as the game sums it — stage, protocol and a xenophobe's +2,
+  each part in the tooltip — and how it changed since the last save. Exact with companion mod
+  0.16.0; without it, the cautious protocol's +2 is an estimate (≈).
+- Migration: resettlement apart from migration, with the exact pairs of planets from companion mod
+  0.16.0; the slider marks the months pops moved, and the arrows step between them.
+- Maps: switches for your colonies, fleets and civilian ships on every map, replacing the ship
+  picker on the map and systems tabs; a special stars checkbox per map, with a default in settings.
+- Contracts: an offer the game does not show you yet sits behind the spoiler switch, with the tech
+  it needs (as in the game, a nomad sees it only with that tech researched); offers name what
+  accepting needs — techs, and the arkship for Deep Scan and Stellar Ignition.
+- Contracts: Where names the place of the work and the ships that do it (Raid Planet shows the
+  system owner's colonies, a transport not taken yet where it goes).
+
+### Changed
+
+- Contracts: the nearest science ship, construction ship, fleet or arkship — whichever the work
+  needs — instead of the nearest arkship; the Beyond column is gone, and the table fits beside the
+  map.
+- Bundles Node 26.13.1 (security release) and Python 3.14.10.
+
+### Fixed
+
+- Contacts: first contact stages counted one low ("Stage 2" where the game says "Stage 3").
+- Diplomacy: a rivalry edge reads "rivalry", not "our rival" — the arrow in the tooltip gives the
+  direction.
+- Open tabs reconnecting while the dashboard restarted could make it throw an error.
+
 ## [0.1.30] - 2026-11-21
 
 ### Added

@@ -354,22 +354,26 @@
 						(roaming(t.name)
 							? `waylines and settling down${data.settle.blocked ? ` (settling needs ${data.settle.blocked})` : ''}`
 							: undefined)}
-					>{label(t.name)}{#if t.name === 'planner' && data.plan.alerts}<span
+				>
+					{label(t.name)}{#if t.name === 'planner' && data.plan.alerts}<span
 							class="ml-1 rounded bg-red-600 px-1 text-[11px] font-semibold text-white"
 							title="goals no longer possible, or avoided ones that happened"
-							>⚠ {data.plan.alerts}</span
-						>{/if}</a
-				>
+						>
+							⚠ {data.plan.alerts}
+						</span>{/if}
+				</a>
 			{/each}
 			<button class={tab(false)} onclick={addTab} title="add a tab of your own">+</button>
 			<a
 				class={tab(path === '/settings')}
 				href={node ? resolve(`/settings?node=${node}`) : resolve('/settings')}
-				title="config: profiles and display">⚙ {data.profile.name}</a
+				title="config: profiles and display"
 			>
+				⚙ {data.profile.name}
+			</a>
 			{#if data.campaigns.length > 1}
-				<label class="pb-1 text-gray-500"
-					>game
+				<label class="pb-1 text-gray-500">
+					game
 					<select
 						class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 						value={data.campaign}
@@ -381,8 +385,8 @@
 					</select>
 				</label>
 			{/if}
-			<label class="pb-1 text-gray-500"
-				>theme
+			<label class="pb-1 text-gray-500">
+				theme
 				<select
 					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 					value={data.theme}
@@ -398,52 +402,56 @@
 				class="pb-1 text-gray-400 hover:text-[#5865F2]"
 				title="Bugs & feedback: the empire-dashboard forum on Discord"
 				aria-label="Discord"
-				><svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="currentColor" aria-hidden="true"
-					><path
+			>
+				<svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="currentColor" aria-hidden="true">
+					<path
 						d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"
-					/></svg
-				></a
-			>
-			<span class="pb-1 text-[11px] text-gray-400" title="dashboard version"
-				>v{__APP_VERSION__}</span
-			>
+					/>
+				</svg>
+			</a>
+			<span class="pb-1 text-[11px] text-gray-400" title="dashboard version">
+				v{__APP_VERSION__}
+			</span>
 			{#if data.update}<a
 					class="pb-1 text-[11px] font-semibold text-green-700 underline dark:text-green-500"
 					href="https://{data.update.url.replace(/^https:\/\//, '')}"
 					target="_blank"
 					rel="noopener"
 					title="a newer dashboard is out: its release page on GitHub (how often this is checked: ⚙ Updates)"
-					>v{data.update.version} available</a
-				>{/if}
+				>
+					v{data.update.version} available
+				</a>{/if}
 			{#if data.gameVersion}<span
 					class="pb-1 text-[11px] text-gray-400"
 					title="the game version and build the game data was read from (an open beta shares its version with the release, not its build)"
-					>game {gameVersionNumber(data.gameVersion)}</span
-				>{/if}
+				>
+					game {gameVersionNumber(data.gameVersion)}
+				</span>{/if}
 			<!-- the difficulty and the dates alone on the right, also when they wrap onto a line of their own -->
-			{#if data.dates?.difficulty}<span class="ml-auto pb-1 text-[11px] text-gray-400"
-					>{#if data.dates.difficultyCard}<InfoPopup explanation={data.dates.difficultyCard}
-							>{data.dates.difficulty}</InfoPopup
-						>{:else}{data.dates.difficulty}{/if}</span
-				>{/if}
+			{#if data.dates?.difficulty}<span class="ml-auto pb-1 text-[11px] text-gray-400">
+					{#if data.dates.difficultyCard}<InfoPopup explanation={data.dates.difficultyCard}>
+							{data.dates.difficulty}
+						</InfoPopup>{:else}{data.dates.difficulty}{/if}
+				</span>{/if}
 			{#if data.dates}<span
 					class="{data.dates.difficulty ? '' : 'ml-auto'} pb-1 text-[11px] text-gray-400"
 					title="the game being played: its latest save the dashboard read, and its latest data — a save, the companion mod's month or its daily tick (without the mod, saves only)"
-					>last save {data.dates.save ?? '—'} · last data {lastData ?? '—'}</span
-				>{/if}
+				>
+					last save {data.dates.save ?? '—'} · last data {lastData ?? '—'}
+				</span>{/if}
 		</nav>
 		{#if page.data.xExtent}<TimeWindow extent={page.data.xExtent as [number, number]} />{/if}
 		{#if loaded}
 			<p
 				class="mb-2 flex flex-wrap items-center gap-2 rounded border border-sky-400 px-3 py-1 text-sm"
 			>
-				<span
-					>The save of <b>{loaded.date}</b> was loaded in game — the dashboard switches to it with the
-					next save or month.</span
-				>
-				<button class="rounded border px-2" onclick={() => showLoaded(loaded.node)}
-					>show it now</button
-				>
+				<span>
+					The save of <b>{loaded.date}</b> was loaded in game — the dashboard switches to it with the
+					next save or month.
+				</span>
+				<button class="rounded border px-2" onclick={() => showLoaded(loaded.node)}>
+					show it now
+				</button>
 				<button class="rounded border px-2" onclick={() => (waved = loaded.node)}>not now</button>
 			</p>
 		{/if}
@@ -469,14 +477,14 @@
 			<p
 				class="mb-2 flex flex-wrap items-center gap-2 rounded border border-amber-400 px-3 py-1 text-sm"
 			>
-				<span
-					>The saves of <b>{c.name || c.campaign}</b> (last {c.date}) are no longer on disk; its
-					history is kept here only.</span
-				>
+				<span>
+					The saves of <b>{c.name || c.campaign}</b> (last {c.date}) are no longer on disk; its
+					history is kept here only.
+				</span>
 				<button class="rounded border px-2" onclick={() => answerGone('keep', c)}>keep it</button>
-				<button class="rounded border px-2 text-red-600" onclick={() => answerGone('delete', c)}
-					>delete it</button
-				>
+				<button class="rounded border px-2 text-red-600" onclick={() => answerGone('delete', c)}>
+					delete it
+				</button>
 			</p>
 		{/each}
 		{@render children()}

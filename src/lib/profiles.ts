@@ -4,7 +4,15 @@ import { DEFAULT_DIPLOMACY_VIEW, parseDiplomacyView, type DiplomacyView } from '
 import { DEFAULT_MIGRATION_VIEW, parseMigrationView, type MigrationView } from './migration.ts';
 import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from './expansion.ts';
 import { anyOn } from './displaySwitches.ts';
-import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
+import {
+	DEFAULT_MAP_FILTER,
+	DEFAULT_MAP_OWN,
+	mapOwnFromShips,
+	parseMapFilter,
+	parseMapOwn,
+	type MapFilter,
+	type MapOwn
+} from './mapLayers.ts';
 import { parseMapFit, parseMapWidth, type MapFit, type MapWidth } from './mapView.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { DEFAULT_CONTRACT_VIEW, parseContractView, type ContractView } from './contracts.ts';
@@ -37,6 +45,7 @@ export type Display = {
 	slaveMarket: SlaveMarketMode; // the slave market tab where slavery is not allowed
 	mapFit: MapFit; // what a map shows when a page opens
 	mapWidth: MapWidth; // a map's width until a browser's width button picks one
+	mapStars: boolean; // special stars' icons on every map, until a browser's checkbox picks
 	showSpoilers: boolean; // ⚙ lists the spoiler switches; off, they are off (#lib/displaySwitches.ts)
 	showCheats: boolean; // likewise the cheats
 	habitatsAlways: boolean; // habitat sites before habitats can be built (cheat)
@@ -81,6 +90,7 @@ export const DEFAULT_DISPLAY: Display = {
 	slaveMarket: 'mine',
 	mapFit: 'explored',
 	mapWidth: 'normal',
+	mapStars: true,
 	showSpoilers: false,
 	showCheats: false,
 	habitatsAlways: false,
@@ -134,6 +144,7 @@ export type ProfileSettings = {
 	systemView: SystemView;
 	produceView: ProduceView;
 	mapFilter: MapFilter;
+	mapOwn: MapOwn; // what of our own every map draws
 	quadrants: QuadrantView; // every map's rings and sectors
 	popWindow: PopWindow; // the months the Pops charts' mean takes in
 	incomeWindow: number; // the months the planner's mean income takes in
@@ -158,6 +169,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	popWindow: DEFAULT_POP_WINDOW,
 	incomeWindow: DEFAULT_INCOME_WINDOW,
 	mapFilter: DEFAULT_MAP_FILTER,
+	mapOwn: DEFAULT_MAP_OWN,
 	display: DEFAULT_DISPLAY
 };
 
@@ -176,6 +188,7 @@ export function parseDisplay(v: unknown): Display {
 				: DEFAULT_DISPLAY.slaveMarket,
 		mapFit: parseMapFit(o.mapFit),
 		mapWidth: parseMapWidth(o.mapWidth),
+		mapStars: o.mapStars !== false,
 		// a profile from before the gates keeps what it had on
 		showSpoilers: typeof o.showSpoilers === 'boolean' ? o.showSpoilers : anyOn(o, 'spoiler'),
 		showCheats: typeof o.showCheats === 'boolean' ? o.showCheats : anyOn(o, 'cheat'),
@@ -239,6 +252,7 @@ export const SETTING_PARSERS: {
 	systemView: parseSystemView,
 	produceView: parseProduceView,
 	mapFilter: parseMapFilter,
+	mapOwn: parseMapOwn,
 	quadrants: parseQuadrantView,
 	popWindow: parsePopWindow,
 	incomeWindow: parseIncomeWindow,
@@ -265,9 +279,13 @@ export function parsePatch(v: unknown): Partial<ProfileSettings> | { malformed: 
 /** A stored or imported profile in the current shape; broken parts fall back to the defaults. */
 export function parseSettings(v: unknown): ProfileSettings {
 	const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
-	return Object.fromEntries(
+	const read = Object.fromEntries(
 		SETTING_KEYS.map((key) => [key, SETTING_PARSERS[key](o[key]) ?? DEFAULT_SETTINGS[key]])
 	) as ProfileSettings;
+	// a profile from before the switches: its ship picker's choice (`mapFilter.ships`)
+	if (o.mapOwn === undefined)
+		read.mapOwn = mapOwnFromShips((o.mapFilter as { ships?: unknown } | undefined)?.ships);
+	return read;
 }
 
 /** A stored map of strings (campaign → profile); entries of another type dropped. */

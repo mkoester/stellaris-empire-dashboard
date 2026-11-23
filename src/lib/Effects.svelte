@@ -15,10 +15,10 @@
 	<!-- wrap between modifiers, never inside one: a long list (a climate preference, Machine Unit)
 	     stays within its column -->
 	<span class="inline-flex flex-wrap gap-x-2 text-xs">
-		{#each distinctModifiers(e.modifiers) as m, i (i)}<span class="whitespace-nowrap"
-				><span class="font-mono font-semibold {modifierColor(m)}">{formatModifierValue(m)}</span>
-				<span class="opacity-75">{modifierLabel(m)}</span></span
-			>{/each}
+		{#each distinctModifiers(e.modifiers) as m, i (i)}<span class="whitespace-nowrap">
+				<span class="font-mono font-semibold {modifierColor(m)}">{formatModifierValue(m)}</span>
+				<span class="opacity-75">{modifierLabel(m)}</span>
+			</span>{/each}
 	</span>
 {:else if e?.text}
 	<span class="text-xs opacity-75">{e.text}</span>

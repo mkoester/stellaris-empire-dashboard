@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { combatLog, contactTable } from '#lib/contacts.ts';
+import { combatLog, contactChanges, contactTable } from '#lib/contacts.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
@@ -29,6 +29,8 @@ export function load({ url }) {
 		seenAt: s?.date ?? null,
 		view: setting('contactView'),
 		rows: s ? contactTable(s.relations ?? [], s.countries ?? [], s.firstContacts ?? []) : [],
+		// each open first contact's difficulty and clues since the previous save
+		changes: contactChanges(snaps),
 		names: getGameData().identityNames,
 		flagColors: getGameData().flagColors,
 		nomads: (s?.diplomacy ?? []).filter((c) => c.nomadic).map((c) => c.id)

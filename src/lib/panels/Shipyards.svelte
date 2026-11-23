@@ -54,9 +54,9 @@
 </script>
 
 {#snippet yardCell(r: Row)}{r.system}
-	<span class="text-gray-500"
-		>{r.yard ? pretty(r.yard.level) : `Mega Shipyard, ${megaStage(r.mega.type)}`}</span
-	>{/snippet}
+	<span class="text-gray-500">
+		{r.yard ? pretty(r.yard.level) : `Mega Shipyard, ${megaStage(r.mega.type)}`}
+	</span>{/snippet}
 {#snippet slotsCell(r: Row)}{slots(r) ?? '?'}{/snippet}
 {#snippet capitalCell(r: Row)}
 	{@render capital(missing(r))}
@@ -78,14 +78,15 @@
 
 {#snippet capital(missing: string[])}
 	{#if missing.length}
-		<span class="text-gray-500" title="capital ships need: {missing.join(', ')}"
-			>no capital ships</span
-		>
+		<span class="text-gray-500" title="capital ships need: {missing.join(', ')}">
+			no capital ships
+		</span>
 	{:else}
 		{#each techFor(true) as c (c.size)}
-			<span class="mr-2 {c.ok ? '' : 'text-gray-500'}"
-				>{c.ok ? '✓' : '✗'} <InfoPopup ref="tech:{c.tech}">{c.size}</InfoPopup></span
-			>
+			<span class="mr-2 {c.ok ? '' : 'text-gray-500'}">
+				{c.ok ? '✓' : '✗'}
+				<InfoPopup ref="tech:{c.tech}">{c.size}</InfoPopup>
+			</span>
 		{/each}
 	{/if}
 {/snippet}

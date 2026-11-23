@@ -32,11 +32,11 @@
 			<div class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-x-4 gap-y-1.5 text-sm">
 				{#each [...s.traits].sort((a, b) => Number(isClimate(b)) - Number(isClimate(a))) as t (t)}
 					<div class={['min-w-0', isClimate(t) && 'col-span-full']}>
-						<b
-							><InfoPopup explanation={data.explain[`trait:${t}`]}
-								>{data.explain[`trait:${t}`]?.title ?? pretty(t.replace(/^trait_/, ''))}</InfoPopup
-							></b
-						>
+						<b>
+							<InfoPopup explanation={data.explain[`trait:${t}`]}>
+								{data.explain[`trait:${t}`]?.title ?? pretty(t.replace(/^trait_/, ''))}
+							</InfoPopup>
+						</b>
 						<div><Effects explanation={data.explain[`trait:${t}`]} /></div>
 					</div>
 				{/each}
@@ -54,9 +54,9 @@
 												: o.allowed === false
 													? 'text-gray-500 line-through'
 													: 'text-gray-500'}
-											><InfoPopup explanation={data.explain[`right:${o.key}`]}>{o.name}</InfoPopup
-											></span
-										>{/each}
+										>
+											<InfoPopup explanation={data.explain[`right:${o.key}`]}>{o.name}</InfoPopup>
+										</span>{/each}
 									{#each r.options.filter((o) => s.whatIfs[`right:${o.key}`]) as o (o.key)}<div>
 											<WhatIfLine what={s.whatIfs[`right:${o.key}`]} label={o.name} />
 										</div>{/each}

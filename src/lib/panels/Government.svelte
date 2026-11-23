@@ -33,9 +33,9 @@
 					<tr class="align-top">
 						<th class="pr-3 pb-1 font-normal text-gray-500">{r.label}</th>
 						<td class="pb-1">
-							{#each r.items as i, n (i.id)}{n ? ', ' : ''}<InfoPopup explanation={explain[i.id]}
-									>{i.name}</InfoPopup
-								>{/each}
+							{#each r.items as i, n (i.id)}{n ? ', ' : ''}<InfoPopup explanation={explain[i.id]}>
+									{i.name}
+								</InfoPopup>{/each}
 						</td>
 					</tr>
 				{/each}

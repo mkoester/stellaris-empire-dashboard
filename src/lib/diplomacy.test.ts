@@ -6,6 +6,7 @@ import {
 	legendMatch,
 	clusters,
 	diplomacyView,
+	edgeLabel,
 	ethicsHistory,
 	levelOf,
 	neighbours,
@@ -442,5 +443,13 @@ describe('what we know of an empire', () => {
 		expect(lit('authority:auth_democratic')).toEqual([1, 3]);
 		expect(lit('civic:civic_b')).toEqual([3]);
 		expect(lit('origin:origin_x')).toEqual([3]);
+	});
+});
+
+describe('edgeLabel', () => {
+	it('names a rivalry without a side: it may join two other empires, or point at us', () => {
+		expect(edgeLabel('is_rival')).toBe('rivalry');
+		expect(edgeLabel('subject')).toBe('overlord → subject');
+		expect(edgeLabel('non_aggression_pledge')).toBe('non-aggression pact');
 	});
 });

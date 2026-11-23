@@ -84,18 +84,24 @@
 			type="button"
 			class="underline decoration-dotted"
 			class:text-amber-600={byId.get(d.designId)?.saved === false}
-			onclick={() => (picked = d.designId)}>{labelOf(d.designId)}</button
-		>{` ×${d.count}`}{/each}{/snippet}
+			onclick={() => (picked = d.designId)}
+		>
+			{labelOf(d.designId)}
+		</button>{` ×${d.count}`}{/each}{/snippet}
 {#snippet designName(d: ShipDesign)}<button
 		type="button"
 		class="text-left underline decoration-dotted"
 		class:font-semibold={selected?.id === d.id}
-		onclick={() => (picked = d.id)}>{label(d)}</button
-	>{/snippet}
+		onclick={() => (picked = d.id)}
+	>
+		{label(d)}
+	</button>{/snippet}
 {#snippet statusCell(d: ShipDesign)}{@const s = STATUS[designStatus(d)]}<span
 		class={s.cls}
-		title={s.title}>{s.text}</span
-	>{/snippet}
+		title={s.title}
+	>
+		{s.text}
+	</span>{/snippet}
 
 <div class="flex flex-wrap items-baseline gap-x-6">
 	<h1 class="text-2xl font-semibold">Fleets</h1>
@@ -139,16 +145,18 @@
 			>
 				<p class="mb-2 text-sm">
 					{sizeName(selected.size)}{selected.role ? ` · ${pretty(selected.role)}` : ''} ·
-					<span class={STATUS[designStatus(selected)].cls}
-						>{STATUS[designStatus(selected)].text}</span
-					>{selected.autoGen ? ' · auto-generated' : ''}
+					<span class={STATUS[designStatus(selected)].cls}>
+						{STATUS[designStatus(selected)].text}
+					</span>{selected.autoGen ? ' · auto-generated' : ''}
 					{#if selected.upgradeTo !== null}
 						· its ships upgrade to
 						<button
 							type="button"
 							class="underline decoration-dotted"
-							onclick={() => (picked = selected.upgradeTo)}>{labelOf(selected.upgradeTo)}</button
+							onclick={() => (picked = selected.upgradeTo)}
 						>
+							{labelOf(selected.upgradeTo)}
+						</button>
 					{/if}
 				</p>
 				{#if usedBy.length}
@@ -234,8 +242,10 @@
 								<th class="p-1 text-right">Tracking</th>
 								<th
 									class="p-1 text-right"
-									title="count × mean damage ÷ cooldown, to compare designs">Dmg / cooldown</th
+									title="count × mean damage ÷ cooldown, to compare designs"
 								>
+									Dmg / cooldown
+								</th>
 							</tr>
 						</thead>
 						<tbody class="tabular-nums">

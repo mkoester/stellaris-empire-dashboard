@@ -59,16 +59,17 @@
 		m <= 0 ? 'now' : m < 1 ? `${Math.round(m * 30)} days` : `${Math.round(m)} mo`;
 </script>
 
-{#snippet due(e: Row)}<span class="whitespace-nowrap" title={e.exact ? 'exact' : 'estimated'}
-		>{e.exact ? '' : '≈ '}{e.date}</span
-	>{/snippet}
+{#snippet due(e: Row)}<span class="whitespace-nowrap" title={e.exact ? 'exact' : 'estimated'}>
+		{e.exact ? '' : '≈ '}{e.date}
+	</span>{/snippet}
 {#snippet inCell(e: Row)}<span class="whitespace-nowrap">{inMonths(e.months)}</span>{/snippet}
-{#snippet what(e: Row)}<InfoPopup explanation={e.ref ? explain[e.ref] : undefined}
-		>{e.kind === 'construction' ? nameOf(names, e.what) : e.what}</InfoPopup
-	>{#if e.queuedAfter !== undefined}&nbsp;<span
+{#snippet what(e: Row)}<InfoPopup explanation={e.ref ? explain[e.ref] : undefined}>
+		{e.kind === 'construction' ? nameOf(names, e.what) : e.what}
+	</InfoPopup>{#if e.queuedAfter !== undefined}&nbsp;<span
 			title="{e.queuedAfter} other item{e.queuedAfter === 1 ? '' : 's'} in the queue after it"
-			>(+{e.queuedAfter})</span
-		>{/if}{#if e.dismiss}&nbsp;<button
+		>
+			(+{e.queuedAfter})
+		</span>{/if}{#if e.dismiss}&nbsp;<button
 			type="button"
 			class="opacity-60 hover:opacity-100"
 			title={e.kind === 'cooldown'
@@ -76,29 +77,34 @@
 				: e.kind === 'offer'
 					? 'dismiss — it shows again if a later draw offers it again'
 					: 'dismiss — it shows again once it has been busy and sits idle again'}
-			onclick={() => dismiss(e.dismiss!)}>✕</button
-		>{/if}{/snippet}
-{#snippet kind(e: Row)}<span class="whitespace-nowrap opacity-75"
-		>{#if e.act}<span
+			onclick={() => dismiss(e.dismiss!)}
+		>
+			✕
+		</button>{/if}{/snippet}
+{#snippet kind(e: Row)}<span class="whitespace-nowrap opacity-75">
+		{#if e.act}<span
 				title={e.kind === 'cooldown'
 					? 'available again then — the game does not announce it'
 					: e.kind === 'idle'
 						? 'idle since then — until busy again or dismissed'
 						: e.kind === 'offer'
 							? 'a planned tech is on offer now — the game does not point it out; pick it or dismiss'
-							: 'the build slot runs idle then — the game sends no notification'}>⚠</span
-			>{/if}
-		{e.sub ?? e.kind}</span
-	>{/snippet}
-{#snippet details(e: Row)}<span style="color: CanvasText" class:cursor-help={e.tip} title={e.tip}
-		>{#if e.planetId !== undefined}<a class="underline" href={colonyHref(e.planetId)}>{e.detail}</a
-			>{:else}{e.detail}{/if}</span
-	>{/snippet}
+							: 'the build slot runs idle then — the game sends no notification'}
+			>
+				⚠
+			</span>{/if}
+		{e.sub ?? e.kind}
+	</span>{/snippet}
+{#snippet details(e: Row)}<span style="color: CanvasText" class:cursor-help={e.tip} title={e.tip}>
+		{#if e.planetId !== undefined}<a class="underline" href={colonyHref(e.planetId)}>
+				{e.detail}
+			</a>{:else}{e.detail}{/if}
+	</span>{/snippet}
 
-<label class="mb-1 block text-sm"
-	><input type="checkbox" bind:checked={onlyUnnotified} onchange={remember} /> only what the game
-	doesn't notify ({events.filter((e) => e.act).length} of {events.length})</label
->
+<label class="mb-1 block text-sm">
+	<input type="checkbox" bind:checked={onlyUnnotified} onchange={remember} /> only what the game
+	doesn't notify ({events.filter((e) => e.act).length} of {events.length})
+</label>
 {#if shown.length === 0}
 	<p>Nothing scheduled.</p>
 {:else}

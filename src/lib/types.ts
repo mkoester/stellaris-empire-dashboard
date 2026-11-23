@@ -249,6 +249,9 @@ export type MigrationColony = {
 	y: number;
 	immigration: number;
 	emigration: number;
+	// resettled last month, signed (negative: pops left), our colonies only — filled from their
+	// growth causes (`GROWTH_CAT_RESETTLE`) where the frames are built, not stored
+	resettled?: number;
 };
 
 /** A starbase: its own build queue (modules, buildings) and, with a shipyard, the ship queue. */
@@ -592,7 +595,7 @@ export type SpendLogKind =
 	| 'colonization-started'
 	| 'megastructure-started';
 /** Mod 0.12.0: a pop group sold on the Slave Market (species, pops, buyer, seller — names). */
-export type MarketLogKind = 'slave-sold';
+export type MarketLogKind = 'slave-sold' | 'resettled';
 
 /** One `SDASH|2|<date>|event|…` line of the companion mod; fields as `feed.ts` documents them. */
 export type LogEvent = {
@@ -787,7 +790,16 @@ export type FirstContact = {
 	date: string; // discovered
 	daysLeft: number | null; // to the envoy's next roll
 	lastRoll?: number | null; // `last_roll`; absent before READER 22
+	// as the game shows it: the stage's (`difficulty` in the save) plus `defense`; since READER 76,
+	// the stage's alone before
 	difficulty: number;
+	// what the contacted country adds (`firstContactDefense()`); READER 76, absent before
+	defense?: number;
+	// `defense` from companion mod 0.16.0's export (the game's own sum), not the protocol's
+	// estimate; READER 77
+	defenseExact?: boolean;
+	// what `defense` is made of (their modifiers or protocol, xenophobe); READER 78
+	defenseParts?: { label: string; value: number }[];
 	clues: number;
 	stage: string;
 	status: string; // in_progress, finished, aborted
@@ -1152,6 +1164,9 @@ export type ContractType = {
 	reward: ContractReward | null;
 	failedOpinion: number | null; // the issuer's opinion of us on failure or cancel
 	operatorTechs: string[]; // techs the operator needs
+	// techs before the game offers it at all (`potential_operator`): groups, any one tech of each;
+	// null with a data DB before 2026-11-22 (offered as before)
+	offerTechs: string[][] | null;
 	projects: ContractProject[]; // the special projects of its event chain
 	// the game's `location = yes`: the contract has a system; null with a data DB before
 	// 2026-11-20, which also lacks the projects defined by inline scripts (the onboard ones)

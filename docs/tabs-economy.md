@@ -368,8 +368,7 @@ arkship): `contractDetail()` from the data DB's `contract` (`description` with `
 contract_completed`, `Snapshot.contractsCompleted`, READER 66) plus unscaled influence; the other
 factor `nomadic_contract_value_mult` is not read, so the scaled amounts and the trade total carry
 ≈ (a lower bound). Cost to the operator: no resources — the arkship's time, and the issuer's
-opinion on failure. Arkships: jumps from each along the known lanes (the graph the Beyond column
-uses), nearest first; **no days** — a jump's duration is not read (`docs/open-checks.md` 32). A
+opinion on failure. Arkships: jumps from each along the known lanes, nearest first; **no days** — a jump's duration is not read (`docs/open-checks.md` 32). A
 contract without projects (Diplomatic Support: the AI's travel project only, a player gets points
 of interest) counts as an arkship's job. `arkship_branches` (Colony Startup only, 4.5.x) changes
 the _issuer's_ colony bonus, not our reward: `branchLine()` says so and names what our nearest
@@ -379,7 +378,7 @@ issuers we never met (it reached every page until 2026-11-18).
 random and no panel says which): Diplomatic Support, Prisoner Disposal and the Sightseeing Tour
 mark the carrying arkship's _fleet_ with a flag (`CONTRACT_CARGO`); `arkships()` keeps those
 flags as `Arkship.cargo` with the day set (READER 67; a flag's value is its hour, `flagDate()`),
-and `aboardOf()` names the ship in the Nearest arkship column and the details. The flag names no
+and `aboardOf()` names the ship in the Nearest ship column and the details. The flag names no
 contract, but a nomad can hold only one of each type (`already_doing_same_contract`), so the key
 links them exactly — no guessing. Checked on Roaming Cybergang 2225.08.21: Farleigh, as the save's
 `carrying_delegates`.
@@ -395,6 +394,37 @@ planet's carrier flag or a star's flag); `Contract.pickup`/`dropoff` (READER 69)
 systems, for our active ones. The Where column shows "pickup → drop-off" (Prisoner Disposal: "your
 choice"), and hovering the row or either system draws an arrow on the map. Roaming Cyber Gang
 2226.08.01: Diplomatic Support Mishar → Slerpanor; the arrow not yet seen in a browser.
+**Where names the place of the work, not of the issue, and the ships that count** (the user's ask
+2026-11-22: "at Dorellion (science ship)"): `shipsOf()` reads the projects' requirements
+(`carries_colony` → arkship), and for the contracts without a project a table, `DONE_BY`, read from
+the events that count their progress (its comment cites each). Scan Debris is a science ship's
+debris scan; Build Waystation counts only a waystation built in the contract's own system
+(nomads.3054 checks that system's star flag; the description's "in this Empire's system" means it),
+by a construction ship or an arkship; Harvest either of those; Deep Scan, Stellar Ignition and
+Intercept Raid an arkship; Pest Control, the Heirs' station and Raid Planet a military fleet
+(whether an arkship's won battle counts is not checked). Raid Planet's place is any colony of the
+system's owner. A transport not yet taken shows where it goes (`TRANSPORT.to`: the issuer's capital,
+your choice, set after the pickup). A mod's contract without projects shows no ship.
+**Nearest ship** (2026-11-22, replacing Nearest arkship and the Beyond column) is our nearest ship
+of a kind that can do it: arkships, science ships and construction ships (`civilianShips`, class
+`science_ship` / `constructor`), military fleets (`fleets`); arkships alone where nothing is known.
+Beyond (jumps past our border) was dropped, the user's question: a nomad owns no system, so it was
+always `–`, and for a settled empire it only repeated the range filter, which still uses it.
+Issuer and Taken by wrap (`EmpireName`'s `wrap`), so the table fits beside the map.
+**What the game asks before it offers or lets us accept** (the user's ask 2026-11-22: "if it is
+offered to me, I have everything I need"). That holds in the game; the dashboard listed more: an
+offer counted as offered to a nomad on communications alone. Now the techs of `potential_operator`
+count too (data DB `contract.offer_techs_json`, 2026-11-22: groups, any one tech each — Clear
+Blockers: Planetary Engineering; Build Waystation: Waystations I; Stellar Ignition: its igniter
+tech; Deep Scan: any of arkship tier 2 or 3, Sensors 2, System Scanner). An offer we lack one for is
+a spoiler, "not offered to you: needs …" in its State cell, and does not undim the tab
+(`unoffered()`, `whyOf()`'s `offerable`, `emptyTabs()`'s contract types). A data DB without the
+column changes nothing. `potential_operator`'s other conditions (not at war with the issuer; Build
+Waystation's `benefits_from_waystation_network`) and Raid Planet's bombardment policy and pacts are
+not checked. To accept (`possible_operator`): the techs as before, and `acceptNeeds()` — Deep Scan
+wants a science arkship of tier 2+ or a Sensor Array or System Scanner, Stellar Ignition an arkship
+with the Stellar Igniter. The igniter and the scanner are spinal modules, which no save has shown
+yet (Roaming Cybergang 2227.09.01: no player arkship had one): named, never judged met.
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
 name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the

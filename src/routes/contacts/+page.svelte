@@ -8,6 +8,9 @@
 		kindTypes,
 		shown,
 		type ContactColumn,
+		changeMark,
+		difficultyText,
+		difficultyTitle,
 		type ContactRow,
 		type ContactView
 	} from '#lib/contacts.ts';
@@ -124,9 +127,15 @@
 	/>{#if r.hostile}<span class="text-red-600"> · hostile</span>{/if}
 {/snippet}
 {#snippet comms(r: ContactRow)}{r.communications ? '✓' : '–'}{/snippet}
-{#snippet fc(r: ContactRow)}{#if r.firstContact}{@const n = contactStage(
-			r.firstContact.stage
-		)}{n === null ? '' : `stage ${n}, `}{r.firstContact.clues} clues{:else}–{/if}{/snippet}
+{#snippet fc(r: ContactRow)}{#if r.firstContact}{@const f = r.firstContact}{@const n = contactStage(
+			f.stage
+		)}{@const d = data.changes[f.id]}<span
+			title="difficulty: {difficultyTitle(f)}; ▲▼ since the previous save"
+		>
+			{n === null ? '' : `stage ${n}, `}{f.clues} clues{changeMark(d?.clues)} · difficulty {difficultyText(
+				f
+			)}{changeMark(d?.difficulty)}
+		</span>{:else}–{/if}{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Contacts</h1>
@@ -199,24 +208,24 @@
 	</div>
 {/if}
 
-{#snippet battleResult(b: Battle)}<span class={b.won ? 'text-green-600' : 'text-red-600'}
-		>{b.won ? 'won' : 'lost'}</span
-	>{/snippet}
+{#snippet battleResult(b: Battle)}<span class={b.won ? 'text-green-600' : 'text-red-600'}>
+		{b.won ? 'won' : 'lost'}
+	</span>{/snippet}
 {#snippet combatEnemy(c: Combat)}{c.enemyFleets}
 	<span class="text-gray-500">({@render who(c.enemy.split(', '))})</span>{/snippet}
-{#snippet combatLost(c: Combat)}<span class={c.lost ? 'text-red-600' : ''}
-		>{c.lost} / {c.ships}</span
-	>{/snippet}
-{#snippet combatKilled(c: Combat)}<span class={c.enemyLost ? 'text-green-600' : ''}
-		>{c.enemyLost} / {c.enemyShips}</span
-	>{/snippet}
+{#snippet combatLost(c: Combat)}<span class={c.lost ? 'text-red-600' : ''}>
+		{c.lost} / {c.ships}
+	</span>{/snippet}
+{#snippet combatKilled(c: Combat)}<span class={c.enemyLost ? 'text-green-600' : ''}>
+		{c.enemyLost} / {c.enemyShips}
+	</span>{/snippet}
 {#snippet claimHolder(c: Claim)}{#if c.holder}<EmpireName
 			name={c.holder}
 			bold={false}
 		/>{:else}–{/if}{/snippet}
-{#snippet claimant(c: Claim)}{#if c.ours}us{:else}<span class="text-red-600"
-			><EmpireName name={c.claimant} bold={false} /></span
-		>{/if}{/snippet}
+{#snippet claimant(c: Claim)}{#if c.ours}us{:else}<span class="text-red-600">
+			<EmpireName name={c.claimant} bold={false} />
+		</span>{/if}{/snippet}
 
 {#if data.subjects?.length}
 	<h2 class="mb-2 text-xl font-semibold">Subjects</h2>
@@ -226,15 +235,15 @@
 <h2 class="mb-2 text-xl font-semibold">Relations</h2>
 <div class="mb-4 flex flex-col gap-2 text-sm">
 	<div class="flex flex-wrap items-center gap-4">
-		<label class="flex items-center gap-1"
-			><input
+		<label class="flex items-center gap-1">
+			<input
 				type="checkbox"
 				checked={view.communicationsOnly}
 				onchange={(e) => save({ ...view, communicationsOnly: e.currentTarget.checked })}
-			/> with communications only</label
-		>
-		<label class="flex items-center gap-1"
-			>hostile
+			/> with communications only
+		</label>
+		<label class="flex items-center gap-1">
+			hostile
 			<select
 				class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 				value={view.hostile}
@@ -242,10 +251,12 @@
 					save({ ...view, hostile: e.currentTarget.value as ContactView['hostile'] })}
 			>
 				<option value="any">any</option><option value="hostile">only</option><option
-					value="peaceful">not</option
+					value="peaceful"
 				>
-			</select></label
-		>
+					not
+				</option>
+			</select>
+		</label>
 		<span class="text-gray-500">{rows.length} of {data.rows.length}</span>
 	</div>
 	<div class="flex flex-wrap items-center gap-1">
@@ -258,7 +269,8 @@
 					? ''
 					: 'opacity-40'}"
 				title={kindTypes(k).join(', ') || 'every other country type'}
-				><input
+			>
+				<input
 					type="checkbox"
 					class="sr-only"
 					checked={view.kinds.includes(k)}
@@ -267,8 +279,8 @@
 							...view,
 							kinds: CONTACT_KINDS.filter((x) => (x === k) !== view.kinds.includes(x))
 						})}
-				/>{KIND_LABELS[k]}</label
-			>
+				/>{KIND_LABELS[k]}
+			</label>
 		{/each}
 	</div>
 	<div class="flex flex-wrap items-center gap-1">
@@ -280,7 +292,8 @@
 				)
 					? ''
 					: 'opacity-40'}"
-				><input
+			>
+				<input
 					type="checkbox"
 					class="sr-only"
 					checked={view.columns.includes(c)}
@@ -289,8 +302,8 @@
 							...view,
 							columns: CONTACT_COLUMNS.filter((x) => (x === c) !== view.columns.includes(x))
 						})}
-				/>{ALL[c].label}</label
-			>
+				/>{ALL[c].label}
+			</label>
 		{/each}
 	</div>
 </div>

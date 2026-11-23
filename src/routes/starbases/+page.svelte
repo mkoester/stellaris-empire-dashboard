@@ -73,20 +73,23 @@
 
 {#snippet partCell(p: PartPlan)}{p.part.name}{#if p.available === null || p.best[0].maybe}<span
 			class="ml-1 text-amber-600"
-			title="a condition the save cannot answer: check in game">?</span
-		>{/if}{/snippet}
+			title="a condition the save cannot answer: check in game"
+		>
+			?
+		</span>{/if}{/snippet}
 {#snippet whyCell(p: PartPlan)}{#each p.best[0].reasons as r, i (i)}<div>{r}</div>{/each}{/snippet}
 {#snippet others(p: PartPlan)}{#if p.best.length > 1}<div class="text-xs text-gray-500">
 			also: {#each p.best.slice(1) as s, i (s.systemId)}{i ? ' · ' : ''}{@render other(s)}{/each}
 		</div>{/if}{/snippet}
 {#snippet other(s: Suggestion)}<span
 		title={[...s.reasons, ...s.needs.map((n) => `first: ${n}`)].join('\n')}
-		>{sysName(s.systemId)}{s.needs.length ? ' *' : ''}</span
-	>{/snippet}
-{#snippet freeCell(s: Station)}{@const f = free(s)}<span class="whitespace-nowrap"
-		>{[freeLabel(f.modules, 'mod.'), freeLabel(f.buildings, 'bld.')].filter(Boolean).join(' · ') ||
-			'–'}</span
-	>{/snippet}
+	>
+		{sysName(s.systemId)}{s.needs.length ? ' *' : ''}
+	</span>{/snippet}
+{#snippet freeCell(s: Station)}{@const f = free(s)}<span class="whitespace-nowrap">
+		{[freeLabel(f.modules, 'mod.'), freeLabel(f.buildings, 'bld.')].filter(Boolean).join(' · ') ||
+			'–'}
+	</span>{/snippet}
 {#snippet queueCell(s: Station)}<QueueList
 		queue={s.queue}
 		slots={s.slots}
@@ -101,9 +104,9 @@
 <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1">
 	<h1 class="text-2xl font-semibold">Starbases</h1>
 	{#if data.capacity}
-		<span class="text-sm" class:text-red-600={data.capacity.used > data.capacity.capacity}
-			>starbase capacity {fmt(data.capacity.used)} / {fmt(data.capacity.capacity)}</span
-		>
+		<span class="text-sm" class:text-red-600={data.capacity.used > data.capacity.capacity}>
+			starbase capacity {fmt(data.capacity.used)} / {fmt(data.capacity.capacity)}
+		</span>
 	{/if}
 	<span class="ml-auto text-sm text-gray-500">{data.date}</span>
 </div>
@@ -122,17 +125,19 @@
 							? 'border-sky-600 bg-sky-50 dark:bg-sky-950'
 							: 'border-gray-300 dark:border-gray-600'}"
 						aria-pressed={data.view.yard === f}
-						onclick={() => setView({ yard: f })}>{YARD_LABELS[f]}</button
+						onclick={() => setView({ yard: f })}
 					>
+						{YARD_LABELS[f]}
+					</button>
 				{/each}
 			</div>
-			<label class="flex items-center gap-1"
-				><input
+			<label class="flex items-center gap-1">
+				<input
 					type="checkbox"
 					checked={data.view.outposts}
 					onchange={(e) => setView({ outposts: e.currentTarget.checked })}
-				/>{`outposts (${outposts})`}</label
-			>
+				/>{`outposts (${outposts})`}
+			</label>
 		</div>
 		{#if rows.length}
 			<SortTable {rows} {columns} key={(s) => s.id} sort={{ column: '', desc: false }} />
@@ -147,15 +152,15 @@
 	>
 		{#if data.planner}
 			<div class="mb-2 flex flex-wrap items-center gap-2 text-sm">
-				<label
-					>Systems <select
+				<label>
+					Systems <select
 						value={data.view.range}
 						onchange={(e) => setView({ range: e.currentTarget.value })}
 						class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-600"
 					>
 						{#each SYSTEM_RANGES as r (r)}<option value={r}>{rangeLabel(r)}</option>{/each}
-					</select></label
-				>
+					</select>
+				</label>
 				<span class="text-gray-500">{data.planner.candidates} candidate systems</span>
 			</div>
 			{#if ranked.length}
@@ -169,10 +174,10 @@
 			{:else}<p class="text-sm text-gray-500">Nothing to suggest in these systems.</p>{/if}
 			{#if unranked.length}
 				<details class="mt-3 text-sm">
-					<summary class="cursor-pointer text-gray-500"
-						>{unranked.length} more the empire can build, not ranked (defences, trade, empire-wide effects
-						…)</summary
-					>
+					<summary class="cursor-pointer text-gray-500">
+						{unranked.length} more the empire can build, not ranked (defences, trade, empire-wide effects
+						…)
+					</summary>
 					<p class="mt-1">{unranked.map((p) => p.part.name).join(', ')}</p>
 				</details>
 			{/if}

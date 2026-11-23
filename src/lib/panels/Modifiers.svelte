@@ -29,13 +29,13 @@
 	{#each shown as m (m.key)}
 		<div class="mb-1">
 			<div class="flex justify-between gap-3">
-				<span
-					><SourceBadge kind={kind(m.key)} />
-					<InfoPopup explanation={explain[`modifier:${m.key}`]}>{m.name}</InfoPopup></span
-				>
-				<span class="shrink-0 text-gray-500 tabular-nums" title={m.until ?? ''}
-					>{m.until ? timeLeft(date, m.until) : 'permanent'}</span
-				>
+				<span>
+					<SourceBadge kind={kind(m.key)} />
+					<InfoPopup explanation={explain[`modifier:${m.key}`]}>{m.name}</InfoPopup>
+				</span>
+				<span class="shrink-0 text-gray-500 tabular-nums" title={m.until ?? ''}>
+					{m.until ? timeLeft(date, m.until) : 'permanent'}
+				</span>
 			</div>
 			<Effects explanation={explain[`modifier:${m.key}`]} />
 		</div>

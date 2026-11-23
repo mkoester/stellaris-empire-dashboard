@@ -1,12 +1,12 @@
 // Which tabs have nothing to show yet along a branch: their names are dimmed in the tab bar, the
 // title saying why. Still links — the page explains itself.
 import { ARCHIVE_TECH } from './archive.ts';
-import { whyOf } from './contracts.ts';
+import { unoffered, whyOf } from './contracts.ts';
 import { isGate } from './mapLayers.ts';
 import { KINDS, MEGA_RULES } from './megastructures.ts';
 import { PACT_TYPES } from './pacts.ts';
 import { nomadic } from './planner/kinds.ts';
-import type { GalaxySystem, Snapshot } from './types.ts';
+import type { ContractType, GalaxySystem, Snapshot } from './types.ts';
 
 type Fields = Pick<
 	Snapshot,
@@ -40,7 +40,7 @@ const CHECKS: {
 	tab: string;
 	why: string;
 	known: (s: Fields) => boolean;
-	has: (s: Fields) => boolean;
+	has: (s: Fields, types: Record<string, ContractType>) => boolean;
 }[] = [
 	{
 		tab: 'traditions',
@@ -71,14 +71,16 @@ const CHECKS: {
 		why: 'no contract issued, taken or offered to you yet',
 		known: (s) => s.contracts !== null && s.contracts !== undefined,
 		// what the tab lists without a spoiler or cheat (#lib/contracts.ts): a nomad's offers count
-		has: (s) => {
+		has: (s, types) => {
 			if (s.countryId === null) return false;
+			const researched = new Set(s.progress?.researched ?? []);
 			const talking = new Set(
 				(s.relations ?? []).filter((r) => r.communications).map((r) => r.countryId)
 			);
 			const isNomad = nomadic(s);
 			return (s.contracts ?? []).some((c) => {
-				const why = whyOf(c, s.countryId as number, isNomad, talking, false);
+				const offerable = !unoffered(types[c.key], researched).length;
+				const why = whyOf(c, s.countryId as number, isNomad, talking, false, offerable);
 				return why === 'mine' || why === 'offered';
 			});
 		}
@@ -136,9 +138,14 @@ const CHECKS: {
 ];
 
 /** Tab name → why it has nothing to show yet, for the tabs that have not along `history`. */
-export function emptyTabs(history: Fields[]): Record<string, string> {
+export function emptyTabs(
+	history: Fields[],
+	types: Record<string, ContractType> = {} // the data DB's contracts: which the game offers us
+): Record<string, string> {
 	return Object.fromEntries(
-		CHECKS.filter((c) => history.some(c.known) && !history.some(c.has)).map((c) => [c.tab, c.why])
+		CHECKS.filter((c) => history.some(c.known) && !history.some((s) => c.has(s, types))).map(
+			(c) => [c.tab, c.why]
+		)
 	);
 }
 

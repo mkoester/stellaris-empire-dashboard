@@ -17,18 +17,17 @@
 		<section class="rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
 			<div class="mb-1 flex flex-wrap items-baseline gap-x-4">
 				<span class="text-base"><EmpireName name={s.name} /></span>
-				<span
-					>{s.weAreOverlord ? 'our subject' : 'our overlord'}: {diploNames[s.preset] ??
-						presetName(s.preset)}</span
-				>
+				<span>
+					{s.weAreOverlord ? 'our subject' : 'our overlord'}: {diploNames[s.preset] ??
+						presetName(s.preset)}
+				</span>
 				<span class="text-gray-500 tabular-nums">since {s.since ?? '?'}</span>
-				{#if s.loyalty !== null}<span class="tabular-nums"
-						>loyalty <b class={s.loyalty < 0 ? 'text-red-600' : 'text-green-600'}>{s.loyalty}</b
-						></span
-					>{/if}
-				{#if s.specialistLevel > 0}<span
-						>specialist level {s.specialistLevel} ({s.specialistExperience} XP)</span
-					>{/if}
+				{#if s.loyalty !== null}<span class="tabular-nums">
+						loyalty <b class={s.loyalty < 0 ? 'text-red-600' : 'text-green-600'}>{s.loyalty}</b>
+					</span>{/if}
+				{#if s.specialistLevel > 0}<span>
+						specialist level {s.specialistLevel} ({s.specialistExperience} XP)
+					</span>{/if}
 			</div>
 			<div class="text-gray-500">
 				{Object.entries(s.terms)

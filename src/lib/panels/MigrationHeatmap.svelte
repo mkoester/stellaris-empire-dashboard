@@ -34,10 +34,10 @@
 				<tbody>
 					{#each colonies as c (c.key)}
 						<tr>
-							<td class="pr-2 whitespace-nowrap"
-								>{c.name}{#if !c.own}
-									({#if c.owner}<EmpireName name={c.owner} bold={false} />{/if}){/if}</td
-							>
+							<td class="pr-2 whitespace-nowrap">
+								{c.name}{#if !c.own}
+									({#if c.owner}<EmpireName name={c.owner} bold={false} />{/if}){/if}
+							</td>
 							{#each months as m (m)}
 								{@const v = net(c, m)}
 								<td

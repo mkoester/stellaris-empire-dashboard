@@ -27,15 +27,17 @@
 	];
 </script>
 
-{#snippet offerWhen(o: Offer)}<span class="whitespace-nowrap text-gray-500 tabular-nums"
-		>{o.from}{o.to !== o.from ? ` – ${o.to}` : ''}</span
-	>{/snippet}
-{#snippet offerArea(o: Offer)}<span style:color={colorOf(`${o.area}_research`)}>{o.area}</span
-	>{/snippet}
+{#snippet offerWhen(o: Offer)}<span class="whitespace-nowrap text-gray-500 tabular-nums">
+		{o.from}{o.to !== o.from ? ` – ${o.to}` : ''}
+	</span>{/snippet}
+{#snippet offerArea(o: Offer)}<span style:color={colorOf(`${o.area}_research`)}>
+		{o.area}
+	</span>{/snippet}
 {#snippet offerCards(o: Offer)}{#each o.cards as t, i (t.key)}{i ? ' · ' : ''}<span
 			class={o.picked === t.key ? 'font-semibold' : 'text-gray-500'}
-			><InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup></span
-		>{/each}{/snippet}
+		>
+			<InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup>
+		</span>{/each}{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Technology</h1>
@@ -52,13 +54,13 @@
 				{#each data.queues as q (q.area)}
 					<tr class="border-b border-gray-100 dark:border-gray-900">
 						<td class="p-1" style:color={colorOf(`${q.area}_research`)}>{q.area}</td>
-						<td class="p-1"
-							><InfoPopup explanation={data.explain[`tech:${q.key}`]}>{q.name}</InfoPopup></td
-						>
+						<td class="p-1">
+							<InfoPopup explanation={data.explain[`tech:${q.key}`]}>{q.name}</InfoPopup>
+						</td>
 						<td class="p-1 text-gray-500">{q.tier !== null ? `T${q.tier}` : ''}</td>
-						<td class="p-1 text-right tabular-nums"
-							>{Math.round(q.progress)}{q.cost ? ` / ${q.cost}` : ''}</td
-						>
+						<td class="p-1 text-right tabular-nums">
+							{Math.round(q.progress)}{q.cost ? ` / ${q.cost}` : ''}
+						</td>
 						<td class="p-1 text-gray-500">{q.due ? `due ${q.due.date}` : ''}</td>
 					</tr>
 				{/each}
@@ -68,8 +70,10 @@
 			<p class="mt-2 text-sm">
 				Stored:
 				{#each data.stored as s, i (s.area)}{i ? ' · ' : ''}<span
-						style:color={colorOf(`${s.area}_research`)}>{s.area}</span
+						style:color={colorOf(`${s.area}_research`)}
 					>
+						{s.area}
+					</span>
 					{Math.round(s.points)}{s.months !== null
 						? ` (≈ ${Math.round(s.months * 10) / 10} months at double speed)`
 						: ''}{/each}
@@ -77,17 +81,18 @@
 		{/if}
 		{#if data.kept.length}
 			<p class="mt-2 text-sm">
-				Kept progress <span class="text-gray-500"
-					>(switched away from — it comes back with the tech, should a draw offer it again)</span
-				>:
+				Kept progress <span class="text-gray-500">
+					(switched away from — it comes back with the tech, should a draw offer it again)
+				</span>:
 				{#each data.kept as k, i (k.key)}{i ? ' · ' : ''}<span
 						style:color={colorOf(`${k.area}_research`)}
-						><InfoPopup explanation={data.explain[`tech:${k.key}`]}>{k.name}</InfoPopup></span
-					><span class="text-gray-500"
-						>{` ${Math.round(k.points)}${k.cost ? `/${k.cost}` : ''}`}{k.onOffer
+					>
+						<InfoPopup explanation={data.explain[`tech:${k.key}`]}>{k.name}</InfoPopup>
+					</span><span class="text-gray-500">
+						{` ${Math.round(k.points)}${k.cost ? `/${k.cost}` : ''}`}{k.onOffer
 							? ' · on offer'
-							: ''}</span
-					>{/each}
+							: ''}
+					</span>{/each}
 			</p>
 		{/if}
 	</Panel>
@@ -108,19 +113,21 @@
 						<td class="p-1">
 							{#each data.options[area] ?? [] as t, i (t.key)}{i ? ' · ' : ''}<span
 									class={t.researching ? 'font-semibold' : ''}
-									>{#if t.researching}▶
-									{/if}{#if t.permanent}<span title="a permanent option: stays until researched"
-											>★</span
-										>
-									{/if}<InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup
-									></span
-								><span class="text-gray-500"
-									>{t.tier !== null ? ` T${t.tier}` : ''}{t.kept ? ' ↺' : ''}{t.progress !== null
-										? ` ${Math.round(t.progress)}${t.cost ? `/${t.cost} (${Math.round((100 * t.progress) / t.cost)} %)` : ''}`
-										: ''}</span
-								>{#if !t.researching}<AddGoal kind="tech" target={{ tech: t.key }} />{/if}{/each}
-							{#each (data.options[area] ?? []).filter((t) => data.whatIfs?.[`tech:${t.key}`]) as t (t.key)}<div
 								>
+									{#if t.researching}▶
+									{/if}{#if t.permanent}<span title="a permanent option: stays until researched">
+											★
+										</span>
+									{/if}<InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup>
+								</span><span class="text-gray-500">
+									{t.tier !== null ? ` T${t.tier}` : ''}{t.kept ? ' ↺' : ''}{t.progress !== null
+										? ` ${Math.round(t.progress)}${t.cost ? `/${t.cost} (${Math.round((100 * t.progress) / t.cost)} %)` : ''}`
+										: ''}
+								</span>{#if !t.researching}<AddGoal
+										kind="tech"
+										target={{ tech: t.key }}
+									/>{/if}{/each}
+							{#each (data.options[area] ?? []).filter((t) => data.whatIfs?.[`tech:${t.key}`]) as t (t.key)}<div>
 									<WhatIfLine what={data.whatIfs?.[`tech:${t.key}`]} label={t.name} />
 								</div>{/each}
 						</td>

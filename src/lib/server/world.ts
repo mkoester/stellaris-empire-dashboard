@@ -399,14 +399,47 @@ export function diplomacy(
 	});
 }
 
+/**
+ * What a country adds to the difficulty of first contact with it, part by part:
+ * - its `first_contact_defense_add`, summed by the engine. Companion mod 0.16.0 exports the sum
+ *   into the country's `sdash_fcd` (left out at 0) and marks the export on ours (`sdash_fcd_on`):
+ *   `exact` then. Without it, the cautious protocol's +2 (4.5 `common/policies/00_policies.txt`,
+ *   the only source in the game files) — the export read just that for all 7 contacts (2228.06.01).
+ * - +2 for a xenophobe, fanatic or not: engine-side, in no game file; fitted on the user's
+ *   First Contacts screen (2228.04.09), which it and the modifier match for all 7 contacts —
+ *   Gimel (fanatic xenophobe, cautious) 7 + 2 + 2 = 11, Gamma and Epsilon (xenophobe) 5 + 2 = 7.
+ */
+export function firstContactDefense(
+	block: Raw | undefined,
+	exported: boolean
+): { defense: number; exact: boolean; parts: { label: string; value: number }[] } {
+	const cautious = items(block?.active_policies).some(
+		(p) => p?.policy === 'first_contact_protocol' && p?.selected === 'first_contact_cautious'
+	);
+	const modifier = exported
+		? { label: 'their first contact modifiers', value: num(block?.variables?.sdash_fcd) }
+		: { label: 'cautious protocol', value: cautious ? 2 : 0 };
+	const xenophobe = items(block?.ethos?.ethics).some((e) => /^ethic_(fanatic_)?xenophobe$/.test(e));
+	const parts = [modifier, { label: 'xenophobe', value: xenophobe ? 2 : 0 }].filter(
+		(p) => p.value !== 0
+	);
+	return { defense: parts.reduce((n, p) => n + p.value, 0), exact: exported, parts };
+}
+
 /** Our first contacts: `first_contacts.contacts.<id>` with `owner` = us. */
 export function firstContacts(
-	raw: Pick<RawSave, 'countryId' | 'firstContacts' | 'leaders'>
+	raw: Pick<RawSave, 'countryId' | 'firstContacts' | 'leaders'> &
+		Partial<Pick<RawSave, 'countryBlocks' | 'country'>>
 ): FirstContact[] {
+	const exported = raw.country?.variables?.sdash_fcd_on !== undefined;
 	return Object.entries(raw.firstContacts).flatMap(([id, c]) => {
 		if (!c || typeof c !== 'object' || c.owner !== raw.countryId) return [];
 		const leaderId = idOrNull(c.leader);
 		const l = leaderId === null ? undefined : raw.leaders[String(leaderId)];
+		const { defense, exact, parts } = firstContactDefense(
+			raw.countryBlocks?.[String(num(c.country))],
+			exported
+		);
 		return [
 			{
 				id: Number(id),
@@ -418,7 +451,12 @@ export function firstContacts(
 				date: String(c.date ?? ''),
 				daysLeft: numOrNull(c.days_left),
 				lastRoll: numOrNull(c.last_roll),
-				difficulty: num(c.difficulty),
+				// the stage's plus the country's, as the game's First Contact screen shows it
+				// (Caravaneers, cautious: 3 + 2 = 5; Artisan Troupe, proactive: 3; 2228.04)
+				difficulty: num(c.difficulty) + defense,
+				defense,
+				defenseExact: exact,
+				defenseParts: parts,
 				clues: num(c.clues),
 				stage: String(c.stage ?? ''),
 				status: String(c.status ?? '')

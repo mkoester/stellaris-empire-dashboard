@@ -114,21 +114,18 @@
 			<tbody>
 				{#each data.colony.buildQueue as item, i (i)}
 					<tr class="border-b border-gray-200 dark:border-gray-800">
-						<td class="p-1"
-							><DistrictName
-								name={nameOf(data.names, item.name)}
-								color={data.colors[item.name]}
-							/></td
-						>
+						<td class="p-1">
+							<DistrictName name={nameOf(data.names, item.name)} color={data.colors[item.name]} />
+						</td>
 						<td class="p-1 text-gray-500">{pretty(item.kind)}</td>
 						<td class="p-1 text-right">{fmt(item.progress)} / {fmt(item.needed)}</td>
 						<td class="p-1 text-right">{done[i] ?? ''}</td>
-						<td class="p-1"
-							>{#if item.kind === 'building'}<AddGoal
+						<td class="p-1">
+							{#if item.kind === 'building'}<AddGoal
 									kind="building"
 									target={{ planet: data.colony.planetId, building: item.name }}
-								/>{/if}</td
-						>
+								/>{/if}
+						</td>
 					</tr>
 				{/each}
 			</tbody>

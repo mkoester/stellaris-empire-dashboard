@@ -30,9 +30,9 @@
 	{@const s = place.get(d.systemId)}
 	{#if s}
 		{@const p = at(s)}
-		<circle cx={p.x} cy={p.y} r={d.r} fill={d.color} fill-opacity="0.55" stroke={d.color}
-			><title>{d.title}</title></circle
-		>
+		<circle cx={p.x} cy={p.y} r={d.r} fill={d.color} fill-opacity="0.55" stroke={d.color}>
+			<title>{d.title}</title>
+		</circle>
 	{/if}
 {/each}
 {#each lines as l (`${l.from}-${l.to}`)}
@@ -50,17 +50,19 @@
 			stroke-width="2.5"
 			stroke-linecap="round"
 			stroke-dasharray={l.dashed ? '5 4' : undefined}
-			opacity={l.dashed ? 0.6 : 0.9}><title>{l.title}</title></line
+			opacity={l.dashed ? 0.6 : 0.9}
 		>
+			<title>{l.title}</title>
+		</line>
 	{/if}
 {/each}
 {#each marks as m (`${m.symbol}-${m.systemId}`)}
 	{@const s = place.get(m.systemId)}
 	{#if s}
 		{@const p = at(s)}
-		<text x={p.x + 6} y={p.y - 5} class="text-[12px] font-bold" fill={m.color}
-			><title>{m.title}</title>{m.symbol}</text
-		>
+		<text x={p.x + 6} y={p.y - 5} class="text-[12px] font-bold" fill={m.color}>
+			<title>{m.title}</title>{m.symbol}
+		</text>
 	{/if}
 {/each}
 {#each labels as l (l.systemId)}
@@ -72,7 +74,8 @@
 			y={p.y + 13}
 			text-anchor="middle"
 			class="fill-gray-700 text-[9px] tabular-nums dark:fill-gray-300"
-			><title>{l.title}</title>{l.text}</text
 		>
+			<title>{l.title}</title>{l.text}
+		</text>
 	{/if}
 {/each}

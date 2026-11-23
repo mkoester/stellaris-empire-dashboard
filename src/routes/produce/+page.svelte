@@ -127,8 +127,9 @@
 			name={r.option.label}
 		/>{:else}{r.option.label}{/if}
 	<span class="text-xs text-gray-500">{KIND[r.option.kind] ?? r.option.kind}</span>{/snippet}
-{#snippet gain(r: ProduceRow)}<span style:color={colorOf(resource ?? '')}>{fmt(r.gain)}</span
-	>{/snippet}
+{#snippet gain(r: ProduceRow)}<span style:color={colorOf(resource ?? '')}>
+		{fmt(r.gain)}
+	</span>{/snippet}
 {#snippet cost(r: ProduceRow)}<ResourceChips flows={neg(r.option.cost)} />{/snippet}
 {#snippet uses(r: ProduceRow)}<ResourceChips
 		flows={neg(sides(r.option, resource ?? '').uses)}
@@ -138,8 +139,9 @@
 	/>{/snippet}
 {#snippet perUnit(r: ProduceRow)}<span
 		class={buy !== null && r.perUnit < buy ? 'font-semibold text-green-600' : ''}
-		>{fmt(r.perUnit)}</span
-	>{/snippet}
+	>
+		{fmt(r.perUnit)}
+	</span>{/snippet}
 {#snippet payback(r: ProduceRow)}{r.payback === null ? '' : `${fmt(r.payback)} mo`}{/snippet}
 {#snippet basis(r: ProduceRow)}<span
 		class="text-xs text-gray-500"
@@ -147,8 +149,10 @@
 			? 'output measured from your budget'
 			: r.option.basis === 'base'
 				? 'the game files’ value, before your modifiers'
-				: 'its modifier’s share of what you yield today'}>{r.option.basis}</span
-	>{/snippet}
+				: 'its modifier’s share of what you yield today'}
+	>
+		{r.option.basis}
+	</span>{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
 	<h1 class="flex-1 text-2xl font-bold">Produce</h1>
@@ -165,28 +169,32 @@
 					? 'border-blue-500 font-semibold'
 					: 'border-gray-300 dark:border-gray-700'}"
 				style:color={colorOf(r)}
-				onclick={() => save({ ...view, resource: r })}>{pretty(r)}</button
+				onclick={() => save({ ...view, resource: r })}
 			>
+				{pretty(r)}
+			</button>
 		{/each}
 	</div>
 	<div class="mb-4 flex flex-wrap items-center gap-4 text-sm">
-		<label class="flex items-center gap-1"
-			>horizon
+		<label class="flex items-center gap-1">
+			horizon
 			<select
 				class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 				value={view.months}
 				onchange={(e) => save({ ...view, months: Number(e.currentTarget.value) })}
 			>
 				{#each HORIZONS as m (m)}<option value={m}>{m / 12} years</option>{/each}
-			</select></label
-		>
+			</select>
+		</label>
 		{#if resource}
 			<span>
 				Market: {#if buy !== null}<strong>{fmt(buy)}</strong> trade per {pretty(resource)}, fee {Math.round(
 						(p.market?.fee ?? 0) * 100
 					)} % included ({p.market?.galactic ? 'galactic' : 'internal'} market){:else}<span
-						class="text-gray-500">{pretty(resource)} is not sold on the market</span
-					>{/if}
+						class="text-gray-500"
+					>
+						{pretty(resource)} is not sold on the market
+					</span>{/if}
 			</span>
 		{/if}
 	</div>
@@ -210,8 +218,8 @@
 			>
 				<div class="flex flex-wrap gap-4 text-sm">
 					{#each unpriced as k (k)}
-						<label class="flex items-center gap-1"
-							><span style:color={colorOf(k)}>{pretty(k)}</span>
+						<label class="flex items-center gap-1">
+							<span style:color={colorOf(k)}>{pretty(k)}</span>
 							<input
 								class="w-16 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 								type="number"
@@ -232,9 +240,11 @@
 											weights: Object.fromEntries(
 												Object.entries(view.weights).filter(([x]) => x !== k)
 											)
-										})}>ours</button
-								>{/if}</label
-						>
+										})}
+								>
+									ours
+								</button>{/if}
+						</label>
 					{/each}
 				</div>
 			</Panel>

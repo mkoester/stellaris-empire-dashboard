@@ -11,18 +11,18 @@
 <ul class="space-y-0.5 text-sm">
 	{#each effects as t (t.mod.key)}
 		<li class="flex flex-wrap items-baseline gap-x-1.5">
-			<span class="font-mono font-semibold {modifierColor(t.mod)}"
-				>{formatModifierValue(t.mod)}</span
-			>
+			<span class="font-mono font-semibold {modifierColor(t.mod)}">
+				{formatModifierValue(t.mod)}
+			</span>
 			<span>{modifierLabel(t.mod)}</span>
-			{#each t.sources as s, i (i)}<span class="text-xs whitespace-nowrap text-gray-500"
-					>{#if s.kind}<SourceBadge kind={s.kind} />
+			{#each t.sources as s, i (i)}<span class="text-xs whitespace-nowrap text-gray-500">
+					{#if s.kind}<SourceBadge kind={s.kind} />
 					{/if}{formatModifierValue({
 						...t.mod,
 						value: s.value
 					})}
-					{s.name}{i < t.sources.length - 1 ? ',' : ''}</span
-				>{/each}
+					{s.name}{i < t.sources.length - 1 ? ',' : ''}
+				</span>{/each}
 		</li>
 	{/each}
 </ul>

@@ -11,9 +11,13 @@ import {
 	shown,
 	voteStanding,
 	empireTags,
-	splinterOf
+	splinterOf,
+	changeMark,
+	contactChanges,
+	difficultyText,
+	difficultyTitle
 } from './contacts.ts';
-import type { CountryInfo, Relation } from './types.ts';
+import type { CountryInfo, FirstContact, Relation } from './types.ts';
 
 const rel = (countryId: number, r: Partial<Relation> = {}): Relation => ({
 	countryId,
@@ -258,5 +262,59 @@ describe('a fallen hive’s fragments', () => {
 			'Indomitable Myrran Aggression': 'War Splinter',
 			'Indomitable Myrran Aspiration': 'Growth Splinter'
 		});
+	});
+});
+
+describe('contactChanges', () => {
+	const fc = (id: number, difficulty: number, clues: number, defense?: number) =>
+		({ id, difficulty, clues, defense }) as FirstContact;
+
+	it('compares the last two readings', () => {
+		expect(
+			contactChanges([
+				{ firstContacts: [fc(1, 5, 2, 0), fc(2, 7, 0, 2)] },
+				{ firstContacts: null }, // a month from the feed: no reading
+				{ firstContacts: [fc(1, 7, 4, 0), fc(2, 7, 0, 2), fc(3, 3, 0, 0)] }
+			])
+		).toEqual({ 1: { difficulty: 2, clues: 2 }, 2: { difficulty: 0, clues: 0 } });
+	});
+
+	it("leaves the difficulty unknown against a reading without the country's part", () => {
+		expect(
+			contactChanges([{ firstContacts: [fc(1, 5, 2)] }, { firstContacts: [fc(1, 7, 3, 2)] }])
+		).toEqual({ 1: { difficulty: null, clues: 1 } });
+	});
+
+	it('has nothing with one reading or none', () => {
+		expect(contactChanges([{ firstContacts: [fc(1, 5, 2, 0)] }])).toEqual({});
+		expect(contactChanges([])).toEqual({});
+	});
+});
+
+describe('changeMark', () => {
+	it('draws a rise, a fall, and nothing', () => {
+		expect(changeMark(2)).toBe('▲2');
+		expect(changeMark(-1)).toBe('▼1');
+		expect(changeMark(0)).toBe('');
+		expect(changeMark(null)).toBe('');
+	});
+});
+
+describe('difficultyText', () => {
+	it("is ≈ unless the country's part is the game's own", () => {
+		expect(difficultyText({ difficulty: 9, defenseExact: false })).toBe('≈9');
+		expect(difficultyText({ difficulty: 9 })).toBe('≈9');
+		expect(difficultyText({ difficulty: 11, defenseExact: true })).toBe('11');
+		expect(
+			difficultyTitle({
+				difficulty: 11,
+				defense: 4,
+				defenseExact: true,
+				defenseParts: [
+					{ label: 'their first contact modifiers', value: 2 },
+					{ label: 'xenophobe', value: 2 }
+				]
+			})
+		).toBe("the stage's 7, +2 their first contact modifiers, +2 xenophobe");
 	});
 });

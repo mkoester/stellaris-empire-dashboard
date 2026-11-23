@@ -333,20 +333,20 @@
 			<h2 class="mb-2 text-xl font-semibold">In force</h2>
 			<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
 				<div class="mb-2 flex flex-wrap items-center gap-x-4 text-gray-500">
-					<span
-						>since {g.formed ?? '?'} ·
+					<span>
+						since {g.formed ?? '?'} ·
 						<span title={g.members.join('\n')}>{g.members.length} members</span>{g.member
 							? ', we among them'
-							: ', we are not a member'}</span
-					>
+							: ', we are not a member'}
+					</span>
 					{#if g.passed.length}
-						<label class="flex items-center gap-1"
-							><input
+						<label class="flex items-center gap-1">
+							<input
 								type="checkbox"
 								checked={view.galcomFlat}
 								onchange={(e) => save({ ...view, galcomFlat: e.currentTarget.checked })}
-							/> flat list</label
-						>
+							/> flat list
+						</label>
 					{/if}
 				</div>
 				{#if !g.passed.length}
@@ -362,13 +362,16 @@
 						<ul class="mb-2 space-y-1">
 							{#each group.items as r (r.id)}
 								<li>
-									<InfoPopup explanation={data.explain[`resolution:${r.type}`]}
-										>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
-									>{#if view.galcomFlat && categoryOf(r.type)}<span class="text-xs text-gray-500">
-											· {categoryOf(r.type)}</span
-										>{/if}
-									<span class="text-gray-500">by <EmpireName name={r.proposer} bold={false} /></span
-									>
+									<InfoPopup explanation={data.explain[`resolution:${r.type}`]}>
+										{data.diploNames[r.type] ?? pretty(r.type)}
+									</InfoPopup>{#if view.galcomFlat && categoryOf(r.type)}<span
+											class="text-xs text-gray-500"
+										>
+											· {categoryOf(r.type)}
+										</span>{/if}
+									<span class="text-gray-500">
+										by <EmpireName name={r.proposer} bold={false} />
+									</span>
 									<div class="ml-4">
 										<Effects explanation={data.explain[`resolution:${r.type}`]} />
 									</div>
@@ -393,11 +396,11 @@
 				<section class="mb-6 rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
 					<div class="mb-2 text-base">
 						<b class="tabular-nums">{Math.floor(w.exact ?? w.total)}</b>
-						<span class="text-xs text-gray-500"
-							>{w.exact === null
+						<span class="text-xs text-gray-500">
+							{w.exact === null
 								? '≈ computed — companion mod 0.4.0 stores the game’s value'
-								: `the game's value; computed from the parts ${Math.round(w.total)}`}</span
-						>
+								: `the game's value; computed from the parts ${Math.round(w.total)}`}
+						</span>
 					</div>
 					<table class="tabular-nums">
 						<tbody>
@@ -409,9 +412,9 @@
 										<div>{Math.round(p.raw)} = {p.basis}</div>
 										{#each p.mods as m, i (i)}<div>
 												{m.name}:
-												<span class={m.value < 0 ? 'text-red-600' : 'text-green-600'}
-													>{m.value > 0 ? '+' : ''}{Math.round(m.value * 100)} %</span
-												>
+												<span class={m.value < 0 ? 'text-red-600' : 'text-green-600'}>
+													{m.value > 0 ? '+' : ''}{Math.round(m.value * 100)} %
+												</span>
 											</div>{/each}
 									</td>
 								</tr>
@@ -419,9 +422,9 @@
 							{#each w.overall as m, i (i)}
 								<tr class="border-t border-gray-100 dark:border-gray-900">
 									<td class="py-1 pr-3" colspan="2">{m.name}</td>
-									<td class="py-1 text-xs {m.value < 0 ? 'text-red-600' : 'text-green-600'}"
-										>{m.value > 0 ? '+' : ''}{Math.round(m.value * 100)} % on the whole</td
-									>
+									<td class="py-1 text-xs {m.value < 0 ? 'text-red-600' : 'text-green-600'}">
+										{m.value > 0 ? '+' : ''}{Math.round(m.value * 100)} % on the whole
+									</td>
 								</tr>
 							{/each}
 						</tbody>
@@ -459,8 +462,8 @@
 				{data.diploNames[g.voting.type] ?? pretty(g.voting.type)}{#if g.voteEnds}<span
 						class="text-gray-500"
 					>
-						· decided {g.voteEnds}</span
-					>{/if}
+						· decided {g.voteEnds}
+					</span>{/if}
 			</div>
 		{:else if g.nextVote}
 			<div class="mb-2 text-gray-500">in recess: the next vote starts {g.nextVote}</div>
@@ -518,7 +521,8 @@
 						? ''
 						: 'opacity-40'}"
 					title={f.title || undefined}
-					><input
+				>
+					<input
 						type="checkbox"
 						class="sr-only"
 						checked={filters.includes(f.id)}
@@ -526,8 +530,8 @@
 							(filters = filters.includes(f.id)
 								? filters.filter((x) => x !== f.id)
 								: [...filters, f.id])}
-					/>{f.label} ({data.proposals.filter((p) => filterOf(p) === f.id).length})</label
-				>
+					/>{f.label} ({data.proposals.filter((p) => filterOf(p) === f.id).length})
+				</label>
 			{/each}
 		</div>
 		<SortTable
@@ -550,55 +554,62 @@
 			: ''}"
 		title={ourVoteColumn(p) === id
 			? `our vote now: ${ourVote(p) ?? 'not cast yet'}\n${voters(p.key)}`
-			: voters(p.key)}>{percent(v)}</span
-	>{/snippet}
+			: voters(p.key)}
+	>
+		{percent(v)}
+	</span>{/snippet}
 {#snippet categoryCell(p: ProposableRow)}<span
 		class="whitespace-nowrap"
 		style:color={galcomGroupColor(data.resolutionGroups[p.category])}
-		>{data.diploNames[p.category] ?? pretty(p.category.replace(/^resolution_category_/, ''))}</span
-	>{/snippet}
+	>
+		{data.diploNames[p.category] ?? pretty(p.category.replace(/^resolution_category_/, ''))}
+	</span>{/snippet}
 {#snippet proposableName(p: ProposableRow)}<InfoPopup
 		explanation={data.explain[`resolution:${p.key}`]}
-		>{data.diploNames[p.key] ?? pretty(p.key.replace(/^resolution_/, ''))}</InfoPopup
-	>{#if p.repeal}<span class="ml-1 text-xs text-gray-500">repeal</span>{/if}{#if p.target}<span
-			class="ml-1 text-xs text-gray-500">names a target</span
-		>{/if}{/snippet}
-{#snippet proposableStatus(p: ProposableRow)}<span class={STATUS_TONE[p.status]}
-		>{#if p.status === 'cooldown'}cooldown until {p.until}{:else if p.status === 'proposed'}proposed
+	>
+		{data.diploNames[p.key] ?? pretty(p.key.replace(/^resolution_/, ''))}
+	</InfoPopup>{#if p.repeal}<span class="ml-1 text-xs text-gray-500">
+			repeal
+		</span>{/if}{#if p.target}<span class="ml-1 text-xs text-gray-500">
+			names a target
+		</span>{/if}{/snippet}
+{#snippet proposableStatus(p: ProposableRow)}<span class={STATUS_TONE[p.status]}>
+		{#if p.status === 'cooldown'}cooldown until {p.until}{:else if p.status === 'proposed'}proposed
 			by <EmpireName
 				name={p.by ?? '?'}
 				bold={false}
 			/>{:else if p.status === 'locked'}{#if p.needs}needs
-				<InfoPopup explanation={data.explain[`resolution:${p.needs}`]}
-					>{data.diploNames[p.needs] ?? pretty(p.needs)}</InfoPopup
-				> in force{:else}<span title={p.why ? describe(p.why) : ''}
-					>not allowed{p.why ? `: ${describe(p.why)}` : ''}</span
-				>{/if}{:else if p.status === 'needs a target' || p.status === 'no target'}<span
+				<InfoPopup explanation={data.explain[`resolution:${p.needs}`]}>
+					{data.diploNames[p.needs] ?? pretty(p.needs)}
+				</InfoPopup> in force{:else}<span title={p.why ? describe(p.why) : ''}>
+					not allowed{p.why ? `: ${describe(p.why)}` : ''}
+				</span>{/if}{:else if p.status === 'needs a target' || p.status === 'no target'}<span
 				title={p.why ? describe(p.why) : ''}
-				>{p.status === 'no target' ? 'no empire it could name' : 'needs a target'}{p.why
+			>
+				{p.status === 'no target' ? 'no empire it could name' : 'needs a target'}{p.why
 					? `: ${describe(p.why)}`
-					: ''}</span
-			>{:else if p.status === 'unknown'}<span title={p.why ? describe(p.why) : ''}
-				>? {p.why ? describe(p.why) : ''}</span
-			>{:else}{p.status}{/if}</span
-	>{/snippet}
+					: ''}
+			</span>{:else if p.status === 'unknown'}<span title={p.why ? describe(p.why) : ''}>
+				? {p.why ? describe(p.why) : ''}
+			</span>{:else}{p.status}{/if}
+	</span>{/snippet}
 
 {#snippet resolutionCell(r: Proposal)}
 	<details>
-		<summary class="cursor-pointer"
-			><InfoPopup explanation={data.explain[`resolution:${r.type}`]}
-				>{data.diploNames[r.type] ?? pretty(r.type)}</InfoPopup
-			></summary
-		>
+		<summary class="cursor-pointer">
+			<InfoPopup explanation={data.explain[`resolution:${r.type}`]}>
+				{data.diploNames[r.type] ?? pretty(r.type)}
+			</InfoPopup>
+		</summary>
 		<div class="mt-1 grid grid-cols-2 gap-x-6 text-xs">
 			{#each [['for', r.support, 'text-green-600'], ['against', r.oppose, 'text-red-600']] as const as [label, side, tone] (label)}
 				<div>
 					<div class="font-semibold {tone}">{label}</div>
 					{#each [...side].sort((a, b) => (weightOf(b)?.value ?? 0) - (weightOf(a)?.value ?? 0)) as n (n)}
 						<div class="flex justify-between gap-2">
-							<EmpireName name={n} bold={false} /><span class="text-gray-500 tabular-nums"
-								>{weightLabel(weightOf(n))}</span
-							>
+							<EmpireName name={n} bold={false} /><span class="text-gray-500 tabular-nums">
+								{weightLabel(weightOf(n))}
+							</span>
 						</div>
 					{:else}<div class="text-gray-500">nobody</div>{/each}
 				</div>
@@ -607,15 +618,18 @@
 	</details>
 {/snippet}
 {#snippet historyEvent(m: (typeof galcomHistory)[number])}{#if m.galcom}{m.galcom.action}:
-		<InfoPopup explanation={data.explain[`resolution:${m.galcom.resolution}`]}
-			>{data.diploNames[m.galcom.resolution] ??
-				pretty(m.galcom.resolution.replace(/^resolution_/, ''))}</InfoPopup
-		>{#if m.galcom.by}
-			<span class="text-gray-500">(by <EmpireName name={m.galcom.by} bold={false} />)</span
-			>{/if}{:else}{m.label}{/if}{/snippet}
+		<InfoPopup explanation={data.explain[`resolution:${m.galcom.resolution}`]}>
+			{data.diploNames[m.galcom.resolution] ??
+				pretty(m.galcom.resolution.replace(/^resolution_/, ''))}
+		</InfoPopup>{#if m.galcom.by}
+			<span class="text-gray-500">
+				(by <EmpireName name={m.galcom.by} bold={false} />)
+			</span>{/if}{:else}{m.label}{/if}{/snippet}
 {#snippet proposed(r: Proposal)}{@const d = proposedOf(r)}<span
-		class="whitespace-nowrap tabular-nums">{d ? proposedLabel(d) : '?'}</span
-	>{/snippet}
+		class="whitespace-nowrap tabular-nums"
+	>
+		{d ? proposedLabel(d) : '?'}
+	</span>{/snippet}
 {#snippet place(r: Proposal)}{r.status === 'voting'
 		? 'voting now'
 		: r.place === 1
@@ -623,14 +637,16 @@
 			: r.place}{/snippet}
 {#snippet passes(r: Proposal)}<span
 		title="{Math.floor(sideWeight(r.support))} for, {Math.floor(sideWeight(r.oppose))} against"
-		>{sideWeight(r.support) > sideWeight(r.oppose) ? '👍' : '👎'}</span
-	>{/snippet}
-{#snippet we(r: Proposal)}<span class="-m-1 block p-1 {standingClass(r)}">{r.ours ?? '–'}</span
-	>{/snippet}
-{#snippet forWeight(r: Proposal)}<span class="text-green-600"
-		>{estimated(r.support) ? '≈' : ''}{Math.floor(sideWeight(r.support))}</span
-	>{/snippet}
-{#snippet againstWeight(r: Proposal)}<span class="text-red-600"
-		>{estimated(r.oppose) ? '≈' : ''}{Math.floor(sideWeight(r.oppose))}</span
-	>{/snippet}
+	>
+		{sideWeight(r.support) > sideWeight(r.oppose) ? '👍' : '👎'}
+	</span>{/snippet}
+{#snippet we(r: Proposal)}<span class="-m-1 block p-1 {standingClass(r)}">
+		{r.ours ?? '–'}
+	</span>{/snippet}
+{#snippet forWeight(r: Proposal)}<span class="text-green-600">
+		{estimated(r.support) ? '≈' : ''}{Math.floor(sideWeight(r.support))}
+	</span>{/snippet}
+{#snippet againstWeight(r: Proposal)}<span class="text-red-600">
+		{estimated(r.oppose) ? '≈' : ''}{Math.floor(sideWeight(r.oppose))}
+	</span>{/snippet}
 {#snippet proposerCell(r: Proposal)}<EmpireName name={r.proposer} bold={false} />{/snippet}

@@ -47,8 +47,8 @@
 	{#if width === 'side'}<h2 class="mb-2 font-semibold">Events up to {date.slice(0, 7)}</h2>{/if}
 	<div class="mb-2 flex flex-wrap gap-3 text-sm">
 		{#each KINDS as k (k.kind)}
-			<label
-				><input
+			<label>
+				<input
 					type="checkbox"
 					checked={!hidden.includes(k.kind)}
 					onchange={(e) =>
@@ -56,8 +56,8 @@
 							? hidden.filter((x) => x !== k.kind)
 							: [...hidden, k.kind])}
 				/>
-				{k.label}</label
-			>
+				{k.label}
+			</label>
 		{/each}
 	</div>
 	{#if events.length}
@@ -68,8 +68,9 @@
 						<td
 							class="pr-4 text-gray-500 tabular-nums"
 							title={e.exact ? 'the date the save holds' : 'by this date: between two saves'}
-							>{e.exact ? '' : '≤ '}{e.date}</td
 						>
+							{e.exact ? '' : '≤ '}{e.date}
+						</td>
 						<td class="pr-4 text-gray-500">{e.kind}</td>
 						<td>{e.text}</td>
 					</tr>

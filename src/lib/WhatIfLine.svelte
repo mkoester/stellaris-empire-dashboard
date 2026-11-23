@@ -76,26 +76,34 @@
 			maximumFractionDigits={showSmall ? 6 : 1}
 		/>{#if what.stability !== null && Math.abs(what.stability) >= threshold}<span
 				class="mr-3 whitespace-nowrap {what.stability < 0 ? 'text-red-600' : 'text-green-600'}"
-				>{pts(what.stability)} stability</span
-			>{/if}{#if big(what.price?.upkeep)}<span class="mr-1 text-gray-500" title={priceNote}
-				>{`${Object.values(pays).some((v) => v > 0) ? 'saves' : 'pays'}${priceTag}`}</span
-			><ResourceChips flows={pays} />{/if}{#if big(what.price?.cost)}<span
+			>
+				{pts(what.stability)} stability
+			</span>{/if}{#if big(what.price?.upkeep)}<span class="mr-1 text-gray-500" title={priceNote}>
+				{`${Object.values(pays).some((v) => v > 0) ? 'saves' : 'pays'}${priceTag}`}
+			</span><ResourceChips flows={pays} />{/if}{#if big(what.price?.cost)}<span
 				class="mr-3 whitespace-nowrap text-red-600"
 				title={`a one-time cost you pay: ${priceNote}`}
-				>{`costs ${Object.entries(what.price?.cost ?? {})
+			>
+				{`costs ${Object.entries(what.price?.cost ?? {})
 					.map(([k, v]) => `${amount(v)} ${pretty(k)}`)
-					.join(', ')} once${priceTag}`}</span
-			>{/if}{#if what.net != null && Math.abs(what.net) >= threshold}<span
+					.join(', ')} once${priceTag}`}
+			</span>{/if}{#if what.net != null && Math.abs(what.net) >= threshold}<span
 				class="mr-3 cursor-help font-semibold whitespace-nowrap {what.net < 0
 					? 'text-red-600'
 					: 'text-green-600'}"
-				title={netNote}>net {signed(what.net)} {what.netLabel ?? 'trade/mo'}</span
-			>{/if}{#if what.unmodelled.length}<span
+				title={netNote}
+			>
+				net {signed(what.net)}
+				{what.netLabel ?? 'trade/mo'}
+			</span>{/if}{#if what.unmodelled.length}<span
 				class="cursor-help text-gray-500"
 				title={`effects the estimate leaves out: ${what.unmodelled.map(pretty).join(', ')}`}
-				>+{what.unmodelled.length} effect{what.unmodelled.length > 1 ? 's' : ''} not counted</span
-			>{/if}{#if emptyLabel && !big(income) && !big(what.price?.upkeep) && !big(what.price?.cost) && (what.stability === null || Math.abs(what.stability) < threshold) && (what.net == null || Math.abs(what.net) < threshold) && !what.unmodelled.length}<span
-				class="text-gray-500">{emptyLabel}</span
-			>{/if}
+			>
+				+{what.unmodelled.length} effect{what.unmodelled.length > 1 ? 's' : ''} not counted
+			</span>{/if}{#if emptyLabel && !big(income) && !big(what.price?.upkeep) && !big(what.price?.cost) && (what.stability === null || Math.abs(what.stability) < threshold) && (what.net == null || Math.abs(what.net) < threshold) && !what.unmodelled.length}<span
+				class="text-gray-500"
+			>
+				{emptyLabel}
+			</span>{/if}
 	</span>
 {/if}

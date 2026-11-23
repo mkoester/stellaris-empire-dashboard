@@ -141,10 +141,14 @@
 								class="underline"
 								href="https://{c.href}"
 								rel="noreferrer"
-								target="_blank">{c.name}</a
-							>{:else}<span class="font-medium">{c.name}</span>{/if}{#if c.by}<span
-								class="text-gray-500">{` by ${c.by}`}</span
-							>{/if} — {c.what}
+								target="_blank"
+							>
+								{c.name}
+							</a>{:else}<span class="font-medium">{c.name}</span>{/if}{#if c.by}<span
+								class="text-gray-500"
+							>
+								{` by ${c.by}`}
+							</span>{/if} — {c.what}
 					</li>
 				{/each}
 			</ul>
@@ -159,14 +163,18 @@
 				class="underline"
 				href="https://github.com/mkoester/stellaris-empire-dashboard/blob/main/LICENSE"
 				rel="noreferrer"
-				target="_blank">GNU Affero General Public License v3.0</a
+				target="_blank"
 			>
+				GNU Affero General Public License v3.0
+			</a>
 			(<a
 				class="underline"
 				href="https://github.com/mkoester/stellaris-empire-dashboard"
 				rel="noreferrer"
-				target="_blank">source</a
-			>).
+				target="_blank"
+			>
+				source
+			</a>).
 		</p>
 		<p class="text-gray-500">
 			Unofficial fan project, not affiliated with Paradox Interactive. Stellaris and all game data

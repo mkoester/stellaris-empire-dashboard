@@ -43,9 +43,9 @@
 				class="cursor-pointer text-left hover:underline"
 				aria-expanded={open}
 				onclick={toggle}
-				><span class="inline-block w-5 text-base text-gray-500">{open ? '▾' : '▸'}</span
-				>{title}</button
 			>
+				<span class="inline-block w-5 text-base text-gray-500">{open ? '▾' : '▸'}</span>{title}
+			</button>
 		</h2>
 	{:else}
 		<h2 class="mb-2 text-xl font-semibold">{title}</h2>

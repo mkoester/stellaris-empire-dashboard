@@ -4,10 +4,12 @@
 	import EmpireName from '#lib/EmpireName.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import {
+		AT_OWNER,
 		branchLine,
 		COLONY_SUPPORT,
 		CONTRACT_RANGES,
 		KIND_INFO,
+		TRANSPORT,
 		WHY_LABEL
 	} from '#lib/contracts.ts';
 	import { followGame } from '#lib/live.ts';
@@ -36,13 +38,14 @@
 	let sort = $state({ column: '', desc: false }); // ours first, then by days left
 
 	const word = (k: string) => k.replaceAll('_', ' ');
-	const nearest = (r: Row) => (r.detail.needsArkship ? (r.detail.arkships[0] ?? null) : null);
 	const work = (r: Row) => {
 		const days = [...new Set(r.detail.projects.map((p) => p.days).filter((d) => d !== null))];
 		return days.length === 1 && r.detail.steps ? r.detail.steps * (days[0] as number) : null;
 	};
 	const name = (id: number | null) => (id === null ? null : (c.systemNames[id] ?? `system ${id}`));
-	// remote, at its system, or a transport's way: pickup → drop-off where the save marks them
+	// where the work is done, not where the contract is issued: remote, at its system, the
+	// system owner's colonies (a raid), or a transport's way; with the ships that can do it
+	const by = (r: Row) => (r.detail.ships.length ? ` (${r.detail.ships.join(' or ')})` : '');
 	const where = (r: Row): { label: string; title: string } => {
 		const d = r.detail;
 		if (d.remote === null)
@@ -54,17 +57,26 @@
 					? `research projects only (${fmt(d.research)} research): done from anywhere`
 					: 'no trip asked: done from anywhere'
 			};
+		const to = TRANSPORT[r.key]?.to ?? 'your choice';
 		if (d.transport && (r.pickup !== null || r.dropoff !== null))
 			return {
-				label: `${name(r.pickup) ?? '?'} → ${name(r.dropoff) ?? 'your choice'}`,
+				label: `${name(r.pickup) ?? '?'} → ${name(r.dropoff) ?? to}${by(r)}`,
 				title: 'pick up → deliver, as the save marks them; hover for the arrow on the map'
 			};
 		if (d.transport)
 			return {
-				label: `transport from ${system(r) ?? '?'}`,
-				title: 'pick up there; where to is marked once you take it'
+				label: `${system(r) ?? '?'} → ${to}${by(r)}`,
+				title: 'pick up there; the drop-off is marked once you take it'
 			};
-		return { label: `at ${system(r) ?? '?'}`, title: 'a ship has to be at its system' };
+		if (AT_OWNER.has(r.key))
+			return {
+				label: `colonies of ${system(r) ?? '?'}'s owner${by(r)}`,
+				title: "bombard any colony of the empire that owns the contract's system"
+			};
+		return {
+			label: `at ${system(r) ?? '?'}${by(r)}`,
+			title: `a ship has to be at its system${d.ships.length ? '' : '; which ships count is not known'}`
+		};
 	};
 	// a transport's arrow, while its row or one of its systems is hovered
 	const arrows = $derived(
@@ -92,14 +104,8 @@
 			label: 'Where',
 			value: (r) => where(r).label,
 			cell: whereCell,
-			title: 'remote: done from anywhere (research projects only); else a ship has to go there'
-		},
-		{
-			id: 'jumps',
-			label: 'Beyond',
-			value: (r) => r.jumps,
-			right: true,
-			title: 'jumps beyond our border, along known hyperlanes'
+			title:
+				'where the work is done, and which ships can do it — remote: from anywhere (research projects only)'
 		},
 		{
 			id: 'state',
@@ -125,61 +131,84 @@
 			title: 'steps × days of each project, travel not counted'
 		},
 		{
-			id: 'arkship',
-			label: 'Nearest arkship',
-			value: (r) => nearest(r)?.jumps ?? null,
-			cell: arkshipCell,
-			title: 'jumps along known hyperlanes from our nearest arkship'
+			id: 'ship',
+			label: 'Nearest ship',
+			value: (r) => r.detail.nearest?.jumps ?? null,
+			cell: shipCell,
+			title: 'our nearest ship of a kind that can do it (Where), in jumps along known hyperlanes'
 		},
 		{ id: 'why', label: 'Shown', value: (r) => r.why, cell: whyCell }
 	];
 </script>
 
 {#snippet nameCell(r: Row)}{r.name}{#if r.internal}<span class="text-gray-500">
-			· internal</span
-		>{/if}{#if r.special}<span class="text-gray-500"> · special</span>{/if}{/snippet}
-{#snippet kindCell(r: Row)}<span style:color={KIND_INFO[r.kind].color}
-		>{KIND_INFO[r.kind].symbol}</span
-	>{` ${r.kind}`}{/snippet}
-{#snippet issuerCell(r: Row)}<EmpireName name={r.issuerName} />{/snippet}
-{#snippet operatorCell(r: Row)}{#if r.operatorName}<EmpireName name={r.operatorName} />{:else}<span
-			class="text-gray-500">–</span
-		>{/if}{/snippet}
+			· internal
+		</span>{/if}{#if r.special}<span class="text-gray-500"> · special</span>{/if}{/snippet}
+{#snippet kindCell(r: Row)}<span style:color={KIND_INFO[r.kind].color}>
+		{KIND_INFO[r.kind].symbol}
+	</span>{` ${r.kind}`}{/snippet}
+{#snippet issuerCell(r: Row)}<EmpireName name={r.issuerName} wrap />{/snippet}
+{#snippet operatorCell(r: Row)}{#if r.operatorName}<EmpireName
+			name={r.operatorName}
+			wrap
+		/>{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
 {#snippet stateCell(r: Row)}{#if r.state === 'offered'}offered{r.daysLeft === null
 			? ''
-			: `, ${r.daysLeft} days`}{:else}taken{r.accepted ? ` ${r.accepted}` : ''}{/if}{/snippet}
+			: `, ${r.daysLeft} days`}{#if r.detail.unoffered.length}<div
+				class="text-xs text-amber-600"
+				title="the game offers it only with these researched"
+			>
+				not offered to you: needs {r.detail.unoffered.join(', ')}
+			</div>{:else if r.detail.missingTechs.length || r.detail.acceptNeeds.length}<div
+				class="text-xs text-amber-600"
+				title="the game lets you accept it only with these"
+			>
+				to accept: needs {[...r.detail.missingTechs, ...r.detail.acceptNeeds].join('; ')}
+			</div>{/if}{:else}taken{r.accepted ? ` ${r.accepted}` : ''}{/if}{/snippet}
 {#snippet whereCell(r: Row)}<span
 		class={where(r).label === '–'
 			? 'text-gray-500'
 			: where(r).label === 'remote'
 				? 'text-green-700 dark:text-green-400'
 				: ''}
-		title={where(r).title}>{where(r).label}</span
-	>{/snippet}
+		title={where(r).title}
+	>
+		{where(r).label}
+	</span>{/snippet}
 {#snippet whyCell(r: Row)}<span
 		class={r.why === 'spoiler'
 			? 'text-amber-600'
 			: r.why === 'cheat'
 				? 'text-red-600'
-				: 'text-gray-500'}>{WHY_LABEL[r.why]}</span
-	>{/snippet}
+				: 'text-gray-500'}
+	>
+		{WHY_LABEL[r.why]}
+	</span>{/snippet}
 
-{#snippet rewardCell(r: Row)}{#if r.detail.trade !== null}<span title={APPROX}
-			>≈{r.detail.trade.toFixed(2)}</span
-		>{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
+{#snippet rewardCell(r: Row)}{#if r.detail.trade !== null}<span title={APPROX}>
+			≈{r.detail.trade.toFixed(2)}
+		</span>{:else}<span class="text-gray-500">–</span>{/if}{/snippet}
 {#snippet workCell(r: Row)}{#if r.detail.research !== null}{fmt(r.detail.research)} research{:else if work(r) !== null}{work(
 			r
-		)} days{:else if r.detail.steps}{r.detail.steps} steps{:else}<span class="text-gray-500">–</span
-		>{/if}{/snippet}
-{#snippet arkshipCell(r: Row)}{#if r.detail.aboard}<span
+		)} days{:else if r.detail.steps}{r.detail.steps} steps{:else}<span class="text-gray-500">
+			–
+		</span>{/if}{/snippet}
+{#snippet shipCell(r: Row)}{#if r.detail.aboard}<span
 			class="font-semibold"
 			title={`${r.detail.aboard.who} came aboard ${r.detail.aboard.since ?? 'on an unknown day'}; the game does not show which arkship carries them`}
-			>{r.detail.aboard.who} aboard {r.detail.aboard.name}</span
-		>{:else if !r.detail.needsArkship}<span class="text-gray-500">no arkship needed</span
-		>{:else if nearest(r)}{nearest(r)?.name}{nearest(r)?.jumps === null
-			? ' · no known route'
-			: ` · ${nearest(r)?.jumps} jumps`}{:else}<span class="text-gray-500">none</span
-		>{/if}{/snippet}
+		>
+			{r.detail.aboard.who} aboard {r.detail.aboard.name}
+		</span>{:else if r.detail.remote}<span class="text-gray-500">
+			none needed
+		</span>{:else if r.detail.nearest}{@const n = r.detail.nearest}{n.name}<span
+			class="text-gray-500"
+		>
+			{` (${n.kind})`}
+		</span>{n.jumps === null ? ' · no known route' : ` · ${n.jumps} jumps`}{:else}<span
+			class="text-gray-500"
+		>
+			{r.detail.ships.length ? `no ${r.detail.ships.join(' or ')}` : 'none'}
+		</span>{/if}{/snippet}
 {#snippet details(r: Row)}
 	{@const d = r.detail}
 	<details class="text-sm">
@@ -205,17 +234,21 @@
 								{branchLine(d.arkships)}
 							</div>{/if}{/each}
 					{#if d.steps && d.steps > 1}<div>{d.steps} steps, one project each</div>{/if}
+					{#if d.unoffered.length}<div class="text-amber-600">
+							The game does not offer it to you before {d.unoffered.join(', ')} is researched.
+						</div>{/if}
 					{#if d.missingTechs.length}<div class="text-amber-600">
 							needs {d.missingTechs.join(', ')}, not researched
 						</div>{/if}
+					{#each d.acceptNeeds as n (n)}<div class="text-amber-600">needs {n}</div>{/each}
 				</dd>
 				<dt class="text-gray-500">Reward</dt>
 				<dd>
-					{#if d.reward.length}<span title={APPROX}
-							>{d.reward
+					{#if d.reward.length}<span title={APPROX}>
+							{d.reward
 								.map((l) => `${l.scaled ? '≈' : ''}${fmt(l.amount)} ${word(l.resource)}`)
-								.join(' + ')}</span
-						>{d.trust ? ` · +${d.trust} trust` : ''}{d.opinion
+								.join(' + ')}
+						</span>{d.trust ? ` · +${d.trust} trust` : ''}{d.opinion
 							? ` · +${d.opinion} opinion`
 							: ''}{#if d.partial.length}<div class="text-gray-500">
 								partial success: {d.partial
@@ -226,7 +259,7 @@
 				</dd>
 				<dt class="text-gray-500">Cost / risk</dt>
 				<dd>
-					No resources: the arkship is busy for the trip and the work.{d.timeToComplete
+					No resources: the ship is busy for the trip and the work.{d.timeToComplete
 						? ` ${d.timeToComplete} days to finish once accepted.`
 						: ''}{d.failedOpinion !== null
 						? ` Failing or cancelling: ${d.failedOpinion} opinion with ${r.issuerName}.`
@@ -295,22 +328,22 @@
 
 {#if c.known && !c.nomadic && data.spoilers && !data.all}
 	<div class="mb-4 text-sm">
-		<label class="flex items-center gap-1"
-			>others’ contracts
+		<label class="flex items-center gap-1">
+			others’ contracts
 			<select
 				class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 				value={c.range}
 				onchange={(e) => void setRange(e.currentTarget.value)}
 			>
-				{#each CONTRACT_RANGES as r (r)}<option value={r}
-						>{r === 'mine'
+				{#each CONTRACT_RANGES as r (r)}<option value={r}>
+						{r === 'mine'
 							? 'in my systems'
 							: r === 'all'
 								? 'anywhere'
-								: `up to +${r} beyond the border`}</option
-					>{/each}
-			</select></label
-		>
+								: `up to +${r} beyond the border`}
+					</option>{/each}
+			</select>
+		</label>
 	</div>
 {/if}
 
@@ -336,17 +369,19 @@
 		>
 			{#snippet layer(at)}
 				<ContractMarks marks={data.marks} {at} place={byId} />
-				<defs
-					><marker
+				<defs>
+					<marker
 						id="contract-arrow"
 						viewBox="0 0 10 10"
 						refX="9"
 						refY="5"
 						markerWidth="7"
 						markerHeight="7"
-						orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c9822b" /></marker
-					></defs
-				>
+						orient="auto-start-reverse"
+					>
+						<path d="M0,0 L10,5 L0,10 z" fill="#c9822b" />
+					</marker>
+				</defs>
 				{#each arrows as w (w.id)}
 					{@const p = at(w.a)}
 					{@const q = at(w.b)}
@@ -358,8 +393,10 @@
 						stroke="#c9822b"
 						stroke-width="3"
 						marker-end="url(#contract-arrow)"
-						pointer-events="none"><title>{w.title}</title></line
+						pointer-events="none"
 					>
+						<title>{w.title}</title>
+					</line>
 				{/each}
 			{/snippet}
 		</GalaxyMap>

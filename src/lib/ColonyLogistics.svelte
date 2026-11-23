@@ -26,9 +26,9 @@
 				<tr class="border-b border-gray-300 text-xs text-gray-500 dark:border-gray-700">
 					<th class="p-1 font-normal">short</th>
 					<th class="p-1 text-right font-normal" title={RULE}>fee/mo</th>
-					<th class="p-1 font-normal" title={LOCAL}
-						>make it here instead: + gains, − costs a month ({what.months / 12} y)</th
-					>
+					<th class="p-1 font-normal" title={LOCAL}>
+						make it here instead: + gains, − costs a month ({what.months / 12} y)
+					</th>
 					<th class="p-1 font-normal"></th>
 				</tr>
 			</thead>
@@ -48,23 +48,28 @@
 										r.best.lost
 									)} what {fmt(r.best.moved)} pops make now − {per(
 										r.importing - r.fee
-									)} its value; × {num(r.best.made, 2)} made">{signed(r.best.net)}</span
+									)} its value; × {num(r.best.made, 2)} made"
 								>
-								<span class="text-gray-500"
-									>{r.best.label} × {r.best.needed}{r.best.room !== null &&
+									{signed(r.best.net)}
+								</span>
+								<span class="text-gray-500">
+									{r.best.label} × {r.best.needed}{r.best.room !== null &&
 									r.best.needed > r.best.room
 										? ` (room for ${r.best.room})`
 										: ''}, {fmt(r.best.workers)} workers{r.best.moved < r.best.workers
 										? ` (${fmt(r.best.workers - r.best.moved)} now civilians)`
-										: ''}</span
-								>
+										: ''}
+								</span>
 							{:else}
 								<span class="text-gray-500">nothing here makes it</span>
 							{/if}
 						</td>
 						<td class="p-1 whitespace-nowrap">
-							{#if r.verdict === 'import'}<span class="text-green-700">import</span
-								>{:else if r.verdict === 'local'}<span class="text-amber-600">make here</span>{/if}
+							{#if r.verdict === 'import'}<span class="text-green-700">
+									import
+								</span>{:else if r.verdict === 'local'}<span class="text-amber-600">
+									make here
+								</span>{/if}
 						</td>
 					</tr>
 				{/each}

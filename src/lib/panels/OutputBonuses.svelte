@@ -50,8 +50,9 @@
 	];
 </script>
 
-{#snippet resource(r: Row)}<span style:color={colorOf(r.resource)}>{pretty(r.resource)}</span
-	>{/snippet}
+{#snippet resource(r: Row)}<span style:color={colorOf(r.resource)}>
+		{pretty(r.resource)}
+	</span>{/snippet}
 {#snippet booked(r: Row)}{fmt(r.booked)}{/snippet}
 {#snippet base(r: Row)}{fmt(r.base)}{/snippet}
 {#snippet counted(r: Row)}
@@ -66,8 +67,9 @@
 		</ul>
 	</details>
 {/snippet}
-{#snippet rest(r: Row)}<span class="text-gray-500">{r.rest === null ? '' : pct(r.rest)}</span
-	>{/snippet}
+{#snippet rest(r: Row)}<span class="text-gray-500">
+		{r.rest === null ? '' : pct(r.rest)}
+	</span>{/snippet}
 {#snippet tot(r: Row)}×{(1 + total(r)).toFixed(2)}{/snippet}
 {#snippet more(r: Row)}{pct(realGain(0.1, total(r)))}{/snippet}
 
@@ -80,9 +82,9 @@
 			<div>
 				<h3 class="font-semibold">
 					{c.colony}
-					<span class="text-sm font-normal text-gray-500"
-						>stability {fmt(c.stability)} · {pretty(c.designation.replace(/^col_/, ''))}</span
-					>
+					<span class="text-sm font-normal text-gray-500">
+						stability {fmt(c.stability)} · {pretty(c.designation.replace(/^col_/, ''))}
+					</span>
 				</h3>
 				<div class="overflow-x-auto">
 					<SortTable

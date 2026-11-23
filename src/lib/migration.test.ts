@@ -7,7 +7,10 @@ import {
 	flows,
 	migrationFrames,
 	migrationHistory,
+	monthBefore,
+	movesByMonth,
 	ownerColors,
+	resettleFlows,
 	CATEGORICAL,
 	OTHER
 } from './migration.ts';
@@ -98,6 +101,26 @@ describe('migrationHistory', () => {
 });
 
 describe('migrationFrames', () => {
+	it("adds our colonies' resettlement from their growth causes, and the month's mod lines", () => {
+		const earth = row('Earth', 0, 0, 0, 3);
+		const theirs = row('Theirs', 2, 0, 7, 4);
+		const s = {
+			date: '2228.04.01',
+			empireName: 'UNE',
+			migration: [earth, theirs],
+			colonies: [{ planetId: 3, name: 'Earth', growth: { net: -4, by: { resettle: -4 } } }],
+			logEvents: [
+				{ date: '2228.03.14', kind: 'resettled', fields: ['Earth', 'Mars', '4', 'Human'] }
+			]
+		};
+		const [f] = migrationFrames([s] as unknown as Snapshot[]);
+		expect(f.rows.map((r) => [r.name, r.resettled])).toEqual([
+			['Earth', -4],
+			['Theirs', 0]
+		]);
+		expect(f.moves).toEqual([{ from: 'Earth', to: 'Mars', pops: 4, species: 'Human' }]);
+	});
+
 	it('keeps months with data, rebuilding old ones from growth with the newest known positions', () => {
 		const earth = { ...row('Earth', 0, 12, 0, 3), x: -6, y: 279, system: 'Sol' };
 		const old = {
@@ -115,6 +138,7 @@ describe('migrationFrames', () => {
 		const now = { date: '2207.03.01', empireName: 'UNE', migration: [earth], colonies: [] };
 		const frames = migrationFrames([old, none, now] as unknown as Snapshot[]);
 		expect(frames.map((f) => f.date)).toEqual(['2206.11.01', '2207.03.01']);
+		expect(frames.map((f) => f.moves)).toEqual([null, null]);
 		expect(frames[0].rows[0]).toMatchObject({
 			name: 'Earth',
 			emigration: 18,
@@ -122,6 +146,58 @@ describe('migrationFrames', () => {
 			y: 279,
 			system: 'Sol'
 		});
+	});
+});
+
+describe('resettleFlows', () => {
+	const settled = (name: string, resettled: number, ownerId = 0) => ({
+		...row(name, 0, 0, ownerId),
+		resettled
+	});
+
+	it("pairs the save's signed totals, apart from migration (2228.04.01: −4 / +4)", () => {
+		const f = resettleFlows([settled('Ark One', -4), settled('Ark Two', 4), row('Mars', 3, 0)]);
+		expect(f.map((x) => [x.from.name, x.to.name, x.pops, x.estimated, x.kind])).toEqual([
+			['Ark One', 'Ark Two', 4, false, 'resettle']
+		]);
+	});
+
+	it("takes the mod's lines over the totals, summed per pair; unknown colonies left out", () => {
+		const rows = [settled('Earth', -5), settled('Mars', 3), settled('Luna', 2)];
+		const f = resettleFlows(rows, [
+			{ from: 'Earth', to: 'Mars', pops: 2, species: 'Human' },
+			{ from: 'Earth', to: 'Mars', pops: 1, species: 'Blorg' },
+			{ from: 'Earth', to: 'Luna', pops: 2, species: 'Human' },
+			{ from: 'Elsewhere', to: 'Luna', pops: 9, species: 'Human' }
+		]);
+		expect(f.map((x) => [x.from.name, x.to.name, x.pops, x.estimated])).toEqual([
+			['Earth', 'Mars', 3, false],
+			['Earth', 'Luna', 2, false]
+		]);
+	});
+
+	it("ignores other empires' colonies", () => {
+		expect(resettleFlows([settled('Theirs', -3, 5), settled('Also', 3, 5)])).toEqual([]);
+	});
+});
+
+describe('monthBefore', () => {
+	it("gives the month a save's last-month figures cover", () => {
+		expect(monthBefore('2228.04.01')).toBe('2228.03');
+		expect(monthBefore('2228.01.01')).toBe('2227.12');
+	});
+});
+
+describe('movesByMonth', () => {
+	it("reads the mod's resettled lines once each, by month", () => {
+		const e = { date: '2228.03.14', kind: 'resettled', fields: ['Earth', 'Mars', '3', 'Human'] };
+		const m = movesByMonth([
+			{ logEvents: [e] },
+			{ logEvents: [e, { date: '2228.03.20', kind: 'edict', fields: [] }] }
+		] as unknown as Snapshot[]);
+		expect([...m]).toEqual([
+			['2228.03', [{ from: 'Earth', to: 'Mars', pops: 3, species: 'Human' }]]
+		]);
 	});
 });
 

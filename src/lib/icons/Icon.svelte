@@ -15,5 +15,6 @@
 	stroke-linecap="round"
 	stroke-linejoin="round"
 	aria-hidden="true"
-	>{#each ICONS[name] as d, i (i)}<path {d} />{/each}</svg
 >
+	{#each ICONS[name] as d, i (i)}<path {d} />{/each}
+</svg>

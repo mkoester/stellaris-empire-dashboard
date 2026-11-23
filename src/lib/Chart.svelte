@@ -325,9 +325,9 @@
 		<p class="h-4 truncate text-xs" title={hovered.map((e) => e.label).join('\n')}>
 			{#if hovered.length}
 				{hovered[0].date.slice(0, 7)} ·
-				{#each hovered.slice(0, 4) as e, i (i)}<span style:color={colorOf(e.kind)}
-						>{i ? ' · ' : ''}{e.label}</span
-					>{/each}{hovered.length > 4 ? ` · +${hovered.length - 4} more` : ''}
+				{#each hovered.slice(0, 4) as e, i (i)}<span style:color={colorOf(e.kind)}>
+						{i ? ' · ' : ''}{e.label}
+					</span>{/each}{hovered.length > 4 ? ` · +${hovered.length - 4} more` : ''}
 			{/if}
 		</p>
 	{/if}

@@ -15,10 +15,21 @@ export const init: ServerInit = start;
 // campaigns from another device is refused (`guard.ts`).
 // Until the game folders are set (and the dashboard has started with them), every page leads to
 // /setup. The stored theme goes on <html> before the page reaches the browser, so it never flashes.
+// A request whose connection closed before it got here has no address (Node clears
+// `socket.remoteAddress`, and Kit's dev server throws: open tabs reconnecting at a restart,
+// 2026-11-22). It counts as another computer's: refused only where `guard.ts` asks for this one.
+const clientOf = (event: Parameters<Handle>[0]['event']) => {
+	try {
+		return event.getClientAddress();
+	} catch {
+		return '';
+	}
+};
+
 export const handle: Handle = ({ event, resolve }) => {
 	const refused = refusal({
 		host: event.url.host,
-		client: event.getClientAddress(),
+		client: clientOf(event),
 		method: event.request.method,
 		path: event.url.pathname,
 		origin: event.request.headers.get('origin'),

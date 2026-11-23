@@ -7,6 +7,8 @@ import {
 	stationsSeen,
 	storms,
 	eventChains,
+	firstContactDefense,
+	firstContacts,
 	precursorIntel,
 	surveyedPlanets,
 	wormholeLinks
@@ -318,5 +320,93 @@ describe('precursorIntel', () => {
 				}
 			]
 		});
+	});
+});
+
+describe('firstContacts', () => {
+	// shaped like 2228.04.01 (roamingcybergang): the game showed Caravaneers 5 and Artisan Troupe 3
+	const raw = {
+		countryId: 0,
+		leaders: {},
+		firstContacts: {
+			'274': {
+				owner: 0,
+				country: 49,
+				location: 716,
+				difficulty: 3,
+				clues: 0,
+				status: 'in_progress'
+			},
+			'275': {
+				owner: 0,
+				country: 43,
+				location: 138,
+				difficulty: 3,
+				clues: 0,
+				status: 'in_progress'
+			},
+			'1': { owner: 7, country: 0, difficulty: 7 } // someone else's contact with us
+		},
+		countryBlocks: {
+			'49': {
+				active_policies: [{ policy: 'first_contact_protocol', selected: 'first_contact_cautious' }]
+			},
+			'43': {
+				active_policies: [{ policy: 'first_contact_protocol', selected: 'first_contact_proactive' }]
+			}
+		}
+	};
+
+	it("gives the difficulty the game shows: the stage's plus a cautious country's 2", () => {
+		expect(
+			firstContacts(raw).map((c) => [c.countryId, c.difficulty, c.defense, c.defenseExact])
+		).toEqual([
+			[49, 5, 2, false],
+			[43, 3, 0, false]
+		]);
+	});
+
+	it("takes the companion mod's export of the game's own sum (0.16.0), a missing one as 0", () => {
+		const withMod = {
+			...raw,
+			country: { variables: { sdash_fcd_on: 1 } },
+			countryBlocks: {
+				'49': { ...raw.countryBlocks['49'], variables: { sdash_fcd: 4 } },
+				'43': raw.countryBlocks['43'] // 0: the save leaves the variable out
+			}
+		};
+		expect(
+			firstContacts(withMod).map((c) => [c.countryId, c.difficulty, c.defense, c.defenseExact])
+		).toEqual([
+			[49, 7, 4, true],
+			[43, 3, 0, true]
+		]);
+	});
+
+	it('adds 2 for a xenophobe, fanatic or not (2228.04.09: Gimel 11, Gamma and Epsilon 7)', () => {
+		const gimel = {
+			ethos: { ethics: ['ethic_fanatic_xenophobe', 'ethic_pacifist'] },
+			variables: { sdash_fcd: 2 } // the cautious protocol, as the mod exported it
+		};
+		expect(firstContactDefense(gimel, true)).toEqual({
+			defense: 4,
+			exact: true,
+			parts: [
+				{ label: 'their first contact modifiers', value: 2 },
+				{ label: 'xenophobe', value: 2 }
+			]
+		});
+		const gamma = { ethos: { ethics: ['ethic_xenophobe', 'ethic_fanatic_militarist'] } };
+		expect(firstContactDefense(gamma, true).defense).toBe(2);
+		expect(firstContactDefense({ ethos: { ethics: ['ethic_xenophile'] } }, true).defense).toBe(0);
+	});
+
+	it('adds nothing for a country without the policy, or unknown', () => {
+		expect(firstContactDefense({ active_policies: [] }, false)).toEqual({
+			defense: 0,
+			exact: false,
+			parts: []
+		});
+		expect(firstContactDefense(undefined, false)).toEqual({ defense: 0, exact: false, parts: [] });
 	});
 });

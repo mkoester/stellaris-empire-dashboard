@@ -98,8 +98,10 @@
 			{#if today && i === 0}
 				<span
 					class="text-sm whitespace-nowrap text-gray-500"
-					title="stockpile from the companion mod's daily tick">as of {today.date}</span
+					title="stockpile from the companion mod's daily tick"
 				>
+					as of {today.date}
+				</span>
 			{/if}
 			{#each row as key (key)}
 				{@const net = balance[key] ?? 0}
@@ -112,12 +114,14 @@
 							style:color={colorOf(key)}
 							title={key === RESERVES
 								? `energy and minerals in one pool, spent from either${reserves?.estimated ? ' — ≈ the last save plus the months since, which the companion mod logged' : ''}`
-								: undefined}>{pretty(key)}</span
+								: undefined}
 						>
+							{pretty(key)}
+						</span>
 						<b>{key === RESERVES && reserves?.estimated ? '≈' : ''}{fmt(have)}</b>
-						<span class={net < 0 ? 'text-red-600' : net > 0 ? 'text-green-600' : 'text-gray-500'}
-							>{signed(net)}</span
-						>
+						<span class={net < 0 ? 'text-red-600' : net > 0 ? 'text-green-600' : 'text-gray-500'}>
+							{signed(net)}
+						</span>
 					</span>
 					{#if key === RESERVES && reserves}
 						<!-- the game's "Current Reserves: Medium (50%)", and how far the next level is -->
@@ -126,21 +130,24 @@
 							title="Current Reserves of {fmt(
 								reserves.capacity ?? 0
 							)}, as the game rounds them (down); each level is a stage of the Operational Reserves situation"
-							><b class={TONES[reserves.tone]}>{reserves.level ?? '?'}</b
-							>{#if reserves.share !== null}&nbsp;{Math.floor(reserves.share * 100)} %{/if}{#if reserves.next}&nbsp;·
+						>
+							<b class={TONES[reserves.tone]}>
+								{reserves.level ?? '?'}
+							</b>{#if reserves.share !== null}&nbsp;{Math.floor(reserves.share * 100)} %{/if}{#if reserves.next}&nbsp;·
 								{reserves.next.down ? '−' : '+'}{fmt(reserves.next.amount)} to
 								<span class={TONES[reserves.next.tone]}>{reserves.next.level}</span>
-								({months(reserves.next.months)}){/if}</span
-						>
+								({months(reserves.next.months)}){/if}
+						</span>
 					{:else if limit}
 						<span
 							class="text-right text-xs text-gray-500"
 							title={`storage ${limit.exact ? '' : '≈ '}${fmt(limit.max)}${limit.exact ? '' : " (the base; silos, Mega-Engineering and others add to it — companion mod 0.5.0 stores the game's value)"}${left === null ? '' : `; ${net > 0 ? 'full' : 'empty'} in ${months(left)} at ${signed(net)} a month`}`}
-							>({limit.exact ? '' : '≈'}{fmt(limit.max)}){#if left !== null}
-								<span style:color={urgencyColor(left)}
-									>&ensp;{left === 0 ? (net > 0 ? 'full' : 'empty') : months(left)}</span
-								>{/if}</span
 						>
+							({limit.exact ? '' : '≈'}{fmt(limit.max)}){#if left !== null}
+								<span style:color={urgencyColor(left)}>
+									&ensp;{left === 0 ? (net > 0 ? 'full' : 'empty') : months(left)}
+								</span>{/if}
+						</span>
 					{/if}
 				</span>
 			{/each}
@@ -150,9 +157,9 @@
 
 {#if orders.length > 0}
 	<div class="-mt-3 mb-4 flex flex-wrap gap-x-4 text-sm">
-		<span class="text-gray-500"
-			>{galactic ? 'galactic market orders' : 'market orders / monthly limit'} (included in the net change):</span
-		>
+		<span class="text-gray-500">
+			{galactic ? 'galactic market orders' : 'market orders / monthly limit'} (included in the net change):
+		</span>
 		{#each orders as o, i (i)}
 			{@const limit = monthlyLimit(o, galactic)}
 			{@const over = limit !== null && o.amount > limit}
@@ -164,8 +171,10 @@
 			>
 				{o.kind}
 				<b class={over ? 'text-red-600' : ''}>{fmt(o.amount)}</b>{#if limit !== null}<span
-						class={over ? 'text-red-600' : 'text-gray-500'}>&thinsp;/&thinsp;{limit}</span
-					>{/if}
+						class={over ? 'text-red-600' : 'text-gray-500'}
+					>
+						&thinsp;/&thinsp;{limit}
+					</span>{/if}
 				<span style:color={colorOf(o.resource)}>{pretty(o.resource)}</span>
 			</span>
 		{/each}
