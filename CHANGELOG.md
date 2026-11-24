@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Ideologies tab (Willpower): our ideology's strength, level, momentum and tenets with what each
+  gives at its slot, the tenets on offer, and the foreign ideologies we know. A cheat in ⚙ shows
+  every ideology with its adopters. Dimmed until we adopt or know one.
+- Ambitions tab: our ambition's level, currency, each level's requirements and perks, and its
+  objectives; before we take one, the ambitions this empire could take. A spoiler shows the
+  ambitions the game gave away through an empire's personality ("Crisis Aspirant"); a cheat shows
+  every empire's, with its level. Dimmed until we take one.
+
 ## [0.2.0] - 2026-11-23
 
 Built for Stellaris 4.6.0 "Corona Borealis" and Willpower; bundles stellaris-data-extraction

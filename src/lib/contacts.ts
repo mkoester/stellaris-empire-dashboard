@@ -1,4 +1,12 @@
-import type { Combat, CountryInfo, FirstContact, GalacticCommunity, Relation } from './types.ts';
+import { ownIdeologies } from './ideologies.ts';
+import type {
+	Combat,
+	CountryInfo,
+	FirstContact,
+	GalacticCommunity,
+	IdeologyReading,
+	Relation
+} from './types.ts';
 
 // The contacts tab: every empire we know, with what the save tells about it. Pure.
 
@@ -284,6 +292,8 @@ export const pageLatest = <
 		storms?: unknown;
 		precursorIntel?: unknown;
 		archives?: { countryId: number }[] | null;
+		ideologies?: IdeologyReading | null;
+		ambitions?: { countryId: number }[] | null;
 	}
 >(
 	s: S
@@ -302,6 +312,15 @@ export const pageLatest = <
 	// every empire's specimens: the archive and trade tabs send others' per switch
 	...('archives' in s
 		? { archives: s.archives?.filter((a) => a.countryId === s.countryId) ?? null }
+		: {}),
+	// every ideology and empire's stand: ours and the ideologies we know; the ideologies tab sends
+	// the rest only with its cheat on
+	...('ideologies' in s
+		? { ideologies: s.ideologies ? ownIdeologies(s.ideologies, s.countryId) : null }
+		: {}),
+	// every empire's ambition: the ambitions tab sends others' per switch
+	...('ambitions' in s
+		? { ambitions: s.ambitions?.filter((a) => a.countryId === s.countryId) ?? null }
 		: {}),
 	countries:
 		s.countries?.filter(

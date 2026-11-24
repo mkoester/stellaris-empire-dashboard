@@ -101,6 +101,8 @@ const SNAPSHOT: Omit<Snapshot, 'kind' | 'campaign' | 'date' | 'fingerprint' | 'e
 	eventChains: null,
 	precursorIntel: null,
 	archives: null,
+	ideologies: null,
+	ambitions: null,
 	stationsSeen: null,
 	surveyedAll: null,
 	focus: null,

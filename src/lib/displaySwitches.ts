@@ -311,6 +311,34 @@ export const SWITCHES: Switch[] = [
 		tags: 'specimen specimens grand archive exhibit'
 	},
 	{
+		key: 'ideologiesAll',
+		group: 'Government and ethics',
+		kind: 'cheat',
+		intel: true,
+		label:
+			'Ideologies: every ideology in the galaxy — founder, custodian, adopters, tenets — and each adopter’s strength',
+		note: 'the game lists only the ideologies you have intel on; unmet empires stay unnamed',
+		tags: 'ideology tenets strength willpower'
+	},
+	{
+		key: 'ambitionsRevealed',
+		group: 'Government and ethics',
+		kind: 'spoiler',
+		intel: true,
+		label: 'Ambitions: the ambitions of empires you talk to, once their personality gives it away',
+		note: 'the game only shows the personality ("Crisis Aspirant", "Thermarchy", "Utopian Missionaries") on their diplomacy screen',
+		tags: 'ambition crisis nemesis hyperthermia force of will personality'
+	},
+	{
+		key: 'ambitionsAll',
+		group: 'Government and ethics',
+		kind: 'cheat',
+		intel: true,
+		label: 'Ambitions: every empire’s ambition from the day it takes the perk, with its level',
+		note: 'the game never shows another empire’s ambition level; unmet empires stay unnamed',
+		tags: 'ambition crisis nemesis hyperthermia force of will behemoth cosmogenesis defender'
+	},
+	{
 		key: 'whatIfs',
 		group: 'What-ifs',
 		kind: 'spoiler',

@@ -103,6 +103,17 @@ export function displayName(name: Raw): string {
 	if (/\$\w+\$/.test(key) && Array.isArray(name?.variables)) return fill(key, name.variables);
 	// Name templates with numbered parts (4.5 localisation, `common/random_names/00_empire_names.txt`):
 	// `AofB` = "$1$ of $2$" — "Pact of Fellnoll", read as "AofB Pact Fellnoll" before 2026-11-17.
+	// Ideologies (4.6, common/random_names/00_ideology_names.txt): "$1$ $2$", where a prescripted
+	// adjective holds the noun's place ("Human $1$" + "Liberalism" = "Human Liberalism"), or one
+	// word: a prefix the engine cuts from the species adjective (`GetPrefixFromAdj`, in no file —
+	// read here as the species' name, unchecked: docs/open-points.md) and a suffix by its last letter.
+	if (key === 'ideology_ajd_keyword' && Array.isArray(name?.variables)) {
+		const part = (k: string) => displayName(name.variables.find((x: Raw) => x?.key === k)?.value);
+		const [adj, noun] = [part('1'), part('2')];
+		return (adj.includes('$1$') ? adj.replace('$1$', noun) : `${adj} ${noun}`).trim();
+	}
+	if (key === 'ideology_single_word_format' && Array.isArray(name?.variables))
+		return ideologyWord(name.variables.find((x: Raw) => x?.key === '1')?.value);
 	const template = NAME_TEMPLATES[key];
 	if (template && Array.isArray(name?.variables)) return fill(template, name.variables);
 	// Name parts with a part inside — faction names, `{<names_1> {<names_2>}}` (4.5.2
@@ -193,6 +204,31 @@ export function resources(obj: Raw): Resources {
 	const out: Resources = {};
 	for (const [k, v] of Object.entries(obj ?? {})) if (typeof v === 'number') out[k] = v;
 	return out;
+}
+
+// `ideo_suffix_<n>` = "<after a consonant>|||vowel_ended:<after a vowel>" (4.6 localisation,
+// random_names/name_parts_00_ideology_names_l_english.yml)
+const IDEO_SUFFIXES: Record<string, [string, string]> = {
+	ideo_suffix_1: ['ism', 'tism'],
+	ideo_suffix_2: ['ity', 'lity'],
+	ideo_suffix_3: ['anity', 'nity'],
+	ideo_suffix_4: ['ology', 'dom'],
+	ideo_suffix_5: ['ionism', 'ship'],
+	ideo_suffix_6: ['alism', 'lism']
+};
+
+/** A one-word ideology name: `%PREFIX% { adjective = <species adjective> 1 = ideo_suffix_<n> }`. */
+function ideologyWord(prefix: Raw): string {
+	const v = (k: string) => (prefix?.variables ?? []).find((x: Raw) => x?.key === k)?.value;
+	const adj = v('adjective');
+	// the species' own name inside its adjective (`%ADJECTIVE%` { adjective = SPEC_<name> })
+	const inner = (adj?.variables ?? []).find((x: Raw) => x?.key === 'adjective')?.value;
+	const stem = displayName(inner ?? adj)
+		.replace('$1$', '')
+		.trim();
+	const suffix = IDEO_SUFFIXES[String(v('1')?.key ?? '')];
+	if (!suffix) return stem;
+	return stem + suffix[/[aeiouy]$/i.test(stem) ? 1 : 0];
 }
 
 // FirstContact-MeaningfulLabels' types, as its localisation names them

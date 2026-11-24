@@ -292,6 +292,8 @@ export function loadGameData(file: string): GameData {
 			),
 			specialists: specialists(rows),
 			specimens: specimens(rows),
+			...ideologyData(rows),
+			ambitionPaths: ambitionPaths(rows),
 			resolutions: Object.fromEntries(
 				rows<{
 					key: string;
@@ -1757,6 +1759,137 @@ function specimens(rows: <T>(sql: string) => T[]): Record<string, Specimen> {
 		const p = out[r.specimen_key]?.produces;
 		if (p) p[r.resource] = (p[r.resource] ?? 0) + r.amount;
 	}
+	return out;
+}
+
+const hasTable = (rows: <T>(sql: string) => T[], t: string) =>
+	rows(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = '${t}'`).length > 0;
+
+/** Ideology types and tenets (extractor 0.1.26): none from an older data DB. */
+function ideologyData(rows: <T>(sql: string) => T[]): Pick<GameData, 'ideologyTypes' | 'tenets'> {
+	if (!hasTable(rows, 'ideology') || !hasTable(rows, 'tenet'))
+		return { ideologyTypes: {}, tenets: {} };
+	const ideologyTypes: GameData['ideologyTypes'] = {};
+	for (const r of rows<{
+		key: string;
+		ethic: string | null;
+		type_name: string | null;
+		faction_name: string | null;
+	}>('SELECT key, ethic, type_name, faction_name FROM ideology ORDER BY sort_order'))
+		ideologyTypes[r.key] = {
+			ethic: r.ethic,
+			typeName: r.type_name ?? 'Ideology',
+			factionName: r.faction_name
+		};
+	const tenets: GameData['tenets'] = {};
+	for (const r of rows<{ key: string; name: string | null; description: string | null }>(
+		'SELECT key, name, description FROM tenet ORDER BY sort_order'
+	))
+		tenets[r.key] = {
+			name: r.name || titleOf(r.key.replace(/^tenet_/, '')),
+			description: r.description,
+			tiers: {}
+		};
+	for (const r of rows<{ tenet_key: string; tier: number; effect_text: string | null }>(
+		'SELECT tenet_key, tier, effect_text FROM tenet_tier'
+	)) {
+		const t = tenets[r.tenet_key];
+		if (t) t.tiers[r.tier] = { modifiers: t.tiers[r.tier]?.modifiers ?? [], text: r.effect_text };
+	}
+	for (const m of rows<{
+		tenet_key: string;
+		tier: number;
+		scope: string;
+		modifier_key: string;
+		modifier_value: number;
+		label: string | null;
+		positive_is_good: number | null;
+	}>(
+		`SELECT t.tenet_key, t.tier, t.scope, t.modifier_key, t.modifier_value, l.label, l.positive_is_good
+		 FROM tenet_tier_modifier t LEFT JOIN modifier_label l ON l.modifier_key = t.modifier_key
+		 ORDER BY t.tenet_key, t.tier, t.sort_order`
+	)) {
+		const t = tenets[m.tenet_key];
+		if (!t) continue;
+		(t.tiers[m.tier] ??= { modifiers: [], text: null }).modifiers.push({
+			key: m.modifier_key,
+			value: m.modifier_value,
+			label: m.label,
+			positiveIsGood: (m.positive_is_good ?? 1) === 1,
+			scope: m.scope
+		});
+	}
+	return { ideologyTypes, tenets };
+}
+
+/** Ambitions (crisis paths, extractor 0.1.11): none from an older data DB. */
+function ambitionPaths(rows: <T>(sql: string) => T[]): GameData['ambitionPaths'] {
+	if (!hasTable(rows, 'crisis_path')) return {};
+	const json = (v: string | null): string[] => (v ? (JSON.parse(v) as string[]) : []);
+	const out: GameData['ambitionPaths'] = {};
+	for (const r of rows<{
+		key: string;
+		name: string | null;
+		description: string | null;
+		currency: string | null;
+	}>('SELECT key, name, description, currency FROM crisis_path ORDER BY sort_order'))
+		out[r.key] = {
+			key: r.key,
+			name: r.name ?? titleOf(r.key),
+			description: r.description,
+			currency: r.currency,
+			perk: null,
+			levels: [],
+			objectives: []
+		};
+	for (const r of rows<{ path_key: string; perk_key: string }>(
+		'SELECT path_key, perk_key FROM crisis_path_perk'
+	)) {
+		const p = out[r.path_key];
+		if (p) p.perk ??= r.perk_key;
+	}
+	const perks = new Map<string, string[]>();
+	for (const r of rows<{ level_key: string; name: string | null; key: string }>(
+		`SELECT lp.level_key, m.name, lp.perk_key AS key FROM crisis_level_perk lp
+		 LEFT JOIN menace_perk m ON m.key = lp.perk_key ORDER BY lp.level_key, lp.sort_order`
+	))
+		perks.set(r.level_key, [...(perks.get(r.level_key) ?? []), r.name ?? titleOf(r.key)]);
+	for (const r of rows<{
+		path_key: string;
+		level: number;
+		key: string;
+		name: string | null;
+		required_currency: number | null;
+		requirements_json: string | null;
+	}>(
+		`SELECT pl.path_key, pl.level, l.key, l.name, l.required_currency, l.requirements_json
+		 FROM crisis_path_level pl JOIN crisis_level l ON l.key = pl.level_key ORDER BY pl.path_key, pl.level`
+	))
+		out[r.path_key]?.levels.push({
+			key: r.key,
+			name: r.name ?? `Level ${r.level}`,
+			level: r.level,
+			required: r.required_currency,
+			requirements: json(r.requirements_json),
+			perks: perks.get(r.key) ?? []
+		});
+	for (const r of rows<{
+		path_key: string;
+		key: string;
+		name: string | null;
+		description: string | null;
+		recurring: number;
+	}>(
+		`SELECT po.path_key, o.key, o.name, o.description, o.recurring
+		 FROM crisis_path_objective po JOIN crisis_objective o ON o.key = po.objective_key
+		 ORDER BY po.path_key, po.sort_order`
+	))
+		out[r.path_key]?.objectives.push({
+			key: r.key,
+			name: r.name ?? titleOf(r.key),
+			description: r.description,
+			recurring: r.recurring === 1
+		});
 	return out;
 }
 

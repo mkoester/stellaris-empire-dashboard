@@ -206,3 +206,16 @@ events, origin, deposits). Filters (per viewer): what applies or can be changed 
 applies, everything. Not covered: job modifiers (bureaucrats, enforcers, telepaths add governing
 attraction on their planet) — the data DB's `job_modifier` holds a job's unconditional modifiers
 only (the colony page's levers use them), most of these are triggered.
+
+**Ideologies tab** (`/ideologies`, `#lib/ideologies.ts` pure, the reading `ideologies()` in
+`server/save/ideologies.ts`; the user's ask 2026-11-24): as the game's Ideologies view. Ours: the
+strength, the level (0–3, the tenet slots opened at 250 / 500 / 750), the progress to the next
+slot, the momentum (last month's change of strength) and how many slots still wait to be
+codified; the codified tenets with what each gives at its slot (tier = slot = Intensity; data DB
+`tenet_tier_modifier`), and the three on offer for an open slot. Foreign: the ideologies we know,
+which are the keys of our module's `intel` (contact with a custodian gives intel 15; checked against
+the game's view 2026-11-24): name, type, custodian, codified tenets. `pageLatest()` keeps only those
+and our own stand. `ideologiesAll` (cheat, intel): every ideology, its founder, custodian, adopters
+with their strength and level, and its systems in reach; unmet empires are "unknown empire".
+Dimmed until we adopt or know one, or when the galaxy rule is off (`ideologiesWhy`). Without the
+data DB's tenet tables (extractor before 0.1.26) tenets show by their keys.

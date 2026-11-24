@@ -71,6 +71,9 @@ export type Display = {
 	specimenTrade: boolean; // trade tab: the specimens each contact would trade, and for what (spoiler)
 	specimenTradeAll: boolean; // trade tab: … also those blocked now, with the reason (cheat)
 	archiveOthers: boolean; // archive tab: another empire's Grand Archive (cheat)
+	ideologiesAll: boolean; // ideologies tab: every ideology and every empire's stand (cheat)
+	ambitionsRevealed: boolean; // ambitions tab: others' ambitions the game revealed (spoiler)
+	ambitionsAll: boolean; // ambitions tab: every empire's ambition and level (cheat)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, beyond our intel (spoiler)
 	historyMet: boolean; // history tab: everything about the empires we met, beyond our intel (spoiler)
 	historyAll: boolean; // history tab: every empire's history, by its own name (cheat)
@@ -117,6 +120,9 @@ export const DEFAULT_DISPLAY: Display = {
 	specimenTrade: false,
 	specimenTradeAll: false,
 	archiveOthers: false,
+	ideologiesAll: false,
+	ambitionsRevealed: false,
+	ambitionsAll: false,
 	diplomacyAll: false,
 	historyMet: false,
 	historyAll: false,
@@ -218,6 +224,9 @@ export function parseDisplay(v: unknown): Display {
 		specimenTrade: o.specimenTrade === true,
 		specimenTradeAll: o.specimenTradeAll === true,
 		archiveOthers: o.archiveOthers === true,
+		ideologiesAll: o.ideologiesAll === true,
+		ambitionsRevealed: o.ambitionsRevealed === true,
+		ambitionsAll: o.ambitionsAll === true,
 		diplomacyAll: o.diplomacyAll === true,
 		historyMet: o.historyMet === true,
 		historyAll: o.historyAll === true,

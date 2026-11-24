@@ -260,6 +260,18 @@ capital and migration are since READER 41), the trade tab's valuation of energy 
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
+**Ambitions tab** (`/ambitions`, `#lib/ambitions.ts` pure, the reading `ambitions()` in
+`server/save/ideologies.ts`; the user's ask 2026-11-24): our ambition as the game's Situation Log
+shows it (a "Development": "Ambition Level Reached: n/5"): the level, the currency (an ordinary
+resource in the stockpile, data DB `crisis_path.currency`), each level's requirements as the game
+words them and the perks it grants, and the objectives. The currency alone does not raise a level
+(the requirements gate it, `docs/vanilla-behaviour.md` in the workspace). Before we take one: the
+ambitions whose perk's `potential` holds, greyed until three ascension perks are taken. Others':
+`ambitionsRevealed` (spoiler, intel) shows those whose AI personality names them to an empire we
+talk to (`REVEALING`: "Crisis Aspirant", "Thermarchy", and "Utopian Missionaries" from Force of
+Will's level 2; seen in game 2026-11-24), without a level; `ambitionsAll` (cheat, intel) shows every
+one with its level, from the day of the perk. Dimmed until we take one (`ambitionsWhy`).
+
 **Archive tab** (`/archive`, `#lib/archive.ts` pure, the reading in `server/save/archive.ts`; the
 user's ask 2026-11-21): the Grand Archive as the game's Collection view — three exhibitions
 (`CATEGORIES`, 9 exhibits each), storage (60), and what the **active** exhibits give: each

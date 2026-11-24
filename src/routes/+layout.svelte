@@ -149,6 +149,11 @@
 			active: path === '/ethics'
 		},
 		{
+			name: 'ideologies',
+			href: node ? resolve(`/ideologies?node=${node}`) : resolve('/ideologies'),
+			active: path === '/ideologies'
+		},
+		{
 			name: 'frontier',
 			href: node ? resolve(`/frontier?node=${node}`) : resolve('/frontier'),
 			active: path === '/frontier'
@@ -172,6 +177,11 @@
 			name: 'traditions',
 			href: node ? resolve(`/traditions?node=${node}`) : resolve('/traditions'),
 			active: path === '/traditions'
+		},
+		{
+			name: 'ambitions',
+			href: node ? resolve(`/ambitions?node=${node}`) : resolve('/ambitions'),
+			active: path === '/ambitions'
 		},
 		{
 			name: 'tech',

@@ -114,6 +114,8 @@ const raw: RawSave = {
 	popFactions: {},
 	patronRelations: {},
 	exhibits: {},
+	ideologies: {},
+	tenets: {},
 	aiIntel: [],
 	traderEnclaves: [],
 	starbases: {},

@@ -84,21 +84,23 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech
 screen, trade calibration, stored research, releases).
 
-- **Ambitions (formerly Crisis), planned 2026-11-03**: data DB `crisis_path`, `crisis_level`,
-  `crisis_objective`, `menace_perk` (extraction's design notes). Our own path: a `/ambition` tab
-  (currency, level ladder with requirements and perks, objectives with this galaxy's reward,
-  months to the next level). **Other empires' ambitions are a spoiler** (the user's decision,
-  2026-11-03; switch `ambitionsAll`): on, who, what (path, level) and where (capital and the
-  path's sites); off, only what the game tells a player (4.5.3 files). For Nemesis that's the
-  personality "Crisis Aspirant" from the perk on, the "Mysterious Supernova"/Star-Eater alerts
-  and the "Destroying Star Systems" opinion, and "Galactic Crisis Declared" at level 5. For
-  Hyperthermia it's the personality "Thermarchy", plus the opinion "Thermarchy Empire" from
-  level 2, which needs government intel 2 (everyone at 5). Behemoth shows warnings at level 5,
-  Cosmogenesis nothing that names it, and Defender an opinion modifier. Ascension perks are in
-  no intel category. **Unread: the save shape** (no local save has an ambition): in a
-  throwaway game, save before and after `activate_ascension_perk ap_become_the_crisis`, then
-  `resource menace 1000`. Also check whether the diplomacy screen lists another empire's
-  perks.
+- **Ambitions and ideologies, built 2026-11-24** (`docs/tabs-empire.md`, `docs/tabs-ethics.md`; save
+  shapes in `docs/save-format.md`). The 2026-11-03 plan's `ambitionsAll` spoiler became the user's
+  split: `ambitionsRevealed` (spoiler: what a personality gave away) and `ambitionsAll` (cheat).
+  Open:
+  - Revealed by more than a personality: Hyperthermia's "Thermarchy Empire" opinion from level 2,
+    Nemesis' alerts and "Galactic Crisis Declared", Behemoth's warnings at level 5, and Defender's
+    opinion (4.5.3 files). The spoiler reads only the personality.
+  - Not shown yet: this galaxy's reward per objective (`crisis_objective.reward_json`), months to
+    the next level, and the path's sites on a map.
+  - One-word ideology names (spiritualist: "Raxycodiumity") take the species name as the prefix;
+    the engine's `GetPrefixFromAdj` may cut it differently. Compare with the game's Ideologies view
+    once such an ideology is known.
+  - A foreign ideology's codified tenets are shown as the save holds them; the game's view showed
+    only empty slots (none codified yet). Check once a known foreign ideology codifies one.
+  - The Ideologies view's "+4.55" beside the galactic share, and the "0" count, are not read.
+  - An ideology's level modifiers (data DB `ideology_modifier`) are not shown: several scale by a
+    value only the running game knows.
 
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
   show a link never jumped through; since 2026-11-20 only once Wormhole Stabilization is
