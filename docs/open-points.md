@@ -96,9 +96,20 @@ screen, trade calibration, stored research, releases).
   - One-word ideology names (spiritualist: "Raxycodiumity") take the species name as the prefix;
     the engine's `GetPrefixFromAdj` may cut it differently. Compare with the game's Ideologies view
     once such an ideology is known.
-  - A foreign ideology's codified tenets are shown as the save holds them; the game's view showed
-    only empty slots (none codified yet). Check once a known foreign ideology codifies one.
-  - The Ideologies view's "+4.55" beside the galactic share, and the "0" count, are not read.
+  - **A foreign ideology's codified tenets, confirmed** (2026-11-24, throwaway
+    `unitednationsofearth4_-337465913`, autosave 2200.06.01, screenshots
+    `~/Pictures/Screenshots/screenshot_2026-11-24_21-33-30`, `21-33-38`, `21-33-42`): after
+    `add_ideological_strength = 300` the AIs codified one tier-I tenet each by themselves (Falleran
+    Naturalism: Secrecy, Spuxulac Expansionism: Force Projection, Backattan Nativism: Security). The
+    game's Ideologies view shows them for a foreign ideology at intel 100, and the tab read the same
+    keys. No cheat switch needed.
+  - **The "%" beside a foreign ideology is its Galactic Strength** (same session, screenshots
+    `21-31-58`, `21-32-15`): "the percentage of pops following it" across the galaxy. Its tooltip
+    lists the followers per adopting empire, in pops and as a share of that empire's pops (The
+    Chosen: 164, 1.28 %; Falleran Star Dynasty: 54, 1.03 %). The save holds no follower count:
+    per colony only `num_potential_followers`; the adopter's ideological faction (`pop_factions`,
+    `created_for_ideology`) had 139 pops against the tooltip's 54. Not shown yet.
+  - The "0" beside the fist icon is not read.
   - An ideology's level modifiers (data DB `ideology_modifier`) are not shown: several scale by a
     value only the running game knows.
 

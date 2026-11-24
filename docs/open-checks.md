@@ -683,15 +683,10 @@ shapes: `docs/save-format.md` ("Ideologies", "Ambitions"). Background: `docs/ope
      and scroll to the Spiritualist Religions.
    - **Send:** the screenshot. Check: each name against the tab with `ideologiesAll` on; a miss
      shows how the prefix is cut (`ideologyWord()` in `server/save/values.ts`).
-2. **A foreign ideology's codified tenets.** The tab shows them from the save; the game's view
-   showed only empty slots, since none was codified.
-   - **Do:** `effect random_country = { limit = { has_country_flag = sdash_t_known } add_ideological_strength = 300 }`,
-     let a month or two pass (the AI codifies by itself, presumably).
-   - **Send:** the Ideologies view, Human Expansionism's slots, and the autosave. Check: the
-     same tenets in the tab's plain view; if the game hides them, show them only with the cheat.
-3. **The Ideologies view's "+4.55" and its "0" count.** Not read yet.
-   - **Do:** hover both on our ideology and on a foreign one.
-   - **Send:** the tooltips. Then find the matching save fields.
+3. **The Ideologies view's fist count.** The "%" is settled (2026-11-24, see `docs/open-points.md`);
+   the "0" beside the fist icon is not read yet.
+   - **Do:** hover it on a foreign ideology.
+   - **Send:** the tooltip. Then find the matching save field.
 4. **Ambitions revealed beyond the personality.** The spoiler reads only the personality.
    - Force of Will's "Utopian Missionaries" comes only from its level 2. For an AI, give it the
      path's currency and complete the first special project (`complete_special_project`; the
