@@ -648,6 +648,54 @@ Not read yet: notes for an Ideology map mode. Seven ideologies, founded with `de
   `IDEOLOGICAL_MOMENTUM_MONTHS_COUNT` = 120) and `pending_levels`. Per ideology, also
   `last_reroll_date`, `custody_cooldown_date` (10 years after founding) and `advocates` (leader
   ids). No tenets anywhere yet, a month after founding.
+- **2200.05.01, after we contacted one AI (Commonwealth of Man) and founded ours:** our `intel`
+  has two entries: 100 for our own ideology and 15 for the contact's ideology, and none for the
+  other 17. The Ideologies view (screenshot `~/Pictures/Screenshots/screenshot_2026-11-24_19-19-38.png`)
+  lists exactly that one under "Foreign Ideologies". It shows the name, the type ("Militarist
+  Ideology"), the custodian's flag, the galactic share (0.0 %), a count (0), "No promoting
+  faction", three locked tenet slots I–III and "Adopt". So **the ideologies we know are the keys
+  of our module's `intel`**. Ours shows the faction (approval 100 %, 55 members), the tenet
+  slots, a strength bar, the advocate, and Momentum 0.38 "Positive". The momentum is the new
+  `past_monthly_strength_momenta = { 0.38553 }`, equal to `value` a month after founding. The
+  view's "+4.55" next to the share is not explained yet. The contact's diplomacy screen shows its
+  ideology's icon (`screenshot_2026-11-24_19-19-56.png`), with only Intel 10 on the empire itself.
+- **Tenets (2200.06.01 / 07.01, after `add_ideological_strength = 800` and codifying three):**
+  the top level `tenets = { <id> = { type="tenet_epistocracy" tier=1 } … }` holds the tenets (data DB
+  `tenet`, `tenet_tier`). The ideology holds `tenet_info = { { tenet=<id> cooldown="<date>" } … }`
+  and `pending_tenets = { { tenets = { three keys on offer } tenets_rerolls_count } … }`, one
+  entry per slot, keys only while a choice is open. The adopter's module holds
+  `active_tenets = { <ids> }`. **The tier is the slot**: I, II, III, which the view shows as
+  "Intensity" (Laterality in slot III: "Intensity 3", screenshot
+  `screenshot_2026-11-24_19-23-15.png`). While levels wait to be codified, the module holds
+  `index=3`, `pending_levels=2` and `ideology_stagnating=yes`. The slots opened one at a time
+  as each was codified, though 800 strength passed all three marks at once. Momentum is the
+  monthly change of `value` (800.39 → 796.77: −3.61, the view's "Low"; screenshot `…19-23-21`).
+  Also new: `affected_empires` lists an empire our reach touches with `faction=4294967295`
+  (none). At the top level, `num_potential_followers`.
 - Tenets: a top-level `tenets = { }` after `contracts` (empty in a 4.6 autosave with no ideology
-  founded, 2227.10.01, 2026-11-24). Not yet seen filled: the likely home of codified tenets and
-  their Intensity, which no game file states (the planner's open check).
+  founded, 2227.10.01, 2026-11-24). Seen filled the same day: the next entries ("Tenets").
+
+## Ambitions (4.6.0, throwaway save 2200.08.01, 2026-11-24)
+
+Staged with `add_ascension_perk` (which runs the perk's `on_enabled`): Force of Will for us,
+Become the Crisis for the one AI we talk to, Galactic Hyperthermia for one we do not.
+
+- **`country.<id>.crisis_progression = { path="<crisis_path.key>" level="<crisis_level.key>" }`**:
+  `force_of_will_path` / `crisis_force_of_will_level_1`, `nemesis_path` / `crisis_level_1`.
+  The Hyperthermia AI had `path` and no `level` yet, a month after the perk. The perk itself is
+  in `ascension_perks`, already read as `Snapshot.ascensionPerks`. The currency is an ordinary
+  resource in the stockpile (`willpower`, `menace`, …; data DB `crisis_path.currency`).
+- In game our ambition is a Situation Log entry, "Developments" → "Force of Will": "Ambition
+  Level Reached: 1/5" and the special project gating the next level (screenshot
+  `~/Pictures/Screenshots/screenshot_2026-11-24_19-25-02.png`).
+- **What reveals another empire's ambition: its personality**, which the diplomacy screen
+  shows under the government (`country.<id>.personality`, read as `personality` by
+  `save/country.ts`). The Become-the-Crisis AI went from "Hegemonic Imperialists" to
+  `became_the_crisis` ("Crisis Aspirant") within the month, at Intel 10 (screenshot
+  `screenshot_2026-11-24_19-29-20.png`). The unknown AI got `hyperthermia_empire` ("Thermarchy").
+  From `common/personalities/00_personalities.txt`: `became_the_crisis` allows on
+  `ap_become_the_crisis`, `hyperthermia_empire` on `ap_galactic_hyperthermia`,
+  `utopian_missionaries` ("Utopian Missionaries") on `crisis_force_of_will_level_2` (Force of
+  Will from its level 2 only). Defender's `galactic_defense_force` belongs to the GDF country
+  type, not to the perk. Behemoths and Cosmogenesis have no personality: see
+  `docs/open-points.md` for their other signals. Only shown to an empire we talk to.
