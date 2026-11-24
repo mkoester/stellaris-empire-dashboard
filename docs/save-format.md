@@ -682,7 +682,11 @@ Become the Crisis for the one AI we talk to, Galactic Hyperthermia for one we do
 
 - **`country.<id>.crisis_progression = { path="<crisis_path.key>" level="<crisis_level.key>" }`**:
   `force_of_will_path` / `crisis_force_of_will_level_1`, `nemesis_path` / `crisis_level_1`.
-  The Hyperthermia AI had `path` and no `level` yet, a month after the perk. The perk itself is
+  The Hyperthermia AI had `path` and no `level` yet, a month after the perk. **From level 2 the
+  key repeats**, one per level reached, in order (throwaway `unitednationsofearth4_-337465913`,
+  2200.10.01), e.g.
+  `level="crisis_force_of_will_level_1" level="crisis_force_of_will_level_2"`;
+  jomini gives an array, read its last entry (READER 80). The perk itself is
   in `ascension_perks`, already read as `Snapshot.ascensionPerks`. The currency is an ordinary
   resource in the stockpile (`willpower`, `menace`, …; data DB `crisis_path.currency`).
 - In game our ambition is a Situation Log entry, "Developments" → "Force of Will": "Ambition

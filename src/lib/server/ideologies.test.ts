@@ -103,6 +103,23 @@ describe('ideologies', () => {
 });
 
 describe('ambitions', () => {
+	it('takes the last of the levels a save repeats from level 2 on', () => {
+		// throwaway unitednationsofearth4_-337465913, 2200.10.01: the Falleran Star Dynasty on Force
+		// of Will level 2 ("Utopian Missionaries" in game) read as no level at all (2026-11-24)
+		const [row] = ambitions({
+			countryBlocks: {
+				16777219: {
+					personality: 'utopian_missionaries',
+					crisis_progression: {
+						path: 'force_of_will_path',
+						level: ['crisis_force_of_will_level_1', 'crisis_force_of_will_level_2']
+					}
+				}
+			}
+		});
+		expect(row.level).toBe('crisis_force_of_will_level_2');
+	});
+
 	it("reads each empire's crisis path, its level (none yet) and its personality", () => {
 		const rows = ambitions({
 			countryBlocks: {

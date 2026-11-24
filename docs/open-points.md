@@ -88,6 +88,13 @@ screen, trade calibration, stored research, releases).
   shapes in `docs/save-format.md`). The 2026-11-03 plan's `ambitionsAll` spoiler became the user's
   split: `ambitionsRevealed` (spoiler: what a personality gave away) and `ambitionsAll` (cheat).
   Open:
+  - **Seen in game 2026-11-24** (throwaway `unitednationsofearth4_-337465913`, Ideological Rivals'
+    rivals, saves 2200.08.01–2200.10.01, screenshots `~/Pictures/Screenshots/screenshot_2026-11-24_21-42-06`,
+    `21-43-06`): a Force of Will AI staged to level 2 (1000 willpower, the first project's flag,
+    an Absolute ethic) turned "Utopian Missionaries" within the month; its opinion of us holds no
+    ambition modifier. A Nemesis AI was `became_the_crisis` at level 1, and a Hyperthermia AI was
+    `hyperthermia_empire` with no level reached at all: both personalities come before level 2.
+    The level read as none from level 2 on (the save repeats `level`): fixed in READER 80.
   - Revealed by more than a personality: Hyperthermia's "Thermarchy Empire" opinion from level 2,
     Nemesis' alerts and "Galactic Crisis Declared", Behemoth's warnings at level 5, and Defender's
     opinion (4.5.3 files). The spoiler reads only the personality.

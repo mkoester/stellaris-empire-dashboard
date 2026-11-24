@@ -683,22 +683,19 @@ shapes: `docs/save-format.md` ("Ideologies", "Ambitions"). Background: `docs/ope
      and scroll to the Spiritualist Religions.
    - **Send:** the screenshot. Check: each name against the tab with `ideologiesAll` on; a miss
      shows how the prefix is cut (`ideologyWord()` in `server/save/values.ts`).
-3. **The Ideologies view's fist count.** The "%" is settled (2026-11-24, see `docs/open-points.md`);
+2. **The Ideologies view's fist count.** The "%" is settled (2026-11-24, see `docs/open-points.md`);
    the "0" beside the fist icon is not read yet.
    - **Do:** hover it on a foreign ideology.
    - **Send:** the tooltip. Then find the matching save field.
-4. **Ambitions revealed beyond the personality.** The spoiler reads only the personality.
-   - Force of Will's "Utopian Missionaries" comes only from its level 2. For an AI, give it the
-     path's currency and complete the first special project (`complete_special_project`; the
-     project key is in `common/special_projects/`, "Spreading Our Message"), plus an Absolute
-     ethic, which the requirements also ask for.
+3. **Ambitions revealed beyond the personality.** The spoiler reads only the personality.
+   - Force of Will: done 2026-11-24 (see `docs/open-points.md`).
    - Nemesis level 2: 1000 menace (`resource menace 1000` while playing that empire, see "Observer
      mode" in the workspace `AGENTS.md`) and the first Become the Crisis special project.
    - Hyperthermia's opinion "Thermarchy Empire" needs level 2, which needs the Galactic Crucible
      megastructure: likely too heavy to stage. Skip unless a campaign gets there.
    - **Send:** the AI's diplomacy screen and the opinion tooltip after each. Check: what the game
      shows at each level, so `REVEALING` (`#lib/ambitions.ts`) can count opinions too.
-5. **The two tabs in a browser.** Only server renders were checked (`scripts/check-pages.mjs`, all
+4. **The two tabs in a browser.** Only server renders were checked (`scripts/check-pages.mjs`, all
    96 pages fine).
    - **Do:** open both tabs on the throwaway's dashboard, once with every switch off and once with
      the spoiler and the cheats on.

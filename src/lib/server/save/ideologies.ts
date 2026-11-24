@@ -58,6 +58,7 @@ export function ideologies(
 /**
  * Every empire's ambition: `country.<id>.crisis_progression = { path level }` (docs/save-format.md,
  * "Ambitions"), with its personality, which is what the game reveals of it. Galaxy-wide.
+ * From level 2 the save repeats `level` for every level reached, in order: the last is the current.
  */
 export function ambitions(raw: Pick<RawSave, 'countryBlocks'>): AmbitionRow[] {
 	return entries(raw.countryBlocks).flatMap(([id, c]) => {
@@ -67,7 +68,7 @@ export function ambitions(raw: Pick<RawSave, 'countryBlocks'>): AmbitionRow[] {
 					{
 						countryId: Number(id),
 						path,
-						level: strOrNull(c.crisis_progression.level),
+						level: strOrNull([c.crisis_progression.level].flat().at(-1)),
 						personality: strOrNull(c.personality)
 					}
 				]
