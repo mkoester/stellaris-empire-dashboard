@@ -637,3 +637,17 @@ Not read yet: notes for an Ideology map mode. Seven ideologies, founded with `de
   reach, as clouds in their flag colour with their flag icons, the same day (screenshot
   `2026_11_23_1`): reach on the map is not intel-gated, so a dashboard map mode needs no
   `intel` flag for it. Also `flags.ideology_initiated`; factions carry `adopted_ideology` too.
+- **2026-11-24 (throwaway, 2200.03.01, 18 ideologies from `devtools.21`, 32 AIs all talking to
+  each other, none to us):** the module no longer has `detected_ideologies`. Instead it has
+  `intel = { <ideology id> = { intel max_reached_intel } }`: 100 for the empire's own ideology,
+  15 for each of the other 17 at every AI. We knew nobody, and our module was empty (`{ }`). The
+  thresholds are engine-side (no `common/intel_categories/` file). An adopter's module also
+  holds `adopted_ideology`, `value` (Ideological Strength, 0 a month after founding), `index`
+  (the strength level, 0-based), `stage_durations` (the four bands `start`/`end`: 0–250 … 750–1000,
+  data DB `ideology_strength_level`), `past_monthly_strength_values` (momentum's history,
+  `IDEOLOGICAL_MOMENTUM_MONTHS_COUNT` = 120) and `pending_levels`. Per ideology, also
+  `last_reroll_date`, `custody_cooldown_date` (10 years after founding) and `advocates` (leader
+  ids). No tenets anywhere yet, a month after founding.
+- Tenets: a top-level `tenets = { }` after `contracts` (empty in a 4.6 autosave with no ideology
+  founded, 2227.10.01, 2026-11-24). Not yet seen filled: the likely home of codified tenets and
+  their Intensity, which no game file states (the planner's open check).
