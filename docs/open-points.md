@@ -95,6 +95,17 @@ screen, trade calibration, stored research, releases).
     ambition modifier. A Nemesis AI was `became_the_crisis` at level 1, and a Hyperthermia AI was
     `hyperthermia_empire` with no level reached at all: both personalities come before level 2.
     The level read as none from level 2 on (the save repeats `level`): fixed in READER 80.
+  - **Empty names in the ambitions tab** (2026-11-24, switches off, screenshot `21-53-57`):
+    Force of Will level 2 "Gives: Ethical Authority, , Galactic Awareness", levels 3 and 5 "Has
+    completed the Special Project". The texts end in scripted loc the extractor does not know
+    (`menp_force_of_will_cultural_envoys` → `$cultural_envoy_ship_plural$` →
+    `[GetCulturalEnvoyNamePlural]`; `FORCE_OF_WILL_SPECIAL_PROJECT_2` / `_4` =
+    `[GetFoWProject2Name]` / `[GetFoWProject4Name]`, a spiritualist variant or a default in
+    `common/scripted_loc/16_scripted_loc_forceofwill.txt`). `_clean_loc` resolves only the names
+    in its `_SCRIPTED_LOC` table and drops the rest. Fix in the extractor: read every
+    `defined_text`'s `default` key from `common/scripted_loc/` (or the empire's variant, where
+    the dashboard knows the ideology). The ideologies tab looked right, "Authority of Ba Grax"
+    included.
   - Revealed by more than a personality: Hyperthermia's "Thermarchy Empire" opinion from level 2,
     Nemesis' alerts and "Galactic Crisis Declared", Behemoth's warnings at level 5, and Defender's
     opinion (4.5.3 files). The spoiler reads only the personality.

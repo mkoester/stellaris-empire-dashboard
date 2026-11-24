@@ -695,10 +695,10 @@ shapes: `docs/save-format.md` ("Ideologies", "Ambitions"). Background: `docs/ope
      megastructure: likely too heavy to stage. Skip unless a campaign gets there.
    - **Send:** the AI's diplomacy screen and the opinion tooltip after each. Check: what the game
      shows at each level, so `REVEALING` (`#lib/ambitions.ts`) can count opinions too.
-4. **The two tabs in a browser.** Only server renders were checked (`scripts/check-pages.mjs`, all
-   96 pages fine).
-   - **Do:** open both tabs on the throwaway's dashboard, once with every switch off and once with
-     the spoiler and the cheats on.
+4. **The two tabs in a browser.** All switches off: seen 2026-11-24 (throwaway
+   `unitednationsofearth4_-337465913`, 2205.10.01, screenshots
+   `~/Pictures/Screenshots/screenshot_2026-11-24_21-53-44`, `21-53-57`); findings in
+   `docs/open-points.md`. Still to do: once more with the spoiler and the cheats on.
    - **Send:** screenshots of anything misplaced.
 
 Not checks but open work, in `docs/open-points.md`: each objective's reward in this galaxy, months
