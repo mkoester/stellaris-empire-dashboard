@@ -110,6 +110,9 @@ showed two queries. Measure the packaged path, not `vite dev`:
 ("planet name zrobots" for Yorphia). Never regex a fixed window of the raw `gamestate` from a
 country's start: it runs into the next country's block and reads their values (2026-10-24: a
 "lost" silo that was there all along) — bound the block by its braces, or use the snapshot.
+A raw search over a 4.6 gamestate (45 MB) is quickest with `grep -n -a` for the keys, then `sed -n`
+the line range: a Python regex that walked every country block ran past two minutes
+(2026-11-24). The nearest line above a hit that matches `^\t<id>=$` names the country it sits in.
 
 **The current throwaway game** (2026-10-24): `yorphianextractorate_888024433` (Machine
 Intelligence, Shroud-Forged; companion mod 0.5.0). Holds: console stockpiles, a planet and a

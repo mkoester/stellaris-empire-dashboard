@@ -668,6 +668,51 @@ column says "military fleet" — whether an arkship's battle counts is not check
 - **Send:** the save, and whether the contract counted the arkship's win. Check: where the save
   stores the spinal module (the starbase's `modules`, or elsewhere), then let `acceptNeeds()` read it.
 
+### 44. Ideologies and ambitions — ideologies and ambitions tabs (from 2026-11-24)
+
+Built 2026-11-24 from the throwaway `unitednationsofearth2_-629118313` (Willpower, 32 AIs, our
+Human Liberalism with three tenets, Force of Will for us, Nemesis for the Commonwealth of Man, the
+one AI we talk to, and Hyperthermia for an unknown AI). Continue in that game: its saves up to
+2200.08.01 are the test material. Read the workspace's `docs/vanilla-behaviour.md` first. Save
+shapes: `docs/save-format.md` ("Ideologies", "Ambitions"). Background: `docs/open-points.md`
+("Ambitions and ideologies, built 2026-11-24").
+
+1. **One-word ideology names.** The tab's "Raxycodiumity", "Jurinnism" and "Tchaaskeranology"
+   take the species name as the prefix; the engine's `GetPrefixFromAdj` may cut it differently.
+   - **Do:** `event devtools.5` (communications with every empire), then open the Ideologies view
+     and scroll to the Spiritualist Religions.
+   - **Send:** the screenshot. Check: each name against the tab with `ideologiesAll` on; a miss
+     shows how the prefix is cut (`ideologyWord()` in `server/save/values.ts`).
+2. **A foreign ideology's codified tenets.** The tab shows them from the save; the game's view
+   showed only empty slots, since none was codified.
+   - **Do:** `effect random_country = { limit = { has_country_flag = sdash_t_known } add_ideological_strength = 300 }`,
+     let a month or two pass (the AI codifies by itself, presumably).
+   - **Send:** the Ideologies view, Human Expansionism's slots, and the autosave. Check: the
+     same tenets in the tab's plain view; if the game hides them, show them only with the cheat.
+3. **The Ideologies view's "+4.55" and its "0" count.** Not read yet.
+   - **Do:** hover both on our ideology and on a foreign one.
+   - **Send:** the tooltips. Then find the matching save fields.
+4. **Ambitions revealed beyond the personality.** The spoiler reads only the personality.
+   - Force of Will's "Utopian Missionaries" comes only from its level 2. For an AI, give it the
+     path's currency and complete the first special project (`complete_special_project`; the
+     project key is in `common/special_projects/`, "Spreading Our Message"), plus an Absolute
+     ethic, which the requirements also ask for.
+   - Nemesis level 2: 1000 menace (`resource menace 1000` while playing that empire, see "Observer
+     mode" in the workspace `AGENTS.md`) and the first Become the Crisis special project.
+   - Hyperthermia's opinion "Thermarchy Empire" needs level 2, which needs the Galactic Crucible
+     megastructure: likely too heavy to stage. Skip unless a campaign gets there.
+   - **Send:** the AI's diplomacy screen and the opinion tooltip after each. Check: what the game
+     shows at each level, so `REVEALING` (`#lib/ambitions.ts`) can count opinions too.
+5. **The two tabs in a browser.** Only server renders were checked (`scripts/check-pages.mjs`, all
+   96 pages fine).
+   - **Do:** open both tabs on the throwaway's dashboard, once with every switch off and once with
+     the spoiler and the cheats on.
+   - **Send:** screenshots of anything misplaced.
+
+Not checks but open work, in `docs/open-points.md`: each objective's reward in this galaxy, months
+to the next ambition level, an ideology's level modifiers. And the zips pin extractor v0.1.25:
+move `extractorVersion` to v0.1.26 or later at the next release, or players see tenets by their keys.
+
 ## C. Not in the game
 
 ### 37. Upkeep what-ifs and the net in trade — government, species, traditions, tech tabs (from 2026-11-15)
