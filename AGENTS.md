@@ -29,7 +29,7 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
-  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14 and 2026-11-06.
+  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14, 2026-11-06 and 2026-11-24.
 
 Cross-project conventions come from the OKF vault; workspace rules from `../AGENTS.md`.
 
