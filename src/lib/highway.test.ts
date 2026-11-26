@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
 	closeFriends,
+	gateText,
 	highwayMarks,
 	highwaySystem,
 	highwayView,
+	isHighwayResolution,
 	nextStep,
 	readHighway,
 	techState,
@@ -53,6 +55,20 @@ const countryBlocks = {
 	8: { type: 'fallen_empire', name: { key: 'Fallen' }, visited_objects: [10, 11, 20, 21] },
 	9: 'none'
 };
+const readArgs = () => ({
+	systems,
+	megastructures: {
+		1: { type: 'ahw_gate_1', coordinate: { origin: 20 } },
+		2: { type: 'ahw_gate_broken_2', coordinate: { origin: 21 } }
+	},
+	globalFlags: [] as string[],
+	countryId: 0,
+	countryBlocks,
+	stationOwner: (s: { owner?: number }) => s?.owner ?? null,
+	nameOf: () => '?',
+	playerPortals: [] as number[],
+	date: '2217.06.01'
+});
 const read = (
 	globalFlags: string[] = ['ahw_sealed_2', 'ahw_express_awake', 'ahw_express_open_1']
 ) =>
@@ -68,7 +84,8 @@ const read = (
 		countryBlocks,
 		stationOwner: (s) => s?.owner ?? null,
 		nameOf: (c) => c?.name?.key ?? '?',
-		playerPortals: []
+		playerPortals: [],
+		date: '2217.06.01'
 	})!;
 
 describe('highwaySystem', () => {
@@ -97,7 +114,8 @@ describe('readHighway', () => {
 				countryBlocks: {},
 				stationOwner: () => null,
 				nameOf: () => '',
-				playerPortals: []
+				playerPortals: [],
+				date: '2200.01.01'
 			})
 		).toBeNull();
 	});
@@ -113,7 +131,10 @@ describe('readHighway', () => {
 				stage: 'repaired',
 				sealed: false,
 				exitId: 11,
-				ours: true
+				ours: true,
+				repairLeft: null,
+				repairDropped: false,
+				forcedOpenUntil: null
 			},
 			{
 				systemId: 21,
@@ -123,9 +144,43 @@ describe('readHighway', () => {
 				stage: 'broken',
 				sealed: true,
 				exitId: 11,
-				ours: false
+				ours: false,
+				repairLeft: null,
+				repairDropped: false,
+				forcedOpenUntil: null
 			}
 		]);
+	});
+	// The repair count as the mod's `ahw_repair_count_start` / `ahw_repair_watch` write it: star
+	// flags and a system variable like `ahw_reach` (no save with a repair under way yet).
+	it('reads a repair under way, and one whose upgrade the engine dropped', () => {
+		const portal = {
+			...systems[21],
+			flags: flags('ahw_portal', 'ahw_unclaimable', 'ahw_entry_2', 'ahw_broken', 'ahw_repairing'),
+			variables: { ahw_repair_left: 42 }
+		};
+		const h = readHighway({ ...readArgs(), systems: { ...systems, 21: portal } })!;
+		expect(h.portals[1]).toMatchObject({ stage: 'broken', repairLeft: 42, repairDropped: false });
+		const dropped = { ...portal, flags: { ...portal.flags, ...flags('ahw_repair_dropped') } };
+		const d = readHighway({ ...readArgs(), systems: { ...systems, 21: dropped } })!;
+		expect(d.portals[1]).toMatchObject({ repairLeft: 42, repairDropped: true });
+	});
+	// UNE 6's 2208.01.02.sav (4.5.4): Force a Gate Open passed against country 15's gate,
+	// whose portal holds the timed flag (flag_days: the days left).
+	it('reads a gate forced open: no seal until the timed flag runs out', () => {
+		const forced = {
+			...systems[21],
+			flags: {
+				...flags('ahw_portal', 'ahw_unclaimable', 'ahw_entry_2', 'ahw_studied'),
+				ahw_forced_open: { flag_date: 62869224, flag_days: 3320 }
+			}
+		};
+		const h = readHighway({
+			...readArgs(),
+			systems: { ...systems, 21: forced },
+			date: '2208.01.02'
+		})!;
+		expect(h.portals[1].forcedOpenUntil).toBe('2217.03.22');
 	});
 	it('reads the express links: dormant before the mid game, then open or closed, stable for good', () => {
 		expect(read().express).toEqual([{ link: 1, a: 10, b: 11, state: 'open' }]);
@@ -142,11 +197,46 @@ describe('readHighway', () => {
 			headStart: true,
 			granted: { theory: 0.65, construction: 0.65 },
 			techs: { theory: 'researched', construction: 500 },
-			known: [10, 20]
+			known: [10, 20],
+			fragments: []
 		});
 		expect(h.others.map((o) => [o.name, o.techs.theory, o.known])).toEqual([
 			['Lavan Order', 120, [21]]
 		]);
+	});
+});
+
+// The Roaming Cybergang's autosave_2231.10.01 (4.6.0, a nomad): the fragments it found.
+describe('fragments', () => {
+	it('lists the story fragments found from the country flags', () => {
+		const us = {
+			...countryBlocks[0],
+			flags: {
+				ahw_highway_studied: 62946000,
+				ahw_frag_14: 63016512,
+				ahw_frag_21: 63017880,
+				ahw_frag_20: 63031656,
+				ahw_frag_18: 63041976
+			}
+		};
+		const h = readHighway({ ...readArgs(), countryBlocks: { ...countryBlocks, 0: us } })!;
+		expect(h.us.fragments).toEqual([14, 18, 20, 21]);
+	});
+});
+
+describe('gateText and resolutions', () => {
+	it('names a gate with its repair, seal and forced opening', () => {
+		expect(gateText({ stage: 'broken', sealed: false, repairLeft: 42 })).toBe(
+			'broken, repairing (42 days left)'
+		);
+		expect(gateText({ stage: 'repaired', sealed: false, forcedOpenUntil: '2217.03.22' })).toBe(
+			'repaired, forced open until 2217.03.22'
+		);
+		expect(gateText({ stage: 'studied', sealed: true })).toBe('studied, sealed');
+	});
+	it("tells the mod's resolutions from vanilla ones", () => {
+		expect(isHighwayResolution('resolution_ahw_share_charts_repeal')).toBe(true);
+		expect(isHighwayResolution('resolution_galactic_market_form')).toBe(false);
 	});
 });
 
@@ -246,5 +336,15 @@ describe('nextStep', () => {
 		expect(nextStep({ ...h.portals[1], anchorOwnerId: 0, stage: 'studied' }, h.us)).toMatch(
 			/research Highway Gate Theory and Construction/
 		);
+		expect(nextStep({ ...h.portals[1], anchorOwnerId: 0, repairLeft: 42 }, h.us)).toBe(
+			'repair under way: 42 days left'
+		);
+		expect(
+			nextStep({ ...h.portals[1], anchorOwnerId: 0, repairLeft: 3, repairDropped: true }, h.us)
+		).toMatch(/^repair under way: 3 days left \(the gate changed hands/);
+		expect(nextStep({ ...h.portals[0], forcedOpenUntil: '2217.03.22' }, h.us)).toBe(
+			'repaired and open, forced open by the Galactic Community: no seal until 2217.03.22'
+		);
+		expect(nextStep(undefined, h.us, true)).toMatch(/^a nomad gets no portal/);
 	});
 });

@@ -2,7 +2,14 @@
 	import EmpireName from '#lib/EmpireName.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import HighwayMarks from '#lib/HighwayMarks.svelte';
-	import { GRANT_CAP, STAGE_COLOR, type HighwayWhy, type TechState } from '#lib/highway.ts';
+	import {
+		FRAGMENTS,
+		GATE_WINDUP_DAYS,
+		GRANT_CAP,
+		STAGE_COLOR,
+		type HighwayWhy,
+		type TechState
+	} from '#lib/highway.ts';
 	import { followGame } from '#lib/live.ts';
 	import type { MapWidth } from '#lib/mapView.ts';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -79,8 +86,12 @@
 	let otherSort = $state({ column: '', desc: false });
 </script>
 
-{#snippet stageCell(p: PortalRow)}<span style:color={STAGE_COLOR[p.stage]}>{p.stage}</span>{p.sealed
-		? ' · sealed'
+{#snippet stageCell(p: PortalRow)}<span style:color={STAGE_COLOR[p.stage]}>
+		{p.stage}
+	</span>{p.repairLeft !== null && p.repairLeft !== undefined
+		? ` · repairing, ${p.repairLeft} days left`
+		: ''}{p.sealed ? ' · sealed' : ''}{p.forcedOpenUntil
+		? ` · forced open until ${p.forcedOpenUntil}`
 		: ''}{p.ours ? ' · ours' : ''}{/snippet}
 {#snippet whyCell(r: { why: HighwayWhy })}<span class={WHY[r.why].cls}>
 		{WHY[r.why].label}
@@ -119,7 +130,7 @@
 
 		<Panel
 			title="Gate techs"
-			note={`Studying a gate grants 15 % of each, a gate someone else repaired 50 % (the head start), inspecting other gates and centres 5–7 % each; all grants together at most ${GRANT_CAP * 100} %. Costs ≈: base × the galaxy's research slider and difficulty, empire size left out.`}
+			note={`Studying a gate grants 15 % of each, a gate someone else repaired 50 % (the head start), inspecting another empire's gate, the ring or a centre 7–10 % each, each vanilla travel tech 10 %, and close friends and contacts who hold a gate tech up to 3 % a year; all grants together at most ${GRANT_CAP * 100} %. Costs ≈: base × the galaxy's research slider and difficulty, empire size left out.`}
 		>
 			<ul class="flex flex-col gap-1 text-sm">
 				{#each h.us.techs as t (t.key)}
@@ -139,6 +150,46 @@
 				</li>
 			</ul>
 		</Panel>
+
+		{#if h.galcom}
+			<Panel
+				title="In the Galactic Community"
+				note={h.galcom.canPropose
+					? 'We may propose the highway’s resolutions: our gate is repaired and we know Gate Theory.'
+					: 'Only a member with a repaired gate it can use (and Gate Theory) proposes them; a repeal anyone may.'}
+			>
+				{#if h.galcom.resolutions.length}
+					<ul class="text-sm">
+						{#each h.galcom.resolutions as r (`${r.state}-${r.id}`)}
+							<li>
+								<span class="font-semibold">{r.name}</span>
+								<span class="text-gray-500">
+									{r.state === 'proposed'
+										? ' · proposed by '
+										: ` · ${r.state} · proposed by `}<EmpireName name={r.proposer} />{r.ours
+										? ` · we voted ${r.ours}`
+										: ''}
+								</span>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<p class="text-sm text-gray-500">
+						None of the highway's resolutions is in force, voted on or proposed. Force a Gate Open
+						acts once: a gate it opened shows as forced open above.
+					</p>
+				{/if}
+			</Panel>
+		{/if}
+
+		{#if h.us.studied || h.fragments.length}
+			<Panel
+				title="The story"
+				note="A fragment of the highway's story comes with the first visit to each foreign portal and each further reach of the ring."
+			>
+				<p class="text-sm">{h.fragments.length} of {FRAGMENTS} fragments found.</p>
+			</Panel>
+		{/if}
 
 		{#if h.studies.length}
 			<Panel title="Open studies ({h.studies.length})">
@@ -250,13 +301,32 @@
 				<dt class="font-semibold">Repair</dt>
 				<dd>
 					An upgrade on the broken gate (300 alloys, 50 influence, 90 days) — or a nomad hired by
-					contract. Once, for good.
+					contract. Once, for good. The mod counts the 90 days itself: a repair goes on when the
+					anchor changes hands, finished for the gate's new owner.
 				</dd>
 				<dt class="font-semibold">Head start</dt>
 				<dd>The anchor's owner gets 50 % of each tech when someone else repaired its gate.</dd>
 				<dt class="font-semibold">Seal</dt>
 				<dd>
 					The gate's Open/Sealed switch: blocks both ways for all but the owner and its friends.
+				</dd>
+				<dt class="font-semibold">Wind-up</dt>
+				<dd>
+					A jump through a gate winds up {GATE_WINDUP_DAYS} days before the fleet moves, so a trip through
+					the ring (in at one gate, out at another) waits {2 * GATE_WINDUP_DAYS} days; express links jump
+					at once. Jumps and distances on the dashboard count a gate as one jump and leave the wind-up
+					out.
+				</dd>
+				<dt class="font-semibold">Who passes</dt>
+				<dd>
+					Empires (nomads too), caravaneers and enclaves; from the mid game also fallen empires and
+					marauders. Never space fauna, guardians, crises, pirates or rebels.
+				</dd>
+				<dt class="font-semibold">Resolutions</dt>
+				<dd>
+					Share Ring Charts (every member learns the ring nodes any member charted), Unrepaired
+					Gates (a member owning a broken gate it could repair is in breach), Force a Gate Open (a
+					sealed gate opens to all, and its seal is refused for 10 years).
 				</dd>
 				<dt class="font-semibold">Express</dt>
 				<dd>

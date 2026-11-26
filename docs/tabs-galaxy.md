@@ -425,3 +425,20 @@ touched tab 200. **Run 43 reads as multiplayer** (its `player` block names the a
 check 27), so both switches are barred there — they are checked by unit tests only, and the
 drawing is not seen in a browser yet. **A flag the mod renames breaks this silently**: change
 `#lib/highway.ts` with it.
+
+**Since the mod's 1.0.0** (2026-11-26, READER 83): a **repair under way** — the mod counts the 90
+days itself (star flag `ahw_repairing`, system variable `ahw_repair_left`; `ahw_repair_dropped`
+once an owner loss took the engine's upgrade, the count going on), shown on the gate and as the
+next step; no save with one yet, so the test's shape follows the mod's script. A gate **forced
+open** by the Galactic Community (timed star flag `ahw_forced_open`, `flag_days` the days left):
+no seal until then. The mod's **resolutions** (`resolution_ahw_*`) in force, voted on or proposed,
+from `Snapshot.galcom`, and whether we may propose them (member, our gate repaired, Gate Theory:
+the mod's `ahw_can_use_own_gate`); Force a Gate Open is one-shot (a `pass_date`, never in
+`passed`), so only the gate shows it. The **story fragments** we found (country flags
+`ahw_frag_11`–`_22`, of 12). A nomad's next step says it gets no portal. The terms add the
+60-day **wind-up** per gate (two per trip; express links none — jumps here leave it out) and
+**who passes** (empires, caravaneers, enclaves; fallen empires and marauders from the mid game).
+Checked on a throwaway DB, dev server: UNE 6 (`2208.01.02.sav`, 4.5.4: our gate forced open
+until 2218.02.22, two resolutions in force, the repeal proposed) and the Roaming Cybergang's
+`autosave_2231.10.01` (4.6.0, a nomad: 4 of 12 fragments); names were keys there (no launcher DB,
+so no mod texts).

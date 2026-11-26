@@ -24,7 +24,10 @@ All notable changes to this project are documented here. The format follows
   Two switches in ⚙: a spoiler (what your friends know of the ring) and a cheat (what every
   other empire knows). The mod's centres show as special stars with its gentler effects, jumps
   and distances count the gates and express links you can use, and the ring's systems and portals
-  are never offered for outposts, colonies or megastructures.
+  are never offered for outposts, colonies or megastructures. A repair under way shows
+  its days left, a gate the Galactic Community forced open the date it may be sealed again; the
+  highway's resolutions in the Community, the story fragments found, and in the terms the gates'
+  60-day wind-up and who may pass. A nomad is told it gets no portal.
 
 ## [0.2.0] - 2026-11-23
 

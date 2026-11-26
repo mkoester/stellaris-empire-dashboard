@@ -10,6 +10,8 @@
 // someone else repaired: 50 % of each tech), **seal** (Open/Sealed); **express stations** joined
 // by **express links**, dormant until the mid game, then unstable until stabilised.
 
+import { addGameDays } from './series.ts';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Raw = any;
 
@@ -17,6 +19,10 @@ export const THEORY = 'ahw_tech_gate_theory';
 export const CONSTRUCTION = 'ahw_tech_gate_construction';
 /** All grants together give at most this share of each tech (`ahw_grant_tech`). */
 export const GRANT_CAP = 0.8;
+/** Days a jump through a gate winds up (the mod's `GATE_WINDUP`, 1.0.0); express links: none. */
+export const GATE_WINDUP_DAYS = 60;
+/** The story's fragments: country flags `ahw_frag_11` … `ahw_frag_22`, one per first visit. */
+export const FRAGMENTS = 12;
 
 /** What a highway system is, on `GalaxySystem.highway`. */
 export type HighwaySystem = {
@@ -38,6 +44,15 @@ export type HighwayPortal = {
 	sealed: boolean; // global flag `ahw_sealed_N`
 	exitId: number | null; // the ring node with its exit gate (`ahw_exit_N`)
 	ours: boolean; // our anchor, or the mod's `ahw_player_portal`
+	// a repair under way (1.0.0): days left of the mod's own count (star flag `ahw_repairing`,
+	// variable `ahw_repair_left`), null without one; READER 83 (absent before)
+	repairLeft?: number | null;
+	// the engine dropped its upgrade (the owner was lost) and the mod's count goes on
+	// (`ahw_repair_dropped`); READER 83
+	repairDropped?: boolean;
+	// Force a Gate Open (resolution): no seal until this date (timed star flag `ahw_forced_open`,
+	// 10 years); READER 83
+	forcedOpenUntil?: string | null;
 };
 
 export type ExpressState = 'dormant' | 'open' | 'closed' | 'stable';
@@ -52,6 +67,7 @@ export type HighwayKnowledge = {
 	granted: { theory: number; construction: number }; // shares of each tech granted so far
 	techs: { theory: TechState; construction: TechState };
 	known: number[]; // highway systems it has visited (ring nodes and portals)
+	fragments?: number[]; // the story's fragments found (`ahw_frag_N`, 11–22); READER 83
 };
 /** Researched, or the research points it holds (null: none). */
 export type TechState = 'researched' | number | null;
@@ -132,7 +148,8 @@ function knowledge(
 			construction: Number(v.ahw_got_construction) || 0
 		},
 		techs: { theory: techState(country, THEORY), construction: techState(country, CONSTRUCTION) },
-		known: ids(country?.visited_objects).filter((s) => highwayIds.has(s))
+		known: ids(country?.visited_objects).filter((s) => highwayIds.has(s)),
+		fragments: numbered(flags, 'ahw_frag_').sort((a, b) => a - b)
 	};
 }
 
@@ -149,6 +166,7 @@ export function readHighway(p: {
 	stationOwner: (system: Raw) => number | null;
 	nameOf: (country: Raw, id: number) => string;
 	playerPortals: number[];
+	date: string; // the save's, for the timed flags
 }): Highway | null {
 	const kinds = new Map<number, HighwaySystem>();
 	for (const [key, s] of Object.entries(p.systems)) {
@@ -172,6 +190,8 @@ export function readHighway(p: {
 		const anchorId = lanes.length ? Number(lanes[0]?.to) : null;
 		const anchorOwnerId = anchorId === null ? null : p.stationOwner(p.systems[String(anchorId)]);
 		const repaired = repairedAt.has(id) || !flags.includes('ahw_broken');
+		const left = Number(s?.variables?.ahw_repair_left);
+		const forced = s?.flags?.ahw_forced_open?.flag_days; // days left
 		portals.push({
 			systemId: id,
 			pair: h.pair,
@@ -180,7 +200,11 @@ export function readHighway(p: {
 			stage: repaired ? 'repaired' : flags.includes('ahw_studied') ? 'studied' : 'broken',
 			sealed: global.has(`ahw_sealed_${h.pair}`),
 			exitId: exitOf.get(h.pair) ?? null,
-			ours: anchorOwnerId === p.countryId || p.playerPortals.includes(id)
+			ours: anchorOwnerId === p.countryId || p.playerPortals.includes(id),
+			repairLeft:
+				!repaired && flags.includes('ahw_repairing') && Number.isFinite(left) ? left : null,
+			repairDropped: !repaired && flags.includes('ahw_repair_dropped'),
+			forcedOpenUntil: typeof forced === 'number' && forced > 0 ? addGameDays(p.date, forced) : null
 		});
 	}
 	portals.sort((a, b) => a.pair - b.pair);
@@ -231,15 +255,30 @@ export function techShare(state: TechState, cost: number | null): number | null 
 	return Math.min(1, (state ?? 0) / cost);
 }
 
-/** What our gate needs next, in the mod's words. */
-export function nextStep(portal: HighwayPortal | undefined, us: HighwayKnowledge): string {
-	if (!portal) return 'no portal of ours found';
-	if (portal.stage === 'repaired')
+/** What our gate needs next, in the mod's words (`nomad`: a nomadic empire, which has no portal). */
+export function nextStep(
+	portal: HighwayPortal | undefined,
+	us: HighwayKnowledge,
+	nomad = false
+): string {
+	if (!portal)
+		return nomad
+			? 'a nomad gets no portal: enter one with a broken gate to study it, then, with both techs, repair a gate (its upgrade) or take a repair contract'
+			: 'no portal of ours found';
+	if (portal.stage === 'repaired') {
+		const forced = portal.forcedOpenUntil
+			? `, forced open by the Galactic Community: no seal until ${portal.forcedOpenUntil}`
+			: '';
 		return us.techs.theory === 'researched'
 			? portal.sealed
 				? 'repaired and sealed'
-				: 'repaired and open: usable, can be sealed'
-			: 'repaired: research Highway Gate Theory to use it';
+				: forced
+					? `repaired and open${forced}`
+					: 'repaired and open: usable, can be sealed'
+			: `repaired: research Highway Gate Theory to use it${forced}`;
+	}
+	if (portal.repairLeft !== null && portal.repairLeft !== undefined)
+		return `repair under way: ${portal.repairLeft} days left${portal.repairDropped ? ' (the gate changed hands and the upgrade is gone from it; the mod counts on and finishes it for the gate’s owner)' : ''}`;
 	if (portal.anchorOwnerId !== us.id) return 'claim the anchor (an outpost) to study the gate';
 	if (!us.studied) return 'study the gate with a science ship';
 	if (us.techs.theory !== 'researched' || us.techs.construction !== 'researched')
@@ -373,6 +412,21 @@ export const STAGE_COLOR: Record<GateStage, string> = {
 };
 export const EXPRESS_COLOR = '#a855f7';
 
+/** A gate's state in words: its stage, a repair under way, sealed or forced open. */
+export function gateText(
+	p: Pick<HighwayPortal, 'stage' | 'sealed' | 'repairLeft' | 'forcedOpenUntil'>
+): string {
+	const repairing =
+		p.repairLeft !== null && p.repairLeft !== undefined
+			? `, repairing (${p.repairLeft} days left)`
+			: '';
+	const forced = p.forcedOpenUntil ? `, forced open until ${p.forcedOpenUntil}` : '';
+	return `${p.stage}${repairing}${p.sealed ? ', sealed' : ''}${forced}`;
+}
+
+/** The highway's resolutions (the mod's category), from a Galactic Community reading. */
+export const isHighwayResolution = (type: string) => type.startsWith('resolution_ahw_');
+
 /** The highway on a map, from what the view shows (`names`: system id → name). */
 export function highwayMarks(
 	v: Pick<HighwayView, 'portals' | 'express'>,
@@ -383,7 +437,7 @@ export function highwayMarks(
 		systemId: p.systemId,
 		symbol: p.sealed ? '⛔' : '◈',
 		color: STAGE_COLOR[p.stage],
-		title: `Portal ${name(p.systemId)}: gate ${p.stage}${p.sealed ? ', sealed' : ''}${p.ours ? ' (ours)' : ''}`
+		title: `Portal ${name(p.systemId)}: gate ${gateText(p)}${p.ours ? ' (ours)' : ''}`
 	}));
 	const lines: HighwayLine[] = v.portals.flatMap((p) =>
 		p.exitId === null
@@ -394,7 +448,7 @@ export function highwayMarks(
 						to: p.exitId,
 						kind: 'gate' as const,
 						open: p.stage === 'repaired' && !p.sealed,
-						title: `Gate pair ${p.pair}: ${name(p.systemId)} ↔ ${name(p.exitId)}, ${p.stage}${p.sealed ? ', sealed' : ''}`
+						title: `Gate pair ${p.pair}: ${name(p.systemId)} ↔ ${name(p.exitId)}, ${gateText(p)}`
 					}
 				]
 	);

@@ -6,10 +6,12 @@ import {
 	closeFriends,
 	highwayMarks,
 	highwayView,
+	isHighwayResolution,
 	nextStep,
 	type TechState
 } from '#lib/highway.ts';
 import { modName } from '#lib/modContent.ts';
+import { nomadic } from '#lib/planner/kinds.ts';
 import { mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -55,6 +57,34 @@ export function load({ url }) {
 		granted
 	});
 	const ourPortals = view.portals.filter((p) => p.ours);
+	// the mod's resolutions in the Galactic Community: in force, being voted on, proposed. Force a
+	// Gate Open is one-shot (a `pass_date`, never in `passed`): its effect shows on the gate.
+	const gc = s.galcom;
+	const resolutions = gc
+		? (
+				[
+					['in force', gc.passed],
+					['voting', gc.voting ? [gc.voting] : []],
+					['proposed', gc.proposed]
+				] as const
+			).flatMap(([state, votes]) =>
+				votes
+					.filter((v) => isHighwayResolution(v.type))
+					.map((v) => ({
+						id: v.id,
+						name: modName(data, v.type),
+						state,
+						proposer: v.proposer,
+						ours: v.ours
+					}))
+			)
+		: [];
+	// only an empire with a repaired gate it can use proposes them (the mod's
+	// `ahw_can_use_own_gate`, 1.0.0); the repeal is open to every member
+	const canPropose =
+		!!gc?.member &&
+		h.us.techs.theory === 'researched' &&
+		ourPortals.some((p) => p.stage === 'repaired');
 	return {
 		...rest,
 		date: s.date,
@@ -70,7 +100,9 @@ export function load({ url }) {
 					tech(CONSTRUCTION, h.us.techs.construction, h.us.granted.construction)
 				]
 			},
-			next: nextStep(ourPortals[0], h.us),
+			next: nextStep(ourPortals[0], h.us, nomadic(s)),
+			fragments: h.us.fragments ?? [],
+			galcom: gc ? { member: gc.member, canPropose, resolutions } : null,
 			others: view.others.map((o) => ({
 				...o,
 				techs: [
