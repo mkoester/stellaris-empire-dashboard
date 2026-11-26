@@ -710,6 +710,28 @@ Not checks but open work, in `docs/open-points.md`: each objective's reward in t
 to the next ambition level, an ideology's level modifiers. And the zips pin extractor v0.1.25:
 move `extractorVersion` to v0.1.26 or later at the next release, or players see tenets by their keys.
 
+### 45. Ancient Highway 1.0.0 — highway tab (from 2026-11-26)
+
+Built 2026-11-26 from real saves without a repair under way (`docs/tabs-galaxy.md`, "Since the
+mod's 1.0.0"). A throwaway game with the mod and DevTools; its console events are in
+`../stellaris-mod-AncientHighway/docs/console.md`.
+
+1. **A repair under way.** The reader's shape (star flag `ahw_repairing`, system variable
+   `ahw_repair_left`) follows the mod's script; no save had one.
+   - **Do:** `event ahw_debug.6`, a day, `event ahw_debug.45`, `event ahw_debug.8`, then start the
+     repair on the gate yourself (not `ahw_debug.40`, which finishes it at once); a manual save
+     a few days in.
+   - **Send:** the save's name. Check: the tab says "repair under way: N days left", N as the
+     mod's count (`grep -a -A3 ahw_repair_left` in its gamestate); copy the block into
+     `highway.test.ts` as the fixture.
+2. **Names from the mod's texts.** On a throwaway DB without a launcher DB the resolutions and
+   highway systems read as keys (`resolution_ahw_share_charts`, "ahw portal 2").
+   - **Do:** with the real dashboard (`sdash`), `event ahw_debug.75`, `event ahw_debug.76` (an AI
+     seals its gate), `event ahw_debug.80` (Force a Gate Open against it), then propose Share Ring
+     Charts in the Community (Force a Gate Open acts once and never shows in the panel); a month.
+   - **Send:** a screenshot of the highway tab's Galactic Community panel and the portals table
+     with the cheat on.
+
 ## C. Not in the game
 
 ### 37. Upkeep what-ifs and the net in trade — government, species, traditions, tech tabs (from 2026-11-15)

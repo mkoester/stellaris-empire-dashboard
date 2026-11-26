@@ -36,7 +36,7 @@ one beside the DB, which the sandbox cannot, and every open fails "unable to ope
 (2026-11-16). Or copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir (or a copy of
 one campaign's folder, so a READER bump re-reads only that campaign — it then logs "cannot read
-the launcher's playsets" on every read: no launcher DB beside the copy, harmless, 2026-11-18), then request
+the launcher's playsets" on every read: no launcher DB beside the copy, 2026-11-18; harmless except that no mod's texts load, so what a mod adds is named by its keys — `resolution_ahw_share_charts`, "ahw portal 2", 2026-11-26), then request
 pages and `/__data.json` with curl (to only read what the copy holds, point `STELLARIS_SAVE_DIR` at an
 empty folder: nothing is ingested, the head stays) and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
