@@ -532,7 +532,11 @@ date days_left difficulty clues stage status }` (`leader=4294967295`: none; `sta
   `country.relations_manager.relation = { country contact communications hostile
 relation_current trust threat border_range pre_communications_name }` (`border_range`
   2147483647: not bordering — a nomad's with every empire, 2217.06.01; pacts as flags, see "Pacts
-  are flags" above). Situations `situations.situations.<id> = { country
+  are flags" above). Without communications the reading's `name` is the game's placeholder,
+  a Greek letter ("Chi Aliens", from `pre_communications_name`), while the save's country list
+  holds the real name, type and ethics: a crystal fauna in the Roaming Cybergang campaign,
+  2231.11.01. That list gives every fauna, leviathan, raider and caravaneer fleet empty `ethics`.
+  Situations `situations.situations.<id> = { country
 type progress last_month_progress approach stage }`. Anomalies: `country.events.anomalies =
 { <planet ids> }`, category in `planets.planet.<id>.anomaly`. Special projects
   `country.events.special_project = { id special_project carrier = { type=planet reference } }`,
