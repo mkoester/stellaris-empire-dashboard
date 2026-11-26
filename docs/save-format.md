@@ -545,7 +545,11 @@ type index clues difficulty days_left excavator_fleet completed = { { country da
   "finished" is `index` ≥ the site type's stages (`digSiteDone()`), not a site gone. Megastructures `megastructures.<id> =
 { type coordinate.origin owner }` (2207.03.10: ruined gateways, a ruined quantum catapult, two
   ruined ring world sections).
-- **Event chains** (the situation log; Roaming Cybergang 2226.08.01, READER 71): on the country
+- **Event chains** (the situation log; Roaming Cybergang 2226.08.01, READER 71; corrected
+  2026-11-26, READER 81): in the country's `events` block — beside `anomalies` and
+  `special_project`, not on the country itself, in 4.5.4 (2205.05.16) and 4.6 (2231.08.01) alike;
+  READER 71–80 looked on the country and found nothing, so the frontier's precursor and L-Gate
+  panels stayed empty (the user's Cybrex find, 2231.07.29) —
   `event_chain = { event_chain="l_cluster_chain" scope = { … } counter = { clues=1 } }` per running
   chain — `counter` is absent while every counter is 0 —, and `completed_event_chain="<key>"` per
   finished one (a contract chain repeats). Their counters' maximum is in the files
