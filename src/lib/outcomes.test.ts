@@ -3,7 +3,9 @@ import {
 	branchLabels,
 	displayList,
 	effectText,
+	effectRef,
 	fromTable,
+	ifHead,
 	monthsParts,
 	nowTable,
 	holds,
@@ -14,9 +16,11 @@ import {
 	outcomeText,
 	rewardBadges,
 	rewards,
+	segments,
 	techFlags,
 	techMarkFlags,
 	withProjects,
+	withSpecimens,
 	type Now,
 	type OutcomeNode,
 	type TechMark
@@ -121,8 +125,26 @@ describe('text', () => {
 			'18 months of minerals income (min 250, max 5,000)'
 		);
 		expect(effectText({ t: 'modifier', k: 'flagellating_movement', name: null, days: -1 })).toBe(
-			'flagellating movement (permanent)'
+			'modifier flagellating movement (permanent)'
 		);
+		expect(effectText({ t: 'clear_deposits' })).toBe('the planet’s deposits removed');
+		const egg = { t: 'specimen', k: 'giant_egg_shell', name: 'Giant Egg Shell' } as const;
+		expect(effectRef(egg)).toBe('specimen:giant_egg_shell');
+		const [withCat] = withSpecimens([egg], { giant_egg_shell: 'xeno_geology' });
+		expect(effectText(withCat)).toBe('specimen Giant Egg Shell (xeno geology)');
+	});
+
+	it('paints resources and every L-Gate', () => {
+		expect(
+			segments('12 months of society research income', [
+				{ word: 'society research', color: '#0f0' }
+			])
+		).toEqual([{ s: '12 months of ' }, { s: 'society research', color: '#0f0' }, { s: ' income' }]);
+		expect(segments('L-Gate Insights, L-Gate')).toEqual([
+			{ s: 'L-Gate', lgate: true },
+			{ s: ' Insights, ' },
+			{ s: 'L-Gate', lgate: true }
+		]);
 	});
 
 	it('what months of income and tech progress come to now', () => {
@@ -184,11 +206,14 @@ describe('text', () => {
 
 	it('rewards and tooltip text', () => {
 		const tree = withProjects(icy, { BOTANICAL_GARDEN_PROJECT: garden });
-		expect(rewards(tree)).toContain('+200 leader experience');
+		expect(rewards(tree).map((r) => r.text)).toContain('+200 leader experience');
+		expect(rewards([{ t: 'trait', k: 'leader_trait_x', name: 'X' }])[0].ref).toBe(
+			'ltrait:leader_trait_x'
+		);
 		expect(outcomeText(tree).split('\n')).toEqual([
 			'random · choice · project',
 			'Botanical Paradise',
-			'  deposits cleared',
+			'  the planet’s deposits removed',
 			'  ▸ “There is more to explore here.”',
 			'    → special project Explore The Botanical Paradise',
 			'      50 %:',
@@ -307,6 +332,27 @@ describe('resolve and prune', () => {
 			us
 		);
 		expect((known[0] as Extract<OutcomeNode, { t: 'random' }>).b[0].off).toBe(true);
+	});
+	it('names each if branch by its condition: ours, foreign or none', () => {
+		const flag = { leaf: 'has_country_flag', value: 'x' };
+		const deposit = { leaf: 'has_deposit_for', value: 'shipclass_research_station' };
+		const tree: OutcomeNode[] = [
+			{
+				t: 'if',
+				b: [[{ t: 'xp', n: 1 }], [{ t: 'xp', n: 2 }], [{ t: 'xp', n: 3 }]],
+				else: true,
+				c: [flag, null, null],
+				d: [flag, deposit, null]
+			}
+		];
+		const n = resolve(tree, us)[0] as Extract<OutcomeNode, { t: 'if' }>;
+		expect(ifHead(n, 0)).toMatchObject({ label: 'if country flag x:', note: ' (not now)' });
+		expect(ifHead(n, 1).note).toBe(' (not your empire’s)');
+		expect(ifHead(n, 1).label).toContain('deposit for');
+		expect(ifHead(n, 2).label).toBe('otherwise:');
+		expect(ifHead(resolve(orb, us)[1] as typeof n, 0).label).toBe('for your empire:');
+		const bare = { t: 'if', b: [[{ t: 'xp', n: 1 }]], else: false } as const;
+		expect(ifHead(bare, 0).label).toBe('depending on the planet, ship or empire:');
 	});
 	it('without conditions (an older data DB) nothing changes', () => {
 		expect(prune(resolve(gravity, us))).toEqual(gravity);

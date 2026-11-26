@@ -407,7 +407,22 @@ absent (Shattered Frontier's hostile reply hangs on a flag its own dialog sets).
 events and options with the condition on hover, `if` branches not `taken`, a weighted branch
 settled at 0; `prune()` leaves them out of markers, summary and gains, and a row with nothing
 left is greyed. An older data DB has no `c`: nothing greys. A dig site's chapters before the next
-one are greyed as done. **What a reward comes to now** (`Now`, `outcomeNow()`; the user's ask
+one are greyed as done. **An `if` branch's heading is its condition** (`ifHead()`; the user's ask
+2026-11-26: "depending on your empire — depending on what?"). "for your empire:" where `c` holds;
+"if <condition>:" with "(holds now)" / "(not now)" where `c` is about us but the chain may still
+change it (`evaluate()` today); "(not your empire’s)" for a planet, ship or event limit, which only
+the extractor's `d` keeps (data DBs since 2026-11-26: every limit as written, for display only).
+Without either, "depending on the planet, ship or empire:". Until then every branch read
+"depending on your empire", Living Metal Marvel's `has_deposit_for` as well. **Colours and popups
+in the explanations** (the same ask): a reward's resource in the resource's colour, a tech's name
+in its area's, every "L-Gate" in the L-Gate badge's violet (`segments()`, `Painted.svelte`). The
+one-line summary gives each reward its popup (`rewards()` carries `effectRef()`), and so does a
+single trait's badge. Specimens show their category ("(xeno geology)", `withSpecimens()`), and
+their popup (`specimen:<key>`, `server/explain.ts`) shows its effects. A modifier reads "modifier
+…": Starship Graveyard is a flavour planet modifier beside the deposit it comes with, and its card
+says "no effect of its own". "the planet’s deposits removed" is `clear_deposits`. A contract's
+special project (its event chain's, `contractTypes[*].projects`) carries a Contract badge linking to
+the contracts tab. **What a reward comes to now** (`Now`, `outcomeNow()`; the user's ask
 2026-11-17), in the tree, its summary and every tooltip (map, planner, upcoming): months of income
 "≈ +543 now" (`monthsNow()`, the latest save's gross income, clamped — the same as Still to gain),
 its "(min …, max …)" greyed; tech progress "≈ 165 physics, 3.6 months of ours" (the share × the
@@ -434,7 +449,7 @@ path, _expected_ by the odds (an unsettled `if` as even odds); at an event's opt
 worth most in trade; projects an outcome leads to count; months of income from the latest save's
 gross income, clamped, ≈. The resources' worth in trade (`valuesOf()`), sure and expected.
 Each reward names its sources, one chip each in its kind's colour (anomaly, project, dig site;
-with how long it takes, as in its table; the user's ask 2026-11-17: kinds alone hid which one gives it), a certainty badge (sure; likely ≥ 50 %; possible) and the popup of a tech, modifier,
+with how long it takes, as in its table; the user's ask 2026-11-17: kinds alone hid which one gives it), a certainty badge (sure; likely ≥ 50 %; possible; _expected ×n_ above 1, a count summed over sources, not a chance: "likely 125 %" until 2026-11-26) and the popup of a tech, modifier,
 trait or deposit (`GainRow.ref`, `effectRef()`). Tech progress names the tech's tier, area, its
 cost to us now (`techCost()` in `#lib/events.ts`, shared with Upcoming's research) and the
 expected progress in research, its area in the field's colour; a tech already researched is struck

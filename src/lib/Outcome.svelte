@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import InfoPopup from './InfoPopup.svelte';
+	import Painted from './Painted.svelte';
 	import {
 		MARKERS,
 		branchLabels,
@@ -8,12 +9,13 @@
 		duration,
 		effectRef,
 		effectText,
-		ifLabel,
+		ifHead,
 		isChoice,
 		markers,
 		monthsParts,
 		type Now,
 		outcomeText,
+		paints,
 		prune,
 		rewardBadges,
 		rewards,
@@ -29,7 +31,8 @@
 	// before it are done, greyed. `now`: what months of income and tech progress come to for us
 	// now (≈, `Now` in #lib/outcomes.ts), and where each tech stands (researched, a permanent
 	// option, in the plan: `techFlags()`). Beside the markers, tinted, what kinds of reward it
-	// holds (`rewardBadges()`).
+	// holds (`rewardBadges()`). Resources and tech areas in their colours, "L-Gate" in its badge's
+	// violet (`Painted`); an `if` branch's heading names its condition (`ifHead()`).
 	let {
 		tree,
 		chapter = null,
@@ -47,7 +50,7 @@
 	const STRUCTURED = new Set(['event', 'random', 'if', 'later', 'chapter', 'project']);
 	const flat = (l: OutcomeNode[]) => l.every((n) => !STRUCTURED.has(n.t));
 	const brief = (l: OutcomeNode[]) => {
-		const r = rewards(prune(l), now);
+		const r = rewards(prune(l), now).map((x) => x.text);
 		return r.length ? ` — ${r.slice(0, 2).join(' · ')}${r.length > 2 ? ' …' : ''}` : '';
 	};
 </script>
@@ -61,17 +64,26 @@
 {#snippet leaf(n: OutcomeNode)}
 	{@const text = effectText(n, now)}
 	{@const ref = effectRef(n)}
-	{#if n.t === 'months'}{@const m = monthsParts(n, now)}{m.main}{#if m.now}<span
-				title="≈ at this month's gross income"
-			>
+	{#if n.t === 'months'}{@const m = monthsParts(n, now)}<Painted
+			text={m.main}
+			marks={paints(n, now)}
+		/>{#if m.now}<span title="≈ at this month's gross income">
 				{m.now}
 			</span>{/if}<span class="text-gray-400">{m.bounds}</span>{:else if text}{#if ref}<InfoPopup
 				{ref}
 			>
-				{text}
+				<Painted {text} marks={paints(n, now)} />
 			</InfoPopup>{:else if n.t === 'note'}<i>
+				<Painted {text} />
+			</i>{:else if n.t === 'clear_deposits'}<span
+				class="cursor-help underline decoration-dotted underline-offset-2"
+				title="every deposit on the planet, blockers and features, is removed (clear_deposits)"
+			>
 				{text}
-			</i>{:else}{text}{/if}{/if}{#each techFlags(n, now) as f (f.label)}<span class="ml-1">
+			</span>{:else}<Painted
+				{text}
+				marks={paints(n, now)}
+			/>{/if}{/if}{#each techFlags(n, now) as f (f.label)}<span class="ml-1">
 			{@render chip(f, false)}
 		</span>{/each}
 {/snippet}
@@ -94,7 +106,9 @@
 		title={off ? `${NOT_OURS}${why ? `: ${why}` : ''}` : undefined}
 	>
 		<summary class="cursor-pointer">
-			{@render head()}<span class="text-gray-400">{off ? ` (${NOT_OURS})` : brief(body)}</span>
+			{@render head()}<span class="text-gray-400">
+				{#if off}{` (${NOT_OURS})`}{:else}<Painted text={brief(body)} />{/if}
+			</span>
 		</summary>
 		{@render list(body, depth + 1)}
 	</details>
@@ -102,7 +116,9 @@
 
 {#snippet node(n: OutcomeNode, depth: number)}
 	{#if n.t === 'event'}
-		{#snippet head()}<b>{n.title ?? n.id}</b>{#if n.delay}<span class="text-sky-600">
+		{#snippet head()}<b><Painted text={n.title ?? n.id} /></b>{#if n.delay}<span
+					class="text-sky-600"
+				>
 					{` after ${duration(n.delay)}`}
 				</span>{/if}{/snippet}
 		{@const pick = isChoice(n.o)}
@@ -112,7 +128,9 @@
 			title={n.off ? `${NOT_OURS}${n.why ? `: ${n.why}` : ''}` : undefined}
 		>
 			<summary class="cursor-pointer">
-				{@render head()}<span class="text-gray-400">{n.off ? ` (${NOT_OURS})` : brief([n])}</span>
+				{@render head()}<span class="text-gray-400">
+					{#if n.off}{` (${NOT_OURS})`}{:else}<Painted text={brief([n])} />{/if}
+				</span>
 			</summary>
 			{#if n.e.length}{@render list(n.e, depth + 1)}{/if}
 			<ul class="ml-3 list-none">
@@ -153,13 +171,14 @@
 	{:else if n.t === 'if'}
 		{#each n.b as b, i (i)}
 			{@const off = n.taken?.[i] === false}
-			{#snippet ifHead()}<span class="text-amber-600">
-					{n.taken?.[i] === true ? 'for your empire:' : ifLabel(i, n.b.length, n.else)}
-				</span>{/snippet}
-			{#if b.length}{@render fold(ifHead, b, depth, off, null)}{:else}<div
+			{@const h = ifHead(n, i)}
+			{#snippet branchIf()}<span class="text-amber-600" title={h.title || undefined}>
+					{h.label}
+				</span>{#if h.note}<span class="text-gray-400">{h.note}</span>{/if}{/snippet}
+			{#if b.length}{@render fold(branchIf, b, depth, off, n.heads?.[i]?.why ?? null)}{:else}<div
 					class={off ? 'opacity-50' : ''}
 				>
-					{@render ifHead()}<span class="ml-1 text-gray-400">nothing</span>
+					{@render branchIf()}<span class="ml-1 text-gray-400">nothing</span>
 				</div>{/if}
 		{/each}
 		{#if !n.else}<div class="text-gray-400">otherwise: nothing</div>{/if}
@@ -177,7 +196,7 @@
 			</b>{/snippet}
 		<details open={!done && (depth === 0 || flat(n.e))} class={done ? 'opacity-50' : ''}>
 			<summary class="cursor-pointer">
-				{@render chapterHead()}<span class="text-gray-400">{brief(n.e)}</span>
+				{@render chapterHead()}<span class="text-gray-400"><Painted text={brief(n.e)} /></span>
 			</summary>
 			{@render list(n.e, depth + 1)}
 		</details>
@@ -197,14 +216,29 @@
 
 <span class="inline-flex flex-wrap gap-1 align-middle">
 	{#each kinds as m (m)}{@render chip(MARKERS[m], false)}{/each}
-	{#each badges as b (b.label)}{@render chip(b, true)}{/each}
+	{#each badges as b (b.label)}{#if b.ref}<InfoPopup ref={b.ref}>
+				{@render chip(b, true)}
+			</InfoPopup>{:else}{@render chip(b, true)}{/if}{/each}
 </span>
+<!-- each reward with its popup; the whole tree as text on what follows them -->
 <details class="inline-block align-top">
-	<summary class="cursor-pointer text-gray-500" title={outcomeText(open, chapter, now)}>
-		{summary.slice(0, SHOWN).join(' · ') ||
-			(open.length ? 'nothing that shows' : NOT_OURS)}{summary.length > SHOWN
-			? ` · +${summary.length - SHOWN} more`
-			: ''}
+	<summary class="cursor-pointer text-gray-500">
+		{#each summary.slice(0, SHOWN) as r, i (i)}{#if i}<span class="mx-1">
+					·
+				</span>{/if}{#if r.ref}<InfoPopup ref={r.ref}>
+					<Painted text={r.text} marks={paints(r.n, now)} />
+				</InfoPopup>{:else}<Painted text={r.text} marks={paints(r.n, now)} />{/if}{/each}<span
+			class="ml-1"
+			title={outcomeText(open, chapter, now)}
+		>
+			{!summary.length
+				? open.length
+					? 'nothing that shows'
+					: NOT_OURS
+				: summary.length > SHOWN
+					? `· +${summary.length - SHOWN} more`
+					: '…'}
+		</span>
 	</summary>
 	<div class="text-sm">{@render list(tree, 0)}</div>
 </details>

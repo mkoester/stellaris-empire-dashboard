@@ -102,6 +102,10 @@ export function load({ url }) {
 			precursors: precursors('anomaly', a.category)
 		};
 	};
+	// a contract's special projects (its event chain's): the contract's name
+	const contractOf = new Map(
+		Object.values(data.contractTypes).flatMap((c) => c.projects.map((x) => [x.key, c.name]))
+	);
 	const project = (p: ProjectInfo) => {
 		const info = data.projects[p.key];
 		const tree = read(trees.project(p.key));
@@ -111,6 +115,7 @@ export function load({ url }) {
 			system: system(p.systemId),
 			name: info?.name ?? p.key,
 			department: info?.department ?? null,
+			contract: contractOf.get(p.key) ?? null,
 			time: projectTime(info),
 			outcomes: opts.projectSpoilers ? (info?.outcomes ?? []) : null,
 			tree,

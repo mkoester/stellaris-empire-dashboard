@@ -33,7 +33,8 @@ export type OutcomeNode =
 	| ({ t: 'tech'; p?: number } & Named)
 	| ({ t: 'modifier'; days?: number } & Named)
 	| ({ t: 'project'; sub?: OutcomeNode[] } & Named)
-	| ({ t: 'option' | 'deposit' | 'trait' | 'specimen' | 'relic' | 'pc' | 'megastructure' } & Named)
+	| ({ t: 'option' | 'deposit' | 'trait' | 'relic' | 'pc' | 'megastructure' } & Named)
+	| ({ t: 'specimen'; cat?: string } & Named) // cat: its category (`withSpecimens()`)
 	| { t: 'clear_deposits' | 'leader' | 'pops' | 'species' | 'kill_leader' | 'destroy' }
 	| { t: 'xp'; n: number }
 	| { t: 'fleet'; mine: boolean }
@@ -44,7 +45,10 @@ export type OutcomeNode =
 			b: OutcomeNode[][];
 			else: boolean;
 			c?: (Trigger | null)[];
+			// each branch's limit as written, whatever its scope (data DBs since 2026-11-26): text only
+			d?: (Trigger | null)[];
 			taken?: (boolean | null)[];
+			heads?: (IfHead | null)[]; // `resolve()`: each branch's condition, readable
 	  }
 	| {
 			t: 'event';
@@ -60,6 +64,11 @@ export type OutcomeNode =
 	| { t: 'later'; days: number; e: OutcomeNode[] }
 	| { t: 'ref'; id: string; title: string | null; shared?: boolean }
 	| { t: 'chapter'; n: number; difficulty: number | null; e: OutcomeNode[] };
+
+/** An `if` branch's condition, readable: `ours` when it asks something of our empire (`c`), else
+ * it is the planet's, the ship's or the event's (`d`); `now` what it says for us today, where
+ * the chain may still change it (a flag, a tech). */
+export type IfHead = { why: string; ours: boolean; now: boolean | null };
 
 export type Marker = 'fixed' | 'random' | 'choice' | 'depends' | 'project' | 'later' | 'risk';
 
@@ -121,6 +130,31 @@ export function withProjects(
 			}
 		});
 	return go(tree, seen);
+}
+
+/** Specimen nodes with their category (`cat`), from the data DB's specimens. */
+export function withSpecimens(tree: OutcomeNode[], cats: Record<string, string>): OutcomeNode[] {
+	const go = (list: OutcomeNode[]): OutcomeNode[] =>
+		list.map((n): OutcomeNode => {
+			switch (n.t) {
+				case 'specimen':
+					return cats[n.k] ? { ...n, cat: cats[n.k] } : n;
+				case 'project':
+					return n.sub ? { ...n, sub: go(n.sub) } : n;
+				case 'random':
+					return { ...n, b: n.b.map((b) => ({ ...b, e: go(b.e) })) };
+				case 'if':
+					return { ...n, b: n.b.map(go) };
+				case 'event':
+					return { ...n, e: go(n.e), o: n.o.map((o) => ({ ...o, e: go(o.e) })) };
+				case 'later':
+				case 'chapter':
+					return { ...n, e: go(n.e) };
+				default:
+					return n;
+			}
+		});
+	return go(tree);
 }
 
 // Conditions whose answer stays as it is through an event chain: what the empire is. Anything
@@ -199,7 +233,7 @@ export function resolve(
 						})
 					};
 				case 'if': {
-					const { c, ...rest } = n;
+					const { c, d, ...rest } = n;
 					const own = n.b.map((_, i) => {
 						const lim = c?.[i];
 						if (lim) return holds(lim, f);
@@ -212,7 +246,23 @@ export function resolve(
 						taken.push(reached === false || v === false ? false : reached && v ? true : null);
 						reached = reached === false || v === true ? false : v === null ? null : reached;
 					}
-					return { ...rest, b: n.b.map(go), ...(c ? { taken } : {}) };
+					const heads = n.b.map((_, i): IfHead | null => {
+						const lim = c?.[i];
+						if (lim)
+							return {
+								why: describe(lim, names),
+								ours: true,
+								now: own[i] === null ? evaluate(lim, f) : null
+							};
+						const shown = d?.[i];
+						return shown ? { why: describe(shown, names), ours: false, now: null } : null;
+					});
+					return {
+						...rest,
+						b: n.b.map(go),
+						...(c ? { taken } : {}),
+						...(heads.some(Boolean) ? { heads } : {})
+					};
 				}
 				case 'later':
 				case 'chapter':
@@ -259,6 +309,7 @@ export function prune(tree: OutcomeNode[]): OutcomeNode[] {
 							...n,
 							b: keep.map((i) => go(n.b[i])),
 							taken: keep.map((i) => t[i]),
+							...(n.heads ? { heads: keep.map((i) => n.heads![i]) } : {}),
 							else: n.else && keep.includes(n.b.length - 1)
 						}
 					];
@@ -351,9 +402,44 @@ export function markers(tree: OutcomeNode[]): Marker[] {
 	return ORDER.filter((m) => found.has(m));
 }
 
-/** The heading of an `if` chain's branch `i` of `count`. */
-export const ifLabel = (i: number, count: number, hasElse: boolean) =>
-	i === 0 ? 'depending on your empire:' : i === count - 1 && hasElse ? 'otherwise:' : 'or:';
+type If = Extract<OutcomeNode, { t: 'if' }>;
+const FOREIGN = 'a condition on the planet, the ship or the event, not on your empire';
+
+/**
+ * The heading of an `if` chain's branch `i`: its condition where the data has one (`heads` from
+ * `resolve()`, else the raw `c` / `d`), `note` after it (what it says for us now, or whose
+ * condition it is), `title` the hover text. Without a condition: "depending on …".
+ */
+export function ifHead(n: If, i: number): { label: string; note: string; title: string } {
+	const last = i === n.b.length - 1;
+	if (n.taken?.[i] === true)
+		return { label: 'for your empire:', note: '', title: n.heads?.[i]?.why ?? '' };
+	if (n.else && last) return { label: 'otherwise:', note: '', title: 'when no branch above holds' };
+	const c = n.c?.[i];
+	const d = n.d?.[i];
+	const h: IfHead | null =
+		n.heads?.[i] ??
+		(c
+			? { why: describe(c), ours: true, now: null }
+			: d
+				? { why: describe(d), ours: false, now: null }
+				: null);
+	if (!h)
+		return {
+			label: i === 0 ? 'depending on the planet, ship or empire:' : 'or:',
+			note: '',
+			title: 'a condition the data does not make readable'
+		};
+	if (!h.ours) return { label: `if ${h.why}:`, note: ' (not your empire’s)', title: FOREIGN };
+	return {
+		label: `if ${h.why}:`,
+		note: h.now === true ? ' (holds now)' : h.now === false ? ' (not now)' : '',
+		title:
+			h.now === null
+				? 'a condition on your empire the save does not answer'
+				: `a condition on your empire: ${h.now ? 'it holds' : 'it does not hold'} now, and the chain may still change that`
+	};
+}
 
 /** How likely each branch of a random node is: percentages when no branch has conditions, else
  * the weights — a conditional one's while its conditions hold (the Mineral Cluster's outcomes
@@ -450,7 +536,7 @@ export const fromTable = (t: NowTable): Now => ({
 });
 
 /** A small labelled chip: a tech's standing, or a kind of reward. */
-export type Flag = { label: string; color: string; title: string };
+export type Flag = { label: string; color: string; title: string; ref?: string }; // ref: its popup
 
 const GREY = '#8a8f98';
 
@@ -527,7 +613,7 @@ const AREAS = ['physics', 'society', 'engineering'];
 export function rewardBadges(tree: OutcomeNode[], now?: Now | null): Flag[] {
 	const areas = new Set<string>();
 	const resources = new Set<string>();
-	const traits = new Set<string>();
+	const traits = new Map<string, string>(); // name → key
 	const other = new Set<string>();
 	let options = 0;
 	let xp = 0;
@@ -556,7 +642,7 @@ export function rewardBadges(tree: OutcomeNode[], now?: Now | null): Flag[] {
 					xp += n.n;
 					break;
 				case 'trait':
-					traits.add(n.name ?? pretty(n.k));
+					traits.set(n.name ?? pretty(n.k), n.k);
 					break;
 				case 'leader':
 					leader = picked && leader !== 'granted' ? 'offered' : 'granted';
@@ -631,9 +717,10 @@ export function rewardBadges(tree: OutcomeNode[], now?: Now | null): Flag[] {
 		});
 	if (traits.size)
 		out.push({
-			label: traits.size === 1 ? `trait ${[...traits][0]}` : `${traits.size} traits`,
+			label: traits.size === 1 ? `trait ${[...traits.keys()][0]}` : `${traits.size} traits`,
 			color: '#a855f7',
-			title: `leader trait${traits.size === 1 ? '' : 's'}: ${[...traits].join(', ')}`
+			title: `leader trait${traits.size === 1 ? '' : 's'}: ${[...traits.keys()].join(', ')}`,
+			...(traits.size === 1 ? { ref: `ltrait:${[...traits.values()][0]}` } : {})
 		});
 	const OTHER: Record<string, string> = {
 		pops: 'new pops',
@@ -708,15 +795,15 @@ export function effectText(n: OutcomeNode, now?: Now | null): string | null {
 		case 'deposit':
 			return `deposit ${name(n)}`;
 		case 'clear_deposits':
-			return 'deposits cleared';
+			return 'the planet’s deposits removed';
 		case 'modifier':
-			return `${name(n)}${n.days !== undefined ? ` (${duration(n.days)})` : ''}`;
+			return `modifier ${name(n)}${n.days !== undefined ? ` (${duration(n.days)})` : ''}`;
 		case 'trait':
 			return `trait ${name(n)}`;
 		case 'xp':
 			return `+${fmt(n.n)} leader experience`;
 		case 'specimen':
-			return `specimen ${name(n)}`;
+			return `specimen ${name(n)}${n.cat ? ` (${pretty(n.cat)})` : ''}`;
 		case 'relic':
 			return `relic ${name(n)}`;
 		case 'pc':
@@ -758,6 +845,8 @@ export function effectRef(n: OutcomeNode): string | null {
 			return `ltrait:${n.k}`;
 		case 'deposit':
 			return `deposit:${n.k}`;
+		case 'specimen':
+			return `specimen:${n.k}`;
 		default:
 			return null;
 	}
@@ -772,15 +861,66 @@ export function displayList(list: OutcomeNode[]): OutcomeNode[] {
 	);
 }
 
-/** The distinct rewards anywhere in a tree, as text — the one-line summary. */
-export function rewards(tree: OutcomeNode[], now?: Now | null): string[] {
-	const out: string[] = [];
+/** A reward in the one-line summary: its text, its popup (`effectRef()`) and its node. */
+export type Reward = { text: string; ref: string | null; n: OutcomeNode };
+
+/** The distinct rewards anywhere in a tree — the one-line summary. */
+export function rewards(tree: OutcomeNode[], now?: Now | null): Reward[] {
+	const out: Reward[] = [];
 	for (const n of nodes(tree)) {
 		if (n.t === 'note' || n.t === 'ref' || n.t === 'project') continue;
 		const t = effectText(n, now);
-		if (t && !out.includes(t)) out.push(t);
+		if (t && !out.some((r) => r.text === t)) out.push({ text: t, ref: effectRef(n), n });
 	}
 	return out;
+}
+
+/** A piece of text, painted: in a colour, or `lgate` for the L-Gate badge's violet. */
+export type Segment = { s: string; color?: string; lgate?: boolean };
+type Paint = { word: string; color: string };
+
+/** What to paint in an effect's text: its resource in the resource's colour, a tech's name in
+ * its area's. */
+export function paints(n: OutcomeNode, now?: Now | null): Paint[] {
+	switch (n.t) {
+		case 'res':
+		case 'months': {
+			const color = colorOf(n.r);
+			return color ? [{ word: resource(n.r), color }] : [];
+		}
+		case 'tech':
+		case 'option': {
+			const area = now?.mark?.(n.k)?.area ?? now?.tech?.(n.k)?.area;
+			const color = area ? colorOf(`${area}_research`) : undefined;
+			return color ? [{ word: name(n), color }] : [];
+		}
+		default:
+			return [];
+	}
+}
+
+/** A text cut into segments: each word of `marks` at its first occurrence in its colour, and
+ * every "L-Gate" marked `lgate`. */
+export function segments(text: string, marks: Paint[] = []): Segment[] {
+	const cut = (list: Segment[], word: string, as: Omit<Segment, 's'>, all: boolean) => {
+		let found = false;
+		return list.flatMap((g): Segment[] => {
+			if (g.color || g.lgate || (found && !all)) return [g];
+			const out: Segment[] = [];
+			let rest = g.s;
+			for (let i = rest.indexOf(word); i >= 0 && !(found && !all); i = rest.indexOf(word)) {
+				if (i > 0) out.push({ s: rest.slice(0, i) });
+				out.push({ s: word, ...as });
+				rest = rest.slice(i + word.length);
+				found = true;
+			}
+			if (rest) out.push({ s: rest });
+			return out;
+		});
+	};
+	let out: Segment[] = [{ s: text }];
+	for (const m of marks) if (m.word) out = cut(out, m.word, { color: m.color }, false);
+	return cut(out, 'L-Gate', { lgate: true }, true);
 }
 
 const MAX_LINES = 40;
@@ -829,7 +969,8 @@ export function outcomeText(
 			}
 			case 'if':
 				n.b.forEach((b, i) => {
-					add(depth, `${ifLabel(i, n.b.length, n.else)}${b.length ? '' : ' nothing'}`);
+					const h = ifHead(n, i);
+					add(depth, `${h.label}${h.note}${b.length ? '' : ' nothing'}`);
 					list(b, depth + 1);
 				});
 				if (!n.else) add(depth, 'otherwise: nothing');
