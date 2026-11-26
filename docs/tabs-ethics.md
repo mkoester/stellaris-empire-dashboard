@@ -214,7 +214,12 @@ discovered galaxy (`territoriesOf()`), each empire in the colour of its stronges
 ticked ones: absolute, fanatic and gestalt in full, a plain ethic lighter (`lighter()`), ties in
 axis order; dark grey with none ticked, light grey where our intel does not show its ethics, and
 for guessed territories. Nine filters, the eight ethics and gestalt consciousness, with how many
-known empires hold each. The ethics come from `diplomacyView()` (government intel level 1:
+known empires hold each, and quick picks: all, none, ours, opposites (the other pole of each of
+our ethics on its axis, `ethicSides()`; none for gestalt). **Left out** (the user, 2026-11-26):
+a country the save gives no ethics (fauna, leviathans, raiders, a caravaneer fleet), table and
+map, once we may know who it is; and a contact without communications — the game calls it by a
+Greek letter, "Chi Aliens" (a crystal fauna in the Roaming Cybergang campaign) — unless
+`diplomacyAll` is on. Its borders stay on the map, light grey. The ethics come from `diplomacyView()` (government intel level 1:
 communications or intel 10; `diplomacyAll` shows all), so nothing our intel hides reaches the page.
 A reading our intel no longer confirms is dashed, "unverified since". Ours come from our own
 government: the save's country list leaves us out. The filters are page state, not stored.
@@ -227,7 +232,13 @@ split borders (unreadable on thin territories). **The table** below the map, or 
 "wide + table": by empire (each empire's ethics as chips, strongest first; unknown last) or by
 ethic (who holds it, fanatic and absolute marked; unticked ethics faded). Hovering an empire there,
 or in the map's legend (`GalaxyMap`'s `onlegendhover`), rings its systems and names its ethics
-over them; an empire none of whose systems we know is grey.
+over them; an empire none of whose systems we know is grey, except a nomad, which holds none and
+gets a "roaming" badge. Badges in the table: the kind when not a regular empire (enclave, fallen
+empire, pre-FTL, trader, marauders) and the authority where our intel shows the government.
+**Our pops' ethics, by axis** (a toggle, page state): `byAxis()` orders the rows by axis
+(authority, xenophobia, militarism, spirituality) and on each from one pole to the other — the
+signed `EthicAxis.pos`, −3 … +3 — leaving out the ethics no pop holds or is drawn to; a line
+between axes while no header sort is chosen.
 
 **Ideologies tab** (`/ideologies`, `#lib/ideologies.ts` pure, the reading `ideologies()` in
 `server/save/ideologies.ts`; the user's ask 2026-11-24): as the game's Ideologies view. Ours: the

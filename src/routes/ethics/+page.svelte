@@ -3,7 +3,7 @@
 	import Chart from '#lib/Chart.svelte';
 	import { colorOf } from '#lib/colors.ts';
 	import EthicChip from '#lib/EthicChip.svelte';
-	import type { EthicRow } from '#lib/ethicsTab.ts';
+	import { byAxis, type EthicRow } from '#lib/ethicsTab.ts';
 	import FactionCard from '#lib/FactionCard.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import type { MapWidth } from '#lib/mapView.ts';
@@ -11,12 +11,14 @@
 		ETHIC_BASES,
 		ethicCounts,
 		ethicGroups,
+		ethicSides,
 		ethicStrength,
 		ethicTerritories,
 		intensity,
 		lighter,
 		NONE,
 		UNKNOWN,
+		type EmpireEthics,
 		type EthicBase
 	} from '#lib/ethicsMap.ts';
 	import { followGame } from '#lib/live.ts';
@@ -63,6 +65,8 @@
 		Object.fromEntries(ethicMap.flatMap((t) => t.systems.map((id) => [id, t.label])))
 	);
 	const holding = $derived(ethicCounts(data.ethicsMap.empires));
+	// the quick picks beside all / none: our governing ethics, and those opposite them
+	const sides = $derived(ethicSides(data.ethicsMap.government, data.axes));
 	const baseName = (b: EthicBase) => data.names[`ethic_${b}`] ?? b;
 	let mapWidth: MapWidth = $state('normal');
 	// the table below (or beside) the map: by ethic, or by empire
@@ -73,6 +77,9 @@
 	const sysById = $derived(new Map(data.ethicsMap.systems.map((x) => [x.id, x])));
 	const hasTerritory = $derived(new Set(ethicMap.map((t) => t.key)));
 	const keyOf = (id: number) => `country:${id}`;
+	// grey: none of its systems known — a nomad holds none, so it gets its badge instead
+	const placed = (e: { id: number; nomadic?: boolean }) =>
+		hasTerritory.has(keyOf(e.id)) || !!e.nomadic;
 	const ethicColor = (key: string) => {
 		const { base } = intensity(key);
 		if (!base) return undefined;
@@ -83,7 +90,7 @@
 		[...data.ethicsMap.empires].sort(
 			(a, b) =>
 				Number(!a.ethics) - Number(!b.ethics) ||
-				Number(!hasTerritory.has(keyOf(a.id))) - Number(!hasTerritory.has(keyOf(b.id))) ||
+				Number(!placed(a)) - Number(!placed(b)) ||
 				a.name.localeCompare(b.name)
 		)
 	);
@@ -127,6 +134,19 @@
 				"the save's empire-wide ethics_attraction for the ethic — what it means is not yet checked against the game (≈)"
 		}
 	];
+
+	// our pops' ethics by the strongest pull, or grouped by axis from one pole to the other
+	let grouped = $state(false);
+	let popSort = $state({ column: '', desc: false });
+	const popRows = $derived(grouped ? byAxis(data.rows, data.axes) : data.rows);
+	// the first row of each axis but the first, which draws the line between axes
+	const axisStarts = $derived(
+		new Set(
+			popRows
+				.filter((r, i) => i && data.axes[r.key]?.axis !== data.axes[popRows[i - 1].key]?.axis)
+				.map((r) => r.key)
+		)
+	);
 
 	type ColonyRow = (typeof data.colonies)[number];
 	const shown = $derived(
@@ -189,7 +209,26 @@
 				: 'No save read with the ethics yet — they come with the next save (and with every save still on disk).'}
 	>
 		{#if data.rows.length}
-			<SortTable rows={data.rows} {columns} key={(r) => r.key} sort={{ column: '', desc: false }} />
+			<label
+				class="mb-2 flex items-center gap-1 text-sm"
+				title="by axis, from one pole to the other (absolute, fanatic, regular, then regular, fanatic, absolute); only the ethics our pops hold or are drawn to"
+			>
+				<input
+					type="checkbox"
+					bind:checked={grouped}
+					onchange={() => (popSort = { column: '', desc: false })}
+				/> group by axis
+			</label>
+			<SortTable
+				rows={popRows}
+				{columns}
+				key={(r) => r.key}
+				bind:sort={popSort}
+				rowClass={(r) =>
+					grouped && !popSort.column && axisStarts.has(r.key)
+						? 'border-t-2 border-t-gray-400 dark:border-t-gray-600'
+						: ''}
+			/>
 		{/if}
 	</Panel>
 
@@ -273,18 +312,31 @@
 		</Panel>
 	{/if}
 
-	{#snippet empireName(e: (typeof data.ethicsMap.empires)[number], key: string | null)}<span
-			class="cursor-default {hasTerritory.has(keyOf(e.id)) ? '' : 'text-gray-500'} {lit ===
-			keyOf(e.id)
+	{#snippet empireName(e: EmpireEthics, key: string | null)}<span
+			class="cursor-default {placed(e) ? '' : 'text-gray-500'} {lit === keyOf(e.id)
 				? 'bg-yellow-100 dark:bg-yellow-900/40'
 				: ''}"
 			role="presentation"
-			title={hasTerritory.has(keyOf(e.id)) ? undefined : 'none of its systems known'}
+			title={placed(e) ? undefined : 'none of its systems known'}
 			onpointerenter={() => (lit = keyOf(e.id))}
 			onpointerleave={() => (lit = null)}
 		>
 			{e.name}{#if key && intensity(key).level}<span class="ml-1 text-xs text-gray-500">
 					{intensity(key).level}
+				</span>{/if}{#if e.kind}<span
+					class="ml-1 rounded bg-gray-100 px-1 text-xs text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+				>
+					{e.kind}
+				</span>{/if}{#if e.authority}<span
+					class="ml-1 rounded bg-violet-100 px-1 text-xs text-violet-800 dark:bg-violet-900/40 dark:text-violet-300"
+					title="its authority"
+				>
+					{e.authority}
+				</span>{/if}{#if e.nomadic}<span
+					class="ml-1 rounded bg-sky-100 px-1 text-xs text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
+					title="nomadic: it roams and holds no systems, so it never shows on the map"
+				>
+					roaming
 				</span>{/if}
 		</span>{/snippet}
 	{#snippet ethicTable()}
@@ -360,13 +412,14 @@
 			</table>
 		{/if}
 		<p class="mt-1 text-xs text-gray-500">
-			Hover an empire to light it on the map; grey: none of its systems known.
+			Hover an empire to light it on the map; grey: none of its systems known; roaming: a nomad,
+			which holds none.
 		</p>
 	{/snippet}
 
 	<Panel
 		title="Governing ethics in the galaxy"
-		note="Every empire whose borders you know, in the colour of its strongest ticked ethic — fanatic in full, plain lighter — or striped in all its ticked ethics (a fanatic one twice as wide); grey with none of them (dark) or when your intel does not show its ethics (light; it needs communications or intel 10). Hover a system for the owner's ethics, an empire in the legend or the table to light it; dashed where your intel no longer confirms them. The game has no such map mode."
+		note="Every empire whose borders you know, in the colour of its strongest ticked ethic — fanatic in full, plain lighter — or striped in all its ticked ethics (a fanatic one twice as wide); grey with none of them (dark) or when your intel does not show its ethics (light; it needs communications or intel 10). Hover a system for the owner's ethics, an empire in the legend or the table to light it; dashed where your intel no longer confirms them. Left out: countries without ethics (space fauna, leviathans, raiders), and contacts you have no communications with (the game's “Chi Aliens”; their borders stay light grey) unless the Diplomacy spoiler in ⚙ shows every empire. The game has no such map mode."
 	>
 		<GalaxyMap
 			systems={data.ethicsMap.systems}
@@ -429,6 +482,24 @@
 						onclick={() => (ticked = new Set())}
 					>
 						none
+					</button>
+					<button
+						class="rounded border border-gray-300 px-2 py-0.5 disabled:opacity-50 dark:border-gray-700"
+						title="our governing ethics: {sides.ours.map(baseName).join(', ') || 'none'}"
+						disabled={!sides.ours.length}
+						onclick={() => (ticked = new Set(sides.ours))}
+					>
+						ours
+					</button>
+					<button
+						class="rounded border border-gray-300 px-2 py-0.5 disabled:opacity-50 dark:border-gray-700"
+						title={sides.opposites.length
+							? `the ethics opposite ours: ${sides.opposites.map(baseName).join(', ')}`
+							: 'gestalt consciousness has no opposite'}
+						disabled={!sides.opposites.length}
+						onclick={() => (ticked = new Set(sides.opposites))}
+					>
+						opposites
 					</button>
 					<label
 						class="flex items-center gap-1"

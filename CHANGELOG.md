@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Ethics tab: a map of every empire's governing ethics, as far as your intel shows them (the game
+  has no such map mode), with filters per ethic plus "ours" and "opposites", stripes for several
+  ethics, and a table by empire (with badges: authority, enclave, fallen empire, pre-FTL, trader,
+  marauders, roaming) or by ethic. Countries without ethics (fauna, leviathans) are left out, as
+  are contacts you have no communications with unless the Diplomacy spoiler is on. Our pops'
+  ethics can be grouped by axis, from one pole to the other.
 - Ideologies tab (Willpower): our ideology's strength, level, momentum and tenets with what each
   gives at its slot, the tenets on offer, and the foreign ideologies we know. A cheat in ⚙ shows
   every ideology with its adopters. Dimmed until we adopt or know one.

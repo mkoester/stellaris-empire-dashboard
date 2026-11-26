@@ -6,6 +6,7 @@ import {
 	ethicBase,
 	ethicCounts,
 	ethicGroups,
+	ethicSides,
 	ethicStrength,
 	ethicTerritories,
 	lighter,
@@ -128,5 +129,27 @@ describe('ethicTerritories', () => {
 		expect(n.militarist).toBe(2);
 		expect(n.xenophile).toBe(1);
 		expect(n.gestalt_consciousness).toBe(0);
+	});
+});
+
+describe('ethicSides', () => {
+	const axes = {
+		ethic_authoritarian: { axis: 'col', pos: -1 },
+		ethic_egalitarian: { axis: 'col', pos: 1 },
+		ethic_militarist: { axis: 'mil', pos: -1 },
+		ethic_pacifist: { axis: 'mil', pos: 1 },
+		ethic_gestalt_consciousness: { axis: 'hive', pos: 0 }
+	};
+	it('names our bases and the poles opposite them, a fanatic ethic by its base', () => {
+		expect(ethicSides(['ethic_fanatic_militarist', 'ethic_egalitarian'], axes)).toEqual({
+			ours: ['militarist', 'egalitarian'],
+			opposites: ['pacifist', 'authoritarian']
+		});
+	});
+	it('gives gestalt consciousness no opposite', () => {
+		expect(ethicSides(['ethic_gestalt_consciousness'], axes)).toEqual({
+			ours: ['gestalt_consciousness'],
+			opposites: []
+		});
 	});
 });

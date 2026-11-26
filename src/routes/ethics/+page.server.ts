@@ -134,29 +134,62 @@ export function load({ url }) {
 	// the diplomacy tab's view (what our intel shows; everything with its cheat switch)
 	const mapSnap = snaps.findLast((x) => x.firstContacts !== null);
 	const diplo = diplomacyView(snaps, data.flagColors, opts.diplomacyAll);
+	// left out: a contact we have no communications with ("Chi Aliens": the game shows nothing of
+	// it) unless the spoiler shows everything, and, once we may know who it is, a country the game
+	// gives no ethics (fauna, leviathans, raiders) — table and map (the user's ask 2026-11-26)
+	const noEthics = new Set(
+		(snaps.findLast((x) => x.countries !== null)?.countries ?? [])
+			.filter((c) => c.ethics.length === 0)
+			.map((c) => c.id)
+	);
+	const known = (n: { us: boolean; communications: boolean }) =>
+		n.us || n.communications || opts.diplomacyAll;
+	const nodes = (diplo?.nodes ?? []).filter((n) => known(n) && (n.us || !noEthics.has(n.id)));
+	const dropped = new Set(
+		(diplo?.nodes ?? []).filter((n) => known(n) && !n.us && noEthics.has(n.id)).map((n) => n.id)
+	);
+	// the table's badges: a kind other than a regular empire, and the authority
+	const kindBadge: Partial<Record<string, string>> = {
+		fallen: 'fallen empire',
+		enclaves: 'enclave',
+		traders: 'trader',
+		preFtl: 'pre-FTL',
+		marauders: 'marauders'
+	};
+	const authorityName = (k: string | null | undefined) => (k ? (data.identityNames[k] ?? k) : null);
 	const ethicsMap = {
 		systems: mapView(
 			mapSnap ? (campaignGalaxy(mapSnap.campaign)?.systems ?? []) : [],
 			reveal(snaps),
 			[]
 		),
-		territories: territoriesOf(snaps),
+		territories: territoriesOf(snaps).filter((t) => {
+			const m = /^country:(\d+)$/.exec(t.key);
+			return !(m && dropped.has(Number(m[1])));
+		}),
+		government: government.filter((k) => k.startsWith('ethic_')),
 		// ours from our own government: the save's country list leaves us out
-		empires: (diplo?.nodes ?? []).map((n) =>
+		empires: nodes.map((n) =>
 			n.us
 				? {
 						id: n.id,
 						name: s.empireName || 'us',
 						ethics: government.filter((k) => k.startsWith('ethic_')),
 						asOf: s.date,
-						stale: false
+						stale: false,
+						nomadic: n.nomadic,
+						kind: null,
+						authority: authorityName(government.find((k) => k.startsWith('auth_')))
 					}
 				: {
 						id: n.id,
 						name: n.name,
 						ethics: n.government?.value.ethics ?? null,
 						asOf: n.government?.asOf ?? null,
-						stale: n.government?.stale ?? false
+						stale: n.government?.stale ?? false,
+						nomadic: n.nomadic,
+						kind: kindBadge[n.kind] ?? null,
+						authority: authorityName(n.government?.value.authority)
 					}
 		),
 		read: diplo !== null,

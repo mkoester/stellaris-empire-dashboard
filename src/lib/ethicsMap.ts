@@ -42,7 +42,30 @@ export type EmpireEthics = {
 	ethics: string[] | null;
 	asOf: string | null;
 	stale: boolean; // our intel no longer confirms it
+	nomadic?: boolean; // roams: holds no systems, so none can be known
+	kind?: string | null; // its kind's badge ("enclave", "fallen empire"); null: a regular empire
+	authority?: string | null; // its authority's name, where our intel shows its government
 };
+
+/**
+ * The map's quick picks: the ethics we govern by (`government`: our ethic keys), and those
+ * opposite them on their axes (none for gestalt). `axes`: ethic key → its place on its axis.
+ */
+export function ethicSides(
+	government: string[],
+	axes: Record<string, { axis: string; pos: number }>
+): { ours: EthicBase[]; opposites: EthicBase[] } {
+	const ours = [...new Set(government.flatMap((k) => ethicBase(k) ?? []))];
+	const opposites = ours.flatMap((b) => {
+		const a = axes[`ethic_${b}`];
+		if (!a || a.axis === 'hive') return [];
+		return ETHIC_BASES.filter((o) => {
+			const x = axes[`ethic_${o}`];
+			return x && x.axis === a.axis && Math.sign(x.pos) === -Math.sign(a.pos);
+		});
+	});
+	return { ours, opposites };
+}
 
 export const GESTALT = '#e0c400'; // gestalt on this map: the ethics' own slate grey vanishes
 export const UNKNOWN = '#cccccc'; // the map modes' "no contact" grey
