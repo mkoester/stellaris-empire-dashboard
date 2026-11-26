@@ -128,6 +128,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   beside a `json_extract` column means every snapshot is parsed before `LIMIT 1` keeps one (two
   layout queries took ~400 ms of every page until migration 18). Time a page by profiling it:
   "Measuring a page" in `docs/testing.md`.
+- **What a DB holds: `node scripts/campaigns.mjs [<campaign>] [--db <file>]`** (alias `sdb`,
+  workspace `scripts/stellaris.zsh`): every campaign, or one with its newest nodes and the saves on
+  disk it never read (a session played without this DB). Read-only; default the player's DB.
 - The background start, cleaning up campaigns and the migrations so far: `docs/database.md`. Read
   it before changing `watch.ts` or `campaigns.ts`, or adding a migration.
 
