@@ -23,9 +23,15 @@ import { getExplanations, getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
 import { pick } from '#lib/server/explain.ts';
 import { display } from '#lib/server/settings.ts';
+import { colorOf } from '#lib/colors.ts';
+import { diplomacyView } from '#lib/diplomacy.ts';
+import { ETHIC_BASES, type EthicBase } from '#lib/ethicsMap.ts';
+import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
+import { mapView } from '#lib/situations.ts';
 
 // Our pops' ethics and what pulls them, and our factions: support, approval, demands, embracing;
-// last, every source of attraction, which apply to us and which we can change (#lib/ethicSources.ts).
+// then every source of attraction, which apply to us and which we can change (#lib/ethicSources.ts);
+// last, a map of every empire's governing ethics, as far as our intel shows them (#lib/ethicsMap.ts).
 
 // the explanation (popup) prefix of a source's kind; buildings, deposits and relics are named apart
 const PREFIX: Partial<Record<SourceKind, string>> = {
@@ -54,7 +60,8 @@ export function load({ url }) {
 	const government = s.government ?? [];
 	const names = Object.fromEntries(order.map((k) => [k, data.identityNames[k] ?? k]));
 	const reading = snaps.findLast((x) => x.ethics !== null);
-	const { factionTypes, allFactionTypes } = display();
+	const opts = display();
+	const { factionTypes, allFactionTypes } = opts;
 	const formed = snaps.findLast((x) => x.factions !== null)?.factions ?? [];
 	const unity = s.stockpile.unity ?? 0;
 	const modifiers = s.countryModifiers ?? [];
@@ -123,9 +130,46 @@ export function load({ url }) {
 				}))
 		};
 	});
+	// the governing-ethics map: the discovered galaxy, its borders, and each empire's ethics from
+	// the diplomacy tab's view (what our intel shows; everything with its cheat switch)
+	const mapSnap = snaps.findLast((x) => x.firstContacts !== null);
+	const diplo = diplomacyView(snaps, data.flagColors, opts.diplomacyAll);
+	const ethicsMap = {
+		systems: mapView(
+			mapSnap ? (campaignGalaxy(mapSnap.campaign)?.systems ?? []) : [],
+			reveal(snaps),
+			[]
+		),
+		territories: territoriesOf(snaps),
+		// ours from our own government: the save's country list leaves us out
+		empires: (diplo?.nodes ?? []).map((n) =>
+			n.us
+				? {
+						id: n.id,
+						ethics: government.filter((k) => k.startsWith('ethic_')),
+						asOf: s.date,
+						stale: false
+					}
+				: {
+						id: n.id,
+						ethics: n.government?.value.ethics ?? null,
+						asOf: n.government?.asOf ?? null,
+						stale: n.government?.stale ?? false
+					}
+		),
+		read: diplo !== null,
+		colors: Object.fromEntries(
+			ETHIC_BASES.map((b) => {
+				const a = data.ethicAxes[`ethic_${b}`];
+				const pole = a && a.axis !== 'hive' ? `ethic-${a.axis}-${a.pos < 0 ? 0 : 1}` : 'ethic-hive';
+				return [b, colorOf(pole) ?? '#7a8a99'];
+			})
+		) as Record<EthicBase, string>
+	};
 	return {
 		...rest,
 		seenAt: reading?.date ?? null,
+		ethicsMap,
 		sources,
 		// a gestalt consciousness never has factions (its pops "will not join Factions")
 		gestalt: government.some((k) => k === 'auth_machine_intelligence' || k === 'auth_hive_mind'),

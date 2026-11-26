@@ -5,6 +5,17 @@
 	import EthicChip from '#lib/EthicChip.svelte';
 	import type { EthicRow } from '#lib/ethicsTab.ts';
 	import FactionCard from '#lib/FactionCard.svelte';
+	import GalaxyMap from '#lib/GalaxyMap.svelte';
+	import type { MapWidth } from '#lib/mapView.ts';
+	import {
+		ETHIC_BASES,
+		ethicCounts,
+		ethicTerritories,
+		lighter,
+		NONE,
+		UNKNOWN,
+		type EthicBase
+	} from '#lib/ethicsMap.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import SortTable from '#lib/SortTable.svelte';
@@ -24,6 +35,30 @@
 			)
 		)
 	);
+
+	// the governing-ethics map: every ethic ticked to start; an empire in its strongest ticked one
+	let ticked = $state(new Set<EthicBase>(ETHIC_BASES));
+	const tick = (b: EthicBase) => {
+		const next = new Set(ticked);
+		if (next.has(b)) next.delete(b);
+		else next.add(b);
+		ticked = next;
+	};
+	const ethicMap = $derived(
+		ethicTerritories(
+			data.ethicsMap.territories,
+			data.ethicsMap.empires,
+			ticked,
+			data.ethicsMap.colors,
+			data.names
+		)
+	);
+	const ethicTitles = $derived(
+		Object.fromEntries(ethicMap.flatMap((t) => t.systems.map((id) => [id, t.label])))
+	);
+	const holding = $derived(ethicCounts(data.ethicsMap.empires));
+	const baseName = (b: EthicBase) => data.names[`ethic_${b}`] ?? b;
+	let mapWidth: MapWidth = $state('normal');
 
 	const columns: Column<EthicRow>[] = [
 		{ id: 'ethic', label: 'Ethic', value: (r) => data.names[r.key] ?? r.key, cell: ethic },
@@ -208,4 +243,60 @@
 			<AttractionSources groups={data.sources} axes={data.axes} explain={data.explain} />
 		</Panel>
 	{/if}
+
+	<Panel
+		title="Governing ethics in the galaxy"
+		note="Every empire whose borders you know, in the colour of its strongest ticked ethic: fanatic in full, plain lighter, grey with none of them (dark) or when your intel does not show its ethics (light; it needs communications or intel 10). Hover a system for the owner's ethics; dashed where your intel no longer confirms them. The game has no such map mode."
+	>
+		<GalaxyMap
+			systems={data.ethicsMap.systems}
+			territories={ethicMap}
+			titles={ethicTitles}
+			heightKey="ethics-map-height"
+			square
+			bind:width={mapWidth}
+			label="Governing ethics map"
+		>
+			{#snippet controls()}
+				<div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+					{#each ETHIC_BASES as b (b)}
+						<label class="flex items-center gap-1" title="{holding[b]} empires you know hold it">
+							<input type="checkbox" checked={ticked.has(b)} onchange={() => tick(b)} />
+							<span
+								class="inline-block h-2.5 w-2.5 rounded-sm"
+								style:background={data.ethicsMap.colors[b]}
+							></span>
+							<span
+								class="inline-block h-2.5 w-2.5 rounded-sm"
+								style:background={lighter(data.ethicsMap.colors[b])}
+							></span>
+							{baseName(b)} <span class="text-gray-500">{holding[b]}</span>
+						</label>
+					{/each}
+					<button
+						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"
+						onclick={() => (ticked = new Set(ETHIC_BASES))}
+					>
+						all
+					</button>
+					<button
+						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"
+						onclick={() => (ticked = new Set())}
+					>
+						none
+					</button>
+					<span class="flex items-center gap-1 text-gray-500">
+						<span class="inline-block h-2.5 w-2.5 rounded-sm" style:background={NONE}></span>
+						none ticked
+						<span class="ml-2 inline-block h-2.5 w-2.5 rounded-sm" style:background={UNKNOWN}
+						></span>
+						unknown
+					</span>
+				</div>
+				{#if !data.ethicsMap.read}<p class="mt-1 text-sm text-amber-600">
+						No diplomacy read yet: every empire shows grey until the next save.
+					</p>{/if}
+			{/snippet}
+		</GalaxyMap>
+	</Panel>
 </div>

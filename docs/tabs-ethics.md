@@ -207,6 +207,18 @@ applies, everything. Not covered: job modifiers (bureaucrats, enforcers, telepat
 attraction on their planet) — the data DB's `job_modifier` holds a job's unconditional modifiers
 only (the colony page's levers use them), most of these are triggered.
 
+**Governing ethics in the galaxy** (the ethics tab's last panel, `#lib/ethicsMap.ts` pure; the
+user's ask 2026-11-26, after a 4.6 review video: the game has no governing-ethics map mode, so
+seeing where an ideology cannot spread meant opening every empire's communications). A map of the
+discovered galaxy (`territoriesOf()`), each empire in the colour of its strongest ethic among the
+ticked ones: absolute, fanatic and gestalt in full, a plain ethic lighter (`lighter()`), ties in
+axis order; dark grey with none ticked, light grey where our intel does not show its ethics, and
+for guessed territories. Nine filters, the eight ethics and gestalt consciousness, with how many
+known empires hold each. The ethics come from `diplomacyView()` (government intel level 1:
+communications or intel 10; `diplomacyAll` shows all), so nothing our intel hides reaches the page.
+A reading our intel no longer confirms is dashed, "unverified since". Ours come from our own
+government: the save's country list leaves us out. The filters are page state, not stored.
+
 **Ideologies tab** (`/ideologies`, `#lib/ideologies.ts` pure, the reading `ideologies()` in
 `server/save/ideologies.ts`; the user's ask 2026-11-24): as the game's Ideologies view. Ours: the
 strength, the level (0–3, the tenet slots opened at 250 / 500 / 750), the progress to the next
