@@ -265,6 +265,24 @@ export const SWITCHES: Switch[] = [
 		tags: 'nomad nomads contract arkship'
 	},
 	{
+		key: 'highwayFriends',
+		group: 'Diplomacy and trade',
+		kind: 'spoiler',
+		intel: true,
+		label:
+			'Ancient Highway (mod): what your friends know of the ring and how far they are with their gates',
+		note: 'friends as the mod counts them: federation, overlord or subject, defensive pact, guarantee, the same side of a war',
+		tags: 'highway ring portal gate mod friends'
+	},
+	{
+		key: 'highwayAll',
+		group: 'Diplomacy and trade',
+		kind: 'cheat',
+		label:
+			'Ancient Highway (mod): what every other empire knows of the ring, every portal and gate, the whole ring on the maps',
+		tags: 'highway ring portal gate mod'
+	},
+	{
 		key: 'tradeIntel',
 		group: 'Diplomacy and trade',
 		// split from the stockpiles 2026-11-18 (the user's ask): the rates are a spoiler
@@ -309,6 +327,34 @@ export const SWITCHES: Switch[] = [
 		label: 'Archive: another empire’s Grand Archive — its exhibitions and what they give',
 		note: 'the game never shows another empire’s collection; unmet empires stay unnamed',
 		tags: 'specimen specimens grand archive exhibit'
+	},
+	{
+		key: 'ideologiesAll',
+		group: 'Government and ethics',
+		kind: 'cheat',
+		intel: true,
+		label:
+			'Ideologies: every ideology in the galaxy — founder, custodian, adopters, tenets — and each adopter’s strength',
+		note: 'the game lists only the ideologies you have intel on; unmet empires stay unnamed',
+		tags: 'ideology tenets strength willpower'
+	},
+	{
+		key: 'ambitionsRevealed',
+		group: 'Government and ethics',
+		kind: 'spoiler',
+		intel: true,
+		label: 'Ambitions: the ambitions of empires you talk to, once their personality gives it away',
+		note: 'the game only shows the personality ("Crisis Aspirant", "Thermarchy", "Utopian Missionaries") on their diplomacy screen',
+		tags: 'ambition crisis nemesis hyperthermia force of will personality'
+	},
+	{
+		key: 'ambitionsAll',
+		group: 'Government and ethics',
+		kind: 'cheat',
+		intel: true,
+		label: 'Ambitions: every empire’s ambition from the day it takes the perk, with its level',
+		note: 'the game never shows another empire’s ambition level; unmet empires stay unnamed',
+		tags: 'ambition crisis nemesis hyperthermia force of will behemoth cosmogenesis defender'
 	},
 	{
 		key: 'whatIfs',

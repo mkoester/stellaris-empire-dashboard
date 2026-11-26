@@ -38,6 +38,7 @@ import type { Release } from '#lib/updates.ts';
 import { shownNode } from '#lib/server/branch.ts';
 import { settleTab } from '#lib/server/settle.ts';
 import { slaveTab } from '#lib/server/slaveTab.ts';
+import { highwayTab } from '#lib/server/highwayTab.ts';
 import { emptyTabsAt } from '#lib/server/tabData.ts';
 import { galaxyRings } from '#lib/server/quadrants.ts';
 import { ownMapAt } from '#lib/server/ownMap.ts';
@@ -61,6 +62,7 @@ export function load({ url }) {
 			tradeoffs: false,
 			slaveMarket: false,
 			mapDefaults: { fit: 'explored' as MapFit, width: 'normal' as MapWidth, stars: true },
+			highway: false,
 			loaded: null,
 			feed: null,
 			head: null,
@@ -115,6 +117,8 @@ export function load({ url }) {
 			width: display().mapWidth,
 			stars: display().mapStars
 		},
+		// the Ancient Highway mod's tab: only in a campaign with the mod
+		highway: highwayTab(shown),
 		loaded: loadedNode ? { node: loadedNode.id, date: loadedNode.date } : null,
 		// the companion mod writes a log format this build skips: which side to update
 		feed: (() => {

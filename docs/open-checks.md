@@ -545,6 +545,11 @@ multiplayer and turns its cheats off wrongly.
 - **The dashboard:** with that campaign viewed, ⚙ says "This is a multiplayer game" and no cheat
   switch is listed; a tab with a cheat on before (e.g. `historyAll`) shows only what you know.
 - **Send:** the save names, and whether the lobby or single player loaded each.
+- **Seen 2026-11-07, open:** UNE 5 (`unitednationsofearth5_505588286`, the Ancient Highway's run
+  43, 4.5.3, a new game with that mod and dev tools — no companion mod) lists `MirkoMachine`
+  alone in its autosaves 2222.04–07, so the dashboard reads it as multiplayer and bars every
+  cheat and intel spoiler there. Whether it was started through the lobby is not known; ask
+  before changing the rule.
 - **A single-player Ironman game names the account (2026-11-06, answered):** UNE 2's
   `ironman.sav` (4.5.3; the game restarted without mods, then a new **single-player** Ironman
   game, the user) lists `MirkoMachine` alone, the Noerm shape. So an account name is a
@@ -667,6 +672,65 @@ column says "military fleet" — whether an arkship's battle counts is not check
   with the arkship alone during a Pest Control contract.
 - **Send:** the save, and whether the contract counted the arkship's win. Check: where the save
   stores the spinal module (the starbase's `modules`, or elsewhere), then let `acceptNeeds()` read it.
+
+### 44. Ideologies and ambitions — ideologies and ambitions tabs (from 2026-11-24)
+
+Built 2026-11-24 from the throwaway `unitednationsofearth2_-629118313` (Willpower, 32 AIs, our
+Human Liberalism with three tenets, Force of Will for us, Nemesis for the Commonwealth of Man, the
+one AI we talk to, and Hyperthermia for an unknown AI). Continue in that game: its saves up to
+2200.08.01 are the test material. Read the workspace's `docs/vanilla-behaviour.md` first. Save
+shapes: `docs/save-format.md` ("Ideologies", "Ambitions"). Background: `docs/open-points.md`
+("Ambitions and ideologies, built 2026-11-24").
+
+1. **One-word ideology names.** The tab's "Raxycodiumity", "Jurinnism" and "Tchaaskeranology"
+   take the species name as the prefix; the engine's `GetPrefixFromAdj` may cut it differently.
+   - **Do:** `event devtools.5` (communications with every empire), then open the Ideologies view
+     and scroll to the Spiritualist Religions.
+   - **Send:** the screenshot. Check: each name against the tab with `ideologiesAll` on; a miss
+     shows how the prefix is cut (`ideologyWord()` in `server/save/values.ts`).
+2. **The Ideologies view's fist count.** The "%" is settled (2026-11-24, see `docs/open-points.md`);
+   the "0" beside the fist icon is not read yet.
+   - **Do:** hover it on a foreign ideology.
+   - **Send:** the tooltip. Then find the matching save field.
+3. **Ambitions revealed beyond the personality.** The spoiler reads only the personality.
+   - Force of Will: done 2026-11-24 (see `docs/open-points.md`).
+   - Nemesis level 2: 1000 menace (`resource menace 1000` while playing that empire, see "Observer
+     mode" in the workspace `AGENTS.md`) and the first Become the Crisis special project.
+   - Hyperthermia's opinion "Thermarchy Empire" needs level 2, which needs the Galactic Crucible
+     megastructure: likely too heavy to stage. Skip unless a campaign gets there.
+   - **Send:** the AI's diplomacy screen and the opinion tooltip after each. Check: what the game
+     shows at each level, so `REVEALING` (`#lib/ambitions.ts`) can count opinions too.
+4. **The two tabs in a browser.** All switches off: seen 2026-11-24 (throwaway
+   `unitednationsofearth4_-337465913`, 2205.10.01, screenshots
+   `~/Pictures/Screenshots/screenshot_2026-11-24_21-53-44`, `21-53-57`); findings in
+   `docs/open-points.md`. Still to do: once more with the spoiler and the cheats on.
+   - **Send:** screenshots of anything misplaced.
+
+Not checks but open work, in `docs/open-points.md`: each objective's reward in this galaxy, months
+to the next ambition level, an ideology's level modifiers. And the zips pin extractor v0.1.25:
+move `extractorVersion` to v0.1.26 or later at the next release, or players see tenets by their keys.
+
+### 45. Ancient Highway 1.0.0 — highway tab (from 2026-11-26)
+
+Built 2026-11-26 from real saves without a repair under way (`docs/tabs-galaxy.md`, "Since the
+mod's 1.0.0"). A throwaway game with the mod and DevTools; its console events are in
+`../stellaris-mod-AncientHighway/docs/console.md`.
+
+1. **A repair under way.** The reader's shape (star flag `ahw_repairing`, system variable
+   `ahw_repair_left`) follows the mod's script; no save had one.
+   - **Do:** `event ahw_debug.6`, a day, `event ahw_debug.45`, `event ahw_debug.8`, then start the
+     repair on the gate yourself (not `ahw_debug.40`, which finishes it at once); a manual save
+     a few days in.
+   - **Send:** the save's name. Check: the tab says "repair under way: N days left", N as the
+     mod's count (`grep -a -A3 ahw_repair_left` in its gamestate); copy the block into
+     `highway.test.ts` as the fixture.
+2. **Names from the mod's texts.** On a throwaway DB without a launcher DB the resolutions and
+   highway systems read as keys (`resolution_ahw_share_charts`, "ahw portal 2").
+   - **Do:** with the real dashboard (`sdash`), `event ahw_debug.75`, `event ahw_debug.76` (an AI
+     seals its gate), `event ahw_debug.80` (Force a Gate Open against it), then propose Share Ring
+     Charts in the Community (Force a Gate Open acts once and never shows in the panel); a month.
+   - **Send:** a screenshot of the highway tab's Galactic Community panel and the portals table
+     with the cheat on.
 
 ## C. Not in the game
 

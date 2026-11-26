@@ -15,6 +15,7 @@ export type Territory = {
 	guess: boolean; // dashed: our guess from the shipsets seen
 	systems: number[];
 	parts?: Territory[]; // our own territory by sector, for the maps' sectors switch
+	stripes?: string[]; // filled in diagonal bands of these colours instead (the ethics map)
 };
 
 /** A station seen over the branch: the latest sighting per system, and when we first saw it. */

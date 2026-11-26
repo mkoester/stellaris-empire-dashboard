@@ -84,21 +84,52 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech
 screen, trade calibration, stored research, releases).
 
-- **Ambitions (formerly Crisis), planned 2026-11-03**: data DB `crisis_path`, `crisis_level`,
-  `crisis_objective`, `menace_perk` (extraction's design notes). Our own path: a `/ambition` tab
-  (currency, level ladder with requirements and perks, objectives with this galaxy's reward,
-  months to the next level). **Other empires' ambitions are a spoiler** (the user's decision,
-  2026-11-03; switch `ambitionsAll`): on, who, what (path, level) and where (capital and the
-  path's sites); off, only what the game tells a player (4.5.3 files). For Nemesis that's the
-  personality "Crisis Aspirant" from the perk on, the "Mysterious Supernova"/Star-Eater alerts
-  and the "Destroying Star Systems" opinion, and "Galactic Crisis Declared" at level 5. For
-  Hyperthermia it's the personality "Thermarchy", plus the opinion "Thermarchy Empire" from
-  level 2, which needs government intel 2 (everyone at 5). Behemoth shows warnings at level 5,
-  Cosmogenesis nothing that names it, and Defender an opinion modifier. Ascension perks are in
-  no intel category. **Unread: the save shape** (no local save has an ambition): in a
-  throwaway game, save before and after `activate_ascension_perk ap_become_the_crisis`, then
-  `resource menace 1000`. Also check whether the diplomacy screen lists another empire's
-  perks.
+- **Ambitions and ideologies, built 2026-11-24** (`docs/tabs-empire.md`, `docs/tabs-ethics.md`; save
+  shapes in `docs/save-format.md`). The 2026-11-03 plan's `ambitionsAll` spoiler became the user's
+  split: `ambitionsRevealed` (spoiler: what a personality gave away) and `ambitionsAll` (cheat).
+  Open:
+  - **Seen in game 2026-11-24** (throwaway `unitednationsofearth4_-337465913`, Ideological Rivals'
+    rivals, saves 2200.08.01–2200.10.01, screenshots `~/Pictures/Screenshots/screenshot_2026-11-24_21-42-06`,
+    `21-43-06`): a Force of Will AI staged to level 2 (1000 willpower, the first project's flag,
+    an Absolute ethic) turned "Utopian Missionaries" within the month; its opinion of us holds no
+    ambition modifier. A Nemesis AI was `became_the_crisis` at level 1, and a Hyperthermia AI was
+    `hyperthermia_empire` with no level reached at all: both personalities come before level 2.
+    The level read as none from level 2 on (the save repeats `level`): fixed in READER 80.
+  - **Empty names in the ambitions tab** (2026-11-24, switches off, screenshot `21-53-57`):
+    Force of Will level 2 "Gives: Ethical Authority, , Galactic Awareness", levels 3 and 5 "Has
+    completed the Special Project". The texts end in scripted loc the extractor does not know
+    (`menp_force_of_will_cultural_envoys` → `$cultural_envoy_ship_plural$` →
+    `[GetCulturalEnvoyNamePlural]`; `FORCE_OF_WILL_SPECIAL_PROJECT_2` / `_4` =
+    `[GetFoWProject2Name]` / `[GetFoWProject4Name]`, a spiritualist variant or a default in
+    `common/scripted_loc/16_scripted_loc_forceofwill.txt`). `_clean_loc` resolves only the names
+    in its `_SCRIPTED_LOC` table and drops the rest. Fix in the extractor: read every
+    `defined_text`'s `default` key from `common/scripted_loc/` (or the empire's variant, where
+    the dashboard knows the ideology). The ideologies tab looked right, "Authority of Ba Grax"
+    included.
+  - Revealed by more than a personality: Hyperthermia's "Thermarchy Empire" opinion from level 2,
+    Nemesis' alerts and "Galactic Crisis Declared", Behemoth's warnings at level 5, and Defender's
+    opinion (4.5.3 files). The spoiler reads only the personality.
+  - Not shown yet: this galaxy's reward per objective (`crisis_objective.reward_json`), months to
+    the next level, and the path's sites on a map.
+  - One-word ideology names (spiritualist: "Raxycodiumity") take the species name as the prefix;
+    the engine's `GetPrefixFromAdj` may cut it differently. Compare with the game's Ideologies view
+    once such an ideology is known.
+  - **A foreign ideology's codified tenets, confirmed** (2026-11-24, throwaway
+    `unitednationsofearth4_-337465913`, autosave 2200.06.01, screenshots
+    `~/Pictures/Screenshots/screenshot_2026-11-24_21-33-30`, `21-33-38`, `21-33-42`): after
+    `add_ideological_strength = 300` the AIs codified one tier-I tenet each by themselves (Falleran
+    Naturalism: Secrecy, Spuxulac Expansionism: Force Projection, Backattan Nativism: Security). The
+    game's Ideologies view shows them for a foreign ideology at intel 100, and the tab read the same
+    keys. No cheat switch needed.
+  - **The "%" beside a foreign ideology is its Galactic Strength** (same session, screenshots
+    `21-31-58`, `21-32-15`): "the percentage of pops following it" across the galaxy. Its tooltip
+    lists the followers per adopting empire, in pops and as a share of that empire's pops (The
+    Chosen: 164, 1.28 %; Falleran Star Dynasty: 54, 1.03 %). The save holds no follower count:
+    per colony only `num_potential_followers`; the adopter's ideological faction (`pop_factions`,
+    `created_for_ideology`) had 139 pops against the tooltip's 54. Not shown yet.
+  - The "0" beside the fist icon is not read.
+  - An ideology's level modifiers (data DB `ideology_modifier`) are not shown: several scale by a
+    value only the running game knows.
 
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
   show a link never jumped through; since 2026-11-20 only once Wormhole Stabilization is

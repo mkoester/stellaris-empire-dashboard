@@ -206,3 +206,49 @@ events, origin, deposits). Filters (per viewer): what applies or can be changed 
 applies, everything. Not covered: job modifiers (bureaucrats, enforcers, telepaths add governing
 attraction on their planet) — the data DB's `job_modifier` holds a job's unconditional modifiers
 only (the colony page's levers use them), most of these are triggered.
+
+**Governing ethics in the galaxy** (the ethics tab's last panel, `#lib/ethicsMap.ts` pure; the
+user's ask 2026-11-26, after a 4.6 review video: the game has no governing-ethics map mode, so
+seeing where an ideology cannot spread meant opening every empire's communications). A map of the
+discovered galaxy (`territoriesOf()`), each empire in the colour of its strongest ethic among the
+ticked ones: absolute, fanatic and gestalt in full, a plain ethic lighter (`lighter()`), ties in
+axis order; dark grey with none ticked, light grey where our intel does not show its ethics, and
+for guessed territories. Nine filters, the eight ethics and gestalt consciousness, with how many
+known empires hold each, and quick picks: all, none, ours, opposites (the other pole of each of
+our ethics on its axis, `ethicSides()`; none for gestalt). **Left out** (the user, 2026-11-26):
+a country the save gives no ethics (fauna, leviathans, raiders, a caravaneer fleet), table and
+map, once we may know who it is; and a contact without communications — the game calls it by a
+Greek letter, "Chi Aliens" (a crystal fauna in the Roaming Cybergang campaign) — unless
+`diplomacyAll` is on. Its borders stay on the map, light grey. The ethics come from `diplomacyView()` (government intel level 1:
+communications or intel 10; `diplomacyAll` shows all), so nothing our intel hides reaches the page.
+A reading our intel no longer confirms is dashed, "unverified since". Ours come from our own
+government: the save's country list leaves us out. The filters are page state, not stored.
+Gestalt is lemon on this map (`GESTALT`): its slate grey (`ethic-hive`) vanished at the
+territories' 16 % fill (the user, 2026-11-26). **Several ethics at once:** stripes (on by
+default), one diagonal band per ticked ethic held, a fanatic one twice as wide
+(`Territory.stripes`, an SVG pattern per territory in `GalaxyMap`, filled at 30 %); off, the
+strongest only. Considered and left: a pie at the capital (needs the capital, small at low zoom),
+split borders (unreadable on thin territories). **The table** below the map, or beside it with
+"wide + table": by empire (each empire's ethics as chips, strongest first; unknown last) or by
+ethic (who holds it, fanatic and absolute marked; unticked ethics faded; by empire, an empire none of whose ethics is ticked fades too). Hovering an empire there,
+or in the map's legend (`GalaxyMap`'s `onlegendhover`), rings its systems and names its ethics
+over them; an empire none of whose systems we know is grey, except a nomad, which holds none and
+gets a "roaming" badge. Badges in the table: the kind when not a regular empire (enclave, fallen
+empire, pre-FTL, trader, marauders) and the authority where our intel shows the government.
+**Our pops' ethics, by axis** (a toggle, page state): `byAxis()` orders the rows by axis
+(authority, xenophobia, militarism, spirituality) and on each from one pole to the other — the
+signed `EthicAxis.pos`, −3 … +3 — leaving out the ethics no pop holds or is drawn to; a line
+between axes while no header sort is chosen.
+
+**Ideologies tab** (`/ideologies`, `#lib/ideologies.ts` pure, the reading `ideologies()` in
+`server/save/ideologies.ts`; the user's ask 2026-11-24): as the game's Ideologies view. Ours: the
+strength, the level (0–3, the tenet slots opened at 250 / 500 / 750), the progress to the next
+slot, the momentum (last month's change of strength) and how many slots still wait to be
+codified; the codified tenets with what each gives at its slot (tier = slot = Intensity; data DB
+`tenet_tier_modifier`), and the three on offer for an open slot. Foreign: the ideologies we know,
+which are the keys of our module's `intel` (contact with a custodian gives intel 15; checked against
+the game's view 2026-11-24): name, type, custodian, codified tenets. `pageLatest()` keeps only those
+and our own stand. `ideologiesAll` (cheat, intel): every ideology, its founder, custodian, adopters
+with their strength and level, and its systems in reach; unmet empires are "unknown empire".
+Dimmed until we adopt or know one, or when the galaxy rule is off (`ideologiesWhy`). Without the
+data DB's tenet tables (extractor before 0.1.26) tenets show by their keys.

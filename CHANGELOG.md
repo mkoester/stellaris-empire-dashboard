@@ -4,6 +4,54 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-11-26
+
+### Added
+
+- Ethics tab: a map of every empire's governing ethics, as far as your intel shows them (the game
+  has no such map mode), with filters per ethic plus "ours" and "opposites", stripes for several
+  ethics, and a table by empire (with badges: authority, enclave, fallen empire, pre-FTL, trader,
+  marauders, roaming) or by ethic. Countries without ethics (fauna, leviathans) are left out, as
+  are contacts you have no communications with unless the Diplomacy spoiler is on. Our pops'
+  ethics can be grouped by axis, from one pole to the other.
+- Ideologies tab (Willpower): our ideology's strength, level, momentum and tenets with what each
+  gives at its slot, the tenets on offer, and the foreign ideologies we know. A cheat in ⚙ shows
+  every ideology with its adopters. Dimmed until we adopt or know one.
+- Ambitions tab: our ambition's level, currency, each level's requirements and perks, and its
+  objectives; before we take one, the ambitions this empire could take. A spoiler shows the
+  ambitions the game gave away through an empire's personality ("Crisis Aspirant"); a cheat shows
+  every empire's, with its level. Dimmed until we take one.
+- Mods' names: whatever an enabled mod adds — systems, megastructures, techs, special projects,
+  contracts — is named from the mod's own English texts instead of its raw keys, and a mod's
+  techs get their area, tier and cost.
+- Support for the Ancient Highway mod: a Highway tab in campaigns that run it —
+  your portal and its gate (broken, studied, repaired, sealed) with the next step, both gate techs
+  with the grants so far, open studies, the express links, a map of the ring and the mod's terms.
+  Two switches in ⚙: a spoiler (what your friends know of the ring) and a cheat (what every
+  other empire knows). The mod's centres show as special stars with its gentler effects, jumps
+  and distances count the gates and express links you can use, and the ring's systems and portals
+  are never offered for outposts, colonies or megastructures. A repair under way shows
+  its days left, a gate the Galactic Community forced open the date it may be sealed again; the
+  highway's resolutions in the Community, the story fragments found, and in the terms the gates'
+  60-day wind-up and who may pass. A nomad is told it gets no portal.
+- A section bar: on a long page, a one-line bar under the tabs lists its headings, marks the one
+  you are reading and jumps to any of them.
+
+### Changed
+
+- Frontier tab, outcomes: each branch and option names its condition and what each part of it
+  says today (yours, the planet's or the ship's), and two opposite branches read as one if/else.
+  Resources and tech areas in their colours, popups for the summary, trait badges and specimens,
+  modifiers labelled. A contract's project shows its reward, steps, work left and deadline.
+
+### Fixed
+
+- Event chains are read again (they sit in the country's events in 4.5.4 and 4.6): the frontier
+  showed no precursor, no L-Cluster chain and no contract progress. Saves still on disk are read
+  again.
+- The data comes from extractor 0.1.27 (4.6.0): ideologies and tenets, species names in empire
+  names ("Authority of Ba Grax"), and the conditions the frontier shows.
+
 ## [0.2.0] - 2026-11-23
 
 Built for Stellaris 4.6.0 "Corona Borealis" and Willpower; bundles stellaris-data-extraction

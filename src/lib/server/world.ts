@@ -1,5 +1,6 @@
 import { kindOf, type ContactKind } from '#lib/contacts.ts';
 import { wanderlustCategories } from '#lib/wanderlust.ts';
+import { highwaySystem, unclaimable } from '#lib/highway.ts';
 import type { Bypass } from '#lib/galaxyGraph.ts';
 import type {
 	AnomalyInfo,
@@ -226,6 +227,7 @@ export function galaxy(
 		const id = Number(key);
 		const seen = visited.has(id);
 		const lgate = (megas.get(id) ?? []).some((t) => /^lgate/.test(t));
+		const highway = highwaySystem(starFlags(s), s.variables);
 		return [
 			{
 				id,
@@ -252,6 +254,8 @@ export function galaxy(
 					wanderlust: wanderlustCategories(starFlags(s))
 				}),
 				lgateTo: lgate && open ? entrance : [],
+				...(highway && { highway }),
+				...(unclaimable(starFlags(s)) && { unclaimable: true }),
 				sector: own.has(id) ? (sectorOf.get(id) ?? null) : null,
 				bypasses: seen
 					? list(s.bypasses)
@@ -569,9 +573,12 @@ export function digSites(
 
 /** Our event chains (`country.event_chain`, `completed_event_chain`): running ones with their
  * counters (a counter at 0 is absent), the finished ones' keys. */
+// A country's chains are in its `events` block, beside its anomalies and special projects (4.5.4
+// and 4.6 saves; until READER 81 they were looked for on the country itself and never found).
 export function eventChains(raw: Pick<RawSave, 'country'>): EventChains {
+	const ev = raw.country?.events;
 	return {
-		active: items(raw.country?.event_chain).flatMap((c) =>
+		active: items(ev?.event_chain).flatMap((c) =>
 			c && typeof c === 'object' && typeof c.event_chain === 'string'
 				? [
 						{
@@ -585,7 +592,7 @@ export function eventChains(raw: Pick<RawSave, 'country'>): EventChains {
 					]
 				: []
 		),
-		completed: [...new Set(items(raw.country?.completed_event_chain).map(String))]
+		completed: [...new Set(items(ev?.completed_event_chain).map(String))]
 	};
 }
 
@@ -605,7 +612,7 @@ export function precursorIntel(
 	const chains = Object.entries(raw.countryBlocks).flatMap(([id, c]) => {
 		if (!c || typeof c !== 'object') return [];
 		const country = displayName(c.name);
-		const running = items(c.event_chain).flatMap((e) =>
+		const running = items(c.events?.event_chain).flatMap((e) =>
 			e && typeof e === 'object' && PRECURSOR_CHAIN.test(String(e.event_chain))
 				? [
 						{
@@ -622,7 +629,7 @@ export function precursorIntel(
 					]
 				: []
 		);
-		const done = [...new Set(items(c.completed_event_chain).map(String))]
+		const done = [...new Set(items(c.events?.completed_event_chain).map(String))]
 			.filter((k) => PRECURSOR_CHAIN.test(k))
 			.map((key) => ({ countryId: Number(id), country, key, counters: {}, done: true }));
 		return [...running, ...done];

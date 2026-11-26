@@ -9,6 +9,7 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import BackToTop from '#lib/BackToTop.svelte';
+	import PageNav from '#lib/PageNav.svelte';
 	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
 	import { gameVersionNumber } from '#lib/versions.ts';
@@ -149,6 +150,11 @@
 			active: path === '/ethics'
 		},
 		{
+			name: 'ideologies',
+			href: node ? resolve(`/ideologies?node=${node}`) : resolve('/ideologies'),
+			active: path === '/ideologies'
+		},
+		{
 			name: 'frontier',
 			href: node ? resolve(`/frontier?node=${node}`) : resolve('/frontier'),
 			active: path === '/frontier'
@@ -172,6 +178,11 @@
 			name: 'traditions',
 			href: node ? resolve(`/traditions?node=${node}`) : resolve('/traditions'),
 			active: path === '/traditions'
+		},
+		{
+			name: 'ambitions',
+			href: node ? resolve(`/ambitions?node=${node}`) : resolve('/ambitions'),
+			active: path === '/ambitions'
 		},
 		{
 			name: 'tech',
@@ -198,6 +209,15 @@
 			href: node ? resolve(`/contracts?node=${node}`) : resolve('/contracts'),
 			active: path === '/contracts'
 		},
+		...(data.highway
+			? [
+					{
+						name: 'highway',
+						href: node ? resolve(`/highway?node=${node}`) : resolve('/highway'),
+						active: path === '/highway'
+					}
+				]
+			: []),
 		{
 			name: 'galcom',
 			href: node ? resolve(`/galcom?node=${node}`) : resolve('/galcom'),
@@ -487,6 +507,7 @@
 				</button>
 			</p>
 		{/each}
+		<PageNav />
 		{@render children()}
 	{/if}
 </main>

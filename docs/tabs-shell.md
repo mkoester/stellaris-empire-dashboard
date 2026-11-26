@@ -157,6 +157,14 @@ what the budget does not explain (`unbooked()` in `#lib/series.ts`, see "One-off
 `traditions`, `tech`, `leaders`, `species`, `contacts`, `galcom`, `diplomacy`, `subjects`, `megastructures` (all below), `galaxy` (the galaxy setup, below), `mods`,
 `dlc` (see "DLCs and mods" below) and `about` (last: thanks to the mods, projects and libraries the
 dashboard learned from — **a feature inspired by a mod gets its line there**); tabs keep `?node=`.
+**Getting around a long page** (`BackToTop.svelte`, the user's ask 2026-11-18; `PageNav.svelte`,
+2026-11-26): "↑ top" in the lower right once scrolled half a screen; and, on every page taller than
+the window with two section headings or more, a one-line bar of them sticky under the tabs — every
+`h2` in `main` (the panels' titles and the pages' own), given an id where it has none
+(`headingId()`), the section being read in bold. It reads the DOM (a `MutationObserver` on
+`main`, a `ResizeObserver` on the body), so folding a panel, a live reload and every tab need
+nothing from the page; it draws in the browser only, so the page check does not see it.
+
 **A tab with nothing to show yet is dimmed** (the user's ask 2026-11-01; `#lib/tabData.ts` pure,
 `emptyTabsAt()` per tip in the layout): migration, trade deals, galcom, shroud, diplomacy,
 subjects and situations, each while no snapshot of the branch holds its data — its title says why, it stays a
@@ -364,7 +372,7 @@ the tabs show what the game's own panels show — agendas, edicts, policies, cou
 game lists them, maps only discovered space, factions only once formed. Everything beyond is a
 profile switch in ⚙ (`Display`), labelled as spoilers or cheating where it is: `showLocked`,
 `factionTypes` / `allFactionTypes`, `anomalySpoilers`, `projectSpoilers`, `digSiteSpoilers`, `contactStations`,
-`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `tradeStockpiles`, `diplomacyAll`, `historyMet`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`, `specimenTrade`, `specimenTradeAll`, `archiveOthers`. A new view of hidden information follows the same pattern
+`unknownStars`, `wholeGalaxy`, `wormholePairs`, `lgates`, `surveyAll`, `tradeIntel`, `tradeStockpiles`, `diplomacyAll`, `historyMet`, `historyAll`, `whatIfs`, `pactIntel`, `pactAll`, `contractSpoilers`, `contractsAll`, `specimenTrade`, `specimenTradeAll`, `archiveOthers`, `ideologiesAll`, `ambitionsRevealed`, `ambitionsAll`, `highwayFriends`, `highwayAll`. A new view of hidden information follows the same pattern
 (and in multiplayer and Ironman: "No cheats in multiplayer or Ironman").
 **⚙ is organised like a browser's settings** (the user's ask 2026-11-01; `#lib/displaySwitches.ts`
 pure): every switch in `SWITCHES` with its group, label, note, search tags and **kind** —

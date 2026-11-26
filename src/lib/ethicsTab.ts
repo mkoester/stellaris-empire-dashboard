@@ -65,6 +65,27 @@ export function ethicRows(e: EthicsState, order: string[], government: string[])
 		.sort((a, b) => b.attraction - a.attraction || b.share - a.share);
 }
 
+// the axes in the game's order (authority, xenophobia, militarism, spirituality), gestalt last
+const AXES = ['col', 'xen', 'mil', 'spi', 'hive'];
+
+/**
+ * The rows grouped by axis, each from one pole to the other (absolute, fanatic, regular, then
+ * regular, fanatic, absolute), leaving out the ethics no pop holds or is drawn to. `axes`: ethic
+ * key → its place on its axis; an ethic without one goes last.
+ */
+export function byAxis(
+	rows: EthicRow[],
+	axes: Record<string, { axis: string; pos: number }>
+): EthicRow[] {
+	const rank = (k: string) => {
+		const i = AXES.indexOf(axes[k]?.axis ?? '');
+		return i < 0 ? AXES.length : i;
+	};
+	return rows
+		.filter((r) => r.pops > 0 || r.attraction > 0)
+		.sort((a, b) => rank(a.key) - rank(b.key) || (axes[a.key]?.pos ?? 0) - (axes[b.key]?.pos ?? 0));
+}
+
 /**
  * Per ethic, its share (%) of our pops (`pops`) or of the attraction (`attraction`) per snapshot;
  * null where a snapshot has no reading. Labelled by name.

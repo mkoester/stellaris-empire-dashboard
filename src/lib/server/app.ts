@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -26,7 +27,15 @@ import { READER } from './save.ts';
 import { loadExplanations, type Explanations } from './explain.ts';
 import { dataStore, type DataStore } from './dataStore.ts';
 import { dataDbFor, ensureDataDb, extractorFromEnv, type DataMod } from './extract.ts';
-import { launcherPlaysets, loadModDescriptors, readLoadOrder } from './mods.ts';
+import {
+	launcherPlaysets,
+	loadModContent,
+	loadModDescriptors,
+	readLoadOrder,
+	type ModContent
+} from './mods.ts';
+import { withModContent } from '#lib/modContent.ts';
+import { Jomini } from 'jomini';
 import { currentRequest } from './request.ts';
 import { updateHours, viewedCampaign } from './settings.ts';
 import { scheduleUpdateChecks, stopUpdateChecks } from './updates.ts';
@@ -54,6 +63,10 @@ type State = {
 	data?: DataStore<DataMod[], GameDataSet>;
 	/** each campaign's mods, resolved once until its saves or the launcher's files change */
 	campaignData?: Map<string, CampaignData>;
+	/** what each mod set adds beside its data DB (`modContentOf()`), by its mods */
+	modContent?: Map<string, ModContent>;
+	/** what reading a mod's files needs: the parser, and the game folder for its variables */
+	modReader?: { jomini: Jomini; gameDir: string | undefined };
 	/** the launcher's files as last seen (`dlc_load.json`, `launcher-v2.sqlite`): mtimes */
 	launcherStamp?: string;
 	launcherTimer?: ReturnType<typeof setInterval>;
@@ -134,6 +147,41 @@ function campaignData(campaign: string | null): CampaignData {
 	return c;
 }
 
+/**
+ * The texts and techs a mod set adds (the data DB holds names only for what its tables know):
+ * read from the mods' folders once per set, until the launcher's files change.
+ */
+function modContentOf(mods: DataMod[]): ModContent {
+	const cache = (state.modContent ??= new Map());
+	const key = JSON.stringify(mods);
+	let c = cache.get(key);
+	if (!c) {
+		const r = state.modReader;
+		c = r
+			? loadModContent(
+					mods.map((m) => m.path),
+					r.gameDir,
+					r.jomini
+				)
+			: { text: {}, techs: {} };
+		cache.set(key, c);
+	}
+	return c;
+}
+
+const withMods = new WeakMap<GameDataSet, Map<ModContent, GameDataSet>>();
+
+/** A data set with the mod set's texts and techs (`withModContent()`), made once per pair. */
+function withModsOf(set: GameDataSet, mods: DataMod[]): GameDataSet {
+	const content = modContentOf(mods);
+	if (!Object.keys(content.text).length && !Object.keys(content.techs).length) return set;
+	let per = withMods.get(set);
+	if (!per) withMods.set(set, (per = new Map()));
+	let made = per.get(content);
+	if (!made) per.set(content, (made = { ...set, gameData: withModContent(set.gameData, content) }));
+	return made;
+}
+
 /** The setting holding the load order seen while the campaign was played (`rememberOrder()`). */
 const orderKey = (campaign: string) => `loadOrder:${campaign}`;
 
@@ -170,11 +218,11 @@ function dataOf(campaign: string | null): GameDataSet {
 	}
 	const { mods } = campaignData(campaign);
 	const own = state.data.get(mods);
-	if (own) return own.data;
+	if (own) return withModsOf(own.data, mods);
 	extractFor(campaign);
 	const latest = state.data.latest();
 	if (!latest) throw new Error('dashboard not started');
-	return latest.data;
+	return withModsOf(latest.data, mods);
 }
 
 /** Extracts the campaign's game data in the background, then reloads pages and reads its saves. */
@@ -303,13 +351,15 @@ function gameDataStore(gameDir: string, fixed: string | undefined) {
 
 /**
  * Who read a campaign's saves: the reader and the campaign's data DB (its file, as the stamp of
- * its content) — another data DB means another reading. Before it is extracted: `pending`.
+ * its content) — another data DB means another reading — and a hash of its mods' texts, which
+ * name systems and the like. Before it is extracted: `pending`.
  */
 function readerOf(campaign: string): string {
-	const file = state.data?.get(campaignData(campaign).mods)?.file;
+	const { mods } = campaignData(campaign);
+	const file = state.data?.get(mods)?.file;
 	if (!file || !existsSync(file)) return `${READER}:pending`;
 	const data = statSync(file);
-	return `${READER}:${data.mtimeMs}:${data.size}`;
+	return `${READER}:${data.mtimeMs}:${data.size}${textHash(modContentOf(mods).text)}`;
 }
 
 /** A new save may name other mods: the campaign's data follows it, its saves read again. */
@@ -358,6 +408,7 @@ function watchLauncher() {
 	state.mods = loadModDescriptors(state.saveDir);
 	const before = new Map(state.campaignData);
 	state.campaignData = new Map();
+	state.modContent = new Map(); // a mod update brings new texts
 	for (const [campaign, c] of before) if (campaign !== '') follow(campaign, c, 'launcher changed');
 	updates.emit('update', 'refreshed');
 }
@@ -474,6 +525,12 @@ async function stop() {
 	console.log('stopped');
 }
 
+/** `:<hash>` of the mods' texts for the reader key; none without any, so the key stays as it was. */
+const textHash = (text: Record<string, string>) =>
+	Object.keys(text).length
+		? `:${createHash('sha256').update(JSON.stringify(text)).digest('hex').slice(0, 12)}`
+		: '';
+
 async function run() {
 	const paths = resolvePaths(process.env, readConfig(appDir()), appDir());
 	if (!paths) {
@@ -487,6 +544,8 @@ async function run() {
 	state.userDir = dirname(saveDir);
 	state.saveDir = saveDir;
 	state.campaignData = new Map();
+	state.modContent = new Map();
+	state.modReader = { jomini: await Jomini.initialize(), gameDir: paths.gameDir };
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));
 	state.data = gameDataStore(paths.gameDir!, paths.dataDb);
@@ -512,8 +571,15 @@ async function run() {
 			if (r.isNew) modsMayHaveChanged(campaignOf(saveDir, r.file));
 		},
 		onError: (file, e) => console.error(`cannot ingest ${file}:`, e),
-		prepare: async (campaign) =>
-			(await state.data!.ensure(campaignData(campaign).mods)).data.gameData,
+		prepare: async (campaign) => {
+			const { mods } = campaignData(campaign);
+			const { gameData } = (await state.data!.ensure(mods)).data;
+			// the data DB's names win over a mod's texts
+			return {
+				...gameData,
+				prescriptedNames: { ...modContentOf(mods).text, ...gameData.prescriptedNames }
+			};
+		},
 		reader: (campaign) => readerOf(campaign)
 	});
 	// after the backfill, so the note carries the latest game date

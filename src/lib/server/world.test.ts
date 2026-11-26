@@ -261,18 +261,20 @@ describe('storms', () => {
 
 describe('eventChains', () => {
 	it('reads running chains with their counters and the completed ones', () => {
-		// Roaming Cybergang 2226.08.01 (l_cluster_chain without a counter: 0 clues), another
-		// empire's shrouded chain (counter 1)
+		// in the country's `events` block (Roaming Cybergang 2231.08.01, 4.6; 2205.05.16, 4.5.4):
+		// l_cluster_chain without a counter (0 clues)
 		const country = {
-			event_chain: [
-				{ event_chain: 'l_cluster_chain', scope: { type: 'country', id: 0 } },
-				{ event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 3 } }
-			],
-			completed_event_chain: [
-				'nomad_checklist_chain',
-				'contract_colony_startup_chain',
-				'contract_colony_startup_chain'
-			]
+			events: {
+				event_chain: [
+					{ event_chain: 'l_cluster_chain', scope: { type: 'country', id: 0 } },
+					{ event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 3 } }
+				],
+				completed_event_chain: [
+					'nomad_checklist_chain',
+					'contract_colony_startup_chain',
+					'contract_colony_startup_chain'
+				]
+			}
 		};
 		expect(eventChains({ country })).toEqual({
 			active: [
@@ -282,6 +284,8 @@ describe('eventChains', () => {
 			completed: ['nomad_checklist_chain', 'contract_colony_startup_chain']
 		});
 		expect(eventChains({ country: {} })).toEqual({ active: [], completed: [] });
+		// not on the country itself: where the reader wrongly looked until READER 81
+		expect(eventChains({ country: country.events }).active).toEqual([]);
 	});
 });
 
@@ -298,12 +302,14 @@ describe('precursorIntel', () => {
 			countryBlocks: {
 				'0': {
 					name: { key: 'Roaming Cybergang' },
-					event_chain: [{ event_chain: 'l_cluster_chain' }]
+					events: { event_chain: [{ event_chain: 'l_cluster_chain' }] }
 				},
 				'16777229': {
 					name: { key: 'Barcalid Collective' },
-					event_chain: { event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 2 } },
-					completed_event_chain: ['nomad_checklist_chain']
+					events: {
+						event_chain: { event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 2 } },
+						completed_event_chain: ['nomad_checklist_chain']
+					}
 				}
 			}
 		};

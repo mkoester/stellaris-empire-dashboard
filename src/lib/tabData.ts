@@ -1,8 +1,10 @@
 // Which tabs have nothing to show yet along a branch: their names are dimmed in the tab bar, the
 // title saying why. Still links — the page explains itself.
+import { ambitionsWhy } from './ambitions.ts';
 import { ARCHIVE_TECH } from './archive.ts';
 import { unoffered, whyOf } from './contracts.ts';
 import { isGate } from './mapLayers.ts';
+import { ideologiesWhy } from './ideologies.ts';
 import { KINDS, MEGA_RULES } from './megastructures.ts';
 import { PACT_TYPES } from './pacts.ts';
 import { nomadic } from './planner/kinds.ts';
@@ -29,6 +31,8 @@ type Fields = Pick<
 	| 'countryId'
 	| 'progress'
 	| 'archives'
+	| 'ideologies'
+	| 'ambitions'
 >;
 
 /**
@@ -125,6 +129,19 @@ const CHECKS: {
 		known: (s) => s.progress !== null && s.progress !== undefined,
 		// the tech that lets the empire build the Grand Archive (common/megastructures/20_grand_archive.txt)
 		has: (s) => (s.progress?.researched ?? []).includes(ARCHIVE_TECH)
+	},
+	// what each tab lists without a spoiler or cheat (#lib/ideologies.ts, #lib/ambitions.ts)
+	{
+		tab: 'ideologies',
+		why: 'no ideology adopted or known yet',
+		known: (s) => s.ideologies !== null && s.ideologies !== undefined,
+		has: (s) => ideologiesWhy(s.ideologies, s.countryId) === null
+	},
+	{
+		tab: 'ambitions',
+		why: 'no ambition taken yet',
+		known: (s) => s.ambitions !== null && s.ambitions !== undefined,
+		has: (s) => ambitionsWhy(s.ambitions, s.countryId) === null
 	},
 	{
 		tab: 'frontier',

@@ -53,6 +53,9 @@ describe('profiles', () => {
 				specimenTrade: false,
 				specimenTradeAll: false,
 				archiveOthers: false,
+				ideologiesAll: false,
+				ambitionsRevealed: false,
+				ambitionsAll: false,
 				diplomacyAll: false,
 				historyMet: false,
 				historyAll: false,
@@ -64,6 +67,8 @@ describe('profiles', () => {
 				pactAll: false,
 				contractSpoilers: false,
 				contractsAll: false,
+				highwayFriends: false,
+				highwayAll: false,
 				whatIfs: false
 			}
 		});
@@ -120,6 +125,9 @@ describe('profiles', () => {
 				specimenTrade: false,
 				specimenTradeAll: false,
 				archiveOthers: false,
+				ideologiesAll: false,
+				ambitionsRevealed: false,
+				ambitionsAll: false,
 				diplomacyAll: false,
 				historyMet: false,
 				historyAll: false,
@@ -131,6 +139,8 @@ describe('profiles', () => {
 				pactAll: false,
 				contractSpoilers: false,
 				contractsAll: false,
+				highwayFriends: false,
+				highwayAll: false,
 				whatIfs: false
 			}
 		});

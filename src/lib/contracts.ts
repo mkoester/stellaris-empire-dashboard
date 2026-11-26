@@ -122,6 +122,7 @@ export type ContractContext = {
 	all: boolean; // contractsAll
 	types: Record<string, ContractType>;
 	researched: Set<string>;
+	names?: Record<string, string>; // the enabled mods' texts: their contracts' names
 };
 
 const ORDER: Record<ContractWhy, number> = { mine: 0, offered: 1, spoiler: 2, cheat: 3 };
@@ -136,7 +137,7 @@ export function contractRows(contracts: Contract[], ctx: ContractContext): Contr
 			const missing = unoffered(type, ctx.researched);
 			return {
 				...c,
-				name: type?.name ?? c.key,
+				name: type?.name ?? ctx.names?.[c.key] ?? c.key,
 				category,
 				kind: kindOf(category),
 				internal: category?.endsWith('_internal') ?? false,

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ContractMarks from '#lib/ContractMarks.svelte';
 	import OutcomeCell from '#lib/Outcome.svelte';
+	import Painted from '#lib/Painted.svelte';
 	import { fromTable, techMarkFlags } from '#lib/outcomes.ts';
 	import { resolve } from '$app/paths';
 	import { contactStage, fmt, pretty } from '#lib/format.ts';
@@ -262,16 +263,23 @@
 		title
 	});
 	// a reward's certainty: on every path, likely (half the paths or more), or possible
+	// above 1 (several sources, or more than one in a source) it is a count, not a chance
 	const certainty = (g: GainRow) =>
 		g.sure > 0
 			? { label: 'sure', color: '#1baf7a', title: 'on every path you can take' }
-			: g.kind === 'item' && g.exp >= 0.5
-				? { label: `likely ${Math.round(g.exp * 100)} %`, color: '#3b82f6', title: 'by the odds' }
-				: {
-						label: g.kind === 'item' ? `possible ${Math.round(g.exp * 100)} %` : 'possible',
-						color: '#eda100',
-						title: 'only on some paths: chance, a choice or a condition'
-					};
+			: g.kind === 'item' && g.exp > 1
+				? {
+						label: `expected ×${fmt(g.exp)}`,
+						color: '#3b82f6',
+						title: 'how many by the odds, over all its sources'
+					}
+				: g.kind === 'item' && g.exp >= 0.5
+					? { label: `likely ${Math.round(g.exp * 100)} %`, color: '#3b82f6', title: 'by the odds' }
+					: {
+							label: g.kind === 'item' ? `possible ${Math.round(g.exp * 100)} %` : 'possible',
+							color: '#eda100',
+							title: 'only on some paths: chance, a choice or a condition'
+						};
 	type Anomaly = (typeof data.anomalies)[number];
 	type Project = (typeof data.projects)[number];
 	type Dig = (typeof data.digSites)[number];
@@ -288,8 +296,12 @@
 			title: 'what it leads to — hover a marker for its meaning, open the line for the whole tree'
 		}
 	];
+	// a contract's special projects, by name: for the source chips
+	const contractOf = $derived(
+		new Map(data.projects.flatMap((p) => (p.contract ? [[p.name, p.contract.name]] : [])))
+	);
 	const projectColumns: Column<Project>[] = [
-		{ id: 'name', label: 'Project', value: (p) => p.name, cell: bold },
+		{ id: 'name', label: 'Project', value: (p) => p.name, cell: projectName },
 		{ id: 'system', label: 'System', value: (p) => p.system },
 		{
 			id: 'department',
@@ -388,12 +400,18 @@
 		>
 			Precursor
 		</span>{/if}{/snippet}
-{#snippet bold(r: Anomaly | Project)}<b>{r.name}</b>{@render lgate(r)}{@render precursorBadge(
-		r
-	)}{/snippet}
-{#snippet anomalyName(a: Anomaly)}<b>{a.name}</b>{@render lgate(a)}{@render precursorBadge(
+{#snippet projectName(p: Project)}<b><Painted text={p.name} /></b>{@render lgate(
+		p
+	)}{@render precursorBadge(p)}{#if p.contract}<a
+			class="ml-1 rounded bg-sky-100 px-1 text-[11px] font-semibold text-sky-800 hover:underline dark:bg-sky-900/50 dark:text-sky-200"
+			href={resolve('/contracts')}
+			title="from the contract {p.contract.name}: its special project"
+		>
+			Contract
+		</a>{/if}{/snippet}
+{#snippet anomalyName(a: Anomaly)}<b><Painted text={a.name} /></b>{@render lgate(
 		a
-	)}<AddGoal kind="anomaly" target={{ planet: a.planetId }} />{/snippet}
+	)}{@render precursorBadge(a)}<AddGoal kind="anomaly" target={{ planet: a.planetId }} />{/snippet}
 {#snippet digName(d: Dig)}<b>{d.name}</b>{@render lgate(d)}{@render precursorBadge(d)}<AddGoal
 		kind="digsite"
 		target={{ planet: d.planetId }}
@@ -402,7 +420,46 @@
 			tree={a.tree}
 			now={pageNow}
 		/>{:else}<span class="text-gray-500">{@render outcomes(a.outcomes)}</span>{/if}{/snippet}
-{#snippet projectOutcomes(p: Project)}{#if p.tree}<OutcomeCell
+{#snippet contractLine(p: Project)}{#if p.contract}{@const k = p.contract}{@const left =
+			k.steps !== null && k.done !== null ? k.steps - k.done : k.steps}
+		<div class="text-sm">
+			<span class="font-semibold text-sky-700 dark:text-sky-300">
+				Contract
+			</span>{#if k.reward.length}<span
+					class="ml-1"
+					title="≈ at least: the bonus for contracts completed is counted, other raises of contract rewards not (as on the contracts tab)"
+				>
+					≈ {k.reward
+						.map(
+							(x) =>
+								`${fmt(Math.round(x.amount))} ${x.resource === 'trade' ? 'trade value' : pretty(x.resource)}`
+						)
+						.join(' + ')}{k.trade !== null ? ` (${k.trade.toFixed(2)} trade)` : ''}
+				</span>{:else}<span class="ml-1 text-gray-500">no resources</span>{/if}<span
+				class="ml-1 text-gray-500"
+			>
+				{k.ongoing
+					? `· ongoing since ${k.accepted ?? '?'}`
+					: '· not taken (or no longer in the save)'}{k.steps !== null && k.done !== null
+					? ` · ${k.done} of ${k.steps} steps done`
+					: k.steps !== null
+						? ` · ${k.steps} step${k.steps === 1 ? '' : 's'}`
+						: ''}
+			</span>{#if k.ongoing && left !== null && p.time}<span
+					class="ml-1 text-gray-500"
+					title="the steps left × this project's time, the one under way counted in full; travel not counted"
+				>
+					{`· ≈ ${daysText(left * p.time.days)} of work left`}
+				</span>{/if}{#if k.ongoing && k.deadline !== null}<span
+					class={k.deadline < (left !== null && p.time ? left * p.time.days : 0)
+						? 'ml-1 text-red-600'
+						: 'ml-1 text-gray-500'}
+					title="its time to complete, counted from the day it was accepted"
+				>
+					{`· ${k.deadline > 0 ? `${daysText(k.deadline)} until it must be done` : 'past its deadline'}`}
+				</span>{/if}
+		</div>{/if}{/snippet}
+{#snippet projectOutcomes(p: Project)}{@render contractLine(p)}{#if p.tree}<OutcomeCell
 			tree={p.tree}
 			now={pageNow}
 		/>{:else}<span class="text-gray-500">{@render outcomes(p.outcomes)}</span>{/if}{/snippet}
@@ -515,14 +572,16 @@
 				onpointerleave={() => (lit = null)}
 				onclick={() => void jump(s)}
 				onkeydown={(e) => e.key === 'Enter' && void jump(s)}
-				title="{s.kind}: {s.time ? 'how long it takes, as in its table' : 'no time known'}"
+				title="{s.kind}{s.kind === 'project' && contractOf.get(s.name)
+					? ` of the contract ${contractOf.get(s.name)}`
+					: ''}: {s.time ? 'how long it takes, as in its table' : 'no time known'}"
 			>
 				{s.name}{#if sourceTime(s)}<span class="ml-1 opacity-75">· {sourceTime(s)}</span>{/if}
 			</span>{/each}
 	</span>{/snippet}
 {#snippet gainLabel(g: GainRow)}{#if g.ref}<InfoPopup ref={g.ref}>
-			{g.label}
-		</InfoPopup>{:else}{g.label}{/if}{/snippet}
+			<Painted text={g.label} />
+		</InfoPopup>{:else}<Painted text={g.label} />{/if}{/snippet}
 
 {#snippet stillToGain()}
 	<Panel

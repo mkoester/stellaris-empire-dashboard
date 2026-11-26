@@ -71,6 +71,9 @@ export type Display = {
 	specimenTrade: boolean; // trade tab: the specimens each contact would trade, and for what (spoiler)
 	specimenTradeAll: boolean; // trade tab: … also those blocked now, with the reason (cheat)
 	archiveOthers: boolean; // archive tab: another empire's Grand Archive (cheat)
+	ideologiesAll: boolean; // ideologies tab: every ideology and every empire's stand (cheat)
+	ambitionsRevealed: boolean; // ambitions tab: others' ambitions the game revealed (spoiler)
+	ambitionsAll: boolean; // ambitions tab: every empire's ambition and level (cheat)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, beyond our intel (spoiler)
 	historyMet: boolean; // history tab: everything about the empires we met, beyond our intel (spoiler)
 	historyAll: boolean; // history tab: every empire's history, by its own name (cheat)
@@ -82,6 +85,8 @@ export type Display = {
 	pactAll: boolean; // pacts tab: partners' techs and trade whatever our intel, tech hints (cheat)
 	contractSpoilers: boolean; // contracts: offers from issuers we do not talk to (nomad), others' near our border (settled) (spoiler)
 	contractsAll: boolean; // contracts: every contract in the galaxy (cheat)
+	highwayFriends: boolean; // Ancient Highway: what our friends know of the ring (spoiler, intel)
+	highwayAll: boolean; // Ancient Highway: what every empire knows, every portal, the whole ring (cheat)
 	whatIfs: boolean; // ≈ what an edict, policy, designation or planet decision would do now (spoiler)
 };
 export const DEFAULT_DISPLAY: Display = {
@@ -117,6 +122,9 @@ export const DEFAULT_DISPLAY: Display = {
 	specimenTrade: false,
 	specimenTradeAll: false,
 	archiveOthers: false,
+	ideologiesAll: false,
+	ambitionsRevealed: false,
+	ambitionsAll: false,
 	diplomacyAll: false,
 	historyMet: false,
 	historyAll: false,
@@ -127,7 +135,9 @@ export const DEFAULT_DISPLAY: Display = {
 	subjectNumbers: false,
 	pactAll: false,
 	contractSpoilers: false,
-	contractsAll: false
+	contractsAll: false,
+	highwayFriends: false,
+	highwayAll: false
 };
 
 export type ProfileSettings = {
@@ -218,6 +228,9 @@ export function parseDisplay(v: unknown): Display {
 		specimenTrade: o.specimenTrade === true,
 		specimenTradeAll: o.specimenTradeAll === true,
 		archiveOthers: o.archiveOthers === true,
+		ideologiesAll: o.ideologiesAll === true,
+		ambitionsRevealed: o.ambitionsRevealed === true,
+		ambitionsAll: o.ambitionsAll === true,
 		diplomacyAll: o.diplomacyAll === true,
 		historyMet: o.historyMet === true,
 		historyAll: o.historyAll === true,
@@ -228,7 +241,9 @@ export function parseDisplay(v: unknown): Display {
 		subjectNumbers: o.subjectNumbers === true,
 		pactAll: o.pactAll === true,
 		contractSpoilers: o.contractSpoilers === true,
-		contractsAll: o.contractsAll === true
+		contractsAll: o.contractsAll === true,
+		highwayFriends: o.highwayFriends === true,
+		highwayAll: o.highwayAll === true
 	};
 }
 

@@ -7,6 +7,7 @@ import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
+import type { Highway, HighwaySystem } from './highway.ts';
 import type { GalaxySetup } from './galaxySetup.ts';
 import type { AiWeight } from './votes.ts';
 
@@ -498,6 +499,7 @@ export type Snapshot = {
 	contracts: Contract[] | null; // every Nomads contract in the galaxy, offered or accepted; READER 52
 	// contracts we completed (`country.variables.contract_completed`, the reward's scaling); READER 66
 	contractsCompleted: number | null;
+	highway: Highway | null; // the Ancient Highway mod (#lib/highway.ts), null without it; READER 82
 	// From the save's `meta`; null from the mod feed and in older snapshots.
 	gameVersion: string | null; // e.g. "Cygnus v4.5.2"
 	dlcs: string[] | null; // DLCs active in this save (`required_dlcs`), by name
@@ -532,6 +534,10 @@ export type Snapshot = {
 	precursorIntel: PrecursorIntel | null; // everything on precursors, galaxy-wide (a cheat); READER 72
 	// every empire's Grand Archive specimens, galaxy-wide (pageLatest keeps ours); READER 73
 	archives: ArchiveHolding[] | null;
+	// every ideology and every empire's stand, galaxy-wide (pageLatest keeps ours and the known); READER 79
+	ideologies: IdeologyReading | null;
+	// every empire's ambition (crisis path), galaxy-wide (pageLatest keeps ours); READER 79
+	ambitions: AmbitionRow[] | null;
 	stationsSeen: StationSighting[] | null; // stations where our fleets are, null before 2026-10-18
 	// The focus, tech and leaders tabs; null from the mod feed and in older snapshots.
 	focus: EmpireFocus | null;
@@ -690,6 +696,8 @@ export type GalaxySystem = {
 	sector?: string | null; // own systems: the sector (`sectors.<id>.systems`); since 2026-10-18
 	lanesKnown?: boolean; // in `country.hyperlane_systems`: its hyperlanes are on our map (sensors); since 2026-10-18
 	wanderlust?: string[]; // its Wanderlust categories (star flags), in any system — a spoiler where not visited; READER 31
+	highway?: HighwaySystem; // a ring node or portal of the Ancient Highway mod (star flags), in any system; READER 82
+	unclaimable?: boolean; // never claimable (the highway's star flag `ahw_unclaimable`); READER 82
 };
 
 /** A star, planet, moon or asteroid in a visited system. */
@@ -866,6 +874,76 @@ export type ArchiveHolding = {
 	tradeUntil: string | null; // has_already_traded_specimens: no specimen trade until then
 	// each exhibition's multiplier (1 + its and the general specimens output): companion mod 0.15.0
 	mults: Record<string, number> | null;
+};
+
+/** An ideology type from the data DB (`ideology`). */
+export type IdeologyType = {
+	ethic: string | null; // "ethic_egalitarian"
+	typeName: string; // what the game calls it: "Ideology", "Religion"
+	factionName: string | null;
+};
+
+/** A tenet from the data DB: what each Intensity (slot I–III) gives. */
+export type Tenet = {
+	name: string;
+	description: string | null;
+	tiers: Record<number, { modifiers: (Modifier & { scope: string })[]; text: string | null }>;
+};
+
+/** An ambition (crisis path) from the data DB: its levels and objectives. */
+export type AmbitionPath = {
+	key: string;
+	name: string;
+	description: string | null;
+	currency: string | null; // a resource: "willpower", "menace"
+	perk: string | null; // the ascension perk that starts it
+	levels: {
+		key: string;
+		name: string;
+		level: number; // 1-based
+		required: number | null; // the currency it needs
+		requirements: string[]; // as the game words them
+		perks: string[]; // menace perk names it grants
+	}[];
+	objectives: { key: string; name: string; description: string | null; recurring: boolean }[];
+};
+
+/** An ideology (4.6, top-level `ideologies.ideologies`; server/save/ideologies.ts). */
+export type Ideology = {
+	id: number;
+	type: string; // common/ideologies key: "egalitarian", "xenophobe_militarist"
+	name: string; // "Human Liberalism"
+	founder: number | null; // `origin`
+	custodian: number | null; // the Ideological Authority
+	adopters: number[];
+	tenets: { key: string; tier: number }[]; // codified, by slot (tier = slot = Intensity)
+	offered: string[][]; // per open slot, the tenets on offer (`pending_tenets`)
+	systems: number; // systems within its reach (`affected_systems`)
+};
+
+/** An empire's own ideology module (`modules.standard_ideology_module`). */
+export type IdeologyStand = {
+	countryId: number;
+	adopted: number | null; // ideology id
+	strength: number; // Ideological Strength (`value`)
+	level: number; // 0-based (`index`)
+	momentum: number | null; // last month's change (`past_monthly_strength_momenta`)
+	pendingLevels: number; // levels whose tenet slot waits to be codified
+	intel: Record<string, number>; // ideology id → intel: the ideologies it knows
+};
+
+export type IdeologyReading = {
+	enabled: boolean; // the galaxy rule `ideologies_enabled`
+	ideologies: Ideology[];
+	stands: IdeologyStand[]; // empires with a non-empty module
+};
+
+/** An empire's ambition (`crisis_progression`, server/save/ideologies.ts). */
+export type AmbitionRow = {
+	countryId: number;
+	path: string; // crisis_path key: "force_of_will_path"
+	level: string | null; // crisis_level key; null before its first level
+	personality: string | null; // the AI personality, what reveals it to empires that talk to it
 };
 
 export type PrecursorIntel = {
@@ -1171,6 +1249,7 @@ export type ContractType = {
 	// the game's `location = yes`: the contract has a system; null with a data DB before
 	// 2026-11-20, which also lacks the projects defined by inline scripts (the onboard ones)
 	location: boolean | null;
+	eventChain?: string | null; // its special projects' event chain, whose counter is its progress
 };
 
 /** What a contract pays its operator on success (data DB `contract.reward_json`). */
@@ -1427,6 +1506,10 @@ export type GameData = {
 	diploNames: Record<string, string>;
 	specialists: Specialists; // subject specialisations (extractor 0.1.16; empty before)
 	specimens: Record<string, Specimen>; // Grand Archive specimens by key (empty from an older data DB)
+	// ideologies (4.6, extractor 0.1.26): types by key, tenets by key; empty from an older data DB
+	ideologyTypes: Record<string, IdeologyType>;
+	tenets: Record<string, Tenet>;
+	ambitionPaths: Record<string, AmbitionPath>; // crisis paths by key (extractor 0.1.11)
 	resolutionCategories: Record<string, string>; // resolution → its category key
 	resolutionGroups: Record<string, string>; // category → its group (commerce_industry, …)
 	// every resolution a category lists, in file order: what proposing it takes (#lib/proposable.ts)
@@ -1556,6 +1639,7 @@ export type GameData = {
 	digSiteTypes: Record<string, { name: string; stages: number }>; // archaeological site types
 	depositCategories: Record<string, string>; // e.g. d_energy_5 → orbital_mining_deposits
 	prescriptedNames: Record<string, string>; // loc key → name, e.g. PRESCRIPTED_ruler_name_humans1
+	modText?: Record<string, string>; // the enabled mods' English texts, loc key → text (`withModContent()`)
 	entryEvents: EntryEvent[]; // the popups a first entry into a system fires (system_entry_event)
 	scriptedTriggers: Record<string, Trigger | null>; // parameter-free scripted triggers, normalised
 	// species rights per kind, in the game's order, each with its options

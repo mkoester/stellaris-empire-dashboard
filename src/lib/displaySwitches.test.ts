@@ -63,12 +63,16 @@ describe('effectiveDisplay', () => {
 				.map((s) => s.key)
 				.sort()
 		).toEqual([
+			'ambitionsAll',
+			'ambitionsRevealed',
 			'archiveOthers',
 			'contactStations',
 			'contractSpoilers',
 			'diplomacyAll',
+			'highwayFriends',
 			'historyAll',
 			'historyMet',
+			'ideologiesAll',
 			'lgates',
 			'pactAdvice',
 			'pactIntel',

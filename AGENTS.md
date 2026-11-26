@@ -29,7 +29,7 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
-  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14 and 2026-11-06.
+  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14, 2026-11-06 and 2026-11-24.
 
 Cross-project conventions come from the OKF vault; workspace rules from `../AGENTS.md`.
 
@@ -112,12 +112,8 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   new field stays at its `upgrade()` default until the save changes. **Two branches bump it
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
-  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
-  2026-11-22: `develop` has 78 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
-  chapters, planet flags, waystations, the home system surveyed, name templates, every contact's tech
-  gap, the Edict Fund, contracts completed, contract passengers aboard arkships, dig sites excavated by our fleets only, transport contracts' pickup and drop-off, cosmic storms and prescripted name templates, event chains, precursor intel, Grand Archive specimens, fallen-hive fragment names, scope-command name placeholders, first contacts' difficulty with the contact's protocol, the mod's export and xenophobes; the highway: the Ancient Highway mod) — that merge takes 79,
-  and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
-  in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
+  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. 2026-11-26: `develop`'s
+  81 and `feature/highway`'s 57 (the Ancient Highway mod) merged as 82.
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
   only — a released step has run on players' DBs). The version is SQLite's `user_version` (0.1.0's
   `state.schema = '15'` is taken over as 15); a new DB is the 0.1.0 tables plus every step, so each
@@ -128,6 +124,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   beside a `json_extract` column means every snapshot is parsed before `LIMIT 1` keeps one (two
   layout queries took ~400 ms of every page until migration 18). Time a page by profiling it:
   "Measuring a page" in `docs/testing.md`.
+- **What a DB holds: `node scripts/campaigns.mjs [<campaign>] [--db <file>]`** (alias `sdb`,
+  workspace `scripts/stellaris.zsh`): every campaign, or one with its newest nodes and the saves on
+  disk it never read (a session played without this DB). Read-only; default the player's DB.
 - The background start, cleaning up campaigns and the migrations so far: `docs/database.md`. Read
   it before changing `watch.ts` or `campaigns.ts`, or adding a migration.
 
@@ -135,8 +134,18 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
 
 Check a change end to end against a copy of the dashboard DB, never the real one: a dev server
 ingests saves and moves the head. Where the DB in use lives differs per machine (`docs/testing.md`):
-on mkTuxedCachy the released zip's own, `~/.local/share/stellaris-empire-dashboard/`. New save shapes come from throwaway games with
-console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
+on mkTuxedoCachy the dev dashboard's (`sdash`, `scripts/dashboard.sh`'s default `--db-dir test`),
+`~/.local/share/stellaris-empire-dashboard-test/` — the current 4.6 campaign; the released zip's own
+(`~/.local/share/stellaris-empire-dashboard/`) stopped at 2026-11-22. When unsure, `sdb <campaign>
+--db <file>` on each: the one with the newest "recorded" is in use. New save shapes come from
+throwaway games with console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
+
+**A reader test's fixture that names a save is copied from that save** (`grep -n -a` the key in
+its gamestate, then `sed -n` the block), never written from what the code expects: the event-chain
+fixtures put `event_chain` on the country while the save has it in `country.events`, so the tests
+passed and every reading was empty from READER 71 to 80 (2026-11-26, a Cybrex find the frontier
+never showed). **svelte-check is the only type check of the tests** — vitest strips types: run it
+after editing a test too (a readonly `as const` literal reached a commit, 2026-11-26).
 
 Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`,
 `node_modules/.bin/vitest run`, `node_modules/.bin/prettier --check . && node_modules/.bin/eslint .`
