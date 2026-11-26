@@ -351,7 +351,7 @@ describe('resolve and prune', () => {
 		expect(ifHead(n, 1).label).toContain('deposit for');
 		expect(ifHead(n, 2).label).toBe('otherwise:');
 		expect(ifHead(resolve(orb, us)[1] as typeof n, 0).label).toBe('for your empire:');
-		const bare = { t: 'if', b: [[{ t: 'xp', n: 1 }]], else: false } as const;
+		const bare: typeof n = { t: 'if', b: [[{ t: 'xp', n: 1 }]], else: false };
 		expect(ifHead(bare, 0).label).toBe('depending on the planet, ship or empire:');
 	});
 	it('without conditions (an older data DB) nothing changes', () => {
