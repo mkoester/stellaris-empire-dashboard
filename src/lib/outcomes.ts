@@ -11,11 +11,15 @@ type Named = { k: string; name: string | null };
 // w_if: a conditional branch's weight while its conditions hold (data DBs since the outcome tree).
 // `c`: the condition on our empire (data DBs since 2026-11-17), read by `resolve()`, which drops it
 // and marks `off` what this empire cannot get (`why`: the condition, readable).
+// d: the condition as written, any scope, for display (data DBs since 2026-11-26); head: both read
+// against this empire (`resolve()`)
 export type Branch = {
 	w: number;
 	cond: boolean;
 	w_if?: number;
 	c?: Trigger;
+	d?: Trigger;
+	head?: IfHead;
 	off?: boolean;
 	e: OutcomeNode[];
 };
@@ -23,6 +27,8 @@ export type Option = {
 	name: string | null;
 	cond: boolean;
 	c?: Trigger;
+	d?: Trigger;
+	head?: IfHead;
 	off?: boolean;
 	why?: string;
 	e: OutcomeNode[];
@@ -68,7 +74,75 @@ export type OutcomeNode =
 /** An `if` branch's condition, readable: `ours` when it asks something of our empire (`c`), else
  * it is the planet's, the ship's or the event's (`d`); `now` what it says for us today, where
  * the chain may still change it (a flag, a tech). */
-export type IfHead = { why: string; ours: boolean; now: boolean | null };
+export type IfHead = { why: string; ours: boolean; now: boolean | null; parts?: CondPart[] };
+/** One part of a condition on our empire (an `and`'s), with what it says today. */
+export type CondPart = { text: string; now: boolean | null };
+
+const OPAQUE = 'a test of the ship, its leader or the planet';
+const FOREIGN =
+	'a condition on the planet, the ship or the event, not on your empire: the save does not answer it here';
+
+/**
+ * A condition, readable: the text from `d` (as written, every scope opened) or else `c`; whether
+ * `c` asks it of our empire; with facts, what it and each of its parts say today (`evaluate()`:
+ * the chain may still change that).
+ */
+export function condHead(
+	c: Trigger | null | undefined,
+	d: Trigger | null | undefined,
+	f: Facts | null = null,
+	names: Record<string, string> = {}
+): IfHead | null {
+	const shown = d ?? c;
+	if (!shown) return null;
+	const why = describe(shown, names);
+	if (!c) return { why, ours: false, now: null };
+	const args = 'op' in c && c.op === 'and' ? c.args : [c];
+	const parts =
+		f && args.length > 1
+			? args.map((a) => ({
+					text: 'leaf' in a && a.leaf === 'complex' ? OPAQUE : describe(a, names),
+					now: evaluate(a, f)
+				}))
+			: undefined;
+	return { why, ours: true, now: f ? evaluate(c, f) : null, ...(parts ? { parts } : {}) };
+}
+
+/** What a condition says for us now, after its text, and its parts on hover. */
+export function condNote(h: IfHead): { note: string; title: string } {
+	if (!h.ours) return { note: ' (not your empire’s)', title: FOREIGN };
+	const p = h.parts;
+	const list = p
+		? `\n${p.map((x) => `${x.now === true ? '✓' : x.now === false ? '✗' : '?'} ${x.text}`).join('\n')}`
+		: '';
+	const title = `a condition on your empire, as it stands now: the chain may still change it${list}`;
+	if (h.now === true) return { note: ' (holds now)', title };
+	if (h.now === false) {
+		const no = p?.filter((x) => x.now === false) ?? [];
+		return {
+			note:
+				no.length && p && p.length > 1
+					? ` (not now: ${no.map((x) => x.text).join('; ')})`
+					: ' (not now)',
+			title
+		};
+	}
+	const known = p?.filter((x) => x.now !== null) ?? [];
+	return {
+		note:
+			p && known.length
+				? ` (now ${known.length} of ${p.length} parts known, all holding; open: ${p
+						.filter((x) => x.now === null)
+						.map((x) => x.text)
+						.join('; ')})`
+				: '',
+		title
+	};
+}
+
+/** A branch's or option's condition: as `resolve()` read it, else from its raw `c` / `d`. */
+export const headOf = (x: { head?: IfHead; c?: Trigger; d?: Trigger }) =>
+	x.head ?? condHead(x.c, x.d);
 
 export type Marker = 'fixed' | 'random' | 'choice' | 'depends' | 'project' | 'later' | 'risk';
 
@@ -207,27 +281,35 @@ export function resolve(
 	f: Facts,
 	names: Record<string, string> = {}
 ): OutcomeNode[] {
-	const gate = <T extends { c?: Trigger }>(x: T) => {
-		const { c, ...rest } = x;
-		if (!c) return rest;
-		return holds(c, f) === false ? { ...rest, off: true, why: describe(c, names) } : rest;
+	const gate = <T extends { c?: Trigger; d?: Trigger }>(x: T, withHead = false) => {
+		const { c, d, ...rest } = x;
+		const h = withHead ? condHead(c, d, f, names) : null;
+		const shown = h ? { ...rest, head: h } : rest;
+		if (!c) return shown;
+		return holds(c, f) === false ? { ...shown, off: true, why: describe(c, names) } : shown;
 	};
 	const go = (list: OutcomeNode[]): OutcomeNode[] =>
 		list.map((n): OutcomeNode => {
 			switch (n.t) {
 				case 'event':
-					return { ...gate(n), e: go(n.e), o: n.o.map((o) => ({ ...gate(o), e: go(o.e) })) };
+					return {
+						...gate(n),
+						e: go(n.e),
+						o: n.o.map((o) => ({ ...gate(o, o.cond), e: go(o.e) }))
+					};
 				case 'random':
 					return {
 						...n,
 						b: n.b.map((b) => {
-							const { c, ...rest } = b;
+							const { c, d, ...rest } = b;
 							const ok = c ? holds(c, f) : null;
 							const settled =
 								ok === null ? rest : { w: ok ? (b.w_if ?? b.w) : b.w, cond: false, e: rest.e };
+							const h = settled.cond ? condHead(c, d, f, names) : null;
 							return {
 								...settled,
 								e: go(b.e),
+								...(h ? { head: h } : {}),
 								...(settled.w === 0 && !settled.cond ? { off: true } : {})
 							};
 						})
@@ -246,17 +328,7 @@ export function resolve(
 						taken.push(reached === false || v === false ? false : reached && v ? true : null);
 						reached = reached === false || v === true ? false : v === null ? null : reached;
 					}
-					const heads = n.b.map((_, i): IfHead | null => {
-						const lim = c?.[i];
-						if (lim)
-							return {
-								why: describe(lim, names),
-								ours: true,
-								now: own[i] === null ? evaluate(lim, f) : null
-							};
-						const shown = d?.[i];
-						return shown ? { why: describe(shown, names), ours: false, now: null } : null;
-					});
+					const heads = n.b.map((_, i) => condHead(c?.[i], d?.[i], f, names));
 					return {
 						...rest,
 						b: n.b.map(go),
@@ -403,7 +475,81 @@ export function markers(tree: OutcomeNode[]): Marker[] {
 }
 
 type If = Extract<OutcomeNode, { t: 'if' }>;
-const FOREIGN = 'a condition on the planet, the ship or the event, not on your empire';
+
+/** An option's condition after its name: " (if …)" with what it says now, or " (if available)". */
+export function optionCond(o: Option): string {
+	const h = headOf(o);
+	return h ? ` (if ${h.why})${condNote(h).note}` : ' (if available)';
+}
+
+/** Two `if`s in a row, each one branch without else, whose conditions are exact opposites (a
+ * truth table over their tests, up to 10 of them): one `if` with an else — or, where both give
+ * the same, what they give. The Star Crazy project's "is it the crazy science officer, or not". */
+export function mergeComplements(tree: OutcomeNode[]): OutcomeNode[] {
+	const cond = (n: If) => n.d?.[0] ?? n.c?.[0] ?? null;
+	const single = (n: OutcomeNode): n is If =>
+		n.t === 'if' && n.b.length === 1 && !n.else && cond(n) !== null;
+	const go = (list: OutcomeNode[]): OutcomeNode[] => {
+		const out: OutcomeNode[] = [];
+		for (let i = 0; i < list.length; i++) {
+			const a = deep(list[i]);
+			const b = list[i + 1] && deep(list[i + 1]);
+			if (b && single(a) && single(b) && opposite(cond(a)!, cond(b)!)) {
+				i++;
+				if (JSON.stringify(a.b[0]) === JSON.stringify(b.b[0])) out.push(...a.b[0]);
+				else
+					out.push({
+						t: 'if',
+						b: [a.b[0], b.b[0]],
+						else: true,
+						...(a.c ? { c: [a.c[0], null] } : {}),
+						...(a.d ? { d: [a.d[0], null] } : {})
+					});
+			} else out.push(a);
+		}
+		return out;
+	};
+	const deep = (n: OutcomeNode): OutcomeNode => {
+		switch (n.t) {
+			case 'random':
+				return { ...n, b: n.b.map((x) => ({ ...x, e: go(x.e) })) };
+			case 'if':
+				return { ...n, b: n.b.map(go) };
+			case 'event':
+				return { ...n, e: go(n.e), o: n.o.map((o) => ({ ...o, e: go(o.e) })) };
+			case 'later':
+			case 'chapter':
+				return { ...n, e: go(n.e) };
+			case 'project':
+				return n.sub ? { ...n, sub: go(n.sub) } : n;
+			default:
+				return n;
+		}
+	};
+	return go(tree);
+}
+
+/** Whether two conditions are each other's opposite whatever their tests say. */
+export function opposite(a: Trigger, b: Trigger): boolean {
+	const keys = new Set<string>();
+	const collect = (t: Trigger) =>
+		'leaf' in t ? keys.add(JSON.stringify(t)) : t.args.forEach(collect);
+	collect(a);
+	collect(b);
+	const list = [...keys];
+	if (list.length > 10) return false;
+	const at = (t: Trigger, v: Map<string, boolean>): boolean => {
+		if ('leaf' in t) return v.get(JSON.stringify(t))!;
+		const vals = t.args.map((x) => at(x, v));
+		if (t.op === 'not') return !vals.every(Boolean);
+		return t.op === 'and' ? vals.every(Boolean) : vals.some(Boolean);
+	};
+	for (let m = 0; m < 1 << list.length; m++) {
+		const v = new Map(list.map((k, i) => [k, (m & (1 << i)) !== 0]));
+		if (at(a, v) === at(b, v)) return false;
+	}
+	return true;
+}
 
 /**
  * The heading of an `if` chain's branch `i`: its condition where the data has one (`heads` from
@@ -415,30 +561,14 @@ export function ifHead(n: If, i: number): { label: string; note: string; title: 
 	if (n.taken?.[i] === true)
 		return { label: 'for your empire:', note: '', title: n.heads?.[i]?.why ?? '' };
 	if (n.else && last) return { label: 'otherwise:', note: '', title: 'when no branch above holds' };
-	const c = n.c?.[i];
-	const d = n.d?.[i];
-	const h: IfHead | null =
-		n.heads?.[i] ??
-		(c
-			? { why: describe(c), ours: true, now: null }
-			: d
-				? { why: describe(d), ours: false, now: null }
-				: null);
+	const h = n.heads?.[i] ?? condHead(n.c?.[i], n.d?.[i]);
 	if (!h)
 		return {
 			label: i === 0 ? 'depending on the planet, ship or empire:' : 'or:',
 			note: '',
 			title: 'a condition the data does not make readable'
 		};
-	if (!h.ours) return { label: `if ${h.why}:`, note: ' (not your empire’s)', title: FOREIGN };
-	return {
-		label: `if ${h.why}:`,
-		note: h.now === true ? ' (holds now)' : h.now === false ? ' (not now)' : '',
-		title:
-			h.now === null
-				? 'a condition on your empire the save does not answer'
-				: `a condition on your empire: ${h.now ? 'it holds' : 'it does not hold'} now, and the chain may still change that`
-	};
+	return { label: `if ${h.why}:`, ...condNote(h) };
 }
 
 /** How likely each branch of a random node is: percentages when no branch has conditions, else
@@ -453,8 +583,8 @@ export function branchLabels(b: Branch[]): string[] {
 		!x.cond
 			? `weight ${fmt(x.w)}`
 			: x.w_if === undefined
-				? 'if conditions hold'
-				: `weight ${fmt(x.w_if)} if conditions hold${x.w !== x.w_if ? `, else ${fmt(x.w)}` : ''}`
+				? `if ${headOf(x)?.why ?? 'conditions hold'}`
+				: `weight ${fmt(x.w_if)} if ${headOf(x)?.why ?? 'conditions hold'}${x.w !== x.w_if ? `, else ${fmt(x.w)}` : ''}`
 	);
 }
 
@@ -950,10 +1080,7 @@ export function outcomeText(
 				for (const o of n.o) {
 					if (pick || o.e.length) {
 						if (pick || o.cond)
-							add(
-								depth + 1,
-								`${pick ? '▸ ' : ''}“${o.name ?? '…'}”${o.cond ? ' (if available)' : ''}`
-							);
+							add(depth + 1, `${pick ? '▸ ' : ''}“${o.name ?? '…'}”${o.cond ? optionCond(o) : ''}`);
 						list(o.e, depth + (pick || o.cond ? 2 : 1));
 					}
 				}

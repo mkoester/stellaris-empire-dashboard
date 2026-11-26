@@ -412,7 +412,23 @@ one are greyed as done. **An `if` branch's heading is its condition** (`ifHead()
 "if <condition>:" with "(holds now)" / "(not now)" where `c` is about us but the chain may still
 change it (`evaluate()` today); "(not your empire’s)" for a planet, ship or event limit, which only
 the extractor's `d` keeps (data DBs since 2026-11-26: every limit as written, for display only).
-Without either, "depending on the planet, ship or empire:". Until then every branch read
+Without either, "depending on the planet, ship or empire:". **Conditions say which parts hold
+now** (the user's ask 2026-11-26: "weight 10 if conditions hold — what are the conditions?",
+"(if available) — when?"): random branches and options carry `d` too (as written, every scope
+block opened by the extractor: `leader.has_trait` reads "the leader: trait …", `from` "the planet
+or site"; in a ship's event the owner and controller are us, their tests unprefixed). `condHead()`
+reads both: the text from `d`, else `c`; where `c` asks it of us, what it and each of its `and`
+parts say today (`evaluate()`: the chain may still change that); `condNote()` puts it after the
+text — "(holds now)", "(not now: <the parts that fail>)", "(now 2 of 3 parts known, all
+holding; open: …)" — with every part ✓ ✗ ? on hover. The frontier's facts add global flags
+(`galcom.globalFlags`) and our running event chains (`has_event_chain`). **Two opposite `if`s are
+one** (`mergeComplements()`, in `outcomeTrees()`): consecutive single-branch ifs whose conditions
+are exact opposites by a truth table over their tests (up to 10) become an if/else, or what both
+give where it is the same; until then Star Crazy read as two "(not your empire’s) … otherwise:
+nothing", though one of them always holds. **A contract's project** shows the contract's reward
+(the contracts tab's `contractDetail()`, ≈ at least), whether it is ongoing and since when, its
+steps done (the first counter of its event chain, `ContractType.eventChain`), the work left
+(steps left × the project's time, ≈) and the days until its time to complete runs out. Until then every branch read
 "depending on your empire", Living Metal Marvel's `has_deposit_for` as well. **Colours and popups
 in the explanations** (the same ask): a reward's resource in the resource's colour, a tech's name
 in its area's, every "L-Gate" in the L-Gate badge's violet (`segments()`, `Painted.svelte`). The

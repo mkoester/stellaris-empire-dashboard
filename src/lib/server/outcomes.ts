@@ -1,6 +1,7 @@
 import { techCost } from '#lib/events.ts';
 import {
 	outcomeText,
+	mergeComplements,
 	withProjects,
 	withSpecimens,
 	type Now,
@@ -11,7 +12,8 @@ import type { Display } from '#lib/profiles.ts';
 import type { GameData, Snapshot } from '#lib/types.ts';
 
 // What an anomaly, special project or dig site leads to, behind its spoiler switch: the tree with
-// the projects it leads to filled in and its specimens' categories, and the same as tooltip text. Null when switched off or when
+// the projects it leads to filled in, its specimens' categories, two opposite `if`s as one
+// (`mergeComplements()`), and the same as tooltip text. Null when switched off or when
 // the data DB has no tree (an older extractor).
 
 type Spoilers = Pick<Display, 'anomalySpoilers' | 'projectSpoilers' | 'digSiteSpoilers'>;
@@ -24,7 +26,7 @@ export function outcomeTrees(data: Trees, opts: Spoilers) {
 		Object.entries(data.specimens ?? {}).flatMap(([k, s]) => (s.category ? [[k, s.category]] : []))
 	);
 	const full = (tree: OutcomeNode[] | undefined) =>
-		tree?.length ? withSpecimens(withProjects(tree, t.project), cats) : null;
+		tree?.length ? mergeComplements(withSpecimens(withProjects(tree, t.project), cats)) : null;
 	return {
 		anomaly: (category: string) => (opts.anomalySpoilers ? full(t.anomaly[category]) : null),
 		project: (key: string) => (opts.projectSpoilers ? full(t.project[key]) : null),

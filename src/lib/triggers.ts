@@ -48,6 +48,7 @@ export type Facts = {
 	// the Galactic Community, for what resolutions test (#lib/proposable.ts)
 	activeResolutions?: string[] | null; // in force (`galactic_community.passed`)
 	globalFlags?: string[] | null;
+	eventChains?: string[] | null; // running in our situation log (`has_event_chain`)
 	galcomFormed?: boolean | null;
 	galcomYears?: number | null; // whole years since the Galactic Community formed
 	// `uses_ship_category`: the ship kinds our shipset builds (`bio_ship` for Biogenesis)
@@ -173,6 +174,8 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			return f.activeResolutions ? f.activeResolutions.includes(value) : null;
 		case 'has_global_flag':
 			return f.globalFlags ? f.globalFlags.includes(value) : null;
+		case 'has_event_chain':
+			return f.eventChains ? f.eventChains.includes(value) : null;
 		case 'is_galactic_community_formed':
 			return yes(f.galcomFormed ?? null);
 		case 'is_galactic_community_member':
@@ -263,10 +266,29 @@ export function evaluate(t: Trigger | null, f: Facts): boolean | null {
 	return vals.includes(true) ? true : vals.includes(null) ? null : false;
 }
 
+// a test in a scope the extractor opened for display (`leader.has_trait`): whose it is
+const SCOPES: Record<string, string> = {
+	leader: 'the leader',
+	from: 'the planet or site', // an anomaly's planet, a dig site's site
+	any_system: 'any system',
+	any_country: 'any empire',
+	any_owned_planet: 'any planet of ours',
+	solar_system: 'the system',
+	planet: 'the planet',
+	space_owner: 'the system’s owner',
+	capital_scope: 'our capital',
+	ship: 'the ship',
+	fleet: 'the fleet'
+};
+const scopeName = (k: string) => SCOPES[k.toLowerCase()] ?? pretty(k);
+
 /** A short readable form: "policy flag unrestricted wars or policy flag liberation wars". */
 export function describe(t: Trigger | null, names: Record<string, string> = {}): string {
 	if (t === null) return 'always';
 	if ('leaf' in t) {
+		const dot = t.leaf.lastIndexOf('.');
+		if (dot > 0)
+			return `${t.leaf.slice(0, dot).split('.').map(scopeName).join(' → ')}: ${describe({ ...t, leaf: t.leaf.slice(dot + 1) }, names)}`;
 		const what = pretty(t.leaf.replace(/^(has|is)_/, ''));
 		if (t.value === 'scope') return `${what} (…)`;
 		if (t.cmp) return `${what} ${t.cmp} ${t.value}`;

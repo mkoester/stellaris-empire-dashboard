@@ -9,6 +9,8 @@
 		duration,
 		effectRef,
 		effectText,
+		condNote,
+		headOf,
 		ifHead,
 		isChoice,
 		markers,
@@ -140,9 +142,13 @@
 							{#if pick || o.cond}
 								{#snippet optionHead()}<span class="text-blue-600">
 										{pick ? '▸ ' : ''}“{o.name ?? '…'}”
-									</span>{#if o.cond && !o.off}<span class="ml-1 text-amber-600">
-											(if available)
-										</span>{/if}{/snippet}
+									</span>{#if o.cond && !o.off}{@const h = headOf(o)}{@const t = h
+											? condNote(h)
+											: null}<span class="ml-1 text-amber-600" title={t?.title}>
+											{h ? `(if ${h.why})` : '(if available)'}
+										</span>{#if t?.note}<span class="text-gray-400">
+												{t.note}
+											</span>{/if}{/if}{/snippet}
 								{#if o.e.length}{@render fold(
 										optionHead,
 										o.e,
@@ -161,7 +167,11 @@
 	{:else if n.t === 'random'}
 		{@const c = branchLabels(n.b)}
 		{#each n.b as b, i (i)}
-			{#snippet branchHead()}<span class="text-purple-600">{c[i]}</span>{/snippet}
+			{@const h = b.cond ? headOf(b) : null}
+			{@const t = h ? condNote(h) : null}
+			{#snippet branchHead()}<span class="text-purple-600" title={t?.title}>
+					{c[i]}
+				</span>{#if t?.note}<span class="text-gray-400">{t.note}</span>{/if}{/snippet}
 			{#if b.e.length}{@render fold(branchHead, b.e, depth, !!b.off, null)}{:else}<div
 					class={b.off ? 'opacity-50' : ''}
 				>

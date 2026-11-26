@@ -298,7 +298,7 @@
 	];
 	// a contract's special projects, by name: for the source chips
 	const contractOf = $derived(
-		new Map(data.projects.flatMap((p) => (p.contract ? [[p.name, p.contract]] : [])))
+		new Map(data.projects.flatMap((p) => (p.contract ? [[p.name, p.contract.name]] : [])))
 	);
 	const projectColumns: Column<Project>[] = [
 		{ id: 'name', label: 'Project', value: (p) => p.name, cell: projectName },
@@ -405,7 +405,7 @@
 	)}{@render precursorBadge(p)}{#if p.contract}<a
 			class="ml-1 rounded bg-sky-100 px-1 text-[11px] font-semibold text-sky-800 hover:underline dark:bg-sky-900/50 dark:text-sky-200"
 			href={resolve('/contracts')}
-			title="from the contract {p.contract}: its special project"
+			title="from the contract {p.contract.name}: its special project"
 		>
 			Contract
 		</a>{/if}{/snippet}
@@ -420,7 +420,46 @@
 			tree={a.tree}
 			now={pageNow}
 		/>{:else}<span class="text-gray-500">{@render outcomes(a.outcomes)}</span>{/if}{/snippet}
-{#snippet projectOutcomes(p: Project)}{#if p.tree}<OutcomeCell
+{#snippet contractLine(p: Project)}{#if p.contract}{@const k = p.contract}{@const left =
+			k.steps !== null && k.done !== null ? k.steps - k.done : k.steps}
+		<div class="text-sm">
+			<span class="font-semibold text-sky-700 dark:text-sky-300">
+				Contract
+			</span>{#if k.reward.length}<span
+					class="ml-1"
+					title="≈ at least: the bonus for contracts completed is counted, other raises of contract rewards not (as on the contracts tab)"
+				>
+					≈ {k.reward
+						.map(
+							(x) =>
+								`${fmt(Math.round(x.amount))} ${x.resource === 'trade' ? 'trade value' : pretty(x.resource)}`
+						)
+						.join(' + ')}{k.trade !== null ? ` (${k.trade.toFixed(2)} trade)` : ''}
+				</span>{:else}<span class="ml-1 text-gray-500">no resources</span>{/if}<span
+				class="ml-1 text-gray-500"
+			>
+				{k.ongoing
+					? `· ongoing since ${k.accepted ?? '?'}`
+					: '· not taken (or no longer in the save)'}{k.steps !== null && k.done !== null
+					? ` · ${k.done} of ${k.steps} steps done`
+					: k.steps !== null
+						? ` · ${k.steps} step${k.steps === 1 ? '' : 's'}`
+						: ''}
+			</span>{#if k.ongoing && left !== null && p.time}<span
+					class="ml-1 text-gray-500"
+					title="the steps left × this project's time, the one under way counted in full; travel not counted"
+				>
+					{`· ≈ ${daysText(left * p.time.days)} of work left`}
+				</span>{/if}{#if k.ongoing && k.deadline !== null}<span
+					class={k.deadline < (left !== null && p.time ? left * p.time.days : 0)
+						? 'ml-1 text-red-600'
+						: 'ml-1 text-gray-500'}
+					title="its time to complete, counted from the day it was accepted"
+				>
+					{`· ${k.deadline > 0 ? `${daysText(k.deadline)} until it must be done` : 'past its deadline'}`}
+				</span>{/if}
+		</div>{/if}{/snippet}
+{#snippet projectOutcomes(p: Project)}{@render contractLine(p)}{#if p.tree}<OutcomeCell
 			tree={p.tree}
 			now={pageNow}
 		/>{:else}<span class="text-gray-500">{@render outcomes(p.outcomes)}</span>{/if}{/snippet}

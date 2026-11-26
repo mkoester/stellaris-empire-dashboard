@@ -1339,7 +1339,8 @@ function contractTypes(
 						? []
 						: null,
 				projects: r.event_chain ? (byChain.get(r.event_chain) ?? []) : [],
-				location: r.location === null ? null : r.location === 1
+				location: r.location === null ? null : r.location === 1,
+				eventChain: r.event_chain
 			}
 		])
 	);

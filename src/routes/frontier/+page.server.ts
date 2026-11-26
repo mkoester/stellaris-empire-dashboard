@@ -1,4 +1,5 @@
-import { contractMarksAt } from '#lib/server/contracts.ts';
+import { contractMarksAt, contractsAt } from '#lib/server/contracts.ts';
+import { toDays } from '#lib/events.ts';
 import { error } from '@sveltejs/kit';
 import { pretty } from '#lib/format.ts';
 import { contactChanges } from '#lib/contacts.ts';
@@ -47,7 +48,14 @@ export function load({ url }) {
 	const opts = display();
 	const trees = outcomeTrees(data, opts);
 	const save = snaps.findLast((x) => x.kind === 'save') ?? null;
-	const f = save ? facts(save, data.scriptedTriggers, { shipKinds: data.shipKinds }) : null;
+	// with what conditions in the outcome trees also ask: global flags, our running event chains
+	const f = save
+		? {
+				...facts(save, data.scriptedTriggers, { shipKinds: data.shipKinds }),
+				globalFlags: save.galcom?.globalFlags ?? null,
+				eventChains: save.eventChains?.active.map((c) => c.key) ?? null
+			}
+		: null;
 	const read = (tree: OutcomeNode[] | null) =>
 		tree && f ? resolve(tree, f, data.identityNames) : tree;
 	// nothing this empire can get from it: greyed in its table
@@ -102,10 +110,37 @@ export function load({ url }) {
 			precursors: precursors('anomaly', a.category)
 		};
 	};
-	// a contract's special projects (its event chain's): the contract's name
+	// a contract's special projects (its event chain's): the contract, its reward and how far it is
 	const contractOf = new Map(
-		Object.values(data.contractTypes).flatMap((c) => c.projects.map((x) => [x.key, c.name]))
+		Object.entries(data.contractTypes).flatMap(([key, c]) => c.projects.map((x) => [x.key, key]))
 	);
+	const ours = contractsAt(snaps, opts).rows.filter((r) => r.why === 'mine');
+	const contract = (projectKey: string) => {
+		const key = contractOf.get(projectKey);
+		if (!key) return null;
+		const type = data.contractTypes[key];
+		const row = ours.find((r) => r.key === key && r.state === 'active') ?? null;
+		// its progress: the first counter of its event chain, as our situation log has it
+		const chain = type.eventChain
+			? save?.eventChains?.active.find((c) => c.key === type.eventChain)
+			: undefined;
+		const counter = type.eventChain
+			? data.eventChains[type.eventChain]?.counters[0]?.key
+			: undefined;
+		const elapsed = row?.accepted && save ? toDays(save.date) - toDays(row.accepted) : null;
+		return {
+			name: type.name,
+			ongoing: row !== null,
+			accepted: row?.accepted ?? null,
+			reward: row?.detail.reward ?? [],
+			trade: row?.detail.trade ?? null,
+			steps: type.steps,
+			done: chain && counter ? (chain.counters[counter] ?? 0) : null,
+			// days until it must be done: its time to complete since it was accepted
+			deadline:
+				type.timeToComplete !== null && elapsed !== null ? type.timeToComplete - elapsed : null
+		};
+	};
 	const project = (p: ProjectInfo) => {
 		const info = data.projects[p.key];
 		const tree = read(trees.project(p.key));
@@ -115,7 +150,7 @@ export function load({ url }) {
 			system: system(p.systemId),
 			name: info?.name ?? p.key,
 			department: info?.department ?? null,
-			contract: contractOf.get(p.key) ?? null,
+			contract: contract(p.key),
 			time: projectTime(info),
 			outcomes: opts.projectSpoilers ? (info?.outcomes ?? []) : null,
 			tree,

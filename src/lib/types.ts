@@ -1245,6 +1245,7 @@ export type ContractType = {
 	// the game's `location = yes`: the contract has a system; null with a data DB before
 	// 2026-11-20, which also lacks the projects defined by inline scripts (the onboard ones)
 	location: boolean | null;
+	eventChain?: string | null; // its special projects' event chain, whose counter is its progress
 };
 
 /** What a contract pays its operator on success (data DB `contract.reward_json`). */

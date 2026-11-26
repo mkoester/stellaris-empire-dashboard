@@ -3,7 +3,12 @@ import {
 	branchLabels,
 	displayList,
 	effectText,
+	condHead,
+	condNote,
 	effectRef,
+	mergeComplements,
+	opposite,
+	optionCond,
 	fromTable,
 	ifHead,
 	monthsParts,
@@ -353,6 +358,73 @@ describe('resolve and prune', () => {
 		expect(ifHead(resolve(orb, us)[1] as typeof n, 0).label).toBe('for your empire:');
 		const bare: typeof n = { t: 'if', b: [[{ t: 'xp', n: 1 }]], else: false };
 		expect(ifHead(bare, 0).label).toBe('depending on the planet, ship or empire:');
+	});
+	it('a condition on us says which parts hold now', () => {
+		const dlc = { leaf: 'host_has_dlc', value: 'Distant Stars Story Pack' };
+		const flag = { leaf: 'has_country_flag', value: 'encountered_first_lgate' };
+		const glob: Trigger = {
+			op: 'not',
+			args: [{ leaf: 'has_global_flag', value: 'l_cluster_opened' }]
+		};
+		const c: Trigger = { op: 'and', args: [dlc, flag, glob] };
+		const f = {
+			...us,
+			dlcs: ['Distant Stars Story Pack'],
+			countryFlags: ['encountered_first_lgate']
+		};
+		const h = condHead(c, null, f)!;
+		expect(h.parts?.map((p) => p.now)).toEqual([true, true, null]);
+		expect(condNote(h).note).toContain('2 of 3 parts known');
+		expect(condNote(h).note).toContain('global flag');
+		expect(condNote(h).title).toContain('✓ host has dlc');
+		const no = condHead(c, null, { ...f, countryFlags: [] })!;
+		expect(condNote(no).note).toBe(' (not now: country flag encountered first lgate)');
+		expect(condNote(condHead(null, flag)!).note).toBe(' (not your empire’s)');
+	});
+	it('an option names its condition', () => {
+		const o = { name: 'Fascinating.', cond: true, c: { leaf: 'is_xenophobe', value: 'no' }, e: [] };
+		expect(optionCond(o)).toBe(' (if not xenophobe)');
+		const r = resolve(
+			[{ t: 'event', id: 'x', title: null, e: [], o: [o, { name: 'b', cond: false, e: [] }] }],
+			us
+		);
+		const ev = r[0] as Extract<OutcomeNode, { t: 'event' }>;
+		expect(ev.o[0].head?.now).toBe(true);
+		expect(optionCond(ev.o[0])).toBe(' (if not xenophobe) (holds now)');
+		expect(optionCond({ name: 'c', cond: true, e: [] })).toBe(' (if available)');
+	});
+	it('a weighted branch names what its weight hangs on', () => {
+		const b = [
+			{ w: 0, cond: true, w_if: 10, d: { leaf: 'leader.has_trait', value: 'x' }, e: [] },
+			{ w: 1, cond: false, e: [] }
+		];
+		expect(branchLabels(b)[0]).toBe('weight 10 if the leader: trait x, else 0');
+	});
+	it('two opposite ifs become one, or what both give', () => {
+		const a = { leaf: 'exists', value: 'event_target:crazy' };
+		const same = { leaf: 'leader.is_same_value', value: 'event_target:crazy' };
+		const one: Trigger = { op: 'and', args: [a, same] };
+		const other: Trigger = {
+			op: 'or',
+			args: [
+				{ op: 'and', args: [a, { op: 'not', args: [same] }] },
+				{ op: 'not', args: [a] }
+			]
+		};
+		expect(opposite(one, other)).toBe(true);
+		expect(opposite(one, a)).toBe(false);
+		const gift: OutcomeNode[] = [{ t: 'trait', k: 'meticulous', name: 'Meticulous' }];
+		const iff = (d: Trigger, e: OutcomeNode[]): OutcomeNode => ({
+			t: 'if',
+			b: [e],
+			else: false,
+			d: [d]
+		});
+		expect(mergeComplements([iff(one, gift), iff(other, gift)])).toEqual(gift);
+		const merged = mergeComplements([iff(one, gift), iff(other, [{ t: 'xp', n: 1 }])]);
+		expect(merged).toEqual([
+			{ t: 'if', b: [gift, [{ t: 'xp', n: 1 }]], else: true, d: [one, null] }
+		]);
 	});
 	it('without conditions (an older data DB) nothing changes', () => {
 		expect(prune(resolve(gravity, us))).toEqual(gravity);
