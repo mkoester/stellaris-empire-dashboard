@@ -138,8 +138,18 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
 
 Check a change end to end against a copy of the dashboard DB, never the real one: a dev server
 ingests saves and moves the head. Where the DB in use lives differs per machine (`docs/testing.md`):
-on mkTuxedCachy the released zip's own, `~/.local/share/stellaris-empire-dashboard/`. New save shapes come from throwaway games with
-console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
+on mkTuxedoCachy the dev dashboard's (`sdash`, `scripts/dashboard.sh`'s default `--db-dir test`),
+`~/.local/share/stellaris-empire-dashboard-test/` — the current 4.6 campaign; the released zip's own
+(`~/.local/share/stellaris-empire-dashboard/`) stopped at 2026-11-22. When unsure, `sdb <campaign>
+--db <file>` on each: the one with the newest "recorded" is in use. New save shapes come from
+throwaway games with console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
+
+**A reader test's fixture that names a save is copied from that save** (`grep -n -a` the key in
+its gamestate, then `sed -n` the block), never written from what the code expects: the event-chain
+fixtures put `event_chain` on the country while the save has it in `country.events`, so the tests
+passed and every reading was empty from READER 71 to 80 (2026-11-26, a Cybrex find the frontier
+never showed). **svelte-check is the only type check of the tests** — vitest strips types: run it
+after editing a test too (a readonly `as const` literal reached a commit, 2026-11-26).
 
 Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`,
 `node_modules/.bin/vitest run`, `node_modules/.bin/prettier --check . && node_modules/.bin/eslint .`

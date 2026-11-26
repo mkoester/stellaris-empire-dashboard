@@ -24,9 +24,11 @@ leak between test files.
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
 dev server ingests saves and moves the head). On the Linux game machine the one in use is
 `~/.local/share/stellaris-empire-dashboard-test/` (every campaign, the nomad Roaming Korinth
-included, 2026-10-31) — on mkTuxedCachy there is no `-test` folder, and the released zip's own
-`~/.local/share/stellaris-empire-dashboard/` is the one in use (2026-11-15); on the game machine
-it is stale since 2026-10-18
+included, 2026-10-31) — on mkTuxedoCachy too since the 4.6 campaign (2026-11-26: `sdash` writes
+`-test`, its default `--db-dir`; the released zip's own `~/.local/share/stellaris-empire-dashboard/`
+was the one in use until 2026-11-22 and is stale since); find the one in use with `sdb <campaign>
+--db <file>`, the newest "recorded"; on the game machine the released zip's is stale since
+2026-10-18
 (UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. **Take the copy with
 `sqlite3 <db> ".backup '<copy>'"`** (consistent while the dashboard writes); **once the dashboard
 is closed, open the source as `file:<db>?immutable=1`**: with no `-shm` left, SQLite must create
