@@ -9,6 +9,7 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import BackToTop from '#lib/BackToTop.svelte';
+	import PageNav from '#lib/PageNav.svelte';
 	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
 	import { gameVersionNumber } from '#lib/versions.ts';
@@ -497,6 +498,7 @@
 				</button>
 			</p>
 		{/each}
+		<PageNav />
 		{@render children()}
 	{/if}
 </main>
