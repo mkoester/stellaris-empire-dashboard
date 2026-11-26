@@ -69,6 +69,7 @@ describe('effectiveDisplay', () => {
 			'contactStations',
 			'contractSpoilers',
 			'diplomacyAll',
+			'highwayFriends',
 			'historyAll',
 			'historyMet',
 			'ideologiesAll',

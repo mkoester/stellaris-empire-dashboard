@@ -54,7 +54,8 @@ export function contractsAt(snaps: Snapshot[], shown: Display): ContractsAt {
 		spoilers: shown.contractSpoilers,
 		all: shown.contractsAll,
 		types: data.contractTypes,
-		researched
+		researched,
+		names: data.modText
 	});
 	const used = new Set(rows.flatMap((r) => [r.systemId, r.pickup, r.dropoff]));
 	const names = Object.fromEntries(

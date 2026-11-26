@@ -31,6 +31,7 @@ import { nowTable, prune, resolve, type OutcomeNode } from '#lib/outcomes.ts';
 import { mergeSightings, seenRows } from '#lib/territories.ts';
 import { inferDone, uniqueMarks, type Evidence } from '#lib/inferDone.ts';
 import type { AnomalyInfo, DigSite, ProjectInfo } from '#lib/types.ts';
+import { modName } from '#lib/modContent.ts';
 
 // The frontier tab (the situations tab until 2026-11-15): first contacts and stations seen,
 // situations, anomalies, dig sites and special projects, at the branch's latest save that has
@@ -148,7 +149,7 @@ export function load({ url }) {
 			closed: closed(tree),
 			...p,
 			system: system(p.systemId),
-			name: info?.name ?? p.key,
+			name: modName(data, p.key, info?.name),
 			department: info?.department ?? null,
 			contract: contract(p.key),
 			time: projectTime(info),

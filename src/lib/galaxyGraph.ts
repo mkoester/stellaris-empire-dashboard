@@ -14,7 +14,13 @@
  */
 export const BYPASS_RULES: Record<
 	string,
-	{ tech: string | null; explore: boolean; always: boolean; blockedBy?: string[] }
+	{
+		tech: string | null;
+		explore: boolean;
+		always: boolean;
+		blockedBy?: string[]; // global flags that close it
+		openedBy?: string[]; // global flags of which one must be set
+	}
 > = {
 	wormhole: { tech: 'tech_wormhole_stabilization', explore: true, always: true },
 	strange_wormhole: {
@@ -28,6 +34,36 @@ export const BYPASS_RULES: Record<
 	starlit_wormhole: { tech: 'tech_wormhole_stabilization', explore: false, always: true },
 	lgate: { tech: null, explore: false, always: false }
 };
+
+type BypassRule = (typeof BYPASS_RULES)[string];
+
+/**
+ * The rule for a bypass type: `BYPASS_RULES`, or one of the Ancient Highway mod's numbered types
+ * (its `common/bypass/ahw_bypasses.txt`): a gate pair `ahw_link_N` needs Highway Gate Theory, is
+ * active only once repaired (the scripted connection drops a broken node) and blocked while
+ * sealed (`ahw_sealed_N`; friends of the sealer pass in game — the caller leaves out the seals it
+ * passes); an express link `ahw_express_j` is open with `ahw_express_open_j` or stable.
+ */
+export function ruleFor(type: string): BypassRule | undefined {
+	if (BYPASS_RULES[type]) return BYPASS_RULES[type];
+	const link = /^ahw_link_(\d+)$/.exec(type);
+	if (link)
+		return {
+			tech: 'ahw_tech_gate_theory',
+			explore: false,
+			always: false,
+			blockedBy: [`ahw_sealed_${link[1]}`]
+		};
+	const express = /^ahw_express_(\d+)$/.exec(type);
+	if (express)
+		return {
+			tech: null,
+			explore: false,
+			always: true,
+			openedBy: [`ahw_express_open_${express[1]}`, `ahw_express_stable_${express[1]}`]
+		};
+	return undefined;
+}
 
 /** One bypass as the save lists it: its system and the bypasses it leads to. */
 export type Bypass = {
@@ -51,13 +87,14 @@ export function bypassLinks(p: {
 	const byId = new Map(p.bypasses.map((b) => [b.id, b]));
 	const visited = new Set(p.visited);
 	const usable = (b: Bypass | undefined): b is Bypass & { system: number } => {
-		const rule = b && BYPASS_RULES[b.type];
+		const rule = b && ruleFor(b.type);
 		return (
 			!!rule &&
 			b.system !== null &&
 			(rule.tech === null || p.researched.includes(rule.tech)) &&
 			(rule.always || b.active) &&
-			!(rule.blockedBy ?? []).some((f) => p.globalFlags.includes(f))
+			!(rule.blockedBy ?? []).some((f) => p.globalFlags.includes(f)) &&
+			(!rule.openedBy || rule.openedBy.some((f) => p.globalFlags.includes(f)))
 		);
 	};
 	const out: Link[] = [];
@@ -67,8 +104,7 @@ export function bypassLinks(p: {
 			const to = byId.get(id);
 			if (!usable(to) || to.type !== b.type) continue;
 			// a wormhole has to be explored: known once a ship has been to either end
-			if (BYPASS_RULES[b.type].explore && !visited.has(b.system) && !visited.has(to.system))
-				continue;
+			if (ruleFor(b.type)!.explore && !visited.has(b.system) && !visited.has(to.system)) continue;
 			out.push({ from: b.system, to: to.system, via: b.type });
 		}
 	}

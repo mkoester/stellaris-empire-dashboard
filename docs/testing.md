@@ -46,7 +46,12 @@ A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{�
 the whole `display`**, `parseDisplay()` defaulting what is left out, so send every switch the check
 needs in one PUT, the gates `showSpoilers` / `showCheats` included (2026-11-07: a second PUT for the
 cheat silently switched the spoiler off), with the
-page's `?node=`). **A `?node=` the copy lacks serves another node silently** (the dev server reads new saves into its copy, so ids found in an earlier copy may not exist in a fresh one — 2026-11-12): check the decoded `tip` before trusting a page. A save-wide question (every colony across the history) is quickest as a
+page's `?node=`) — **the body replaces the whole `display`**: send every switch wanted at once
+(with its gate, `showSpoilers` / `showCheats`), a second PUT turns the first one's off. **A
+campaign that is not the head is read in the background and never becomes the head** ("late
+node" in the log, a few seconds after start): request its pages with `?node=<its tip>` (`SELECT
+max(id) FROM node WHERE campaign LIKE '<folder>%'` on the copy), or they answer for the head's
+campaign — 200 and plausible (2026-11-07: the highway tab hidden, its data empty). **A `?node=` the copy lacks serves another node silently** (the dev server reads new saves into its copy, so ids found in an earlier copy may not exist in a fresh one — 2026-11-12): check the decoded `tip` before trusting a page. A save-wide question (every colony across the history) is quickest as a
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
 server modules that call `getGameData()`/`getExplanations()` — delete it after. **To find where

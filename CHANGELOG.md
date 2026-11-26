@@ -15,6 +15,16 @@ All notable changes to this project are documented here. The format follows
   objectives; before we take one, the ambitions this empire could take. A spoiler shows the
   ambitions the game gave away through an empire's personality ("Crisis Aspirant"); a cheat shows
   every empire's, with its level. Dimmed until we take one.
+- Mods' names: whatever an enabled mod adds — systems, megastructures, techs, special projects,
+  contracts — is named from the mod's own English texts instead of its raw keys, and a mod's
+  techs get their area, tier and cost.
+- Support for the Ancient Highway mod: a Highway tab in campaigns that run it —
+  your portal and its gate (broken, studied, repaired, sealed) with the next step, both gate techs
+  with the grants so far, open studies, the express links, a map of the ring and the mod's terms.
+  Two switches in ⚙: a spoiler (what your friends know of the ring) and a cheat (what every
+  other empire knows). The mod's centres show as special stars with its gentler effects, jumps
+  and distances count the gates and express links you can use, and the ring's systems and portals
+  are never offered for outposts, colonies or megastructures.
 
 ## [0.2.0] - 2026-11-23
 

@@ -112,12 +112,8 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   new field stays at its `upgrade()` default until the save changes. **Two branches bump it
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
-  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
-  2026-11-24: `develop` has 81 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
-  chapters, planet flags, waystations, the home system surveyed, name templates, every contact's tech
-  gap, the Edict Fund, contracts completed, contract passengers aboard arkships, dig sites excavated by our fleets only, transport contracts' pickup and drop-off, cosmic storms and prescripted name templates, event chains, precursor intel, Grand Archive specimens, fallen-hive fragment names, scope-command name placeholders, first contacts' difficulty with the contact's protocol, the mod's export and xenophobes, ideologies and ambitions, an ambition's repeated level, event chains from the country's `events` block; the highway: the Ancient Highway mod) — that merge takes 82,
-  and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
-  in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
+  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. 2026-11-26: `develop`'s
+  81 and `feature/highway`'s 57 (the Ancient Highway mod) merged as 82.
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
   only — a released step has run on players' DBs). The version is SQLite's `user_version` (0.1.0's
   `state.schema = '15'` is taken over as 15); a new DB is the 0.1.0 tables plus every step, so each

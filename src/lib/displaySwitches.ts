@@ -265,6 +265,24 @@ export const SWITCHES: Switch[] = [
 		tags: 'nomad nomads contract arkship'
 	},
 	{
+		key: 'highwayFriends',
+		group: 'Diplomacy and trade',
+		kind: 'spoiler',
+		intel: true,
+		label:
+			'Ancient Highway (mod): what your friends know of the ring and how far they are with their gates',
+		note: 'friends as the mod counts them: federation, overlord or subject, defensive pact, guarantee, the same side of a war',
+		tags: 'highway ring portal gate mod friends'
+	},
+	{
+		key: 'highwayAll',
+		group: 'Diplomacy and trade',
+		kind: 'cheat',
+		label:
+			'Ancient Highway (mod): what every other empire knows of the ring, every portal and gate, the whole ring on the maps',
+		tags: 'highway ring portal gate mod'
+	},
+	{
 		key: 'tradeIntel',
 		group: 'Diplomacy and trade',
 		// split from the stockpiles 2026-11-18 (the user's ask): the rates are a spoiler

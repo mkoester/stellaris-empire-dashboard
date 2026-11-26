@@ -106,6 +106,7 @@ const raw: RawSave = {
 	tradeDeals: {},
 	missions: {},
 	contractIds: undefined,
+	playerPortals: [],
 	agreements: {},
 	loyalty: {},
 	rivalsOfUs: [],

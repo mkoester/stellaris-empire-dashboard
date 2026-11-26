@@ -352,6 +352,7 @@ export function toLogSnapshot(m: Month, campaign: string): Snapshot {
 		tradeDeals: null,
 		contracts: null,
 		contractsCompleted: null,
+		highway: null,
 		gameVersion: null,
 		dlcs: null,
 		mods: null,
