@@ -73,6 +73,7 @@
 		hovered = $bindable(null),
 		selected = $bindable(),
 		onsystemmenu,
+		onlegendhover,
 		own: ownProp,
 		arkships: arkshipsProp
 	}: {
@@ -94,6 +95,8 @@
 		selected?: number | null;
 		// a right-click on a system (the nearest within 8px), with the pointer's place in the window
 		onsystemmenu?: (systemId: number, at: { x: number; y: number }) => void;
+		// the pointer on a territory's line in the legend (its key), and off it (null)
+		onlegendhover?: (key: string | null) => void;
 		own?: OwnOnMap;
 		arkships?: Arkship[];
 	} = $props();
@@ -107,6 +110,10 @@
 	};
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 	const uid = $props.id(); // several maps on a page: their gradients' ids
+	// a striped territory's bands (`Territory.stripes`): px wide in the map's units
+	const STRIPE = 6;
+	const stripeStops = (cs: string[]) =>
+		cs.map((c, i) => `${c} ${i * 3}px ${(i + 1) * 3}px`).join(', ');
 
 	// Rings and sectors around the core (#lib/quadrants.ts): the profile's choice and the
 	// campaign's radii come with the layout's data, so every map draws them alike.
@@ -527,10 +534,17 @@
 				</span>
 			{/if}
 			{#each shown as t (t.key)}
-				<span class="flex items-center gap-1">
+				<span
+					class="flex items-center gap-1"
+					role="presentation"
+					onpointerenter={() => onlegendhover?.(t.key)}
+					onpointerleave={() => onlegendhover?.(null)}
+				>
 					<span
 						class="inline-block h-2.5 w-2.5 rounded-sm border"
-						style:background={t.color}
+						style:background={t.stripes?.length
+							? `repeating-linear-gradient(45deg, ${stripeStops(t.stripes)})`
+							: t.color}
 						style:border-style={t.guess ? 'dashed' : 'solid'}
 					></span>{t.label}
 				</span>
@@ -745,13 +759,36 @@
 								{/each}
 							</g>
 						{/if}
-						{#each [...territoryOutlines] as [key, rs] (key)}
+						{#each [...territoryOutlines] as [key, rs], n (key)}
 							{@const t = territoryOf.get(key)!}
+							{@const striped = (t.stripes?.length ?? 0) > 1}
+							{#if striped}
+								<!-- one band per colour, diagonal, as wide on screen at any zoom -->
+								<defs>
+									<pattern
+										id="{uid}-stripes-{n}"
+										patternUnits="userSpaceOnUse"
+										width={STRIPE * t.stripes!.length}
+										height={STRIPE * t.stripes!.length}
+										patternTransform="rotate(45)"
+									>
+										{#each t.stripes! as c, i (i)}
+											<rect
+												x={i * STRIPE}
+												y="0"
+												width={STRIPE}
+												height={STRIPE * t.stripes!.length}
+												fill={c}
+											/>
+										{/each}
+									</pattern>
+								</defs>
+							{/if}
 							<path
 								class="pointer-events-none"
 								d={rings(rs)}
-								fill={t.color}
-								fill-opacity="0.16"
+								fill={striped ? `url(#${uid}-stripes-${n})` : t.color}
+								fill-opacity={striped ? '0.3' : '0.16'}
 								fill-rule="evenodd"
 								stroke={t.color}
 								stroke-width="1.5"

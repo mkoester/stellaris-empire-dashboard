@@ -218,6 +218,16 @@ known empires hold each. The ethics come from `diplomacyView()` (government inte
 communications or intel 10; `diplomacyAll` shows all), so nothing our intel hides reaches the page.
 A reading our intel no longer confirms is dashed, "unverified since". Ours come from our own
 government: the save's country list leaves us out. The filters are page state, not stored.
+Gestalt is lemon on this map (`GESTALT`): its slate grey (`ethic-hive`) vanished at the
+territories' 16 % fill (the user, 2026-11-26). **Several ethics at once:** stripes (on by
+default), one diagonal band per ticked ethic held, a fanatic one twice as wide
+(`Territory.stripes`, an SVG pattern per territory in `GalaxyMap`, filled at 30 %); off, the
+strongest only. Considered and left: a pie at the capital (needs the capital, small at low zoom),
+split borders (unreadable on thin territories). **The table** below the map, or beside it with
+"wide + table": by empire (each empire's ethics as chips, strongest first; unknown last) or by
+ethic (who holds it, fanatic and absolute marked; unticked ethics faded). Hovering an empire there,
+or in the map's legend (`GalaxyMap`'s `onlegendhover`), rings its systems and names its ethics
+over them; an empire none of whose systems we know is grey.
 
 **Ideologies tab** (`/ideologies`, `#lib/ideologies.ts` pure, the reading `ideologies()` in
 `server/save/ideologies.ts`; the user's ask 2026-11-24): as the game's Ideologies view. Ours: the

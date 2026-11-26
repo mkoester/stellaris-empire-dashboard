@@ -25,7 +25,7 @@ import { pick } from '#lib/server/explain.ts';
 import { display } from '#lib/server/settings.ts';
 import { colorOf } from '#lib/colors.ts';
 import { diplomacyView } from '#lib/diplomacy.ts';
-import { ETHIC_BASES, type EthicBase } from '#lib/ethicsMap.ts';
+import { ETHIC_BASES, GESTALT, type EthicBase } from '#lib/ethicsMap.ts';
 import { campaignGalaxy, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
 import { mapView } from '#lib/situations.ts';
 
@@ -146,12 +146,14 @@ export function load({ url }) {
 			n.us
 				? {
 						id: n.id,
+						name: s.empireName || 'us',
 						ethics: government.filter((k) => k.startsWith('ethic_')),
 						asOf: s.date,
 						stale: false
 					}
 				: {
 						id: n.id,
+						name: n.name,
 						ethics: n.government?.value.ethics ?? null,
 						asOf: n.government?.asOf ?? null,
 						stale: n.government?.stale ?? false
@@ -162,7 +164,8 @@ export function load({ url }) {
 			ETHIC_BASES.map((b) => {
 				const a = data.ethicAxes[`ethic_${b}`];
 				const pole = a && a.axis !== 'hive' ? `ethic-${a.axis}-${a.pos < 0 ? 0 : 1}` : 'ethic-hive';
-				return [b, colorOf(pole) ?? '#7a8a99'];
+				// gestalt's own slate grey is near the unknown grey at the map's faint fill: lemon instead
+				return [b, b === 'gestalt_consciousness' ? GESTALT : (colorOf(pole) ?? GESTALT)];
 			})
 		) as Record<EthicBase, string>
 	};

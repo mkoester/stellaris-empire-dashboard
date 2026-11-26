@@ -5,6 +5,7 @@ import {
 	UNKNOWN,
 	ethicBase,
 	ethicCounts,
+	ethicGroups,
 	ethicStrength,
 	ethicTerritories,
 	lighter,
@@ -46,12 +47,19 @@ describe('ethicTerritories', () => {
 	const empires = [
 		{
 			id: 1,
+			name: 'E1',
 			ethics: ['ethic_pacifist', 'ethic_fanatic_militarist'],
 			asOf: '2300.01.01',
 			stale: false
 		},
-		{ id: 2, ethics: ['ethic_xenophile', 'ethic_materialist'], asOf: '2290.01.01', stale: true },
-		{ id: 3, ethics: null, asOf: null, stale: false }
+		{
+			id: 2,
+			name: 'E2',
+			ethics: ['ethic_xenophile', 'ethic_materialist'],
+			asOf: '2290.01.01',
+			stale: true
+		},
+		{ id: 3, name: 'E3', ethics: null, asOf: null, stale: false }
 	];
 	const names = { ethic_fanatic_militarist: 'Fanatic Militarist', ethic_pacifist: 'Pacifist' };
 	const run = (
@@ -78,10 +86,44 @@ describe('ethicTerritories', () => {
 		expect([c.color, d.color]).toEqual([UNKNOWN, UNKNOWN]);
 		expect(run(all, [territory(1, true)])[0].color).toBe(UNKNOWN);
 	});
+	it('stripes: every ticked ethic held, a fanatic one twice', () => {
+		const [a, b] = ethicTerritories(
+			[territory(1), territory(2)],
+			empires,
+			all,
+			colors,
+			names,
+			true
+		);
+		expect(a.stripes).toEqual([colors.militarist, colors.militarist, colors.pacifist]);
+		expect(b.stripes).toEqual([colors.xenophile, colors.materialist]);
+		const one = ethicTerritories(
+			[territory(1)],
+			empires,
+			new Set<EthicBase>(['pacifist']),
+			colors,
+			names,
+			true
+		);
+		expect(one[0].stripes).toBeUndefined();
+	});
+	it('by ethic: who holds it, the strongest first', () => {
+		const g = ethicGroups(empires);
+		expect(g.find((x) => x.base === 'militarist')?.empires.map((x) => x.key)).toEqual([
+			'ethic_fanatic_militarist'
+		]);
+		expect(g.find((x) => x.base === 'spiritualist')?.empires).toEqual([]);
+	});
 	it('counts each ethic once per empire, the known ones', () => {
 		const n = ethicCounts([
 			...empires,
-			{ id: 5, ethics: ['ethic_fanatic_militarist', 'ethic_militarist'], asOf: null, stale: false }
+			{
+				id: 5,
+				name: 'E5',
+				ethics: ['ethic_fanatic_militarist', 'ethic_militarist'],
+				asOf: null,
+				stale: false
+			}
 		]);
 		expect(n.militarist).toBe(2);
 		expect(n.xenophile).toBe(1);
