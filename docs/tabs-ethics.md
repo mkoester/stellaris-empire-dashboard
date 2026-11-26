@@ -230,7 +230,7 @@ default), one diagonal band per ticked ethic held, a fanatic one twice as wide
 strongest only. Considered and left: a pie at the capital (needs the capital, small at low zoom),
 split borders (unreadable on thin territories). **The table** below the map, or beside it with
 "wide + table": by empire (each empire's ethics as chips, strongest first; unknown last) or by
-ethic (who holds it, fanatic and absolute marked; unticked ethics faded). Hovering an empire there,
+ethic (who holds it, fanatic and absolute marked; unticked ethics faded; by empire, an empire none of whose ethics is ticked fades too). Hovering an empire there,
 or in the map's legend (`GalaxyMap`'s `onlegendhover`), rings its systems and names its ethics
 over them; an empire none of whose systems we know is grey, except a nomad, which holds none and
 gets a "roaming" badge. Badges in the table: the kind when not a regular empire (enclave, fallen

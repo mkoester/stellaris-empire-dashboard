@@ -9,6 +9,7 @@
 	import type { MapWidth } from '#lib/mapView.ts';
 	import {
 		ETHIC_BASES,
+		ethicBase,
 		ethicCounts,
 		ethicGroups,
 		ethicSides,
@@ -95,6 +96,13 @@
 		)
 	);
 	const groups = $derived(ethicGroups(data.ethicsMap.empires));
+	// the filters reach the table by empire: faded once none of its known ethics is ticked
+	const filteredOut = (e: EmpireEthics) =>
+		!!e.ethics?.length &&
+		!e.ethics.some((k) => {
+			const b = ethicBase(k);
+			return b !== null && ticked.has(b);
+		});
 
 	const columns: Column<EthicRow>[] = [
 		{ id: 'ethic', label: 'Ethic', value: (r) => data.names[r.key] ?? r.key, cell: ethic },
@@ -363,7 +371,11 @@
 				</thead>
 				<tbody>
 					{#each empireRows as e (e.id)}
-						<tr class="border-b border-gray-100 align-top dark:border-gray-900">
+						<tr
+							class="border-b border-gray-100 align-top dark:border-gray-900 {filteredOut(e)
+								? 'opacity-50'
+								: ''}"
+						>
 							<td class="pr-4">{@render empireName(e, null)}</td><td>
 								{#if e.ethics}{#each [...e.ethics].sort((a, b) => ethicStrength(b) - ethicStrength(a)) as k (k)}<span
 											class="mr-1 rounded px-1 text-xs whitespace-nowrap"
