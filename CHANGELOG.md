@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.1] - 2026-11-26
 
 ### Added
 
@@ -34,6 +34,23 @@ All notable changes to this project are documented here. The format follows
   its days left, a gate the Galactic Community forced open the date it may be sealed again; the
   highway's resolutions in the Community, the story fragments found, and in the terms the gates'
   60-day wind-up and who may pass. A nomad is told it gets no portal.
+- A section bar: on a long page, a one-line bar under the tabs lists its headings, marks the one
+  you are reading and jumps to any of them.
+
+### Changed
+
+- Frontier tab, outcomes: each branch and option names its condition and what each part of it
+  says today (yours, the planet's or the ship's), and two opposite branches read as one if/else.
+  Resources and tech areas in their colours, popups for the summary, trait badges and specimens,
+  modifiers labelled. A contract's project shows its reward, steps, work left and deadline.
+
+### Fixed
+
+- Event chains are read again (they sit in the country's events in 4.5.4 and 4.6): the frontier
+  showed no precursor, no L-Cluster chain and no contract progress. Saves still on disk are read
+  again.
+- The data comes from extractor 0.1.27 (4.6.0): ideologies and tenets, species names in empire
+  names ("Authority of Ba Grax"), and the conditions the frontier shows.
 
 ## [0.2.0] - 2026-11-23
 
