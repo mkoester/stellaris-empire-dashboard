@@ -13,22 +13,29 @@ export type Shortcut = {
 	id: string;
 	name: string;
 	why: string;
+	nomads?: true; // offered to nomads only
 	techs: { tech: string; why: string }[];
 };
 
 export const SHORTCUTS: Shortcut[] = [
 	// Nomads first: they need some of it fast (the user's ask 2026-11-16: "there are things I need
 	// rather fast, e.g. more logistic ships"). Every tech here has `potential = { is_nomadic = yes }`
-	// (4.5.4 `technology/00_nomads_dlc_tech.txt`), so a settled empire never sees the bundle.
+	// (4.5.4 `technology/00_nomads_dlc_tech.txt`); `nomads` keeps the bundle from settled empires
+	// all the same, as the society techs below are open to every empire.
 	// Logistic ships (`nomads_constructor`, `nomads_engineer_vessel`) are capped by the modifier
 	// `nomadic_constructor_limit_add` (`country_limits/ship_of_size_limits/00_ship_of_size_limits.txt`):
 	// 2 from the start (Space Construction's nomad swap, `00_eng_tech.txt`), +2 each from Waystations
 	// II and III, +1 per Logistics Hub — a waystation module of Waystations III
 	// (`starbase_modules/00_waystation_modules.txt`). Nothing else in the 4.5.4 files raises it.
+	// Waystations count against starbase capacity (`country_starbase_capacity_add`, 4.6.1 files): the
+	// two waystation techs, and Stellar Expansion and Manifest Destiny (no `potential`, so nomads get
+	// them too) — the society techs are the only exception to the nomad-only rule above. Interstellar
+	// Expansion (+1, repeatable up to 5 times) follows them; Mega-Engineering (+3) is in Late game.
 	{
 		id: 'nomads',
 		name: 'Nomads',
-		why: 'logistic ships, waystations and arkships',
+		why: 'logistic ships, waystations (station capacity) and arkships',
+		nomads: true,
 		techs: [
 			{
 				tech: 'tech_waystation_2',
@@ -37,6 +44,11 @@ export const SHORTCUTS: Shortcut[] = [
 			{
 				tech: 'tech_waystation_3',
 				why: '+2 logistic ships, +6 waystations; Logistics Hub module (+1 logistic ship each)'
+			},
+			{ tech: 'tech_galactic_ambitions', why: '+2 waystations' },
+			{
+				tech: 'tech_manifest_destiny',
+				why: '+2 waystations; then Interstellar Expansion (+1 each, repeatable up to 5 times)'
 			},
 			{
 				tech: 'tech_arkship_construction',
@@ -168,14 +180,17 @@ export type ShortcutRow<T> = Omit<Shortcut, 'techs'> & { techs: (Shortcut['techs
 
 /**
  * Per bundle, the techs still worth adding: not planned (`planned`), and `offer` returns their
- * row (null when researched, under way or not possible here). Bundles left empty are dropped.
+ * row (null when researched, under way or not possible here). Bundles left empty are dropped, and
+ * a nomads-only bundle for a settled empire.
  */
 export function shortcutRows<T>(
 	list: Shortcut[],
 	planned: (tech: string) => boolean,
-	offer: (tech: string) => T | null
+	offer: (tech: string) => T | null,
+	isNomad = false
 ): ShortcutRow<T>[] {
 	return list
+		.filter((s) => !s.nomads || isNomad)
 		.map((s) => ({
 			...s,
 			techs: s.techs.flatMap((t) => {

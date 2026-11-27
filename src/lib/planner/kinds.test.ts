@@ -383,10 +383,29 @@ describe('nomads', () => {
 			]
 		});
 		expect(state('arkship', { type: 'military', count: 2 }, ctx(s))).toBe('done');
+		// not yet buildable: waits on the class's tech (Next up skips it)
 		expect(check('arkship', { type: 'science', count: 1 }, false, ctx(s))).toEqual({
+			state: 'open',
+			why: '0 of 1; needs science arkship',
+			waiting: true
+		});
+		const researched = save().progress!;
+		const able = nomad({
+			ships: s.ships,
+			progress: { ...researched, researched: ['tech_science_arkship'] }
+		});
+		expect(check('arkship', { type: 'science', count: 1 }, false, ctx(able))).toEqual({
 			state: 'open',
 			why: '0 of 1'
 		});
+	});
+
+	it('tech: out of reach waits on what it needs; within reach does not', () => {
+		const c = ctx(save());
+		expect(check('tech', { tech: 'tech_z' }, false, c).waiting).toBe(true);
+		expect(
+			check('tech', { tech: 'tech_z' }, false, ctx(save(), [], { reach: ['tech_z'] })).waiting
+		).toBeUndefined();
 	});
 });
 

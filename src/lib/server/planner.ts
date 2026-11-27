@@ -8,6 +8,7 @@ import {
 } from '#lib/megastructures.ts';
 import {
 	ARKSHIPS,
+	ARKSHIP_TECHS,
 	arkships,
 	areaOf,
 	ascensionOf,
@@ -27,6 +28,7 @@ import {
 	groupOf,
 	KINDS,
 	label,
+	nomadic,
 	STATION_LEVELS,
 	traditionName,
 	type LabelCtx,
@@ -42,6 +44,7 @@ import {
 	parked,
 	planAt,
 	wanted,
+	type AutoGoal,
 	type Goal,
 	type Plan,
 	type PlanEvent,
@@ -78,6 +81,7 @@ export type GoalRow = Omit<Goal, 'added'> & {
 	systemId: number | null;
 	state: State;
 	why: string | null;
+	waiting: boolean; // open, but what it needs comes first (`Status.waiting`)
 	since: Since | null;
 	manual: boolean;
 	badge: string | null; // a tech's tier, a tradition's place in its tree, a perk
@@ -206,6 +210,7 @@ function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
 		systemId: systemOf(g, c.ctx),
 		state: st.state,
 		why: st.why ?? null,
+		waiting: st.waiting ?? false,
 		since,
 		manual: k?.manual ?? false,
 		badge: badgeOf(g.kind, g.target, getGameData()),
@@ -428,6 +433,22 @@ function planWithNeeds(
 		);
 	const techsNeeded = (techs: string[]) =>
 		techNeeds(techs, researched, data.techs, data.techRequirements, c.ctx.possible);
+	// a planned arkship brings its class's tech, and with it what that tech needs
+	const arkshipNeeds = (goals: Goal[]): AutoGoal[] => {
+		const types = [...new Set(goals.map((g) => String(g.target.type)))].filter(
+			(t) => ARKSHIP_TECHS[t] && !researched.includes(ARKSHIP_TECHS[t])
+		);
+		return [
+			...types.map((type): AutoGoal => ({
+				id: `auto-tech-${ARKSHIP_TECHS[type]}`,
+				kind: 'tech',
+				target: { tech: ARKSHIP_TECHS[type] },
+				polarity: 'want',
+				note: `needed for ${ARKSHIPS[type] ?? type}s`
+			})),
+			...techsNeeded(types.map((t) => ARKSHIP_TECHS[t]))
+		];
+	};
 	// a planned adoption brings its tree, a planned pick its adoption and the picks it needs
 	const auto = autoGoals(
 		c.ctx.latest,
@@ -443,31 +464,42 @@ function planWithNeeds(
 			);
 		}
 	);
-	const needs = techsNeeded(wantedOf('tech').map((g) => String(g.target.tech)));
+	const fromTechs = techsNeeded(wantedOf('tech').map((g) => String(g.target.tech)));
+	const needs = [
+		...fromTechs,
+		...arkshipNeeds(wantedOf('arkship')).filter((g) => !fromTechs.some((x) => x.id === g.id))
+	];
 	const plan = planAt(events, path, [...auto, ...needs]);
 	// what each added goal brings by itself
 	const fromSave = new Set(saved.map((g) => g.id));
-	const brings = [...wantedOf('tech'), ...wantedOf('tradition'), ...wantedOf('perk')]
+	const brings = [
+		...wantedOf('tech'),
+		...wantedOf('tradition'),
+		...wantedOf('perk'),
+		...wantedOf('arkship')
+	]
 		.filter((g) => !g.auto)
 		.map((g): [string, Set<string>] => [
 			g.id,
 			new Set(
 				(g.kind === 'tech'
 					? techsNeeded([String(g.target.tech)])
-					: autoGoals(
-							c.ctx.latest,
-							data,
-							g.kind === 'tradition' ? [String(g.target.tradition)] : [],
-							g.kind === 'perk' ? [String(g.target.perk)] : [],
-							(key) => {
-								const tree = data.traditionTrees[key];
-								return (
-									tree != null &&
-									c.ctx.possible(tree.potential ?? null) !== false &&
-									c.ctx.possible(tree.adoptPossible ?? null) !== false
-								);
-							}
-						)
+					: g.kind === 'arkship'
+						? arkshipNeeds([g])
+						: autoGoals(
+								c.ctx.latest,
+								data,
+								g.kind === 'tradition' ? [String(g.target.tradition)] : [],
+								g.kind === 'perk' ? [String(g.target.perk)] : [],
+								(key) => {
+									const tree = data.traditionTrees[key];
+									return (
+										tree != null &&
+										c.ctx.possible(tree.potential ?? null) !== false &&
+										c.ctx.possible(tree.adoptPossible ?? null) !== false
+									);
+								}
+							)
 				)
 					.map((x) => x.id)
 					.filter((id) => !fromSave.has(id) && plan.goals.get(id)?.auto)
@@ -710,7 +742,8 @@ function shortcuts(c: Ctx, plan: Plan) {
 				area: areaOf('tech', target, data),
 				tint: tintOf('tech', target, data)
 			};
-		}
+		},
+		nomadic(c.ctx.latest)
 	);
 }
 
