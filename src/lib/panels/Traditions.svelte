@@ -19,14 +19,16 @@
 	{#each trees as t (t.key)}
 		<div class="mb-1">
 			<b>{t.name}</b>
-			<span class="text-gray-500"
-				>{t.picked.length} / {t.total}{t.finished ? ' · finished ✓' : ''}</span
-			>
+			<span class="text-gray-500">
+				{t.picked.length} / {t.total}{t.finished ? ' · finished ✓' : ''}
+			</span>
 			{#if t.picked.length}
 				<div class="text-sm">
 					{#each t.picked as p, i (p.key)}{i ? ' · ' : ''}<InfoPopup
-							explanation={explain[`tradition:${p.key}`]}>{p.name}</InfoPopup
-						>{/each}
+							explanation={explain[`tradition:${p.key}`]}
+						>
+							{p.name}
+						</InfoPopup>{/each}
 				</div>
 			{/if}
 		</div>

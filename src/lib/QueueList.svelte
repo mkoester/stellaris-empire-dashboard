@@ -18,9 +18,9 @@
 			{#if item.kind === 'building'}<BuildingName key={item.name} />{:else}{pretty(
 					item.name
 				)}{/if}{item.design ? ` "${item.design}"` : ''}
-			<span class="text-gray-500"
-				>{fmt(item.progress)}/{fmt(item.needed)} · {fromDays(toDays(date) + plan[i].doneIn)}</span
-			>
+			<span class="text-gray-500">
+				{fmt(item.progress)}/{fmt(item.needed)} · {fromDays(toDays(date) + plan[i].doneIn)}
+			</span>
 		</div>
 	{/each}
 {/if}

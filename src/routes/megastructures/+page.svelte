@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ContractMarks from '#lib/ContractMarks.svelte';
+	import EmpireName from '#lib/EmpireName.svelte';
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import GalaxyMap from '#lib/GalaxyMap.svelte';
 	import type { MapWidth } from '#lib/mapView.ts';
@@ -54,6 +55,7 @@
 			label: 'Owner',
 			value: (r) =>
 				r.owned ? 'us' : r.ownerId === null ? null : (data.owners[r.ownerId] ?? String(r.ownerId)),
+			cell: ownerCell,
 			title: 'the station’s owner, where visited'
 		},
 		{
@@ -99,14 +101,21 @@
 	/>
 {/snippet}
 
+{#snippet ownerCell(r: Candidate)}{#if r.owned}us{:else if r.ownerId !== null}<EmpireName
+			name={data.owners[r.ownerId] ?? String(r.ownerId)}
+			bold={false}
+		/>{/if}{/snippet}
 {#snippet systemCell(r: Candidate)}{r.name}{#if r.ok !== false}<AddGoal
 			kind="megastructure"
 			target={{ system: r.systemId, structure: k.kind }}
 		/>{/if}{/snippet}
 {#snippet score(r: Candidate)}{r.ok === null ? '?' : (r.score ?? (r.ok ? '✓' : '–'))}{/snippet}
 {#snippet detail(r: Candidate)}
-	<span class={r.ok ? '' : 'text-gray-500'}>{r.ok ? r.detail : r.why.join(', ')}</span
-	>{#if r.existing.length}<span class="text-gray-500"> · here: {r.existing.join(', ')}</span>{/if}
+	<span class={r.ok ? '' : 'text-gray-500'}>
+		{r.ok ? r.detail : r.why.join(', ')}
+	</span>{#if r.existing.length}<span class="text-gray-500">
+			· here: {r.existing.join(', ')}
+		</span>{/if}
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -124,34 +133,36 @@
 			class="rounded border px-2 py-0.5 {x.kind === view.kind
 				? 'border-blue-500 font-semibold'
 				: 'border-gray-300 dark:border-gray-700'} {x.available ? '' : 'opacity-50'}"
-			onclick={() => save({ ...view, kind: x.kind })}>{x.name}</button
+			onclick={() => save({ ...view, kind: x.kind })}
 		>
+			{x.name}
+		</button>
 	{/each}
 </div>
 
 <div class="mb-4 flex flex-wrap items-center gap-4 text-sm">
-	<label class="flex items-center gap-1"
-		>systems
+	<label class="flex items-center gap-1">
+		systems
 		<select
 			class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 			value={range}
 			onchange={(e) => save({ ...view, range: e.currentTarget.value })}
 		>
-			{#each RANGES as r (r)}<option value={r}
-					>{r === 'mine' || r === 'all' ? r : `up to +${r} beyond the border`}</option
-				>{/each}
-		</select></label
-	>
-	<label class="flex items-center gap-1"
-		><input
+			{#each RANGES as r (r)}<option value={r}>
+					{r === 'mine' || r === 'all' ? r : `up to +${r} beyond the border`}
+				</option>{/each}
+		</select>
+	</label>
+	<label class="flex items-center gap-1">
+		<input
 			type="checkbox"
 			checked={fitting}
 			onchange={(e) => save({ ...view, fitting: e.currentTarget.checked })}
-		/> fitting only (and unknown)</label
-	>
-	<span class="text-gray-500"
-		>{rows.filter((r) => r.ok).length} fit, {rows.filter((r) => r.ok === null).length} unknown</span
-	>
+		/> fitting only (and unknown)
+	</label>
+	<span class="text-gray-500">
+		{rows.filter((r) => r.ok).length} fit, {rows.filter((r) => r.ok === null).length} unknown
+	</span>
 </div>
 
 <div class="flex flex-col gap-6">

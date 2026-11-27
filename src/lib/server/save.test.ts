@@ -84,6 +84,7 @@ const raw: RawSave = {
 	firstContacts: {},
 	situations: {},
 	archSites: {},
+	storms: {},
 	focusCards: {},
 	endGameStart: 150,
 	galaxy: { technology: 1.25, traditions: 1 },
@@ -105,6 +106,7 @@ const raw: RawSave = {
 	tradeDeals: {},
 	missions: {},
 	contractIds: undefined,
+	playerPortals: [],
 	agreements: {},
 	loyalty: {},
 	rivalsOfUs: [],
@@ -112,6 +114,9 @@ const raw: RawSave = {
 	resolutions: {},
 	popFactions: {},
 	patronRelations: {},
+	exhibits: {},
+	ideologies: {},
+	tenets: {},
 	aiIntel: [],
 	traderEnclaves: [],
 	starbases: {},
@@ -1912,6 +1917,86 @@ describe('helpers', () => {
 					]
 				})
 			).toBe('Zanthi Variatus');
+		});
+	});
+
+	it('keeps the parts inside a prescripted name part: a fallen hive’s fragments', () => {
+		// roamingcybergang 2226.08.01: the data DB names `Indomitable` "Indomitable"; the game shows
+		// "Indomitable Myrran Aggression" (the trade screen, 2026-11-21)
+		const fragment = (head: string, noun: string) => ({
+			key: '%ADJ%',
+			variables: [
+				{
+					key: '1',
+					value: {
+						key: head,
+						variables: [
+							{
+								key: '1',
+								value: {
+									key: '%ADJECTIVE%',
+									variables: [
+										{ key: 'adjective', value: { key: 'SPEC_Myrran' } },
+										{ key: '1', value: { key: noun } }
+									]
+								}
+							}
+						]
+					}
+				}
+			]
+		});
+		withNames(
+			{ Indomitable: 'Indomitable', Forgotten: 'Forgotten', Aggression: 'Aggression' },
+			() => {
+				expect(displayName(fragment('Indomitable', 'Aggression'))).toBe(
+					'Indomitable Myrran Aggression'
+				);
+				expect(displayName(fragment('Indomitable', 'Aspiration'))).toBe(
+					'Indomitable Myrran Aspiration'
+				);
+				expect(displayName(fragment('Forgotten', 'Authority'))).toBe('Forgotten Myrran Authority');
+			}
+		);
+	});
+
+	it('fills a scope command the extractor kept as a placeholder', () => {
+		// roamingcybergang 2226.08.01, country 98: the game's "[fotd_country.GetSpeciesName] Commune"
+		withNames({ NAME_fotd_seperatists: '$fotd_country.GetSpeciesName$ Commune' }, () => {
+			expect(
+				displayName({
+					key: 'NAME_fotd_seperatists',
+					variables: [{ key: 'fotd_country.GetSpeciesName', value: { key: 'SPEC_Fellnoll' } }]
+				})
+			).toBe('Fellnoll Commune');
+		});
+	});
+
+	it('fills a prescripted text that is a template itself', () => {
+		// data DB of 2026-11-20: `AofB` = "$1$ of $2$" (a contract's issuer, Roaming Cybergang)
+		const names = {
+			AofB: '$1$ of $2$',
+			PRESCRIPTED_species_adjective_humans1: 'Human $1$'
+		};
+		withNames(names, () => {
+			expect(
+				displayName({
+					key: 'AofB',
+					variables: [
+						{ key: '1', value: { key: 'Pact' } },
+						{ key: '2', value: { key: 'SPEC_Fellnoll_planet' } }
+					]
+				})
+			).toBe('Pact of Fellnoll');
+			expect(
+				displayName({
+					key: '%ADJECTIVE%',
+					variables: [
+						{ key: 'adjective', value: { key: 'PRESCRIPTED_species_adjective_humans1' } },
+						{ key: '1', value: { key: 'Commonwealth' } }
+					]
+				})
+			).toBe('Human Commonwealth');
 		});
 		expect(speciesName({ key: 'PRESCRIPTED_species_name_humans1' })).toBe('Humans');
 	});

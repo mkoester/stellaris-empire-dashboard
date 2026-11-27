@@ -30,18 +30,19 @@
 	];
 </script>
 
-{#snippet job(r: JobRow)}<InfoPopup explanation={explain[`job:${r.type}`]}>{r.name}</InfoPopup
-	>{/snippet}
+{#snippet job(r: JobRow)}<InfoPopup explanation={explain[`job:${r.type}`]}>
+		{r.name}
+	</InfoPopup>{/snippet}
 {#snippet stratum(r: JobRow)}<span class="text-gray-500">{stratumName(r.category)}</span>{/snippet}
 {#snippet pops(r: JobRow)}{fmt(r.pops)}{/snippet}
 {#snippet positions(r: JobRow)}{r.positions === null ? '∞' : fmt(r.positions)}{/snippet}
 {#snippet openCell(r: JobRow)}{open(r) === null ? '' : fmt(open(r)!)}{/snippet}
-{#snippet uses(r: JobRow)}<span title={r.estimated ? 'share of the empire total by pops' : ''}
-		>{r.estimated ? '≈ ' : ''}<ResourceChips flows={r.flows ?? {}} sign={-1} /></span
-	>{/snippet}
-{#snippet produces(r: JobRow)}<span title={r.estimated ? 'share of the empire total by pops' : ''}
-		>{r.estimated ? '≈ ' : ''}<ResourceChips flows={r.flows ?? {}} sign={1} /></span
-	>{/snippet}
+{#snippet uses(r: JobRow)}<span title={r.estimated ? 'share of the empire total by pops' : ''}>
+		{r.estimated ? '≈ ' : ''}<ResourceChips flows={r.flows ?? {}} sign={-1} />
+	</span>{/snippet}
+{#snippet produces(r: JobRow)}<span title={r.estimated ? 'share of the empire total by pops' : ''}>
+		{r.estimated ? '≈ ' : ''}<ResourceChips flows={r.flows ?? {}} sign={1} />
+	</span>{/snippet}
 
 {#if rows.length === 0}
 	<p>No jobs.</p>

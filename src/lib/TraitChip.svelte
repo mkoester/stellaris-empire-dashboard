@@ -14,12 +14,16 @@
 		? 'border-green-600/40'
 		: 'border-red-600/40'}"
 	title={t.until ? `${t.detail}\ntemporary, until ${t.until}` : t.detail}
-	><span class={pro ? 'text-green-600' : 'text-red-600'}>{pro ? '👍' : '👎'}</span
-	>{#if t.resource && colorOf(t.resource)}<span
+>
+	<span class={pro ? 'text-green-600' : 'text-red-600'}>
+		{pro ? '👍' : '👎'}
+	</span>{#if t.resource && colorOf(t.resource)}<span
 			class="inline-block size-2 rounded-full"
 			style:background={colorOf(t.resource)}
 		></span>{/if}<InfoPopup {explanation}>{t.label}</InfoPopup>{#if t.until}<span
 			class="cursor-help"
-			aria-label="temporary">⏳</span
-		>{/if}</span
->
+			aria-label="temporary"
+		>
+			⏳
+		</span>{/if}
+</span>

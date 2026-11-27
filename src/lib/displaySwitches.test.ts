@@ -21,6 +21,7 @@ describe('SWITCHES', () => {
 					'slaveMarket',
 					'mapFit',
 					'mapWidth',
+					'mapStars',
 					'showSpoilers',
 					'showCheats'
 				].includes(k)
@@ -62,14 +63,22 @@ describe('effectiveDisplay', () => {
 				.map((s) => s.key)
 				.sort()
 		).toEqual([
+			'ambitionsAll',
+			'ambitionsRevealed',
+			'archiveOthers',
 			'contactStations',
 			'contractSpoilers',
 			'diplomacyAll',
+			'highwayFriends',
 			'historyAll',
 			'historyMet',
+			'ideologiesAll',
 			'lgates',
 			'pactAdvice',
 			'pactIntel',
+			'precursorsAll',
+			'specimenTrade',
+			'specimenTradeAll',
 			'subjectNumbers',
 			'surveyAll',
 			'tradeIntel',

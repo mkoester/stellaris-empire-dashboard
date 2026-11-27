@@ -1,4 +1,12 @@
-import type { Combat, CountryInfo, FirstContact, GalacticCommunity, Relation } from './types.ts';
+import { ownIdeologies } from './ideologies.ts';
+import type {
+	Combat,
+	CountryInfo,
+	FirstContact,
+	GalacticCommunity,
+	IdeologyReading,
+	Relation
+} from './types.ts';
 
 // The contacts tab: every empire we know, with what the save tells about it. Pure.
 
@@ -230,6 +238,33 @@ export function empireColors(
 	);
 }
 
+/**
+ * A fallen hive's fragment by its government (`gov_war_splinter` → "War Splinter"), whatever its
+ * name — the three fragments of one hive are told apart by it; null for any other empire.
+ */
+export const splinterOf = (governmentType: string | null | undefined): string | null => {
+	const m = /^gov_(\w+)_splinter$/.exec(governmentType ?? '');
+	return m ? `${m[1].charAt(0).toUpperCase()}${m[1].slice(1).replaceAll('_', ' ')} Splinter` : null;
+};
+
+/**
+ * Each fragment's splinter by the name we know it by, for `EmpireName` on every page: only those
+ * we talk to — its government before communications would spoil the first contact.
+ */
+export function empireTags(
+	s: { countries: CountryInfo[] | null; relations: Relation[] | null } | undefined
+): Record<string, string> {
+	const talking = new Set(
+		(s?.relations ?? []).filter((r) => r.communications).map((r) => r.countryId)
+	);
+	return Object.fromEntries(
+		(s?.countries ?? []).flatMap((c) => {
+			const tag = talking.has(c.id) ? splinterOf(c.governmentType) : null;
+			return tag ? [[c.name, tag]] : [];
+		})
+	);
+}
+
 export const shown = (rows: ContactRow[], v: ContactView) =>
 	rows.filter(
 		(r) =>
@@ -254,6 +289,11 @@ export const pageLatest = <
 		diplomacy?: unknown;
 		allWars?: unknown;
 		contracts?: unknown;
+		storms?: unknown;
+		precursorIntel?: unknown;
+		archives?: { countryId: number }[] | null;
+		ideologies?: IdeologyReading | null;
+		ambitions?: { countryId: number }[] | null;
 	}
 >(
 	s: S
@@ -264,6 +304,24 @@ export const pageLatest = <
 	...('allWars' in s ? { allWars: null } : {}),
 	// every contract in the galaxy, issuers we never met by name: the contracts tab sends its own rows
 	...('contracts' in s ? { contracts: null } : {}),
+	// every storm's path, a forecast only movement intel gives: the map tab sends what we may see
+	...('storms' in s ? { storms: null } : {}),
+	// every empire's precursor chains and every precursor system (a cheat): the frontier tab sends
+	// them only with it on
+	...('precursorIntel' in s ? { precursorIntel: null } : {}),
+	// every empire's specimens: the archive and trade tabs send others' per switch
+	...('archives' in s
+		? { archives: s.archives?.filter((a) => a.countryId === s.countryId) ?? null }
+		: {}),
+	// every ideology and empire's stand: ours and the ideologies we know; the ideologies tab sends
+	// the rest only with its cheat on
+	...('ideologies' in s
+		? { ideologies: s.ideologies ? ownIdeologies(s.ideologies, s.countryId) : null }
+		: {}),
+	// every empire's ambition: the ambitions tab sends others' per switch
+	...('ambitions' in s
+		? { ambitions: s.ambitions?.filter((a) => a.countryId === s.countryId) ?? null }
+		: {}),
 	countries:
 		s.countries?.filter(
 			(c) =>
@@ -271,3 +329,49 @@ export const pageLatest = <
 				(s.relations ?? []).some((r) => r.countryId === c.id && r.communications)
 		) ?? null
 });
+
+/** A first contact's change since the previous save that read it; difficulty null where unknown. */
+export type ContactChange = { difficulty: number | null; clues: number };
+
+/**
+ * Each first contact's change between the branch's last two readings of them (`saves` in order):
+ * the difficulty rises with each stage, the clues with each roll. The difficulty compares only
+ * readings that both carry the country's part (`defense`, READER 76) — an older one holds the
+ * stage's alone. A contact new in the last reading has none.
+ */
+export function contactChanges(
+	saves: { firstContacts: FirstContact[] | null }[]
+): Record<number, ContactChange> {
+	const readings = saves.flatMap((s) => (s.firstContacts ? [s.firstContacts] : []));
+	const [prev, last] = readings.slice(-2);
+	if (!last) return {};
+	const before = new Map(prev.map((c) => [c.id, c]));
+	return Object.fromEntries(
+		last.flatMap((c) => {
+			const p = before.get(c.id);
+			if (!p) return [];
+			const known = c.defense !== undefined && p.defense !== undefined;
+			return [
+				[c.id, { difficulty: known ? c.difficulty - p.difficulty : null, clues: c.clues - p.clues }]
+			];
+		})
+	);
+}
+
+/** A change as an arrow: "▲2", "▼1", nothing when none or unknown. */
+export const changeMark = (n: number | null | undefined) => (!n ? '' : n > 0 ? `▲${n}` : `▼${-n}`);
+
+/** A first contact's difficulty as shown: ≈ unless the country's part is the game's own sum. */
+export const difficultyText = (f: Pick<FirstContact, 'difficulty' | 'defenseExact'>) =>
+	`${f.defenseExact ? '' : '≈'}${f.difficulty}`;
+
+/** What a first contact's difficulty is made of, for its tooltip. */
+export function difficultyTitle(
+	f: Pick<FirstContact, 'difficulty' | 'defense' | 'defenseExact' | 'defenseParts'>
+) {
+	const stage = f.difficulty - (f.defense ?? 0);
+	const parts = (f.defenseParts ?? []).map((p) => `, +${p.value} ${p.label}`).join('');
+	return f.defenseExact
+		? `the stage's ${stage}${parts}`
+		: `≈ the stage's ${stage}${parts}; companion mod 0.16.0 reads their modifiers as the game sums them`;
+}

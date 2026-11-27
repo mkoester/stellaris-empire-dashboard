@@ -10,7 +10,8 @@ How multiplayer and Ironman are detected and what was seen in which save. Read b
   save loaded in single player, a month without the mod, does not undo it) or Ironman
   (`campaignIronman()`), `display()` forces every `cheat`-kind switch off **and every spoiler
   marked `intel`** — those revealing other empires or unexplored space: `wholeGalaxy`,
-  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`, `subjectNumbers`, `diplomacyAll`, `historyMet`, `contractSpoilers`
+  `surveyAll`, `wormholePairs`, `lgates`, `contactStations`, `pactIntel`, `subjectNumbers`, `diplomacyAll`, `historyMet`, `contractSpoilers`,
+  `highwayFriends`
   (`effectiveDisplay(d, noCheats)`, `barred()`) — and ⚙ lists none of them, saying why
   (`viewedNoCheats()`: `ironman` before `multiplayer`). Other spoilers stay: they are the game's
   own content (anomalies, projects, timers, what-ifs), not another player's secrets. **A new

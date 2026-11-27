@@ -69,14 +69,15 @@
 				)
 					? 'opacity-40'
 					: ''}"
-				><input
+			>
+				<input
 					type="checkbox"
 					class="sr-only"
 					checked={!hidden.includes(k.kind)}
 					onchange={() => toggle(k.kind)}
 				/><span class="inline-block h-2 w-2 rounded-full" style:background={colorOf(k.kind)}></span>
-				{k.label} <span class="text-gray-500 tabular-nums">{count(k.kind)}</span></label
-			>
+				{k.label} <span class="text-gray-500 tabular-nums">{count(k.kind)}</span>
+			</label>
 		{/each}
 	</div>
 </div>

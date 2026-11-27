@@ -143,9 +143,14 @@ const DELEGATE: Record<string, Modifier[]> = {
 	]
 };
 
-/** A class's effects per skill level from one `CLASS_SKILL` source. */
+/** A class's effects per skill level from one `CLASS_SKILL` source. 4.6 renamed
+ * `skill_<class>_(background_)planet_governor` to `…_colony_governor`: either name, so a data DB
+ * from 4.5 still reads. */
 export const skillModifiers = (key: string, explain: Record<string, Explanation>): Modifier[] =>
-	DELEGATE[key] ?? explain[`modifier:${key}`]?.modifiers ?? [];
+	DELEGATE[key] ??
+	explain[`modifier:${key}`]?.modifiers ??
+	explain[`modifier:${key.replace(/planet_governor$/, 'colony_governor')}`]?.modifiers ??
+	[];
 
 const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 

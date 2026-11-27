@@ -48,16 +48,18 @@
 				class="rounded px-2 py-0.5 {years === h
 					? 'bg-gray-200 font-semibold dark:bg-gray-700'
 					: 'hover:bg-gray-100 dark:hover:bg-gray-800'}"
-				onclick={() => pick(h)}>{h} years</button
-			>{/each}
+				onclick={() => pick(h)}
+			>
+				{h} years
+			</button>{/each}
 	</span>
 	{#if rows.length > 1}
-		<label
-			>for <select class="rounded bg-transparent" bind:value={focus}>
+		<label>
+			for <select class="rounded bg-transparent" bind:value={focus}>
 				<option value={null}>the whole empire</option>
 				{#each rows as r (r.planetId)}<option value={r.planetId}>{r.name}</option>{/each}
-			</select></label
-		>
+			</select>
+		</label>
 	{/if}
 </div>
 <Chart title="Pops projected" series={chart} range={[start, start + years]} yMin={0} />

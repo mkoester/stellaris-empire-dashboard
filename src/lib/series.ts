@@ -263,13 +263,15 @@ export const scalarSeries = (
 // the Pops charts. Stratum, species, ethos and faction changes and group merges only move pops
 // between groups, so they are left out; refugees arrive as immigration. Migration between our own
 // colonies cancels out in the empire's sum, which leaves what came from or went to other empires.
+// Resettlement (ordered, not automatic) is a line of its own: it shows on a colony's chart, and
+// sums to 0 in the empire's, where it is left out as a line that never moves.
 const POP_CAUSE: Record<string, string> = {
 	growth: 'growth',
 	assembly: 'assembly',
 	immigration: 'migration',
 	emigration: 'migration',
 	migration: 'migration',
-	resettle: 'migration'
+	resettle: 'resettled'
 };
 const REGROUPING = new Set([
 	'promotion',
@@ -279,7 +281,7 @@ const REGROUPING = new Set([
 	'ethics',
 	'faction'
 ]);
-const POP_GROUPS = ['growth', 'assembly', 'migration', 'other'];
+const POP_GROUPS = ['growth', 'assembly', 'migration', 'resettled', 'other'];
 
 /** A `GROWTH_CAT_…` cause → its line on the Pops charts; null for one that only regroups pops. */
 export const popCause = (cause: string): string | null =>

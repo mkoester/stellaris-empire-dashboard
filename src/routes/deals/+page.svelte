@@ -60,14 +60,14 @@
 	<section class="rounded border border-gray-200 p-3 text-sm dark:border-gray-800">
 		<div class="mb-1 flex flex-wrap items-baseline gap-x-4">
 			<span class="text-base"><EmpireName name={d.partner} /></span>
-			<span class="text-gray-500 tabular-nums"
-				>{d.start ?? `seen ${firstSeen}`}{end ? ` – ${end}` : ''}{lastSeen
+			<span class="text-gray-500 tabular-nums">
+				{d.start ?? `seen ${firstSeen}`}{end ? ` – ${end}` : ''}{lastSeen
 					? ` (last seen ${lastSeen})`
-					: ''}</span
-			>
-			{#if !d.understood}<span class="text-red-600"
-					>not understood{d.raw ? ' — see the save data' : ''}</span
-				>{/if}
+					: ''}
+			</span>
+			{#if !d.understood}<span class="text-red-600">
+					not understood{d.raw ? ' — see the save data' : ''}
+				</span>{/if}
 		</div>
 		<div>we give: {@render side(d.gives)}</div>
 		<div>we get: {@render side(d.gets)}</div>
@@ -83,9 +83,10 @@
 {#snippet side(s: DealSide)}
 	{#each sideParts(s) as p, i (i)}{i ? ', ' : ''}{#if p.resource === null}{p.text}{:else}<span
 				class="whitespace-nowrap"
-				>{fmt(p.amount)}
+			>
+				{fmt(p.amount)}
 				<span style:color={colorOf(p.resource)}>{pretty(p.resource)}</span>{p.monthly
 					? '/month'
-					: ''}</span
-			>{/if}{:else}nothing{/each}
+					: ''}
+			</span>{/if}{:else}nothing{/each}
 {/snippet}

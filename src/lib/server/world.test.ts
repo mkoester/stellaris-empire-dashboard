@@ -5,6 +5,11 @@ import {
 	digSites,
 	relations,
 	stationsSeen,
+	storms,
+	eventChains,
+	firstContactDefense,
+	firstContacts,
+	precursorIntel,
 	surveyedPlanets,
 	wormholeLinks
 } from './world.ts';
@@ -215,5 +220,199 @@ describe('digSites', () => {
 			[2, false],
 			[3, false]
 		]);
+	});
+});
+
+describe('storms', () => {
+	it('reads a storm, its name, the systems it covers and the path ahead', () => {
+		// Roaming Cybergang 2226.08.01, trimmed; `2=none` is a storm gone
+		const raw = {
+			countryId: 16777234,
+			storms: {
+				'1': {
+					type: 'magnetic_storm',
+					storm_current_path_index: 2,
+					speed: 0.02,
+					storm_days_till_next_system: 2438,
+					cluster: { objects: [27, 598, 800] },
+					name: { key: 'HUM1_CHR_Shibbala' },
+					prefix: { key: 'STORM_PREFIX_7' },
+					path: [534, 609, 800, 598, 196],
+					affected_country_ids: [16777234, 36]
+				},
+				'2': 'none'
+			}
+		};
+		expect(storms(raw)).toEqual([
+			{
+				id: 1,
+				type: 'magnetic_storm',
+				name: 'Hurricane Shibbala',
+				systems: [27, 598, 800],
+				path: [598, 196],
+				daysToNext: 2438,
+				speed: 0.02,
+				affectsUs: true
+			}
+		]);
+		expect(storms({ ...raw, countryId: 0 })[0].affectsUs).toBe(false);
+	});
+});
+
+describe('eventChains', () => {
+	it('reads running chains with their counters and the completed ones', () => {
+		// in the country's `events` block (Roaming Cybergang 2231.08.01, 4.6; 2205.05.16, 4.5.4):
+		// l_cluster_chain without a counter (0 clues)
+		const country = {
+			events: {
+				event_chain: [
+					{ event_chain: 'l_cluster_chain', scope: { type: 'country', id: 0 } },
+					{ event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 3 } }
+				],
+				completed_event_chain: [
+					'nomad_checklist_chain',
+					'contract_colony_startup_chain',
+					'contract_colony_startup_chain'
+				]
+			}
+		};
+		expect(eventChains({ country })).toEqual({
+			active: [
+				{ key: 'l_cluster_chain', counters: {} },
+				{ key: 'cybrex_chain', counters: { cybrex_artifacts: 3 } }
+			],
+			completed: ['nomad_checklist_chain', 'contract_colony_startup_chain']
+		});
+		expect(eventChains({ country: {} })).toEqual({ active: [], completed: [] });
+		// not on the country itself: where the reader wrongly looked until READER 81
+		expect(eventChains({ country: country.events }).active).toEqual([]);
+	});
+});
+
+describe('precursorIntel', () => {
+	it('reads the disabled precursors, their systems and every empire’s chains', () => {
+		// Roaming Cybergang 2226.08.01: only the Cybrex on, 92 systems flagged precursor_5
+		const raw = {
+			galaxy: { disabled_precursors: ['precursor_3', 'precursor_baol_1', 'precursor_1'] },
+			systems: {
+				'12': { flags: { precursor_5: 62808000, precursor_system: 62808000, hostile_system: 1 } },
+				'13': { flags: { precursor_5: 62808000 } },
+				'14': { flags: {} }
+			},
+			countryBlocks: {
+				'0': {
+					name: { key: 'Roaming Cybergang' },
+					events: { event_chain: [{ event_chain: 'l_cluster_chain' }] }
+				},
+				'16777229': {
+					name: { key: 'Barcalid Collective' },
+					events: {
+						event_chain: { event_chain: 'cybrex_chain', counter: { cybrex_artifacts: 2 } },
+						completed_event_chain: ['nomad_checklist_chain']
+					}
+				}
+			}
+		};
+		expect(precursorIntel(raw)).toEqual({
+			disabled: ['precursor_3', 'precursor_baol_1', 'precursor_1'],
+			systems: { precursor_5: [12, 13] },
+			chains: [
+				{
+					countryId: 16777229,
+					country: 'Barcalid Collective',
+					key: 'cybrex_chain',
+					counters: { cybrex_artifacts: 2 },
+					done: false
+				}
+			]
+		});
+	});
+});
+
+describe('firstContacts', () => {
+	// shaped like 2228.04.01 (roamingcybergang): the game showed Caravaneers 5 and Artisan Troupe 3
+	const raw = {
+		countryId: 0,
+		leaders: {},
+		firstContacts: {
+			'274': {
+				owner: 0,
+				country: 49,
+				location: 716,
+				difficulty: 3,
+				clues: 0,
+				status: 'in_progress'
+			},
+			'275': {
+				owner: 0,
+				country: 43,
+				location: 138,
+				difficulty: 3,
+				clues: 0,
+				status: 'in_progress'
+			},
+			'1': { owner: 7, country: 0, difficulty: 7 } // someone else's contact with us
+		},
+		countryBlocks: {
+			'49': {
+				active_policies: [{ policy: 'first_contact_protocol', selected: 'first_contact_cautious' }]
+			},
+			'43': {
+				active_policies: [{ policy: 'first_contact_protocol', selected: 'first_contact_proactive' }]
+			}
+		}
+	};
+
+	it("gives the difficulty the game shows: the stage's plus a cautious country's 2", () => {
+		expect(
+			firstContacts(raw).map((c) => [c.countryId, c.difficulty, c.defense, c.defenseExact])
+		).toEqual([
+			[49, 5, 2, false],
+			[43, 3, 0, false]
+		]);
+	});
+
+	it("takes the companion mod's export of the game's own sum (0.16.0), a missing one as 0", () => {
+		const withMod = {
+			...raw,
+			country: { variables: { sdash_fcd_on: 1 } },
+			countryBlocks: {
+				'49': { ...raw.countryBlocks['49'], variables: { sdash_fcd: 4 } },
+				'43': raw.countryBlocks['43'] // 0: the save leaves the variable out
+			}
+		};
+		expect(
+			firstContacts(withMod).map((c) => [c.countryId, c.difficulty, c.defense, c.defenseExact])
+		).toEqual([
+			[49, 7, 4, true],
+			[43, 3, 0, true]
+		]);
+	});
+
+	it('adds 2 for a xenophobe, fanatic or not (2228.04.09: Gimel 11, Gamma and Epsilon 7)', () => {
+		const gimel = {
+			ethos: { ethics: ['ethic_fanatic_xenophobe', 'ethic_pacifist'] },
+			variables: { sdash_fcd: 2 } // the cautious protocol, as the mod exported it
+		};
+		expect(firstContactDefense(gimel, true)).toEqual({
+			defense: 4,
+			exact: true,
+			parts: [
+				{ label: 'their first contact modifiers', value: 2 },
+				{ label: 'xenophobe', value: 2 }
+			]
+		});
+		const gamma = { ethos: { ethics: ['ethic_xenophobe', 'ethic_fanatic_militarist'] } };
+		expect(firstContactDefense(gamma, true).defense).toBe(2);
+		expect(firstContactDefense({ ethos: { ethics: ['ethic_xenophile'] } }, true).defense).toBe(0);
+	});
+
+	it('adds nothing for a country without the policy, or unknown', () => {
+		expect(firstContactDefense({ active_policies: [] }, false)).toEqual({
+			defense: 0,
+			exact: false,
+			parts: []
+		});
+		expect(firstContactDefense(undefined, false)).toEqual({ defense: 0, exact: false, parts: [] });
 	});
 });

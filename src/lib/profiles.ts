@@ -4,7 +4,15 @@ import { DEFAULT_DIPLOMACY_VIEW, parseDiplomacyView, type DiplomacyView } from '
 import { DEFAULT_MIGRATION_VIEW, parseMigrationView, type MigrationView } from './migration.ts';
 import { DEFAULT_EXPANSION_VIEW, parseExpansionView, type ExpansionView } from './expansion.ts';
 import { anyOn } from './displaySwitches.ts';
-import { DEFAULT_MAP_FILTER, parseMapFilter, type MapFilter } from './mapLayers.ts';
+import {
+	DEFAULT_MAP_FILTER,
+	DEFAULT_MAP_OWN,
+	mapOwnFromShips,
+	parseMapFilter,
+	parseMapOwn,
+	type MapFilter,
+	type MapOwn
+} from './mapLayers.ts';
 import { parseMapFit, parseMapWidth, type MapFit, type MapWidth } from './mapView.ts';
 import { DEFAULT_MEGA_VIEW, parseMegaView, type MegaView } from './megastructures.ts';
 import { DEFAULT_CONTRACT_VIEW, parseContractView, type ContractView } from './contracts.ts';
@@ -37,6 +45,7 @@ export type Display = {
 	slaveMarket: SlaveMarketMode; // the slave market tab where slavery is not allowed
 	mapFit: MapFit; // what a map shows when a page opens
 	mapWidth: MapWidth; // a map's width until a browser's width button picks one
+	mapStars: boolean; // special stars' icons on every map, until a browser's checkbox picks
 	showSpoilers: boolean; // ⚙ lists the spoiler switches; off, they are off (#lib/displaySwitches.ts)
 	showCheats: boolean; // likewise the cheats
 	habitatsAlways: boolean; // habitat sites before habitats can be built (cheat)
@@ -59,15 +68,25 @@ export type Display = {
 	planOrder: boolean; // planner: each goal's times with the goals above it paid first
 	tradeIntel: boolean; // trade tab: what other empires would trade, at what rate, what a gift buys (spoiler)
 	tradeStockpiles: boolean; // trade tab: other empires' stockpiles and income (cheat)
+	specimenTrade: boolean; // trade tab: the specimens each contact would trade, and for what (spoiler)
+	specimenTradeAll: boolean; // trade tab: … also those blocked now, with the reason (cheat)
+	archiveOthers: boolean; // archive tab: another empire's Grand Archive (cheat)
+	ideologiesAll: boolean; // ideologies tab: every ideology and every empire's stand (cheat)
+	ambitionsRevealed: boolean; // ambitions tab: others' ambitions the game revealed (spoiler)
+	ambitionsAll: boolean; // ambitions tab: every empire's ambition and level (cheat)
 	diplomacyAll: boolean; // diplomacy tab: every empire and relation, beyond our intel (spoiler)
 	historyMet: boolean; // history tab: everything about the empires we met, beyond our intel (spoiler)
 	historyAll: boolean; // history tab: every empire's history, by its own name (cheat)
+	precursorsAll: boolean; // frontier tab: everything the save holds on every precursor (cheat)
+	precursorBadges: boolean; // frontier tab: a Precursor badge on what leads to one, and which (spoiler)
 	pactIntel: boolean; // pacts tab: what intel shows of partners — tech counts, trade at economy intel 3 (spoiler)
 	pactAdvice: boolean; // pacts tab: whom to offer a research agreement or commercial pact, ranked (spoiler)
 	subjectNumbers: boolean; // subjects tab: a subject's power, fleet, size and pops as numbers (cheat)
 	pactAll: boolean; // pacts tab: partners' techs and trade whatever our intel, tech hints (cheat)
 	contractSpoilers: boolean; // contracts: offers from issuers we do not talk to (nomad), others' near our border (settled) (spoiler)
 	contractsAll: boolean; // contracts: every contract in the galaxy (cheat)
+	highwayFriends: boolean; // Ancient Highway: what our friends know of the ring (spoiler, intel)
+	highwayAll: boolean; // Ancient Highway: what every empire knows, every portal, the whole ring (cheat)
 	whatIfs: boolean; // ≈ what an edict, policy, designation or planet decision would do now (spoiler)
 };
 export const DEFAULT_DISPLAY: Display = {
@@ -76,6 +95,7 @@ export const DEFAULT_DISPLAY: Display = {
 	slaveMarket: 'mine',
 	mapFit: 'explored',
 	mapWidth: 'normal',
+	mapStars: true,
 	showSpoilers: false,
 	showCheats: false,
 	habitatsAlways: false,
@@ -99,15 +119,25 @@ export const DEFAULT_DISPLAY: Display = {
 	whatIfs: false,
 	tradeIntel: false,
 	tradeStockpiles: false,
+	specimenTrade: false,
+	specimenTradeAll: false,
+	archiveOthers: false,
+	ideologiesAll: false,
+	ambitionsRevealed: false,
+	ambitionsAll: false,
 	diplomacyAll: false,
 	historyMet: false,
 	historyAll: false,
+	precursorsAll: false,
+	precursorBadges: false,
 	pactIntel: false,
 	pactAdvice: false,
 	subjectNumbers: false,
 	pactAll: false,
 	contractSpoilers: false,
-	contractsAll: false
+	contractsAll: false,
+	highwayFriends: false,
+	highwayAll: false
 };
 
 export type ProfileSettings = {
@@ -124,6 +154,7 @@ export type ProfileSettings = {
 	systemView: SystemView;
 	produceView: ProduceView;
 	mapFilter: MapFilter;
+	mapOwn: MapOwn; // what of our own every map draws
 	quadrants: QuadrantView; // every map's rings and sectors
 	popWindow: PopWindow; // the months the Pops charts' mean takes in
 	incomeWindow: number; // the months the planner's mean income takes in
@@ -148,6 +179,7 @@ export const DEFAULT_SETTINGS: ProfileSettings = {
 	popWindow: DEFAULT_POP_WINDOW,
 	incomeWindow: DEFAULT_INCOME_WINDOW,
 	mapFilter: DEFAULT_MAP_FILTER,
+	mapOwn: DEFAULT_MAP_OWN,
 	display: DEFAULT_DISPLAY
 };
 
@@ -166,6 +198,7 @@ export function parseDisplay(v: unknown): Display {
 				: DEFAULT_DISPLAY.slaveMarket,
 		mapFit: parseMapFit(o.mapFit),
 		mapWidth: parseMapWidth(o.mapWidth),
+		mapStars: o.mapStars !== false,
 		// a profile from before the gates keeps what it had on
 		showSpoilers: typeof o.showSpoilers === 'boolean' ? o.showSpoilers : anyOn(o, 'spoiler'),
 		showCheats: typeof o.showCheats === 'boolean' ? o.showCheats : anyOn(o, 'cheat'),
@@ -192,15 +225,25 @@ export function parseDisplay(v: unknown): Display {
 		// one switch until 2026-11-18: a profile that had it on keeps the stockpiles too
 		tradeStockpiles:
 			typeof o.tradeStockpiles === 'boolean' ? o.tradeStockpiles : o.tradeIntel === true,
+		specimenTrade: o.specimenTrade === true,
+		specimenTradeAll: o.specimenTradeAll === true,
+		archiveOthers: o.archiveOthers === true,
+		ideologiesAll: o.ideologiesAll === true,
+		ambitionsRevealed: o.ambitionsRevealed === true,
+		ambitionsAll: o.ambitionsAll === true,
 		diplomacyAll: o.diplomacyAll === true,
 		historyMet: o.historyMet === true,
 		historyAll: o.historyAll === true,
+		precursorsAll: o.precursorsAll === true,
+		precursorBadges: o.precursorBadges === true,
 		pactIntel: o.pactIntel === true,
 		pactAdvice: o.pactAdvice === true,
 		subjectNumbers: o.subjectNumbers === true,
 		pactAll: o.pactAll === true,
 		contractSpoilers: o.contractSpoilers === true,
-		contractsAll: o.contractsAll === true
+		contractsAll: o.contractsAll === true,
+		highwayFriends: o.highwayFriends === true,
+		highwayAll: o.highwayAll === true
 	};
 }
 
@@ -224,6 +267,7 @@ export const SETTING_PARSERS: {
 	systemView: parseSystemView,
 	produceView: parseProduceView,
 	mapFilter: parseMapFilter,
+	mapOwn: parseMapOwn,
 	quadrants: parseQuadrantView,
 	popWindow: parsePopWindow,
 	incomeWindow: parseIncomeWindow,
@@ -250,9 +294,13 @@ export function parsePatch(v: unknown): Partial<ProfileSettings> | { malformed: 
 /** A stored or imported profile in the current shape; broken parts fall back to the defaults. */
 export function parseSettings(v: unknown): ProfileSettings {
 	const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
-	return Object.fromEntries(
+	const read = Object.fromEntries(
 		SETTING_KEYS.map((key) => [key, SETTING_PARSERS[key](o[key]) ?? DEFAULT_SETTINGS[key]])
 	) as ProfileSettings;
+	// a profile from before the switches: its ship picker's choice (`mapFilter.ships`)
+	if (o.mapOwn === undefined)
+		read.mapOwn = mapOwnFromShips((o.mapFilter as { ships?: unknown } | undefined)?.ships);
+	return read;
 }
 
 /** A stored map of strings (campaign → profile); entries of another type dropped. */

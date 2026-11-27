@@ -94,8 +94,9 @@
 				? 'font-semibold'
 				: 'font-normal'}"
 			onclick={() => onSort(id)}
-			>{label}{#if sort.column === id}{sort.desc ? ' ▼' : ' ▲'}{/if}</button
 		>
+			{label}{#if sort.column === id}{sort.desc ? ' ▼' : ' ▲'}{/if}
+		</button>
 	</th>
 {/snippet}
 
@@ -145,8 +146,9 @@
 									: 'font-normal'}"
 								style:color={colorOf(k)}
 								onclick={() => onSort(`net:${k}`)}
-								>{abbr(k)}{#if sort.column === `net:${k}`}{sort.desc ? ' ▼' : ' ▲'}{/if}</button
 							>
+								{abbr(k)}{#if sort.column === `net:${k}`}{sort.desc ? ' ▼' : ' ▲'}{/if}
+							</button>
 						</th>
 					{/each}
 				{/if}
@@ -180,9 +182,12 @@
 					<td class="p-1 pl-2 whitespace-nowrap">
 						{#if r.problems.length}<span
 								class="mr-1 cursor-help font-bold text-red-600"
-								title={r.problems.join('\n')}>!</span
-							>{/if}<a class="underline" href={href(r.planetId)}>{r.name}</a
-						>{#if r.colonizing}&nbsp;<span class="text-xs text-green-700">colonizing</span>{/if}
+								title={r.problems.join('\n')}
+							>
+								!
+							</span>{/if}<a class="underline" href={href(r.planetId)}>
+							{r.name}
+						</a>{#if r.colonizing}&nbsp;<span class="text-xs text-green-700">colonizing</span>{/if}
 					</td>
 					{#if show('sector')}
 						<td class="p-1 whitespace-nowrap">
@@ -194,8 +199,10 @@
 						<td class="p-1 whitespace-nowrap">
 							<Designation key={r.designation} />{#if r.profile.mismatch}&nbsp;<span
 									class="cursor-help text-amber-600"
-									title={r.profile.mismatch}>⚠</span
-								>{/if}
+									title={r.profile.mismatch}
+								>
+									⚠
+								</span>{/if}
 						</td>
 					{/if}
 					{#if show('class')}<td
@@ -211,29 +218,31 @@
 								? 'text-red-600'
 								: (r.growth ?? 0) > 0
 									? 'text-green-600'
-									: ''}">{r.growth === null ? '' : signed(r.growth)}</td
+									: ''}"
 						>
+							{r.growth === null ? '' : signed(r.growth)}
+						</td>
 					{/if}
 					{#if show('stability')}
-						<td class="p-1 text-right {r.stability < 50 ? 'text-red-600' : ''}"
-							>{fmt(r.stability)}</td
-						>
+						<td class="p-1 text-right {r.stability < 50 ? 'text-red-600' : ''}">
+							{fmt(r.stability)}
+						</td>
 					{/if}
 					{#if show('happiness')}<td class="p-1 text-right">{pct(r.happiness)}</td>{/if}
 					{#if show('habitability')}
-						<td class="p-1 text-right whitespace-nowrap {tier(hab(r))}"
-							>{hab(r) ? habitabilityLabel(hab(r)!) : '–'}</td
-						>
+						<td class="p-1 text-right whitespace-nowrap {tier(hab(r))}">
+							{hab(r) ? habitabilityLabel(hab(r)!) : '–'}
+						</td>
 					{/if}
 					{#if show('housing')}
-						<td class="p-1 text-right {r.freeHousing < 0 ? 'text-red-600' : ''}"
-							>{fmt(r.freeHousing)}</td
-						>
+						<td class="p-1 text-right {r.freeHousing < 0 ? 'text-red-600' : ''}">
+							{fmt(r.freeHousing)}
+						</td>
 					{/if}
 					{#if show('amenities')}
-						<td class="p-1 text-right {r.freeAmenities < 0 ? 'text-red-600' : ''}"
-							>{fmt(r.freeAmenities)}</td
-						>
+						<td class="p-1 text-right {r.freeAmenities < 0 ? 'text-red-600' : ''}">
+							{fmt(r.freeAmenities)}
+						</td>
 					{/if}
 					{#if show('civilians')}<td class="p-1 text-right">{fmt(r.civilians)}</td>{/if}
 					{#if show('jobs')}<td class="p-1 text-right">{fmt(r.openJobs)}</td>{/if}
@@ -245,8 +254,10 @@
 									? 'text-red-600'
 									: v === 0
 										? 'text-gray-400'
-										: ''}">{v === 0 ? '·' : signed(v)}</td
+										: ''}"
 							>
+								{v === 0 ? '·' : signed(v)}
+							</td>
 						{/each}
 					{/if}
 					{#if show('logistics')}
@@ -259,8 +270,10 @@
 									([k, v]) =>
 										`${pretty(k)}: ${fmt(v)} short → ${fmt(r.logistics.byResource[k] ?? 0)} trade`
 								)
-								.join('\n')}>{r.logistics.fee > 0 ? `≈ −${fmt(r.logistics.fee)}` : '·'}</td
+								.join('\n')}
 						>
+							{r.logistics.fee > 0 ? `≈ −${fmt(r.logistics.fee)}` : '·'}
+						</td>
 					{/if}
 					{#if show('districts')}
 						<td class="p-1">
@@ -271,12 +284,14 @@
 										class="rounded border px-1 text-xs whitespace-nowrap tabular-nums"
 										style:border-color={c}
 										style:background={c ? `color-mix(in oklab, ${c} 20%, transparent)` : undefined}
-										title={nameOf(names, d.type)}>{d.built}{d.cap !== null ? `/${d.cap}` : ''}</span
+										title={nameOf(names, d.type)}
 									>
+										{d.built}{d.cap !== null ? `/${d.cap}` : ''}
+									</span>
 								{/each}
-								{#if r.room !== null}<span class="text-xs text-gray-500" title="districts free"
-										>{r.room} free</span
-									>{/if}
+								{#if r.room !== null}<span class="text-xs text-gray-500" title="districts free">
+										{r.room} free
+									</span>{/if}
 							</span>
 						</td>
 					{/if}
@@ -285,20 +300,23 @@
 							{#each r.profile.suits.slice(0, 2) as s, i (s.resource)}{i ? ', ' : ''}<span
 									class="cursor-help"
 									style:color={colorOf(s.resource)}
-									title={s.why.join('\n')}>{pretty(s.resource)}</span
-								>{/each}
+									title={s.why.join('\n')}
+								>
+									{pretty(s.resource)}
+								</span>{/each}
 						</td>
 					{/if}
-					{#if show('pros')}<td class="p-1 text-right text-green-600"
-							>{countLabel(r.profile.pros)}</td
-						>{/if}
-					{#if show('cons')}<td class="p-1 text-right text-red-600">{countLabel(r.profile.cons)}</td
-						>{/if}
+					{#if show('pros')}<td class="p-1 text-right text-green-600">
+							{countLabel(r.profile.pros)}
+						</td>{/if}
+					{#if show('cons')}<td class="p-1 text-right text-red-600">
+							{countLabel(r.profile.cons)}
+						</td>{/if}
 					{#if show('queue')}
 						<td class="p-1 whitespace-nowrap">
-							{#each r.queue as q, i (i)}<span class="block"
-									><DistrictName name={nameOf(names, q.name)} color={colors[q.name]} /></span
-								>{:else}∅{/each}
+							{#each r.queue as q, i (i)}<span class="block">
+									<DistrictName name={nameOf(names, q.name)} color={colors[q.name]} />
+								</span>{:else}∅{/each}
 						</td>
 					{/if}
 					{#if show('automation')}<td class="p-1">{r.automation}</td>{/if}
@@ -320,9 +338,9 @@
 									pro={false}
 									explanation={t.ref ? explain[t.ref] : undefined}
 								/>{/each}
-							{#if !r.profile.pros.length && !r.profile.cons.length}<span class="text-gray-500"
-									>nothing known about this planet</span
-								>{/if}
+							{#if !r.profile.pros.length && !r.profile.cons.length}<span class="text-gray-500">
+									nothing known about this planet
+								</span>{/if}
 						</span>
 					</td>
 				</tr>

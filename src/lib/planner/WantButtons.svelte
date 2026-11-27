@@ -50,15 +50,19 @@
 				class={button}
 				disabled={busy}
 				title="want {label}"
-				onclick={stop(() => add('want'))}>+ want</button
+				onclick={stop(() => add('want'))}
 			>
+				+ want
+			</button>
 			<button
 				type="button"
 				class={button}
 				disabled={busy}
 				title="want {label} later: Upcoming says to pick another card while it is on offer"
-				onclick={stop(() => add('later'))}>− want</button
+				onclick={stop(() => add('later'))}
 			>
+				− want
+			</button>
 		{:else}
 			{#if planned.stance === 'want'}
 				<button
@@ -66,24 +70,30 @@
 					class={button}
 					disabled={busy}
 					title="later: still wanted, but not yet"
-					onclick={stop(() => set('later'))}>− want</button
+					onclick={stop(() => set('later'))}
 				>
+					− want
+				</button>
 			{:else if planned.stance === 'later'}
 				<button
 					type="button"
 					class={button}
 					disabled={busy}
 					title="want it now"
-					onclick={stop(() => set('want'))}>+ want</button
+					onclick={stop(() => set('want'))}
 				>
+					+ want
+				</button>
 			{/if}
 			<button
 				type="button"
 				class={button}
 				disabled={busy}
 				title="take {label} out of the planner"
-				onclick={stop(remove)}>✕</button
+				onclick={stop(remove)}
 			>
+				✕
+			</button>
 		{/if}
 	</span>
 {/if}

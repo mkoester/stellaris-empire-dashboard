@@ -60,7 +60,16 @@ export function withNames<T>(names: Record<string, string>, f: () => T): T {
 
 export function displayName(name: Raw): string {
 	const key = String(name?.key ?? name ?? '');
-	if (prescripted[key]) return prescripted[key];
+	// a prescripted text may be a template itself: `AofB` = "$1$ of $2$" (taken by the extractor
+	// since 2026-11-20, which showed a contract's issuer as "$1$ of $2$")
+	const pre = prescripted[key];
+	if (pre && Array.isArray(name?.variables) && pre.includes('$')) return fill(pre, name.variables);
+	// one without a placeholder is a name part with parts inside: a fallen hive's fragments,
+	// `Indomitable` + `%ADJECTIVE%` (Myrran, Aggression) = "Indomitable Myrran Aggression" — the
+	// part alone named all three "Indomitable" or "Forgotten" (2026-11-21)
+	if (pre && Array.isArray(name?.variables))
+		return [pre, ...name.variables.map((v: Raw) => displayName(v.value)).filter(Boolean)].join(' ');
+	if (pre) return pre;
 	// `%SEQ%` with fmt (e.g. HUMAN1_FLEET) and num: "1st Fleet".
 	if (key === '%SEQ%' && Array.isArray(name?.variables)) {
 		const v = (k: string) => name.variables.find((x: Raw) => x.key === k)?.value?.key;
@@ -91,19 +100,22 @@ export function displayName(name: Raw): string {
 	}
 	// Inline templates: `$affix$$base$` (a modified species: base "Yorphid", affix "Trans-" →
 	// "Trans-Yorphid"), `$base$ $affix$` — each `$k$` filled by the variable keyed k.
-	if (/\$\w+\$/.test(key) && Array.isArray(name?.variables)) {
-		return key.replace(/\$(\w+)\$/g, (_, k: string) =>
-			displayName(name.variables.find((x: Raw) => x?.key === k)?.value)
-		);
-	}
+	if (/\$\w+\$/.test(key) && Array.isArray(name?.variables)) return fill(key, name.variables);
 	// Name templates with numbered parts (4.5 localisation, `common/random_names/00_empire_names.txt`):
 	// `AofB` = "$1$ of $2$" — "Pact of Fellnoll", read as "AofB Pact Fellnoll" before 2026-11-17.
-	const template = NAME_TEMPLATES[key];
-	if (template && Array.isArray(name?.variables)) {
-		return template.replace(/\$(\w+)\$/g, (_, k: string) =>
-			displayName(name.variables.find((x: Raw) => x?.key === k)?.value)
-		);
+	// Ideologies (4.6, common/random_names/00_ideology_names.txt): "$1$ $2$", where a prescripted
+	// adjective holds the noun's place ("Human $1$" + "Liberalism" = "Human Liberalism"), or one
+	// word: a prefix the engine cuts from the species adjective (`GetPrefixFromAdj`, in no file —
+	// read here as the species' name, unchecked: docs/open-points.md) and a suffix by its last letter.
+	if (key === 'ideology_ajd_keyword' && Array.isArray(name?.variables)) {
+		const part = (k: string) => displayName(name.variables.find((x: Raw) => x?.key === k)?.value);
+		const [adj, noun] = [part('1'), part('2')];
+		return (adj.includes('$1$') ? adj.replace('$1$', noun) : `${adj} ${noun}`).trim();
 	}
+	if (key === 'ideology_single_word_format' && Array.isArray(name?.variables))
+		return ideologyWord(name.variables.find((x: Raw) => x?.key === '1')?.value);
+	const template = NAME_TEMPLATES[key];
+	if (template && Array.isArray(name?.variables)) return fill(template, name.variables);
 	// Name parts with a part inside — faction names, `{<names_1> {<names_2>}}` (4.5.2
 	// common/random_names/00_pop_faction_names.txt): the outer part's own words come first.
 	// `Council` + `of_Scientific_Betterment` → "Council of Scientific Betterment". Name-part keys
@@ -115,6 +127,26 @@ export function displayName(name: Raw): string {
 	// Templates with variables — `%ADJECTIVE%`, `PLANET_NAME_FORMAT` (PARENT + NUMERAL: "Barnards
 	// Star I"), `PREFIX_NAME_FORMAT` (ship: "UNS Jordan"), `STAR_NAME_1_OF_1` — read as their parts.
 	if (Array.isArray(name?.variables)) {
+		// a prescripted species' adjective holds the noun's place: "Human $1$" + "Commonwealth"
+		// (`PRESCRIPTED_species_adjective_humans1`) is "Human Commonwealth"
+		const adj = name.variables.find((v: Raw) => v?.key === 'adjective');
+		const adjText = adj ? displayName(adj.value) : '';
+		if (key === '%ADJECTIVE%' && adjText.includes('$1$')) {
+			const rest = name.variables
+				.filter((v: Raw) => v !== adj)
+				.map((v: Raw) => displayName(v.value))
+				.filter(Boolean)
+				.join(' ');
+			return adjText.replace('$1$', rest).trim();
+		}
+		// a noun as the adjective takes the game's ending: "Mishar" + "Pact" is "Misharan Pact"
+		if (key === '%ADJECTIVE%' && adj) {
+			const rest = name.variables
+				.filter((v: Raw) => v !== adj)
+				.map((v: Raw) => displayName(v.value))
+				.filter(Boolean);
+			return [adjective(adjText), ...rest].join(' ');
+		}
 		return name.variables
 			.filter((v: Raw) => v?.key !== 'PREFIX') // the ship prefix ("UNS") is localisation only
 			.map((v: Raw) => displayName(v.value))
@@ -133,10 +165,70 @@ export function displayName(name: Raw): string {
 	);
 }
 
+// The game's rules for turning a noun into an adjective (4.5.4 localisation/english/
+// name_system_l_english.yml, `adj_NN*`): its last two letters, else its last one, replaced.
+const ADJ_ENDINGS: Record<string, string> = {
+	us: 'an',
+	is: 'an',
+	es: 'an',
+	ss: 'an',
+	id: 'an',
+	ed: 'an',
+	ad: 'an',
+	od: 'an',
+	ud: 'an',
+	yd: 'an',
+	i: 'ian',
+	r: 'ran',
+	a: 'an',
+	e: 'an'
+};
+
+/** A noun as an adjective, as the game makes it: "Mishar" → "Misharan", "Barcalid" → "Barcalan". */
+export function adjective(noun: string): string {
+	for (const n of [2, 1]) {
+		const end = ADJ_ENDINGS[noun.slice(-n)];
+		if (end && noun.length > n) return noun.slice(0, -n) + end;
+	}
+	return noun;
+}
+
+/** `template`'s `$k$` filled with the name of the variable keyed k ("" where none is). */
+// a scope command kept as a placeholder has dots: `$fotd_country.GetSpeciesName$` (extractor 2026-11-21)
+const fill = (template: string, variables: Raw[]): string =>
+	template.replace(/\$([\w.]+)\$/g, (_, k: string) =>
+		displayName(variables.find((x: Raw) => x?.key === k)?.value)
+	);
+
 export function resources(obj: Raw): Resources {
 	const out: Resources = {};
 	for (const [k, v] of Object.entries(obj ?? {})) if (typeof v === 'number') out[k] = v;
 	return out;
+}
+
+// `ideo_suffix_<n>` = "<after a consonant>|||vowel_ended:<after a vowel>" (4.6 localisation,
+// random_names/name_parts_00_ideology_names_l_english.yml)
+const IDEO_SUFFIXES: Record<string, [string, string]> = {
+	ideo_suffix_1: ['ism', 'tism'],
+	ideo_suffix_2: ['ity', 'lity'],
+	ideo_suffix_3: ['anity', 'nity'],
+	ideo_suffix_4: ['ology', 'dom'],
+	ideo_suffix_5: ['ionism', 'ship'],
+	ideo_suffix_6: ['alism', 'lism']
+};
+
+/** A one-word ideology name: `%PREFIX% { adjective = <species adjective> 1 = ideo_suffix_<n> }`. */
+function ideologyWord(prefix: Raw): string {
+	const v = (k: string) => (prefix?.variables ?? []).find((x: Raw) => x?.key === k)?.value;
+	const adj = v('adjective');
+	// the species' own name inside its adjective (`%ADJECTIVE%` { adjective = SPEC_<name> })
+	const inner = (adj?.variables ?? []).find((x: Raw) => x?.key === 'adjective')?.value;
+	const stem = displayName(inner ?? adj)
+		.replace('$1$', '')
+		.trim();
+	const suffix = IDEO_SUFFIXES[String(v('1')?.key ?? '')];
+	if (!suffix) return stem;
+	return stem + suffix[/[aeiouy]$/i.test(stem) ? 1 : 0];
 }
 
 // FirstContact-MeaningfulLabels' types, as its localisation names them

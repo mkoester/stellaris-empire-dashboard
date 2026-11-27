@@ -2,6 +2,33 @@
 
 Trade, growth, pops charts, growth projection, job output bonuses, jobs and the shared values, produce, influence, contracts. Read before working on one of them. _Moved verbatim from `AGENTS.md` on 2026-11-14._
 
+**Specimens in the trade tab** (2026-11-21, the user's ask): with the **`specimenTrade`** spoiler
+(`intel`) "Specimens they would trade us" (every specimen of each empire we can trade with) and
+"Which of our specimens they want most" (ours, per empire, by its bid). Worth from the defines, in
+energy: sell value by rarity (250/500/1000/2000) × 1.3, not the defines' × 1.5 for an empty exhibition (gifts to six empires, 2026-11-21,
+`docs/trade-calibration.md`), × 1.25 to a receiver whose exhibition it fills (untested); the price we pay = worth ÷ willingness, their bid = worth
+to them × willingness (`specimenDeal()`: the energy-worth curve cancels as both sides are energy) —
+in trade at energy's value, ≈ until checked against the trade screen. `blockers()` hide a row (not
+tradable, the receiver has it, archive full, `has_already_traded_specimens` on either side, 3600
+days); **`specimenTradeAll`** (cheat) shows them greyed ⊘ with the reason. `refusals()` fill the
+"Willing?" column: an attitude that trades nothing (the trade screen's "Dismissive attitude:
+−1000"). Not the opinion: `MIN_RELATION_TO_TRADE_SPECIMENS` 750 does not gate a deal we propose —
+in the campaign at 2226.08.01 (2026-11-21, `~/Pictures/Screenshots/screenshot_2026-11-21_12-2*`)
+the Misharan Pact at opinion 695 took our Heart of the Pulsar as a gift (+50) and gave its Uranium
+Glassware for 2 rare crystals a month (+2), the Thembolon Accord at 232 took the gift (+41). Fallen
+empires are left out: their trade screen has no specimens on either side (Indomitable Myrran
+Aggression, the same day). An attitude that trades nothing still takes a gift (the Backattan
+Empire, Suspicious: our Heart of the Pulsar for nothing, +46), so "refuses" means it gives nothing:
+with 1 energy a month from it the same deal read "Suspicious attitude: −1000" (the same day). So "Willing?" is only in their list; in ours such an
+empire's "They pay" reads "gift only" (sorted last) — it pays nothing but takes the specimen. The whole trade tab leaves out empires whose "Offer
+Trade Deal" the game closes (`tradeClosed()`: Fanatic Purifiers, Devouring Swarms, Determined
+Exterminators unless we are machines, scorched-earth Infernals unless we are Infernal — the
+Havariggan Purifiers' greyed action, the same day). Both lists sit in one "Specimens"
+panel, per exhibition side by side (theirs | ours), without an Exhibition column; the name is
+tinted by its rarity instead of a Rarity column, and both show what the specimen gives us
+(`SpecimenGives`: modifiers and monthly resources, × our exhibition's multiplier) — the user's asks,
+2026-11-21. The archive tab's bonus filter (`SpecimenFilter`) narrows both lists.
+
 **Trade tab** (`/trade`, `#lib/aiTrade.ts` pure; the user's biggest pain point, 2026-10-22: "who
 trades what, both directions, for how much, normalised by trade"): the empires we have
 communications with — regular and fallen ones only (`TRADING_TYPES` in save.ts; pre-FTL
@@ -341,8 +368,7 @@ arkship): `contractDetail()` from the data DB's `contract` (`description` with `
 contract_completed`, `Snapshot.contractsCompleted`, READER 66) plus unscaled influence; the other
 factor `nomadic_contract_value_mult` is not read, so the scaled amounts and the trade total carry
 ≈ (a lower bound). Cost to the operator: no resources — the arkship's time, and the issuer's
-opinion on failure. Arkships: jumps from each along the known lanes (the graph the Beyond column
-uses), nearest first; **no days** — a jump's duration is not read (`docs/open-checks.md` 32). A
+opinion on failure. Arkships: jumps from each along the known lanes, nearest first; **no days** — a jump's duration is not read (`docs/open-checks.md` 32). A
 contract without projects (Diplomatic Support: the AI's travel project only, a player gets points
 of interest) counts as an arkship's job. `arkship_branches` (Colony Startup only, 4.5.x) changes
 the _issuer's_ colony bonus, not our reward: `branchLine()` says so and names what our nearest
@@ -352,7 +378,7 @@ issuers we never met (it reached every page until 2026-11-18).
 random and no panel says which): Diplomatic Support, Prisoner Disposal and the Sightseeing Tour
 mark the carrying arkship's _fleet_ with a flag (`CONTRACT_CARGO`); `arkships()` keeps those
 flags as `Arkship.cargo` with the day set (READER 67; a flag's value is its hour, `flagDate()`),
-and `aboardOf()` names the ship in the Nearest arkship column and the details. The flag names no
+and `aboardOf()` names the ship in the Nearest ship column and the details. The flag names no
 contract, but a nomad can hold only one of each type (`already_doing_same_contract`), so the key
 links them exactly — no guessing. Checked on Roaming Cybergang 2225.08.21: Farleigh, as the save's
 `carrying_delegates`.
@@ -368,6 +394,37 @@ planet's carrier flag or a star's flag); `Contract.pickup`/`dropoff` (READER 69)
 systems, for our active ones. The Where column shows "pickup → drop-off" (Prisoner Disposal: "your
 choice"), and hovering the row or either system draws an arrow on the map. Roaming Cyber Gang
 2226.08.01: Diplomatic Support Mishar → Slerpanor; the arrow not yet seen in a browser.
+**Where names the place of the work, not of the issue, and the ships that count** (the user's ask
+2026-11-22: "at Dorellion (science ship)"): `shipsOf()` reads the projects' requirements
+(`carries_colony` → arkship), and for the contracts without a project a table, `DONE_BY`, read from
+the events that count their progress (its comment cites each). Scan Debris is a science ship's
+debris scan; Build Waystation counts only a waystation built in the contract's own system
+(nomads.3054 checks that system's star flag; the description's "in this Empire's system" means it),
+by a construction ship or an arkship; Harvest either of those; Deep Scan, Stellar Ignition and
+Intercept Raid an arkship; Pest Control, the Heirs' station and Raid Planet a military fleet
+(whether an arkship's won battle counts is not checked). Raid Planet's place is any colony of the
+system's owner. A transport not yet taken shows where it goes (`TRANSPORT.to`: the issuer's capital,
+your choice, set after the pickup). A mod's contract without projects shows no ship.
+**Nearest ship** (2026-11-22, replacing Nearest arkship and the Beyond column) is our nearest ship
+of a kind that can do it: arkships, science ships and construction ships (`civilianShips`, class
+`science_ship` / `constructor`), military fleets (`fleets`); arkships alone where nothing is known.
+Beyond (jumps past our border) was dropped, the user's question: a nomad owns no system, so it was
+always `–`, and for a settled empire it only repeated the range filter, which still uses it.
+Issuer and Taken by wrap (`EmpireName`'s `wrap`), so the table fits beside the map.
+**What the game asks before it offers or lets us accept** (the user's ask 2026-11-22: "if it is
+offered to me, I have everything I need"). That holds in the game; the dashboard listed more: an
+offer counted as offered to a nomad on communications alone. Now the techs of `potential_operator`
+count too (data DB `contract.offer_techs_json`, 2026-11-22: groups, any one tech each — Clear
+Blockers: Planetary Engineering; Build Waystation: Waystations I; Stellar Ignition: its igniter
+tech; Deep Scan: any of arkship tier 2 or 3, Sensors 2, System Scanner). An offer we lack one for is
+a spoiler, "not offered to you: needs …" in its State cell, and does not undim the tab
+(`unoffered()`, `whyOf()`'s `offerable`, `emptyTabs()`'s contract types). A data DB without the
+column changes nothing. `potential_operator`'s other conditions (not at war with the issuer; Build
+Waystation's `benefits_from_waystation_network`) and Raid Planet's bombardment policy and pacts are
+not checked. To accept (`possible_operator`): the techs as before, and `acceptNeeds()` — Deep Scan
+wants a science arkship of tier 2+ or a Sensor Array or System Scanner, Stellar Ignition an arkship
+with the Stellar Igniter. The igniter and the scanner are spinal modules, which no save has shown
+yet (Roaming Cybergang 2227.09.01: no player arkship had one): named, never judged met.
 Names and categories from the data DB's `contract` (`GameData.contractTypes`, `{}` without the
 table: the key shows); kinds (military, science, resource, diplomacy, other) from the category's
 name, symbols ours (`KIND_INFO`). The map tab has a `contracts` layer (`contractMarkers()`); the

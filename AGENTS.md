@@ -29,7 +29,7 @@ Storage is `node:sqlite` (built into Node, no native build). Saves are parsed wi
   (svelte-check: "'x' does not exist in type '$$ComponentProps'"). A snippet rendered in two places,
   or handed to another component, goes at the template's top level.
 - **TypeScript stays on 6** until `svelte-check` (peer `^5 || ^6`), `typescript-eslint`
-  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14 and 2026-11-06.
+  (`<6.1.0`) and Kit (`^6`) accept 7 — checked 2026-10-14, 2026-11-06 and 2026-11-24.
 
 Cross-project conventions come from the OKF vault; workspace rules from `../AGENTS.md`.
 
@@ -80,6 +80,21 @@ game data, per campaign: `docs/setup-and-data.md`. Read it before changing `serv
 What a zip holds per OS, the launcher, stopping and the version: `docs/packaging.md`. Read it
 before changing `scripts/package.mjs` or `release/`. Releasing: `RELEASE.md`.
 
+A dependency check covers the runtimes the zips bundle too: `NODE`, `PYTHON` and `PBS_RELEASE`
+in `scripts/package.mjs`, with their SHA-256s from the official sums files. `pnpm outdated` does
+not see them (Node 26.13.1, a security release, was caught by hand on 2026-11-22).
+
+**Check a formatting-only change by its output:** render every page before and after
+(`scripts/check-pages.mjs` has no dump option yet: write each `html` to a file at its fetch), mask
+`version: "<timestamp>"` and the `at:` stamp, and diff with whitespace runs collapsed — a space that
+appears or vanishes still shows. Separately confirm no `pre` / `whitespace-pre*` element sits in a
+changed line. prettier-plugin-svelte 4.2's reformat (119 files, 2026-11-22) passed this.
+
+**Read what `prettier --write` did to a Markdown list item before keeping it.** A code span
+wrapped across lines inside a list item (the federation save shape in `docs/open-points.md`,
+2026-11-23) came back with its continuation lines at column 0, out of the list. Keep such a span
+on one line of its own; Prettier leaves an over-long one alone.
+
 ## The dashboard DB
 
 **One watcher per process.** `app.ts` keeps its state on `globalThis`: Vite re-imports server
@@ -97,12 +112,8 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   new field stays at its `upgrade()` default until the save changes. **Two branches bump it
   independently**: on a merge (`develop` into `open-beta` or back) renumber above both and fix the
   "since READER n" notes, or one side's field is never re-read. 2026-10-31: both had 38 (the
-  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. **Open,
-  2026-11-20: `develop` has 69 and `feature/highway` 57** (develop: FirstContact labels, prescripted names, dig-site
-  chapters, planet flags, waystations, the home system surveyed, name templates, every contact's tech
-  gap, the Edict Fund, contracts completed, contract passengers aboard arkships, dig sites excavated by our fleets only, transport contracts' pickup and drop-off; the highway: the Ancient Highway mod) — that merge takes 70,
-  and conflicts in `save.ts`'s import block (the highway's `readHighway`/`unclaimable` import) and
-  in `world.ts`'s `galaxy()` (develop's `waystation`, the highway's fields).
+  shipset on `develop`, ships' sizes and systems on `open-beta`), merged as 40. 2026-11-26: `develop`'s
+  81 and `feature/highway`'s 57 (the Ancient Highway mod) merged as 82.
 - **The tables change only by a migration**: append a step to `MIGRATIONS` in `db.ts` (append
   only — a released step has run on players' DBs). The version is SQLite's `user_version` (0.1.0's
   `state.schema = '15'` is taken over as 15); a new DB is the 0.1.0 tables plus every step, so each
@@ -113,6 +124,9 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
   beside a `json_extract` column means every snapshot is parsed before `LIMIT 1` keeps one (two
   layout queries took ~400 ms of every page until migration 18). Time a page by profiling it:
   "Measuring a page" in `docs/testing.md`.
+- **What a DB holds: `node scripts/campaigns.mjs [<campaign>] [--db <file>]`** (alias `sdb`,
+  workspace `scripts/stellaris.zsh`): every campaign, or one with its newest nodes and the saves on
+  disk it never read (a session played without this DB). Read-only; default the player's DB.
 - The background start, cleaning up campaigns and the migrations so far: `docs/database.md`. Read
   it before changing `watch.ts` or `campaigns.ts`, or adding a migration.
 
@@ -120,8 +134,18 @@ so snapshots of deleted saves exist nowhere else — never delete the DB or drop
 
 Check a change end to end against a copy of the dashboard DB, never the real one: a dev server
 ingests saves and moves the head. Where the DB in use lives differs per machine (`docs/testing.md`):
-on mkTuxedCachy the released zip's own, `~/.local/share/stellaris-empire-dashboard/`. New save shapes come from throwaway games with
-console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
+on mkTuxedoCachy the dev dashboard's (`sdash`, `scripts/dashboard.sh`'s default `--db-dir test`),
+`~/.local/share/stellaris-empire-dashboard-test/` — the current 4.6 campaign; the released zip's own
+(`~/.local/share/stellaris-empire-dashboard/`) stopped at 2026-11-22. When unsure, `sdb <campaign>
+--db <file>` on each: the one with the newest "recorded" is in use. New save shapes come from
+throwaway games with console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
+
+**A reader test's fixture that names a save is copied from that save** (`grep -n -a` the key in
+its gamestate, then `sed -n` the block), never written from what the code expects: the event-chain
+fixtures put `event_chain` on the country while the save has it in `country.events`, so the tests
+passed and every reading was empty from READER 71 to 80 (2026-11-26, a Cybrex find the frontier
+never showed). **svelte-check is the only type check of the tests** — vitest strips types: run it
+after editing a test too (a readonly `as const` literal reached a commit, 2026-11-26).
 
 Checks: `node_modules/.bin/svelte-kit sync && node_modules/.bin/svelte-check --tsconfig ./tsconfig.json`,
 `node_modules/.bin/vitest run`, `node_modules/.bin/prettier --check . && node_modules/.bin/eslint .`
@@ -139,6 +163,9 @@ rendering — Svelte's dev-only `node_invalid_placement_ssr` (a `<ul>` from a co
 wrong file (`Panel.svelte:576`, an 18-line file, for a `<p>` on `/expansion`, 2026-11-19): find the
 page by the check, not by the message. About 2 min for five campaigns (450 pages);
 narrow with `--campaign <part>` / `--route /path`. Hydration warnings need a browser: not covered.
+**A map draws in the browser only** (`GalaxyMap` needs its size): its systems, rings and ship
+marks are not in the server's HTML, so a check of what a map shows reads the page data
+(`ownMap`, `systems` in the HTML's inline data or `__data.json`), never greps the SVG.
 Open: a test DB and running it before releases (`docs/testing.md`, "The page check").
 
 - The procedure on a DB copy, replaying a live month, the real-save test, reading a save ad hoc,
@@ -185,7 +212,9 @@ The tabs show what the game's own panels show. Everything beyond that is a profi
 
 **A tab is dimmed by the rule its page shows rows by** (`#lib/tabData.ts` calls the page's own
 predicate, e.g. `whyOf()`): a separate "has data" test drifted — the contracts tab was greyed for
-a nomad while listing two offers (the user's report 2026-11-18).
+a nomad while listing two offers (the user's report 2026-11-18). The exception is a tab whose
+trigger the user chose: the archive tab dims until Galactic Archivism is researched, specimens or
+not (2026-11-21).
 
 **Lists of options follow the playthrough** (the user's rule, 2026-11-16, the influence tab's
 sinks): hide what this empire will never use — a nomad never settles, a settled empire never
@@ -252,12 +281,17 @@ on format 3: **upload a mod with a new format only after the dashboard reading i
 `system-entered`): `parseLine` returns null for an unknown event kind, so older dashboards skip it
 without a format bump — a new head of its own (`tick-colony|…`) falls through to the resource
 parse and throws per line there. Values the save can carry go into variables instead (`sdash_nc`,
-`sdash_stab_*`), with no line at all.
+`sdash_stab_*`), with no line at all. **The save leaves a variable at 0 out**, so a missing one
+says nothing about whether the mod ran: export a marker beside it where 0 matters (`sdash_fcd_on`
+on our country for every country's `sdash_fcd`, 0.16.0).
 Drop an old format by raising `FEED_FORMATS.min`, never by erroring.
 
 The line formats, the table of lines, what each mod version exports, the daily tick and exact
 branch points: `docs/companion-mod.md`. Read it before changing the mod or `feed.ts`.
 
+- **A mod change that names a new version bumps `descriptor.mod` at once**, in its own
+  `chore(mod): X.Y.Z` commit: 0.15.0's Specimens Output export was in the events, the code and the
+  docs as "0.15.0" while the descriptor said 0.14.0, until the release found it (2026-11-21).
 - **A save field's name is not a trigger**: every trigger the mod exports must appear in
   `triggers.log` or in vanilla script (`trigger:<name>`). 0.9.0 exported `num_sapient_pops` (a
   save field); the game only says so in `error.log` (`cannot find: num_sapient_pops`), and the

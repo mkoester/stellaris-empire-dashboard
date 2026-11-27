@@ -640,6 +640,18 @@ export function compareBalances(
 		.map((k) => `${k}: mod ${fromLog[k]} vs save ${fromSave[k]}`);
 }
 
+/**
+ * The branch's newest snapshot from a save at `nodeId` or before it — read alone, for what the
+ * layout needs on every page without parsing the whole history.
+ */
+export function latestSave(db: Db, nodeId: number): Snapshot | null {
+	for (const n of path(nodes(db), nodeId).reverse()) {
+		const s = snapshotOf(db, n.id);
+		if (s.kind === 'save') return s;
+	}
+	return null;
+}
+
 /** Snapshots root → node: the history of the branch that node is on. */
 export function history(db: Db, nodeId: number): Snapshot[] {
 	return path(nodes(db), nodeId).map((n) => snapshotOf(db, n.id));

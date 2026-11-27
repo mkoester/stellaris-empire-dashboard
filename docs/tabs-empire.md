@@ -260,20 +260,112 @@ capital and migration are since READER 41), the trade tab's valuation of energy 
 approaches (Conserve, Balance, Burn) scale the monthly move — the 2200.02.01 reading was
 Balance at ×1.
 
+**Ambitions tab** (`/ambitions`, `#lib/ambitions.ts` pure, the reading `ambitions()` in
+`server/save/ideologies.ts`; the user's ask 2026-11-24): our ambition as the game's Situation Log
+shows it (a "Development": "Ambition Level Reached: n/5"): the level, the currency (an ordinary
+resource in the stockpile, data DB `crisis_path.currency`), each level's requirements as the game
+words them and the perks it grants, and the objectives. The currency alone does not raise a level
+(the requirements gate it, `docs/vanilla-behaviour.md` in the workspace). Before we take one: the
+ambitions whose perk's `potential` holds, greyed until three ascension perks are taken. Others':
+`ambitionsRevealed` (spoiler, intel) shows those whose AI personality names them to an empire we
+talk to (`REVEALING`: "Crisis Aspirant", "Thermarchy", and "Utopian Missionaries" from Force of
+Will's level 2; seen in game 2026-11-24), without a level; `ambitionsAll` (cheat, intel) shows every
+one with its level, from the day of the perk. Dimmed until we take one (`ambitionsWhy`).
+
+**Archive tab** (`/archive`, `#lib/archive.ts` pure, the reading in `server/save/archive.ts`; the
+user's ask 2026-11-21): the Grand Archive as the game's Collection view — three exhibitions
+(`CATEGORIES`, 9 exhibits each), storage (60), and what the **active** exhibits give: each
+specimen's modifiers and resources (data DB `specimen*`) × the exhibition's multiplier
+`1 + <category>_specimens_produces_mult + specimens_produces_mult` (companion mod 0.15.0, else ≈
+1). A modifier's condition (its block's `potential`: `is_lithoid`, `is_infernal`, `is_gestalt`,
+`country_uses_consumer_goods`, `has_country_flag`) is evaluated by `holds()` against `factsOf()`
+(founder's archetype and traits, `government`, consumer goods expenses): failing ones are left out,
+those it cannot tell kept, greyed "(?)". The **`archiveOthers`** cheat (`intel`) adds a dropdown of
+every other empire holding specimens (`?empire=<id>`); one we do not talk to is "unknown empire
+(N specimens)" — the user's choice 2026-11-21 — and its conditions read as unknown. `pageLatest()`
+keeps only our holding: the page sends another only with the cheat. **The user's asks
+2026-11-21:** the tab is dimmed until Galactic Archivism (`ARCHIVE_TECH`, the Grand Archive's
+prerequisite) is researched — not by whether we hold a specimen; a specimen's name is tinted by its
+rarity (`RARITY_TONE`, the word itself only on hover); every exhibit and stored specimen lists what
+it gives once active (`specimenGives()`, × its exhibition's multiplier; shown by
+`#lib/SpecimenGives.svelte`, shared with the trade tab), modifiers and monthly resources alike —
+a specimen may give only resources (Memorial Stone). Values green/red and a modifier's label in its
+resource's colour — or for amenities, stability and leaders the dashboard's own (`modifierTint()`, the user's choice 2026-11-21: the game's icons are gold like energy) — while active, grey while inactive or stored. A bonus filter (`#lib/SpecimenFilter.svelte`, shared
+with the trade tab; every kind any specimen gives (`allKinds()`) always shown, those no specimen on the page gives disabled; kinds from `givesKinds()`: a resource, amenities, stability, leaders, research,
+pops, military, space fauna, other — resources in the top bar's order) fades the exhibits that give
+none of the kinds picked and leaves such stored ones out.
+
 **Frontier tab** (`/frontier`; the situations tab until 2026-11-15 — renamed because situations and
 events are the game's own terms for one panel each, `/situations` redirects; `#lib/situations.ts` pure,
 readers in `server/world.ts`). Two columns on a wide window (first contacts, stations seen,
 situations, a link to events | anomalies, dig sites, special projects), the first-contact map
 below them at full width (the user's ask, 2026-11-15): first
-contacts as a table (age in months, difficulty, clues, stage — its number alone, `contactStage()`:
+contacts as a table (age in months, difficulty, clues, stage — its number alone, as the game
+counts it: the key's + 1, since every chain starts at `base_contact_set`, `contactStage()`:
 the game's stage keys name the contact's kind and way, spoilers, the user's ask 2026-11-17 —, days left, envoy, jumps from our
 border along hyperlanes, their stations) and a map (open contacts by difficulty and age, ✉ with
-an envoy); situations, anomalies, special projects (no progress in the save), dig sites (named,
+an envoy). **Difficulty as the game shows it** (the user's report 2026-11-22, screenshots against
+the 2228.04.09 save): the save's `difficulty` is the stage's; the game adds the country's
+`first_contact_defense_add` (the cautious protocol's +2; companion mod 0.16.0 exports the engine's
+sum, else ≈ from the protocol) and +2 for a xenophobe, fanatic or not (engine-side, fitted:
+`firstContactDefense()`, READER 78). That matched all 7 contacts; the tooltip names the parts
+(`difficultyTitle()`). Open: `docs/open-checks.md` 43. Difficulty and clues carry ▲/▼ since the previous save
+(`contactChanges()`), here, on the contacts tab's first-contact cell and nowhere else; situations, anomalies, special projects (no progress in the save), dig sites (named,
 with their next chapter: the save's `index` + 1, `DigSite.chapter` since READER 58), a link to
 events. **The user's asks 2026-11-20:** situations' progress and ±/mo to two decimals; a ±/mo the
 save gives as 0 (`last_month_progress`, kept 0 by a situation that script effects move rather than
 its `monthly_progress` — Operational Reserves read 0 three months running while falling ~230 a
 month) is taken from the last earlier save with that situation, marked ≈ (`observedMonthly()`).
+Later the same day: a Next column, when the situation reaches its next stage at that ±/mo — the end of
+its stage going up, its start going down (`nextStage()`, from the save's `stage_durations`); progress
+shows "/ end" where its one stage does not end at 100 (the Alarm Clock mod's reminders, 1000), and
+with several stages each from where it starts, the current one bold (`stageLadder()`; the user's ask:
+Operational Reserves "Critical 0 · Low 1300 · Medium 6500 · **High 19500** – 26000"), and the "runs to 100" note says so only where every row does. A situation the
+data leaves unnamed (its text a scripted loc the game fills in, the Alarm Clock mod's
+`[This.GetAlarmLabel]`) is named by `fallbackName()`: Alarm Clock's `alarm_for_<what>` situation
+flag ("Reminder: Celebrate Diversity"; `SituationInfo.flags`, READER 70), else its type. A permanent
+situation (`permanent = yes`, data DB `situation.permanent` since 2026-11-20: in 4.5.4 only every
+nomad's Operational Reserves and the Forever Cruise origin's Passenger Satisfaction) stays on top
+whatever the sort, a line below it (SortTable's `pinned`, `pinFirst()`); with an older data DB, none
+is pinned. Unplugged's Embodied Identity has no ending effects but is not permanent: it ends at
+either extreme. An **L-Gate badge** (2026-11-20, `lgateRelated()` in `#lib/lgates.ts`) marks an anomaly,
+special project or dig site whose name or outcome tree names the L-Gates or the L-Cluster: L-Gate
+Insights (`distar.9000`, 3 in 10 on 24 anomaly categories in 4.5.4), the L-Gate Activation tech, the
+L-Cluster project. The tree is behind the outcomes spoiler, so with it off only the name tells. "Still to
+gain" lists its resources in the `all` header's order (`inStripOrder()`, research last). Between
+Situations and Events, **L-Gate** and **Precursors** (2026-11-20, `#lib/frontierChains.ts`): the
+situation log's chains (`Snapshot.eventChains`, READER 71; data DB `event_chain` with each chain's
+counters and their maximum). L-Gate: insights of `l_cluster_chain`'s `clues` (7), the first L-Gate
+(`encountered_first_lgate`), L-Gates in known systems (bypass `lgate`), L-Gate Activation, and the
+sources now — the repeatable L-Gate Insight tech on offer, the open rows with the badge. Precursors:
+each precursor chain we started (category `precursors`), its artifacts (6) and its home system's
+chain. Which precursor a galaxy has is a secret until found (`precursor_<n>` system flags: 5 is the
+Cybrex, 92 systems in Roaming Cybergang), so none shows before. The cheat `precursorsAll` (intel, so off in
+multiplayer and Ironman; the user's ask 2026-11-20) adds everything the save holds
+(`Snapshot.precursorIntel`, READER 72, dropped by `pageLatest()`; `precursorGalaxy()`): every precursor
+the game knows (`PRECURSORS`: Vultaum 1, Yuht 2, First League 3, Irassians 4, Cybrex 5, Baol, Zroni,
+Inetian Traders, adAkkaria), whether the setup disabled it, its flagged systems visited / all (the five
+with a star flag of their own), and every empire collecting it with its artifacts and home system.
+Roaming Cybergang 2226.08.01: only the Cybrex, 58 of 92 systems visited, nobody collecting. With it
+the first-contact map also rings every precursor place (`precursorPlaces()`: the systems with a star
+flag, the Zroni and Baol dig sites), the precursor on hover; undiscovered ones too, dashed, at their
+position only (the server sends it, the map draws no star there; `extra` fits the view to them, a
+"precursors" fit button). Roaming Cybergang: 92, 34 undiscovered.
+**Nomads get precursors as anyone** (4.5.4): the intro is an `on_survey` random event (`precursor.2000`
+for the Cybrex: weight 6 against 100 for nothing, so ≈ 6 % per body surveyed without an anomaly in one
+of its systems), with no `is_nomadic` anywhere in the chain; the home system's link spawns at a
+waystation of ours in one of its systems, else any waystation, else a colony
+(`precursor_capital_spawn_system_effect`). The nomads' `precursor_system_*` variables are Wanderlust's
+exploration tracker (the `precursor_system` star flag), not this chain. The spoiler `precursorBadges` (the user's ask
+2026-11-20) puts a **Precursor badge** on anomalies, special projects and dig sites that lead to a
+precursor, the precursor named in its tooltip (`precursorsOf()` in `#lib/precursorLinks.ts`, from the
+whole unresolved outcome tree whatever the outcome spoilers say: 62 anomaly categories, 88 projects,
+20 dig sites in 4.5.4; Grunur counts as the Baol). None in Roaming Cybergang 2226.08.01, which has no
+precursor chain yet. "Still to gain" has a **Leads to** filter (L-Gate, and Precursor while
+that spoiler is on): both unticked show every source, a ticked one only the sources leading there
+(`leadsTo()`; the server sends the gains four ways, `gains[all|lgate|precursor|either][kind]`). A
+source chip's click unfolds its kind's panel first when folded (Panel's bindable `open`), then
+scrolls to the row.
 Stations seen hides an empire we talk to by the system's owner now, not the one at the sighting
 (Aphris, seen 2219 under another empire). The first-contacts table scrolls sideways inside its
 column; anomalies, dig sites and special projects fold by their title (`Panel`'s `collapse`, kept
@@ -315,7 +407,38 @@ absent (Shattered Frontier's hostile reply hangs on a flag its own dialog sets).
 events and options with the condition on hover, `if` branches not `taken`, a weighted branch
 settled at 0; `prune()` leaves them out of markers, summary and gains, and a row with nothing
 left is greyed. An older data DB has no `c`: nothing greys. A dig site's chapters before the next
-one are greyed as done. **What a reward comes to now** (`Now`, `outcomeNow()`; the user's ask
+one are greyed as done. **An `if` branch's heading is its condition** (`ifHead()`; the user's ask
+2026-11-26: "depending on your empire — depending on what?"). "for your empire:" where `c` holds;
+"if <condition>:" with "(holds now)" / "(not now)" where `c` is about us but the chain may still
+change it (`evaluate()` today); "(not your empire’s)" for a planet, ship or event limit, which only
+the extractor's `d` keeps (data DBs since 2026-11-26: every limit as written, for display only).
+Without either, "depending on the planet, ship or empire:". **Conditions say which parts hold
+now** (the user's ask 2026-11-26: "weight 10 if conditions hold — what are the conditions?",
+"(if available) — when?"): random branches and options carry `d` too (as written, every scope
+block opened by the extractor: `leader.has_trait` reads "the leader: trait …", `from` "the planet
+or site"; in a ship's event the owner and controller are us, their tests unprefixed). `condHead()`
+reads both: the text from `d`, else `c`; where `c` asks it of us, what it and each of its `and`
+parts say today (`evaluate()`: the chain may still change that); `condNote()` puts it after the
+text — "(holds now)", "(not now: <the parts that fail>)", "(now 2 of 3 parts known, all
+holding; open: …)" — with every part ✓ ✗ ? on hover. The frontier's facts add global flags
+(`galcom.globalFlags`) and our running event chains (`has_event_chain`). **Two opposite `if`s are
+one** (`mergeComplements()`, in `outcomeTrees()`): consecutive single-branch ifs whose conditions
+are exact opposites by a truth table over their tests (up to 10) become an if/else, or what both
+give where it is the same; until then Star Crazy read as two "(not your empire’s) … otherwise:
+nothing", though one of them always holds. **A contract's project** shows the contract's reward
+(the contracts tab's `contractDetail()`, ≈ at least), whether it is ongoing and since when, its
+steps done (the first counter of its event chain, `ContractType.eventChain`), the work left
+(steps left × the project's time, ≈) and the days until its time to complete runs out. Until then every branch read
+"depending on your empire", Living Metal Marvel's `has_deposit_for` as well. **Colours and popups
+in the explanations** (the same ask): a reward's resource in the resource's colour, a tech's name
+in its area's, every "L-Gate" in the L-Gate badge's violet (`segments()`, `Painted.svelte`). The
+one-line summary gives each reward its popup (`rewards()` carries `effectRef()`), and so does a
+single trait's badge. Specimens show their category ("(xeno geology)", `withSpecimens()`), and
+their popup (`specimen:<key>`, `server/explain.ts`) shows its effects. A modifier reads "modifier
+…": Starship Graveyard is a flavour planet modifier beside the deposit it comes with, and its card
+says "no effect of its own". "the planet’s deposits removed" is `clear_deposits`. A contract's
+special project (its event chain's, `contractTypes[*].projects`) carries a Contract badge linking to
+the contracts tab. **What a reward comes to now** (`Now`, `outcomeNow()`; the user's ask
 2026-11-17), in the tree, its summary and every tooltip (map, planner, upcoming): months of income
 "≈ +543 now" (`monthsNow()`, the latest save's gross income, clamped — the same as Still to gain),
 its "(min …, max …)" greyed; tech progress "≈ 165 physics, 3.6 months of ours" (the share × the
@@ -342,7 +465,7 @@ path, _expected_ by the odds (an unsettled `if` as even odds); at an event's opt
 worth most in trade; projects an outcome leads to count; months of income from the latest save's
 gross income, clamped, ≈. The resources' worth in trade (`valuesOf()`), sure and expected.
 Each reward names its sources, one chip each in its kind's colour (anomaly, project, dig site;
-with how long it takes, as in its table; the user's ask 2026-11-17: kinds alone hid which one gives it), a certainty badge (sure; likely ≥ 50 %; possible) and the popup of a tech, modifier,
+with how long it takes, as in its table; the user's ask 2026-11-17: kinds alone hid which one gives it), a certainty badge (sure; likely ≥ 50 %; possible; _expected ×n_ above 1, a count summed over sources, not a chance: "likely 125 %" until 2026-11-26) and the popup of a tech, modifier,
 trait or deposit (`GainRow.ref`, `effectRef()`). Tech progress names the tech's tier, area, its
 cost to us now (`techCost()` in `#lib/events.ts`, shared with Upcoming's research) and the
 expected progress in research, its area in the field's colour; a tech already researched is struck

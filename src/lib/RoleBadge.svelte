@@ -12,5 +12,7 @@
 {#each badges as badge (badge.short)}<span
 		class="mr-0.5 inline-block rounded px-1 align-middle text-[10px] leading-4 font-semibold text-white"
 		style:background={badge.color}
-		title={badge.title}>{badge.short}</span
-	>{/each}
+		title={badge.title}
+	>
+		{badge.short}
+	</span>{/each}

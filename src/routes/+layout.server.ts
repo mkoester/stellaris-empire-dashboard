@@ -38,8 +38,11 @@ import type { Release } from '#lib/updates.ts';
 import { shownNode } from '#lib/server/branch.ts';
 import { settleTab } from '#lib/server/settle.ts';
 import { slaveTab } from '#lib/server/slaveTab.ts';
+import { highwayTab } from '#lib/server/highwayTab.ts';
 import { emptyTabsAt } from '#lib/server/tabData.ts';
 import { galaxyRings } from '#lib/server/quadrants.ts';
+import { ownMapAt } from '#lib/server/ownMap.ts';
+import type { MapOwn } from '#lib/mapLayers.ts';
 import type { MapFit, MapWidth } from '#lib/mapView.ts';
 import type { QuadrantView } from '#lib/quadrants.ts';
 import type { ChartEvents, CustomTab } from '#lib/settings.ts';
@@ -58,7 +61,8 @@ export function load({ url }) {
 			gone: [],
 			tradeoffs: false,
 			slaveMarket: false,
-			mapDefaults: { fit: 'explored' as MapFit, width: 'normal' as MapWidth },
+			mapDefaults: { fit: 'explored' as MapFit, width: 'normal' as MapWidth, stars: true },
+			highway: false,
 			loaded: null,
 			feed: null,
 			head: null,
@@ -73,7 +77,9 @@ export function load({ url }) {
 			},
 			settle: { nomad: false, blocked: null as string | null },
 			empty: {} as Record<string, string>,
-			quadrants: null as { view: QuadrantView; inner: number; outer: number } | null
+			quadrants: null as { view: QuadrantView; inner: number; outer: number } | null,
+			ownMap: null as ReturnType<typeof ownMapAt>,
+			mapOwn: null as MapOwn | null
 		};
 	const db = getDb();
 	const head = headId(db);
@@ -106,7 +112,13 @@ export function load({ url }) {
 		// the slave market tab: where slavery is allowed, else as ⚙ says
 		slaveMarket: slaveTab(shown, display().slaveMarket),
 		// every map's start: what it fits, and its width until this browser's buttons pick one
-		mapDefaults: { fit: display().mapFit, width: display().mapWidth },
+		mapDefaults: {
+			fit: display().mapFit,
+			width: display().mapWidth,
+			stars: display().mapStars
+		},
+		// the Ancient Highway mod's tab: only in a campaign with the mod
+		highway: highwayTab(shown),
 		loaded: loadedNode ? { node: loadedNode.id, date: loadedNode.date } : null,
 		// the companion mod writes a log format this build skips: which side to update
 		feed: (() => {
@@ -126,6 +138,9 @@ export function load({ url }) {
 			const r = galaxyRings(campaign);
 			return r && { view: setting('quadrants'), ...r };
 		})(),
+		// our own on every map (GalaxyMap reads them from the page data), and which of it to draw
+		ownMap: ownMapAt(shown),
+		mapOwn: setting('mapOwn'),
 		// the game build the data is from: an open beta shares its version with the release
 		gameVersion: dataVersion(),
 		// a newer release on GitHub (`server/updates.ts`; release builds only)

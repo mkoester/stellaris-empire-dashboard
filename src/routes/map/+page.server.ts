@@ -2,25 +2,21 @@ import { error } from '@sveltejs/kit';
 import {
 	anomalyKey,
 	contactDone,
+	digSiteDone,
 	firstSeen,
 	mapMarkers,
 	contractMarkers,
-	ownOnMap,
 	tracked
 } from '#lib/mapLayers.ts';
 import { diplomacyView } from '#lib/diplomacy.ts';
+import { modName } from '#lib/modContent.ts';
 import { modeData } from '#lib/mapModes.ts';
+import { canForecast, stormsSeen } from '#lib/storms.ts';
 import { entryDetail, firstEntries } from '#lib/systemEvents.ts';
 import { discovered, mapView } from '#lib/situations.ts';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
-import {
-	arkshipsOf,
-	campaignGalaxy,
-	capitalId,
-	reveal,
-	territoriesOf
-} from '#lib/server/mapSystems.ts';
+import { campaignGalaxy, capitalId, reveal, territoriesOf } from '#lib/server/mapSystems.ts';
 import { display, setting } from '#lib/server/settings.ts';
 import { mergeSightings } from '#lib/territories.ts';
 import { plannedSystems } from '#lib/server/planner.ts';
@@ -68,9 +64,6 @@ export function load({ url }) {
 		...rest,
 		seenAt: s?.date ?? null,
 		filter: setting('mapFilter'),
-		// our stations and ships, for the fit buttons and the ships drawn
-		own: ownOnMap(b.latest),
-		arkships: arkshipsOf(snaps),
 		wanderlust,
 		// per category: found, still open, finishable by what we found (#lib/wanderlust.ts)
 		wanderlustOutlook: wanderlust && outlook(wanderlust, g),
@@ -87,6 +80,17 @@ export function load({ url }) {
 			snaps.findLast((x) => x.aiIntel)?.aiIntel ?? []
 		),
 		claims: snaps.findLast((x) => x.claims)?.claims ?? [],
+		// every storm; its path only with storm movement intel (#lib/storms.ts)
+		storms: (() => {
+			const at = snaps.findLast((x) => x.storms);
+			return at
+				? {
+						date: at.date,
+						forecast: canForecast(at.progress?.researched ?? []),
+						list: stormsSeen(at.storms ?? [], canForecast(at.progress?.researched ?? []))
+					}
+				: null;
+		})(),
 		attitudes: Object.fromEntries(
 			Object.entries(data.attitudes).map(([k, v]) => [k, { name: v.name }])
 		),
@@ -115,15 +119,17 @@ export function load({ url }) {
 			anomalies: along((x) => x.anomalies, anomalyKey),
 			digSites: along(
 				(x) => x.digSites,
-				(d) => d.id
+				(d) => d.id,
+				(d) => digSiteDone(d.chapter, data.digSiteTypes[d.type]?.stages ?? null)
 			),
 			projects: along(
 				(x) => x.specialProjects,
 				(p) => p.id
 			).map((p) => ({
 				...p,
-				name: data.projects[p.key]?.name ?? p.key
+				name: modName(data, p.key, data.projects[p.key]?.name)
 			})),
+			names: data.modText,
 			anomalyNames: Object.fromEntries(
 				Object.entries(data.anomalyCategories).map(([k, v]) => [k, v.name])
 			),

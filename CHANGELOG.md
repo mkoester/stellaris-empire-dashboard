@@ -4,12 +4,188 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.1] - 2026-11-26
+
+### Added
+
+- Ethics tab: a map of every empire's governing ethics, as far as your intel shows them (the game
+  has no such map mode), with filters per ethic plus "ours" and "opposites", stripes for several
+  ethics, and a table by empire (with badges: authority, enclave, fallen empire, pre-FTL, trader,
+  marauders, roaming) or by ethic. Countries without ethics (fauna, leviathans) are left out, as
+  are contacts you have no communications with unless the Diplomacy spoiler is on. Our pops'
+  ethics can be grouped by axis, from one pole to the other.
+- Ideologies tab (Willpower): our ideology's strength, level, momentum and tenets with what each
+  gives at its slot, the tenets on offer, and the foreign ideologies we know. A cheat in ⚙ shows
+  every ideology with its adopters. Dimmed until we adopt or know one.
+- Ambitions tab: our ambition's level, currency, each level's requirements and perks, and its
+  objectives; before we take one, the ambitions this empire could take. A spoiler shows the
+  ambitions the game gave away through an empire's personality ("Crisis Aspirant"); a cheat shows
+  every empire's, with its level. Dimmed until we take one.
+- Mods' names: whatever an enabled mod adds — systems, megastructures, techs, special projects,
+  contracts — is named from the mod's own English texts instead of its raw keys, and a mod's
+  techs get their area, tier and cost.
+- Support for the Ancient Highway mod: a Highway tab in campaigns that run it —
+  your portal and its gate (broken, studied, repaired, sealed) with the next step, both gate techs
+  with the grants so far, open studies, the express links, a map of the ring and the mod's terms.
+  Two switches in ⚙: a spoiler (what your friends know of the ring) and a cheat (what every
+  other empire knows). The mod's centres show as special stars with its gentler effects, jumps
+  and distances count the gates and express links you can use, and the ring's systems and portals
+  are never offered for outposts, colonies or megastructures. A repair under way shows
+  its days left, a gate the Galactic Community forced open the date it may be sealed again; the
+  highway's resolutions in the Community, the story fragments found, and in the terms the gates'
+  60-day wind-up and who may pass. A nomad is told it gets no portal.
+- A section bar: on a long page, a one-line bar under the tabs lists its headings, marks the one
+  you are reading and jumps to any of them.
+
+### Changed
+
+- Frontier tab, outcomes: each branch and option names its condition and what each part of it
+  says today (yours, the planet's or the ship's), and two opposite branches read as one if/else.
+  Resources and tech areas in their colours, popups for the summary, trait badges and specimens,
+  modifiers labelled. A contract's project shows its reward, steps, work left and deadline.
+
+### Fixed
+
+- Event chains are read again (they sit in the country's events in 4.5.4 and 4.6): the frontier
+  showed no precursor, no L-Cluster chain and no contract progress. Saves still on disk are read
+  again.
+- The data comes from extractor 0.1.27 (4.6.0): ideologies and tenets, species names in empire
+  names ("Authority of Ba Grax"), and the conditions the frontier shows.
+
+## [0.2.0] - 2026-11-23
+
+Built for Stellaris 4.6.0 "Corona Borealis" and Willpower; bundles stellaris-data-extraction
+0.1.25 (the 4.6 game data).
+
+### Fixed
+
+- Stellaris 4.6.0: ethics steps apart, opposite poles and the ethic chips read each ethic's tier
+  and pole, not `category_value`, whose scale 4.6 widened. A 4.6 data DB had put regular
+  Authoritarian at neutral and Egalitarian at fanatic.
+- Absolute ethics (4.6, Fallen Empires and Willpower) count as their ethic: a xenophobe's first
+  contact +2, `is_fanatic_<ethic>`, the ethics tab and the faction list.
+- Governor effects per skill level under their 4.6 names (`skill_<class>_colony_governor`).
+
+### Added
+
+- The Cultural Envoy among the civilian ships.
+- Companion mod 0.16.1: asks for Willpower's four new techs, supports 4.6, and no longer writes an
+  `error.log` line for each new colony's first month.
+
+## [0.1.31] - 2026-11-23
+
+### Added
+
+- Contacts: first contact difficulty as the game sums it — stage, protocol and a xenophobe's +2,
+  each part in the tooltip — and how it changed since the last save. Exact with companion mod
+  0.16.0; without it, the cautious protocol's +2 is an estimate (≈).
+- Migration: resettlement apart from migration, with the exact pairs of planets from companion mod
+  0.16.0; the slider marks the months pops moved, and the arrows step between them.
+- Maps: switches for your colonies, fleets and civilian ships on every map, replacing the ship
+  picker on the map and systems tabs; a special stars checkbox per map, with a default in settings.
+- Contracts: an offer the game does not show you yet sits behind the spoiler switch, with the tech
+  it needs (as in the game, a nomad sees it only with that tech researched); offers name what
+  accepting needs — techs, and the arkship for Deep Scan and Stellar Ignition.
+- Contracts: Where names the place of the work and the ships that do it (Raid Planet shows the
+  system owner's colonies, a transport not taken yet where it goes).
+
+### Changed
+
+- Contracts: the nearest science ship, construction ship, fleet or arkship — whichever the work
+  needs — instead of the nearest arkship; the Beyond column is gone, and the table fits beside the
+  map.
+- Bundles Node 26.13.1 (security release) and Python 3.14.10.
+
+### Fixed
+
+- Contacts: first contact stages counted one low ("Stage 2" where the game says "Stage 3").
+- Diplomacy: a rivalry edge reads "rivalry", not "our rival" — the arrow in the tooltip gives the
+  direction.
+- Open tabs reconnecting while the dashboard restarted could make it throw an error.
+
+## [0.1.30] - 2026-11-21
+
+### Added
+
+- Archive: a new tab for the Grand Archive — its three exhibitions (Aesthetic Wonders, Galactic
+  History, Xeno Geology) with their 9 exhibits, which are active, the storage, and what the active
+  specimens give, per exhibition and summed. Bonuses for only some empires (lithoid, gestalt, …)
+  apply to yours or are marked when the save cannot tell. A cheat switch shows another empire's
+  archive; empires you have not met stay unnamed. The tab stays greyed until you research
+  Galactic Archivism.
+- Archive: every specimen lists what it gives — modifiers and monthly resources — even when not
+  active (in grey); its name is tinted by its rarity.
+- Archive and trade: a bonus filter — one chip per kind of bonus (each resource, amenities,
+  stability, leaders, research, pops, military, space fauna), always all of them, those no
+  specimen here gives disabled.
+- Trade: a spoiler switch lists, per exhibition side by side, the specimens each empire you can
+  trade with would trade you, ≈ what one would cost in trade and whether they would at all, and
+  which of yours each would pay most for, with what each specimen gives you. A cheat switch adds
+  those no deal can get now, with the reason.
+- Fallen hive fragments: the War, Growth and Control Splinter is shown beside each fragment's name
+  on every tab that names empires and in the history, whatever the fragment is called.
+- Companion mod 0.15.0 stores the Specimens Output bonuses, so the exhibitions' output is exact;
+  without it, they count none (≈).
+
+### Changed
+
+- Bonuses on the archive and trade tabs: a bonus to a resource is labelled in that resource's
+  colour; amenities, stability and leader bonuses have colours of their own.
+- Trade: empires the game will not trade with (Fanatic Purifiers, Devouring Swarms, Determined
+  Exterminators, scorched-earth Infernals) are left out, and fallen empires from the specimen
+  lists — their trade screens have no specimens.
+
+### Fixed
+
+- Empire names: the three fragments of a shattered fallen hive all read "Indomitable" or
+  "Forgotten" instead of "Indomitable Myrran Aggression" and so on; names made from a species
+  take the game's ending ("Misharan Pact", not "Mishar Pact"); a separatist empire reads
+  "Fellnoll Commune", not "Commune".
+- Specimen trade, checked in the trade screen: an empire's opinion of you does not stop a
+  specimen deal (it read "refuses" under 750); an attitude that trades nothing still takes a
+  specimen as a gift ("gift only"); and an empty exhibition makes a specimen worth no more to an
+  empire without a Grand Archive — prices were 1.5× too high there.
+
+## [0.1.29] - 2026-11-21
 
 ### Added
 
 - Contracts: which arkship carries the passengers of Diplomatic Support, Prisoner Disposal and the
   Sightseeing Tour — the game picks one at random when several are there and never shows which.
+- Contracts: remote ones (research projects, no system, Join Wars) apart from those at a place;
+  transports show their pickup and drop-off, and hovering one draws its route on the map.
+- Map: a storms mode, after the game's Weather Forecast — every cosmic storm where it is, and with
+  Cosmic Weather Models the systems ahead on its path with when it gets there.
+- Frontier: L-Gate and Precursors panels from the situation log — L-Gate insights of 7, the
+  L-Gates you know and what can still give insights; each precursor found with its artifacts and
+  home system. An L-Gate badge marks the anomalies, projects and dig sites that lead there.
+- Frontier: a Precursor badge on what leads to a precursor, which one on hover (a spoiler switch),
+  and a cheat switch showing everything the save holds on precursors: which this galaxy has, their
+  systems on the map (undiscovered ones too) and every empire collecting them.
+- Frontier, situations: a Next column (when the next stage comes, up or down), each stage's
+  threshold (Operational Reserves: Critical 0 · Low 1300 · Medium 6500 · High 19500), and the
+  situations that never end (Operational Reserves, Passenger Satisfaction) pinned on top.
+- Frontier, Still to gain: a "Leads to" filter (L-Gate, Precursor); resources in the header's
+  order.
+- Frontier: stations seen grouped by their likely empire, in shipset colours; anomalies, dig sites
+  and projects fold, and a source's chip unfolds its panel before scrolling to it.
+
+### Changed
+
+- Frontier: situations' progress and monthly change to two decimals; a monthly change the save
+  gives as 0 is measured between saves (≈). Stations seen hide an empire you talk to by the
+  system's owner now.
+- Maps: a natural wormhole counts as explored only with Wormhole Stabilization researched.
+- A nomad's window title says Roaming, as its tab does.
+
+### Fixed
+
+- Dig sites: an excavated site showed "chapter 5 / 4" with a time estimate; other empires'
+  excavations counted as ours.
+- Contracts: an issuer named by a template showed "$1$ of $2$" (with the extractor's 0.1.22 data);
+  prescripted species names read "Human $1$ Commonwealth".
+- A situation a mod names by script (the Alarm Clock mod's reminders) showed no name.
+- Explanation cards inside a paragraph rendered invalid HTML.
 
 ## [0.1.28] - 2026-11-19
 

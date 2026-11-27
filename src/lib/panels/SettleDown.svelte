@@ -89,15 +89,17 @@
 	];
 </script>
 
-{#snippet classCell(t: SettleTarget)}<span style:color={colorOf(`climate-${t.climate}`)}
-		>{t.className}</span
-	>{/snippet}
-{#snippet habCell(t: SettleTarget)}<span class={TIER_CLASS[habitabilityTier(t.hab, defines)]}
-		>{pct(t.hab)}</span
-	>{/snippet}
+{#snippet classCell(t: SettleTarget)}<span style:color={colorOf(`climate-${t.climate}`)}>
+		{t.className}
+	</span>{/snippet}
+{#snippet habCell(t: SettleTarget)}<span class={TIER_CLASS[habitabilityTier(t.hab, defines)]}>
+		{pct(t.hab)}
+	</span>{/snippet}
 {#snippet settledCell(t: SettleTarget)}<span
-		class={TIER_CLASS[habitabilityTier(t.settled, defines)]}>{pct(t.settled)}</span
-	>{/snippet}
+		class={TIER_CLASS[habitabilityTier(t.settled, defines)]}
+	>
+		{pct(t.settled)}
+	</span>{/snippet}
 {#snippet arkCell(t: SettleTarget)}{jumps(t.fromArk)}{/snippet}
 {#snippet capitalCell(t: SettleTarget)}{jumps(t.fromCapital)}{/snippet}
 
@@ -212,11 +214,11 @@
 	</Panel>
 {:else}
 	<details open={!never} class="mb-2">
-		<summary class="cursor-pointer text-xl font-semibold"
-			>Embark <span class="text-base font-normal text-gray-500"
-				>{never ? 'never possible for this empire' : ready === true ? 'possible' : 'not yet'}</span
-			></summary
-		>
+		<summary class="cursor-pointer text-xl font-semibold">
+			Embark <span class="text-base font-normal text-gray-500">
+				{never ? 'never possible for this empire' : ready === true ? 'possible' : 'not yet'}
+			</span>
+		</summary>
 		<p class="my-2 max-w-3xl text-sm text-gray-500">
 			A settled empire can take to the stars as a nomad: the planet decision Embarkation (on a
 			planet of ours; 500 influence and 10,000 alloys, half the alloys plus food with bio ships;

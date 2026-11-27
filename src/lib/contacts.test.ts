@@ -9,9 +9,15 @@ import {
 	proposalDates,
 	proposedLabel,
 	shown,
-	voteStanding
+	voteStanding,
+	empireTags,
+	splinterOf,
+	changeMark,
+	contactChanges,
+	difficultyText,
+	difficultyTitle
 } from './contacts.ts';
-import type { Relation } from './types.ts';
+import type { CountryInfo, FirstContact, Relation } from './types.ts';
 
 const rel = (countryId: number, r: Partial<Relation> = {}): Relation => ({
 	countryId,
@@ -106,6 +112,9 @@ describe('contacts', () => {
 		expect(pageLatest(s).countries?.map((x) => x.id)).toEqual([1, 2]);
 		// the galaxy's contracts name their issuers, met or not
 		expect(pageLatest({ ...s, contracts: [{ issuerName: 'Yibrak' }] }).contracts).toBeNull();
+		// storms' paths, a forecast without the tech
+		expect(pageLatest({ ...s, storms: [{ path: [1073] }] }).storms).toBeNull();
+		expect(pageLatest({ ...s, precursorIntel: { disabled: [] } }).precursorIntel).toBeNull();
 	});
 
 	it('sorts country types into kinds', () => {
@@ -224,5 +233,88 @@ describe('proposedLabel', () => {
 			'2208.10.14 – 2208.11.01'
 		);
 		expect(proposedLabel({ after: null, by: '2205.03.01' })).toBe('by 2205.03.01');
+	});
+});
+
+describe('a fallen hive’s fragments', () => {
+	it('are told apart by their government, whatever their names', () => {
+		expect(splinterOf('gov_war_splinter')).toBe('War Splinter');
+		expect(splinterOf('gov_growth_splinter')).toBe('Growth Splinter');
+		expect(splinterOf('gov_control_splinter')).toBe('Control Splinter');
+		expect(splinterOf('gov_custodian_matrix')).toBeNull();
+		expect(splinterOf(null)).toBeNull();
+	});
+
+	it('are tagged by the name we know them by, only once we talk', () => {
+		// the campaign at 2226.08.01: three fragments of the Myrran hive
+		const country = (id: number, name: string, governmentType: string) =>
+			({ id, name, governmentType }) as CountryInfo;
+		const s = {
+			countries: [
+				country(33, 'Indomitable Myrran Aggression', 'gov_war_splinter'),
+				country(34, 'Indomitable Myrran Aspiration', 'gov_growth_splinter'),
+				country(16777247, 'Forgotten Myrran Authority', 'gov_control_splinter'),
+				country(5, 'Misharan Pact', 'gov_military_junta')
+			],
+			relations: [33, 34, 5].map((countryId) => ({ countryId, communications: true }) as Relation)
+		};
+		expect(empireTags(s)).toEqual({
+			'Indomitable Myrran Aggression': 'War Splinter',
+			'Indomitable Myrran Aspiration': 'Growth Splinter'
+		});
+	});
+});
+
+describe('contactChanges', () => {
+	const fc = (id: number, difficulty: number, clues: number, defense?: number) =>
+		({ id, difficulty, clues, defense }) as FirstContact;
+
+	it('compares the last two readings', () => {
+		expect(
+			contactChanges([
+				{ firstContacts: [fc(1, 5, 2, 0), fc(2, 7, 0, 2)] },
+				{ firstContacts: null }, // a month from the feed: no reading
+				{ firstContacts: [fc(1, 7, 4, 0), fc(2, 7, 0, 2), fc(3, 3, 0, 0)] }
+			])
+		).toEqual({ 1: { difficulty: 2, clues: 2 }, 2: { difficulty: 0, clues: 0 } });
+	});
+
+	it("leaves the difficulty unknown against a reading without the country's part", () => {
+		expect(
+			contactChanges([{ firstContacts: [fc(1, 5, 2)] }, { firstContacts: [fc(1, 7, 3, 2)] }])
+		).toEqual({ 1: { difficulty: null, clues: 1 } });
+	});
+
+	it('has nothing with one reading or none', () => {
+		expect(contactChanges([{ firstContacts: [fc(1, 5, 2, 0)] }])).toEqual({});
+		expect(contactChanges([])).toEqual({});
+	});
+});
+
+describe('changeMark', () => {
+	it('draws a rise, a fall, and nothing', () => {
+		expect(changeMark(2)).toBe('▲2');
+		expect(changeMark(-1)).toBe('▼1');
+		expect(changeMark(0)).toBe('');
+		expect(changeMark(null)).toBe('');
+	});
+});
+
+describe('difficultyText', () => {
+	it("is ≈ unless the country's part is the game's own", () => {
+		expect(difficultyText({ difficulty: 9, defenseExact: false })).toBe('≈9');
+		expect(difficultyText({ difficulty: 9 })).toBe('≈9');
+		expect(difficultyText({ difficulty: 11, defenseExact: true })).toBe('11');
+		expect(
+			difficultyTitle({
+				difficulty: 11,
+				defense: 4,
+				defenseExact: true,
+				defenseParts: [
+					{ label: 'their first contact modifiers', value: 2 },
+					{ label: 'xenophobe', value: 2 }
+				]
+			})
+		).toBe("the stage's 7, +2 their first contact modifiers, +2 xenophobe");
 	});
 });

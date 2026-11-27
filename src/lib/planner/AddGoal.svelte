@@ -52,12 +52,16 @@
 			: 'text-gray-400 hover:bg-gray-100 hover:text-current dark:hover:bg-gray-800'}"
 		title={planned ? 'in the planner' : title}
 		disabled={busy}
-		onclick={add}>{planned ? '✓ planned' : '+ goal'}</button
-	>{#if planned && id}<button
+		onclick={add}
+	>
+		{planned ? '✓ planned' : '+ goal'}
+	</button>{#if planned && id}<button
 			type="button"
 			class="rounded px-1 text-[11px] text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-800"
 			title="take it out of the planner"
 			disabled={busy}
-			onclick={remove}>✕</button
-		>{/if}
+			onclick={remove}
+		>
+			✕
+		</button>{/if}
 {/if}

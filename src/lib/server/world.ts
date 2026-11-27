@@ -1,5 +1,6 @@
 import { kindOf, type ContactKind } from '#lib/contacts.ts';
 import { wanderlustCategories } from '#lib/wanderlust.ts';
+import { highwaySystem, unclaimable } from '#lib/highway.ts';
 import type { Bypass } from '#lib/galaxyGraph.ts';
 import type {
 	AnomalyInfo,
@@ -14,6 +15,9 @@ import type {
 	Relation,
 	SituationInfo,
 	StationSighting,
+	Storm,
+	EventChains,
+	PrecursorIntel,
 	HistoryReading
 } from '#lib/types.ts';
 import {
@@ -223,6 +227,7 @@ export function galaxy(
 		const id = Number(key);
 		const seen = visited.has(id);
 		const lgate = (megas.get(id) ?? []).some((t) => /^lgate/.test(t));
+		const highway = highwaySystem(starFlags(s), s.variables);
 		return [
 			{
 				id,
@@ -249,6 +254,8 @@ export function galaxy(
 					wanderlust: wanderlustCategories(starFlags(s))
 				}),
 				lgateTo: lgate && open ? entrance : [],
+				...(highway && { highway }),
+				...(unclaimable(starFlags(s)) && { unclaimable: true }),
 				sector: own.has(id) ? (sectorOf.get(id) ?? null) : null,
 				bypasses: seen
 					? list(s.bypasses)
@@ -396,14 +403,49 @@ export function diplomacy(
 	});
 }
 
+/**
+ * What a country adds to the difficulty of first contact with it, part by part:
+ * - its `first_contact_defense_add`, summed by the engine. Companion mod 0.16.0 exports the sum
+ *   into the country's `sdash_fcd` (left out at 0) and marks the export on ours (`sdash_fcd_on`):
+ *   `exact` then. Without it, the cautious protocol's +2 (4.5 `common/policies/00_policies.txt`,
+ *   the only source in the game files) — the export read just that for all 7 contacts (2228.06.01).
+ * - +2 for a xenophobe, fanatic or not: engine-side, in no game file; fitted on the user's
+ *   First Contacts screen (2228.04.09), which it and the modifier match for all 7 contacts —
+ *   Gimel (fanatic xenophobe, cautious) 7 + 2 + 2 = 11, Gamma and Epsilon (xenophobe) 5 + 2 = 7.
+ */
+export function firstContactDefense(
+	block: Raw | undefined,
+	exported: boolean
+): { defense: number; exact: boolean; parts: { label: string; value: number }[] } {
+	const cautious = items(block?.active_policies).some(
+		(p) => p?.policy === 'first_contact_protocol' && p?.selected === 'first_contact_cautious'
+	);
+	const modifier = exported
+		? { label: 'their first contact modifiers', value: num(block?.variables?.sdash_fcd) }
+		: { label: 'cautious protocol', value: cautious ? 2 : 0 };
+	const xenophobe = items(block?.ethos?.ethics).some((e) =>
+		/^ethic_((fanatic|absolute)_)?xenophobe$/.test(e)
+	);
+	const parts = [modifier, { label: 'xenophobe', value: xenophobe ? 2 : 0 }].filter(
+		(p) => p.value !== 0
+	);
+	return { defense: parts.reduce((n, p) => n + p.value, 0), exact: exported, parts };
+}
+
 /** Our first contacts: `first_contacts.contacts.<id>` with `owner` = us. */
 export function firstContacts(
-	raw: Pick<RawSave, 'countryId' | 'firstContacts' | 'leaders'>
+	raw: Pick<RawSave, 'countryId' | 'firstContacts' | 'leaders'> &
+		Partial<Pick<RawSave, 'countryBlocks' | 'country'>>
 ): FirstContact[] {
+	const exported = raw.country?.variables?.sdash_fcd_on !== undefined;
 	return Object.entries(raw.firstContacts).flatMap(([id, c]) => {
 		if (!c || typeof c !== 'object' || c.owner !== raw.countryId) return [];
 		const leaderId = idOrNull(c.leader);
 		const l = leaderId === null ? undefined : raw.leaders[String(leaderId)];
+		const { defense, exact, parts } = firstContactDefense(
+			raw.countryBlocks?.[String(num(c.country))],
+			exported
+		);
 		return [
 			{
 				id: Number(id),
@@ -415,7 +457,12 @@ export function firstContacts(
 				date: String(c.date ?? ''),
 				daysLeft: numOrNull(c.days_left),
 				lastRoll: numOrNull(c.last_roll),
-				difficulty: num(c.difficulty),
+				// the stage's plus the country's, as the game's First Contact screen shows it
+				// (Caravaneers, cautious: 3 + 2 = 5; Artisan Troupe, proactive: 3; 2228.04)
+				difficulty: num(c.difficulty) + defense,
+				defense,
+				defenseExact: exact,
+				defenseParts: parts,
 				clues: num(c.clues),
 				stage: String(c.stage ?? ''),
 				status: String(c.status ?? '')
@@ -447,7 +494,8 @@ export function situations(raw: Pick<RawSave, 'countryId' | 'situations'>): Situ
 						monthly: numOrNull(s.last_month_progress),
 						approach: strOrNull(s.approach),
 						stage: numOrNull(s.stage),
-						ends: items(s.stage_durations).map((d) => num(d?.end))
+						ends: items(s.stage_durations).map((d) => num(d?.end)),
+						flags: s.flags && typeof s.flags === 'object' ? Object.keys(s.flags) : []
 					}
 				]
 			: []
@@ -518,6 +566,116 @@ export function digSites(
 					idOrNull(s.excavator_fleet)
 				),
 				chapter: s.index === undefined ? null : num(s.index) + 1
+			}
+		];
+	});
+}
+
+/** Our event chains (`country.event_chain`, `completed_event_chain`): running ones with their
+ * counters (a counter at 0 is absent), the finished ones' keys. */
+// A country's chains are in its `events` block, beside its anomalies and special projects (4.5.4
+// and 4.6 saves; until READER 81 they were looked for on the country itself and never found).
+export function eventChains(raw: Pick<RawSave, 'country'>): EventChains {
+	const ev = raw.country?.events;
+	return {
+		active: items(ev?.event_chain).flatMap((c) =>
+			c && typeof c === 'object' && typeof c.event_chain === 'string'
+				? [
+						{
+							key: c.event_chain,
+							counters: Object.fromEntries(
+								Object.entries(c.counter ?? {}).flatMap(([k, v]) =>
+									typeof v === 'number' ? [[k, v]] : []
+								)
+							)
+						}
+					]
+				: []
+		),
+		completed: [...new Set(items(ev?.completed_event_chain).map(String))]
+	};
+}
+
+// the precursors' star flags and chains (4.5.4 `events/precursor_events.txt`, `common/event_chains`)
+const PRECURSOR_FLAG = /^precursor_(\d|[a-z]+_?\d*)$/;
+const PRECURSOR_CHAIN =
+	/^(vultaum|yuht|first_league|irassian|cybrex|baol|cs_inetian|cs_adAkkaria)_(homeworld_)?chain$/;
+
+/** Everything the save holds on precursors, every empire's included (a cheat: the page decides). */
+export function precursorIntel(
+	raw: Pick<RawSave, 'galaxy' | 'systems' | 'countryBlocks'>
+): PrecursorIntel {
+	const systems: Record<string, number[]> = {};
+	for (const [id, s] of Object.entries(raw.systems))
+		for (const f of Object.keys(s?.flags && typeof s.flags === 'object' ? s.flags : {}))
+			if (PRECURSOR_FLAG.test(f) && f !== 'precursor_system') (systems[f] ??= []).push(Number(id));
+	const chains = Object.entries(raw.countryBlocks).flatMap(([id, c]) => {
+		if (!c || typeof c !== 'object') return [];
+		const country = displayName(c.name);
+		const running = items(c.events?.event_chain).flatMap((e) =>
+			e && typeof e === 'object' && PRECURSOR_CHAIN.test(String(e.event_chain))
+				? [
+						{
+							countryId: Number(id),
+							country,
+							key: String(e.event_chain),
+							counters: Object.fromEntries(
+								Object.entries(e.counter ?? {}).flatMap(([k, v]) =>
+									typeof v === 'number' ? [[k, v]] : []
+								)
+							),
+							done: false
+						}
+					]
+				: []
+		);
+		const done = [...new Set(items(c.events?.completed_event_chain).map(String))]
+			.filter((k) => PRECURSOR_CHAIN.test(k))
+			.map((key) => ({ countryId: Number(id), country, key, counters: {}, done: true }));
+		return [...running, ...done];
+	});
+	return {
+		disabled: items(raw.galaxy?.disabled_precursors).map(String),
+		systems,
+		chains
+	};
+}
+
+// `STORM_PREFIX_<n>` (4.5.4 cosmic_storms_l_english.yml): "Tempest $NAME$"
+const STORM_PREFIX = [
+	'Cyclone',
+	'Disturbance',
+	'Tempest',
+	'Storm',
+	'Hypercane',
+	'Gale',
+	'Monsoon',
+	'Hurricane',
+	'Flux',
+	'Maelstrom',
+	'Vortex'
+];
+
+/** Cosmic storms (`storms.storms.<id>`): where each is and the systems ahead on its path. The game
+ * shows every storm; where it goes next only with storm movement intel (the page decides). */
+export function storms(raw: Pick<RawSave, 'storms' | 'countryId'>): Storm[] {
+	return Object.entries(raw.storms).flatMap(([id, s]) => {
+		if (!s || typeof s !== 'object' || typeof s.type !== 'string') return [];
+		const name = displayName(s.name);
+		const n = /^STORM_PREFIX_(\d+)$/.exec(String(s.prefix?.key ?? ''))?.[1];
+		const prefix = n === undefined ? undefined : STORM_PREFIX[Number(n)];
+		const path = list(s.path);
+		const at = typeof s.storm_current_path_index === 'number' ? s.storm_current_path_index : -1;
+		return [
+			{
+				id: Number(id),
+				type: s.type,
+				name: prefix ? `${prefix} ${name}` : name,
+				systems: list(s.cluster?.objects),
+				path: path.slice(at + 1),
+				daysToNext: numOrNull(s.storm_days_till_next_system),
+				speed: numOrNull(s.speed),
+				affectsUs: list(s.affected_country_ids).includes(raw.countryId)
 			}
 		];
 	});

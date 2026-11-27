@@ -6,6 +6,17 @@ Where each value sits in a save and how the game computes it. Read before readin
 
 **Contracts** (Planetforgers 2214.02.01, Proton): top-level `missions = { <id> = { mission="<key>" issuer operator location={ type=4 id=<system> } … } }` holds contracts and situation-log missions alike (star journals: `issuer=4294967295`), gaps as `<id>=none`; `contracts = { available = { ids } in_progress = { ids } }` says which are contracts. An offer has `days_left` and `operator=4294967295`, an accepted one `accepted_date` and `status=active`; an internal one (Eternal Chorus, Forever Cruise's) has operator = issuer while still offered. 18 contracts there, from 9 issuers.
 
+**Grand Archive** (roamingcybergang 2226.08.01, unitednationsofearth5 2245): top-level
+`exhibits = { <id> = { exhibit_state=locked|unlocked activated=yes specimen={ specimen="<key>"
+origin date_added exhibition_date } owner=<country> } }` — every empire's specimens, `owner` the
+holder; and per country `modules.standard_grand_archive_module.exhibits = { aesthetic_wonder={ ids }
+historical_item={ ids } xeno_geology={ ids } }`, its exhibitions, with `last_acquired_exhibit`.
+`activated=yes` only on exhibits whose bonuses apply (an AI's three origin specimens, dated
+2200.01.01); the player's six there were all `locked`, no Grand Archive built. **Not seen yet**:
+where storage is (an owned exhibit in no exhibition list is read as stored) and the
+`has_already_traded_specimens` country flag (read as a timed flag). Read as
+`Snapshot.archives` (READER 73).
+
 **Planet flags** (`planet.flags = { <flag>=<date> … }`, 2210.10.20): every flag the planet carries,
 `set_carrier_flag` ones assumed among them (seen: `colony_event`, `mechanical_species0`; a
 `perfect_organization` never seen). A timed flag's value is a block with `flag_days`
@@ -237,8 +248,13 @@ construct_mining_stations … = yes/no } }` — the task is the sub-order. `auto
 current_month_growth_details = { key = { GROWTH_CAT_… } value = { … } } species = { … categories
 } }`. Details are amounts; **emigration counts against the colony** (Earth 2204.07: growth 3,
   emigration 18 → −15), immigration for it; a single entry is a scalar, not a list.
+  **Resettlement** is its own cause, `GROWTH_CAT_RESETTLE`, **signed**: negative on the colony
+  pops left, positive where they arrived — 2228.04.01 (Roaming Cyber Gang's galaxy): 16 colonies,
+  8 negative, summing to 0. `GROWTH_CAT_MIGRATION` appears only in pop groups' own
+  `last_month_growth_details`, not in a colony's. Automatic migration stays `IMMIGRATION`/`EMIGRATION`.
   **No source→destination pairs**: `/migration` shows exact flows only with one sender or one
-  receiver, else a proportional split marked as estimated (`#lib/migration.ts`).
+  receiver, else a proportional split marked as estimated (`#lib/migration.ts`); resettlement
+  likewise from `resettle`, or exact from the companion mod's `resettled` lines (0.16.0).
 - Explored systems: `country.visited_objects` (system ids). Traditions: `country.traditions`
   (adopt and finish entries included), `tradition_categories`, `last_picked_tradition`; perks
   `country.ascension_perks` (both seen filled 2026-10-19).
@@ -507,20 +523,63 @@ star_class planet=… hyperlane starbases inner_radius outer_radius }` (radii 39
   Compass: the Caravaneers). Reading every `country` costs ~250 ms per save (51 countries).
   First contacts: top-level `first_contacts.contacts.<id> = { owner country name location leader
 date days_left difficulty clues stage status }` (`leader=4294967295`: none; `status`
-  in_progress / finished / aborted; stages have no localisation). Relations
+  in_progress / finished / aborted; stages have no localisation). **`stage` counts one behind
+  the game**: every chain starts at `base_contact_set` (the game's stage 1), so
+  `<type>_stage_<n>` is the game's stage n + 1. **`difficulty` is the stage's alone**; the game
+  shows it plus the contacted country's `first_contact_defense_add` (only the cautious protocol,
+  +2) plus 2 for a xenophobe, fanatic or not (engine-side, in no file) — all 7 contacts of 2228.04.09
+  (`firstContactDefense()`, `docs/open-checks.md` 43). Relations
   `country.relations_manager.relation = { country contact communications hostile
 relation_current trust threat border_range pre_communications_name }` (`border_range`
   2147483647: not bordering — a nomad's with every empire, 2217.06.01; pacts as flags, see "Pacts
-  are flags" above). Situations `situations.situations.<id> = { country
+  are flags" above). Without communications the reading's `name` is the game's placeholder,
+  a Greek letter ("Chi Aliens", from `pre_communications_name`), while the save's country list
+  holds the real name, type and ethics: a crystal fauna in the Roaming Cybergang campaign,
+  2231.11.01. That list gives every fauna, leviathan, raider and caravaneer fleet empty `ethics`.
+  Situations `situations.situations.<id> = { country
 type progress last_month_progress approach stage }`. Anomalies: `country.events.anomalies =
 { <planet ids> }`, category in `planets.planet.<id>.anomaly`. Special projects
   `country.events.special_project = { id special_project carrier = { type=planet reference } }`,
   no progress. Dig sites `archaeological_sites.sites.<id> = { location = { type=2 id=<planet> }
-type index clues difficulty days_left excavator_fleet }`; `index` is the chapter under way,
-  0-based (**assumed**: every site in Roaming Korinth 2210.10.20 reads 0, and `site_star_petal`'s
-  difficulty 2 is its first stage's — no site seen past a chapter yet). Megastructures `megastructures.<id> =
+type index clues difficulty days_left excavator_fleet completed = { { country date } } }`;
+  **`index` = the chapters done** = the entries of `completed`, one per chapter with its date
+  (confirmed on four sites, Roaming Cybergang 2226.08.01: Space Shanty 3 of 5, Star Petal 4 of 4, Cut
+  to Fit and Lost Moments 3 each). **An excavated site stays in the save** with `index` at its
+  chapter count — Star Petal finished 2222.07.25 and was still listed four years later —, so
+  "finished" is `index` ≥ the site type's stages (`digSiteDone()`), not a site gone. Megastructures `megastructures.<id> =
 { type coordinate.origin owner }` (2207.03.10: ruined gateways, a ruined quantum catapult, two
   ruined ring world sections).
+- **Event chains** (the situation log; Roaming Cybergang 2226.08.01, READER 71; corrected
+  2026-11-26, READER 81): in the country's `events` block — beside `anomalies` and
+  `special_project`, not on the country itself, in 4.5.4 (2205.05.16) and 4.6 (2231.08.01) alike;
+  READER 71–80 looked on the country and found nothing, so the frontier's precursor and L-Gate
+  panels stayed empty (the user's Cybrex find, 2231.07.29) —
+  `event_chain = { event_chain="l_cluster_chain" scope = { … } counter = { clues=1 } }` per running
+  chain — `counter` is absent while every counter is 0 —, and `completed_event_chain="<key>"` per
+  finished one (a contract chain repeats). Their counters' maximum is in the files
+  (`common/event_chains`, data DB `event_chain`): precursors 6 artifacts, the L-Cluster 7 clues (also
+  the variable `num_lcluster_clues`).
+- **Precursors** (Roaming Cybergang 2226.08.01, READER 72): the galaxy setup's
+  `galaxy.disabled_precursors = { "precursor_3" "precursor_baol_1" … }` names those switched off (8 of
+  9 there: only `precursor_5`, the Cybrex, on); the systems that can give a classic precursor's
+  artifacts carry its star flag `precursor_<1-5>` (92 for the Cybrex); a chain runs as an event chain
+  (`cybrex_chain`, counter `cybrex_artifacts`, then `cybrex_homeworld_chain`) on whichever country
+  found it, the intro flag `<x>_intro` on the country.
+- **Cosmic storms** (4.5.4, Roaming Cybergang, first in 2212.11.07 — a magnetic storm; particle
+  from ~2217, a gravity storm in 2220 gone by 2223; two at 2226.08.01, none ever over us): top-level
+  `storms = { storms = { <id> = { type cosmic_storm_start_position storm_target_pos = { x y }
+storm_current_path_index path = { <system ids> } speed storm_days_till_next_system storm_age
+storm_min_radius storm_max_radius storm_activation_period_in_months storm_monthly_added_devastation
+activated cluster = { position radius objects = { <system ids> } } name prefix
+affected_country_ids flags } } cosmic_storm_name_list_name }` — `path` is the route ahead, so a
+  forecast needs no guessing; `cluster.objects` the systems covered now. A dead storm leaves name
+  and type in `dead_cosmic_storm`. Also: map objects `data="<type>"` with flag
+  `space_storm_object`, the system flag `storm_system`, `storm_influence_fields.storm_influence_fields
+= { <i> = { center radius storm_influence_groups = { { system tier } } } }` (tier 1–4), the
+  Storm Repel Field as a perpetual edict `storm_repel_field`, and on an affected country the flags
+  `first_storm_appears_within_borders` / `triggered_eye_of_the_storm` and the timeline event
+  `timeline_first_storm_within_borders`. Unread: what a storm over our own planets writes (no
+  modifier seen on us yet).
 - Empire focus: `country.focus = { active = { <card ids> } priority = { current } reward = {
 rewards = { { category current="development_rewards_2" progress } } } }`; cards are top-level
   `focus_cards.<id> = { type status }`, **`status=1` = done**: the game's panel at 2207.03.10 lists
@@ -530,7 +589,20 @@ rewards = { { category current="development_rewards_2" progress } } } }`; cards 
 - Prescripted names: a save names a prescripted empire's ruler, species and empire by loc key
   (`PRESCRIPTED_ruler_name_humans1` → "Dolores Muwanga"); `displayName()` resolves them from the
   data DB's `prescripted_name`, set at start (`setPrescriptedNames`). Snapshots stored earlier
-  keep the raw text ("ruler name humans1") until their save is read again.
+  keep the raw text ("ruler name humans1") until their save is read again. **A prescripted word
+  can hold parts** (READER 74, 2026-11-21): a fallen hive's fragments are `%ADJ%` → `Indomitable`
+  (prescripted "Indomitable") → `%ADJECTIVE%` (`SPEC_Myrran` + `Aggression`); taking the word alone
+  named all three "Indomitable" or "Forgotten". **A noun as `%ADJECTIVE%`'s adjective takes the
+  game's ending** (`name_system_l_english.yml` `adj_NN*`, `adjective()`): "Mishar" + "Pact" is
+  "Misharan Pact", "Barcalid" → "Barcalan", "Prime" → "Priman" — every name in the campaign's
+  empire list at 2226.08.01 now reads as the game's. A loc text with a scope command (`NAME_fotd_seperatists` = "[fotd_country.GetSpeciesName]
+  Commune") reaches the data DB as "$fotd_country.GetSpeciesName$ Commune" (extractor,
+  2026-11-21; it dropped the part before) and `fill()` puts the save's variable of that key in:
+  "Fellnoll Commune" (READER 75).
+- A fallen hive's fragments are told apart by government, not name (`gov_war_splinter`,
+  `gov_growth_splinter`, `gov_control_splinter`; all `origin_fallen_empire_hive`,
+  `civic_fragmented_command`): `splinterOf()` / `empireTags()` (`#lib/contacts.ts`), shown by
+  `EmpireName` on every tab that names empires, and in the history tab's names ("… (War Splinter)"), once we talk to them.
 - Launched agendas: `country.government.council_agenda_cooldowns = { council_agenda start_date }`
   — **`start_date` is when it can be picked again**, not the launch (2207.03.10, other empires:
   Infinite Opportunities until 2231/2232, 30 years after their first agenda). Launch = that minus
@@ -550,3 +622,92 @@ origin="origin_default" … }` (2207.03.10); ethics in `country.ethos.ethics`. `
 - A colony's sector: its planet's system (`coordinate.origin`) in an owned sector's `systems`
   (`sectorBySystem()`; 2207.03.10: only the core sector, `type="core_sector"`, named after the
   capital). Habitability: `pop_groups.<id>.habitability` (0–1, seen 1 and 0.9), pops-weighted.
+
+## Ideologies (4.6.0 Willpower, read from a throwaway save, 2200.08.01, 2026-11-23)
+
+Not read yet: notes for an Ideology map mode. Seven ideologies, founded with `devtools.20`/`.21`.
+
+- Top level `ideologies = { ideologies = { <id> = { … } } }` — empty (`{ }`) before anyone founds
+  one, also in a campaign with the rule on. The rule: `galaxy.ideologies_enabled = yes`.
+- Per ideology: `type` (`"xenophile"`, `"xenophobe_pacifist"`: `common/ideologies/00_ideology_types.txt`),
+  `origin` (founder) and `custodian` (the Ideological Authority, a country id), `flag`
+  (`icon.category`/`file`, `background`, `color` — a named colour), `name` (a template:
+  `key="ideology_ajd_keyword"` with `%ADJECTIVE%` of the founder species and a noun — fill it
+  as `displayName()` does), `affected_empires = { <country> = { faction = <id> } }`,
+  `adopting_countries = { ids }`, `advocates = { leader ids }`.
+- Reach: `emitters` (each `emitter = { scope=colony|starbase id owner }` and its `reach`),
+  `low_priority_emitters` (same shape; starbases), `systems_within_reach` (`system`, the emitter
+  reaching it, `reach` there), `affected_systems = { system ids }` — what a map would colour.
+- Countries: `country.<id>.modules.standard_ideology_module` holds `adopted_ideology = <id>` and
+  `detected_ideologies = { ideology ids }` — the foreign ones it knows (two of nine countries had
+  one; ours none, and the player's Ideologies screen said "We do not know of any other
+  Ideology"). The game's own Ideological Map Mode (Ctrl+L) still drew all seven ideologies'
+  reach, as clouds in their flag colour with their flag icons, the same day (screenshot
+  `2026_11_23_1`): reach on the map is not intel-gated, so a dashboard map mode needs no
+  `intel` flag for it. Also `flags.ideology_initiated`; factions carry `adopted_ideology` too.
+- **2026-11-24 (throwaway, 2200.03.01, 18 ideologies from `devtools.21`, 32 AIs all talking to
+  each other, none to us):** the module no longer has `detected_ideologies`. Instead it has
+  `intel = { <ideology id> = { intel max_reached_intel } }`: 100 for the empire's own ideology,
+  15 for each of the other 17 at every AI. We knew nobody, and our module was empty (`{ }`). The
+  thresholds are engine-side (no `common/intel_categories/` file). An adopter's module also
+  holds `adopted_ideology`, `value` (Ideological Strength, 0 a month after founding), `index`
+  (the strength level, 0-based), `stage_durations` (the four bands `start`/`end`: 0–250 … 750–1000,
+  data DB `ideology_strength_level`), `past_monthly_strength_values` (momentum's history,
+  `IDEOLOGICAL_MOMENTUM_MONTHS_COUNT` = 120) and `pending_levels`. Per ideology, also
+  `last_reroll_date`, `custody_cooldown_date` (10 years after founding) and `advocates` (leader
+  ids). No tenets anywhere yet, a month after founding.
+- **2200.05.01, after we contacted one AI (Commonwealth of Man) and founded ours:** our `intel`
+  has two entries: 100 for our own ideology and 15 for the contact's ideology, and none for the
+  other 17. The Ideologies view (screenshot `~/Pictures/Screenshots/screenshot_2026-11-24_19-19-38.png`)
+  lists exactly that one under "Foreign Ideologies". It shows the name, the type ("Militarist
+  Ideology"), the custodian's flag, the galactic share (0.0 %), a count (0), "No promoting
+  faction", three locked tenet slots I–III and "Adopt". So **the ideologies we know are the keys
+  of our module's `intel`**. Ours shows the faction (approval 100 %, 55 members), the tenet
+  slots, a strength bar, the advocate, and Momentum 0.38 "Positive". The momentum is the new
+  `past_monthly_strength_momenta = { 0.38553 }`, equal to `value` a month after founding. The
+  view's "+4.55" next to the share is not explained yet. The contact's diplomacy screen shows its
+  ideology's icon (`screenshot_2026-11-24_19-19-56.png`), with only Intel 10 on the empire itself.
+- **Tenets (2200.06.01 / 07.01, after `add_ideological_strength = 800` and codifying three):**
+  the top level `tenets = { <id> = { type="tenet_epistocracy" tier=1 } … }` holds the tenets (data DB
+  `tenet`, `tenet_tier`). The ideology holds `tenet_info = { { tenet=<id> cooldown="<date>" } … }`
+  and `pending_tenets = { { tenets = { three keys on offer } tenets_rerolls_count } … }`, one
+  entry per slot, keys only while a choice is open. The adopter's module holds
+  `active_tenets = { <ids> }`. **The tier is the slot**: I, II, III, which the view shows as
+  "Intensity" (Laterality in slot III: "Intensity 3", screenshot
+  `screenshot_2026-11-24_19-23-15.png`). While levels wait to be codified, the module holds
+  `index=3`, `pending_levels=2` and `ideology_stagnating=yes`. The slots opened one at a time
+  as each was codified, though 800 strength passed all three marks at once. Momentum is the
+  monthly change of `value` (800.39 → 796.77: −3.61, the view's "Low"; screenshot `…19-23-21`).
+  Also new: `affected_empires` lists an empire our reach touches with `faction=4294967295`
+  (none). At the top level, `num_potential_followers`.
+- Tenets: a top-level `tenets = { }` after `contracts` (empty in a 4.6 autosave with no ideology
+  founded, 2227.10.01, 2026-11-24). Seen filled the same day: the next entries ("Tenets").
+
+## Ambitions (4.6.0, throwaway save 2200.08.01, 2026-11-24)
+
+Staged with `add_ascension_perk` (which runs the perk's `on_enabled`): Force of Will for us,
+Become the Crisis for the one AI we talk to, Galactic Hyperthermia for one we do not.
+
+- **`country.<id>.crisis_progression = { path="<crisis_path.key>" level="<crisis_level.key>" }`**:
+  `force_of_will_path` / `crisis_force_of_will_level_1`, `nemesis_path` / `crisis_level_1`.
+  The Hyperthermia AI had `path` and no `level` yet, a month after the perk. **From level 2 the
+  key repeats**, one per level reached, in order (throwaway `unitednationsofearth4_-337465913`,
+  2200.10.01), e.g.
+  `level="crisis_force_of_will_level_1" level="crisis_force_of_will_level_2"`;
+  jomini gives an array, read its last entry (READER 80). The perk itself is
+  in `ascension_perks`, already read as `Snapshot.ascensionPerks`. The currency is an ordinary
+  resource in the stockpile (`willpower`, `menace`, …; data DB `crisis_path.currency`).
+- In game our ambition is a Situation Log entry, "Developments" → "Force of Will": "Ambition
+  Level Reached: 1/5" and the special project gating the next level (screenshot
+  `~/Pictures/Screenshots/screenshot_2026-11-24_19-25-02.png`).
+- **What reveals another empire's ambition: its personality**, which the diplomacy screen
+  shows under the government (`country.<id>.personality`, read as `personality` by
+  `save/country.ts`). The Become-the-Crisis AI went from "Hegemonic Imperialists" to
+  `became_the_crisis` ("Crisis Aspirant") within the month, at Intel 10 (screenshot
+  `screenshot_2026-11-24_19-29-20.png`). The unknown AI got `hyperthermia_empire` ("Thermarchy").
+  From `common/personalities/00_personalities.txt`: `became_the_crisis` allows on
+  `ap_become_the_crisis`, `hyperthermia_empire` on `ap_galactic_hyperthermia`,
+  `utopian_missionaries` ("Utopian Missionaries") on `crisis_force_of_will_level_2` (Force of
+  Will from its level 2 only). Defender's `galactic_defense_force` belongs to the GDF country
+  type, not to the perk. Behemoths and Cosmogenesis have no personality: see
+  `docs/open-points.md` for their other signals. Only shown to an empire we talk to.

@@ -21,31 +21,31 @@
 </script>
 
 <div class="text-xs">
-	<span class="text-gray-500" title={HOW}
-		>≈ {o.replaces ? 'upgrade to ' : ''}{o.name}{o.queued ? ' (queued)' : ''} (?):</span
-	>
-	{#each o.steps as s (s.job)}<span class="mr-3 whitespace-nowrap" title={jobs(s.added)}
-			>{s.name} +{fmt(s.added)} automated</span
-		>{/each}<span class="mr-1 text-gray-500" title={AUTO}>making</span><ResourceChips
+	<span class="text-gray-500" title={HOW}>
+		≈ {o.replaces ? 'upgrade to ' : ''}{o.name}{o.queued ? ' (queued)' : ''} (?):
+	</span>
+	{#each o.steps as s (s.job)}<span class="mr-3 whitespace-nowrap" title={jobs(s.added)}>
+			{s.name} +{fmt(s.added)} automated
+		</span>{/each}<span class="mr-1 text-gray-500" title={AUTO}>making</span><ResourceChips
 		flows={o.autoOutput}
 	/>{#if o.freed >= 0.5}<span
 			class="whitespace-nowrap text-green-600"
 			title={`${jobs(o.freed)} of pops' work for other jobs${openJobs !== null ? `; the colony has ${fmt(openJobs)} open workforce` : ''}`}
-			>frees {fmt(o.freed)} workforce</span
-		><span class="mr-1 text-gray-500" title={FREED}>, which made</span><ResourceChips
+		>
+			frees {fmt(o.freed)} workforce
+		</span><span class="mr-1 text-gray-500" title={FREED}>, which made</span><ResourceChips
 			flows={o.freedOutput}
 		/>{/if}
-	<span class="text-gray-500"
-		>costs <ResourceChips flows={negate(o.cost)} />a month <ResourceChips
-			flows={negate(o.upkeep)}
-		/></span
-	>{#if o.missing?.length}<span class="text-amber-600"
-			>needs {#each o.missing as t, i (t)}{i ? ', ' : ''}<InfoPopup ref="tech:{t}"
-					>{o.techNames[t] ?? t}</InfoPopup
-				>{/each}</span
-		>{/if}{#if o.zoneFirst?.length}<span
+	<span class="text-gray-500">
+		costs <ResourceChips flows={negate(o.cost)} />a month <ResourceChips flows={negate(o.upkeep)} />
+	</span>{#if o.missing?.length}<span class="text-amber-600">
+			needs {#each o.missing as t, i (t)}{i ? ', ' : ''}<InfoPopup ref="tech:{t}">
+					{o.techNames[t] ?? t}
+				</InfoPopup>{/each}
+		</span>{/if}{#if o.zoneFirst?.length}<span
 			class="text-amber-600"
 			title="An automation building stands in a zone of the district whose jobs it automates — the government and urban zones take none"
-			>{` needs a zone in the ${o.zoneFirst.join(' or ')} first`}</span
-		>{/if}
+		>
+			{` needs a zone in the ${o.zoneFirst.join(' or ')} first`}
+		</span>{/if}
 </div>

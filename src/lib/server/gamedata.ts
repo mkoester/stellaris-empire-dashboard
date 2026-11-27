@@ -13,7 +13,8 @@ import type {
 	MegaStage,
 	OutcomeFlag,
 	Resources,
-	Specialists
+	Specialists,
+	Specimen
 } from '#lib/types.ts';
 import { NO_SHIP_PARTS, type ShipParts } from '#lib/designStats.ts';
 import {
@@ -290,6 +291,9 @@ export function loadGameData(file: string): GameData {
 				).map((r) => [r.key, r.name])
 			),
 			specialists: specialists(rows),
+			specimens: specimens(rows),
+			...ideologyData(rows),
+			ambitionPaths: ambitionPaths(rows),
 			resolutions: Object.fromEntries(
 				rows<{
 					key: string;
@@ -425,6 +429,11 @@ export function loadGameData(file: string): GameData {
 						).map((r) => [r.key, r.parent])
 					)
 				: {},
+			eventChains: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'event_chain'"
+			).length
+				? eventChainsOf(rows('SELECT key, title, category, counters_json FROM event_chain'))
+				: {},
 			situationStageModifiers: rows<{ name: string }>(
 				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'situation_stage_modifier'"
 			).length
@@ -447,7 +456,11 @@ export function loadGameData(file: string): GameData {
 					}, {})
 				: {},
 			situationTypes: situationTypes(
-				rows('SELECT key, name, category FROM situation'),
+				rows(
+					columnsOf('situation').has('permanent')
+						? 'SELECT key, name, category, permanent FROM situation'
+						: 'SELECT key, name, category, 0 AS permanent FROM situation'
+				),
 				rows('SELECT situation_key, key, name FROM situation_approach ORDER BY sort_order'),
 				rows('SELECT situation_key, key, name FROM situation_stage ORDER BY sort_order')
 			),
@@ -827,11 +840,17 @@ export function loadGameData(file: string): GameData {
 				])
 			),
 			ethicAxes: Object.fromEntries(
-				rows<{ key: string; category: string | null; category_value: number | null }>(
-					'SELECT key, category, category_value FROM ethic WHERE category IS NOT NULL'
+				// from the tier (`cost`: 1 regular, 2 fanatic, 3 absolute) and the pole, not
+				// `category_value`, whose scale 4.6 widened (0…4 → 0…6): a player's zip may bundle an
+				// older extractor
+				rows<{ key: string; category: string | null; cost: number; category_opposite: number }>(
+					'SELECT key, category, cost, category_opposite FROM ethic WHERE category IS NOT NULL'
 				).map((e) => [
 					e.key,
-					{ axis: e.category!, pos: e.category === 'hive' ? 0 : (e.category_value ?? 2) - 2 }
+					{
+						axis: e.category!,
+						pos: e.category === 'hive' ? 0 : (e.category_opposite ? 1 : -1) * e.cost
+					}
 				])
 			),
 			ethicOrder: rows<{ key: string }>('SELECT key FROM ethic ORDER BY sort_order').map(
@@ -1256,6 +1275,7 @@ type ContractRowDb = {
 	reward_json: string | null;
 	failed_opinion: number | null;
 	operator_techs_json: string | null;
+	offer_techs_json: string | null;
 	description: string | null;
 	location: number | null;
 };
@@ -1267,10 +1287,11 @@ function contractTypes(
 ): Record<string, ContractType> {
 	const detailed = columnsOf('contract').has('reward_json');
 	const placed = columnsOf('contract').has('location');
+	const offers = columnsOf('contract').has('offer_techs_json');
 	const list = rows<ContractRowDb>(
 		detailed
-			? `SELECT key, name, category, time_to_accept, time_to_complete, event_chain, steps, reward_json, failed_opinion, operator_techs_json, description, ${placed ? 'location' : 'NULL AS location'} FROM contract`
-			: 'SELECT key, name, category, time_to_accept, NULL AS time_to_complete, NULL AS event_chain, NULL AS steps, NULL AS reward_json, NULL AS failed_opinion, NULL AS operator_techs_json, NULL AS description, NULL AS location FROM contract'
+			? `SELECT key, name, category, time_to_accept, time_to_complete, event_chain, steps, reward_json, failed_opinion, operator_techs_json, ${offers ? 'offer_techs_json' : 'NULL AS offer_techs_json'}, description, ${placed ? 'location' : 'NULL AS location'} FROM contract`
+			: 'SELECT key, name, category, time_to_accept, NULL AS time_to_complete, NULL AS event_chain, NULL AS steps, NULL AS reward_json, NULL AS failed_opinion, NULL AS operator_techs_json, NULL AS offer_techs_json, NULL AS description, NULL AS location FROM contract'
 	);
 	const byChain = new Map<string, ContractProject[]>();
 	if (detailed && columnsOf('special_project').has('event_chain'))
@@ -1312,8 +1333,14 @@ function contractTypes(
 				reward: r.reward_json ? (JSON.parse(r.reward_json) as ContractReward) : null,
 				failedOpinion: r.failed_opinion,
 				operatorTechs: r.operator_techs_json ? (JSON.parse(r.operator_techs_json) as string[]) : [],
+				offerTechs: r.offer_techs_json
+					? (JSON.parse(r.offer_techs_json) as string[][])
+					: offers
+						? []
+						: null,
 				projects: r.event_chain ? (byChain.get(r.event_chain) ?? []) : [],
-				location: r.location === null ? null : r.location === 1
+				location: r.location === null ? null : r.location === 1,
+				eventChain: r.event_chain
 			}
 		])
 	);
@@ -1368,8 +1395,31 @@ export function blockerInfo(
 const jsonList = <T = string>(json: string | null): T[] => (json ? JSON.parse(json) : []);
 
 /** Situations with their approaches' names. */
+/** Event chains by key; `counters_json` [{key, max}], NULL for none. */
+export function eventChainsOf(
+	chains: {
+		key: string;
+		title: string | null;
+		category: string | null;
+		counters_json: string | null;
+	}[]
+): GameData['eventChains'] {
+	return Object.fromEntries(
+		chains.map((c) => [
+			c.key,
+			{
+				title: c.title,
+				category: c.category,
+				counters: c.counters_json
+					? (JSON.parse(c.counters_json) as { key: string; max: number | null }[])
+					: []
+			}
+		])
+	);
+}
+
 export function situationTypes(
-	types: { key: string; name: string | null; category: string | null }[],
+	types: { key: string; name: string | null; category: string | null; permanent?: number }[],
 	approaches: { situation_key: string; key: string; name: string | null }[],
 	stages: { situation_key: string; key: string; name: string | null }[]
 ): GameData['situationTypes'] {
@@ -1379,6 +1429,7 @@ export function situationTypes(
 			{
 				name: t.name ?? t.key,
 				category: t.category,
+				permanent: !!t.permanent,
 				approaches: Object.fromEntries(
 					approaches.filter((a) => a.situation_key === t.key).map((a) => [a.key, a.name ?? a.key])
 				),
@@ -1660,6 +1711,190 @@ function starbaseParts(rows: <T>(sql: string) => T[]): Record<string, StarbasePa
 		)
 	);
 }
+
+/** Grand Archive specimens: none from a data DB before the specimen tables. */
+function specimens(rows: <T>(sql: string) => T[]): Record<string, Specimen> {
+	const has = rows("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'specimen'");
+	if (!has.length) return {};
+	const out: Record<string, Specimen> = {};
+	for (const r of rows<{
+		key: string;
+		name: string | null;
+		category: string | null;
+		rarity: string | null;
+		tradable: number;
+		sellable: number;
+	}>('SELECT key, name, category, rarity, tradable, sellable FROM specimen ORDER BY sort_order'))
+		out[r.key] = {
+			// extractor 0.1.22's dump read names with quotes inside empty ("Ageless" Miracle Cream)
+			name: r.name || titleOf(r.key),
+			category: r.category ?? '',
+			rarity: r.rarity ?? 'common',
+			tradable: r.tradable === 1,
+			sellable: r.sellable === 1,
+			modifiers: [],
+			produces: {}
+		};
+	for (const m of rows<{
+		specimen_key: string;
+		modifier_key: string;
+		modifier_value: number;
+		condition: string | null;
+		label: string | null;
+		positive_is_good: number | null;
+	}>(
+		`SELECT s.specimen_key, s.modifier_key, s.modifier_value, s.condition, l.label, l.positive_is_good
+		 FROM specimen_modifier s LEFT JOIN modifier_label l ON l.modifier_key = s.modifier_key
+		 ORDER BY s.specimen_key, s.sort_order`
+	))
+		out[m.specimen_key]?.modifiers.push({
+			key: m.modifier_key,
+			value: m.modifier_value,
+			label: m.label,
+			positiveIsGood: (m.positive_is_good ?? 1) === 1,
+			condition: m.condition
+		});
+	for (const r of rows<{ specimen_key: string; resource: string; amount: number }>(
+		'SELECT specimen_key, resource, amount FROM specimen_resource ORDER BY specimen_key, sort_order'
+	)) {
+		const p = out[r.specimen_key]?.produces;
+		if (p) p[r.resource] = (p[r.resource] ?? 0) + r.amount;
+	}
+	return out;
+}
+
+const hasTable = (rows: <T>(sql: string) => T[], t: string) =>
+	rows(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = '${t}'`).length > 0;
+
+/** Ideology types and tenets (extractor 0.1.26): none from an older data DB. */
+function ideologyData(rows: <T>(sql: string) => T[]): Pick<GameData, 'ideologyTypes' | 'tenets'> {
+	if (!hasTable(rows, 'ideology') || !hasTable(rows, 'tenet'))
+		return { ideologyTypes: {}, tenets: {} };
+	const ideologyTypes: GameData['ideologyTypes'] = {};
+	for (const r of rows<{
+		key: string;
+		ethic: string | null;
+		type_name: string | null;
+		faction_name: string | null;
+	}>('SELECT key, ethic, type_name, faction_name FROM ideology ORDER BY sort_order'))
+		ideologyTypes[r.key] = {
+			ethic: r.ethic,
+			typeName: r.type_name ?? 'Ideology',
+			factionName: r.faction_name
+		};
+	const tenets: GameData['tenets'] = {};
+	for (const r of rows<{ key: string; name: string | null; description: string | null }>(
+		'SELECT key, name, description FROM tenet ORDER BY sort_order'
+	))
+		tenets[r.key] = {
+			name: r.name || titleOf(r.key.replace(/^tenet_/, '')),
+			description: r.description,
+			tiers: {}
+		};
+	for (const r of rows<{ tenet_key: string; tier: number; effect_text: string | null }>(
+		'SELECT tenet_key, tier, effect_text FROM tenet_tier'
+	)) {
+		const t = tenets[r.tenet_key];
+		if (t) t.tiers[r.tier] = { modifiers: t.tiers[r.tier]?.modifiers ?? [], text: r.effect_text };
+	}
+	for (const m of rows<{
+		tenet_key: string;
+		tier: number;
+		scope: string;
+		modifier_key: string;
+		modifier_value: number;
+		label: string | null;
+		positive_is_good: number | null;
+	}>(
+		`SELECT t.tenet_key, t.tier, t.scope, t.modifier_key, t.modifier_value, l.label, l.positive_is_good
+		 FROM tenet_tier_modifier t LEFT JOIN modifier_label l ON l.modifier_key = t.modifier_key
+		 ORDER BY t.tenet_key, t.tier, t.sort_order`
+	)) {
+		const t = tenets[m.tenet_key];
+		if (!t) continue;
+		(t.tiers[m.tier] ??= { modifiers: [], text: null }).modifiers.push({
+			key: m.modifier_key,
+			value: m.modifier_value,
+			label: m.label,
+			positiveIsGood: (m.positive_is_good ?? 1) === 1,
+			scope: m.scope
+		});
+	}
+	return { ideologyTypes, tenets };
+}
+
+/** Ambitions (crisis paths, extractor 0.1.11): none from an older data DB. */
+function ambitionPaths(rows: <T>(sql: string) => T[]): GameData['ambitionPaths'] {
+	if (!hasTable(rows, 'crisis_path')) return {};
+	const json = (v: string | null): string[] => (v ? (JSON.parse(v) as string[]) : []);
+	const out: GameData['ambitionPaths'] = {};
+	for (const r of rows<{
+		key: string;
+		name: string | null;
+		description: string | null;
+		currency: string | null;
+	}>('SELECT key, name, description, currency FROM crisis_path ORDER BY sort_order'))
+		out[r.key] = {
+			key: r.key,
+			name: r.name ?? titleOf(r.key),
+			description: r.description,
+			currency: r.currency,
+			perk: null,
+			levels: [],
+			objectives: []
+		};
+	for (const r of rows<{ path_key: string; perk_key: string }>(
+		'SELECT path_key, perk_key FROM crisis_path_perk'
+	)) {
+		const p = out[r.path_key];
+		if (p) p.perk ??= r.perk_key;
+	}
+	const perks = new Map<string, string[]>();
+	for (const r of rows<{ level_key: string; name: string | null; key: string }>(
+		`SELECT lp.level_key, m.name, lp.perk_key AS key FROM crisis_level_perk lp
+		 LEFT JOIN menace_perk m ON m.key = lp.perk_key ORDER BY lp.level_key, lp.sort_order`
+	))
+		perks.set(r.level_key, [...(perks.get(r.level_key) ?? []), r.name ?? titleOf(r.key)]);
+	for (const r of rows<{
+		path_key: string;
+		level: number;
+		key: string;
+		name: string | null;
+		required_currency: number | null;
+		requirements_json: string | null;
+	}>(
+		`SELECT pl.path_key, pl.level, l.key, l.name, l.required_currency, l.requirements_json
+		 FROM crisis_path_level pl JOIN crisis_level l ON l.key = pl.level_key ORDER BY pl.path_key, pl.level`
+	))
+		out[r.path_key]?.levels.push({
+			key: r.key,
+			name: r.name ?? `Level ${r.level}`,
+			level: r.level,
+			required: r.required_currency,
+			requirements: json(r.requirements_json),
+			perks: perks.get(r.key) ?? []
+		});
+	for (const r of rows<{
+		path_key: string;
+		key: string;
+		name: string | null;
+		description: string | null;
+		recurring: number;
+	}>(
+		`SELECT po.path_key, o.key, o.name, o.description, o.recurring
+		 FROM crisis_path_objective po JOIN crisis_objective o ON o.key = po.objective_key
+		 ORDER BY po.path_key, po.sort_order`
+	))
+		out[r.path_key]?.objectives.push({
+			key: r.key,
+			name: r.name ?? titleOf(r.key),
+			description: r.description,
+			recurring: r.recurring === 1
+		});
+	return out;
+}
+
+const titleOf = (key: string) => key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
 /** Subject specialisations (extractor 0.1.16): none from an older data DB. */
 function specialists(rows: <T>(sql: string) => T[]): Specialists {

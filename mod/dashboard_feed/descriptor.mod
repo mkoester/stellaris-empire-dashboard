@@ -1,8 +1,8 @@
-version="0.14.0"
+version="0.16.1"
 tags={
 	"Utilities"
 }
 name="Empire Dashboard Feed"
 picture="thumbnail.png"
-supported_version="v4.5.*"
+supported_version="v4.6.*"
 remote_file_id="3826360023"

@@ -58,36 +58,40 @@
 
 {#if draft}
 	<section class="mb-6 flex max-w-xl flex-col gap-3 text-sm">
-		<label class="flex items-center gap-2"
-			>name
+		<label class="flex items-center gap-2">
+			name
 			<input
 				class="flex-1 rounded border border-gray-300 bg-transparent px-2 py-1 dark:border-gray-700"
 				bind:value={draft.name}
 				maxlength="40"
 			/>
 		</label>
-		<label class="flex items-center gap-2"
-			><input type="checkbox" bind:checked={draft.header} /> show the header (rank, date, research and
-			agenda progress) on top</label
-		>
+		<label class="flex items-center gap-2">
+			<input type="checkbox" bind:checked={draft.header} /> show the header (rank, date, research and
+			agenda progress) on top
+		</label>
 		<ol class="flex flex-col gap-1">
 			{#each draft.panels as id, i (id)}
 				<li class="flex items-center gap-2">
 					<span class="flex-1">{panelInfo(id).label}</span>
-					<button class={button} disabled={i === 0} onclick={() => move(i, -1)} aria-label="up"
-						>↑</button
-					>
+					<button class={button} disabled={i === 0} onclick={() => move(i, -1)} aria-label="up">
+						↑
+					</button>
 					<button
 						class={button}
 						disabled={i === draft.panels.length - 1}
 						onclick={() => move(i, 1)}
-						aria-label="down">↓</button
+						aria-label="down"
 					>
+						↓
+					</button>
 					<button
 						class={button}
 						onclick={() => draft!.panels.splice(i, 1)}
-						aria-label="remove {panelInfo(id).label}">✕</button
+						aria-label="remove {panelInfo(id).label}"
 					>
+						✕
+					</button>
 				</li>
 			{:else}
 				<li class="text-gray-500">No panels yet — add some below.</li>
@@ -108,9 +112,9 @@
 			<button class="{button} font-semibold" onclick={save}>save</button>
 			<button class={button} onclick={() => (draft = null)}>cancel</button>
 			<button class={button} disabled={at() === 0} onclick={() => shift(-1)}>move tab left</button>
-			<button class={button} disabled={at() === data.tabs.length - 1} onclick={() => shift(1)}
-				>move tab right</button
-			>
+			<button class={button} disabled={at() === data.tabs.length - 1} onclick={() => shift(1)}>
+				move tab right
+			</button>
 			<button class="{button} ml-auto text-red-600" onclick={remove}>delete tab</button>
 		</div>
 	</section>

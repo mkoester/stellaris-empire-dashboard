@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+	fallbackName,
+	stageLadder,
+	nextStage,
 	canExploreWormholes,
 	observedMonthly,
 	contactRows,
@@ -320,5 +323,60 @@ describe('canExploreWormholes', () => {
 		expect(canExploreWormholes([at(['tech_wormhole_stabilization']), at(null)])).toBe(true);
 		expect(canExploreWormholes([at(['tech_lasers_1'])])).toBe(false);
 		expect(canExploreWormholes([at(null)])).toBe(false);
+	});
+});
+
+describe('situation stages', () => {
+	// Roaming Cybergang 2226.08.01
+	it('reaches the next stage going up, or the one below going down', () => {
+		// Operational Reserves: High (19500–26000), falling 229.51 a month
+		const reserves = {
+			progress: 20379.06,
+			monthly: -229.51,
+			stage: 3,
+			ends: [1300, 6500, 19500, 26000]
+		};
+		const names = ['Empty', 'Low', 'Medium', 'High'];
+		const down = nextStage(reserves, names);
+		expect(down?.to).toBe('Medium');
+		expect(down?.months).toBeCloseTo(879.06 / 229.51, 3);
+		expect(nextStage({ ...reserves, monthly: 100 }, names)?.to).toBe('its end');
+		// Observation Insights: one stage to 100
+		const insights = { progress: 83.625, monthly: 0.9375, stage: 0, ends: [100] };
+		expect(nextStage(insights, ['Insights'])?.months).toBeCloseTo(17.47, 2);
+		expect(nextStage({ ...insights, monthly: -1 }, [])?.to).toBe('0');
+		expect(nextStage({ ...insights, monthly: 0 }, [])).toBeNull();
+		expect(nextStage({ ...insights, stage: null }, [])).toBeNull();
+		// stage 1 of 2 going up: named by the data, else by number
+		expect(nextStage({ progress: 5, monthly: 1, stage: 0, ends: [10, 20] }, [])?.to).toBe(
+			'stage 2'
+		);
+	});
+
+	it('lists each stage from where it starts, the current one marked', () => {
+		const ladder = stageLadder({ stage: 3, ends: [1300, 6500, 19500, 26000] }, [
+			'Empty',
+			'Low',
+			'Medium',
+			'High'
+		]);
+		expect(ladder.map((g) => [g.name, g.from, g.to, g.current])).toEqual([
+			['Empty', 0, 1300, false],
+			['Low', 1300, 6500, false],
+			['Medium', 6500, 19500, false],
+			['High', 19500, 26000, true]
+		]);
+		expect(stageLadder({ stage: 0, ends: [100] }, ['Insights'])).toEqual([]);
+	});
+
+	it('names a situation the data leaves unnamed', () => {
+		// the Alarm Clock mod's reminder: 369.54 of 1000
+		expect(
+			fallbackName({
+				type: 'situation_alarm_clock',
+				flags: ['alarm_for_mod_celebrate_diversity', 'alarm_due_date']
+			})
+		).toBe('Reminder: Celebrate Diversity');
+		expect(fallbackName({ type: 'situation_alarm_clock', flags: [] })).toBe('Alarm clock');
 	});
 });

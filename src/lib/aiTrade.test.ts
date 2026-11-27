@@ -11,6 +11,7 @@ import {
 	modelFrom,
 	monthlyCap,
 	offersTrade,
+	tradeClosed,
 	offerPrice,
 	rate,
 	room,
@@ -751,6 +752,19 @@ describe('who can be offered a trade', () => {
 			false
 		);
 		expect(offersTrade({ type: 'enclave', civics: [] })).toBe(false);
+	});
+
+	it('not those whose Offer Trade Deal the game closes to us', () => {
+		const human = { machine: false, infernal: false };
+		const civics = (...c: string[]) => ({ civics: c });
+		// the Havariggan Purifiers, 2026-11-21: "They are Fanatic Purifiers!"
+		expect(tradeClosed(civics('civic_fanatic_purifiers'), human)).toMatch(/Purifiers/);
+		expect(tradeClosed(civics('civic_hive_devouring_swarm'), human)).toMatch(/Swarm/);
+		expect(tradeClosed(civics('civic_machine_terminator'), human)).toMatch(/machines/);
+		expect(tradeClosed(civics('civic_machine_terminator'), { ...human, machine: true })).toBeNull();
+		expect(tradeClosed(civics('civic_scorched_earth'), human)).toMatch(/Infernals/);
+		expect(tradeClosed(civics('civic_scorched_earth'), { ...human, infernal: true })).toBeNull();
+		expect(tradeClosed(civics('civic_technocracy'), human)).toBeNull();
 	});
 });
 

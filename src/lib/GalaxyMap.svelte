@@ -7,7 +7,9 @@
 	import {
 		fit,
 		MAP_FULL_KEY,
+		MAP_STARS_KEY,
 		MAP_WIDTH_KEY,
+		mapStars,
 		pan,
 		parseMapWidth,
 		toScreen,
@@ -17,7 +19,8 @@
 		type View
 	} from './mapView.ts';
 	import type { Territory } from './territories.ts';
-	import { MAP_SHIPS, type MapShips, type OwnOnMap } from './mapLayers.ts';
+	import { DEFAULT_MAP_OWN, MAP_OWN_INFO, type MapOwn, type OwnOnMap } from './mapLayers.ts';
+	import { putSettings } from './settings.ts';
 	import type { Arkship } from './types.ts';
 	import { specialStar, starTitle, STAR_LEGEND, type StarEffect } from './stars.ts';
 
@@ -27,12 +30,15 @@
 	// (bindable) is the system under the pointer, here or in a table beside: it gets a ring. Binding
 	// `selected` makes a click (not a drag) pick the system under the pointer, again to unpick; the
 	// picked one keeps a ring of its own. `territories` are drawn as empire borders (#lib/borders.ts).
-	// `own` (map and systems tabs) adds a nomad's "my waystations" in place of "my empire", the fit
-	// "my stations and ships" and our ships drawn per system, which `ships` picks (`onShips` stores it).
+	// Our own comes with the layout's data (`ownMap`, every map alike; `own`/`arkships` override
+	// it): a nomad's "my waystations" in place of "my empire", the fit "my stations and ships", and
+	// drawn per system our colonies and arkships, military fleets and civilian ships — each a
+	// switch in the toolbar, the profile's (`mapOwn`), the same on every map.
 	// Stars that change the fight in their system (#lib/stars.ts: pulsars, neutron stars, black
-	// holes, …) get an icon left of the system, their effects as its hover, one legend entry below.
-	// `arkships` (a nomad's) are drawn always, as a hexagon above their system, the capital ringed,
-	// with a fit "my arkships".
+	// holes, …) get an icon left of the system, their effects as its hover, one legend entry below;
+	// the toolbar's "special stars" hides them (per browser, every map; ⚙'s default until then).
+	// `arkships` (a nomad's) are drawn with the colonies, as a hexagon above their system, the
+	// capital ringed, with a fit "my arkships"; a system with colonies of ours gets a ring.
 	// "full window" lays the map over the whole browser window (Esc leaves it), for every map, per
 	// viewer; `controls` (the page's own, e.g. the map tab's modes) go under the toolbar, so they
 	// stay in reach there.
@@ -67,10 +73,9 @@
 		hovered = $bindable(null),
 		selected = $bindable(),
 		onsystemmenu,
-		own,
-		ships = 'off',
-		onShips,
-		arkships = []
+		onlegendhover,
+		own: ownProp,
+		arkships: arkshipsProp
 	}: {
 		systems: System[];
 		fill?: Record<number, string>; // system id → colour, instead of the own/other tint
@@ -90,13 +95,25 @@
 		selected?: number | null;
 		// a right-click on a system (the nearest within 8px), with the pointer's place in the window
 		onsystemmenu?: (systemId: number, at: { x: number; y: number }) => void;
+		// the pointer on a territory's line in the legend (its key), and off it (null)
+		onlegendhover?: (key: string | null) => void;
 		own?: OwnOnMap;
-		ships?: MapShips;
-		onShips?: (v: MapShips) => void;
 		arkships?: Arkship[];
 	} = $props();
+	const own: OwnOnMap | undefined = $derived(ownProp ?? page.data.ownMap?.own);
+	const arkships: Arkship[] = $derived(arkshipsProp ?? page.data.ownMap?.arkships ?? []);
+	// which of our own to draw: the profile's, changed here at once (every map, so stored)
+	let ownOn: MapOwn = $derived(page.data.mapOwn ?? DEFAULT_MAP_OWN);
+	const setOwn = (k: keyof MapOwn, on: boolean) => {
+		ownOn = { ...ownOn, [k]: on };
+		putSettings({ mapOwn: ownOn }).catch((e) => console.error(e));
+	};
 	const byId = $derived(new Map(systems.map((s) => [s.id, s])));
 	const uid = $props.id(); // several maps on a page: their gradients' ids
+	// a striped territory's bands (`Territory.stripes`): px wide in the map's units
+	const STRIPE = 6;
+	const stripeStops = (cs: string[]) =>
+		cs.map((c, i) => `${c} ${i * 3}px ${(i + 1) * 3}px`).join(', ');
 
 	// Rings and sectors around the core (#lib/quadrants.ts): the profile's choice and the
 	// campaign's radii come with the layout's data, so every map draws them alike.
@@ -305,6 +322,7 @@
 		// this browser's pick, else ⚙'s default width
 		width = parseMapWidth(recall(MAP_WIDTH_KEY), page.data.mapDefaults?.width);
 		fullWindow = recall(MAP_FULL_KEY) === '1';
+		starsOn = mapStars(recall(MAP_STARS_KEY), page.data.mapDefaults?.stars ?? true);
 		const html = document.documentElement;
 		const measure = () => {
 			vw = html.clientWidth;
@@ -339,26 +357,41 @@
 	const shipsAt = $derived.by(() => {
 		const at = new Map<number, string[]>();
 		for (const x of own?.ships ?? [])
-			if (ships === 'all' || (ships === 'fleets') === (x.kind === 'fleet'))
+			if (x.kind === 'fleet' ? ownOn.fleets : ownOn.civilian)
 				at.set(x.systemId, [...(at.get(x.systemId) ?? []), x.name]);
-		return ships === 'off' ? new Map<number, string[]>() : at;
+		return at;
 	});
-	// our arkships per system
+	// our colonies and arkships per system, unless the viewer hid them
+	const coloniesAt = $derived(ownOn.colonies ? (own?.colonies ?? []) : []);
 	const arksAt = $derived.by(() => {
 		const at = new Map<number, Arkship[]>();
-		for (const a of arkships)
+		for (const a of ownOn.colonies ? arkships : [])
 			if (a.systemId !== null) at.set(a.systemId, [...(at.get(a.systemId) ?? []), a]);
 		return at;
 	});
+	// what there is to switch: arkships count as colonies
+	const ownKinds = $derived(
+		(Object.keys(MAP_OWN_INFO) as (keyof MapOwn)[]).filter((k) =>
+			k === 'colonies'
+				? (own?.colonies.length ?? 0) > 0 || arkships.length > 0
+				: (own?.ships ?? []).some((x) => (x.kind === 'fleet') === (k === 'fleets'))
+		)
+	);
 	const arkPoints = $derived(points([...arksAt.keys()]));
 	const hexagon = (x: number, y: number, r: number) =>
 		Array.from({ length: 6 }, (_, i) => {
 			const t = (Math.PI / 3) * i - Math.PI / 2;
 			return `${i ? 'L' : 'M'}${(x + r * Math.cos(t)).toFixed(1)},${(y + r * Math.sin(t)).toFixed(1)}`;
 		}).join('') + 'Z';
-	// systems whose star changes the fight there
+	// systems whose star changes the fight there, unless the viewer hid them
+	let starsOn = $state(true);
+	const setStars = (on: boolean) => {
+		starsOn = on;
+		keep(MAP_STARS_KEY, on ? '1' : '0');
+	};
+	const anySpecial = $derived(systems.some((s) => specialStar(s.star)));
 	const specials = $derived(
-		systems.flatMap((s) => {
+		(starsOn ? systems : []).flatMap((s) => {
 			const star = specialStar(s.star);
 			return star ? [{ s, star }] : [];
 		})
@@ -492,21 +525,29 @@
 				<span
 					class="flex items-center gap-1"
 					title={`Stars that change the fight in their system (a dot: a binary system):\n${STAR_LEGEND.map((l) => l.title).join('\n')}`}
-					><svg width="58" height="14" viewBox="-7 -7 58 14" aria-hidden="true"
-						>{#each STAR_LEGEND as l, i (l.effect)}<g transform="translate({i * 14},0)"
-								><title>{l.title}</title>{@render starIcon(l.effect, false)}</g
-							>{/each}</svg
-					>special stars</span
 				>
+					<svg width="58" height="14" viewBox="-7 -7 58 14" aria-hidden="true">
+						{#each STAR_LEGEND as l, i (l.effect)}<g transform="translate({i * 14},0)">
+								<title>{l.title}</title>{@render starIcon(l.effect, false)}
+							</g>{/each}
+					</svg>special stars
+				</span>
 			{/if}
 			{#each shown as t (t.key)}
-				<span class="flex items-center gap-1"
-					><span
-						class="inline-block h-2.5 w-2.5 rounded-sm border"
-						style:background={t.color}
-						style:border-style={t.guess ? 'dashed' : 'solid'}
-					></span>{t.label}</span
+				<span
+					class="flex items-center gap-1"
+					role="presentation"
+					onpointerenter={() => onlegendhover?.(t.key)}
+					onpointerleave={() => onlegendhover?.(null)}
 				>
+					<span
+						class="inline-block h-2.5 w-2.5 rounded-sm border"
+						style:background={t.stripes?.length
+							? `repeating-linear-gradient(45deg, ${stripeStops(t.stripes)})`
+							: t.color}
+						style:border-style={t.guess ? 'dashed' : 'solid'}
+					></span>{t.label}
+				</span>
 			{/each}
 		</div>
 	{/if}
@@ -524,65 +565,88 @@
 	style={full ? `width: ${vw}px; margin-inline: calc(50% - ${vw / 2}px)` : ''}
 >
 	<div class="mb-2 flex shrink-0 flex-wrap items-center gap-2 text-sm">
-		<button class={button} disabled={!capital} onclick={() => capital && toCapital(capital)}
-			>capital</button
-		>
+		<button class={button} disabled={!capital} onclick={() => capital && toCapital(capital)}>
+			capital
+		</button>
 		<span class="ml-2 text-gray-500">fit</span>
 		<button
 			class={button}
 			disabled={!home.points.length}
-			onclick={() => (view = fit(home.points, size))}>{home.label}</button
+			onclick={() => (view = fit(home.points, size))}
 		>
+			{home.label}
+		</button>
 		{#if arkships.length}
 			<button
 				class={button}
 				disabled={!arkPoints.length}
-				onclick={() => (view = fit(arkPoints, size))}>my arkships</button
+				onclick={() => (view = fit(arkPoints, size))}
 			>
+				my arkships
+			</button>
 		{/if}
 		{#if own}
 			<button
 				class={button}
 				disabled={!stationsAndShips.length}
-				onclick={() => (view = fit(stationsAndShips, size))}>my stations and ships</button
+				onclick={() => (view = fit(stationsAndShips, size))}
 			>
+				my stations and ships
+			</button>
 		{/if}
-		<button class={button} disabled={!explored.length} onclick={() => (view = fit(explored, size))}
-			>explored</button
-		>
+		<button class={button} disabled={!explored.length} onclick={() => (view = fit(explored, size))}>
+			explored
+		</button>
 		{#each focus as f (f.label)}
 			<button
 				class={button}
 				disabled={!f.points.length}
-				onclick={() => (view = fit(f.points, size))}>{f.label}</button
+				onclick={() => (view = fit(f.points, size))}
 			>
+				{f.label}
+			</button>
 		{/each}
 		<button
 			class={button}
 			onclick={() => {
 				view = null;
 				all = true;
-			}}>everything</button
+			}}
 		>
+			everything
+		</button>
 		<span class="ml-2 text-gray-500">zoom</span>
 		<button class={button} onclick={() => zoomBy(1.5)} aria-label="zoom in">+</button>
 		<button class={button} onclick={() => zoomBy(1 / 1.5)} aria-label="zoom out">−</button>
-		{#if own}
-			<label class="ml-2 flex items-center gap-1"
-				>ships
-				<select
-					class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
-					value={ships}
-					onchange={(e) => onShips?.((e.currentTarget as HTMLSelectElement).value as MapShips)}
-				>
-					{#each MAP_SHIPS as o (o)}<option value={o}>{o}</option>{/each}
-				</select>
+		{#each ownKinds as k (k)}
+			<label
+				class="ml-2 flex items-center gap-1"
+				title="my {MAP_OWN_INFO[k]} — on every map of this profile"
+			>
+				<input
+					type="checkbox"
+					checked={ownOn[k]}
+					onchange={(e) => setOwn(k, e.currentTarget.checked)}
+				/>
+				{`my ${MAP_OWN_INFO[k]}`}
+			</label>
+		{/each}
+		{#if anySpecial}
+			<label
+				class="ml-2 flex items-center gap-1"
+				title="icons for pulsars, neutron stars, black holes and other stars that change the fight in their system — on every map in this browser"
+			>
+				<input
+					type="checkbox"
+					checked={starsOn}
+					onchange={(e) => setStars(e.currentTarget.checked)}
+				/> special stars
 			</label>
 		{/if}
 		{#if hasSectors}
-			<label class="ml-2 flex items-center gap-1"
-				><input type="checkbox" bind:checked={sectors} /> sectors</label
-			>
+			<label class="ml-2 flex items-center gap-1">
+				<input type="checkbox" bind:checked={sectors} /> sectors
+			</label>
 		{/if}
 		<span class="ml-2 text-gray-500">width</span>
 		{#each offered as [m, text, title] (m)}
@@ -591,16 +655,19 @@
 				class="{button} {active ? 'bg-gray-200 dark:bg-gray-800' : ''}"
 				aria-pressed={active}
 				{title}
-				onclick={() => setWidth(m)}>{text}</button
+				onclick={() => setWidth(m)}
 			>
+				{text}
+			</button>
 		{/each}
 		<button
 			class="{button} {fullWindow ? 'bg-gray-200 dark:bg-gray-800' : ''}"
 			aria-pressed={fullWindow}
 			title={fullWindow ? 'back to the page (Esc)' : 'the map over the whole browser window'}
 			onclick={() => setFullWindow(!fullWindow)}
-			>{fullWindow ? '✕ full window' : '⛶ full window'}</button
 		>
+			{fullWindow ? '✕ full window' : '⛶ full window'}
+		</button>
 	</div>
 	{#if controls}<div class="mb-2 shrink-0">{@render controls()}</div>{/if}
 	<div
@@ -685,18 +752,43 @@
 										fill-opacity="0.6"
 										font-size="12"
 										text-anchor="middle"
-										dominant-baseline="middle">{m.name}</text
+										dominant-baseline="middle"
 									>
+										{m.name}
+									</text>
 								{/each}
 							</g>
 						{/if}
-						{#each [...territoryOutlines] as [key, rs] (key)}
+						{#each [...territoryOutlines] as [key, rs], n (key)}
 							{@const t = territoryOf.get(key)!}
+							{@const striped = (t.stripes?.length ?? 0) > 1}
+							{#if striped}
+								<!-- one band per colour, diagonal, as wide on screen at any zoom -->
+								<defs>
+									<pattern
+										id="{uid}-stripes-{n}"
+										patternUnits="userSpaceOnUse"
+										width={STRIPE * t.stripes!.length}
+										height={STRIPE * t.stripes!.length}
+										patternTransform="rotate(45)"
+									>
+										{#each t.stripes! as c, i (i)}
+											<rect
+												x={i * STRIPE}
+												y="0"
+												width={STRIPE}
+												height={STRIPE * t.stripes!.length}
+												fill={c}
+											/>
+										{/each}
+									</pattern>
+								</defs>
+							{/if}
 							<path
 								class="pointer-events-none"
 								d={rings(rs)}
-								fill={t.color}
-								fill-opacity="0.16"
+								fill={striped ? `url(#${uid}-stripes-${n})` : t.color}
+								fill-opacity={striped ? '0.3' : '0.16'}
 								fill-rule="evenodd"
 								stroke={t.color}
 								stroke-width="1.5"
@@ -727,8 +819,10 @@
 								d={arc(a, b)}
 								fill="none"
 								stroke-width="1.5"
-								stroke-dasharray="5 4"><title>{via} {a.name} – {b.name}</title></path
+								stroke-dasharray="5 4"
 							>
+								<title>{via} {a.name} – {b.name}</title>
+							</path>
 						{/each}
 						{#each systems as s (s.id)}
 							<!-- a wider invisible target, so a 3px system is easy to point at -->
@@ -740,14 +834,15 @@
 								fill="transparent"
 								onpointerenter={() => (hovered = s.id)}
 								onpointerleave={() => (hovered = null)}
-								><title
-									>{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{specialStar(
+							>
+								<title>
+									{s.name}{s.owned ? ' (yours)' : ''}{s.capital ? ', capital' : ''}{specialStar(
 										s.star
 									)
 										? ` — ${starTitle(specialStar(s.star)!)}`
-										: ''}{titles[s.id] ? ` — ${titles[s.id]}` : ''}</title
-								></circle
-							>
+										: ''}{titles[s.id] ? ` — ${titles[s.id]}` : ''}
+								</title>
+							</circle>
 							<circle
 								cx={at(s).x}
 								cy={at(s).y}
@@ -764,40 +859,62 @@
 						{/each}
 						{#each specials as { s, star } (s.id)}
 							{@const p = at(s)}
-							<g transform="translate({p.x - 12},{p.y})"
-								><title>{s.name} — {starTitle(star)}</title>{@render starIcon(
+							<g transform="translate({p.x - 12},{p.y})">
+								<title>{s.name} — {starTitle(star)}</title>{@render starIcon(
 									star.effect,
 									star.binary
-								)}</g
-							>
+								)}
+							</g>
+						{/each}
+						{#each coloniesAt as c (c.systemId)}
+							{@const s = byId.get(c.systemId)}
+							{#if s}
+								{@const p = at(s)}
+								<g class="fill-sky-600 dark:fill-sky-400">
+									<title>{c.names.join('\n')}</title><circle
+										cx={p.x}
+										cy={p.y}
+										r="6"
+										fill="none"
+										class="stroke-sky-600 dark:stroke-sky-400"
+										stroke-width="1.25"
+									/>{#if c.names.length > 1}<text
+											class="text-[9px] font-semibold"
+											x={p.x + 6}
+											y={p.y - 4}
+										>
+											{c.names.length}
+										</text>{/if}
+								</g>
+							{/if}
 						{/each}
 						{#each [...shipsAt] as [id, names] (id)}
 							{@const s = byId.get(id)}
 							{#if s}
 								{@const p = at(s)}
-								<g class="fill-emerald-600 dark:fill-emerald-400"
-									><title>{names.join('\n')}</title><path
+								<g class="fill-emerald-600 dark:fill-emerald-400">
+									<title>{names.join('\n')}</title><path
 										d="M{p.x - 4},{p.y + 9}l4,-7l4,7z"
 										class="stroke-white dark:stroke-gray-900"
 										stroke-width="0.75"
 									/>{#if names.length > 1}<text
 											class="text-[10px] font-semibold"
 											x={p.x + 5}
-											y={p.y + 10}>{names.length}</text
-										>{/if}</g
-								>
+											y={p.y + 10}
+										>
+											{names.length}
+										</text>{/if}
+								</g>
 							{/if}
 						{/each}
 						{#each [...arksAt] as [id, arks] (id)}
 							{@const s = byId.get(id)}
 							{#if s}
 								{@const p = at(s)}
-								<g class="pointer-events-none fill-violet-600 dark:fill-violet-400"
-									><title
-										>{arks
-											.map((a) => `${a.name}${a.capital ? ' (capital)' : ''}`)
-											.join('\n')}</title
-									>{#if arks.some((a) => a.capital)}<circle
+								<g class="pointer-events-none fill-violet-600 dark:fill-violet-400">
+									<title>
+										{arks.map((a) => `${a.name}${a.capital ? ' (capital)' : ''}`).join('\n')}
+									</title>{#if arks.some((a) => a.capital)}<circle
 											cx={p.x}
 											cy={p.y - 10}
 											r="8.5"
@@ -811,9 +928,11 @@
 									/>{#if arks.length > 1}<text
 											class="text-[10px] font-semibold"
 											x={p.x + 9}
-											y={p.y - 7}>{arks.length}</text
-										>{/if}</g
-								>
+											y={p.y - 7}
+										>
+											{arks.length}
+										</text>{/if}
+								</g>
 							{/if}
 						{/each}
 						{@render layer?.(at, v.k)}
@@ -831,8 +950,10 @@
 								<text
 									class="pointer-events-none fill-current text-xs font-semibold"
 									x={p.x + 16}
-									y={p.y - 12}>{byId.get(selected)!.name}</text
+									y={p.y - 12}
 								>
+									{byId.get(selected)!.name}
+								</text>
 							{/if}
 						{/if}
 						{#if hovered !== null && byId.get(hovered)}
@@ -848,8 +969,10 @@
 							<text
 								class="pointer-events-none fill-current text-xs font-semibold"
 								x={p.x + 14}
-								y={p.y - 10}>{byId.get(hovered)!.name}</text
+								y={p.y - 10}
 							>
+								{byId.get(hovered)!.name}
+							</text>
 						{/if}
 					</svg>
 				{/if}

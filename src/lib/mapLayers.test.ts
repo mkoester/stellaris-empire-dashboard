@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
 	contactDone,
+	digSiteDone,
 	firstSeen,
 	mapMarkers,
+	colonySystems,
+	mapOwnFromShips,
 	ownOnMap,
 	parseMapFilter,
+	parseMapOwn,
 	tracked
 } from './mapLayers.ts';
 import type { GalaxySystem, Snapshot } from './types.ts';
@@ -98,7 +102,7 @@ describe('mapMarkers', () => {
 			}
 		];
 		const [m] = mapMarkers({ ...none, galaxy: [sys(1)], contacts });
-		expect([m.ongoing, m.progress]).toEqual([true, 'stage 2, 3 clues, 42 days left']);
+		expect([m.ongoing, m.progress]).toEqual([true, 'stage 3, 3 clues, 42 days left']);
 	});
 });
 
@@ -305,6 +309,14 @@ describe('found and done', () => {
 		expect(contactDone({ status: 'in_progress' })).toBe(false);
 	});
 
+	it('a dig site is done once its next chapter is past its last', () => {
+		expect(digSiteDone(5, 4)).toBe(true); // Star Petal: index 4 of 4 stages
+		expect(digSiteDone(4, 5)).toBe(false); // Space Shanty: 3 of 5 done, chapter 4 next
+		expect(digSiteDone(4, 4)).toBe(false); // the last chapter still to dig
+		expect(digSiteDone(5, null)).toBe(false); // stages unknown: open
+		expect(digSiteDone(null, 4)).toBe(false); // before READER 58
+	});
+
 	it('an entry popup is done where its structure has a row; a ruin once its system is claimed', () => {
 		// Acamar: the Abandoned Gateway popup and the ruined gateway; Bir: a guardian, nothing else
 		const entry = (systemId: number, title: string) => ({
@@ -339,19 +351,79 @@ describe('parseMapFilter', () => {
 	it('keeps known layers only', () => {
 		expect(parseMapFilter({ hidden: ['ruins', 'nonsense'] })).toEqual({
 			hidden: ['ruins'],
-			ships: 'off',
 			mode: 'empire'
 		});
-	});
-
-	it('keeps a known ships choice, else none', () => {
-		expect(parseMapFilter({ ships: 'fleets' }).ships).toBe('fleets');
-		expect(parseMapFilter({ ships: 'boats' }).ships).toBe('off');
 	});
 
 	it('keeps a known map mode, else empire', () => {
 		expect(parseMapFilter({ mode: 'opinion' }).mode).toBe('opinion');
 		expect(parseMapFilter({ mode: 'weather' }).mode).toBe('empire');
+	});
+});
+
+describe('parseMapOwn', () => {
+	it('keeps booleans, else the default (colonies on, ships off)', () => {
+		expect(parseMapOwn({ fleets: true, civilian: 'yes' })).toEqual({
+			colonies: true,
+			fleets: true,
+			civilian: false
+		});
+		expect(parseMapOwn(null)).toEqual({ colonies: true, fleets: false, civilian: false });
+	});
+});
+
+describe('mapOwnFromShips', () => {
+	it("takes the old ship picker's choice", () => {
+		expect(mapOwnFromShips('all')).toEqual({ colonies: true, fleets: true, civilian: true });
+		expect(mapOwnFromShips('fleets')).toEqual({ colonies: true, fleets: true, civilian: false });
+		expect(mapOwnFromShips('civilian')).toEqual({
+			colonies: true,
+			fleets: false,
+			civilian: true
+		});
+		expect(mapOwnFromShips('off')).toEqual({ colonies: true, fleets: false, civilian: false });
+		expect(mapOwnFromShips(undefined)).toEqual({
+			colonies: true,
+			fleets: false,
+			civilian: false
+		});
+	});
+});
+
+describe('colonySystems', () => {
+	const galaxy = [
+		{ id: 1, bodies: [{ id: 10 }, { id: 11 }] },
+		{ id: 2, bodies: [{ id: 20 }] },
+		{ id: 3, bodies: null }
+	] as unknown as GalaxySystem[];
+
+	it("groups colonies by their planet's system", () => {
+		expect(
+			colonySystems(
+				[
+					{ planetId: 10, name: 'Earth' },
+					{ planetId: 11, name: 'Mars' },
+					{ planetId: 20, name: 'Kepler' }
+				],
+				galaxy
+			)
+		).toEqual([
+			{ systemId: 1, names: ['Earth', 'Mars'] },
+			{ systemId: 2, names: ['Kepler'] }
+		]);
+	});
+
+	it('leaves out arkship colonies and planets the galaxy lacks', () => {
+		expect(
+			colonySystems(
+				[
+					{ planetId: -5, name: 'Ark' },
+					{ planetId: 99, name: 'Far' }
+				],
+				galaxy
+			)
+		).toEqual([]);
+		expect(colonySystems([{ planetId: 10, name: 'Earth' }], null)).toEqual([]);
 	});
 });
 
@@ -382,5 +454,6 @@ describe('ownOnMap', () => {
 			{ systemId: 4, kind: 'fleet', name: '1st Fleet' },
 			{ systemId: 5, kind: 'civilian', name: 'Ark (Logistic Ship)' }
 		]);
+		expect(o.colonies).toEqual([]);
 	});
 });

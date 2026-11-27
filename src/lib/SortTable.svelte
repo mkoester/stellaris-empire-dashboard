@@ -1,6 +1,6 @@
 <script lang="ts" generics="T">
 	import type { Snippet } from 'svelte';
-	import { sortBy, type Column } from './sort.ts';
+	import { pinFirst, sortBy, type Column } from './sort.ts';
 
 	// A table whose headers sort it (click again to reverse), for the tabs that list game objects.
 	// Each column gives the value it sorts by and, optionally, a cell snippet (else the value).
@@ -11,7 +11,8 @@
 	// makes a row click pick its system (again: unpick); a system picked elsewhere marks its row and
 	// scrolls it into view. `rowClass` sets a row apart (a reference row, say), `rowStyle` styles it
 	// (a row in its event's colour). `below` adds a full-width line under each row (details).
-	// `anchor` marks a row (`data-anchor`) for a link elsewhere on the page to scroll to.
+	// `anchor` marks a row (`data-anchor`) for a link elsewhere on the page to scroll to. `pinned`
+	// rows stay on top whatever the sort, a line below them (a nomad's Operational Reserves).
 	let {
 		rows,
 		columns,
@@ -23,7 +24,8 @@
 		rowClass,
 		rowStyle,
 		below,
-		anchor
+		anchor,
+		pinned
 	}: {
 		rows: T[];
 		columns: Column<T>[];
@@ -36,11 +38,19 @@
 		rowStyle?: (r: T) => string;
 		below?: Snippet<[T]>;
 		anchor?: (r: T) => string;
+		pinned?: (r: T) => boolean;
 	} = $props();
 
 	// an unknown column (`''`) keeps the rows in their given order until a header is clicked
 	const column = $derived(columns.find((c) => c.id === sort.column));
-	const sorted = $derived(column ? sortBy(rows, column.value, sort.desc) : rows);
+	const sorted = $derived.by(() => {
+		const all = column ? sortBy(rows, column.value, sort.desc) : rows;
+		return pinned ? pinFirst(all, pinned) : all;
+	});
+	// the first row after the pinned ones, which draws the line
+	const firstUnpinned = $derived(
+		pinned && sorted.some(pinned) ? sorted.find((r) => !pinned(r)) : undefined
+	);
 	const onSort = (id: string) =>
 		(sort = { column: id, desc: sort.column === id ? !sort.desc : false });
 
@@ -68,8 +78,9 @@
 							? 'font-semibold'
 							: 'font-normal'}"
 						onclick={() => onSort(c.id)}
-						>{c.label}{#if sort.column === c.id}{sort.desc ? ' ▼' : ' ▲'}{/if}</button
 					>
+						{c.label}{#if sort.column === c.id}{sort.desc ? ' ▼' : ' ▲'}{/if}
+					</button>
 				</th>
 			{/each}
 		</tr>
@@ -83,7 +94,9 @@
 					? 'bg-amber-100 dark:bg-amber-900/40'
 					: selectable && sys !== null && selected === sys
 						? 'bg-sky-100 dark:bg-sky-900/40'
-						: (rowClass?.(r) ?? '')} {selectable ? 'cursor-pointer' : ''}"
+						: (rowClass?.(r) ?? '')} {selectable ? 'cursor-pointer' : ''} {r === firstUnpinned
+					? 'border-t-2 border-t-gray-400 dark:border-t-gray-600'
+					: ''}"
 				style={rowStyle?.(r)}
 				data-system={sys}
 				data-anchor={anchor?.(r)}

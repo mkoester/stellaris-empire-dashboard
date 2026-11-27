@@ -64,9 +64,9 @@
 	{data.slaver ? 'Our empire allows slavery.' : 'Our empire does not allow slavery.'}
 	{#if data.ours.length}Rows of species we give full citizenship ({data.ours.join(', ')}) are
 		marked.{/if}
-	{#if data.bans?.organic || data.bans?.sentient}<span class="text-amber-700 dark:text-amber-400"
-			>{` Galactic Community: ${data.bans.sentient ? 'no sentient pops' : 'no organic sentient pops'} may be sold.`}</span
-		>{/if}
+	{#if data.bans?.organic || data.bans?.sentient}<span class="text-amber-700 dark:text-amber-400">
+			{` Galactic Community: ${data.bans.sentient ? 'no sentient pops' : 'no organic sentient pops'} may be sold.`}
+		</span>{/if}
 </p>
 
 <h2 class="mb-2 text-xl font-semibold">For sale now</h2>
@@ -122,19 +122,20 @@
 {/if}
 
 {#snippet speciesCell(e: OfferEntry)}{e.offer.species}{/snippet}
-{#snippet popsCell(e: OfferEntry)}<span title="of a pop group of {fmt(e.offer.groupSize)}"
-		>{fmt(e.offer.pops)}</span
-	>{/snippet}
+{#snippet popsCell(e: OfferEntry)}<span title="of a pop group of {fmt(e.offer.groupSize)}">
+		{fmt(e.offer.pops)}
+	</span>{/snippet}
 {#snippet sellerCell(e: OfferEntry)}<EmpireName name={e.offer.sellerName} />{/snippet}
-{#snippet whenCell(e: OfferEntry)}<span class="tabular-nums"
-		>{e.firstSeen === e.lastSeen ? e.firstSeen : `${e.firstSeen} – ${e.lastSeen}`}</span
-	>{/snippet}
+{#snippet whenCell(e: OfferEntry)}<span class="tabular-nums">
+		{e.firstSeen === e.lastSeen ? e.firstSeen : `${e.firstSeen} – ${e.lastSeen}`}
+	</span>{/snippet}
 {#snippet outcomeCell(e: OfferEntry)}{#if e.sale}sold {e.sale.date} to <EmpireName
 			name={e.sale.buyer}
 		/>{:else}<span
 			class="text-gray-500"
 			title="the first save without it; sold or taken off the market — only the companion mod logs sales"
-			>gone by {e.gone ?? '?'}</span
-		>{/if}{/snippet}
+		>
+			gone by {e.gone ?? '?'}
+		</span>{/if}{/snippet}
 {#snippet saleSeller(s: Sale)}<EmpireName name={s.seller} />{/snippet}
 {#snippet saleBuyer(s: Sale)}<EmpireName name={s.buyer} />{/snippet}

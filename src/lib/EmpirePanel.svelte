@@ -214,15 +214,17 @@
 		</a>
 		{#if row.possible === null}<span
 				class="text-gray-500"
-				title="The save cannot confirm all conditions">conditions uncertain</span
-			>{/if}
+				title="The save cannot confirm all conditions"
+			>
+				conditions uncertain
+			</span>{/if}
 		<WhatIfLine what={row.what} label="if changed now" showSmall emptyLabel="no modelled change" />
-		{#if row.rule}<span class="text-xs text-green-700 dark:text-green-500" title="a rule of thumb"
-				>recommended: {row.rule}</span
-			>{/if}
-		{#if row.kind === 'policy'}<span class="text-xs text-amber-600"
-				>then locked for {POLICY_YEARS} years</span
-			>{/if}
+		{#if row.rule}<span class="text-xs text-green-700 dark:text-green-500" title="a rule of thumb">
+				recommended: {row.rule}
+			</span>{/if}
+		{#if row.kind === 'policy'}<span class="text-xs text-amber-600">
+				then locked for {POLICY_YEARS} years
+			</span>{/if}
 	</li>
 {/snippet}
 
@@ -233,32 +235,32 @@
 			<div class="flex flex-1 flex-wrap items-baseline gap-x-4">
 				<h1 class="text-2xl font-bold">{data.latest.empireName}</h1>
 				{#if data.latest.score}
-					<span
-						>rank <b>{data.latest.score.rank}</b> · score
-						<b>{fmt(data.latest.score.score)}</b></span
-					>
+					<span>
+						rank <b>{data.latest.score.rank}</b> · score
+						<b>{fmt(data.latest.score.score)}</b>
+					</span>
 				{/if}
 				{#if data.latest.empireSize !== null}
 					<span>empire size <b>{fmt(data.latest.empireSize)}</b></span>
 				{/if}
 				{#if data.latest.starbases}
-					<span
-						>starbases <b>{data.latest.starbases.used} / {data.latest.starbases.capacity}</b></span
-					>
+					<span>
+						starbases <b>{data.latest.starbases.used} / {data.latest.starbases.capacity}</b>
+					</span>
 				{/if}
 				{#if data.latest.envoys}
-					<span title="envoys on an assignment / all envoys"
-						>envoys working <b>{data.latest.envoys.used} / {data.latest.envoys.total}</b></span
-					>
+					<span title="envoys on an assignment / all envoys">
+						envoys working <b>{data.latest.envoys.used} / {data.latest.envoys.total}</b>
+					</span>
 				{/if}
 				{#if data.latest.navalUsed !== null}
-					<span
-						>naval capacity used <b
-							>{fmt(data.latest.navalUsed)}{data.latest.navalMax !== null
+					<span>
+						naval capacity used <b>
+							{fmt(data.latest.navalUsed)}{data.latest.navalMax !== null
 								? ` / ${fmt(data.latest.navalMax)}`
-								: ''}</b
-						></span
-					>
+								: ''}
+						</b>
+					</span>
 				{/if}
 				{#if data.latest.pops !== null}
 					<span>pops <b>{fmt(data.latest.pops)}</b></span>
@@ -266,8 +268,9 @@
 				<a
 					class="underline"
 					href={data.isHead ? resolve('/timeline') : resolve(`/timeline?node=${data.tip}`)}
-					>save graph</a
 				>
+					save graph
+				</a>
 				{#if !data.isHead}
 					<a class="underline" href={resolve('/')}>back to the current game</a>
 				{/if}
@@ -481,8 +484,10 @@
 {#snippet colonyName(c: Colony)}
 	<a class="underline" href={colonyHref(c.planetId)}>{c.name}</a>{#if c.colonizing}&nbsp;<span
 			class="text-xs text-green-700"
-			title="being settled: complete at 100 colonists">colonizing {fmt(c.pops)}/100</span
-		>{/if}
+			title="being settled: complete at 100 colonists"
+		>
+			colonizing {fmt(c.pops)}/100
+		</span>{/if}
 {/snippet}
 {#snippet colonyGrowth(c: Colony)}<span
 		class={(c.growth?.net ?? 0) < 0
@@ -494,16 +499,20 @@
 			? Object.entries(c.growth.by)
 					.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`)
 					.join(', ')
-			: ''}>{c.growth ? (c.growth.net > 0 ? '+' : '') + fmt(c.growth.net) : ''}</span
-	>{/snippet}
+			: ''}
+	>
+		{c.growth ? (c.growth.net > 0 ? '+' : '') + fmt(c.growth.net) : ''}
+	</span>{/snippet}
 {#snippet colonyOpen(c: Colony)}{@const jobs = openJobs(c)}{fmt(
 		jobs.open
 	)}{#if jobs.reserved}&nbsp;<span
 			class="cursor-help text-gray-500"
 			title="{jobs.reserved} open enforcer job{jobs.reserved === 1
 				? ''
-				: 's'} not counted: crime automation fills them as needed">({fmt(jobs.reserved)})</span
-		>{/if}{/snippet}
+				: 's'} not counted: crime automation fills them as needed"
+		>
+			({fmt(jobs.reserved)})
+		</span>{/if}{/snippet}
 {#snippet colonyQueue(c: Colony)}{#if c.buildQueue.length}<DistrictName
 			name={nameOf(data.names, c.buildQueue[0].name)}
 			color={data.colors[c.buildQueue[0].name]}

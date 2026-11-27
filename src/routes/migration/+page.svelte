@@ -1,7 +1,14 @@
 <script lang="ts">
 	import FrameSlider from '#lib/FrameSlider.svelte';
 	import { followGame } from '#lib/live.ts';
-	import { flows, ownerColors, type MigrationView } from '#lib/migration.ts';
+	import {
+		CATEGORICAL,
+		flows,
+		ownerColors,
+		RESETTLE_COLOR,
+		resettleFlows,
+		type MigrationView
+	} from '#lib/migration.ts';
 	import { putSettings } from '#lib/settings.ts';
 	import MigrationBars from '#lib/panels/MigrationBars.svelte';
 	import MigrationHeatmap from '#lib/panels/MigrationHeatmap.svelte';
@@ -18,9 +25,25 @@
 	const at = $derived(picked === null || picked > last ? last : picked);
 	const frame = $derived(data.frames[at]);
 	const rows = $derived(frame?.rows ?? []);
-	const monthFlows = $derived(flows(rows));
+	const monthFlows = $derived([...flows(rows), ...resettleFlows(rows, frame?.moves ?? null)]);
+	const resettling = $derived(monthFlows.some((f) => f.kind === 'resettle'));
+	// resettlement pairs from the mod's lines, or estimated from the save's totals
+	const exactMoves = $derived(!!frame?.moves?.length);
 	const colors = $derived(ownerColors(rows));
 	const estimated = $derived(monthFlows.some((f) => f.estimated));
+	// the months pops moved, under the slider: migration and resettlement, each a lane
+	const lanes = $derived([
+		{
+			label: 'migration',
+			color: CATEGORICAL[0],
+			on: data.frames.map((f) => flows(f.rows).length > 0)
+		},
+		{
+			label: 'resettlement',
+			color: RESETTLE_COLOR,
+			on: data.frames.map((f) => resettleFlows(f.rows, f.moves).length > 0)
+		}
+	]);
 	let view: MigrationView = $derived(data.view);
 	const setView = (v: MigrationView) => {
 		view = v;
@@ -39,7 +62,12 @@
 	The save records, per colony, how many pops arrived and left in a month — not where they came from
 	or went. With one sender or one receiver the flows are exact{estimated
 		? '; in this month they are an estimate (each sender split over the receivers by their share)'
-		: ''}. Foreign colonies appear once a migration treaty moves pops.
+		: ''}. Foreign colonies appear once a migration treaty moves pops. Resettlement among your
+	colonies is drawn in violet, apart from migration{resettling
+		? exactMoves
+			? ' — this month pair by pair, as the companion mod logged it'
+			: ' — from the save’s totals; the companion mod (0.16.0) logs each pair'
+		: ''}.
 </p>
 
 <div class="flex flex-col gap-8">
@@ -51,6 +79,7 @@
 		<FrameSlider
 			dates={data.frames.map((f) => f.date)}
 			bind:picked
+			{lanes}
 			label="month shown by the flow diagram and the map"
 		/>
 		<MigrationSankey flows={monthFlows} {colors} />

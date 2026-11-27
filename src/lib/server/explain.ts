@@ -140,8 +140,53 @@ export function loadExplanations(file: string): Explanations {
 				description: m.description,
 				modifiers: staticMods.get(m.key) ?? [],
 				text: m.tooltip,
-				facts: []
+				// flavour beside what comes with it (the Starship Graveyard beside its deposit)
+				facts: staticMods.has(m.key) || m.tooltip ? [] : ['no effect of its own']
 			};
+
+		// Grand Archive specimens (extractor 0.1.23): `specimen:<key>`, what it gives on display
+		if (
+			rows("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'specimen_resource'")
+				.length
+		) {
+			const specimenMods = grouped(
+				'SELECT specimen_key AS owner, modifier_key AS key, modifier_value AS value FROM specimen_modifier ORDER BY sort_order'
+			);
+			const conditional = new Set(
+				rows<{ specimen_key: string }>(
+					'SELECT DISTINCT specimen_key FROM specimen_modifier WHERE condition IS NOT NULL'
+				).map((r) => r.specimen_key)
+			);
+			const produces = new Map<string, string[]>();
+			for (const r of rows<{ specimen_key: string; resource: string; amount: number }>(
+				'SELECT specimen_key, resource, amount FROM specimen_resource ORDER BY sort_order'
+			))
+				produces.set(r.specimen_key, [
+					...(produces.get(r.specimen_key) ?? []),
+					`${r.amount > 0 ? '+' : ''}${r.amount} ${pretty(r.resource)} a month`
+				]);
+			for (const s of rows<{
+				key: string;
+				name: string | null;
+				category: string | null;
+				rarity: string | null;
+			}>('SELECT key, name, category, rarity FROM specimen'))
+				out[`specimen:${s.key}`] = {
+					title: s.name || pretty(s.key),
+					description: null,
+					modifiers: specimenMods.get(s.key) ?? [],
+					text: null,
+					facts: [
+						`specimen: ${[s.category, s.rarity]
+							.filter(Boolean)
+							.map((x) => pretty(x!))
+							.join(' · ')}`,
+						...(produces.get(s.key) ?? []),
+						...(conditional.has(s.key) ? ['some effects only under a condition'] : []),
+						'while on display in a Grand Archive exhibit'
+					]
+				};
+		}
 
 		// subject specialisation perks (extractor 0.1.16): what the subject and what the overlord get
 		if (

@@ -105,7 +105,8 @@ describe('hsv', () => {
 describe('parseMapMode', () => {
 	it('keeps a known mode, else empire', () => {
 		expect(parseMapMode('claims')).toBe('claims');
-		expect(parseMapMode('storms')).toBe('empire');
+		expect(parseMapMode('storms')).toBe('storms');
+		expect(parseMapMode('weather')).toBe('empire');
 	});
 });
 

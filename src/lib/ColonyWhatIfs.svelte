@@ -52,8 +52,9 @@
 					<WhatIfLine what={d.what} label={d.name} />{#if Math.abs(d.fee) >= 0.01}<span
 							class="text-xs {d.fee > 0 ? 'text-red-600' : 'text-green-600'}"
 							title="the deficit fee's change a month, from the output change alone"
-							>deficit fee {d.fee > 0 ? '+' : '−'}{fmt(Math.abs(d.fee))} trade</span
-						>{/if}
+						>
+							deficit fee {d.fee > 0 ? '+' : '−'}{fmt(Math.abs(d.fee))} trade
+						</span>{/if}
 				</div>
 			{/each}
 		{/if}
@@ -63,10 +64,14 @@
 				<div>
 					<WhatIfLine what={d.what} label={`${d.name}${d.possible === null ? ' (?)' : ''}`} /><span
 						class="text-xs text-gray-500"
-						>{`lasts: ${d.months ? `${fmt(d.months / 12)} years` : 'until ended'}`}</span
-					>{#if d.crime}<span class="ml-2 cursor-help text-xs text-gray-500" title={CRIME_NOTE}
-							>{`crime ${fmt(d.crime.now)}${Math.abs(d.crime.crimeWith - d.crime.crimeWithout) > 0.05 ? ` → ${fmt(d.crime.crimeWith)}` : ''}${d.crime.enforcersWith + d.crime.enforcersWithout >= 1 ? `, ${fmt(d.crime.enforcersWith / 100)} enforcer jobs hold it at ${CRIME_TARGET} instead of ${fmt(d.crime.enforcersWithout / 100)}` : ''}${d.crime.criminalsTaken >= 1 ? `, criminals take ${fmt(d.crime.criminalsTaken / 100)} jobs' workforce` : ''}`}</span
-						>{/if}
+					>
+						{`lasts: ${d.months ? `${fmt(d.months / 12)} years` : 'until ended'}`}
+					</span>{#if d.crime}<span
+							class="ml-2 cursor-help text-xs text-gray-500"
+							title={CRIME_NOTE}
+						>
+							{`crime ${fmt(d.crime.now)}${Math.abs(d.crime.crimeWith - d.crime.crimeWithout) > 0.05 ? ` → ${fmt(d.crime.crimeWith)}` : ''}${d.crime.enforcersWith + d.crime.enforcersWithout >= 1 ? `, ${fmt(d.crime.enforcersWith / 100)} enforcer jobs hold it at ${CRIME_TARGET} instead of ${fmt(d.crime.enforcersWithout / 100)}` : ''}${d.crime.criminalsTaken >= 1 ? `, criminals take ${fmt(d.crime.criminalsTaken / 100)} jobs' workforce` : ''}`}
+						</span>{/if}
 				</div>
 			{/each}
 			<div class="mt-1 text-xs text-gray-500">

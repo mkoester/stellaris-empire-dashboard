@@ -49,6 +49,24 @@ country_event = {
 		# effect as for the colonies' stability below (scopes include country).
 		export_modifier_to_variable = { modifier = country_edict_fund_add variable = sdash_ef_add }
 		export_modifier_to_variable = { modifier = country_edict_fund_mult variable = sdash_ef_mult }
+		# 0.16.0: what each country adds to the difficulty of first contact with it
+		# (first_contact_defense_add), which the game sums engine-side and does not save — the
+		# cautious protocol's +2 explained only 4 of 7 contacts (2228.04.09). Into each country's
+		# sdash_fcd (the save leaves a 0 out), read from the save only; sdash_fcd_on on ours says
+		# the export ran, so a missing sdash_fcd reads as 0. Modifier from 4.5.4 modifiers.log
+		# (Countries).
+		every_country = {
+			export_modifier_to_variable = { modifier = first_contact_defense_add variable = sdash_fcd }
+		}
+		set_variable = { which = sdash_fcd_on value = 1 }
+		# 0.15.0: the Grand Archive's output modifiers, which the game does not save — each
+		# exhibition's bonuses are × (1 + its category's + the general one). Into sdash_sp (general),
+		# sdash_sp_aw, sdash_sp_hi, sdash_sp_xg, read from the save only. Modifiers from 4.5.4
+		# modifiers.log (Economic Units).
+		export_modifier_to_variable = { modifier = specimens_produces_mult variable = sdash_sp }
+		export_modifier_to_variable = { modifier = aesthetic_wonder_specimens_produces_mult variable = sdash_sp_aw }
+		export_modifier_to_variable = { modifier = historical_item_specimens_produces_mult variable = sdash_sp_hi }
+		export_modifier_to_variable = { modifier = xeno_geology_specimens_produces_mult variable = sdash_sp_xg }
 		# 0.8.0: each colony's flat stability and stability multiplier — the game saves stability
 		# capped at 100, so how far above the cap a colony is shows nowhere else. Into the colony's
 		# sdash_stab_add / sdash_stab_mult, read from the save only (every_controlled_colony covers
@@ -201,6 +219,9 @@ country_event = {
 			if = {
 				limit = {
 					OR = {
+						# a colony's first month: no line logged yet (an unset _log variable is an
+						# error.log line per new colony, 4.6 throwaway game 2026-11-23)
+						NOT = { is_variable_set = sdash_fj_log }
 						NOT = { check_variable = { which = sdash_fj value = sdash_fj_log } }
 						NOT = { check_variable = { which = sdash_un value = sdash_un_log } }
 						NOT = { check_variable = { which = sdash_pp value = sdash_pp_log } }
@@ -541,6 +562,33 @@ pop_group_event = {
 		export_trigger_value_to_variable = { trigger = pop_group_size variable = sdash_ss_tmp }
 		From = { set_variable = { which = sdash_ss value = prev.sdash_ss_tmp } }
 		log = "SDASH|2|[GetDate]|event|slave-sold|[Root.GetSpeciesName]|[From.sdash_ss]|[From.GetName]|[FromFrom.GetName]"
+	}
+}
+
+# 0.16.0: our pops resettled (on_pop_group_resettled): from, to, how many, species — the pairs
+# the save does not have (it holds each colony's signed total, GROWTH_CAT_RESETTLE). Both ends by
+# their carrier, a planet or an arkship, saved as event targets so loc prints their names; the
+# amount (`local_pop_amount`, as vanilla's refugees.4 reads it) through our country's variable
+# sdash_rs, since loc reaches country variables (as sdash.30). Also fires for resettlement an
+# event does (bio.751's resettle_pop_group), not only the player's.
+pop_group_event = {
+	id = sdash.31
+	hide_window = yes
+	is_triggered_only = yes
+
+	trigger = {
+		owner = { is_ai = no }
+	}
+
+	immediate = {
+		set_variable = { which = sdash_rs_tmp value = local_pop_amount }
+		owner = {
+			set_variable = { which = sdash_rs value = prev.sdash_rs_tmp }
+			save_event_target_as = sdash_rs_owner
+		}
+		colony = { carrier = { save_event_target_as = sdash_rs_to } }
+		From = { carrier = { save_event_target_as = sdash_rs_from } }
+		log = "SDASH|2|[GetDate]|event|resettled|[sdash_rs_from.GetName]|[sdash_rs_to.GetName]|[sdash_rs_owner.sdash_rs]|[Root.GetSpeciesName]"
 	}
 }
 

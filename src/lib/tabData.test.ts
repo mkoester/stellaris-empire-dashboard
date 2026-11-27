@@ -22,12 +22,14 @@ const blank = (over: Partial<Snapshot> = {}) =>
 		digSites: [],
 		traditions: [],
 		slaveMarket: [],
+		progress: { researched: [] },
 		...over
 	}) as Snapshot;
 
 describe('emptyTabs', () => {
 	it('dims every tab without data', () => {
 		expect(Object.keys(emptyTabs([blank()])).sort()).toEqual([
+			'archive',
 			'contracts',
 			'diplomacy',
 			'frontier',
@@ -61,6 +63,13 @@ describe('emptyTabs', () => {
 			});
 		expect(emptyTabs([nomad(true)]).contracts).toBeUndefined();
 		expect(emptyTabs([nomad(false)]).contracts).toBeDefined();
+		// an offer the game does not show us for lack of a tech dims the tab like the page
+		const gated = {
+			contract_x: { offerTechs: [['tech_planetary_engineering']] }
+		} as unknown as Parameters<typeof emptyTabs>[1];
+		const x = { ...offer, key: 'contract_x' };
+		const nomadX = { ...nomad(true), contracts: [x] as unknown as Snapshot['contracts'] };
+		expect(emptyTabs([nomadX], gated).contracts).toBeDefined();
 		// a settled empire is offered nothing: another empire's offer stays behind the spoiler
 		const settled = blank({
 			contracts: [offer] as unknown as Snapshot['contracts'],
@@ -110,6 +119,16 @@ describe('emptyTabs', () => {
 		);
 		expect(emptyTabs([blank({ relations: null })])).not.toHaveProperty('diplomacy');
 		expect(emptyTabs([])).toEqual({});
+	});
+});
+
+describe('archive tab', () => {
+	it('is dimmed until Galactic Archivism is researched', () => {
+		const researched = (techs: string[]) =>
+			blank({ progress: { researched: techs } as Snapshot['progress'] });
+		expect(emptyTabs([researched(['tech_lasers_1'])]).archive).toMatch(/Galactic Archivism/);
+		expect(emptyTabs([researched(['tech_galactic_archivism'])]).archive).toBeUndefined();
+		expect(emptyTabs([blank({ progress: null })])).not.toHaveProperty('archive');
 	});
 });
 

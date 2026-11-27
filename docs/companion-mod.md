@@ -27,6 +27,7 @@ shows format 2.
 | `event\|<spending kind>\|<colony, leader, planet or system>` (0.3.0)      | at once                                                       | queued/cancelled, edict, decision, … (`#lib/spending.ts`)                                                                         |
 | `event\|multiplayer` (0.11.0)                                             | monthly                                                       | `is_multiplayer` holds (see `docs/no-cheats.md`)                                                                                  |
 | `event\|slave-sold\|<species>\|<pops>\|<buyer>\|<seller>` (0.12.0)        | each sale, galaxy-wide                                        | `on_slave_sold_on_market` (This = pop group, From = buyer, FromFrom = seller)                                                     |
+| `event\|resettled\|<from>\|<to>\|<pops>\|<species>` (0.16.0)              | each resettlement of our pops                                 | `on_pop_group_resettled` (This = pop group, From = previous colony); `/migration`'s exact resettle pairs                          |
 | `event\|tech-option\|<tech>` × n, then `event\|tech-options-end` (0.13.0) | the 2nd of each month, and the day after a tech is researched | `sdash.6`, scheduled a day ahead by `sdash.1` and `sdash.7` (`on_tech_increased`), once a day at most (format 3: with the run id) |
 
 - **Diplomatic weight** (0.4.0): no log line — each month the player's event exports every
@@ -53,6 +54,18 @@ shows format 2.
   (country variables), read as `Snapshot.edictFund` (READER 65). The edict what-ifs charge unity
   upkeep only beyond the fund's room (`#lib/edictFund.ts`); without the mod the fund is ≈, a lower
   bound from what the empire holds. In game: `docs/open-checks.md` 40.
+- **First contact difficulty** (0.16.0, the user's report 2026-11-22): no log line — each month
+  every country's `first_contact_defense_add` (the engine's sum; 2228.06.01 it read exactly the
+  cautious protocol's +2) into its `sdash_fcd`, and `sdash_fcd_on` on ours so a 0 the save leaves
+  out reads as 0. Part of `FirstContact.defense` with `defenseExact` (READER 77), beside the
+  xenophobe +2 the save tells anyway; without the export the protocol's +2, marked ≈. In game:
+  `docs/open-checks.md` 43.
+- **Specimens Output** (0.15.0, the archive tab 2026-11-21): no log line — each month
+  `export_modifier_to_variable` exports our `specimens_produces_mult` and the three
+  `<category>_specimens_produces_mult` (4.5.4 modifiers.log, Economic Units) into `sdash_sp`,
+  `sdash_sp_aw`, `sdash_sp_hi`, `sdash_sp_xg` (country variables), read as
+  `ArchiveHolding.mults` = 1 + general + category (READER 73). Without them each exhibition counts
+  ×1, marked ≈. In game: `docs/open-points.md`, Specimens.
 - **Research options** (0.13.0, the user's ask 2026-11-16: "check on every 2nd of a month which
   tech options are available"): the monthly `sdash.1` schedules `sdash.6` a day ahead, and so does
   `sdash.7` on `on_tech_increased` — a field draws its new cards when one of its techs is researched

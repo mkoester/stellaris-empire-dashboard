@@ -29,8 +29,8 @@ export type EthicRow = {
 	dropped: boolean; // the one we would lose by embracing a faction of an ethic we do not hold
 };
 
-/** The regular ethic of a governing ethic (`ethic_fanatic_x` → `ethic_x`). */
-export const regular = (ethic: string) => ethic.replace('ethic_fanatic_', 'ethic_');
+/** The regular ethic of a governing ethic (`ethic_fanatic_x`, `ethic_absolute_x` → `ethic_x`). */
+export const regular = (ethic: string) => ethic.replace(/^ethic_(fanatic|absolute)_/, 'ethic_');
 
 /** One row per ethic our pops hold or are drawn to, the strongest pull first. */
 export function ethicRows(e: EthicsState, order: string[], government: string[]): EthicRow[] {
@@ -44,7 +44,8 @@ export function ethicRows(e: EthicsState, order: string[], government: string[])
 	const [popTotal, pullTotal] = [total(pops), total(attraction)];
 	const keys = [...new Set([...Object.keys(pops), ...Object.keys(attraction), ...held])];
 	// a fanatic ethic is demoted to free the point; otherwise the weakest held ethic goes
-	const lowest = ours.some((k) => k.startsWith('ethic_fanatic_'))
+	// (an absolute ethic holds all three points: no weakest one either)
+	const lowest = ours.some((k) => k.startsWith('ethic_fanatic_') || k.startsWith('ethic_absolute_'))
 		? null
 		: (held
 				.filter((k) => keys.includes(k))
@@ -62,6 +63,27 @@ export function ethicRows(e: EthicsState, order: string[], government: string[])
 			dropped: held.length > 1 && key === lowest
 		}))
 		.sort((a, b) => b.attraction - a.attraction || b.share - a.share);
+}
+
+// the axes in the game's order (authority, xenophobia, militarism, spirituality), gestalt last
+const AXES = ['col', 'xen', 'mil', 'spi', 'hive'];
+
+/**
+ * The rows grouped by axis, each from one pole to the other (absolute, fanatic, regular, then
+ * regular, fanatic, absolute), leaving out the ethics no pop holds or is drawn to. `axes`: ethic
+ * key → its place on its axis; an ethic without one goes last.
+ */
+export function byAxis(
+	rows: EthicRow[],
+	axes: Record<string, { axis: string; pos: number }>
+): EthicRow[] {
+	const rank = (k: string) => {
+		const i = AXES.indexOf(axes[k]?.axis ?? '');
+		return i < 0 ? AXES.length : i;
+	};
+	return rows
+		.filter((r) => r.pops > 0 || r.attraction > 0)
+		.sort((a, b) => rank(a.key) - rank(b.key) || (axes[a.key]?.pos ?? 0) - (axes[b.key]?.pos ?? 0));
 }
 
 /**

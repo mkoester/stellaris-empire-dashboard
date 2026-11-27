@@ -166,8 +166,9 @@
 				: 'font-normal'}"
 			style:color
 			onclick={() => onSort(id)}
-			>{label}{#if view.sort.column === id}{view.sort.desc ? ' ▼' : ' ▲'}{/if}</button
 		>
+			{label}{#if view.sort.column === id}{view.sort.desc ? ' ▼' : ' ▲'}{/if}
+		</button>
 	</th>
 {/snippet}
 
@@ -178,8 +179,8 @@
 	onchange: (v: string) => void,
 	any = 'any'
 )}
-	<label
-		>{label}
+	<label>
+		{label}
 		<select
 			class="rounded border border-gray-300 bg-transparent dark:border-gray-700"
 			{value}
@@ -187,8 +188,8 @@
 		>
 			{#if any}<option value="">{any}</option>{/if}
 			{#each options as [v, l] (v)}<option value={v}>{l}</option>{/each}
-		</select></label
-	>
+		</select>
+	</label>
 {/snippet}
 
 <Panel
@@ -205,25 +206,25 @@
 		)}
 		{@render select('class', view.cls, classes, (v) => set('cls', v))}
 		<details class="relative">
-			<summary class="cursor-pointer"
-				>has district{#if view.districts.length}:
-					{#each view.districts as d, i (d)}{i ? ' + ' : ''}<span style:color={districtColor(d)}
-							>{short(d)}</span
-						>{/each}{:else}
-					any{/if}</summary
-			>
+			<summary class="cursor-pointer">
+				has district{#if view.districts.length}:
+					{#each view.districts as d, i (d)}{i ? ' + ' : ''}<span style:color={districtColor(d)}>
+							{short(d)}
+						</span>{/each}{:else}
+					any{/if}
+			</summary>
 			<div
 				class="absolute z-40 mt-1 grid w-48 gap-0.5 rounded border border-gray-300 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900"
 			>
 				{#each types as d (d)}
-					<label
-						><input
+					<label>
+						<input
 							type="checkbox"
 							checked={view.districts.includes(d)}
 							onchange={(e) => toggleDistrict(d, e.currentTarget.checked)}
 						/>
-						<span style:color={districtColor(d)}>{short(d)}</span></label
-					>
+						<span style:color={districtColor(d)}>{short(d)}</span>
+					</label>
 				{/each}
 				<span class="text-xs text-gray-500">all of those picked</span>
 			</div>
@@ -237,33 +238,34 @@
 				''
 			)}
 		{/if}
-		<label
-			><input
+		<label>
+			<input
 				type="checkbox"
 				checked={view.candidates}
 				onchange={(e) => set('candidates', e.currentTarget.checked)}
 			/>
-			terraforming candidates ({counts.candidates})</label
-		>
+			terraforming candidates ({counts.candidates})
+		</label>
 		{#if !canDetox}
 			<label
 				title="toxic worlds need the Detox perk or the Toxic Knights origin, and Climate Restoration"
-				><input
+			>
+				<input
 					type="checkbox"
 					checked={view.toxic}
 					onchange={(e) => set('toxic', e.currentTarget.checked)}
 				/>
-				toxic ({counts.toxic})</label
-			>
+				toxic ({counts.toxic})
+			</label>
 		{/if}
-		<label
-			><input
+		<label>
+			<input
 				type="checkbox"
 				checked={view.all}
 				onchange={(e) => set('all', e.currentTarget.checked)}
 			/>
-			other uncolonizable ({counts.rest})</label
-		>
+			other uncolonizable ({counts.rest})
+		</label>
 		<span class="text-gray-500">{shown.length} of {planets.length}</span>
 	</div>
 	{#if shown.length === 0}
@@ -321,9 +323,9 @@
 						<td class="p-1">{p.system}</td>
 						<td class="p-1 text-right">{p.jumps ?? '–'}</td>
 						<td class="p-1 text-right">{p.shipyard ?? '–'}</td>
-						<td class="p-1 text-right" title={via(p)}
-							>{p.beyond == null ? '–' : `+${p.beyond}`}{#if p.via?.length}*{/if}</td
-						>
+						<td class="p-1 text-right" title={via(p)}>
+							{p.beyond == null ? '–' : `+${p.beyond}`}{#if p.via?.length}*{/if}
+						</td>
 						{#each types as d (d)}
 							{@const c = capOf(p, d)}
 							<td
@@ -332,26 +334,29 @@
 									? `${c.now} now, ${c.after} once blockers are cleared`
 									: ''}
 							>
-								{#if c}<span style:color={districtColor(d)}>{c.after}</span
-									>{#if c.now !== c.after}<span class="text-xs text-gray-500">
-											({c.now})</span
-										>{/if}{/if}
+								{#if c}<span style:color={districtColor(d)}>
+										{c.after}
+									</span>{#if c.now !== c.after}<span class="text-xs text-gray-500">
+											({c.now})
+										</span>{/if}{/if}
 							</td>
 						{/each}
 						<td class="p-1 text-right tabular-nums">
 							{caps?.limitCleared ?? '–'}{#if caps && caps.limit !== caps.limitCleared}<span
 									class="text-xs text-gray-500"
 								>
-									({caps.limit})</span
-								>{/if}
+									({caps.limit})
+								</span>{/if}
 						</td>
 						<td class="p-1 text-right">{blockersOf(p) || ''}</td>
 						<td class="p-1 text-xs">
 							{#if compact}
 								{#each sources(p) as [source, effects], i (source)}{i ? ', ' : ''}<span
 										class="cursor-help underline decoration-dotted underline-offset-2"
-										title={effects.join('\n')}>{source}</span
-									>{/each}
+										title={effects.join('\n')}
+									>
+										{source}
+									</span>{/each}
 							{:else}
 								<span class="flex flex-wrap gap-1">
 									{#each p.effects.pros as t, i (i)}<TraitChip {t} pro />{/each}
@@ -383,8 +388,8 @@
 			are capped by the system's surveyed orbital deposits.
 		</p>
 		<div class="mb-2 flex flex-wrap items-center gap-x-4 text-sm">
-			<label
-				>min size
+			<label>
+				min size
 				<input
 					class="w-14 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 					type="number"
@@ -393,11 +398,11 @@
 					value={view.habitatMin}
 					onchange={(e) =>
 						set('habitatMin', Math.max(0, Math.floor(Number(e.currentTarget.value) || 0)))}
-				/></label
-			>
-			<span class="text-gray-500"
-				>{sites.length} of {habitats.rows.length} systems, range as above</span
-			>
+				/>
+			</label>
+			<span class="text-gray-500">
+				{sites.length} of {habitats.rows.length} systems, range as above
+			</span>
 		</div>
 		{#if sites.length}
 			<table class="text-left text-sm">
@@ -412,10 +417,11 @@
 										: 'font-normal'}"
 									style:color
 									onclick={() => onSortHabitats(id)}
-									>{label}{#if view.habitatSort.column === id}{view.habitatSort.desc
-											? ' ▼'
-											: ' ▲'}{/if}</button
 								>
+									{label}{#if view.habitatSort.column === id}{view.habitatSort.desc
+											? ' ▼'
+											: ' ▲'}{/if}
+								</button>
 							</th>
 						{/snippet}
 						{@render hhead('system', 'System', '', false)}
@@ -450,13 +456,14 @@
 								title={r.via.length
 									? `via ${[...new Set(r.via)].map((v) => pretty(v)).join(', ')}`
 									: ''}
-								>{r.beyond === null ? '–' : `+${r.beyond}`}{#if r.via.length}*{/if}</td
 							>
+								{r.beyond === null ? '–' : `+${r.beyond}`}{#if r.via.length}*{/if}
+							</td>
 							<td class="p-1 text-right tabular-nums">{r.limit}</td>
 							{#each HABITAT_DISTRICTS as d (d)}
-								<td class="p-1 text-right tabular-nums" style:color={habitats.colors[d]}
-									>{r.caps[d] || ''}</td
-								>
+								<td class="p-1 text-right tabular-nums" style:color={habitats.colors[d]}>
+									{r.caps[d] || ''}
+								</td>
 							{/each}
 							<td class="p-1 text-right">{r.major}</td>
 							<td class="p-1 text-right">{r.minor}</td>

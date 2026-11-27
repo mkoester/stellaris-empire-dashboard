@@ -17,12 +17,16 @@
 		terms,
 		wantPrice
 	} from '#lib/aiTrade.ts';
+	import { CATEGORIES, givesKinds, RARITY_TONE } from '#lib/archive.ts';
 	import { colorOf, gainColor, scaleColor } from '#lib/colors.ts';
 	import { fmt, pretty } from '#lib/format.ts';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
 	import EmpireName from '#lib/EmpireName.svelte';
 	import SortTable from '#lib/SortTable.svelte';
+	import SpecimenFilter from '#lib/SpecimenFilter.svelte';
+	import SpecimenGives from '#lib/SpecimenGives.svelte';
+	import { modifierLabel } from '#lib/modifiers.ts';
 	import type { Column } from '#lib/sort.ts';
 
 	let { data } = $props();
@@ -422,21 +426,112 @@
 		},
 		{ id: 'deal', label: 'Our deal', value: (x) => x.running?.perMonth ?? null, cell: deal }
 	];
+
+	// Specimens (the `specimenTrade` spoiler): theirs with our price, ours with their bid, in trade
+	type TheirSpecimen = NonNullable<typeof data.specimens>['theirs'][number];
+	type OurSpecimen = NonNullable<typeof data.specimens>['ours'][number];
+	const tradeFmt = (v: number | null) => (v === null ? '–' : `≈ ${v.toFixed(2)}`);
+	type Gives = Pick<TheirSpecimen, 'bonuses' | 'produces'>;
+	// the bonus filter over both lists: specimens giving none of the kinds picked are left out
+	let specimenKinds: string[] = $state([]);
+	const presentSpecimenKinds = $derived([
+		...new Set(
+			[...(data.specimens?.theirs ?? []), ...(data.specimens?.ours ?? [])].flatMap((r) =>
+				givesKinds(r)
+			)
+		)
+	]);
+	const specimenShown = (r: Gives) =>
+		!specimenKinds.length || givesKinds(r).some((k) => specimenKinds.includes(k));
+	// sorted by its first line
+	const givesColumn = {
+		id: 'gives',
+		label: 'Gives us',
+		value: (r: Gives) =>
+			r.bonuses.map((b) => modifierLabel(b)).join(', ') || Object.keys(r.produces).join(', '),
+		cell: givesCell,
+		title: 'exhibited and active, × our exhibition’s output'
+	};
+	const theirSpecimenColumns: Column<TheirSpecimen>[] = [
+		{ id: 'empire', label: 'Empire', value: (r) => r.empire },
+		{ id: 'name', label: 'Specimen', value: (r) => r.name, cell: specimenName },
+		givesColumn,
+		{
+			id: 'willing',
+			label: 'Willing?',
+			value: (r) => (r.refused.length ? 0 : 1),
+			cell: willingCell,
+			title:
+				'whether they would trade it at the price: not with an attitude that trades nothing (their opinion of us does not matter)'
+		},
+		{
+			id: 'price',
+			label: 'Price (trade)',
+			value: (r) => r.priceTrade,
+			cell: specimenPrice,
+			right: true,
+			title:
+				'≈ what we would have to offer, in trade: its worth to them (sell value × 1.3) ÷ their willingness. Not calibrated against the trade screen yet.'
+		}
+	];
+	const ourSpecimenColumns: Column<OurSpecimen>[] = [
+		{ id: 'empire', label: 'Empire', value: (r) => r.empire },
+		{ id: 'name', label: 'Our specimen', value: (r) => r.name, cell: specimenName },
+		givesColumn,
+		{
+			id: 'bid',
+			label: 'They pay (trade)',
+			value: (r) => (r.refused.length ? -1 : r.bidTrade),
+			cell: bidCell,
+			right: true,
+			title:
+				'≈ what they would give for it at most, in trade: its worth to them (sell value × 1.3, × 1.25 if it fills their exhibition of it) × their willingness. "gift only": an attitude that gives nothing pays nothing, but takes it as a gift.'
+		}
+	];
 </script>
+
+{#snippet specimenName(r: {
+	name: string;
+	rarity: string;
+	blocked: string[];
+	exhibited: boolean;
+})}<span
+		class={r.blocked.length ? 'text-gray-400' : (RARITY_TONE[r.rarity] ?? '')}
+		title={`${r.rarity}, ${r.blocked.length ? `not now: ${r.blocked.join('; ')}` : r.exhibited ? 'exhibited' : 'in storage'}`}
+	>
+		{r.name}{r.blocked.length ? ' ⊘' : ''}
+	</span>{/snippet}
+{#snippet specimenPrice(r: TheirSpecimen)}<span class="tabular-nums">
+		{tradeFmt(r.priceTrade)}
+	</span>{/snippet}
+{#snippet willingCell(r: { refused: string[] })}<span
+		class={r.refused.length ? 'text-red-600' : 'text-green-600'}
+		title={r.refused.length ? r.refused.join('; ') : 'nothing known stops them'}
+	>
+		{r.refused.length ? 'refuses' : 'yes ≈'}
+	</span>{/snippet}
+{#snippet givesCell(r: Gives)}<SpecimenGives bonuses={r.bonuses} produces={r.produces} />{/snippet}
+{#snippet bidCell(r: OurSpecimen)}{#if r.refused.length}<span
+			class="text-gray-500"
+			title={`${r.refused.join('; ')}: it pays nothing, but takes it as a gift (the Backattan Empire, Suspicious, 2026-11-21)`}
+		>
+			gift only
+		</span>{:else}<span class="tabular-nums">{tradeFmt(r.bidTrade)}</span>{/if}{/snippet}
 
 {#snippet enclaveName(x: EnclaveRow)}<EmpireName
 		name={x.name}
 		bold={false}
 		kind="enclaves"
 	/>{/snippet}
-{#snippet sells(x: EnclaveRow)}<span style:color={colorOf(x.resource)}>{resName(x.resource)}</span
-	>{/snippet}
+{#snippet sells(x: EnclaveRow)}<span style:color={colorOf(x.resource)}>
+		{resName(x.resource)}
+	</span>{/snippet}
 {#snippet energyPer()}{fmt(enclaveUnitCost())}{/snippet}
 {#snippet tradePer(x: EnclaveRow)}{@const pay = enclavePay(x, x.resource)}{@const buy = marketPay(
 		x.resource
-	)}<span class={pay !== null && buy !== null && pay < buy ? 'text-green-600' : ''}
-		>{pay === null ? '–' : fmt(pay)}</span
-	>{/snippet}
+	)}<span class={pay !== null && buy !== null && pay < buy ? 'text-green-600' : ''}>
+		{pay === null ? '–' : fmt(pay)}
+	</span>{/snippet}
 {#snippet marketAt(x: EnclaveRow)}{@const buy = marketPay(x.resource)}{buy === null
 		? '–'
 		: fmt(buy)}{/snippet}
@@ -456,17 +551,17 @@
 	<span style:color={tint(w, willingSpan)}>{w ?? '?'}</span>
 {/snippet}
 {#snippet priceWilling(p: PriceRow)}
-	{#if p.willing !== undefined}<span style:color={tint(p.willing, willingSpan)}
-			>{p.willing ?? '?'}</span
-		>{/if}
+	{#if p.willing !== undefined}<span style:color={tint(p.willing, willingSpan)}>
+			{p.willing ?? '?'}
+		</span>{/if}
 {/snippet}
 {#snippet attitude(e: Empire)}
 	{@const t = termsOf(e)}
-	<span class={t.trades ? '' : 'text-red-600'}
-		>{e.attitude ? (data.attitudes[e.attitude]?.name ?? pretty(e.attitude)) : '–'}{t.trades
+	<span class={t.trades ? '' : 'text-red-600'}>
+		{e.attitude ? (data.attitudes[e.attitude]?.name ?? pretty(e.attitude)) : '–'}{t.trades
 			? ''
-			: ' — no trades'}</span
-	>
+			: ' — no trades'}
+	</span>
 {/snippet}
 {#snippet opinion(e: Empire)}
 	<span style:color={tint(e.opinion, opinionSpan)}>{e.opinion ?? '–'}</span>
@@ -483,22 +578,22 @@
 	{@const t = canGive(r, data.weNomadic)
 		? tone(v, giftScales.get(e.countryId) ?? null)
 		: { cls: '', color: null }}
-	<span class={v === 0 ? 'text-gray-400' : t.cls} style:color={t.color}
-		>{v === null ? '–' : `+${fmt(v)}`}</span
-	>
+	<span class={v === 0 ? 'text-gray-400' : t.cls} style:color={t.color}>
+		{v === null ? '–' : `+${fmt(v)}`}
+	</span>
 {/snippet}
 {#snippet opinionFrom(e: Empire)}
-	<span class="text-xs"
-		>{e.opinionModifiers
+	<span class="text-xs">
+		{e.opinionModifiers
 			.map((m) => `${modifierName(m.key)} ${m.value > 0 ? '+' : ''}${fmt(m.value)}`)
-			.join(' · ')}</span
-	>
+			.join(' · ')}
+	</span>
 {/snippet}
 {#snippet offerRate(o: Offer)}{fmt(o.r)}{/snippet}
 {#snippet vsMarket(o: Offer)}
-	<span class={market !== null && o.r > market ? 'text-green-600' : ''}
-		>{market ? `${fmt(o.r / market)} ×` : ''}</span
-	>
+	<span class={market !== null && o.r > market ? 'text-green-600' : ''}>
+		{market ? `${fmt(o.r / market)} ×` : ''}
+	</span>
 {/snippet}
 {#snippet offerTakes(o: Offer)}<span
 		title="at worth: up to {Math.round(
@@ -506,14 +601,17 @@
 		)} % of their storage — more counts nothing ({o.takesExact
 			? 'their storage, stored by companion mod 0.5.0'
 			: '≈ their base storage, fallen empires +120,000; silos and techs unknown without companion mod 0.5.0'})"
-		>{o.takes === null ? '–' : `${o.takesExact ? '' : '≈'}${fmt(o.takes)}`}</span
-	>{/snippet}
+	>
+		{o.takes === null ? '–' : `${o.takesExact ? '' : '≈'}${fmt(o.takes)}`}
+	</span>{/snippet}
 {#snippet offerSpare(o: Offer)}{o.spare === null ? '–' : fmt(o.spare)}{/snippet}
 {#snippet monthlyPerMonth(o: MonthlyRow)}<span
 		title={o.capped
 			? `their cap: ${Math.round(data.model.monthlyShare * 100)} % of their gross income of it — the lump buys more`
-			: ''}>{fmt(o.perMonth)}{o.capped ? ' (cap)' : ''}</span
-	>{/snippet}
+			: ''}
+	>
+		{fmt(o.perMonth)}{o.capped ? ' (cap)' : ''}
+	</span>{/snippet}
 {#snippet monthlyTotal(o: MonthlyRow)}{fmt(o.total)}{/snippet}
 {#snippet monthlyVsMarket(o: MonthlyRow)}
 	{@const x = market ? o.total / (lump * market) : null}
@@ -522,20 +620,25 @@
 {#snippet monthlySafe(o: MonthlyRow)}
 	{#if o.monthsLeft === null}<span
 			class="text-green-600"
-			title="their net income of it after paying">yes, net {fmt(o.netAfter)}/month left</span
-		>{:else}<span
+			title="their net income of it after paying"
+		>
+			yes, net {fmt(o.netAfter)}/month left
+		</span>{:else}<span
 			class={o.monthsLeft < years * 12 ? 'text-red-600' : ''}
 			title="paying puts them at {fmt(
 				o.netAfter
 			)}/month; the deal breaks when they cannot afford it"
-			>stockpile lasts {fmt(o.monthsLeft)} months</span
-		>{/if}
+		>
+			stockpile lasts {fmt(o.monthsLeft)} months
+		</span>{/if}
 {/snippet}
 {#snippet offerPerMonth(o: Offer)}<span
 		title={o.perMonth === null
 			? 'read before the dashboard knew their gross income: the next save tells'
-			: ''}>{o.perMonth === null ? '?' : fmt(o.perMonth)}</span
-	>{/snippet}
+			: ''}
+	>
+		{o.perMonth === null ? '?' : fmt(o.perMonth)}
+	</span>{/snippet}
 {#snippet priceCell(p: PriceRow, r: string)}
 	{@const x = p.prices[r]}
 	{@const pay = p.market ? null : tone(x.pay === null ? null : -x.pay, priceScales[r].pay)}
@@ -544,22 +647,27 @@
 	{#if priceMode !== 'offer'}<span
 			class={pay?.cls}
 			style:color={pay?.color}
-			title="trade we pay per {resName(r)}">{x.pay === null ? '–' : fmt(x.pay)}</span
-		>{/if}{#if priceMode === 'both'}<span class="text-gray-400">
+			title="trade we pay per {resName(r)}"
+		>
+			{x.pay === null ? '–' : fmt(x.pay)}
+		</span>{/if}{#if priceMode === 'both'}<span class="text-gray-400">
 			/
 		</span>{/if}{#if priceMode !== 'want'}<span
 			class="{receive?.cls ?? ''} {noGive && priceMode === 'both' ? 'opacity-40' : ''}"
 			style:color={receive?.color}
-			title="trade we receive per {resName(r)}">{x.receive === null ? '–' : fmt(x.receive)}</span
-		>{/if}
+			title="trade we receive per {resName(r)}"
+		>
+			{x.receive === null ? '–' : fmt(x.receive)}
+		</span>{/if}
 {/snippet}
 {#snippet needCell(e: Empire, r: string)}
 	{@const s = stance(r, e, data.resourceInfo, data.model)}
 	<span
 		class={s === 'needs' ? 'text-red-600' : s === 'plenty' ? 'text-green-600' : ''}
 		title="net {fmt(e.net[r] ?? 0)}/month"
-		>{s === 'needs' ? '↑ ' : s === 'plenty' ? '↓ ' : ''}{fmt(e.stockpile[r] ?? 0)}</span
 	>
+		{s === 'needs' ? '↑ ' : s === 'plenty' ? '↓ ' : ''}{fmt(e.stockpile[r] ?? 0)}
+	</span>
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -615,22 +723,22 @@
 				)} % of their gross income of it a month (measured). Trader enclaves take energy only."
 			>
 				<div class="mb-3 flex flex-wrap items-center gap-3 text-sm">
-					<label
-						>we give <select
+					<label>
+						we give <select
 							class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 							bind:value={give}
 						>
 							{#each giveable as r (r)}<option value={r}>{resName(r)}</option>{/each}
-						</select></label
-					>
-					<label
-						>for <select
+						</select>
+					</label>
+					<label>
+						for <select
 							class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 							bind:value={get}
 						>
 							{#each data.tradable as r (r)}<option value={r}>{resName(r)}</option>{/each}
-						</select></label
-					>
+						</select>
+					</label>
 					<select
 						class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 						bind:value={dealMode}
@@ -639,29 +747,27 @@
 						<option value="monthly">we pay once, they pay monthly</option>
 					</select>
 					{#if dealMode === 'monthly'}
-						<label
-							><input
+						<label>
+							<input
 								type="number"
 								min="1"
 								step="100"
 								class="w-20 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 								bind:value={lump}
-							/> at once</label
-						>
-						<label
-							>for <select
+							/> at once
+						</label>
+						<label>
+							for <select
 								class="rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 								bind:value={years}
 							>
 								{#each [10, 15, 20, 25, 30] as y (y)}<option value={y}>{y}</option>{/each}
-							</select> years</label
-						>
+							</select> years
+						</label>
 					{/if}
-					<span class="text-gray-500"
-						>market: {market === null
-							? '–'
-							: `${fmt(market)} ${resName(get)} per ${resName(give)}`}</span
-					>
+					<span class="text-gray-500">
+						market: {market === null ? '–' : `${fmt(market)} ${resName(get)} per ${resName(give)}`}
+					</span>
 				</div>
 				{#if dealMode === 'monthly'}
 					<p class="mb-2 text-sm text-gray-500">
@@ -703,8 +809,10 @@
 							mode
 								? 'bg-gray-200 dark:bg-gray-800'
 								: ''}"
-							onclick={() => (priceMode = mode as typeof priceMode)}>{label}</button
+							onclick={() => (priceMode = mode as typeof priceMode)}
 						>
+							{label}
+						</button>
 					{/each}
 				</div>
 				<div class="overflow-x-auto">
@@ -735,8 +843,10 @@
 							mode
 								? 'bg-gray-200 dark:bg-gray-800'
 								: ''}"
-							onclick={() => (giftPer = mode as typeof giftPer)}>{label}</button
+							onclick={() => (giftPer = mode as typeof giftPer)}
 						>
+							{label}
+						</button>
 					{/each}
 				</div>
 				<div class="overflow-x-auto">
@@ -747,6 +857,80 @@
 						bind:sort={giftSort}
 					/>
 				</div>
+			</Panel>
+		{/if}
+
+		{#if !data.specimens}
+			<p class="text-sm text-gray-500">
+				Which Grand Archive specimens each empire would trade you, and for how much, the game shows
+				one empire at a time in its trade screen — switch on "Trade: the specimens each empire would
+				trade you" in ⚙ (spoiler).
+			</p>
+		{:else}
+			<Panel
+				title="Specimens"
+				note="Each exhibition: on the left every specimen of each empire we can trade with that its trade screen lists{data.specimenTradeAll
+					? ' (greyed with ⊘ those no deal can get now, hover for why)'
+					: ''} — not one we have already, not for 10 years after either side traded a specimen; on the right ours, by what each empire would pay at most — more where its exhibition of the kind is one short of full (× 1.25). Willing (theirs): not with an attitude that gives nothing — such an empire takes ours only as a gift; fallen empires trade no specimens. Estimates (≈): the defines' trade value and the personality's willingness, not yet checked against the trade screen."
+			>
+				{#if !data.specimens.known}
+					<p class="text-sm text-gray-500">
+						No save with the archives read yet; it fills after the next save.
+					</p>
+				{:else}
+					<SpecimenFilter
+						kinds={data.specimens.kinds}
+						present={presentSpecimenKinds}
+						bind:selected={specimenKinds}
+					/>
+					{#each CATEGORIES as c (c.key)}
+						{@const theirs = data.specimens.theirs.filter(
+							(r) => r.category === c.name && specimenShown(r)
+						)}
+						{@const ours = data.specimens.ours.filter(
+							(r) => r.category === c.name && specimenShown(r)
+						)}
+						<h3 class="mt-4 mb-1 font-semibold first:mt-0">{c.name}</h3>
+						<div class="grid gap-x-6 gap-y-2 xl:grid-cols-2">
+							<div>
+								<h4 class="mb-1 text-sm text-gray-500">They would trade us</h4>
+								{#if theirs.length}
+									<div class="overflow-x-auto text-sm">
+										<SortTable
+											rows={theirs}
+											columns={theirSpecimenColumns}
+											key={(r) => r.id}
+											sort={{ column: 'price', desc: false }}
+										/>
+									</div>
+								{:else}
+									<p class="text-sm text-gray-500">
+										{specimenKinds.length ? 'None with that bonus.' : 'None on offer now.'}
+									</p>
+								{/if}
+							</div>
+							<div>
+								<h4 class="mb-1 text-sm text-gray-500">Ours they want most</h4>
+								{#if ours.length}
+									<div class="overflow-x-auto text-sm">
+										<SortTable
+											rows={ours}
+											columns={ourSpecimenColumns}
+											key={(r) => r.id}
+											sort={{ column: 'bid', desc: true }}
+										/>
+									</div>
+								{:else}
+									<p class="text-sm text-gray-500">
+										{specimenKinds.length
+											? 'None with that bonus.'
+											: 'None of ours they would take now.'}
+									</p>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				{/if}
 			</Panel>
 		{/if}
 

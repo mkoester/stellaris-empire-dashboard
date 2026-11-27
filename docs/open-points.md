@@ -4,17 +4,62 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 
 ## Open (needs a running game on Linux)
 
+- **Specimens (2026-11-21, the archive tab and the trade tab's specimens)**: (1) where the save
+  keeps stored specimens — move one to storage (or fill an exhibition past 9) and grep `exhibits`
+  and the country's `standard_grand_archive_module`; (2) which specimens the trade screen lists —
+  all the AI holds, or not its active exhibits; (3) who gets `has_already_traded_specimens`, and
+  what `MIN_RELATION_TO_TRADE_SPECIMENS` 750 gates if not a deal we propose (AI-made offers?); (4) the specimen deal's ≈: gifts to six empires matched
+  `tradeEnergy()` within 0–6 % without the defines' empty-exhibition × 1.5 (2026-11-21,
+  `docs/trade-calibration.md`); open: the × 1.5 at an empire that has built its archive (none of the
+  six had one), the × 1.25 for filling an exhibition, a deal where they give a specimen;
+  (5) whether `activated` is the bonus switch (the exhibit's own click) and `unlocked` the paid
+  exhibit — Roaming Cybergang's 11–13 specimens were all `locked`, none `activated`, through
+  2231.04.29; after its Grand Archive was finished (timeline 2234.08.16) all 14 are `unlocked` and
+  `activated=yes` at once (autosave 2234.09.01), so the two still flip together; storage unseen
+  (no exhibition past 6); (6) the exhibitions' multiplier from companion mod 0.15.0 (`sdash_sp*`) against the
+  Collection view's numbers, and `error.log` clean of `sdash_`.
+
 - **Waylines, our own (2026-11-16)**: the roaming tab was checked on the AI nomads' waystations
-  only — `roamingcybergang` had none of ours at 2213.08. After building the first: its tier,
+  only — `roamingcybergang` had none of ours at 2213.08; its first was built 2214.03.22 (the
+  timeline's `timeline_first_waystation_built`; budget 2226.08.01: `starbase_waystations` food 11,
+  trade 22, `_modules` trade 66), so the check needs only the game's window now. Then: its tier,
   modules, fill and stockpile against the waystation's own window, and a module's monthly
   collection against the tab's number. **Assumed**: the tier factor (×0.75 at Waystation I)
   applies to flat `starbase_collected_system_<r>_add` too (the Hydroponics Bay's food); the
   wayline groups follow neighbouring systems (matched the save's `waystation_networks` for all
   five AI waylines).
 
-- **A dig site's chapter (2026-11-15)**: `DigSite.chapter` = the save's `index` + 1 is
-  **assumed** — every site seen so far reads `index=0`. Check after a chapter's event: the
-  frontier tab's Chapter column should read 2, and the Outcome's "← next" mark move with it.
+- **A dig site's chapter, confirmed from the saves (2026-11-20)**: `index` = the chapters done
+  (`completed` holds one dated entry each; Roaming Cybergang 2226.08.01), so `DigSite.chapter` =
+  `index` + 1 holds. An excavated site stays in the save at `index` = its stages, and showed
+  "5 / 4" with a time estimate on the frontier tab: now "excavated", out of "Still to gain", and
+  done on the map (`digSiteDone()`). Still to see in a browser: the Outcome's "← next" mark
+  against the game's dig site window.
+- **Observation Insights for a nomad, after an Insight (2026-11-20)**: Favor Insights sets the
+  country flag `favored_insights`, and each waystation with a pre-FTL world reads that flag (−2
+  society), not the situation — so it outlives the situation's end. The nomads' restart
+  (`fircon.10`) sets `approach_study_insights` without the flag's approach; whether
+  `set_situation_approach` runs that approach's `on_select` (which clears the flag) is not in the
+  files. Check at the next Insight: the restarted situation's approach, the flag in the save, the
+  waystation's society research. **Answered** (2026-11-22, Roaming Cybergang): at 2227.10.01 the
+  situation (`approach_favor_insights`, progress 96.75) and `favored_insights`; at 2228.04.09 a new
+  one (`approach_study_insights`, progress 0.75) and **no flag** — the restart clears it, so the
+  flag does not outlive the situation. The waystation's society research is not checked.
+- **The galaxy setup reaches every page with `disabled_precursors`** (2026-11-20):
+  `Snapshot.galaxySetup` (READER 42) carries which precursors the galaxy has, which the Precursors
+  panel otherwise keeps for its cheat. Open, the user's call: drop it in `pageLatest()` and send it
+  to the galaxy tab alone.
+- **The precursor and L-Gate panels, unchecked with a running chain (2026-11-20)**: Roaming
+  Cybergang had no precursor chain and 0 L-Gate insights, so artifacts, the home system and the
+  Precursor badge were seen on unit tests only. **Now checkable**: its timeline has
+  `timeline_first_precursor_discovered` on 2232.05.01 (`precursor_system_count=1`).
+- **The storms map mode, unchecked in a browser (2026-11-20)**: the fill and hover text are unit
+  tested (`storms.test.ts`), not seen drawn; Roaming Cybergang has no Cosmic Weather Models, so the
+  path ahead has not been shown on a real campaign. Compare with the game's Weather Forecast mode
+  once researched: which systems it marks ahead (intel 1 vs 2), and its arrival estimates.
+- **Cosmic storms over us, unseen (2026-11-20)**: the save format is read (`docs/save-format.md`,
+  "Cosmic storms"); no storm has reached Roaming Cybergang's space by 2226.08. At the first that
+  does: what the save adds on our planets and fleets, against the game's storm tooltip.
 - **Outcome trees against the game (2026-11-15)**: the frontier tab's Outcome for an anomaly
   or project should match what its event window offers when it completes (options, rewards). A
   tree is built from the files (`stellaris-data-extraction` `extractor/outcomes.py`), so
@@ -39,21 +84,52 @@ What is open, assumed, or confirmed in game, with dates and screenshots. Read be
 `docs/open-checks.md`** (growth capacity, outpost influence, starbase costs, market price, tech
 screen, trade calibration, stored research, releases).
 
-- **Ambitions (formerly Crisis), planned 2026-11-03**: data DB `crisis_path`, `crisis_level`,
-  `crisis_objective`, `menace_perk` (extraction's design notes). Our own path: a `/ambition` tab
-  (currency, level ladder with requirements and perks, objectives with this galaxy's reward,
-  months to the next level). **Other empires' ambitions are a spoiler** (the user's decision,
-  2026-11-03; switch `ambitionsAll`): on, who, what (path, level) and where (capital and the
-  path's sites); off, only what the game tells a player (4.5.3 files). For Nemesis that's the
-  personality "Crisis Aspirant" from the perk on, the "Mysterious Supernova"/Star-Eater alerts
-  and the "Destroying Star Systems" opinion, and "Galactic Crisis Declared" at level 5. For
-  Hyperthermia it's the personality "Thermarchy", plus the opinion "Thermarchy Empire" from
-  level 2, which needs government intel 2 (everyone at 5). Behemoth shows warnings at level 5,
-  Cosmogenesis nothing that names it, and Defender an opinion modifier. Ascension perks are in
-  no intel category. **Unread: the save shape** (no local save has an ambition): in a
-  throwaway game, save before and after `activate_ascension_perk ap_become_the_crisis`, then
-  `resource menace 1000`. Also check whether the diplomacy screen lists another empire's
-  perks.
+- **Ambitions and ideologies, built 2026-11-24** (`docs/tabs-empire.md`, `docs/tabs-ethics.md`; save
+  shapes in `docs/save-format.md`). The 2026-11-03 plan's `ambitionsAll` spoiler became the user's
+  split: `ambitionsRevealed` (spoiler: what a personality gave away) and `ambitionsAll` (cheat).
+  Open:
+  - **Seen in game 2026-11-24** (throwaway `unitednationsofearth4_-337465913`, Ideological Rivals'
+    rivals, saves 2200.08.01–2200.10.01, screenshots `~/Pictures/Screenshots/screenshot_2026-11-24_21-42-06`,
+    `21-43-06`): a Force of Will AI staged to level 2 (1000 willpower, the first project's flag,
+    an Absolute ethic) turned "Utopian Missionaries" within the month; its opinion of us holds no
+    ambition modifier. A Nemesis AI was `became_the_crisis` at level 1, and a Hyperthermia AI was
+    `hyperthermia_empire` with no level reached at all: both personalities come before level 2.
+    The level read as none from level 2 on (the save repeats `level`): fixed in READER 80.
+  - **Empty names in the ambitions tab** (2026-11-24, switches off, screenshot `21-53-57`):
+    Force of Will level 2 "Gives: Ethical Authority, , Galactic Awareness", levels 3 and 5 "Has
+    completed the Special Project". The texts end in scripted loc the extractor does not know
+    (`menp_force_of_will_cultural_envoys` → `$cultural_envoy_ship_plural$` →
+    `[GetCulturalEnvoyNamePlural]`; `FORCE_OF_WILL_SPECIAL_PROJECT_2` / `_4` =
+    `[GetFoWProject2Name]` / `[GetFoWProject4Name]`, a spiritualist variant or a default in
+    `common/scripted_loc/16_scripted_loc_forceofwill.txt`). `_clean_loc` resolves only the names
+    in its `_SCRIPTED_LOC` table and drops the rest. Fix in the extractor: read every
+    `defined_text`'s `default` key from `common/scripted_loc/` (or the empire's variant, where
+    the dashboard knows the ideology). The ideologies tab looked right, "Authority of Ba Grax"
+    included.
+  - Revealed by more than a personality: Hyperthermia's "Thermarchy Empire" opinion from level 2,
+    Nemesis' alerts and "Galactic Crisis Declared", Behemoth's warnings at level 5, and Defender's
+    opinion (4.5.3 files). The spoiler reads only the personality.
+  - Not shown yet: this galaxy's reward per objective (`crisis_objective.reward_json`), months to
+    the next level, and the path's sites on a map.
+  - One-word ideology names (spiritualist: "Raxycodiumity") take the species name as the prefix;
+    the engine's `GetPrefixFromAdj` may cut it differently. Compare with the game's Ideologies view
+    once such an ideology is known.
+  - **A foreign ideology's codified tenets, confirmed** (2026-11-24, throwaway
+    `unitednationsofearth4_-337465913`, autosave 2200.06.01, screenshots
+    `~/Pictures/Screenshots/screenshot_2026-11-24_21-33-30`, `21-33-38`, `21-33-42`): after
+    `add_ideological_strength = 300` the AIs codified one tier-I tenet each by themselves (Falleran
+    Naturalism: Secrecy, Spuxulac Expansionism: Force Projection, Backattan Nativism: Security). The
+    game's Ideologies view shows them for a foreign ideology at intel 100, and the tab read the same
+    keys. No cheat switch needed.
+  - **The "%" beside a foreign ideology is its Galactic Strength** (same session, screenshots
+    `21-31-58`, `21-32-15`): "the percentage of pops following it" across the galaxy. Its tooltip
+    lists the followers per adopting empire, in pops and as a share of that empire's pops (The
+    Chosen: 164, 1.28 %; Falleran Star Dynasty: 54, 1.03 %). The save holds no follower count:
+    per colony only `num_potential_followers`; the adopter's ideological faction (`pop_factions`,
+    `created_for_ideology`) had 139 pops against the tooltip's 54. Not shown yet.
+  - The "0" beside the fist icon is not read.
+  - An ideology's level modifiers (data DB `ideology_modifier`) are not shown: several scale by a
+    value only the running game knows.
 
 - **Explored wormholes**: "both ends visited" is a proxy (reaching both ends by hyperlanes would
   show a link never jumped through; since 2026-11-20 only once Wormhole Stabilization is
@@ -174,7 +250,9 @@ screen, trade calibration, stored research, releases).
   game's diplomacy screen shows at which intel is from the files only. Check: a screenshot of an
   empire's diplomacy view at intel < 50 (no pacts expected) and one ≥ 50 against the tab; at the
   first intel drop (lost embassy or pact), whether the tab marks its facts "unverified since".
-  Federations (`federation.<id>.name`, `country.federation`) are not yet seen in a save.
+  Federations, first seen 2026-11-22 (Roaming Cybergang, 2227–2234):
+  `federation.0 = { name = { key="NAME_FE_Federation" } federation_progression = { federation_type cohesion laws … } members = { <ids> } leader }`
+  — three fallen empires, each with `federation=0`.
 - **Diplomacy tab, ethics**: check the chips against the game's contacts screen (ethics column)
   for two or three empires, and `federation fit` against a real federation's cohesion tooltip
   ("Opposing ethics(N)", the defines' lines) — how a fanatic ethic and a gestalt count.
@@ -183,15 +261,19 @@ screen, trade calibration, stored research, releases).
   `calculate_ethics_divergence` in `script_values/01_script_values_paragon.txt` turns it into a
   value (`complex_trigger_modifier`, `mode = add`). The companion mod could export that per empire
   to check our steps (whether it counts only opposed axes is unknown).
-- **Rivals of us, assumed**: `rivalsOfUs` reads another empire's relation to us as ours to them
-  (`is_rival=yes`); no AI rivalled us yet (2205.06).
+- **Rivals of us, confirmed** (2026-11-22, Roaming Cybergang autosave 2234.09.01): `rivalsOfUs`
+  reads another empire's relation to us (`is_rival=yes`) — the Backattan Empire (16777242) has it
+  on its relation to us, and our relation to it has none; ours (Havariggan Purifiers 40,
+  Prikkiki-Ti 16777286, country 16) sit on our relations only. A rivalry is one-sided in the save.
+  Still to see: the tab against the game's diplomacy screen.
 - **Galactic Community: session timing, solved** (2214.01.01): `galactic_community.days` counts
   the days a resolution has been on the floor, up to `RESOLUTION_VOTE_TIMER` (1440) — the game's
   "Senate is in session 899" was 1440 − 541; after the vote `voting` and `days` go and `cooldown`
   counts the recess down from `SENATE_RECESS_TIMER` (720). Resolution 9 (Regulatory
   Facilitation): days 1411 on 2213.12.01, `pass_date` 2213.12.30, cooldown 719 on 2214.01.01;
   `category_timers.<category>` = the pass date. `galacticCommunity()` gives `voteEnds` and
-  `nextVote` (READER 13), the galcom tab shows them. Still unknown: `election` (180), and
+  `nextVote` (READER 13), the galcom tab shows them. Still unknown: `election` (180; also in a
+  game with no community, unchanged 2227–2234 in Roaming Cybergang — likely a constant), and
   **votes are weighed by diplomatic weight**, which no country stores: companion mod 0.4.0
   exports it, else the tab estimates it (see "Galactic Community" in `docs/save-format.md`).
   Passed resolutions: `galactic_community.passed = { <ids> }`; resolution descriptions lose loc
@@ -236,13 +318,19 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
 - **Companion mod 0.4.0's diplomatic weight: confirmed** (2214.02.01, the first autosave with
   it): `variables.sdash_dw` on all 13 members, equal to the game's screen (642.41 → 642, …) and to
   the weights solved from the 2214.01.01 tallies. Open: the council's × 1.5 (no council yet).
-- **Companion mod 0.3.0's spending events, not yet run in game** (written 2026-10-22): whether
-  `carrier_event` is the right type for the "This = Colony" hooks (vanilla uses it for
-  `on_building_complete`), whether `[This.GetName]` there gives the planet's name as the save's
-  construction items name it, and whether a colonization's planet already has an `owner`. An older
+- **Companion mod 0.3.0's spending events** (written 2026-10-22; seen 2228–2234 in Roaming
+  Cybergang): `building-queued` / `-unqueued` print the planet's name (Selborne, Farleigh), so
+  `carrier_event` and `[This.GetName]` work. `megastructure-started` (`sdash.28`,
+  `[From.GetName]`) printed "Wir" for the Grand Archive (2231.04.29) but **nothing** on 2230.04.01
+  and 06.23; the timeline has megastructures finished 2230.12.18 (id 118) and 2232.03.02
+  (16777334) that no save holds — what they were, and why From has no name, is open. A megastructure
+  **upgrade** fires no line at all (the user started the Ancient Highway's gate repair, 2026-11-22):
+  `on_megastructure_build_start` is for new builds only. Still open:
+  whether a colonization's planet already has an `owner`. An older
   dashboard skips the new kinds (`parseLine` returns null for an unknown kind).
 - **Companion mod 0.2.0, not yet run in game** (written 2026-10-20 from 4.5.2's script docs):
-  the daily tick (one set of `tick` lines per date, also after save/load — never two), the `load`
+  the daily tick (one set of `tick` lines per date, also after save/load — never two: **confirmed**
+  2228.04.09–2234.09.01, two loads, no date twice), the `load`
   line's id against the loaded save's `sdash_tl`, each event line's names (do `[From.GetName]` in
   `on_war_beginning` and `[FromFromFrom.GetName]` in `on_space_battle_won` resolve, or print
   blank?), and whether event labels match the diffed ones (no duplicates on `/events`).
@@ -268,6 +356,11 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
   only for saves read since 2026-10-17; older ones' saves are gone.
 - **`/migration` holds four variants to compare** (over time, matrix, monthly flow, map) — the
   user picks which to keep, then drop the rest.
+  The month slider marks where pops moved (the user's ask 2026-11-22): one lane each for
+  migration and resettlement under the track (`FrameSlider` `lanes`), consecutive months joined
+  into one band (`runs()` in `#lib/frameRuns.ts`) so a game with much migration shows areas, not a
+  row of ticks; a click on a band picks its first month, ◀ ▶ step to the previous or next marked
+  month. Not yet seen in a browser (the bands' line-up with the thumb).
   The map has a **circle** mode (the user's ask 2026-11-01; the profile's `migrationView`: layout
   and order, `MigrationCircle.svelte`, geometry shared with the diplomacy circle in `#lib/circle.ts`):
   our arkships clockwise from 12 o'clock — oldest first (`arkshipFirstSeen()`: the first save
@@ -282,6 +375,8 @@ unlocked_passive_accords_count pre_communications_name … }` — eight patrons 
 - **The daily tick on the 1st, before or after the payout?** `unbooked()` takes the payout off
   the step that crosses a month start. Saves on the 1st are after it (checked); if the mod's tick
   or monthly line on the 1st runs before it, a month shows +payout on the 1st and −payout on the
-  2nd. Check on the first campaign played with mod 0.2.0.
+  2nd. **Answered** (2026-11-22, Roaming Cybergang): the tick on the 1st runs **before** it —
+  2229.03.01's tick energy 29559.20 = 02.28's, the payout (−23.61) shows in 03.02's tick; the
+  monthly line on the 1st (29535.59) is after it. Check `unbooked()` against that.
 - **Hint rules**: not started.
 - Cross-check the parsed numbers against the in-game UI.

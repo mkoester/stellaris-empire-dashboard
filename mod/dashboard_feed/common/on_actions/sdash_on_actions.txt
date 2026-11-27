@@ -151,3 +151,12 @@ on_slave_sold_on_market = {
 		sdash.30
 	}
 }
+
+# 0.16.0. Pop Group is resettled: This = Pop Group (where it arrived), From = previous colony,
+# local_pop_amount = how many (4.5.4 00_on_actions.txt; vanilla's unrest.4350, crisis.7530/7531,
+# bio.751 keep firing — on_actions merge additively)
+on_pop_group_resettled = {
+	events = {
+		sdash.31
+	}
+}

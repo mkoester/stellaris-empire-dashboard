@@ -60,18 +60,20 @@
 			{#each items as l (l.ref)}
 				<li class:opacity-60={l.how === 'no'}>
 					<InfoPopup explanation={explain[l.ref]}>{explain[l.ref]?.title ?? l.ref}</InfoPopup>
-					{#if l.ref.startsWith('job:')}<span class="text-gray-500"
-							>{fmt(l.count)} working, each</span
-						>{:else if l.count > 1}<span class="text-gray-500">×{fmt(l.count)}</span>{/if}
+					{#if l.ref.startsWith('job:')}<span class="text-gray-500">
+							{fmt(l.count)} working, each
+						</span>{:else if l.count > 1}<span class="text-gray-500">×{fmt(l.count)}</span>{/if}
 					<span class="text-gray-500">{l.local ? 'this colony' : 'empire-wide'}</span>:
-					{#each l.effects as m, i (i)}<span class={modifierColor(m)}
-							>{formatModifierValue(m)} {modifierLabel(m)}</span
-						>{i < l.effects.length - 1 ? ', ' : ''}{/each}
+					{#each l.effects as m, i (i)}<span class={modifierColor(m)}>
+							{formatModifierValue(m)}
+							{modifierLabel(m)}
+						</span>{i < l.effects.length - 1 ? ', ' : ''}{/each}
 					<div class="text-gray-500">
 						<b>{HOW[l.how]}</b>: {l.change}{#if l.side.length}
-							· giving it up also loses: {#each l.side as m, i (i)}<span class={modifierColor(m)}
-									>{formatModifierValue(m)} {modifierLabel(m)}</span
-								>{i < l.side.length - 1 ? ', ' : ''}{/each}{/if}
+							· giving it up also loses: {#each l.side as m, i (i)}<span class={modifierColor(m)}>
+									{formatModifierValue(m)}
+									{modifierLabel(m)}
+								</span>{i < l.side.length - 1 ? ', ' : ''}{/each}{/if}
 					</div>
 				</li>
 			{/each}
@@ -88,9 +90,9 @@
 			<b>Stability</b>
 			{#if uncapped !== null && over !== null}
 				{fmt(uncapped)} before the cap →
-				<b class={over > 0 ? 'text-green-700 dark:text-green-500' : ''}
-					>{over > 0 ? `${fmt(over)} over ${rules.maxStability}` : 'none over'}</b
-				>
+				<b class={over > 0 ? 'text-green-700 dark:text-green-500' : ''}>
+					{over > 0 ? `${fmt(over)} over ${rules.maxStability}` : 'none over'}
+				</b>
 				<div class="text-xs text-gray-500">
 					Base {rules.baseStability} + the colony’s flat stability {fmt(
 						colony.stabilityAdd ?? 0
@@ -102,8 +104,9 @@
 				<span
 					class="text-gray-500"
 					title="the companion mod 0.8.0 exports the colony's flat stability"
-					>≈ unknown — the game saves stability capped at {rules.maxStability}</span
 				>
+					≈ unknown — the game saves stability capped at {rules.maxStability}
+				</span>
 				<div class="text-xs text-gray-500">
 					The companion mod (0.8.0 or later) stores how far above the cap the colony is, from the
 					next month on. Until then the rates below.
@@ -121,8 +124,8 @@
 							class="text-gray-500"
 							title="the save holds happiness capped at 100 %: there may be more above it"
 						>
-							at least</span
-						>{/if}
+							at least
+						</span>{/if}
 				{:else if rates}
 					≈ {fmt(rates.approvalPerStability * 100)} points of approval per stability point over the cap
 				{/if}
@@ -145,11 +148,11 @@
 						{Math.round(ratioAfter * 100)} %{/if}){#if (amenities(have, need, gestalt, rules)?.wasted ?? 0) > 0},
 						{fmt(amenities(have, need, gestalt, rules)!.wasted)} of them wasted already{/if}
 				{:else if rates}
-					<span title={NOTE}
-						>≈ {fmt(rates.amenitiesPerEffect / (gestalt ? 1 : 100))} amenities per {gestalt
+					<span title={NOTE}>
+						≈ {fmt(rates.amenitiesPerEffect / (gestalt ? 1 : 100))} amenities per {gestalt
 							? 'stability point'
-							: 'point of approval'}</span
-					>
+							: 'point of approval'}
+					</span>
 				{/if}
 				<div class="text-xs text-gray-500">
 					Between 100 % and {rules.maxAmenities * 100} % of the need {rates

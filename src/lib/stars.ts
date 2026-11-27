@@ -58,6 +58,33 @@ export const SPECIAL_STARS: Record<string, SpecialStar> = {
 		effect: 'armor',
 		binary: false,
 		effects: ['Armor −100 %'] // ship_armor_reduction = 1.0
+	},
+	// The Ancient Highway mod's centres (ring nodes and portals; its
+	// `common/star_classes/ahw_star_classes.txt` and `ahw.50`): vanilla's looks, gentler effects
+	ahw_sc_black_hole: {
+		name: 'Black Hole (Ancient Highway)',
+		effect: 'escape',
+		binary: false,
+		effects: ['Disengage chance −50 %', 'Emergency FTL minimum days +50 %']
+	},
+	ahw_sc_pulsar: {
+		name: 'Pulsar (Ancient Highway)',
+		effect: 'shields',
+		binary: false,
+		// ship_shield_regen_mult = -1, and ahw.50 drains 10 % of the maximum each month
+		effects: ['No shield regeneration', 'Shields −10 % of their maximum each month']
+	},
+	ahw_sc_toxoid_star: {
+		name: 'Toxoid Star (Ancient Highway)',
+		effect: 'armor',
+		binary: false,
+		effects: ['Armor −0.1 % of its maximum each day'] // ship_armor_regen_add_perc = -0.02
+	},
+	ahw_sc_neutron_star: {
+		name: 'Neutron Star (Ancient Highway)',
+		effect: 'speed',
+		binary: false,
+		effects: NEUTRON // ship_speed_reduction = 0.5; portals only
 	}
 };
 

@@ -139,8 +139,9 @@
 			class="mr-1 rounded px-1 text-xs text-white {marked && k !== held ? 'opacity-40' : ''}"
 			style:background={colorOf(`class-${k}`)}
 			title={`${marked && k === held ? 'held by' : 'takes'} ${/^[aeiou]/.test(k) ? 'an' : 'a'} ${k}`}
-			>{k}</span
-		>{/each}
+		>
+			{k}
+		</span>{/each}
 {/snippet}
 {#snippet mods(list: Modifier[])}
 	{#each distinctModifiers(list) as m (m.key)}<div>
@@ -180,8 +181,9 @@
 {#snippet agendaStatus(r: AgendaRow & { months: number | null })}
 	<span
 		class={r.status === 'current' ? 'font-semibold' : r.status === 'locked' ? 'text-gray-500' : ''}
-		>{STATUS[r.status][1]}</span
 	>
+		{STATUS[r.status][1]}
+	</span>
 	{#if r.status === 'current' && data.agenda && data.agendaDue?.total}<div
 			class="text-xs whitespace-nowrap text-gray-500"
 		>
@@ -203,14 +205,17 @@
 {#snippet amounts(r: Resources | undefined)}
 	{#each Object.entries(r ?? {}) as [k, v], i (k)}{i ? ', ' : ''}<span
 			class="whitespace-nowrap"
-			style:color={colorOf(k)}>{v} {pretty(k)}</span
-		>{/each}
+			style:color={colorOf(k)}
+		>
+			{v}
+			{pretty(k)}
+		</span>{/each}
 {/snippet}
 {#snippet edictNet(r: EdictRow)}
 	{@const n = data.whatIfs?.[`edict:${r.key}`]?.net}
-	{#if n != null}<span class={n < 0 ? 'text-red-600' : 'text-green-600'}
-			>{n < 0 ? '−' : '+'}{fmt(Math.abs(n))}</span
-		>{/if}
+	{#if n != null}<span class={n < 0 ? 'text-red-600' : 'text-green-600'}>
+			{n < 0 ? '−' : '+'}{fmt(Math.abs(n))}
+		</span>{/if}
 {/snippet}
 {#snippet cost(r: EdictRow)}{@render amounts(r.cost.cost)}{/snippet}
 {#snippet upkeep(r: EdictRow)}{@render amounts(r.cost.upkeep)}{/snippet}
@@ -220,15 +225,15 @@
 			title={r.needs.length ? undefined : 'needs a tradition or perk first'}
 		>
 			🔒{#if r.needs.length}
-				needs {#each r.needs as t, i (t)}{i ? ', ' : ''}<InfoPopup ref="tech:{t}"
-						>{data.techNames[t] ?? t}</InfoPopup
-					>{/each}{/if}</span
-		>{/if}
+				needs {#each r.needs as t, i (t)}{i ? ', ' : ''}<InfoPopup ref="tech:{t}">
+						{data.techNames[t] ?? t}
+					</InfoPopup>{/each}{/if}
+		</span>{/if}
 {/snippet}
 {#snippet edictLength(r: EdictRow)}
 	{length(r.length) ?? '–'}{#if r.active?.end}<span class="text-gray-500">
-			until {r.active.end}</span
-		>{/if}
+			until {r.active.end}
+		</span>{/if}
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -260,17 +265,19 @@
 			<tbody>
 				{#each data.seats as c (c.key)}
 					<tr class="border-b border-gray-100 align-top dark:border-gray-900">
-						<th class="p-1 pr-3 font-normal whitespace-nowrap"
-							><InfoPopup explanation={data.explain[`seat:${c.key}`]}>{c.name}</InfoPopup>
-							<div>{@render classes(c.classes, c.leaderClass)}</div></th
-						>
-						<td class="p-1 whitespace-nowrap"
-							>{c.leader ?? 'empty'}{#if c.level !== null}<div class="text-gray-500">
+						<th class="p-1 pr-3 font-normal whitespace-nowrap">
+							<InfoPopup explanation={data.explain[`seat:${c.key}`]}>{c.name}</InfoPopup>
+							<div>{@render classes(c.classes, c.leaderClass)}</div>
+						</th>
+						<td class="p-1 whitespace-nowrap">
+							{c.leader ?? 'empty'}{#if c.level !== null}<div class="text-gray-500">
 									level {c.level}{#if c.council !== null && c.council !== c.level}, council level <b
-											class="text-current">{c.council}</b
-										>{/if}
-								</div>{/if}</td
-						>
+											class="text-current"
+										>
+											{c.council}
+										</b>{/if}
+								</div>{/if}
+						</td>
 						<td class="p-1">
 							{#each c.effects as e (e.perLevel.key)}
 								<div>
@@ -279,15 +286,15 @@
 									<span class="text-gray-500">per level</span>{#if c.council !== null}
 										(<span class={modifierColor(e.now)}>{formatModifierValue(e.now)}</span>){/if}
 								</div>
-							{:else}{#if data.explain[`seat:${c.key}`]?.text}<span class="text-gray-500"
-										>{data.explain[`seat:${c.key}`]?.text}</span
-									>{/if}{/each}
+							{:else}{#if data.explain[`seat:${c.key}`]?.text}<span class="text-gray-500">
+										{data.explain[`seat:${c.key}`]?.text}
+									</span>{/if}{/each}
 							{#each c.traitEffects as t (t.trait)}
 								<div class="text-gray-500">
 									<InfoPopup explanation={data.explain[`ltrait:${t.trait}`]}>{t.name}</InfoPopup>:
-									{#each t.modifiers as m, i (m.key)}{i ? ', ' : ''}<span class={modifierColor(m)}
-											>{formatModifierValue(m)}</span
-										>
+									{#each t.modifiers as m, i (m.key)}{i ? ', ' : ''}<span class={modifierColor(m)}>
+											{formatModifierValue(m)}
+										</span>
 										{modifierLabel(m)}{/each}
 								</div>
 							{/each}
@@ -325,12 +332,11 @@
 		{#if data.agenda}
 			<div class="text-sm">
 				Agenda:
-				<InfoPopup explanation={data.explain[`agenda:${data.agenda.key}`]}
-					><b
-						>{data.agendas.find((a) => a.key === data.agenda?.key)?.name ??
-							pretty(data.agenda.key)}</b
-					></InfoPopup
-				>
+				<InfoPopup explanation={data.explain[`agenda:${data.agenda.key}`]}>
+					<b>
+						{data.agendas.find((a) => a.key === data.agenda?.key)?.name ?? pretty(data.agenda.key)}
+					</b>
+				</InfoPopup>
 				— {Math.round(data.agenda.progress).toLocaleString('en')}{#if data.agendaDue?.total}
 					of {Math.round(data.agendaDue.total).toLocaleString('en')}{/if}
 				{#if data.agendaDue}, due {data.agendaDue.date}{data.agendaDue.exact ? '' : ' (est.)'}{/if}
@@ -370,15 +376,18 @@
 													: o.valid === false
 														? 'text-gray-500 line-through'
 														: ''}
-												><InfoPopup explanation={data.explain[`policy:${o.key}`]}
-													>{o.name}</InfoPopup
-												>{o.valid === null && !o.selected ? '?' : ''}</span
-											>{/each}
+											>
+												<InfoPopup explanation={data.explain[`policy:${o.key}`]}>
+													{o.name}
+												</InfoPopup>{o.valid === null && !o.selected ? '?' : ''}
+											</span>{/each}
 										{#each p.options.filter((o) => data.whatIfs?.[`policy:${o.key}`]) as o (o.key)}
 											<div>
 												<WhatIfLine what={data.whatIfs?.[`policy:${o.key}`]} label={o.name} /><span
-													class="text-xs text-amber-600">then locked for {POLICY_YEARS} years</span
+													class="text-xs text-amber-600"
 												>
+													then locked for {POLICY_YEARS} years
+												</span>
 											</div>
 										{/each}
 									</td>
@@ -416,6 +425,8 @@
 <p class="mt-8 text-sm text-gray-500">
 	Factions — support, approval, demands and what embracing one takes — are on the <a
 		class="underline"
-		href={node ? resolve(`/ethics?node=${node}`) : resolve('/ethics')}>ethics tab</a
-	>.
+		href={node ? resolve(`/ethics?node=${node}`) : resolve('/ethics')}
+	>
+		ethics tab
+	</a>.
 </p>

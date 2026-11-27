@@ -57,5 +57,12 @@ export function stripOrder(keys: string[]): string[] {
 	];
 }
 
+/** `keys` in the Resources strip's order (the `all` header), research — which the strip leaves out
+ * — after the rest. Only `keys`: none of the strip's always-shown ones are added. */
+export const inStripOrder = (keys: string[]): string[] => [
+	...stripOrder(keys).filter((k) => keys.includes(k)),
+	...RESEARCH.filter((k) => keys.includes(k))
+];
+
 /** The strip's first row: basic and advanced resources (or a nomad's reserves); the rest go below. */
 export const inFirstRow = (key: string) => key === RESERVES || STRIP_FIRST.includes(key);

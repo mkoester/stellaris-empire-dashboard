@@ -344,13 +344,14 @@
 		onfocus={() => (legendHover = k)}
 		onblur={() => (legendHover = null)}
 		onclick={() => pinLegend(k)}
-		>{@render swatch?.()}{label}{#if count}<span class="text-gray-500">{count}</span>{/if}</button
 	>
+		{@render swatch?.()}{label}{#if count}<span class="text-gray-500">{count}</span>{/if}
+	</button>
 {/snippet}
 {#snippet empire(n: DiploNode)}
-	<span class="cursor-help" title={tooltip(n)}
-		><EmpireName name={n.name} color={n.color} kind={n.kind} nomadic={n.nomadic} /></span
-	>
+	<span class="cursor-help" title={tooltip(n)}>
+		<EmpireName name={n.name} color={n.color} kind={n.kind} nomadic={n.nomadic} />
+	</span>
 {/snippet}
 {#snippet gov(n: DiploNode)}
 	{#if n.government}
@@ -360,7 +361,8 @@
 			title={[n.government.value.governmentType, n.government.value.authority]
 				.flatMap((k) => (k ? [nameOf(data.names, k)] : []))
 				.join(', ') + stale(n.government)}
-			>{#each ethicsOf(n) as e (e)}<EthicChip
+		>
+			{#each ethicsOf(n) as e (e)}<EthicChip
 					ethic={e}
 					name={ethicName(e)}
 					{axes}
@@ -369,24 +371,30 @@
 				/>{/each}{#if hist.length}<span
 					class="cursor-help text-xs text-sky-600"
 					title={`ethics changed, as our intel saw:\n${hist.map(changeText).join('\n')}`}
-					>↻{hist.length > 1 ? hist.length : ''}</span
-				>{/if}</span
-		>
-	{:else}<span class="text-gray-400" title="our intel does not reach their government">unknown</span
-		>{/if}
+				>
+					↻{hist.length > 1 ? hist.length : ''}
+				</span>{/if}
+		</span>
+	{:else}<span class="text-gray-400" title="our intel does not reach their government">
+			unknown
+		</span>{/if}
 {/snippet}
 {#snippet dist(n: DiploNode)}
 	{@const v = distance(n)}
 	{#if v === null}–{:else if v === Infinity}<span
 			class="text-gray-500"
-			title="a gestalt consciousness and an empire of ethics: no common scale">—</span
-		>{:else}<span title={distanceTitle(n)} style:color={scaleColor(-v, -8, 0)}>{v}</span>{/if}
+			title="a gestalt consciousness and an empire of ethics: no common scale"
+		>
+			—
+		</span>{:else}<span title={distanceTitle(n)} style:color={scaleColor(-v, -8, 0)}>{v}</span>{/if}
 {/snippet}
 {#snippet fed(n: DiploNode)}
 	{#if n.federation}<span
 			class={n.federation.stale ? 'text-amber-600' : ''}
-			title={stale(n.federation)}>{n.federation.value}</span
-		>{:else}–{/if}
+			title={stale(n.federation)}
+		>
+			{n.federation.value}
+		</span>{:else}–{/if}
 {/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -400,9 +408,9 @@
 	</p>
 {:else}
 	<p class="mb-3 text-sm text-gray-500">
-		{#if data.all}<span class="text-amber-600"
-				>Spoiler on (⚙): every empire and relation, beyond what our intel shows.</span
-			>
+		{#if data.all}<span class="text-amber-600">
+				Spoiler on (⚙): every empire and relation, beyond what our intel shows.
+			</span>
 		{:else}What our intel shows: an empire's government from intel 10, its rivals and federation
 			from 20, its pacts and opinions from 50 — through either side of a pact. Subjects and wars
 			count as public. What intel showed once but no longer does is kept as last seen,
@@ -412,23 +420,25 @@
 
 	<div class="mb-4 flex flex-col gap-2 text-sm">
 		<div class="flex flex-wrap items-center gap-4">
-			<label class="flex items-center gap-1"
-				><input
+			<label class="flex items-center gap-1">
+				<input
 					type="checkbox"
 					checked={view.communicationsOnly}
 					onchange={(e) => save({ ...view, communicationsOnly: e.currentTarget.checked })}
-				/> with communications only</label
-			>
-			<span class="flex items-center gap-1"
-				>graph
+				/> with communications only
+			</label>
+			<span class="flex items-center gap-1">
+				graph
 				{#each ['circle', 'map'] as const as l (l)}
 					<button
 						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700 {view.layout ===
 						l
 							? 'font-semibold'
 							: 'opacity-60'}"
-						onclick={() => save({ ...view, layout: l })}>{l}</button
+						onclick={() => save({ ...view, layout: l })}
 					>
+						{l}
+					</button>
 				{/each}
 			</span>
 			<span class="text-gray-500">{nodes.length} of {d.nodes.length}</span>
@@ -443,25 +453,30 @@
 						? ''
 						: 'opacity-40'}"
 					title={kindTypes(k).join(', ') || 'every other country type'}
-					><input
+				>
+					<input
 						type="checkbox"
 						class="sr-only"
 						checked={view.kinds.includes(k)}
 						onchange={() => save({ ...view, kinds: flip(CONTACT_KINDS, view.kinds, k) })}
-					/>{KIND_LABELS[k]}</label
-				>
+					/>{KIND_LABELS[k]}
+				</label>
 			{/each}
 		</div>
 		<div class="flex flex-wrap items-center gap-1">
 			<span class="text-gray-500">relations:</span>
 			<button
 				class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"
-				onclick={() => save({ ...view, hiddenEdges: [] })}>all</button
+				onclick={() => save({ ...view, hiddenEdges: [] })}
 			>
+				all
+			</button>
 			<button
 				class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"
-				onclick={() => save({ ...view, hiddenEdges: [...EDGE_KINDS] })}>none</button
+				onclick={() => save({ ...view, hiddenEdges: [...EDGE_KINDS] })}
 			>
+				none
+			</button>
 			{#each EDGE_KINDS.filter((k) => kindsPresent.has(k)) as k (k)}
 				{@const st = edgeStyle(k)}
 				<label
@@ -470,14 +485,15 @@
 					)
 						? 'opacity-40'
 						: ''}"
-					><input
+				>
+					<input
 						type="checkbox"
 						class="sr-only"
 						checked={!view.hiddenEdges.includes(k)}
 						onchange={() => save({ ...view, hiddenEdges: flip(EDGE_KINDS, view.hiddenEdges, k) })}
 					/><span class="inline-block w-4" style:border-top="{st.width}px solid {st.color}"></span>
-					{edgeLabel(k)}</label
-				>
+					{edgeLabel(k)}
+				</label>
 			{/each}
 		</div>
 	</div>
@@ -521,8 +537,10 @@
 			<div class="flex flex-wrap items-center gap-1">
 				<span
 					class="w-16 text-gray-500"
-					title="the civics our intel has shown of the empires on the graph">civics</span
+					title="the civics our intel has shown of the empires on the graph"
 				>
+					civics
+				</span>
 				{#each legendCivics as c (c)}
 					{@const k: LegendKey = `civic:${c}`}
 					{@render legendItem(k, nameOf(data.names, c), undefined, legendCount(k))}
@@ -532,8 +550,9 @@
 				<span
 					class="w-16 text-gray-500"
 					title="the origins our intel has shown of the empires on the graph (from intel 40)"
-					>origins</span
 				>
+					origins
+				</span>
 				{#each legendOrigins as o (o)}
 					{@const k: LegendKey = `origin:${o}`}
 					{@render legendItem(k, nameOf(data.names, o), undefined, legendCount(k))}
@@ -543,16 +562,18 @@
 				{#if legendPinned.length}
 					<button
 						class="rounded border border-gray-300 px-2 py-0.5 dark:border-gray-700"
-						onclick={() => (legendPinned = [])}>clear</button
+						onclick={() => (legendPinned = [])}
 					>
+						clear
+					</button>
 				{/if}
-				<label class="ml-auto flex items-center gap-1"
-					><input
+				<label class="ml-auto flex items-center gap-1">
+					<input
 						type="checkbox"
 						checked={view.details}
 						onchange={(e) => save({ ...view, details: e.currentTarget.checked })}
-					/> government and civics on the graph</label
-				>
+					/> government and civics on the graph
+				</label>
 			</div>
 		</div>
 		{#if view.layout === 'map'}
@@ -611,15 +632,17 @@
 									stroke={focus === n.id ? '#0ea5e9' : 'currentColor'}
 									stroke-width={focus === n.id ? 3 : 1}
 								/>
-								<text x={p.x + 10} y={p.y + 4} class="fill-current text-[12px] font-semibold"
-									>{n.name}{#if view.details}{#each details(n) as l, i (i)}<tspan
+								<text x={p.x + 10} y={p.y + 4} class="fill-current text-[12px] font-semibold">
+									{n.name}{#if view.details}{#each details(n) as l, i (i)}<tspan
 												x={p.x + 10}
 												dy={i ? 11 : 13}
 												class="text-[10px] font-normal {l.stale
 													? 'fill-amber-600'
-													: 'fill-gray-500'}">{l.text}</tspan
-											>{/each}{/if}</text
-								>
+													: 'fill-gray-500'}"
+											>
+												{l.text}
+											</tspan>{/each}{/if}
+								</text>
 							</g>
 						{/if}
 					{/each}
@@ -634,8 +657,10 @@
 							class="ml-1 rounded border border-gray-300 px-1 dark:border-gray-700 {faded(n.id)
 								? 'opacity-30'
 								: ''} {focus === n.id ? 'ring-2 ring-sky-500' : ''}"
-							onclick={() => (focus = focus === n.id ? null : n.id)}>{n.name}</button
+							onclick={() => (focus = focus === n.id ? null : n.id)}
 						>
+							{n.name}
+						</button>
 					{/each}
 				</p>
 			{/if}
@@ -649,23 +674,25 @@
 							? 'font-semibold'
 							: 'opacity-60'}"
 						title={CLUSTER_TITLES[m]}
-						onclick={() => save({ ...view, cluster: m })}>{CLUSTER_LABELS[m]}</button
+						onclick={() => save({ ...view, cluster: m })}
 					>
+						{CLUSTER_LABELS[m]}
+					</button>
 				{/each}
 				{#if view.cluster === 'opinion'}
-					<label class="flex items-center gap-1"
-						>at least
+					<label class="flex items-center gap-1">
+						at least
 						<input
 							type="number"
 							step="25"
 							class="w-20 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 							value={view.threshold}
 							onchange={(e) => save({ ...view, threshold: Number(e.currentTarget.value) || 0 })}
-						/></label
-					>
+						/>
+					</label>
 				{:else if view.cluster === 'ethics'}
-					<label class="flex items-center gap-1"
-						>at most
+					<label class="flex items-center gap-1">
+						at most
 						<input
 							type="number"
 							step="1"
@@ -674,11 +701,11 @@
 							value={view.ethicsDistance}
 							onchange={(e) =>
 								save({ ...view, ethicsDistance: Number(e.currentTarget.value) || 0 })}
-						/> steps apart</label
-					>
+						/> steps apart
+					</label>
 				{:else if view.cluster === 'federation'}
-					<label class="flex items-center gap-1"
-						>cohesion at least ≈
+					<label class="flex items-center gap-1">
+						cohesion at least ≈
 						<input
 							type="number"
 							step="0.05"
@@ -686,8 +713,8 @@
 							class="w-20 rounded border border-gray-300 bg-transparent px-1 dark:border-gray-700"
 							value={view.cohesionFloor}
 							onchange={(e) => save({ ...view, cohesionFloor: Number(e.currentTarget.value) || 0 })}
-						/></label
-					>
+						/>
+					</label>
 				{/if}
 			</div>
 			<DiplomacyCircle
@@ -704,19 +731,22 @@
 				<ul class="mt-2 text-sm">
 					{#each groups.filter((g) => g.ids.length > 1) as g, i (g.ids.join())}
 						<li>
-							<span class="text-gray-500"
-								>{g.label ??
+							<span class="text-gray-500">
+								{g.label ??
 									`group ${i + 1}`}{#if view.cluster === 'federation' && g.penalty !== undefined}
 									<span
 										title="what their ethics would cost a federation's cohesion (≈, the defines)"
-										>(cohesion ≈ {g.penalty.toFixed(2)})</span
-									>{/if}:</span
-							>
+									>
+										(cohesion ≈ {g.penalty.toFixed(2)})
+									</span>{/if}:
+							</span>
 							{#each g.ids as id, j (id)}{j ? ', ' : ''}<button
 									class="cursor-pointer hover:underline {faded(id) ? 'opacity-30' : ''}"
 									style:color={byId.get(id)?.color ?? undefined}
-									onclick={() => (focus = focus === id ? null : id)}>{byId.get(id)?.name}</button
-								>{/each}
+									onclick={() => (focus = focus === id ? null : id)}
+								>
+									{byId.get(id)?.name}
+								</button>{/each}
 						</li>
 					{/each}
 				</ul>
@@ -742,8 +772,10 @@
 										: ''}"
 									style:color={focus === c.id ? undefined : (c.color ?? undefined)}
 									title={tooltip(c)}
-									onclick={() => (focus = focus === c.id ? null : c.id)}>{c.name}</button
+									onclick={() => (focus = focus === c.id ? null : c.id)}
 								>
+									{c.name}
+								</button>
 							</th>
 						{/each}
 					</tr>
@@ -755,8 +787,9 @@
 								<button
 									class="cursor-pointer {focus === r.id ? 'text-sky-600' : ''}"
 									onclick={() => (focus = focus === r.id ? null : r.id)}
-									><EmpireName name={r.name} color={r.color} /></button
 								>
+									<EmpireName name={r.name} color={r.color} />
+								</button>
 							</th>
 							{#each matrixRows as c (c.id)}
 								{#if r.id === c.id}
@@ -786,8 +819,10 @@
 											</div>{/if}
 										{#each es as e (`${e.kind}:${e.from}`)}<span
 												class="mx-px font-semibold"
-												style:color={edgeStyle(e.kind).color}>{edgeStyle(e.kind).short}</span
-											>{/each}
+												style:color={edgeStyle(e.kind).color}
+											>
+												{edgeStyle(e.kind).short}
+											</span>{/each}
 									</td>
 								{/if}
 							{/each}

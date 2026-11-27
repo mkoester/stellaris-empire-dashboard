@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+	byAxis,
 	byEthic,
 	colonyEthics,
 	embrace,
 	ethicRows,
 	ethicSeries,
-	factionSeries
+	factionSeries,
+	type EthicRow
 } from './ethicsTab.ts';
 import type { EthicsState, Faction, Snapshot } from './types.ts';
 
@@ -142,5 +144,53 @@ describe('ethics tab', () => {
 		const c = colonyEthics(UNE, ORDER);
 		expect(c.map((x) => x.planetId)).toEqual([0, 27]);
 		expect(c[0].pops).toEqual({ ethic_egalitarian: 3245, ethic_xenophile: 2034 });
+	});
+});
+
+describe('byAxis', () => {
+	const row = (key: string, pops: number, attraction: number): EthicRow => ({
+		key,
+		pops,
+		share: 0,
+		attraction,
+		average: 0,
+		change: 0,
+		weight: null,
+		held: false,
+		dropped: false
+	});
+	const axes = {
+		ethic_absolute_authoritarian: { axis: 'col', pos: -3 },
+		ethic_fanatic_authoritarian: { axis: 'col', pos: -2 },
+		ethic_authoritarian: { axis: 'col', pos: -1 },
+		ethic_egalitarian: { axis: 'col', pos: 1 },
+		ethic_fanatic_egalitarian: { axis: 'col', pos: 2 },
+		ethic_xenophobe: { axis: 'xen', pos: -1 },
+		ethic_xenophile: { axis: 'xen', pos: 1 }
+	};
+	it('orders by axis, from absolute on one pole to absolute on the other', () => {
+		const rows = [
+			row('ethic_xenophile', 5, 0.1),
+			row('ethic_fanatic_egalitarian', 1, 0),
+			row('ethic_egalitarian', 3, 0.2),
+			row('ethic_authoritarian', 0, 0.3),
+			row('ethic_absolute_authoritarian', 2, 0),
+			row('ethic_fanatic_authoritarian', 1, 0),
+			row('ethic_xenophobe', 4, 0)
+		];
+		expect(byAxis(rows, axes).map((r) => r.key)).toEqual([
+			'ethic_absolute_authoritarian',
+			'ethic_fanatic_authoritarian',
+			'ethic_authoritarian',
+			'ethic_egalitarian',
+			'ethic_fanatic_egalitarian',
+			'ethic_xenophobe',
+			'ethic_xenophile'
+		]);
+	});
+	it('leaves out an ethic without pops or attraction', () => {
+		expect(byAxis([row('ethic_xenophobe', 0, 0), row('ethic_xenophile', 0, 0.1)], axes)).toEqual([
+			row('ethic_xenophile', 0, 0.1)
+		]);
 	});
 });

@@ -24,9 +24,11 @@ leak between test files.
 **Checking a change end to end: run against a copy of the DB**, never the real one (history — a
 dev server ingests saves and moves the head). On the Linux game machine the one in use is
 `~/.local/share/stellaris-empire-dashboard-test/` (every campaign, the nomad Roaming Korinth
-included, 2026-10-31) — on mkTuxedCachy there is no `-test` folder, and the released zip's own
-`~/.local/share/stellaris-empire-dashboard/` is the one in use (2026-11-15); on the game machine
-it is stale since 2026-10-18
+included, 2026-10-31) — on mkTuxedoCachy too since the 4.6 campaign (2026-11-26: `sdash` writes
+`-test`, its default `--db-dir`; the released zip's own `~/.local/share/stellaris-empire-dashboard/`
+was the one in use until 2026-11-22 and is stale since); find the one in use with `sdb <campaign>
+--db <file>`, the newest "recorded"; on the game machine the released zip's is stale since
+2026-10-18
 (UNE 3 alone: an exploration that read it reported the nomad campaign missing); on a Mac in `~/Library/Application Support/stellaris-empire-dashboard/`. **Take the copy with
 `sqlite3 <db> ".backup '<copy>'"`** (consistent while the dashboard writes); **once the dashboard
 is closed, open the source as `file:<db>?immutable=1`**: with no `-shm` left, SQLite must create
@@ -34,7 +36,7 @@ one beside the DB, which the sandbox cannot, and every open fails "unable to ope
 (2026-11-16). Or copy `dashboard.sqlite*` (WAL files included) to a
 temp dir, start `pnpm dev` with `DASHBOARD_DB` pointing there and the real save dir (or a copy of
 one campaign's folder, so a READER bump re-reads only that campaign — it then logs "cannot read
-the launcher's playsets" on every read: no launcher DB beside the copy, harmless, 2026-11-18), then request
+the launcher's playsets" on every read: no launcher DB beside the copy, 2026-11-18; harmless except that no mod's texts load, so what a mod adds is named by its keys — `resolution_ahw_share_charts`, "ahw portal 2", 2026-11-26), then request
 pages and `/__data.json` with curl (to only read what the copy holds, point `STELLARIS_SAVE_DIR` at an
 empty folder: nothing is ingested, the head stays) and stop the server — all in one command where the sandbox gives
 each command its own network namespace. `__data.json` is devalue-encoded: decode the last node's
@@ -44,7 +46,12 @@ A profile switch is flipped on the copy with `PUT /api/settings` (`{"display":{�
 the whole `display`**, `parseDisplay()` defaulting what is left out, so send every switch the check
 needs in one PUT, the gates `showSpoilers` / `showCheats` included (2026-11-07: a second PUT for the
 cheat silently switched the spoiler off), with the
-page's `?node=`). **A `?node=` the copy lacks serves another node silently** (the dev server reads new saves into its copy, so ids found in an earlier copy may not exist in a fresh one — 2026-11-12): check the decoded `tip` before trusting a page. A save-wide question (every colony across the history) is quickest as a
+page's `?node=`) — **the body replaces the whole `display`**: send every switch wanted at once
+(with its gate, `showSpoilers` / `showCheats`), a second PUT turns the first one's off. **A
+campaign that is not the head is read in the background and never becomes the head** ("late
+node" in the log, a few seconds after start): request its pages with `?node=<its tip>` (`SELECT
+max(id) FROM node WHERE campaign LIKE '<folder>%'` on the copy), or they answer for the head's
+campaign — 200 and plausible (2026-11-07: the highway tab hidden, its data empty). **A `?node=` the copy lacks serves another node silently** (the dev server reads new saves into its copy, so ids found in an earlier copy may not exist in a fresh one — 2026-11-12): check the decoded `tip` before trusting a page. A save-wide question (every colony across the history) is quickest as a
 throwaway `src/lib/server/*.test.ts` over the copy: set `globalThis.__stellarisDashboard = {
 updates, status, explanations: {}, gameData: loadGameData(<data DB>) }` before importing
 server modules that call `getGameData()`/`getExplanations()` — delete it after. **To find where
@@ -110,6 +117,9 @@ showed two queries. Measure the packaged path, not `vite dev`:
 ("planet name zrobots" for Yorphia). Never regex a fixed window of the raw `gamestate` from a
 country's start: it runs into the next country's block and reads their values (2026-10-24: a
 "lost" silo that was there all along) — bound the block by its braces, or use the snapshot.
+A raw search over a 4.6 gamestate (45 MB) is quickest with `grep -n -a` for the keys, then `sed -n`
+the line range: a Python regex that walked every country block ran past two minutes
+(2026-11-24). The nearest line above a hit that matches `^\t<id>=$` names the country it sits in.
 
 **The current throwaway game** (2026-10-24): `yorphianextractorate_888024433` (Machine
 Intelligence, Shroud-Forged; companion mod 0.5.0). Holds: console stockpiles, a planet and a
