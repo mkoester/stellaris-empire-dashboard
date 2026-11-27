@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- Costs follow your empire: a nomad's buildings cost rare crystals and other strategic resources
+  where the game asks them (the Augmentation Center 80 rare crystals, not 800 minerals), and bio
+  ships, wilderness empires and megacorp surcharges are counted too — in the planner, trade-offs,
+  produce, what-ifs, systems, influence, resources and the popups. Needs the extractor release
+  after 0.1.27; with game data from an older one, the regular empire's costs show, as before.
+- A tech's popup lists only what it unlocks for your empire: Planetary Power Grid no longer
+  shows the wilderness empire's Chloroplastic Cyst beside the Energy Nexus.
+
+### Added
+
+- Planner: a building goal says how your empire gets the building ("comes with Cyberization,
+  Stage II" for the Augmentation Center, or the tradition, tech or perk it needs), and one your
+  empire can never build is flagged. The building's popup says the same.
+
 ## [0.2.1] - 2026-11-26
 
 ### Added

@@ -1,3 +1,5 @@
+import { buildingNeeds, ownSituations } from '#lib/buildingWays.ts';
+import { forEmpire } from '#lib/costs.ts';
 import { pretty } from '#lib/format.ts';
 import { facts } from '#lib/government.ts';
 import {
@@ -131,7 +133,7 @@ export function planCtx(snaps: Snapshot[]): Ctx | null {
 	const saves = snaps.filter((s) => s.progress !== null);
 	const latest = saves.at(-1);
 	if (!latest) return null;
-	const data = getGameData();
+	const data = forEmpire(getGameData(), latest); // this empire's costs (#lib/costs.ts)
 	const galaxy = campaignGalaxy(latest.campaign)?.systems ?? null;
 	const f = facts(latest, data.scriptedTriggers, { shipKinds: data.shipKinds });
 	const possible: PlanCtx['possible'] = (p) => evaluate(p, f);
@@ -145,6 +147,7 @@ export function planCtx(snaps: Snapshot[]): Ctx | null {
 		}
 		return fits.get(kind)!.get(systemId) ?? null;
 	};
+	const seen = seenAlong(saves);
 	const ctx: PlanCtx = {
 		latest,
 		galaxy,
@@ -160,7 +163,11 @@ export function planCtx(snaps: Snapshot[]): Ctx | null {
 			return t ? { cap: t.cap, blocked: t.blocked } : null;
 		},
 		megaFit,
-		seen: seenAlong(saves)
+		buildingNeeds: (b) => {
+			const p = data.buildingPotential?.[b];
+			return p ? buildingNeeds(p, data, f, ownSituations(latest, seen.situations, data, f)) : null;
+		},
+		seen
 	};
 	const bodies = new Map(
 		(galaxy ?? []).flatMap((s) => (s.bodies ?? []).map((b) => [b.id, b.name] as const))
@@ -230,7 +237,7 @@ function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
  * order) and returns the incomes used: this month's net and the mean over the profile's window.
  */
 function estimate(snaps: Snapshot[], c: Ctx, list: GoalRow[]) {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), c.ctx.latest);
 	const now = snaps.at(-1)!;
 	const window = setting('incomeWindow');
 	const rates = incomeRates(snaps, window);

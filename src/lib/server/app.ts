@@ -10,6 +10,7 @@ import {
 	setSetting,
 	headCampaign,
 	headId,
+	latestSave,
 	loadedNode,
 	nodeById,
 	noteModVersions,
@@ -36,7 +37,8 @@ import {
 } from './mods.ts';
 import { withModContent } from '#lib/modContent.ts';
 import { Jomini } from 'jomini';
-import { currentRequest } from './request.ts';
+import { currentRequest, requestedNode } from './request.ts';
+import { cardsForEmpire } from '#lib/empireCards.ts';
 import { updateHours, viewedCampaign } from './settings.ts';
 import { scheduleUpdateChecks, stopUpdateChecks } from './updates.ts';
 import { campaignOf, watchSaves, type Watcher } from './watch.ts';
@@ -254,7 +256,20 @@ function viewedData(): GameDataSet {
 	return d;
 }
 
-export const getExplanations = (): Explanations => viewedData().explanations;
+// The cards as the shown node's empire sees them (#lib/empireCards.ts), once per request.
+const cardsPerRequest = new WeakMap<object, Explanations>();
+export function getExplanations(): Explanations {
+	const all = viewedData().explanations;
+	const event = currentRequest();
+	if (!event || !state.db) return all;
+	let cards = cardsPerRequest.get(event);
+	if (!cards) {
+		const node = nodeById(state.db, requestedNode())?.id ?? headId(state.db);
+		const s = node === null ? null : latestSave(state.db, node);
+		cardsPerRequest.set(event, (cards = cardsForEmpire(all, viewedData().gameData, s)));
+	}
+	return cards;
+}
 
 /** The game version and build the game data comes from (`Cygnus v4.5.3 (7793)`), null if unknown. */
 export const dataVersion = () => viewedData().dataVersion;

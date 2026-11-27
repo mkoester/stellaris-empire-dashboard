@@ -1,3 +1,4 @@
+import { forEmpire } from '#lib/costs.ts';
 import { contractMarksAt } from '#lib/server/contracts.ts';
 import { error } from '@sveltejs/kit';
 import { discovered, jumpsFromBorder, mapView } from '#lib/situations.ts';
@@ -34,7 +35,7 @@ export function load({ url }) {
 	const game = getGameData();
 	const capital = capitalId(snaps);
 	const data: SystemData = {
-		costs: game.costs,
+		costs: forEmpire(game, latest).costs, // this empire's (#lib/costs.ts)
 		depositCategory: game.depositCategory,
 		defines: game.defines
 	};

@@ -1,7 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import { pretty } from '#lib/format.ts';
-import { repeatableLimit, techCard, type TechUnlock } from '#lib/techCard.ts';
-import { describe, parseTrigger } from '#lib/triggers.ts';
+import { repeatableLimit, techCard, unlockLine, type TechUnlock } from '#lib/techCard.ts';
+import { describe, parseTrigger, type Trigger } from '#lib/triggers.ts';
+import type { CardVariants } from '#lib/empireCards.ts';
 import type { Explanation, Modifier } from '#lib/types.ts';
 
 // Popup texts for traits, edicts, council agendas, policy options, techs, jobs, buildings, colony designations and the empire's civics, origin,
@@ -9,7 +10,9 @@ import type { Explanation, Modifier } from '#lib/types.ts';
 // descriptions, modifiers (labelled via modifier_label) and a few facts. Loaded once at start,
 // keyed `<kind>:<key>` (e.g. `edict:fortify_the_border`).
 
-export type Explanations = Record<string, Explanation>;
+// what a card shows only for some empires rides along; pages read `cardsForEmpire()`'s
+// (`#lib/empireCards.ts`, through `getExplanations()`)
+export type Explanations = Record<string, Explanation & CardVariants>;
 
 /** "costs 2 trait points" / "gives 1 trait point" (negative traits refund points). */
 export const traitCost = (cost: number) =>
@@ -344,6 +347,7 @@ export function loadExplanations(file: string): Explanations {
 						.join(', ');
 				const wayline = mods.filter((x) => x.scope.startsWith('waystation_network'));
 				out[`module:${p.key}`] = {
+					costOf: { source: 'module', key: p.key },
 					title: p.name ?? pretty(p.key),
 					description: null,
 					modifiers: mods.filter((x) => !x.scope.startsWith('waystation_network')).map((x) => x.m),
@@ -375,6 +379,7 @@ export function loadExplanations(file: string): Explanations {
 				.filter((u) => u.building_key === b.key)
 				.map((u) => unlockNames.get(u.owner_key) ?? u.owner_key);
 			out[`building:${b.key}`] = {
+				costOf: { source: 'building', key: b.key },
 				title: b.name ?? pretty(b.key),
 				description: b.description,
 				modifiers: buildingMods.get(b.key) ?? [],
@@ -412,16 +417,24 @@ export function loadExplanations(file: string): Explanations {
 		);
 		const techName = new Map(techs.map((t) => [t.key, t.label ?? pretty(t.key)]));
 		const nameOf = (k: string) => techName.get(k) ?? pretty(k);
-		const techUnlocks = new Map<string, TechUnlock[]>();
+		const techUnlocks = new Map<string, (TechUnlock & { when: Trigger | null })[]>();
 		if (
 			db
 				.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'technology_unlock'")
 				.get()
-		)
-			for (const u of rows<TechUnlock & { tech_key: string }>(
-				'SELECT tech_key, kind, label, detail FROM technology_unlock ORDER BY tech_key, sort_order'
+		) {
+			// `condition_json`: the card lists it only for some empires (extractor 2026-11-27)
+			const conditioned = (
+				db.prepare('PRAGMA table_info(technology_unlock)').all() as { name: string }[]
+			).some((c) => c.name === 'condition_json');
+			for (const u of rows<TechUnlock & { tech_key: string; condition_json: string | null }>(
+				`SELECT tech_key, kind, label, detail, ${conditioned ? 'condition_json' : 'NULL AS condition_json'} FROM technology_unlock ORDER BY tech_key, sort_order`
 			))
-				(techUnlocks.get(u.tech_key) ?? techUnlocks.set(u.tech_key, []).get(u.tech_key)!).push(u);
+				(techUnlocks.get(u.tech_key) ?? techUnlocks.set(u.tech_key, []).get(u.tech_key)!).push({
+					...u,
+					when: parseTrigger(u.condition_json)
+				});
+		}
 		const needs = new Map(
 			techs.map((t) => [t.key, JSON.parse(t.prerequisites_json ?? '[]') as string[]])
 		);
@@ -442,12 +455,17 @@ export function loadExplanations(file: string): Explanations {
 				),
 				leadsTo: (leadsTo.get(t.key) ?? []).sort()
 			});
+			const lines = (techUnlocks.get(t.key) ?? []).flatMap((u) => {
+				const line = unlockLine(u);
+				return line === null ? [] : [{ line, when: u.when }];
+			});
 			out[`tech:${t.key}`] = {
 				title: t.label ?? pretty(t.key),
 				description: t.description,
 				modifiers: techMods.get(t.key) ?? [],
 				text: card.unlocks.length ? card.unlocks.join('\n') : null,
-				facts: card.facts
+				facts: card.facts,
+				...(lines.some((l) => l.when) && { lines })
 			};
 		}
 		// repeatable techs (not in `technology`): what each level gives, and how often it repeats

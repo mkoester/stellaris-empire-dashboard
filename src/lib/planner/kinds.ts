@@ -1,3 +1,4 @@
+import type { BuildingNeeds } from '#lib/buildingWays.ts';
 import { contactStage } from '#lib/format.ts';
 import { colonyActiveBuildings } from '#lib/buildings.ts';
 import { MEGA_RULES, stagePrefix } from '#lib/megastructures.ts';
@@ -62,6 +63,9 @@ export type PlanCtx = {
 		district: string
 	) => { cap: number | null; blocked: number } | null;
 	megaFit: (kind: string, systemId: number) => boolean | null; // the structure's rules, `null` unknown
+	// whether the empire may build a building and how it gets there (#lib/buildingWays.ts); null:
+	// no condition known (a data DB before 2026-11-27)
+	buildingNeeds?: (building: string) => BuildingNeeds | null;
 	// what the branch's saves listed at any time (for "seen, then gone": anomalies, dig sites …)
 	seen: { anomalies: number[]; digSites: number[]; situations: string[]; contacts: number[] };
 };
@@ -101,6 +105,16 @@ const lost = (c: PlanCtx, systemId: number): Status | null => {
 	return o !== null && !ours(c, o)
 		? { state: 'blocked', why: 'another empire owns the system' }
 		: null;
+};
+/**
+ * A building the empire cannot build yet: no way open to it (blocked), or how it gets there —
+ * shown, not waited on, as nothing plans the way (a situation's stage) in its place.
+ */
+const notYet = (c: PlanCtx, building: string): Status | null => {
+	const needs = c.buildingNeeds?.(building);
+	if (!needs || needs.now === true) return null;
+	if (needs.impossible) return { state: 'blocked', why: 'not possible for this empire' };
+	return needs.ways.length ? { state: 'open', why: `comes with ${needs.ways.join(' or ')}` } : null;
 };
 const planetSystem = (c: PlanCtx, planetId: number) =>
 	c.galaxy?.find((x) => x.bodies?.some((b) => b.id === planetId))?.id ?? null;
@@ -357,7 +371,8 @@ export const KINDS: Record<string, Kind> = {
 			if (colonyActiveBuildings(col.districtList).includes(s(t, 'building')))
 				return { state: 'done' };
 			const queued = col.buildQueue.some((q) => q.name === s(t, 'building'));
-			return { state: queued ? 'progress' : 'open', why: queued ? 'queued' : undefined };
+			if (queued) return { state: 'progress', why: 'queued' };
+			return notYet(c, s(t, 'building')) ?? { state: 'open' };
 		}
 	},
 	building_any: {
@@ -375,7 +390,7 @@ export const KINDS: Record<string, Kind> = {
 				return { state: 'done' };
 			return cols.some((col) => col.buildQueue.some((q) => q.name === b))
 				? { state: 'progress', why: 'queued' }
-				: { state: 'open' };
+				: (notYet(c, b) ?? { state: 'open' });
 		}
 	},
 	megastructure: {
