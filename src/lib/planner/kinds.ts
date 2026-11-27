@@ -27,7 +27,10 @@ export const GROUPS = [
 export type Group = (typeof GROUPS)[number]['id'];
 
 export type State = 'done' | 'progress' | 'open' | 'blocked' | 'unknown';
-export type Status = { state: State; why?: string };
+// `waiting`: open, but not to be started yet — what it needs first is missing (a tech's
+// prerequisites, an arkship's class tech); Next up skips it for what it waits on (the user's ask
+// 2026-11-27: planned arkships "which I cannot yet build" were next up)
+export type Status = { state: State; why?: string; waiting?: true };
 
 /** Starbase levels in upgrade order (`Station.level`, without `starbase_level_`). */
 export const STATION_LEVELS = ['outpost', 'starport', 'starhold', 'starfortress', 'citadel'];
@@ -251,9 +254,18 @@ export const KINDS: Record<string, Kind> = {
 			if (!nomadic(c.latest)) return { state: 'blocked', why: 'only nomads build arkships' };
 			if (c.latest.ships === null) return { state: 'unknown' };
 			const have = arkships(c.latest, s(t, 'type'));
-			return have >= n(t, 'count')
-				? { state: 'done' }
-				: { state: 'open', why: `${have} of ${n(t, 'count')}` };
+			if (have >= n(t, 'count')) return { state: 'done' };
+			// built only with Arkship Construction and the class's tech (`potential` of 4.6.1
+			// `inline_scripts/megastructures/arkship.txt`); the class tech needs the other
+			const tech = ARKSHIP_TECHS[s(t, 'type')];
+			const researched = c.latest.progress?.researched;
+			if (tech && researched && !researched.includes(tech))
+				return {
+					state: 'open',
+					why: `${have} of ${n(t, 'count')}; needs ${c.data.techs[tech]?.name ?? pretty(tech)}`,
+					waiting: true
+				};
+			return { state: 'open', why: `${have} of ${n(t, 'count')}` };
 		}
 	},
 	colony: {
@@ -399,7 +411,8 @@ export const KINDS: Record<string, Kind> = {
 				state: 'open',
 				why: missing.length
 					? `needs ${missing.map((p) => c.data.techs[p]?.name ?? p).join(', ')}`
-					: 'its tier is not open yet'
+					: 'its tier is not open yet',
+				waiting: true
 			};
 		}
 	},
@@ -733,6 +746,12 @@ export const ARKSHIPS: Record<string, string> = {
 	civilian: 'Civilian Arkship',
 	science: 'Scientific Arkship',
 	military: 'Military Arkship'
+};
+/** The tech that unlocks each arkship class (4.6.1 `megastructures/29_nomad_arkships.txt`). */
+export const ARKSHIP_TECHS: Record<string, string> = {
+	civilian: 'tech_civilian_arkship',
+	science: 'tech_science_arkship',
+	military: 'tech_military_arkship'
 };
 export const arkships = (s: Snapshot, type: string) =>
 	(s.ships ?? [])

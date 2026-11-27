@@ -136,12 +136,16 @@
 		(r.polarity !== 'avoid' && r.state === 'done') ||
 		(r.polarity === 'avoid' && r.state === 'blocked');
 
-	// next up: per group the first goal not finished, warnings first
+	// next up: per group the first goal not finished that can be started now (`waiting`: what it
+	// needs comes first, and is planned in its place), warnings first
 	const nextUp = $derived(
 		data.groups
 			.flatMap((g) => {
 				const open = g.goals.filter((r) => !finished(r));
-				return [...open.filter(alert), ...open.filter((r) => !alert(r)).slice(0, 1)].map((r) => ({
+				return [
+					...open.filter(alert),
+					...open.filter((r) => !alert(r) && !r.waiting).slice(0, 1)
+				].map((r) => ({
 					...r,
 					groupName: g.name
 				}));
@@ -556,7 +560,10 @@
 <div class="grid gap-6 xl:grid-cols-[2fr_1fr]">
 	<div class="space-y-6">
 		{#if nextUp.length}
-			<Panel title="Next up" note="The first open goal of each group, and every warning.">
+			<Panel
+				title="Next up"
+				note="The first open goal of each group that can be started now — one that waits on a tech gives way to it — and every warning."
+			>
 				<ul class="space-y-1 text-sm">
 					{#each nextUp as r (r.id)}
 						<li class="flex flex-wrap items-center gap-2">

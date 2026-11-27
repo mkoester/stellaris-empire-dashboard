@@ -34,6 +34,19 @@ describe('shortcutRows', () => {
 		expect(techs).not.toContain('tech_battleships');
 	});
 
+	it('offers the nomads bundle to nomads only', () => {
+		const ids = (nomad: boolean) =>
+			shortcutRows(
+				SHORTCUTS,
+				() => false,
+				() => ({}),
+				nomad
+			).map((s) => s.id);
+		expect(ids(true)).toContain('nomads');
+		expect(ids(false)).not.toContain('nomads');
+		expect(ids(false)).toContain('economy');
+	});
+
 	it('names every tech once', () => {
 		const all = SHORTCUTS.flatMap((s) => s.techs.map((t) => t.tech));
 		expect(new Set(all).size).toBe(all.length);

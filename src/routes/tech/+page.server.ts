@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { techOffers } from '#lib/techOffers.ts';
+import { repeatableLimit } from '#lib/techCard.ts';
 import { facts } from '#lib/government.ts';
 import type { TreeTech } from '#lib/techTree.ts';
 import type { Snapshot } from '#lib/types.ts';
@@ -39,11 +40,14 @@ export function load({ url }) {
 		});
 	const researched = progress?.researched ?? [];
 	const onOffer = new Set(Object.values(options).flat());
+	const repeatables = getGameData().repeatables ?? {};
 	const tech = (key: string) => ({
 		key,
-		name: techs[key]?.name ?? key,
+		name: techs[key]?.name ?? repeatables[key]?.name ?? key,
 		tier: techs[key]?.tier ?? null,
-		cost: techs[key]?.cost ?? null
+		cost: techs[key]?.cost ?? null,
+		// a repeatable tech's cap: `max 5`, `∞`; null for the rest
+		repeats: key in repeatables ? repeatableLimit(repeatables[key].levels).badge : null
 	});
 	return {
 		...rest,

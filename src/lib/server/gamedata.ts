@@ -121,6 +121,12 @@ export function loadGameData(file: string): GameData {
 					}
 				])
 			),
+			// repeatable techs are not in `technology`: their names, and the cap (-1 none)
+			repeatables: Object.fromEntries(
+				rows<{ key: string; label: string | null; area: string; levels: number | null }>(
+					'SELECT key, label, area, levels FROM tech_repeatable'
+				).map((r) => [r.key, { name: r.label ?? r.key, area: r.area, levels: r.levels }])
+			),
 			agendas: Object.fromEntries(
 				rows<{
 					key: string;

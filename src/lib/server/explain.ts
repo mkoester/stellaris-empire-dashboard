@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { pretty } from '#lib/format.ts';
-import { techCard, type TechUnlock } from '#lib/techCard.ts';
+import { repeatableLimit, techCard, type TechUnlock } from '#lib/techCard.ts';
 import { describe, parseTrigger } from '#lib/triggers.ts';
 import type { Explanation, Modifier } from '#lib/types.ts';
 
@@ -450,6 +450,24 @@ export function loadExplanations(file: string): Explanations {
 				facts: card.facts
 			};
 		}
+		// repeatable techs (not in `technology`): what each level gives, and how often it repeats
+		const repeatMods = grouped(
+			'SELECT tech_key AS owner, modifier_key AS key, modifier_value AS value FROM tech_repeatable_modifier ORDER BY sort_order'
+		);
+		for (const t of rows<{
+			key: string;
+			label: string | null;
+			description: string | null;
+			area: string;
+			levels: number | null;
+		}>('SELECT key, label, description, area, levels FROM tech_repeatable'))
+			out[`tech:${t.key}`] = {
+				title: t.label ?? pretty(t.key),
+				description: t.description,
+				modifiers: repeatMods.get(t.key) ?? [],
+				text: null,
+				facts: [t.area, repeatableLimit(t.levels).fact]
+			};
 
 		// Traditions and ascension perks: modifiers in tradition_modifier (owner_key = key).
 		for (const t of rows<{

@@ -1437,6 +1437,7 @@ export type GameData = {
 			rare?: boolean;
 		}
 	>;
+	repeatables?: Record<string, { name: string; area: string; levels: number | null }>; // -1 = no cap
 	agendas: Record<
 		string,
 		{
