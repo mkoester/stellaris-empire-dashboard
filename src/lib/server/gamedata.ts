@@ -461,6 +461,18 @@ export function loadGameData(file: string): GameData {
 						return out;
 					}, {})
 				: {},
+			// what stops each situation (data DBs since 2026-11-27; none before)
+			situationBlocks: rows<{ name: string }>(
+				"SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'situation_block'"
+			).length
+				? rows<{ situation_key: string; text: string | null; trigger_json: string }>(
+						'SELECT situation_key, text, trigger_json FROM situation_block ORDER BY situation_key, sort_order'
+					).reduce<NonNullable<GameData['situationBlocks']>>((out, r) => {
+						const when = parseTrigger(r.trigger_json);
+						if (when) (out[r.situation_key] ??= []).push({ text: r.text, when });
+						return out;
+					}, {})
+				: {},
 			situationTypes: situationTypes(
 				rows(
 					columnsOf('situation').has('permanent')

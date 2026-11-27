@@ -360,6 +360,24 @@ export const KINDS: Record<string, Kind> = {
 			return { state: queued ? 'progress' : 'open', why: queued ? 'queued' : undefined };
 		}
 	},
+	building_any: {
+		group: 'colonies',
+		name: 'a building on any colony',
+		fields: ['building'],
+		label: (t, c) => `${c.data.names[s(t, 'building')] ?? pretty(s(t, 'building'))} on any colony`,
+		ref: (t) => `building:${s(t, 'building')}`,
+		// an ascension's (`ASCENSION_SITUATIONS`): its situation stops while none is active
+		check: (t, c) => {
+			const cols = c.latest.colonies;
+			if (!cols?.length) return { state: 'unknown' };
+			const b = s(t, 'building');
+			if (cols.some((col) => colonyActiveBuildings(col.districtList).includes(b)))
+				return { state: 'done' };
+			return cols.some((col) => col.buildQueue.some((q) => q.name === b))
+				? { state: 'progress', why: 'queued' }
+				: { state: 'open' };
+		}
+	},
 	megastructure: {
 		group: 'megastructures',
 		name: 'kilo- or megastructure',
@@ -747,6 +765,20 @@ export const ARKSHIPS: Record<string, string> = {
 	science: 'Scientific Arkship',
 	military: 'Military Arkship'
 };
+/**
+ * The situation each ascension path runs, by the perk or adoption that starts it (4.6.1:
+ * Biomorphosis's `on_enabled` fires `bio.1`, `ascension_perks/00_ascension_paths.txt`; the
+ * Machine Age events start the rest on adoption, `events/machine_age_situation_events_*.txt`).
+ * Its blocks (`GameData.situationBlocks`) say what it stops without. Psionics runs none; Breach
+ * the Shroud is the Twisted Experimenters' and starts from an event, so it is not listed.
+ */
+export const ASCENSION_SITUATIONS: Record<string, string[]> = {
+	ap_engineered_evolution: ['genetic_ascension_situation', 'genetic_ascension_situation_hive'],
+	tr_cybernetics_adopt: ['situation_cyberization', 'situation_cyberization_hive'],
+	tr_synthetics_adopt: ['situation_digitization'],
+	ap_synthetic_age: ['situation_transformation']
+};
+
 /** The tech that unlocks each arkship class (4.6.1 `megastructures/29_nomad_arkships.txt`). */
 export const ARKSHIP_TECHS: Record<string, string> = {
 	civilian: 'tech_civilian_arkship',

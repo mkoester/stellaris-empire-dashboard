@@ -104,7 +104,18 @@ goals list traditions and perks; same-name perk variants collapse to the one who
 availability is best established for this empire. Ascension trees with duplicate names appear once;
 trees whose potential or adoption rules are known to fail for this empire are dimmed and labelled.
 Planning a perk that opens a tradition tree also plans that tree and its traditions; trees known to
-be unavailable are skipped. The history shows badges with the goal's group,
+be unavailable are skipped. **An adoption brings the techs its `possible` asks of this empire**
+(the user's ask 2026-11-27, "what else is needed to finish the ascension"; `#lib/planner/asks.ts`
+`techsAsked()`: of an `or` the branch it can meet, planned perks and traditions counted as taken —
+Integrated Cybernetics for Cybernetics, Robomodding for a machine's Synthetics), and a tree counts
+as available when its adoption would hold once it has them (`withTechs()`; before, a missing tech
+read as unavailable and planning The Flesh is Weak planned no Cybernetics). **A path's situation
+brings what stops it** (`ASCENSION_SITUATIONS` in `kinds.ts`, data DB `situation_block`: a
+`monthly_progress` modifier with `mult = 0`; `blockNeeds()`): its techs, traditions, and a building
+on any colony (kind `building_any`) — 4.6.1 the Genomic Research Facility, Augmentation Center,
+Identity Complex; a data DB without the table brings nothing. A situation seen and gone counts as
+finished. **Next up skips a goal that waits** (`Status.waiting`: a tech out of reach, an arkship
+whose class tech is missing — that tech is planned with it); its needs come up instead. The history shows badges with the goal's group,
 its reorderings behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
 (`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, or a
 perk's linked tree; none that another goal or the save implies): OK removes them with it (they are derived, so nothing is
