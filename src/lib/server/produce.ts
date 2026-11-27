@@ -1,3 +1,4 @@
+import { forEmpire } from '#lib/costs.ts';
 import { blocked } from '#lib/blockers.ts';
 import { pretty } from '#lib/format.ts';
 import { edictRows, facts } from '#lib/government.ts';
@@ -33,7 +34,7 @@ const times = (r: Resources, f: Resources) =>
 
 /** Output per group a modifier can target, from the budget: jobs (income only) and stations. */
 export function groupFlows(save: Snapshot): GroupFlows {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), save);
 	const budget = save.budget ?? [];
 	const byJob = jobFlows(
 		(save.planetBudget ?? []).map((b) => ({ ...b, expenses: {} })),
@@ -72,7 +73,7 @@ const UPKEEP_SOURCES: Record<string, string[]> = {
  * the workforce per job and the pops per stratum.
  */
 export function upkeepInputs(save: Snapshot): UpkeepInputs {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), save);
 	const budget = save.budget ?? [];
 	const worked = workedJobs(save.colonies);
 	const flows: Record<string, Resources> = {};
@@ -99,7 +100,7 @@ export function upkeepInputs(save: Snapshot): UpkeepInputs {
 
 /** Starbase modules and buildings of the types we have (so unlocked), where a slot is free. */
 function starbaseOptions(save: Snapshot): ProduceOption[] {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), save);
 	const stations = save.stations ?? [];
 	const booked = (source: string) => save.budget?.find((b) => b.source === source);
 	return (
@@ -144,7 +145,7 @@ function starbaseOptions(save: Snapshot): ProduceOption[] {
 
 /** Clearing a blocker and building a district in the room it makes, per district type. */
 function blockerOptions(save: Snapshot, staffed: (jobs: Record<string, number>) => Resources) {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), save);
 	const { hints } = colonyBlockerHints(save.colonies, save.progress?.researched ?? [], save);
 	const factor = paidFactor(save, 'district');
 	return hints
@@ -183,7 +184,7 @@ function blockerOptions(save: Snapshot, staffed: (jobs: Record<string, number>) 
 
 /** Edicts we could enact now: what their output modifiers add to what we yield today. */
 function edictOptions(save: Snapshot, flows: GroupFlows): ProduceOption[] {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), save);
 	return edictRows(
 		data.edicts,
 		save,

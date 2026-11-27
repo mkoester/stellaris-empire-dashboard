@@ -116,6 +116,25 @@ describe('goal checks', () => {
 		expect(state('tech', { tech: 'tech_c' }, c)).toBe('blocked');
 	});
 
+	it('a building not buildable yet: how to get it, or blocked without a way', () => {
+		const c = ctx(save({ colonies: [colony(4)] }), [], {
+			buildingNeeds: (b) =>
+				b === 'building_augmentation_center'
+					? { now: null, ways: ['Cyberization, Stage II'], impossible: false }
+					: b === 'building_other_civics'
+						? { now: false, ways: [], impossible: true }
+						: null
+		});
+		expect(check('building_any', { building: 'building_augmentation_center' }, false, c)).toEqual({
+			state: 'open',
+			why: 'comes with Cyberization, Stage II'
+		});
+		expect(state('building', { planet: 4, building: 'building_other_civics' }, c)).toBe('blocked');
+		expect(check('building', { planet: 4, building: 'building_x' }, false, c)).toEqual({
+			state: 'open'
+		});
+	});
+
 	it("outpost: ours by the branch's save; blocked once another empire holds it", () => {
 		const s = save({
 			knownSystems: [{ id: 1, name: 'S1', x: 0, y: 0, owned: true, capital: false, lanes: [] }]

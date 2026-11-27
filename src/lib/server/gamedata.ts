@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { attractionSources } from '#lib/ethicSources.ts';
+import { VARIANT_SOURCES } from '#lib/costs.ts';
 import { parseTrigger } from '#lib/triggers.ts';
 import type { OutcomeNode } from '#lib/outcomes.ts';
 import type {
@@ -766,14 +767,16 @@ export function loadGameData(file: string): GameData {
 			traditionSwaps: rows<{
 				id: string;
 				owner_key: string;
+				loc_key: string | null;
 				name: string | null;
 				trigger_json: string | null;
 				inherit_effects: number;
 			}>(
-				'SELECT id, owner_key, name, trigger_json, inherit_effects FROM tradition_swap ORDER BY owner_key, sort_order'
+				`SELECT id, owner_key, ${columnsOf('tradition_swap').has('loc_key') ? 'loc_key' : 'NULL AS loc_key'}, name, trigger_json, inherit_effects FROM tradition_swap ORDER BY owner_key, sort_order`
 			).reduce<GameData['traditionSwaps']>((out, r) => {
 				(out[r.owner_key] ??= []).push({
 					id: r.id,
+					key: r.loc_key,
 					name: r.name,
 					trigger: parseTrigger(r.trigger_json),
 					inherit: r.inherit_effects === 1
@@ -971,6 +974,53 @@ export function loadGameData(file: string): GameData {
 					rows('SELECT key, kind, resource, amount FROM starbase_building_resource')
 				)
 			},
+			// a player's zip may bundle an extractor from before 2026-11-27: none of these then
+			...(() => {
+				const has = (t: string) =>
+					rows(`SELECT name FROM sqlite_master WHERE type = 'table' AND name = '${t}'`).length > 0;
+				const costVariants: NonNullable<GameData['costVariants']> = {};
+				if (has('resource_variant'))
+					for (const r of rows<{
+						source: string;
+						key: string;
+						kind: string;
+						block: number;
+						resource: string;
+						amount: number;
+						trigger_json: string | null;
+					}>(
+						'SELECT source, key, kind, block, resource, amount, trigger_json FROM resource_variant ORDER BY source, key, sort_order'
+					)) {
+						const src = VARIANT_SOURCES[r.source];
+						if (!src || (r.kind !== 'cost' && r.kind !== 'upkeep' && r.kind !== 'produces'))
+							continue;
+						const table = (costVariants[src] ??= {});
+						if (!Object.hasOwn(table, r.key)) table[r.key] = [];
+						table[r.key].push({
+							kind: r.kind,
+							block: r.block,
+							resource: r.resource,
+							amount: r.amount,
+							when: parseTrigger(r.trigger_json)
+						});
+					}
+				const buildingPotential: NonNullable<GameData['buildingPotential']> = {};
+				if (columnsOf('building').has('potential_json'))
+					for (const r of rows<{ key: string; potential_json: string }>(
+						'SELECT key, potential_json FROM building WHERE potential_json IS NOT NULL'
+					))
+						buildingPotential[r.key] = parseTrigger(r.potential_json)!;
+				const stageFlags: NonNullable<GameData['stageFlags']> = {};
+				if (has('situation_stage_flag'))
+					for (const r of rows<{ situation_key: string; stage: string; flag: string }>(
+						`SELECT DISTINCT f.situation_key, coalesce(s.name, f.stage_key) AS stage, f.flag
+						 FROM situation_stage_flag f
+						 LEFT JOIN situation_stage s ON s.situation_key = f.situation_key AND s.key = f.stage_key
+						 ORDER BY f.situation_key, s.sort_order`
+					))
+						(stageFlags[r.flag] ??= []).push({ situation: r.situation_key, stage: r.stage });
+				return { costVariants, buildingPotential, stageFlags };
+			})(),
 			// jobs (positions, in pops) per district and building, build days, deposit categories
 			districtJobs: byKey(rows('SELECT key, job AS name, amount FROM district_job')),
 			buildingJobs: byKey(

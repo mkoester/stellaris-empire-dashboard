@@ -11,6 +11,7 @@ import type { GameData, Snapshot } from './types.ts';
 
 export type Swap = {
 	id: string; // `<owner>#<n>`
+	key?: string | null; // its own `name` key, which triggers test (`has_active_tradition`)
 	name: string | null;
 	trigger: Trigger | null;
 	inherit: boolean; // the owner's modifiers apply, not the swap's own

@@ -1,3 +1,4 @@
+import { forEmpire } from '#lib/costs.ts';
 import {
 	automationBarred,
 	automationOptions,
@@ -169,7 +170,7 @@ const CRIME_KEYS = new Set(['planet_crime_mult', 'job_criminal_add', 'job_crimin
  * Distribute Luxury Goods keeps its own panel.
  */
 export function colonyWhatIfs(b: Branch, colony: Colony) {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), b.latest);
 	const explain = getExplanations();
 	const save =
 		b.snaps.findLast((x) => x.council !== null) ?? b.snaps.findLast((x) => x.kind === 'save');
@@ -354,7 +355,7 @@ export type ColonyAutomation = {
  * of each line its jobs allow, on its job rows (measured output) and every building it has.
  */
 export function colonyAutomation(b: Branch, colony: Colony): ColonyAutomation {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), b.latest);
 	const who = b.latest.government ? b.latest : (b.snaps.findLast((s) => s.government) ?? b.latest);
 	const barred = automationBarred(who.government, who.origin);
 	if (barred) return { barred, options: [] };
@@ -409,7 +410,7 @@ export function edictFundFor(
 	rows: { active: unknown; cost: { upkeep?: Resources | null } }[]
 ): FundState | null {
 	if (!save.budget) return null;
-	const data = getGameData();
+	const data = forEmpire(getGameData(), save);
 	const swaps = empireSwaps(save, data);
 	const held = [
 		'modifier:empire_base',
@@ -467,7 +468,7 @@ export function recommendationOptions(b: Branch): Recommendation[] | null {
 	if (!display().whatIfs) return null;
 	const inputs = whatIfInputs(b);
 	if (!inputs) return null;
-	const data = getGameData();
+	const data = forEmpire(getGameData(), b.latest);
 	const save = inputs.save;
 	const f = facts(save, data.scriptedTriggers, {
 		shipKinds: data.shipKinds,

@@ -1,3 +1,4 @@
+import { forEmpire } from '#lib/costs.ts';
 import { pretty } from '#lib/format.ts';
 import { facts } from '#lib/government.ts';
 import { inReach } from '#lib/techTiers.ts';
@@ -45,7 +46,7 @@ const add = (a: Resources, b: Resources): Resources => {
  * yields nothing and is noted in `unmeasured`.
  */
 export function jobMeasure(save: Snapshot) {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), save);
 	const filled = workedJobs(save.colonies);
 	const perPop = Object.fromEntries(
 		Object.entries(jobFlows(save.planetBudget ?? [], data.jobs, filled))
@@ -73,7 +74,7 @@ export function jobMeasure(save: Snapshot) {
 
 /** Costs as paid: our queued items of a kind against their base cost (1 without any). */
 export function paidFactor(save: Snapshot, kind: 'district' | 'building') {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), save);
 	const items = (save.construction ?? []).filter((c) => c.kind === kind);
 	const base = items.reduce((s, c) => s + total(data.costs[kind][c.name]?.cost ?? {}), 0);
 	return base > 0 ? items.reduce((s, c) => s + total(c.cost), 0) / base : 1;
@@ -89,7 +90,7 @@ export type Preset = {
 };
 
 export function tradeoffData(b: NonNullable<ReturnType<typeof branch>>) {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), b.latest);
 	const save = b.snaps.findLast((s) => s.kind === 'save' && s.budget !== null) ?? null;
 	if (!save?.budget) return null;
 	const budget = (source: string) => save.budget!.find((s) => s.source === source);
@@ -225,7 +226,7 @@ function presets(
 	save: Snapshot,
 	upcoming: NonNullable<ReturnType<typeof branch>>['upcoming']
 ): Preset[] {
-	const data = getGameData();
+	const data = forEmpire(getGameData(), save);
 	const out: Preset[] = [];
 	const push = (label: string, month: number, source: string, key: string, ref = key) => {
 		const changes = changesOf(label, month, data.growthModifiers[key] ?? {});

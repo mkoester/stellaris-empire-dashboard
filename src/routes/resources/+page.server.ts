@@ -1,3 +1,4 @@
+import { forEmpire } from '#lib/costs.ts';
 import { error } from '@sveltejs/kit';
 import { getGameData } from '#lib/server/app.ts';
 import { branch } from '#lib/server/branch.ts';
@@ -13,7 +14,7 @@ export function load({ url }) {
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
 	const budgeted = snaps.findLast((s) => s.budget !== null);
-	const data = getGameData();
+	const data = forEmpire(getGameData(), b.latest);
 	const spends = namedSpending(snaps, {
 		names: data.names,
 		edicts: data.edicts,
