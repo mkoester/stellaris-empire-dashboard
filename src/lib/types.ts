@@ -1611,6 +1611,8 @@ export type GameData = {
 			counters: { key: string; max: number | null }[];
 		}
 	>;
+	// what stops a situation: while `when` holds it makes no progress (`text` says why)
+	situationBlocks?: Record<string, { text: string | null; when: Trigger }[]>;
 	situationTypes: Record<
 		string,
 		{

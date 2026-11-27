@@ -9,6 +9,7 @@ import {
 import {
 	ARKSHIPS,
 	ARKSHIP_TECHS,
+	ASCENSION_SITUATIONS,
 	arkships,
 	areaOf,
 	ascensionOf,
@@ -57,6 +58,7 @@ import type { Stance } from '#lib/techOffers.ts';
 import { SHORTCUTS, shortcutRows } from '#lib/planner/shortcuts.ts';
 import { systemInfo } from '#lib/planner/systemInfo.ts';
 import { techNeeds } from '#lib/planner/needs.ts';
+import { blockNeeds, techsAsked, withTechs } from '#lib/planner/asks.ts';
 import { AREAS, inReach } from '#lib/techTiers.ts';
 import { discovered, jumpsFromBorder } from '#lib/situations.ts';
 import { evaluate } from '#lib/triggers.ts';
@@ -433,21 +435,111 @@ function planWithNeeds(
 		);
 	const techsNeeded = (techs: string[]) =>
 		techNeeds(techs, researched, data.techs, data.techRequirements, c.ctx.possible);
-	// a planned arkship brings its class's tech, and with it what that tech needs
-	const arkshipNeeds = (goals: Goal[]): AutoGoal[] => {
-		const types = [...new Set(goals.map((g) => String(g.target.type)))].filter(
-			(t) => ARKSHIP_TECHS[t] && !researched.includes(ARKSHIP_TECHS[t])
+	// techs a goal needs, as goals of their own (each with what it needs in turn)
+	const rootNeeds = (asked: { tech: string; note: string }[]): AutoGoal[] => {
+		const open = asked.filter(
+			(a, i) => !researched.includes(a.tech) && asked.findIndex((b) => b.tech === a.tech) === i
 		);
 		return [
-			...types.map((type): AutoGoal => ({
-				id: `auto-tech-${ARKSHIP_TECHS[type]}`,
+			...open.map(({ tech, note }): AutoGoal => ({
+				id: `auto-tech-${tech}`,
 				kind: 'tech',
-				target: { tech: ARKSHIP_TECHS[type] },
+				target: { tech },
 				polarity: 'want',
-				note: `needed for ${ARKSHIPS[type] ?? type}s`
+				note
 			})),
-			...techsNeeded(types.map((t) => ARKSHIP_TECHS[t]))
+			...techsNeeded(open.map((a) => a.tech))
 		];
+	};
+	// a planned arkship brings its class's tech
+	const arkshipNeeds = (goals: Goal[]) =>
+		rootNeeds(
+			goals.flatMap((g) => {
+				const type = String(g.target.type);
+				const tech = ARKSHIP_TECHS[type];
+				return tech ? [{ tech, note: `needed for ${ARKSHIPS[type] ?? type}s` }] : [];
+			})
+		);
+	// a planned adoption brings the techs its `possible` asks of this empire (an ascension tree's:
+	// Integrated Cybernetics for Cybernetics …), the plan's perks and traditions counted as taken
+	const held = new Set([
+		...wantedOf('perk').map((g) => String(g.target.perk)),
+		...wantedOf('tradition').map((g) => String(g.target.tradition))
+	]);
+	const adoptTree = new Map(
+		Object.values(data.traditionTrees).flatMap((t) => {
+			const adopt = t.traditions.find((x) => x.role === 'adopt')?.key;
+			return adopt ? [[adopt, t] as const] : [];
+		})
+	);
+	const taken = new Set(c.ctx.latest.traditions ?? []);
+	const adoptNeeds = (goals: { kind: string; target: Goal['target'] }[]) =>
+		rootNeeds(
+			goals.flatMap((g) => {
+				const key = String(g.target.tradition);
+				const tree = g.kind === 'tradition' && !taken.has(key) ? adoptTree.get(key) : undefined;
+				if (!tree) return [];
+				return techsAsked(tree.adoptPossible ?? null, c.ctx.possible, held).map((tech) => ({
+					tech,
+					note: `needed to adopt ${tree.name}`
+				}));
+			})
+		);
+	// a path's situation (`ASCENSION_SITUATIONS`), started by a perk or adoption taken or planned,
+	// brings what its blocks stop without: techs, traditions, a building on any colony
+	const running = new Set((c.ctx.latest.situations ?? []).map((x) => x.type));
+	const situationNeeds = (starters: string[]): AutoGoal[] => {
+		const out: AutoGoal[] = [];
+		const asked: { tech: string; note: string }[] = [];
+		for (const key of new Set(
+			starters
+				.flatMap((k) => ASCENSION_SITUATIONS[k] ?? [])
+				.filter(
+					// seen and gone: finished
+					(x) => running.has(x) || !c.ctx.seen.situations.includes(x)
+				)
+		))
+			for (const block of data.situationBlocks?.[key] ?? []) {
+				const needs = blockNeeds(block.when, c.ctx.possible);
+				if (!needs) continue;
+				const note = `${data.situationTypes[key]?.name ?? key} stops without it${block.text ? ` (“${block.text}”)` : ''}`;
+				for (const tech of needs.techs) asked.push({ tech, note });
+				for (const tradition of needs.traditions)
+					out.push({
+						id: `auto-tr-${tradition}`,
+						kind: 'tradition',
+						target: { tradition },
+						polarity: 'want',
+						note
+					});
+				for (const building of needs.buildings)
+					out.push({
+						id: `auto-bld-${building}`,
+						kind: 'building_any',
+						target: { building },
+						polarity: 'want',
+						note
+					});
+			}
+		return [...out, ...rootNeeds(asked)];
+	};
+	const startersOf = (goals: { kind: string; target: Goal['target'] }[]) => [
+		...goals.flatMap((g) =>
+			g.kind === 'perk'
+				? [String(g.target.perk)]
+				: g.kind === 'tradition'
+					? [String(g.target.tradition)]
+					: []
+		)
+	];
+	// a tree whose adoption the empire could meet once it has the techs that asks for
+	const treeAvailable = (key: string) => {
+		const tree = data.traditionTrees[key];
+		return (
+			tree != null &&
+			c.ctx.possible(tree.potential ?? null) !== false &&
+			c.ctx.possible(tree.adoptPossible ? withTechs(tree.adoptPossible, held) : null) !== false
+		);
 	};
 	// a planned adoption brings its tree, a planned pick its adoption and the picks it needs
 	const auto = autoGoals(
@@ -455,19 +547,23 @@ function planWithNeeds(
 		data,
 		wantedOf('tradition').map((g) => String(g.target.tradition)),
 		wantedOf('perk').map((g) => String(g.target.perk)),
-		(key) => {
-			const tree = data.traditionTrees[key];
-			return (
-				tree != null &&
-				c.ctx.possible(tree.potential ?? null) !== false &&
-				c.ctx.possible(tree.adoptPossible ?? null) !== false
-			);
-		}
+		treeAvailable
 	);
 	const fromTechs = techsNeeded(wantedOf('tech').map((g) => String(g.target.tech)));
+	const more = [
+		...arkshipNeeds(wantedOf('arkship')),
+		...adoptNeeds([...auto, ...wantedOf('tradition')]),
+		...situationNeeds([
+			...(c.ctx.latest.ascensionPerks ?? []),
+			...taken,
+			...startersOf([...auto, ...wantedOf('tradition'), ...wantedOf('perk')])
+		])
+	];
 	const needs = [
 		...fromTechs,
-		...arkshipNeeds(wantedOf('arkship')).filter((g) => !fromTechs.some((x) => x.id === g.id))
+		...more.filter(
+			(g, i) => !fromTechs.some((x) => x.id === g.id) && more.findIndex((x) => x.id === g.id) === i
+		)
 	];
 	const plan = planAt(events, path, [...auto, ...needs]);
 	// what each added goal brings by itself
@@ -486,20 +582,20 @@ function planWithNeeds(
 					? techsNeeded([String(g.target.tech)])
 					: g.kind === 'arkship'
 						? arkshipNeeds([g])
-						: autoGoals(
-								c.ctx.latest,
-								data,
-								g.kind === 'tradition' ? [String(g.target.tradition)] : [],
-								g.kind === 'perk' ? [String(g.target.perk)] : [],
-								(key) => {
-									const tree = data.traditionTrees[key];
-									return (
-										tree != null &&
-										c.ctx.possible(tree.potential ?? null) !== false &&
-										c.ctx.possible(tree.adoptPossible ?? null) !== false
-									);
-								}
-							)
+						: (() => {
+								const own = autoGoals(
+									c.ctx.latest,
+									data,
+									g.kind === 'tradition' ? [String(g.target.tradition)] : [],
+									g.kind === 'perk' ? [String(g.target.perk)] : [],
+									treeAvailable
+								);
+								return [
+									...own,
+									...adoptNeeds([...own, g]),
+									...situationNeeds(startersOf([...own, g]))
+								];
+							})()
 				)
 					.map((x) => x.id)
 					.filter((id) => !fromSave.has(id) && plan.goals.get(id)?.auto)
