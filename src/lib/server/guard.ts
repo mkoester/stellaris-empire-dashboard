@@ -48,6 +48,15 @@ const READING = new Set(['GET', 'HEAD', 'OPTIONS']);
 /** What only the computer the dashboard runs on may change. */
 const LOCAL_ONLY = ['/setup', '/api/campaigns'];
 
+/**
+ * Whether a request is sent to /setup because the dashboard is not running yet. The event stream
+ * never is: a browser drops an `EventSource` for good when the answer is not `text/event-stream`,
+ * and the open tabs reconnecting at a restart arrive while the dashboard is still starting — the
+ * pages then stopped following the game until every tab was closed (2026-11-27).
+ */
+export const leadsToSetup = (running: boolean, path: string) =>
+	!running && !path.startsWith('/setup') && path !== '/api/events';
+
 /** Why the request is refused, or null when it may pass. */
 export function refusal(a: Asked): string | null {
 	if (!localName(a.host)) return `this dashboard is not served as ${hostname(a.host)}`;

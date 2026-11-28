@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { localName, loopback, refusal, type Asked } from './guard.ts';
+import { leadsToSetup, localName, loopback, refusal, type Asked } from './guard.ts';
+
+describe('leadsToSetup', () => {
+	it('sends pages to /setup until the dashboard runs', () => {
+		expect(leadsToSetup(false, '/')).toBe(true);
+		expect(leadsToSetup(false, '/api/settings')).toBe(true);
+		expect(leadsToSetup(false, '/setup')).toBe(false);
+		expect(leadsToSetup(true, '/')).toBe(false);
+	});
+
+	it('keeps the event stream open while starting, or the browser drops it for good', () => {
+		expect(leadsToSetup(false, '/api/events')).toBe(false);
+	});
+});
 
 const asked = (a: Partial<Asked> = {}): Asked => ({
 	host: '127.0.0.1:5174',
