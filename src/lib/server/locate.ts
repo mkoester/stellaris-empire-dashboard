@@ -23,7 +23,13 @@ export type Machine = {
 	reg: Registry;
 };
 
-export type GameCandidate = { dir: string; source: string; version: string | null };
+export type GameCandidate = {
+	dir: string;
+	source: string;
+	version: string | null;
+	/** the Steam branch (`steamBranch`), null off Steam */
+	branch: string | null;
+};
 export type UserCandidate = {
 	dir: string;
 	source: string;
@@ -217,6 +223,26 @@ export const gameVersion = (dir: string) => launcherSetting(dir, 'rawVersion');
  */
 export const gameBuild = (dir: string) => buildOf(launcherSetting(dir, 'version'));
 
+/**
+ * The Steam branch whose files an `appmanifest_281990.acf` says are installed: `MountedConfig`'s
+ * `BetaKey` (`UserConfig`'s is only the choice, before Steam has updated), `public` without one.
+ * Pure; the extractor's `branch_from_manifest()` reads it the same way.
+ */
+export function branchOf(acf: Record<string, unknown>): string {
+	const app = (acf.AppState ?? {}) as Record<string, Record<string, unknown> | undefined>;
+	const key = (app.MountedConfig ?? app.UserConfig)?.BetaKey;
+	return typeof key === 'string' && key !== '' ? key : 'public';
+}
+
+/**
+ * The Steam branch a game install is on (`public`, or a beta's key such as `stellaris_test`), null
+ * for an install without a Steam manifest two levels up (GOG, Microsoft Store, a typed copy).
+ */
+export function steamBranch(gameDir: string): string | null {
+	const text = readText(join(gameDir, '..', '..', `appmanifest_${STEAM_APP}.acf`));
+	return text === null ? null : branchOf(parseVdf(text));
+}
+
 /** The build in a version string (`Cygnus v4.5.3 (7793)` → `7793`), null without one. Pure. */
 export const buildOf = (version: string | null) => /\((\d+)\)\s*$/.exec(version ?? '')?.[1] ?? null;
 
@@ -259,7 +285,7 @@ export function discover(m: Machine = thisMachine()): {
 	const games = uniqueBy(
 		m.platform,
 		gameDirGuesses(m, libraries).filter(([d]) => isGameDir(d))
-	).map(([dir, source]) => ({ dir, source, version: gameVersion(dir) }));
+	).map(([dir, source]) => ({ dir, source, version: gameVersion(dir), branch: steamBranch(dir) }));
 	const users = uniqueBy(
 		m.platform,
 		userDirGuesses(m, libraries).filter(([d]) => isUserDir(d))

@@ -206,6 +206,12 @@ machine, the user 2026-11-14).
 
 ## Tabs
 
+**Costs and popup cards are the empire's** (2026-11-27): `GameData.costs` holds the regular
+empire's; where a snapshot is at hand, read them through `forEmpire(data, s)` (`#lib/costs.ts`,
+data DB `resource_variant`) — a nomad's buildings cost strategic resources. `getExplanations()`
+already returns the shown node's empire's cards (`#lib/empireCards.ts`); a new card part that
+differs by empire goes in `CardVariants`, not in a second lookup. Details: `docs/tabs-planner.md`.
+
 The tabs show what the game's own panels show. Everything beyond that is a profile switch in ⚙
 (`Display`), off by default and labelled as a spoiler or as cheating (the list and the story:
 `docs/tabs-shell.md`).
