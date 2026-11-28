@@ -190,6 +190,27 @@ function due(
 }
 
 /**
+ * Research arrives once a month, on the 2nd (after the 1st's autosave, `docs/save-format.md`): due
+ * on the 2nd that brings the last chunk — the coming one first (this month's from the 1st), then
+ * one a month.
+ */
+export function researchDue(
+	now: string,
+	remaining: number,
+	rate: number
+): { date: string; months: number } | null {
+	if (remaining <= 0) return { date: now, months: 0 };
+	if (!(rate > 0)) return null;
+	const chunks = Math.ceil(remaining / rate);
+	const [y, m, d] = now.split('.').map(Number);
+	const first = y * 12 + (m - 1) + (d >= 2 ? 1 : 0); // month index of the coming 2nd
+	const last = first + chunks - 1;
+	const pad = (n: number) => String(n).padStart(2, '0');
+	const date = `${Math.floor(last / 12)}.${pad((last % 12) + 1)}.02`;
+	return { date, months: (toDays(date) - toDays(now)) / 30 };
+}
+
+/**
  * When each queue item is done, with `slots` built at once in queue order: an item starts when a
  * slot frees. `waitingAfter`: items not yet started when it is done — 0 means its slot then idles.
  */
@@ -321,7 +342,7 @@ export function upcoming(
 		if (!tech || cost === null) continue;
 		const rate =
 			researchRate(r.tech, latest, earlier) ?? latest.income?.[`${r.area}_research`] ?? 0;
-		const when = due(latest.date, cost - r.progress, rate);
+		const when = researchDue(latest.date, cost - r.progress, rate);
 		if (when)
 			out.push({
 				...when,
