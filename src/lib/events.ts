@@ -193,12 +193,16 @@ function due(
  * When each queue item is done, with `slots` built at once in queue order: an item starts when a
  * slot frees. `waitingAfter`: items not yet started when it is done — 0 means its slot then idles.
  */
-export function scheduleQueue(items: { progress: number; needed: number }[], slots: number) {
+export function scheduleQueue(
+	items: { progress: number; needed: number }[],
+	slots: number,
+	speed = 1 // progress per day: 1 at base speed, more with build speed bonuses (`buildSpeed`)
+) {
 	const free = Array<number>(Math.max(slots, 1)).fill(0); // day each slot is free again
 	const plan = items.map((item) => {
 		const slot = free.indexOf(Math.min(...free));
 		const start = free[slot];
-		free[slot] = start + Math.max(item.needed - item.progress, 0);
+		free[slot] = start + Math.max(item.needed - item.progress, 0) / speed;
 		return { start, doneIn: free[slot], startsNow: start === 0 };
 	});
 	return plan.map((p) => ({
@@ -208,23 +212,54 @@ export function scheduleQueue(items: { progress: number; needed: number }[], slo
 }
 
 /**
+ * A queue's build speed, in progress per day: `progress_needed` is the base build time and
+ * `progress` grows by the speed with its bonuses (1.0, 1.65, 1.9 a day along roamingcybergang,
+ * `docs/save-format.md`). Measured on the items under way at both readings — one that started,
+ * waited or finished between them reads wrong — the median of them; null without one.
+ */
+export function buildSpeed(
+	now: QueueItem[],
+	before: QueueItem[] | null | undefined,
+	days: number
+): number | null {
+	if (!before || !(days > 0)) return null;
+	const left = [...before];
+	const rates = now.flatMap((item) => {
+		const i = left.findIndex(
+			(b) => b.kind === item.kind && b.name === item.name && b.needed === item.needed
+		);
+		if (i < 0) return [];
+		const [b] = left.splice(i, 1);
+		return b.progress > 0 && item.progress > b.progress
+			? [(item.progress - b.progress) / days]
+			: [];
+	});
+	if (!rates.length) return null;
+	rates.sort((a, b) => a - b);
+	const mid = Math.floor(rates.length / 2);
+	return rates.length % 2 ? rates[mid] : (rates[mid - 1] + rates[mid]) / 2;
+}
+
+/**
  * One event per queue item: due when its slot gets to it, ⚠ (`act`) when nothing waits for the
- * slot afterwards, `queuedAfter` counting what still waits.
+ * slot afterwards, `queuedAfter` counting what still waits. At the measured `speed`, else at base
+ * speed (1 a day) and estimated: bonuses would make it sooner.
  */
 function queueEvents(
 	date: string,
 	queue: QueueItem[],
 	slots: number,
 	kind: 'construction' | 'shipyard',
-	describe: (item: QueueItem) => Pick<Upcoming, 'what' | 'detail' | 'planetId'>
+	describe: (item: QueueItem) => Pick<Upcoming, 'what' | 'detail' | 'planetId'>,
+	speed: number | null = null
 ): Upcoming[] {
-	const plan = scheduleQueue(queue, slots);
+	const plan = scheduleQueue(queue, slots, speed ?? 1);
 	return queue.map((item, i) => ({
 		date: fromDays(toDays(date) + plan[i].doneIn),
 		months: plan[i].doneIn / 30,
 		kind,
 		tint: 'construction',
-		exact: plan[i].startsNow,
+		exact: speed !== null && plan[i].startsNow,
 		act: plan[i].waitingAfter === 0,
 		queuedAfter: plan[i].waitingAfter,
 		...describe(item)
@@ -368,15 +403,28 @@ export function upcoming(
 				exact: true
 			});
 
-	// Build queues: progress counts days. A planet builds `buildSlots` items at once; the rest wait.
-	for (const c of latest.colonies)
+	// Build queues at each one's measured speed (`buildSpeed`). A planet builds `buildSlots` items
+	// at once; the rest wait.
+	const days = previous ? toDays(latest.date) - toDays(previous.date) : 0;
+	const speedText = (v: number | null) => (v === null ? '' : ` · ×${v.toFixed(2)} speed`);
+	for (const c of latest.colonies) {
+		const before = previous?.colonies.find((p) => p.planetId === c.planetId)?.buildQueue;
+		const speed = buildSpeed(c.buildQueue, before, days);
 		out.push(
-			...queueEvents(latest.date, c.buildQueue, c.buildSlots, 'construction', (item) => ({
-				what: item.name,
-				detail: `${c.name} · ${item.kind.replaceAll('_', ' ')}`,
-				planetId: c.planetId
-			}))
+			...queueEvents(
+				latest.date,
+				c.buildQueue,
+				c.buildSlots,
+				'construction',
+				(item) => ({
+					what: item.name,
+					detail: `${c.name} · ${item.kind.replaceAll('_', ' ')}${speedText(speed)}`,
+					planetId: c.planetId
+				}),
+				speed
+			)
 		);
+	}
 
 	// Colonies being settled: done at COLONY_POPS_REQUIRED (100) pops, growing COLONY_MONTHLY_GROWTH
 	// (3) a month before modifiers — measured from the save before when it shows the colony too.
@@ -433,21 +481,35 @@ export function upcoming(
 		what: `${item.name.replaceAll('_', ' ')}${item.design ? ` "${item.design}"` : ''}`
 	});
 	for (const s of latest.stations ?? [])
-		if (s.shipyard)
+		if (s.shipyard) {
+			const before = previous?.stations?.find((p) => p.id === s.id)?.shipyard?.queue;
+			const speed = buildSpeed(s.shipyard.queue, before, days);
 			out.push(
-				...queueEvents(latest.date, s.shipyard.queue, s.shipyard.slots, 'shipyard', (item) => ({
-					...ship(item),
-					detail: `${s.system} ${s.level}`
-				}))
+				...queueEvents(
+					latest.date,
+					s.shipyard.queue,
+					s.shipyard.slots,
+					'shipyard',
+					(item) => ({ ...ship(item), detail: `${s.system} ${s.level}${speedText(speed)}` }),
+					speed
+				)
 			);
+		}
 	for (const m of latest.megaShipyards ?? [])
-		if (m.queue)
+		if (m.queue) {
+			const before = previous?.megaShipyards?.find((p) => p.id === m.id)?.queue;
+			const speed = buildSpeed(m.queue, before, days);
 			out.push(
-				...queueEvents(latest.date, m.queue, m.slots, 'shipyard', (item) => ({
-					...ship(item),
-					detail: `${m.system} Mega Shipyard`
-				}))
+				...queueEvents(
+					latest.date,
+					m.queue,
+					m.slots,
+					'shipyard',
+					(item) => ({ ...ship(item), detail: `${m.system} Mega Shipyard${speedText(speed)}` }),
+					speed
+				)
 			);
+		}
 
 	// Military fleets on their last move: ≈ the jumps left at the fleet's own days per jump (since
 	// the save before), else the empire's measured median, else DEFAULT_DAYS_PER_JUMP.

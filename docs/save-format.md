@@ -442,7 +442,13 @@ migration_access waystation_pact … }` (`=yes`; the last two are the migration 
   normal planet, 2 for the AI arkship seen; wilderness empires and mods raise it). Entries are `construction.item_mgr.items.<id> = { queue
 progress progress_needed resources buildable_<kind>={…} }`; seen kinds (2200.04, AI queues):
   `district`, `army`, `ship`, `starbase_building`, `clear_deposit_blocker` (→ `deposit.<id>.type`).
-  `building` not yet seen — `save.ts` names it by the block's first string field.
+  `building` not yet seen — `save.ts` names it by the block's first string field. **`progress_needed`
+  is the base build time** (`base_buildtime`: 480 = `@b2_time`, 360 = `@b1_time`) **and `progress`
+  grows by the build speed per day**, not 1 (`planet_building_build_speed_mult`): roamingcybergang
+  (4.6) 1.0/day in 2203, 1.65 from 2216, 1.9 from 2227, every building and district on a planet
+  alike (`test` DB, 2026-11-28; the user's stacked speed bonuses). Measure the rate only on an item
+  under way at both saves: one that started, waited or finished between them reads too slow or fast
+  (0.18, 159/day). `upcoming()` dates each queue at its speed since the save before (`buildSpeed()`, the median over such items; base speed and ≈ without one): Farleigh 2236.01.01 → 01.08, 2.05/day, factory due 2236.03.28 instead of 06.21. The starbase and shipyard tables (`QueueList`) still count days.
 - Game length: top-level `galaxy = { mid_game_start=100 end_game_start=200 victory_year=300 }`,
   years after the 2200.01.01 start (small/default galaxy). Stored as `Snapshot.endGameYear`.
 - Top bar: `country.<id>.empire_size` — **already raised to `EMPIRE_SIZE_FLOOR` (50)**: Yorphia
