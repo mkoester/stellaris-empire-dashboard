@@ -186,7 +186,11 @@ re-exported by `save.ts`; `toSnapshot()` is handed the campaign's game data, nev
 `timeline.ts` and records it → `/api/events` tells open pages to reload. **That stream is opened
 once per browser** (a SharedWorker, `#lib/eventsWorker.ts`): subscribe through `#lib/live.ts`,
 never `new EventSource` in a page — three per tab once held all 6 connections a browser gives a
-host with two tabs open, and every tab click hung (`docs/open-points.md`). In parallel, `feed.ts`
+host with two tabs open, and every tab click hung (`docs/open-points.md`). The worker outlives a
+dashboard restart, and a browser drops an `EventSource` for good on any answer that is not an
+event stream: `/api/events` is never redirected to `/setup` (`leadsToSetup`), and
+`#lib/liveStream.ts` opens a new source when one closes (pages stopped following after each
+restart from 0.1.19 until 2026-11-28). In parallel, `feed.ts`
 follows `game.log` from its current end and turns the mod's monthly lines into partial snapshots
 (stockpile and net income) of the campaign being played.
 

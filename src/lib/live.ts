@@ -1,6 +1,7 @@
 import { onMount } from 'svelte';
 import { invalidateAll } from '$app/navigation';
 import type { LiveEvent } from './eventsWorker.ts';
+import { followStream } from './liveStream.ts';
 import type { Tick } from './types.ts';
 
 type Handler = (data: string) => void;
@@ -34,13 +35,8 @@ export function createHub(connect: Connect) {
 // Android), one per tab. Never `new EventSource('/api/events')` in a page: two tabs of three
 // streams each once held all 6 connections a browser gives a host.
 const browserConnect: Connect = (dispatch) => {
-	if (typeof SharedWorker === 'undefined') {
-		const events = new EventSource('/api/events');
-		events.onmessage = (e) => dispatch({ type: 'message', data: e.data });
-		for (const type of ['tick', 'loaded'] as const)
-			events.addEventListener(type, (e) => dispatch({ type, data: e.data }));
-		return () => events.close();
-	}
+	if (typeof SharedWorker === 'undefined')
+		return followStream(() => new EventSource('/api/events'), dispatch);
 	const worker = new SharedWorker(new URL('./eventsWorker.ts', import.meta.url), {
 		type: 'module',
 		name: 'dashboard-events'

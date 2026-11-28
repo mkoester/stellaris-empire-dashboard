@@ -11,6 +11,9 @@ export function GET({ request }) {
 	let onLoaded: () => void;
 	const stream = new ReadableStream({
 		start(controller) {
+			// a comment, so the headers go out now: until then the browser counts the stream as not
+			// open, and a tab back after a restart would reload only at the next save
+			controller.enqueue(': open\n\n');
 			const send = (data: string) => controller.enqueue(`data: ${data}\n\n`);
 			onUpdate = (id) => send(String(id));
 			onTick = (t) => controller.enqueue(`event: tick\ndata: ${JSON.stringify(t)}\n\n`);
