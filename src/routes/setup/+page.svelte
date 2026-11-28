@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import { gameNote, isBeta } from '#lib/gameNote.ts';
+	import GameNoteLine from '#lib/GameNoteLine.svelte';
 
 	let { data, form } = $props();
 
@@ -14,6 +16,12 @@
 	let gameDir = $state(initial('gameDir'));
 	let userDir = $state(initial('userDir'));
 	let busy = $state(false);
+	// the picked install's version or Steam beta, when the release was not built for it: warned
+	// before the start, not only after it
+	const pickedGame = $derived(data.found.games.find((g) => g.dir === gameDir));
+	const note = $derived(
+		pickedGame ? gameNote(pickedGame.version, pickedGame.branch, __GAME_TARGET__) : null
+	);
 
 	const date = (ms: number | null) => (ms === null ? 'no saves' : new Date(ms).toLocaleString());
 	const choice = (picked: boolean) =>
@@ -65,7 +73,11 @@
 			{#each data.found.games as g (g.dir)}
 				<button type="button" class={choice(g.dir === gameDir)} onclick={() => (gameDir = g.dir)}>
 					<span class="font-mono">{g.dir}</span>
-					<span class="text-gray-500">{g.source} · {g.version ?? 'unknown version'}</span>
+					<span class="text-gray-500">
+						{g.source} · {g.version ?? 'unknown version'}{isBeta(g.branch)
+							? ` · beta branch ${g.branch}`
+							: ''}
+					</span>
 				</button>
 			{:else}
 				<p class="text-gray-500">
@@ -78,6 +90,7 @@
 				<input class={field} name="gameDir" bind:value={gameDir} required />
 			</label>
 			{#if form?.errors?.gameDir}<p class="text-red-600">{form.errors.gameDir}</p>{/if}
+			{#if note}<GameNoteLine {note} />{/if}
 		</section>
 
 		<section class="flex flex-col gap-2">

@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.1.32] - 2026-11-28
+
+A maintenance release for players who stay on Stellaris 4.5. For 4.6, use 0.2.2 or newer.
+
+### Fixed
+
+- Windows: the game data extracts again. The extraction stopped on `/setup` with
+  "UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'"; the extractor now runs
+  in Python's UTF-8 mode.
+
+### Added
+
+- A game this release was not built for is warned about on `/setup` and above every page: a
+  newer game version than 4.5 (with a link to the releases on GitHub, where 0.2.x is built for
+  4.6), a version before 4.5, which will most likely not work at all, or one of Steam's beta
+  branches such as an open beta.
+- The update notice names the game a newer release is built for ("v0.2.2 available, built for
+  game 4.6 – you are still on 4.5.4").
+
 ## [0.1.31] - 2026-11-23
 
 ### Added

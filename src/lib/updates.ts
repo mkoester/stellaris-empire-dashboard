@@ -10,7 +10,11 @@ export const LATEST_RELEASE_API =
 export const DEFAULT_UPDATE_HOURS = 3;
 export const MAX_UPDATE_HOURS = 168;
 
-export type Release = { version: string; url: string };
+/**
+ * A release: its version, its page, and the game version it was built for (`4.6.0`, from the
+ * release title's `(v4.6.0)`; null for a title without one).
+ */
+export type Release = { version: string; url: string; game?: string | null };
 
 /** What the last check found: `latest` null when there is no release, or before the first check. */
 export type UpdateState = {
@@ -37,10 +41,36 @@ export function isNewer(a: string, b: string): boolean {
 /** GitHub's release JSON as a release (`v0.1.28` → `0.1.28`), null when it is none. */
 export function parseLatest(body: unknown): Release | null {
 	if (typeof body !== 'object' || body === null) return null;
-	const { tag_name: tag, html_url: url, draft, prerelease } = body as Record<string, unknown>;
+	const { tag_name: tag, html_url: url, name, draft, prerelease } = body as Record<string, unknown>;
 	if (typeof tag !== 'string' || typeof url !== 'string' || draft || prerelease) return null;
 	const version = tag.replace(/^v/, '');
-	return isRelease(version) && url.startsWith('https://github.com/') ? { version, url } : null;
+	const game =
+		typeof name === 'string' ? (/\(v(\d+(?:\.\d+)+)\)\s*$/.exec(name)?.[1] ?? null) : null;
+	return isRelease(version) && url.startsWith('https://github.com/')
+		? { version, url, game }
+		: null;
+}
+
+const minor = (v: string | null | undefined) =>
+	/(\d+)\.(\d+)/
+		.exec(v ?? '')
+		?.slice(1)
+		.map(Number);
+
+/**
+ * The header's offer: `v0.2.2 available`, naming the game it was built for when that is not the
+ * game being played (`playing`, the data's `Corona Borealis v4.5.4 (…)`): a maintenance build's
+ * player on 4.5 is offered the 4.6 line, and should update the game first (the user, 2026-11-28).
+ * Pure.
+ */
+export function offerLabel(r: Release, playing: string | null): string {
+	const label = `v${r.version} available`;
+	const want = minor(r.game);
+	const have = minor(playing);
+	if (!want || !have || (want[0] === have[0] && want[1] === have[1])) return label;
+	const older = have[0] < want[0] || (have[0] === want[0] && have[1] < want[1]);
+	const yours = /(\d+(?:\.\d+)+)/.exec(playing ?? '')?.[1];
+	return `${label}, built for game ${want.join('.')}${older ? ` – you are still on ${yours}` : ''}`;
 }
 
 /** A stored or sent interval in hours (0 = never), or null when it is none. */

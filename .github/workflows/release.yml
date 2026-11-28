@@ -1,5 +1,6 @@
 # A version tag builds the player zips and publishes them as a GitHub release (RELEASE.md), by branch:
 #   main       `vX.Y.Z`         "Stellaris Empire Dashboard X.Y.Z (vG)", notes: CHANGELOG's X.Y.Z section
+#   maint/*    `vX.Y.Z`         the same, for an older game version, never marked "Latest"
 #   develop    `vX.Y.Z-rc.N`    "… X.Y.Z rc-N (vG)", a prerelease (release candidate), notes: Unreleased
 #   open-beta  `vX.Y.Z-beta.N`  "… X.Y.Z vN (for Open Beta <openBeta>)", a prerelease for a game's
 #                               open beta (package.json's `openBeta`, e.g. 4.5.3), notes: Unreleased
@@ -29,7 +30,7 @@ jobs:
           path: stellaris-empire-dashboard
           fetch-depth: 0 # main, to check the tag is on it
 
-      - name: Check the tag is on its branch (main, develop, open-beta) and matches package.json
+      - name: Check the tag is on its branch (main, maint/*, develop, open-beta) and matches package.json
         working-directory: stellaris-empire-dashboard
         run: |
           version=$(node -p "require('./package.json').version")
@@ -43,13 +44,25 @@ jobs:
               [ -n "$beta" ] || { echo "::error::a beta build needs package.json's openBeta (the game's beta version, e.g. 4.5.3)"; exit 1; }
               echo "OPEN_BETA=$beta" >> "$GITHUB_ENV"
               title="$title v$n (for Open Beta $beta)" ;;
-            *) branch=main; expected="v$version" ;;
+            *)
+              expected="v$version"
+              if git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+                branch=main
+              else
+                # a maintenance line for an older game version (`maint/0.1`: 4.5): a regular
+                # release, but never GitHub's "Latest", which the update check offers everyone
+                branch=$(git branch -r --contains "$GITHUB_SHA" --format='%(refname:short)' |
+                  sed -n 's#^origin/\(maint/.*\)#\1#p' | head -1)
+                [ -n "$branch" ] ||
+                  { echo "::error::$GITHUB_REF_NAME is on neither main nor a maint/* branch"; exit 1; }
+                echo "NOT_LATEST=1" >> "$GITHUB_ENV"
+              fi ;;
           esac
           git merge-base --is-ancestor "$GITHUB_SHA" "origin/$branch" ||
             { echo "::error::$GITHUB_REF_NAME is not on $branch"; exit 1; }
           [ "$GITHUB_REF_NAME" = "$expected" ] ||
             { echo "::error::tag $GITHUB_REF_NAME, but package.json says $version"; exit 1; }
-          [ "$branch" = main ] || echo "PRERELEASE=1" >> "$GITHUB_ENV"
+          case "$branch" in main | maint/*) ;; *) echo "PRERELEASE=1" >> "$GITHUB_ENV" ;; esac
           echo "TITLE=$title" >> "$GITHUB_ENV"
           echo "EXTRACTOR=$(node -p "require('./package.json').extractorVersion")" >> "$GITHUB_ENV"
 
@@ -101,4 +114,5 @@ jobs:
           # the title names the game version too ("… 0.1.11 (v4.5.3)"); a beta's names it already
           [ -n "$OPEN_BETA" ] || TITLE="$TITLE ($(grep -o 'v[0-9][0-9.]*[0-9]' <<<"$game"))"
           gh release create "$GITHUB_REF_NAME" dist/*.zip --verify-tag ${PRERELEASE:+--prerelease} \
+            ${NOT_LATEST:+--latest=false} \
             --title "$TITLE" --notes-file release-notes.md

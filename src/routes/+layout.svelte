@@ -3,6 +3,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { pageTitle } from '#lib/pageTitle.ts';
+	import GameNoteLine from '#lib/GameNoteLine.svelte';
 	import { page } from '$app/state';
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
@@ -12,6 +13,7 @@
 	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
 	import { gameVersionNumber } from '#lib/versions.ts';
+	import { offerLabel } from '#lib/updates.ts';
 
 	let { data, children } = $props();
 
@@ -419,7 +421,7 @@
 					rel="noopener"
 					title="a newer dashboard is out: its release page on GitHub (how often this is checked: ⚙ Updates)"
 				>
-					v{data.update.version} available
+					{offerLabel(data.update, data.gameVersion)}
 				</a>{/if}
 			{#if data.gameVersion}<span
 					class="pb-1 text-[11px] text-gray-400"
@@ -460,6 +462,9 @@
 				Extracting the game data with this game's {data.extracting.mods} mods … until then, what they
 				add shows as raw keys. The page reloads when it is done.
 			</p>
+		{/if}
+		{#if data.gameNote}
+			<GameNoteLine note={data.gameNote} class="mb-2 text-sm" />
 		{/if}
 		{#if data.feed}
 			<p class="mb-2 rounded border border-amber-400 px-3 py-1 text-sm">

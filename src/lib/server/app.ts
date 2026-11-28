@@ -32,6 +32,8 @@ import { updateHours, viewedCampaign } from './settings.ts';
 import { scheduleUpdateChecks, stopUpdateChecks } from './updates.ts';
 import { campaignOf, watchSaves, type Watcher } from './watch.ts';
 import { versionLine } from '#lib/versions.ts';
+import { gameNote, RELEASES_PAGE, type GameNote } from '#lib/gameNote.ts';
+import { gameVersion, steamBranch } from './locate.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
 // companion mod, and one event bus for live updates.
@@ -69,6 +71,8 @@ type State = {
 	catchUpTimer?: ReturnType<typeof setTimeout>;
 	/** The node of the save the player just loaded (the mod's `load` line), for the next observation. */
 	loadedFrom?: number | null;
+	/** a game this release was not built for: its version or Steam branch, read at start */
+	gameNote?: GameNote | null;
 	/** The companion mod writes a log format this build does not read (until a month is read). */
 	feedFormat?: FeedFormat;
 	/** when the last save or month was recorded, and the last daily tick (ms): which came last */
@@ -271,6 +275,9 @@ export const pendingLoad = (): number | null => state.loadedFrom ?? null;
 
 /** A log format of the companion mod this build skips, for the layout's banner. */
 export const unsupportedFeed = (): FeedFormat | null => state.feedFormat ?? null;
+
+/** Why this game is not the one the release was built for (`#lib/gameNote.ts`), null when it is. */
+export const gameWarning = (): GameNote | null => state.gameNote ?? null;
 
 function setFeedFormat(f: FeedFormat | undefined) {
 	if (f?.format === state.feedFormat?.format) return;
@@ -487,6 +494,13 @@ async function run() {
 	state.userDir = dirname(saveDir);
 	state.saveDir = saveDir;
 	state.campaignData = new Map();
+	state.gameNote = paths.gameDir
+		? gameNote(gameVersion(paths.gameDir), steamBranch(paths.gameDir), __GAME_TARGET__)
+		: null;
+	if (state.gameNote)
+		console.warn(
+			state.gameNote.text + (state.gameNote.releases ? ` https://${RELEASES_PAGE}` : '')
+		);
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));
 	state.data = gameDataStore(paths.gameDir!, paths.dataDb);
