@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { betaNote } from '#lib/steamBranch.ts';
+	import { gameNote } from '#lib/gameNote.ts';
 
 	let { data, form } = $props();
 
@@ -15,8 +15,12 @@
 	let gameDir = $state(initial('gameDir'));
 	let userDir = $state(initial('userDir'));
 	let busy = $state(false);
-	// the picked install on a Steam beta branch: warned before the start, not only after it
-	const beta = $derived(betaNote(data.found.games.find((g) => g.dir === gameDir)?.branch ?? null));
+	// the picked install's version or Steam beta, when the release was not built for it: warned
+	// before the start, not only after it
+	const pickedGame = $derived(data.found.games.find((g) => g.dir === gameDir));
+	const note = $derived(
+		pickedGame ? gameNote(pickedGame.version, pickedGame.branch, __GAME_TARGET__) : null
+	);
 
 	const date = (ms: number | null) => (ms === null ? 'no saves' : new Date(ms).toLocaleString());
 	const choice = (picked: boolean) =>
@@ -85,7 +89,7 @@
 				<input class={field} name="gameDir" bind:value={gameDir} required />
 			</label>
 			{#if form?.errors?.gameDir}<p class="text-red-600">{form.errors.gameDir}</p>{/if}
-			{#if beta}<p class="rounded border border-amber-400 px-3 py-1">{beta}</p>{/if}
+			{#if note}<p class="rounded border border-amber-400 px-3 py-1">{note}</p>{/if}
 		</section>
 
 		<section class="flex flex-col gap-2">

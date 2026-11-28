@@ -481,8 +481,8 @@
 				add shows as raw keys. The page reloads when it is done.
 			</p>
 		{/if}
-		{#if data.beta}
-			<p class="mb-2 rounded border border-amber-400 px-3 py-1 text-sm">{data.beta}</p>
+		{#if data.gameNote}
+			<p class="mb-2 rounded border border-amber-400 px-3 py-1 text-sm">{data.gameNote}</p>
 		{/if}
 		{#if data.feed}
 			<p class="mb-2 rounded border border-amber-400 px-3 py-1 text-sm">

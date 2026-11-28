@@ -2,7 +2,7 @@ import {
 	campaignDataState,
 	campaignsOnDisk,
 	dataVersion,
-	gameBranch,
+	gameWarning,
 	getDb,
 	lastDataDate,
 	pendingLoad,
@@ -36,7 +36,6 @@ import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
 import { updateAvailable } from '#lib/server/updates.ts';
 import { isRelease } from '#lib/updates.ts';
-import { betaNote } from '#lib/steamBranch.ts';
 import type { Release } from '#lib/updates.ts';
 import { shownNode } from '#lib/server/branch.ts';
 import { settleTab } from '#lib/server/settle.ts';
@@ -68,7 +67,7 @@ export function load({ url }) {
 			highway: false,
 			loaded: null,
 			feed: null,
-			beta: null as string | null,
+			gameNote: null as string | null,
 			head: null,
 			gameVersion: null,
 			update: null as Release | null,
@@ -129,9 +128,9 @@ export function load({ url }) {
 			const f = unsupportedFeed();
 			return f && { ...f, ...FEED_FORMATS };
 		})(),
-		// the game on a Steam beta branch: a release build was not made for it (a dev checkout of
-		// `open-beta` is, so only release builds say so)
-		beta: isRelease(__APP_VERSION__) ? betaNote(gameBranch()) : null,
+		// a game version or Steam beta the release was not built for (`#lib/gameNote.ts`); a dev
+		// checkout of `open-beta` is built for its beta, so only release builds say so
+		gameNote: isRelease(__APP_VERSION__) ? gameWarning() : null,
 		// the save being played, so a page pinned to it keeps following the game
 		head,
 		// the planner's goals at the node shown (for "+ goal" buttons) and how many need attention

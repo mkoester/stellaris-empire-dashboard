@@ -20,8 +20,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- A game on one of Steam's beta branches (an open beta) is named on `/setup` and warned about
-  there and above every page: this release is built for the public game.
+- A game this release was not built for is warned about on `/setup` and above every page: an
+  older or newer game version than 4.6 (before 4.5 it will most likely not work at all — Steam's
+  Betas list rolls the game back very far), or one of Steam's beta branches such as an open beta.
 - Planner: a building goal says how your empire gets the building ("comes with Cyberization,
   Stage II" for the Augmentation Center, or the tradition, tech or perk it needs), and one your
   empire can never build is flagged. The building's popup says the same.
