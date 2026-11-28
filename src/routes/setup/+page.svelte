@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import { betaNote } from '#lib/steamBranch.ts';
 
 	let { data, form } = $props();
 
@@ -14,6 +15,8 @@
 	let gameDir = $state(initial('gameDir'));
 	let userDir = $state(initial('userDir'));
 	let busy = $state(false);
+	// the picked install on a Steam beta branch: warned before the start, not only after it
+	const beta = $derived(betaNote(data.found.games.find((g) => g.dir === gameDir)?.branch ?? null));
 
 	const date = (ms: number | null) => (ms === null ? 'no saves' : new Date(ms).toLocaleString());
 	const choice = (picked: boolean) =>
@@ -65,7 +68,11 @@
 			{#each data.found.games as g (g.dir)}
 				<button type="button" class={choice(g.dir === gameDir)} onclick={() => (gameDir = g.dir)}>
 					<span class="font-mono">{g.dir}</span>
-					<span class="text-gray-500">{g.source} · {g.version ?? 'unknown version'}</span>
+					<span class="text-gray-500">
+						{g.source} · {g.version ?? 'unknown version'}{g.branch && g.branch !== 'public'
+							? ` · beta branch ${g.branch}`
+							: ''}
+					</span>
 				</button>
 			{:else}
 				<p class="text-gray-500">
@@ -78,6 +85,7 @@
 				<input class={field} name="gameDir" bind:value={gameDir} required />
 			</label>
 			{#if form?.errors?.gameDir}<p class="text-red-600">{form.errors.gameDir}</p>{/if}
+			{#if beta}<p class="rounded border border-amber-400 px-3 py-1">{beta}</p>{/if}
 		</section>
 
 		<section class="flex flex-col gap-2">

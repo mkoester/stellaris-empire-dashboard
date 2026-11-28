@@ -10,6 +10,7 @@ import {
 	gameDirGuesses,
 	parseRegQuery,
 	parseVdf,
+	branchOf,
 	steamLibraries,
 	uniqueBy,
 	userDirGuesses,
@@ -43,6 +44,41 @@ describe('buildOf', () => {
 		expect(buildOf('Cygnus v4.5.2 (9776)')).toBe('9776');
 		expect(buildOf('Cygnus v4.5.2')).toBeNull();
 		expect(buildOf(null)).toBeNull();
+	});
+});
+
+const MANIFEST_BETA = `"AppState"
+{
+	"appid"		"281990"
+	"UserConfig"
+	{
+		"language"		"english"
+		"BetaKey"		"stellaris_test"
+	}
+	"MountedConfig"
+	{
+		"language"		"english"
+		"BetaKey"		"stellaris_test"
+	}
+}`;
+
+describe('branchOf', () => {
+	it("reads the installed branch from MountedConfig's BetaKey", () =>
+		expect(branchOf(parseVdf(MANIFEST_BETA))).toBe('stellaris_test'));
+	it('takes MountedConfig over UserConfig, which is only the choice before Steam updates', () =>
+		expect(
+			branchOf(
+				parseVdf(
+					'"AppState" { "UserConfig" { "BetaKey" "stellaris_test" } "MountedConfig" { "language" "english" } }'
+				)
+			)
+		).toBe('public'));
+	it('is public without a BetaKey or with an empty one', () => {
+		expect(branchOf(parseVdf('"AppState" { "MountedConfig" { "language" "english" } }'))).toBe(
+			'public'
+		);
+		expect(branchOf(parseVdf('"AppState" { "MountedConfig" { "BetaKey" "" } }'))).toBe('public');
+		expect(branchOf(parseVdf('"AppState" { "appid" "281990" }'))).toBe('public');
 	});
 });
 
@@ -165,6 +201,8 @@ describe('discover (Linux)', () => {
 	const game = join(lib2, 'steamapps', 'common', 'Stellaris');
 	mk(game, { 'launcher-settings.json': '{ "rawVersion": "v4.5.2" }' });
 	mk(join(game, 'common'));
+	// on the open beta (the manifest's config blocks as Steam wrote them, 2026-11-28)
+	mk(join(lib2, 'steamapps'), { 'appmanifest_281990.acf': MANIFEST_BETA });
 	const native = join(home, '.local', 'share', 'Paradox Interactive', 'Stellaris');
 	const proton = join(
 		lib2,
@@ -178,7 +216,9 @@ describe('discover (Linux)', () => {
 
 	it('finds the game in a second library and ranks user folders by newest save', () => {
 		const { games, users } = discover({ platform: 'linux', home, env: {}, reg: () => null });
-		expect(games).toEqual([{ dir: game, source: 'Steam', version: 'v4.5.2' }]);
+		expect(games).toEqual([
+			{ dir: game, source: 'Steam', version: 'v4.5.2', branch: 'stellaris_test' }
+		]);
 		expect(users.map((u) => [u.dir, u.source, u.saves])).toEqual([
 			[proton, 'Proton', 2],
 			[native, 'Linux native', 1]
@@ -208,7 +248,8 @@ describe('discover (macOS)', () => {
 
 	it("finds Steam's libraries and the user folder in Documents", () => {
 		const { games, users } = discover({ platform: 'darwin', home, env: {}, reg: () => null });
-		expect(games).toEqual([{ dir: game, source: 'Steam', version: 'v4.5.2' }]);
+		// no Steam manifest beside the library: the branch is unknown
+		expect(games).toEqual([{ dir: game, source: 'Steam', version: 'v4.5.2', branch: null }]);
 		expect(users.map((u) => [u.dir, u.source, u.saves])).toEqual([[user, 'macOS', 1]]);
 	});
 });

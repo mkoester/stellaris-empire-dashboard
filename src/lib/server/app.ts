@@ -43,6 +43,8 @@ import { updateHours, viewedCampaign } from './settings.ts';
 import { scheduleUpdateChecks, stopUpdateChecks } from './updates.ts';
 import { campaignOf, watchSaves, type Watcher } from './watch.ts';
 import { versionLine } from '#lib/versions.ts';
+import { betaNote } from '#lib/steamBranch.ts';
+import { steamBranch } from './locate.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
 // companion mod, and one event bus for live updates.
@@ -84,6 +86,8 @@ type State = {
 	catchUpTimer?: ReturnType<typeof setTimeout>;
 	/** The node of the save the player just loaded (the mod's `load` line), for the next observation. */
 	loadedFrom?: number | null;
+	/** the Steam branch the game install is on, read at start (`steamBranch`; null off Steam) */
+	gameBranch?: string | null;
 	/** The companion mod writes a log format this build does not read (until a month is read). */
 	feedFormat?: FeedFormat;
 	/** when the last save or month was recorded, and the last daily tick (ms): which came last */
@@ -335,6 +339,9 @@ export const pendingLoad = (): number | null => state.loadedFrom ?? null;
 /** A log format of the companion mod this build skips, for the layout's banner. */
 export const unsupportedFeed = (): FeedFormat | null => state.feedFormat ?? null;
 
+/** The Steam branch the game install is on (`public`, a beta's key), null off Steam or before start. */
+export const gameBranch = (): string | null => state.gameBranch ?? null;
+
 function setFeedFormat(f: FeedFormat | undefined) {
 	if (f?.format === state.feedFormat?.format) return;
 	state.feedFormat = f;
@@ -560,6 +567,9 @@ async function run() {
 	state.saveDir = saveDir;
 	state.campaignData = new Map();
 	state.modContent = new Map();
+	state.gameBranch = paths.gameDir ? steamBranch(paths.gameDir) : null;
+	const beta = betaNote(state.gameBranch);
+	if (beta) console.warn(beta);
 	state.modReader = { jomini: await Jomini.initialize(), gameDir: paths.gameDir };
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));
