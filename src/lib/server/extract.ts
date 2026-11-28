@@ -155,7 +155,14 @@ export async function ensureDataDb(
 
 function run(cmd: string, args: string[]): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const child = spawn(cmd, args, { stdio: ['ignore', 'ignore', 'pipe'], windowsHide: true });
+		// Python's UTF-8 mode: on Windows a redirected stdout/stderr is otherwise written in the
+		// locale's code page (cp1252), and the extractor's first `→` ended the extraction with a
+		// UnicodeEncodeError (0.2.1 on Windows, a player's report of 2026-11-28).
+		const child = spawn(cmd, args, {
+			stdio: ['ignore', 'ignore', 'pipe'],
+			windowsHide: true,
+			env: { ...process.env, PYTHONUTF8: '1' }
+		});
 		let err = '';
 		child.stderr.on('data', (d) => (err = (err + d).slice(-2000)));
 		child.on('error', (e) =>

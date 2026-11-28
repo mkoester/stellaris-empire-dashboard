@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- Windows: the game data extracts again. 0.2.1 stopped on `/setup` with "UnicodeEncodeError:
+  'charmap' codec can't encode character '\u2192'"; the extractor now runs in Python's UTF-8 mode.
 - Costs follow your empire: a nomad's buildings cost rare crystals and other strategic resources
   where the game asks them (the Augmentation Center 80 rare crystals, not 800 minerals), and bio
   ships, wilderness empires and megacorp surcharges are counted too — in the planner, trade-offs,
@@ -18,6 +20,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- A game on one of Steam's beta branches (an open beta) is named on `/setup` and warned about
+  there and above every page: this release is built for the public game.
 - Planner: a building goal says how your empire gets the building ("comes with Cyberization,
   Stage II" for the Augmentation Center, or the tradition, tech or perk it needs), and one your
   empire can never build is flagged. The building's popup says the same.
