@@ -14,6 +14,7 @@
 	import { followLoads, followTicks } from '#lib/live.ts';
 	import TimeWindow from '#lib/TimeWindow.svelte';
 	import { gameVersionNumber } from '#lib/versions.ts';
+	import { offerLabel } from '#lib/updates.ts';
 
 	let { data, children } = $props();
 
@@ -440,7 +441,7 @@
 					rel="noopener"
 					title="a newer dashboard is out: its release page on GitHub (how often this is checked: ⚙ Updates)"
 				>
-					v{data.update.version} available
+					{offerLabel(data.update, data.gameVersion)}
 				</a>{/if}
 			{#if data.gameVersion}<span
 					class="pb-1 text-[11px] text-gray-400"

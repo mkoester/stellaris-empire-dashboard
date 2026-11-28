@@ -27,8 +27,10 @@ describe('gameNote', () => {
 	});
 	it("gives a rollback branch the version's note, not the beta's", () =>
 		expect(gameNote('v4.5.4', 'stellaris_4.5', TARGET)?.text).not.toContain('beta branch'));
-	it('points only an older supported game to the releases', () => {
-		expect(gameNote('v4.7.0', 'public', TARGET)?.releases).toBe(false);
+	it('points an older supported or a newer game to the releases, a beta not', () => {
+		expect(gameNote('v4.7.0', 'public', TARGET)?.releases).toBe(true);
+		// a 4.5 maintenance build on a 4.6 game: 0.2.x is the release for it
+		expect(gameNote('v4.6.0', 'public', 'v4.5.*')?.releases).toBe(true);
 		expect(gameNote('v4.6.1', 'stellaris_test', TARGET)?.releases).toBe(false);
 	});
 	it('warns on a newer game', () => {

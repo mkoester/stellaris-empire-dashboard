@@ -10,7 +10,7 @@ export const OLDEST = '4.5';
 /** Where the earlier releases are, each built for its game version (without the scheme: the lint). */
 export const RELEASES_PAGE = 'github.com/mkoester/stellaris-empire-dashboard/releases';
 
-/** The warning, and whether an earlier release on `RELEASES_PAGE` fits the game. */
+/** The warning, and whether another release on `RELEASES_PAGE` may fit the game. */
 export type GameNote = { text: string; releases: boolean };
 
 /** `major.minor` of a version string (`v4.6.*`, `v4.5.4`, `Cygnus v4.5.3 (7793)`), null without. */
@@ -54,7 +54,8 @@ export function gameNote(
 		if (compare(have, want) > 0)
 			return note(
 				`The game is ${version}. ${built}: what the newer game changed may be missing or ` +
-					'wrong until a dashboard release for it.'
+					'wrong until a dashboard release for it: look among the releases on GitHub.',
+				true
 			);
 	}
 	if (branch !== null && branch !== 'public')
