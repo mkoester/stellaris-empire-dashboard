@@ -116,6 +116,25 @@ describe('goal checks', () => {
 		expect(state('tech', { tech: 'tech_c' }, c)).toBe('blocked');
 	});
 
+	it('a building not buildable yet: how to get it, or blocked without a way', () => {
+		const c = ctx(save({ colonies: [colony(4)] }), [], {
+			buildingNeeds: (b) =>
+				b === 'building_augmentation_center'
+					? { now: null, ways: ['Cyberization, Stage II'], impossible: false }
+					: b === 'building_other_civics'
+						? { now: false, ways: [], impossible: true }
+						: null
+		});
+		expect(check('building_any', { building: 'building_augmentation_center' }, false, c)).toEqual({
+			state: 'open',
+			why: 'comes with Cyberization, Stage II'
+		});
+		expect(state('building', { planet: 4, building: 'building_other_civics' }, c)).toBe('blocked');
+		expect(check('building', { planet: 4, building: 'building_x' }, false, c)).toEqual({
+			state: 'open'
+		});
+	});
+
 	it("outpost: ours by the branch's save; blocked once another empire holds it", () => {
 		const s = save({
 			knownSystems: [{ id: 1, name: 'S1', x: 0, y: 0, owned: true, capital: false, lanes: [] }]
@@ -383,10 +402,29 @@ describe('nomads', () => {
 			]
 		});
 		expect(state('arkship', { type: 'military', count: 2 }, ctx(s))).toBe('done');
+		// not yet buildable: waits on the class's tech (Next up skips it)
 		expect(check('arkship', { type: 'science', count: 1 }, false, ctx(s))).toEqual({
+			state: 'open',
+			why: '0 of 1; needs science arkship',
+			waiting: true
+		});
+		const researched = save().progress!;
+		const able = nomad({
+			ships: s.ships,
+			progress: { ...researched, researched: ['tech_science_arkship'] }
+		});
+		expect(check('arkship', { type: 'science', count: 1 }, false, ctx(able))).toEqual({
 			state: 'open',
 			why: '0 of 1'
 		});
+	});
+
+	it('tech: out of reach waits on what it needs; within reach does not', () => {
+		const c = ctx(save());
+		expect(check('tech', { tech: 'tech_z' }, false, c).waiting).toBe(true);
+		expect(
+			check('tech', { tech: 'tech_z' }, false, ctx(save(), [], { reach: ['tech_z'] })).waiting
+		).toBeUndefined();
 	});
 });
 

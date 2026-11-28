@@ -1,3 +1,4 @@
+import type { BuildingNeeds } from '#lib/buildingWays.ts';
 import { contactStage } from '#lib/format.ts';
 import { colonyActiveBuildings } from '#lib/buildings.ts';
 import { MEGA_RULES, stagePrefix } from '#lib/megastructures.ts';
@@ -27,7 +28,10 @@ export const GROUPS = [
 export type Group = (typeof GROUPS)[number]['id'];
 
 export type State = 'done' | 'progress' | 'open' | 'blocked' | 'unknown';
-export type Status = { state: State; why?: string };
+// `waiting`: open, but not to be started yet — what it needs first is missing (a tech's
+// prerequisites, an arkship's class tech); Next up skips it for what it waits on (the user's ask
+// 2026-11-27: planned arkships "which I cannot yet build" were next up)
+export type Status = { state: State; why?: string; waiting?: true };
 
 /** Starbase levels in upgrade order (`Station.level`, without `starbase_level_`). */
 export const STATION_LEVELS = ['outpost', 'starport', 'starhold', 'starfortress', 'citadel'];
@@ -59,6 +63,9 @@ export type PlanCtx = {
 		district: string
 	) => { cap: number | null; blocked: number } | null;
 	megaFit: (kind: string, systemId: number) => boolean | null; // the structure's rules, `null` unknown
+	// whether the empire may build a building and how it gets there (#lib/buildingWays.ts); null:
+	// no condition known (a data DB before 2026-11-27)
+	buildingNeeds?: (building: string) => BuildingNeeds | null;
 	// what the branch's saves listed at any time (for "seen, then gone": anomalies, dig sites …)
 	seen: { anomalies: number[]; digSites: number[]; situations: string[]; contacts: number[] };
 };
@@ -98,6 +105,16 @@ const lost = (c: PlanCtx, systemId: number): Status | null => {
 	return o !== null && !ours(c, o)
 		? { state: 'blocked', why: 'another empire owns the system' }
 		: null;
+};
+/**
+ * A building the empire cannot build yet: no way open to it (blocked), or how it gets there —
+ * shown, not waited on, as nothing plans the way (a situation's stage) in its place.
+ */
+const notYet = (c: PlanCtx, building: string): Status | null => {
+	const needs = c.buildingNeeds?.(building);
+	if (!needs || needs.now === true) return null;
+	if (needs.impossible) return { state: 'blocked', why: 'not possible for this empire' };
+	return needs.ways.length ? { state: 'open', why: `comes with ${needs.ways.join(' or ')}` } : null;
 };
 const planetSystem = (c: PlanCtx, planetId: number) =>
 	c.galaxy?.find((x) => x.bodies?.some((b) => b.id === planetId))?.id ?? null;
@@ -251,9 +268,18 @@ export const KINDS: Record<string, Kind> = {
 			if (!nomadic(c.latest)) return { state: 'blocked', why: 'only nomads build arkships' };
 			if (c.latest.ships === null) return { state: 'unknown' };
 			const have = arkships(c.latest, s(t, 'type'));
-			return have >= n(t, 'count')
-				? { state: 'done' }
-				: { state: 'open', why: `${have} of ${n(t, 'count')}` };
+			if (have >= n(t, 'count')) return { state: 'done' };
+			// built only with Arkship Construction and the class's tech (`potential` of 4.6.1
+			// `inline_scripts/megastructures/arkship.txt`); the class tech needs the other
+			const tech = ARKSHIP_TECHS[s(t, 'type')];
+			const researched = c.latest.progress?.researched;
+			if (tech && researched && !researched.includes(tech))
+				return {
+					state: 'open',
+					why: `${have} of ${n(t, 'count')}; needs ${c.data.techs[tech]?.name ?? pretty(tech)}`,
+					waiting: true
+				};
+			return { state: 'open', why: `${have} of ${n(t, 'count')}` };
 		}
 	},
 	colony: {
@@ -345,7 +371,26 @@ export const KINDS: Record<string, Kind> = {
 			if (colonyActiveBuildings(col.districtList).includes(s(t, 'building')))
 				return { state: 'done' };
 			const queued = col.buildQueue.some((q) => q.name === s(t, 'building'));
-			return { state: queued ? 'progress' : 'open', why: queued ? 'queued' : undefined };
+			if (queued) return { state: 'progress', why: 'queued' };
+			return notYet(c, s(t, 'building')) ?? { state: 'open' };
+		}
+	},
+	building_any: {
+		group: 'colonies',
+		name: 'a building on any colony',
+		fields: ['building'],
+		label: (t, c) => `${c.data.names[s(t, 'building')] ?? pretty(s(t, 'building'))} on any colony`,
+		ref: (t) => `building:${s(t, 'building')}`,
+		// an ascension's (`ASCENSION_SITUATIONS`): its situation stops while none is active
+		check: (t, c) => {
+			const cols = c.latest.colonies;
+			if (!cols?.length) return { state: 'unknown' };
+			const b = s(t, 'building');
+			if (cols.some((col) => colonyActiveBuildings(col.districtList).includes(b)))
+				return { state: 'done' };
+			return cols.some((col) => col.buildQueue.some((q) => q.name === b))
+				? { state: 'progress', why: 'queued' }
+				: (notYet(c, b) ?? { state: 'open' });
 		}
 	},
 	megastructure: {
@@ -399,7 +444,8 @@ export const KINDS: Record<string, Kind> = {
 				state: 'open',
 				why: missing.length
 					? `needs ${missing.map((p) => c.data.techs[p]?.name ?? p).join(', ')}`
-					: 'its tier is not open yet'
+					: 'its tier is not open yet',
+				waiting: true
 			};
 		}
 	},
@@ -733,6 +779,26 @@ export const ARKSHIPS: Record<string, string> = {
 	civilian: 'Civilian Arkship',
 	science: 'Scientific Arkship',
 	military: 'Military Arkship'
+};
+/**
+ * The situation each ascension path runs, by the perk or adoption that starts it (4.6.1:
+ * Biomorphosis's `on_enabled` fires `bio.1`, `ascension_perks/00_ascension_paths.txt`; the
+ * Machine Age events start the rest on adoption, `events/machine_age_situation_events_*.txt`).
+ * Its blocks (`GameData.situationBlocks`) say what it stops without. Psionics runs none; Breach
+ * the Shroud is the Twisted Experimenters' and starts from an event, so it is not listed.
+ */
+export const ASCENSION_SITUATIONS: Record<string, string[]> = {
+	ap_engineered_evolution: ['genetic_ascension_situation', 'genetic_ascension_situation_hive'],
+	tr_cybernetics_adopt: ['situation_cyberization', 'situation_cyberization_hive'],
+	tr_synthetics_adopt: ['situation_digitization'],
+	ap_synthetic_age: ['situation_transformation']
+};
+
+/** The tech that unlocks each arkship class (4.6.1 `megastructures/29_nomad_arkships.txt`). */
+export const ARKSHIP_TECHS: Record<string, string> = {
+	civilian: 'tech_civilian_arkship',
+	science: 'tech_science_arkship',
+	military: 'tech_military_arkship'
 };
 export const arkships = (s: Snapshot, type: string) =>
 	(s.ships ?? [])

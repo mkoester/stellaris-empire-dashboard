@@ -3,6 +3,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { pageTitle } from '#lib/pageTitle.ts';
+	import GameNoteLine from '#lib/GameNoteLine.svelte';
 	import { page } from '$app/state';
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
@@ -480,6 +481,9 @@
 				Extracting the game data with this game's {data.extracting.mods} mods … until then, what they
 				add shows as raw keys. The page reloads when it is done.
 			</p>
+		{/if}
+		{#if data.gameNote}
+			<GameNoteLine note={data.gameNote} class="mb-2 text-sm" />
 		{/if}
 		{#if data.feed}
 			<p class="mb-2 rounded border border-amber-400 px-3 py-1 text-sm">

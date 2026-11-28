@@ -10,6 +10,7 @@ import {
 	setSetting,
 	headCampaign,
 	headId,
+	latestSave,
 	loadedNode,
 	nodeById,
 	noteModVersions,
@@ -36,11 +37,14 @@ import {
 } from './mods.ts';
 import { withModContent } from '#lib/modContent.ts';
 import { Jomini } from 'jomini';
-import { currentRequest } from './request.ts';
+import { currentRequest, requestedNode } from './request.ts';
+import { cardsForEmpire } from '#lib/empireCards.ts';
 import { updateHours, viewedCampaign } from './settings.ts';
 import { scheduleUpdateChecks, stopUpdateChecks } from './updates.ts';
 import { campaignOf, watchSaves, type Watcher } from './watch.ts';
 import { versionLine } from '#lib/versions.ts';
+import { gameNote, RELEASES_PAGE, type GameNote } from '#lib/gameNote.ts';
+import { gameVersion, steamBranch } from './locate.ts';
 
 // Process-wide wiring: one database, one save watcher, optionally one game.log reader for the
 // companion mod, and one event bus for live updates.
@@ -82,6 +86,8 @@ type State = {
 	catchUpTimer?: ReturnType<typeof setTimeout>;
 	/** The node of the save the player just loaded (the mod's `load` line), for the next observation. */
 	loadedFrom?: number | null;
+	/** a game this release was not built for: its version or Steam branch, read at start */
+	gameNote?: GameNote | null;
 	/** The companion mod writes a log format this build does not read (until a month is read). */
 	feedFormat?: FeedFormat;
 	/** when the last save or month was recorded, and the last daily tick (ms): which came last */
@@ -254,7 +260,20 @@ function viewedData(): GameDataSet {
 	return d;
 }
 
-export const getExplanations = (): Explanations => viewedData().explanations;
+// The cards as the shown node's empire sees them (#lib/empireCards.ts), once per request.
+const cardsPerRequest = new WeakMap<object, Explanations>();
+export function getExplanations(): Explanations {
+	const all = viewedData().explanations;
+	const event = currentRequest();
+	if (!event || !state.db) return all;
+	let cards = cardsPerRequest.get(event);
+	if (!cards) {
+		const node = nodeById(state.db, requestedNode())?.id ?? headId(state.db);
+		const s = node === null ? null : latestSave(state.db, node);
+		cardsPerRequest.set(event, (cards = cardsForEmpire(all, viewedData().gameData, s)));
+	}
+	return cards;
+}
 
 /** The game version and build the game data comes from (`Cygnus v4.5.3 (7793)`), null if unknown. */
 export const dataVersion = () => viewedData().dataVersion;
@@ -319,6 +338,9 @@ export const pendingLoad = (): number | null => state.loadedFrom ?? null;
 
 /** A log format of the companion mod this build skips, for the layout's banner. */
 export const unsupportedFeed = (): FeedFormat | null => state.feedFormat ?? null;
+
+/** Why this game is not the one the release was built for (`#lib/gameNote.ts`), null when it is. */
+export const gameWarning = (): GameNote | null => state.gameNote ?? null;
 
 function setFeedFormat(f: FeedFormat | undefined) {
 	if (f?.format === state.feedFormat?.format) return;
@@ -545,6 +567,13 @@ async function run() {
 	state.saveDir = saveDir;
 	state.campaignData = new Map();
 	state.modContent = new Map();
+	state.gameNote = paths.gameDir
+		? gameNote(gameVersion(paths.gameDir), steamBranch(paths.gameDir), __GAME_TARGET__)
+		: null;
+	if (state.gameNote)
+		console.warn(
+			state.gameNote.text + (state.gameNote.releases ? ` https://${RELEASES_PAGE}` : '')
+		);
 	state.modReader = { jomini: await Jomini.initialize(), gameDir: paths.gameDir };
 	mkdirSync(dirname(dbFile), { recursive: true });
 	const store = (state.db = openDb(dbFile));

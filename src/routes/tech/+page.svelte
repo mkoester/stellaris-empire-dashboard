@@ -120,7 +120,9 @@
 										</span>
 									{/if}<InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup>
 								</span><span class="text-gray-500">
-									{t.tier !== null ? ` T${t.tier}` : ''}{t.kept ? ' ↺' : ''}{t.progress !== null
+									{t.tier !== null ? ` T${t.tier}` : ''}{t.repeats
+										? ` repeatable, ${t.repeats}`
+										: ''}{t.kept ? ' ↺' : ''}{t.progress !== null
 										? ` ${Math.round(t.progress)}${t.cost ? `/${t.cost} (${Math.round((100 * t.progress) / t.cost)} %)` : ''}`
 										: ''}
 								</span>{#if !t.researching}<AddGoal

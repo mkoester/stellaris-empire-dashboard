@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { techCard, unlockLine } from './techCard.ts';
+import { repeatableLimit, techCard, unlockLine } from './techCard.ts';
 
 describe('techCard', () => {
 	it('prefixes derived unlocks as the game card does and keeps an own line as written', () => {
@@ -32,5 +32,11 @@ describe('techCard', () => {
 			'leads to Dyson Sphere'
 		]);
 		expect(card.unlocks).toEqual(['Unlocks Feature: Megastructures']);
+	});
+
+	it("states a repeatable tech's cap, or that it has none", () => {
+		expect(repeatableLimit(5)).toEqual({ badge: 'max 5', fact: 'repeatable up to 5 times' });
+		expect(repeatableLimit(-1)).toEqual({ badge: '∞', fact: 'repeatable without limit' });
+		expect(repeatableLimit(null).badge).toBe('∞');
 	});
 });

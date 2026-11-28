@@ -34,6 +34,15 @@ const PREFIX: Record<string, string> = {
 export const unlockLine = (u: TechUnlock): string | null =>
 	u.label === null ? null : PREFIX[u.kind] ? `${PREFIX[u.kind]}: ${u.label}` : u.label;
 
+/**
+ * A repeatable tech's cap (`tech_repeatable.levels`: -1 = no limit). Most repeat without end; a few
+ * stop after a number of levels (4.6: `levels = 5` on five techs, `common/technology/*_repeatable.txt`).
+ */
+export const repeatableLimit = (levels: number | null): { badge: string; fact: string } =>
+	levels !== null && levels > 0
+		? { badge: `max ${levels}`, fact: `repeatable up to ${levels} times` }
+		: { badge: '∞', fact: 'repeatable without limit' };
+
 /** The card's short facts and its unlock lines. */
 export function techCard(t: TechCardInput): { facts: string[]; unlocks: string[] } {
 	const needs = [

@@ -3,6 +3,8 @@
 declare global {
 	/** package.json's version, decorated with git state at build time (scripts/version.mjs) */
 	const __APP_VERSION__: string;
+	/** the game version the release is built for (`v4.6.*`): the companion mod's (vite.config.ts) */
+	const __GAME_TARGET__: string;
 	namespace App {
 		// interface Error {}
 		// interface Locals {}

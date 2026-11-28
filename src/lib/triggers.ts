@@ -99,6 +99,10 @@ function leaf(name: string, value: string, f: Facts): boolean | null {
 			return has(f.countryFlags);
 		case 'has_tradition':
 			return has(f.traditions);
+		case 'has_active_tradition':
+			// also a swap's own key (`tr_cybernetics_augmentation_centers`), which a save never
+			// lists: held is true, otherwise unknown
+			return f.traditions.includes(value) ? true : null;
 		case 'has_ascension_perk':
 			return has(f.perks);
 		case 'has_technology':

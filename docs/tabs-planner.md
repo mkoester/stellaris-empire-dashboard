@@ -104,7 +104,34 @@ goals list traditions and perks; same-name perk variants collapse to the one who
 availability is best established for this empire. Ascension trees with duplicate names appear once;
 trees whose potential or adoption rules are known to fail for this empire are dimmed and labelled.
 Planning a perk that opens a tradition tree also plans that tree and its traditions; trees known to
-be unavailable are skipped. The history shows badges with the goal's group,
+be unavailable are skipped. **An adoption brings the techs its `possible` asks of this empire**
+(the user's ask 2026-11-27, "what else is needed to finish the ascension"; `#lib/planner/asks.ts`
+`techsAsked()`: of an `or` the branch it can meet, planned perks and traditions counted as taken —
+Integrated Cybernetics for Cybernetics, Robomodding for a machine's Synthetics), and a tree counts
+as available when its adoption would hold once it has them (`withTechs()`; before, a missing tech
+read as unavailable and planning The Flesh is Weak planned no Cybernetics). **A path's situation
+brings what stops it** (`ASCENSION_SITUATIONS` in `kinds.ts`, data DB `situation_block`: a
+`monthly_progress` modifier with `mult = 0`; `blockNeeds()`): its techs, traditions, and a building
+on any colony (kind `building_any`) — 4.6.1 the Genomic Research Facility, Augmentation Center,
+Identity Complex; a data DB without the table brings nothing. A situation seen and gone counts as
+finished. **A building goal says how the empire gets the building** (the user's ask 2026-11-27,
+"display how to get the building"; `#lib/buildingWays.ts` `buildingNeeds()`, data DB
+`building.potential_json`, `situation_stage_flag`): each alternative of its `potential` that this
+empire can still meet, with what it gains on the way — a situation stage that sets the flag
+(Augmentation Center: "comes with Cyberization, Stage II"; of several situations only the
+empire's own or an ascension it can start, never the Cybernetic Creed's Conclave of Fusion), a
+tradition (a swap's own key too, with its tree's `potential`), a tech, a perk. Shown as the
+goal's reason and in Next up, not waited on: nothing plans the way in its place. No way open →
+blocked. The building's popup says the same (`#lib/empireCards.ts`). **Costs are the empire's**
+(`#lib/costs.ts` `forEmpire()`, data DB `resource_variant`, the user's report 2026-11-27: a
+nomad's Augmentation Center showed 800 minerals for 80 rare crystals): every server reader of
+`GameData.costs` where the empire is known (planner, trade-offs, produce, what-ifs, systems,
+influence, resources) takes them through it; a condition it cannot answer (a planet's deposit)
+keeps the regular empire's row. **Popup cards follow the empire** (`getExplanations()` per
+request, `cardsForEmpire()`): a tech's unlock lines the game shows only for some empires
+(`technology_unlock.condition_json`: Planetary Power Grid's Chloroplastic Cyst is the wilderness
+empire's), building and module costs. **Next up skips a goal that waits** (`Status.waiting`: a tech out of reach, an arkship
+whose class tech is missing — that tech is planned with it); its needs come up instead. The history shows badges with the goal's group,
 its reorderings behind "show reordering". **Removing a goal** asks about the automatic goals only it brings
 (`planWithNeeds()` → `GoalRow.dependents`: a tech's own `techNeeds`, an adoption's tree, or a
 perk's linked tree; none that another goal or the save implies): OK removes them with it (they are derived, so nothing is

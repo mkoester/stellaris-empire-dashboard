@@ -7,6 +7,7 @@ import type { EntryEvent, SystemEntry } from './systemEvents.ts';
 // Shapes shared by server and pages.
 
 import type { Trigger } from './triggers.ts';
+import type { CostVariants } from './costs.ts';
 import type { Highway, HighwaySystem } from './highway.ts';
 import type { GalaxySetup } from './galaxySetup.ts';
 import type { AiWeight } from './votes.ts';
@@ -1370,6 +1371,13 @@ export type GameData = {
 		'district' | 'ship' | 'building' | 'deposit' | 'module' | 'starbaseBuilding',
 		Record<string, Costs>
 	>;
+	// the triggered blocks beside `costs` (extractor 2026-11-27; absent before): read with
+	// `forEmpire()` (#lib/costs.ts), never `costs` alone where the empire is known
+	costVariants?: CostVariants;
+	// a building's `potential` on the empire (extractor 2026-11-27; absent before)
+	buildingPotential?: Record<string, Trigger>;
+	// the country flags a situation stage's first-enter events set (extractor 2026-11-27)
+	stageFlags?: Record<string, { situation: string; stage: string }[]>; // flag → situation key, stage name
 	districtJobs: Record<string, Record<string, number>>; // district → job → positions (pops)
 	buildingJobs: Record<string, Record<string, number>>;
 	buildDays: Record<string, number>; // districts, ship sizes, buildings, megastructures: base days
@@ -1437,6 +1445,7 @@ export type GameData = {
 			rare?: boolean;
 		}
 	>;
+	repeatables?: Record<string, { name: string; area: string; levels: number | null }>; // -1 = no cap
 	agendas: Record<
 		string,
 		{
@@ -1610,6 +1619,8 @@ export type GameData = {
 			counters: { key: string; max: number | null }[];
 		}
 	>;
+	// what stops a situation: while `when` holds it makes no progress (`text` says why)
+	situationBlocks?: Record<string, { text: string | null; when: Trigger }[]>;
 	situationTypes: Record<
 		string,
 		{
