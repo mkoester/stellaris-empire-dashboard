@@ -555,7 +555,12 @@ saucer the map does not show).
   (`tech_status.alternatives`; the game redraws a field's cards once its tech is done) with ▶ the
   one being researched, ★ the permanent options and the progress of queued ones, ↺ that of techs
   switched away from (`Snapshot.techKept`, READER 49; the user's ask 2026-11-06), and under
-  "Researching" every tech holding kept progress, "on offer" where it is a card again, "offered over
+  "Researching" every permanent option not yet researched, then every interrupted tech holding kept
+  progress (a permanent option keeps its progress in the same `stored_techpoints_for_tech` block —
+  in the 4.6 campaigns of 2026-11-28 every kept entry was one — so it is listed with the permanent
+  ones only; the user's ask 2026-11-28), both with their progress in percent of the empire's cost
+  (`techCost`), coloured red at 0 % through yellow at 50 % to green from 75 % (`progressColor()`),
+  "on offer" where it is a card again, "offered over
   time" (`#lib/techOffers.ts`: a run of saves with the same cards is one offer, the pick = the
   field's tech researched meanwhile), research tiers, everything researched. **Research bonuses
   and how they stack** (the user's ask 2026-11-05: "the good ones are applied multiplicatively,

@@ -13,6 +13,9 @@ All notable changes to this project are documented here. The format follows
   this release's links the releases on GitHub.
 - Releases for an older game version: a maintenance line (`maint/4.5` for Stellaris 4.5) publishes regular
   releases that never become GitHub's "Latest".
+- The tech tab lists the permanent research options with their progress, above the kept progress,
+  which now shows only interrupted techs. Both show progress in percent of what the tech costs
+  your empire, coloured from red (0 %) through yellow (50 %) to green (75 % and up).
 
 ### Fixed
 
