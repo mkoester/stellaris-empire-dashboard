@@ -14,6 +14,12 @@ All notable changes to this project are documented here. The format follows
 - Releases for an older game version: a maintenance line (`maint/4.5` for Stellaris 4.5) publishes regular
   releases that never become GitHub's "Latest".
 
+### Fixed
+
+- Open pages follow the game again after the dashboard restarts. Since 0.1.19 a tab open across a
+  restart stopped reloading on new saves, and refreshing it did not help until every dashboard tab
+  was closed; now the pages reconnect by themselves and reload once they are back.
+
 ## [0.2.2] - 2026-11-28
 
 ### Fixed
