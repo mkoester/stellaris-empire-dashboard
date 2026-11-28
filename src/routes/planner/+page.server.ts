@@ -7,5 +7,5 @@ export function load({ url }) {
 	const b = branch(url);
 	if (!b) error(404, 'no save yet');
 	const { snaps, ...rest } = b;
-	return { ...rest, ...plannerPage(snaps, b.tip) };
+	return { ...rest, ...plannerPage(snaps, b.tip, b.upcoming) };
 }

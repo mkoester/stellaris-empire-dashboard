@@ -25,7 +25,14 @@ migration: `planAt()` reads an unknown polarity as want, `parsePlanRequest()` re
 (`check()`): done, under way, open, no longer possible (blocked), unknown — against the branch's
 latest full save and the campaign's galaxy as the viewer may see it (`campaignGalaxy()`, spoilers
 respected); "since" walks back over the saves (`holdsSince()`, "by" where a save cannot tell —
-the galaxy is the campaign's latest reading, so galaxy-only checks stop there). Anomalies, dig
+the galaxy is the campaign's latest reading, so galaxy-only checks stop there). **How far a goal
+has come** (`Status.percent`, the user's ask 2026-11-28; rounded down, coloured as on the tech tab
+by `progressColor()`): a tech's points (queue, else kept) of `techCost`, also on an open tech that
+holds some; a focus reward's points; the first queued build of a building, district, starbase
+module, building or upgrade (`progress` of `needed`; `building_any`: the one furthest along); a
+colony's settlers of 100. **When it is done** (`Kind.due`, `dueOf()`): its entry among the
+branch's `upcoming` events — research, planet builds (the earliest), colonies being settled;
+starbase queues have none yet. Anomalies, dig
 sites and situations count done once seen and gone (`seenAlong()`; the save cannot tell finished
 from lost). Phase 1 kinds (`KINDS`): survey, anomaly, dig site, Wanderlust category and arkship
 visit, outpost, colony (planet, habitat, ring segment), starbase level/module/building, districts

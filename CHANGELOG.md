@@ -16,6 +16,9 @@ All notable changes to this project are documented here. The format follows
 - The tech tab lists the permanent research options with their progress, above the kept progress,
   which now shows only interrupted techs. Both show progress in percent of what the tech costs
   your empire, coloured from red (0 %) through yellow (50 %) to green (75 % and up).
+- The planner shows how far each goal has come — research, focus rewards, queued builds on
+  colonies and starbases, colonies being settled — in the same colours, and when it is due where
+  the upcoming events know it.
 
 ### Fixed
 
