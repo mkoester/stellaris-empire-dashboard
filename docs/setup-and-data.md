@@ -28,7 +28,8 @@ path when they are wrong. A machine moved from Proton to the native build keeps 
 reported 0.2.1's Windows crash): the target is `__GAME_TARGET__`, the companion mod's
 `supported_version` read by `vite.config.ts` — no second number to bump. `/setup` warns for the
 picked install, a release build above every page and in the log: a game before `OLDEST` (4.5) will
-most likely not work, an older or newer one may miss things, and the target's version on a Steam
+most likely not work, an older one from 4.5 on is pointed to the earlier releases on GitHub
+(`RELEASES_PAGE`, `GameNoteLine.svelte`), a newer one may miss things, and the target's version on a Steam
 beta branch (`steamBranch()`: `appmanifest_281990.acf`'s `MountedConfig.BetaKey`) is an open beta.
 One note, the version's first: Steam's Betas list also rolls the game back, as a branch.
 

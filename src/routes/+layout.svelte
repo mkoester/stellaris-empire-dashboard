@@ -3,6 +3,7 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { pageTitle } from '#lib/pageTitle.ts';
+	import GameNoteLine from '#lib/GameNoteLine.svelte';
 	import { page } from '$app/state';
 	import { campaignAction, putSettings, THEMES, type Theme } from '#lib/settings.ts';
 	import { applyTheme } from '#lib/theme.ts';
@@ -482,7 +483,7 @@
 			</p>
 		{/if}
 		{#if data.gameNote}
-			<p class="mb-2 rounded border border-amber-400 px-3 py-1 text-sm">{data.gameNote}</p>
+			<GameNoteLine note={data.gameNote} class="mb-2 text-sm" />
 		{/if}
 		{#if data.feed}
 			<p class="mb-2 rounded border border-amber-400 px-3 py-1 text-sm">

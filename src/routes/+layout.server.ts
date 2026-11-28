@@ -36,6 +36,7 @@ import { campaignTips } from '#lib/timeline.ts';
 import { planSummary } from '#lib/server/planner.ts';
 import { updateAvailable } from '#lib/server/updates.ts';
 import { isRelease } from '#lib/updates.ts';
+import type { GameNote } from '#lib/gameNote.ts';
 import type { Release } from '#lib/updates.ts';
 import { shownNode } from '#lib/server/branch.ts';
 import { settleTab } from '#lib/server/settle.ts';
@@ -67,7 +68,7 @@ export function load({ url }) {
 			highway: false,
 			loaded: null,
 			feed: null,
-			gameNote: null as string | null,
+			gameNote: null as GameNote | null,
 			head: null,
 			gameVersion: null,
 			update: null as Release | null,

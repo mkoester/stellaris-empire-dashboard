@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { gameNote } from '#lib/gameNote.ts';
+	import GameNoteLine from '#lib/GameNoteLine.svelte';
 
 	let { data, form } = $props();
 
@@ -89,7 +90,7 @@
 				<input class={field} name="gameDir" bind:value={gameDir} required />
 			</label>
 			{#if form?.errors?.gameDir}<p class="text-red-600">{form.errors.gameDir}</p>{/if}
-			{#if note}<p class="rounded border border-amber-400 px-3 py-1">{note}</p>{/if}
+			{#if note}<GameNoteLine {note} />{/if}
 		</section>
 
 		<section class="flex flex-col gap-2">
