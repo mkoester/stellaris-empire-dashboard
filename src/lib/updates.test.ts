@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { isNewer, isRelease, parseLatest, parseUpdateHours, updateOffer } from './updates.ts';
+import {
+	isNewer,
+	isRelease,
+	offerLabel,
+	parseLatest,
+	parseUpdateHours,
+	updateOffer
+} from './updates.ts';
 
 const gh = (tag: string, more: Record<string, unknown> = {}) => ({
 	tag_name: tag,
@@ -32,8 +39,18 @@ describe('parseLatest', () => {
 	it('reads the tag without its v, and the release page', () => {
 		expect(parseLatest(gh('v0.1.28'))).toEqual({
 			version: '0.1.28',
-			url: 'https://github.com/mkoester/stellaris-empire-dashboard/releases/tag/v0.1.28'
+			url: 'https://github.com/mkoester/stellaris-empire-dashboard/releases/tag/v0.1.28',
+			game: null
 		});
+	});
+
+	it('reads the game version from the release title', () => {
+		expect(
+			parseLatest(gh('v0.2.2', { name: 'Stellaris Empire Dashboard 0.2.2 (v4.6.0)' }))?.game
+		).toBe('4.6.0');
+		expect(
+			parseLatest(gh('v0.2.2', { name: 'Stellaris Empire Dashboard 0.2.2' }))?.game
+		).toBeNull();
 	});
 
 	it('refuses prereleases, drafts, odd tags and foreign links', () => {
@@ -66,5 +83,22 @@ describe('updateOffer', () => {
 		expect(updateOffer('0.1.28', s)).toBeNull();
 		expect(updateOffer('0.1.27-abc1234', s)).toBeNull();
 		expect(updateOffer('0.1.27', { ...s, latest: null })).toBeNull();
+	});
+});
+
+describe('offerLabel', () => {
+	const r = { version: '0.2.2', url: 'https://github.com/x', game: '4.6.0' };
+	it('names the game when it is not the one played', () => {
+		expect(offerLabel(r, 'Cygnus v4.5.4 (1a2b)')).toBe(
+			'v0.2.2 available, built for game 4.6 – you are still on 4.5.4'
+		);
+		expect(offerLabel(r, 'Corona Borealis v4.7.0 (ffff)')).toBe(
+			'v0.2.2 available, built for game 4.6'
+		);
+	});
+	it('says only the version for the game played, or when either is unknown', () => {
+		expect(offerLabel(r, 'Corona Borealis v4.6.1 (3d1a)')).toBe('v0.2.2 available');
+		expect(offerLabel({ ...r, game: null }, 'Cygnus v4.5.4 (1a2b)')).toBe('v0.2.2 available');
+		expect(offerLabel(r, null)).toBe('v0.2.2 available');
 	});
 });

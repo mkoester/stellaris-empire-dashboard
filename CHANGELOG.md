@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- The update notice names the game a newer release is built for when it is not yours ("v0.2.2
+  available, built for game 4.6 – you are still on 4.5.4"), and the warning for a newer game than
+  this release's links the releases on GitHub.
+- Releases for an older game version: a maintenance line (`maint/4.5` for Stellaris 4.5) publishes regular
+  releases that never become GitHub's "Latest".
+
 ## [0.2.2] - 2026-11-28
 
 ### Fixed
