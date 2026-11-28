@@ -15,6 +15,7 @@ import {
 	timedOut,
 	monthTicks,
 	scheduleQueue,
+	buildSpeed,
 	toDays,
 	traditionCost,
 	upcoming,
@@ -261,7 +262,7 @@ describe('upcoming', () => {
 		);
 	});
 
-	it('queues construction one item after the other, only the first exact', () => {
+	it('queues construction one item after the other, estimated without a measured speed', () => {
 		const withQueue = snap('2200.04.01', progress(0, 0), {
 			colonies: [
 				{
@@ -277,9 +278,63 @@ describe('upcoming', () => {
 		} as Partial<Snapshot>);
 		const built = upcoming(withQueue, null, data).filter((e) => e.kind === 'construction');
 		expect(built.map((e) => [e.date, e.exact, e.queuedAfter, e.act])).toEqual([
-			['2200.05.01', true, 1, false], // the next item takes over: information
+			['2200.05.01', false, 1, false], // the next item takes over: information
 			['2200.07.01', false, 0, true] // the queue runs empty: act
 		]);
+	});
+});
+
+describe('buildSpeed', () => {
+	const q = (name: string, progress: number, needed = 480) => ({
+		kind: 'b',
+		name,
+		progress,
+		needed
+	});
+
+	it('measures progress per day on the items under way at both readings', () => {
+		// a lab at 1.9 a day; the farm started meanwhile (0 before), the mine waits (unchanged)
+		const before = [q('lab', 239.4), q('farm', 0), q('mine', 10)];
+		const now = [q('lab', 307.8), q('farm', 50), q('mine', 10)];
+		expect(buildSpeed(now, before, 36)).toBeCloseTo(1.9);
+	});
+
+	it('takes the median, so one odd item does not decide', () => {
+		const before = [q('a', 10), q('b', 10), q('c', 10)];
+		const now = [q('a', 67), q('b', 67), q('c', 12)];
+		expect(buildSpeed(now, before, 30)).toBeCloseTo(1.9);
+	});
+
+	it('pairs identical items in order; none to measure, no earlier reading or no time: null', () => {
+		expect(buildSpeed([q('d', 40), q('d', 0)], [q('d', 10), q('d', 0)], 30)).toBe(1);
+		expect(buildSpeed([q('a', 50)], [q('a', 0)], 30)).toBeNull();
+		expect(buildSpeed([q('a', 50)], null, 30)).toBeNull();
+		expect(buildSpeed([q('a', 50)], [q('a', 10)], 0)).toBeNull();
+	});
+});
+
+describe('upcoming builds at the measured speed', () => {
+	it('dates the queue at the speed since the save before, the first one exact', () => {
+		const colony = (progress: number) => ({
+			planetId: 3,
+			name: 'Earth',
+			buildSlots: 1,
+			buildQueue: [
+				{ kind: 'district', name: 'district_city', progress, needed: 120 },
+				{ kind: 'building', name: 'building_x', progress: 0, needed: 60 }
+			]
+		});
+		const before = snap('2200.03.01', progress(0, 0), {
+			colonies: [colony(30)]
+		} as Partial<Snapshot>);
+		const now = snap('2200.04.01', progress(0, 0), { colonies: [colony(90)] } as Partial<Snapshot>);
+		const built = upcoming(now, before, data).filter((e) => e.kind === 'construction');
+		// 2 a day: 30 left → 15 days, then 60 → 30 more
+		expect(built.map((e) => [e.date, e.exact])).toEqual([
+			['2200.04.16', true],
+			['2200.05.16', false]
+		]);
+		expect(built[0].detail).toContain('×2.00 speed');
 	});
 });
 

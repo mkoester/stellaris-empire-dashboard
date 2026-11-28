@@ -29,6 +29,8 @@ import {
 	uniquePerks,
 	GROUPS,
 	dueOf,
+	nextTradition,
+	share,
 	groupOf,
 	KINDS,
 	label,
@@ -648,6 +650,15 @@ export function plannerPage(snaps: Snapshot[], tip: number, upcoming: Upcoming[]
 	const rows = Object.fromEntries(
 		GROUPS.map((g) => [g.id, (groups[g.id] ?? []).map(toRow).filter((r) => r !== null)])
 	) as Record<string, GoalRow[]>;
+	// the first planned tradition gets the next tradition's unity and due date
+	const next = upcoming.find((u) => u.kind === 'tradition');
+	const at = nextTradition(rows.traditions ?? [], getGameData());
+	if (next && at >= 0)
+		rows.traditions[at] = {
+			...rows.traditions[at],
+			percent: share(next.done ?? 0, next.total) ?? null,
+			due: { date: next.date, exact: next.exact }
+		};
 	const parkedRows = parked(plan)
 		.map(toRow)
 		.filter((r) => r !== null);

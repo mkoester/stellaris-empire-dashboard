@@ -32,7 +32,7 @@ holds some; a focus reward's points; the first queued build of a building, distr
 module, building or upgrade (`progress` of `needed`; `building_any`: the one furthest along); a
 colony's settlers of 100. **When it is done** (`Kind.due`, `dueOf()`): its entry among the
 branch's `upcoming` events — research, planet builds (the earliest), colonies being settled;
-starbase queues have none yet. Anomalies, dig
+starbase queues have none yet — and the first open tradition goal in the list's order (`nextTradition()`: an adoption or a tradition, never a tree's finish, which is unpaid) takes the "Next tradition" unity and date. Anomalies, dig
 sites and situations count done once seen and gone (`seenAlong()`; the save cannot tell finished
 from lost). Phase 1 kinds (`KINDS`): survey, anomaly, dig site, Wanderlust category and arkship
 visit, outpost, colony (planet, habitat, ring segment), starbase level/module/building, districts

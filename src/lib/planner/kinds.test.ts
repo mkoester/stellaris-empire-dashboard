@@ -19,6 +19,7 @@ import {
 	suggestionVisible,
 	check,
 	dueOf,
+	nextTradition,
 	share,
 	groupOf,
 	label,
@@ -916,5 +917,37 @@ describe('how far a goal has come, and when it is due', () => {
 		expect(dueOf('colony', { planet: 6 }, up)?.date).toBe('2210.09.01');
 		expect(dueOf('tech', { tech: 'tech_a' }, up)).toBeNull();
 		expect(dueOf('outpost', { system: 1 }, up)).toBeNull();
+	});
+});
+
+describe('nextTradition', () => {
+	const tdata = {
+		traditionTrees: {
+			tr_x: {
+				traditions: [
+					{ key: 'tr_x_adopt', role: 'adopt' },
+					{ key: 'tr_x_1', role: 'tradition' },
+					{ key: 'tr_x_finish', role: 'finish' }
+				]
+			}
+		}
+	} as unknown as Pick<GameData, 'traditionTrees'>;
+	const r = (
+		tradition: string,
+		state: 'done' | 'open' | 'unknown' = 'open',
+		kind = 'tradition'
+	) => ({
+		kind,
+		target: { tradition },
+		state
+	});
+
+	it('is the first open adoption or tradition, never a finish', () => {
+		expect(nextTradition([r('tr_x_adopt', 'done'), r('tr_x_1')], tdata)).toBe(1);
+		expect(nextTradition([r('tr_x_finish'), r('tr_x_1')], tdata)).toBe(1);
+		expect(nextTradition([r('p', 'open', 'perk'), r('tr_x_adopt')], tdata)).toBe(1);
+	});
+	it('-1 with nothing open', () => {
+		expect(nextTradition([r('tr_x_adopt', 'done'), r('tr_x_1', 'unknown')], tdata)).toBe(-1);
 	});
 });

@@ -19,9 +19,14 @@ All notable changes to this project are documented here. The format follows
 - The planner shows how far each goal has come — research, focus rewards, queued builds on
   colonies and starbases, colonies being settled — in the same colours, and when it is due where
   the upcoming events know it.
+- The first tradition goal in the planner shows the unity gathered for the next tradition and
+  when it is due.
 
 ### Fixed
 
+- Build and ship queue dates in the upcoming events count your build speed bonuses: they are
+  measured between the last two saves, so a build no longer reads up to twice as long as it takes.
+  Without two saves to measure, the date is marked as estimated.
 - Open pages follow the game again after the dashboard restarts. Since 0.1.19 a tab open across a
   restart stopped reloading on new saves, and refreshing it did not help until every dashboard tab
   was closed; now the pages reconnect by themselves and reload once they are back.
