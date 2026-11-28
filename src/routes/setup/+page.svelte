@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { gameNote } from '#lib/gameNote.ts';
+	import { gameNote, isBeta } from '#lib/gameNote.ts';
 	import GameNoteLine from '#lib/GameNoteLine.svelte';
 
 	let { data, form } = $props();
@@ -74,7 +74,7 @@
 				<button type="button" class={choice(g.dir === gameDir)} onclick={() => (gameDir = g.dir)}>
 					<span class="font-mono">{g.dir}</span>
 					<span class="text-gray-500">
-						{g.source} · {g.version ?? 'unknown version'}{g.branch && g.branch !== 'public'
+						{g.source} · {g.version ?? 'unknown version'}{isBeta(g.branch)
 							? ` · beta branch ${g.branch}`
 							: ''}
 					</span>

@@ -21,12 +21,20 @@ const minorOf = (v: string | null): [number, number] | null => {
 
 const compare = (a: [number, number], b: [number, number]) => a[0] - b[0] || a[1] - b[1];
 
+/**
+ * Whether a Steam branch is a beta (`stellaris_test`): not `public`, and not a rollback, whose key
+ * is its version (`"BetaKey" "4.5.4"`, 2026-11-28). Pure.
+ */
+export const isBeta = (branch: string | null): branch is string =>
+	branch !== null && branch !== 'public' && !/^\d+(\.\d+)+$/.test(branch);
+
 const STEAM_UPDATE = 'Update the game in Steam (Properties → Betas → None)';
 
 /**
  * What to tell a player whose game is `version` (`v4.5.4`, from `launcher-settings.json`) on
  * Steam branch `branch` (null off Steam), for a release built for `target` (`v4.6.*`); null when
- * it fits. One note, the version's before the branch's: a rollback is a branch too. Pure.
+ * it fits. One note, the version's before the branch's: a rollback is a branch too
+ * (Steam's `BetaKey` is the version, `"4.5.4"`, 2026-11-28). Pure.
  */
 export function gameNote(
 	version: string | null,
@@ -58,7 +66,7 @@ export function gameNote(
 				true
 			);
 	}
-	if (branch !== null && branch !== 'public')
+	if (isBeta(branch))
 		return note(
 			`The game is on Steam's beta branch "${branch}". This dashboard is built for the public ` +
 				'game: names, numbers or whole tabs may be missing or wrong, and the game data may fail ' +
