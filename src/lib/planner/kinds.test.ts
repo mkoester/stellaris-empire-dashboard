@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { upgrade } from '#lib/upgrade.ts';
 import type { Colony, GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
 import type { Target } from './replay.ts';
+import type { Upcoming } from '#lib/events.ts';
 import {
 	autoGoals,
 	orderFocus,
@@ -17,6 +18,8 @@ import {
 	suggestionLimit,
 	suggestionVisible,
 	check,
+	dueOf,
+	share,
 	groupOf,
 	label,
 	unavailable,
@@ -791,7 +794,7 @@ describe('focus rewards', () => {
 				false,
 				at('development_rewards_2', 25)
 			)
-		).toEqual({ state: 'progress', why: '25 / 60 points' });
+		).toEqual({ state: 'progress', why: '25 / 60 points', percent: (100 * 25) / 60 });
 		expect(
 			check(
 				'focus_reward',
@@ -842,5 +845,76 @@ describe('focus rewards', () => {
 			'development_rewards_2',
 			'development_rewards_3'
 		]);
+	});
+});
+
+describe('how far a goal has come, and when it is due', () => {
+	const percent = (kind: string, target: Target, c: PlanCtx) =>
+		check(kind, target, false, c).percent;
+
+	it('share: a percentage below 100, none without a total', () => {
+		expect(share(10, 40)).toBe(25);
+		expect(share(50, 40)).toBe(100);
+		expect(share(-1, 40)).toBe(0);
+		expect(share(5, 0)).toBeUndefined();
+		expect(share(5, null)).toBeUndefined();
+	});
+
+	it("tech: the points of the empire's cost, being researched or kept from before", () => {
+		const c = ctx(save({ techKept: { tech_x: 30 } }), [], {
+			techCost: () => 40,
+			reach: ['tech_x']
+		});
+		expect(percent('tech', { tech: 'tech_b' }, c)).toBe(25);
+		expect(check('tech', { tech: 'tech_x' }, false, c)).toEqual({
+			state: 'open',
+			why: 'within reach',
+			percent: 75
+		});
+		// nothing yet: no percentage on an open tech, 0 on one being researched
+		expect(percent('tech', { tech: 'tech_a2' }, ctx(save(), [], { reach: ['tech_a2'] }))).toBe(
+			undefined
+		);
+		expect(percent('tech', { tech: 'tech_b' }, ctx(save({ techKept: {} })))).toBe(0);
+	});
+
+	it('builds: the queued item, on a colony or a starbase; a colony by its settlers', () => {
+		const q = (name: string, progress: number) => ({ kind: 'x', name, progress, needed: 200 });
+		const s = save({
+			colonies: [
+				colony(4, {
+					buildQueue: [q('district_city', 50), q('building_lab', 150)],
+					districtList: [{ type: 'district_city', built: 1, zones: [] }]
+				}),
+				colony(5, { buildQueue: [q('building_lab', 20)] }),
+				colony(6, { colonizing: true, pops: 40 })
+			]
+		});
+		const c = ctx(s);
+		expect(check('district', { planet: 4, district: 'district_city', count: 3 }, false, c)).toEqual(
+			{
+				state: 'progress',
+				why: '1 of 3, the next one',
+				percent: 25
+			}
+		);
+		expect(percent('building', { planet: 4, building: 'building_lab' }, c)).toBe(75);
+		expect(percent('building_any', { building: 'building_lab' }, c)).toBe(75); // the furthest
+		expect(percent('colony', { planet: 6 }, c)).toBe(40);
+	});
+
+	it('due: the matching upcoming event, the earliest build first', () => {
+		const up = [
+			{ kind: 'research', ref: 'tech:tech_b', date: '2211.03.01' },
+			{ kind: 'construction', what: 'building_lab', planetId: 4, date: '2210.06.01' },
+			{ kind: 'construction', what: 'building_lab', planetId: 5, date: '2210.04.01' },
+			{ kind: 'colonization', planetId: 6, date: '2210.09.01' }
+		] as Upcoming[];
+		expect(dueOf('tech', { tech: 'tech_b' }, up)?.date).toBe('2211.03.01');
+		expect(dueOf('building', { planet: 4, building: 'building_lab' }, up)?.date).toBe('2210.06.01');
+		expect(dueOf('building_any', { building: 'building_lab' }, up)?.date).toBe('2210.04.01');
+		expect(dueOf('colony', { planet: 6 }, up)?.date).toBe('2210.09.01');
+		expect(dueOf('tech', { tech: 'tech_a' }, up)).toBeNull();
+		expect(dueOf('outpost', { system: 1 }, up)).toBeNull();
 	});
 });

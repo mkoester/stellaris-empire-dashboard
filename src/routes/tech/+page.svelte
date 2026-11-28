@@ -59,7 +59,7 @@
 				style:color={progressColor(k.percent)}
 				title="{Math.round(k.points)} research points"
 			>
-				{` ${Math.round(k.percent)} %`}
+				{` ${Math.floor(k.percent)} %`}
 			</span>{:else}<span class="text-gray-500 tabular-nums">
 				{` ${Math.round(k.points)}`}
 			</span>{/if}<span class="text-gray-500">
@@ -150,7 +150,7 @@
 									{t.tier !== null ? ` T${t.tier}` : ''}{t.repeats
 										? ` repeatable, ${t.repeats}`
 										: ''}{t.kept ? ' ↺' : ''}{t.progress !== null
-										? ` ${Math.round(t.progress)}${t.percent !== null ? ` (${Math.round(t.percent)} %)` : ''}`
+										? ` ${Math.round(t.progress)}${t.percent !== null ? ` (${Math.floor(t.percent)} %)` : ''}`
 										: ''}
 								</span>{#if !t.researching}<AddGoal
 										kind="tech"

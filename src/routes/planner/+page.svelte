@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { keepList, recallList } from '#lib/browserStore.ts';
-	import { colorOf, tintColor } from '#lib/colors.ts';
+	import { colorOf, progressColor, tintColor } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import { followGame } from '#lib/live.ts';
 	import Panel from '#lib/panels/Panel.svelte';
@@ -280,6 +280,19 @@
 	{@const [text, cls] = chip(r)}
 	<span class="rounded px-1.5 py-0.5 text-[11px] whitespace-nowrap {cls}">{text}</span>
 	{#if r.why}<span class="text-xs text-gray-500">{r.why}</span>{/if}
+	{#if r.percent !== null}<span
+			class="text-xs tabular-nums"
+			style:color={progressColor(r.percent)}
+			title="how far it has come"
+		>
+			{`${Math.floor(r.percent)} %`}
+		</span>{/if}
+	{#if r.due}<span
+			class="text-xs text-gray-500 tabular-nums"
+			title={r.due.exact ? 'when it is done' : 'when it is done, estimated from the rate so far'}
+		>
+			{`due ${r.due.exact ? '' : '≈ '}${r.due.date}`}
+		</span>{/if}
 	{#if r.since}<span class="text-xs text-gray-500">{sinceText(r.since)}</span>{/if}
 	{#if r.cost}{@render costLine(r.cost)}{/if}
 {/snippet}

@@ -28,6 +28,7 @@ import {
 	suggestionVisible,
 	uniquePerks,
 	GROUPS,
+	dueOf,
 	groupOf,
 	KINDS,
 	label,
@@ -39,6 +40,7 @@ import {
 	type State,
 	unavailable
 } from '#lib/planner/kinds.ts';
+import { techCost, type Upcoming } from '#lib/events.ts';
 import {
 	arrange,
 	goalKey,
@@ -85,6 +87,8 @@ export type GoalRow = Omit<Goal, 'added'> & {
 	systemId: number | null;
 	state: State;
 	why: string | null;
+	percent: number | null; // how far it has come (`Status.percent`)
+	due: { date: string; exact: boolean } | null; // when it is done, from the upcoming events
 	waiting: boolean; // open, but what it needs comes first (`Status.waiting`)
 	since: Since | null;
 	manual: boolean;
@@ -126,10 +130,10 @@ export type HistoryRow = {
 	group: string | null;
 };
 
-type Ctx = { ctx: PlanCtx; names: LabelCtx; saves: Snapshot[] };
+type Ctx = { ctx: PlanCtx; names: LabelCtx; saves: Snapshot[]; upcoming: Upcoming[] };
 
 /** What the checks read, from the branch's saves (null before the first full save). */
-export function planCtx(snaps: Snapshot[]): Ctx | null {
+export function planCtx(snaps: Snapshot[], upcoming: Upcoming[] = []): Ctx | null {
 	const saves = snaps.filter((s) => s.progress !== null);
 	const latest = saves.at(-1);
 	if (!latest) return null;
@@ -167,6 +171,7 @@ export function planCtx(snaps: Snapshot[]): Ctx | null {
 			const p = data.buildingPotential?.[b];
 			return p ? buildingNeeds(p, data, f, ownSituations(latest, seen.situations, data, f)) : null;
 		},
+		techCost: (k) => techCost(k, latest, data),
 		seen
 	};
 	const bodies = new Map(
@@ -193,7 +198,7 @@ export function planCtx(snaps: Snapshot[]): Ctx | null {
 			`planet ${id}`,
 		country: (id) => countryNames.get(id) ?? 'unknown empire'
 	};
-	return { ctx, names, saves };
+	return { ctx, names, saves, upcoming };
 }
 
 const systemOf = (g: Goal, c: PlanCtx) => KINDS[g.kind]?.system?.(g.target, c) ?? null;
@@ -201,6 +206,7 @@ const systemOf = (g: Goal, c: PlanCtx) => KINDS[g.kind]?.system?.(g.target, c) ?
 function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
 	const st = check(g.kind, g.target, g.checked, c.ctx);
 	const k = KINDS[g.kind];
+	const due = dueOf(g.kind, g.target, c.upcoming);
 	// since when it holds: walked back over the saves, the galaxy kept to the latest (it is the
 	// campaign's latest reading, not per save) — a save that cannot tell ends the walk
 	const since =
@@ -219,6 +225,8 @@ function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
 		systemId: systemOf(g, c.ctx),
 		state: st.state,
 		why: st.why ?? null,
+		percent: st.state === 'done' ? null : (st.percent ?? null),
+		due: due && st.state !== 'done' ? { date: due.date, exact: due.exact } : null,
 		waiting: st.waiting ?? false,
 		since,
 		manual: k?.manual ?? false,
@@ -618,8 +626,8 @@ function planWithNeeds(
 }
 
 /** Everything the planner tab shows for the branch ending at `tip`. */
-export function plannerPage(snaps: Snapshot[], tip: number) {
-	const c = planCtx(snaps);
+export function plannerPage(snaps: Snapshot[], tip: number, upcoming: Upcoming[] = []) {
+	const c = planCtx(snaps, upcoming);
 	const campaign = snaps.at(-1)?.campaign ?? '';
 	const events = planEvents(getDb(), campaign);
 	const { path, dates, below } = pathOf(tip);

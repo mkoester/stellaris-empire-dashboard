@@ -3,7 +3,8 @@ import { contactStage } from '#lib/format.ts';
 import { colonyActiveBuildings } from '#lib/buildings.ts';
 import { MEGA_RULES, stagePrefix } from '#lib/megastructures.ts';
 import { counted, countsFor, outlook, wanderlustName } from '#lib/wanderlust.ts';
-import type { GalaxySystem, GameData, Snapshot } from '#lib/types.ts';
+import type { GalaxySystem, GameData, QueueItem, Snapshot } from '#lib/types.ts';
+import type { Upcoming } from '#lib/events.ts';
 import type { AutoGoal, Target } from './replay.ts';
 import type { Trigger } from '#lib/triggers.ts';
 
@@ -31,7 +32,9 @@ export type State = 'done' | 'progress' | 'open' | 'blocked' | 'unknown';
 // `waiting`: open, but not to be started yet — what it needs first is missing (a tech's
 // prerequisites, an arkship's class tech); Next up skips it for what it waits on (the user's ask
 // 2026-11-27: planned arkships "which I cannot yet build" were next up)
-export type Status = { state: State; why?: string; waiting?: true };
+// `percent`: how far it has come — research or focus points of the cost, a queued build's
+// progress, a colony's settlers (the user's ask 2026-11-28)
+export type Status = { state: State; why?: string; waiting?: true; percent?: number };
 
 /** Starbase levels in upgrade order (`Station.level`, without `starbase_level_`). */
 export const STATION_LEVELS = ['outpost', 'starport', 'starhold', 'starfortress', 'citadel'];
@@ -66,6 +69,7 @@ export type PlanCtx = {
 	// whether the empire may build a building and how it gets there (#lib/buildingWays.ts); null:
 	// no condition known (a data DB before 2026-11-27)
 	buildingNeeds?: (building: string) => BuildingNeeds | null;
+	techCost?: (tech: string) => number | null; // what a tech costs this empire now (`techCost`)
 	// what the branch's saves listed at any time (for "seen, then gone": anomalies, dig sites …)
 	seen: { anomalies: number[]; digSites: number[]; situations: string[]; contacts: number[] };
 };
@@ -78,6 +82,8 @@ type Kind = {
 	ref?: (t: Target) => string | null; // an explanation key for the popup
 	system?: (t: Target, c: PlanCtx) => number | null; // the system it is about, for the map
 	check: (t: Target, c: PlanCtx) => Status;
+	// its entry among the upcoming events (`upcoming()` in #lib/events.ts): when it is done
+	due?: (t: Target, up: Upcoming[]) => Upcoming | undefined;
 	manual?: boolean; // ticked off by hand
 };
 
@@ -122,6 +128,32 @@ const colonyOf = (c: PlanCtx, planetId: number) =>
 	c.latest.colonies.find((x) => x.planetId === planetId) ?? null;
 const stationIn = (c: PlanCtx, systemId: number) =>
 	c.latest.stations?.find((x) => x.systemId === systemId) ?? null;
+
+/** `done` of `total` in percent, below 100; undefined without a total. */
+export const share = (done: number, total: number | null | undefined) =>
+	total && total > 0 ? Math.min(100 * Math.max(done, 0), 100 * total) / total : undefined;
+/** The first queued build of `name` and how far it has come. */
+const queuedBuild = (queue: QueueItem[], match: (q: QueueItem) => boolean) => {
+	const q = queue.find(match);
+	return q ? { percent: share(q.progress, q.needed) } : null;
+};
+/** The earliest planet build of `name` (on `planetId`, or any) among the upcoming events. */
+const builtAt = (up: Upcoming[], name: string, planetId?: number) =>
+	up
+		.filter(
+			(u) =>
+				u.kind === 'construction' &&
+				u.what === name &&
+				(planetId === undefined || u.planetId === planetId)
+		)
+		// game dates are zero-padded: their text sorts by date
+		.sort((a, b) => a.date.localeCompare(b.date))[0];
+/** A tech's points: in a queue (the one researched first), else kept from switching away. */
+const techPoints = (c: PlanCtx, key: string) =>
+	c.latest.progress?.research.find((r) => r.tech === key)?.progress ??
+	c.latest.techQueued?.find((q) => q.tech === key)?.progress ??
+	c.latest.techKept?.[key] ??
+	0;
 
 /** Seen once, gone now: an anomaly researched, a dig site finished (or lost — the save cannot tell). */
 const seenThenGone = (present: boolean, seen: boolean): Status =>
@@ -288,12 +320,15 @@ export const KINDS: Record<string, Kind> = {
 		fields: ['planet'],
 		label: (t, c) => `Settle ${c.planet(n(t, 'planet'))}`,
 		system: (t, c) => planetSystem(c, n(t, 'planet')),
+		due: (t, up) => up.find((u) => u.kind === 'colonization' && u.planetId === n(t, 'planet')),
 		check: (t, c) => {
 			if (nomadic(c.latest))
 				return { state: 'blocked', why: 'a nomadic empire settles no planets' };
 			const col = colonyOf(c, n(t, 'planet'));
 			if (col)
-				return col.colonizing ? { state: 'progress', why: 'being settled' } : { state: 'done' };
+				return col.colonizing
+					? { state: 'progress', why: 'being settled', percent: share(col.pops, 100) }
+					: { state: 'done' };
 			const at = planetSystem(c, n(t, 'planet'));
 			const body = sys(c, at ?? -1)?.bodies?.find((b) => b.id === n(t, 'planet'));
 			if (body?.colonized) return { state: 'blocked', why: 'colonized by another empire' };
@@ -312,8 +347,8 @@ export const KINDS: Record<string, Kind> = {
 			if (!st) return lost(c, n(t, 'system')) ?? { state: 'open', why: 'no starbase of ours' };
 			const have = STATION_LEVELS.indexOf(st.level);
 			if (have >= want && want >= 0) return { state: 'done' };
-			const queued = st.queue.some((q) => q.name.includes(s(t, 'level')));
-			return { state: queued ? 'progress' : 'open', why: `now ${st.level}` };
+			const queued = queuedBuild(st.queue, (q) => q.name.includes(s(t, 'level')));
+			return { state: queued ? 'progress' : 'open', why: `now ${st.level}`, ...queued };
 		}
 	},
 	station_module: {
@@ -341,6 +376,7 @@ export const KINDS: Record<string, Kind> = {
 		label: (t, c) =>
 			`${n(t, 'count')} × ${c.data.names[s(t, 'district')] ?? pretty(s(t, 'district'))} on ${c.planet(n(t, 'planet'))}`,
 		system: (t, c) => planetSystem(c, n(t, 'planet')),
+		due: (t, up) => builtAt(up, s(t, 'district'), n(t, 'planet')),
 		check: (t, c) => {
 			const col = colonyOf(c, n(t, 'planet'));
 			if (!col) return { state: 'unknown', why: 'not a colony of ours' };
@@ -353,8 +389,12 @@ export const KINDS: Record<string, Kind> = {
 					state: 'blocked',
 					why: `the cap is ${cap.cap}${cap.blocked ? ` (+${cap.blocked} behind blockers)` : ''}`
 				};
-			const queued = col.buildQueue.some((q) => q.name === s(t, 'district'));
-			return { state: queued || built > 0 ? 'progress' : 'open', why: `${built} of ${want}` };
+			const queued = queuedBuild(col.buildQueue, (q) => q.name === s(t, 'district'));
+			return {
+				state: queued || built > 0 ? 'progress' : 'open',
+				why: `${built} of ${want}${queued ? ', the next one' : ''}`,
+				...queued
+			};
 		}
 	},
 	building: {
@@ -365,13 +405,14 @@ export const KINDS: Record<string, Kind> = {
 			`${c.data.names[s(t, 'building')] ?? pretty(s(t, 'building'))} on ${c.planet(n(t, 'planet'))}`,
 		ref: (t) => `building:${s(t, 'building')}`,
 		system: (t, c) => planetSystem(c, n(t, 'planet')),
+		due: (t, up) => builtAt(up, s(t, 'building'), n(t, 'planet')),
 		check: (t, c) => {
 			const col = colonyOf(c, n(t, 'planet'));
 			if (!col) return { state: 'unknown', why: 'not a colony of ours' };
 			if (colonyActiveBuildings(col.districtList).includes(s(t, 'building')))
 				return { state: 'done' };
-			const queued = col.buildQueue.some((q) => q.name === s(t, 'building'));
-			if (queued) return { state: 'progress', why: 'queued' };
+			const queued = queuedBuild(col.buildQueue, (q) => q.name === s(t, 'building'));
+			if (queued) return { state: 'progress', why: 'queued', ...queued };
 			return notYet(c, s(t, 'building')) ?? { state: 'open' };
 		}
 	},
@@ -381,6 +422,7 @@ export const KINDS: Record<string, Kind> = {
 		fields: ['building'],
 		label: (t, c) => `${c.data.names[s(t, 'building')] ?? pretty(s(t, 'building'))} on any colony`,
 		ref: (t) => `building:${s(t, 'building')}`,
+		due: (t, up) => builtAt(up, s(t, 'building')),
 		// an ascension's (`ASCENSION_SITUATIONS`): its situation stops while none is active
 		check: (t, c) => {
 			const cols = c.latest.colonies;
@@ -388,8 +430,13 @@ export const KINDS: Record<string, Kind> = {
 			const b = s(t, 'building');
 			if (cols.some((col) => colonyActiveBuildings(col.districtList).includes(b)))
 				return { state: 'done' };
-			return cols.some((col) => col.buildQueue.some((q) => q.name === b))
-				? { state: 'progress', why: 'queued' }
+			// the one furthest along
+			const queued = cols
+				.map((col) => queuedBuild(col.buildQueue, (q) => q.name === b))
+				.filter((q) => q !== null)
+				.sort((x, y) => (y.percent ?? 0) - (x.percent ?? 0))[0];
+			return queued
+				? { state: 'progress', why: 'queued', ...queued }
 				: (notYet(c, b) ?? { state: 'open' });
 		}
 	},
@@ -423,16 +470,21 @@ export const KINDS: Record<string, Kind> = {
 		fields: ['tech'],
 		label: (t, c) => c.data.techs[s(t, 'tech')]?.name ?? pretty(s(t, 'tech')),
 		ref: (t) => `tech:${s(t, 'tech')}`,
+		due: (t, up) => up.find((u) => u.kind === 'research' && u.ref === `tech:${s(t, 'tech')}`),
 		check: (t, c) => {
 			const key = s(t, 'tech');
 			if (c.latest.progress?.researched.includes(key)) return { state: 'done' };
+			const points = techPoints(c, key);
+			const cost = c.techCost?.(key) ?? c.data.techs[key]?.cost;
 			if (c.latest.progress?.research.some((r) => r.tech === key))
-				return { state: 'progress', why: 'being researched' };
+				return { state: 'progress', why: 'being researched', percent: share(points, cost) ?? 0 };
+			// progress from before (switched away, an event's grant) shows on an open tech too
+			const had = points > 0 ? { percent: share(points, cost) } : {};
 			if (c.possible(c.data.techRequirements[key]?.potential ?? null) === false)
 				return { state: 'blocked', why: 'not possible for this empire' };
 			if (c.latest.techPermanent?.includes(key))
-				return { state: 'open', why: 'a permanent option' };
-			if (c.reach.includes(key)) return { state: 'open', why: 'within reach' };
+				return { state: 'open', why: 'a permanent option', ...had };
+			if (c.reach.includes(key)) return { state: 'open', why: 'within reach', ...had };
 			const has = (p: string) => c.latest.progress?.researched.includes(p);
 			const missing = [
 				...(c.data.techRequirements[key]?.prerequisites ?? []).filter((p) => !has(p)),
@@ -445,7 +497,8 @@ export const KINDS: Record<string, Kind> = {
 				why: missing.length
 					? `needs ${missing.map((p) => c.data.techs[p]?.name ?? p).join(', ')}`
 					: 'its tier is not open yet',
-				waiting: true
+				waiting: true,
+				...had
 			};
 		}
 	},
@@ -527,7 +580,11 @@ export const KINDS: Record<string, Kind> = {
 			if (at < cur) return { state: 'done' };
 			const cost = (k: string) => c.data.focus.rewards[k]?.cost ?? 0;
 			if (at === cur)
-				return { state: 'progress', why: `${Math.round(now.progress)} / ${cost(key)} points` };
+				return {
+					state: 'progress',
+					why: `${Math.round(now.progress)} / ${cost(key)} points`,
+					percent: share(now.progress, cost(key))
+				};
 			// a reward costs its points and the rest carries over (seen in the saves 2026-10-31:
 			// Planetforgers exploration 30 → reward 2 at 0 (+10, cost 40); UNE development 0 → reward 2
 			// at 40): what the current still needs, then each one up to this
@@ -654,9 +711,8 @@ function stationHas(
 	const st = stationIn(c, n(t, 'system'));
 	if (!st) return lost(c, n(t, 'system')) ?? { state: 'open', why: 'no starbase of ours' };
 	if (list(st).includes(s(t, field))) return { state: 'done' };
-	return st.queue.some((q) => q.name === s(t, field))
-		? { state: 'progress', why: 'queued' }
-		: { state: 'open' };
+	const queued = queuedBuild(st.queue, (q) => q.name === s(t, field));
+	return queued ? { state: 'progress', why: 'queued', ...queued } : { state: 'open' };
 }
 
 const identityRef = (key: string) =>
@@ -730,6 +786,10 @@ export function check(kind: string, target: Target, checked: boolean, c: PlanCtx
 	if (k.manual) return checked ? { state: 'done' } : { state: 'open' };
 	return k.check(target, c);
 }
+
+/** When a goal is done, where the upcoming events know it. */
+export const dueOf = (kind: string, target: Target, up: Upcoming[]) =>
+	KINDS[kind]?.due?.(target, up) ?? null;
 
 export function label(kind: string, target: Target, title: string, c: LabelCtx): string {
 	return title || KINDS[kind]?.label(target, c) || kind;
