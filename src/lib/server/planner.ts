@@ -90,7 +90,7 @@ export type GoalRow = Omit<Goal, 'added'> & {
 	state: State;
 	why: string | null;
 	percent: number | null; // how far it has come (`Status.percent`)
-	due: { date: string; exact: boolean } | null; // when it is done, from the upcoming events
+	due: { date: string; days: number; exact: boolean } | null; // when it is done, from the upcoming events; days from the save
 	waiting: boolean; // open, but what it needs comes first (`Status.waiting`)
 	since: Since | null;
 	manual: boolean;
@@ -228,7 +228,10 @@ function row(g: Goal, c: Ctx, dates: Map<number, string>): GoalRow {
 		state: st.state,
 		why: st.why ?? null,
 		percent: st.state === 'done' ? null : (st.percent ?? null),
-		due: due && st.state !== 'done' ? { date: due.date, exact: due.exact } : null,
+		due:
+			due && st.state !== 'done'
+				? { date: due.date, days: Math.round(due.months * 30), exact: due.exact }
+				: null,
 		waiting: st.waiting ?? false,
 		since,
 		manual: k?.manual ?? false,
@@ -657,7 +660,7 @@ export function plannerPage(snaps: Snapshot[], tip: number, upcoming: Upcoming[]
 		rows.traditions[at] = {
 			...rows.traditions[at],
 			percent: share(next.done ?? 0, next.total) ?? null,
-			due: { date: next.date, exact: next.exact }
+			due: { date: next.date, days: Math.round(next.months * 30), exact: next.exact }
 		};
 	const parkedRows = parked(plan)
 		.map(toRow)

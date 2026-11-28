@@ -141,6 +141,13 @@ export function costRows(
 	return out;
 }
 
+/** A time span from days: in months as `formatMonths`, under a month in days ("12 d"). */
+export function formatDuration(days: number): string {
+	if (days <= 0) return 'now';
+	const d = Math.ceil(days);
+	return d < 30 ? `${d} d` : formatMonths(d / 30);
+}
+
 /** Months as the planner shows them: "now", "< 1 m", "3 m", "2 y 4 m"; null: "never". */
 export function formatMonths(m: number | null): string {
 	if (m === null) return 'never';

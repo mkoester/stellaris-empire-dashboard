@@ -18,12 +18,14 @@ All notable changes to this project are documented here. The format follows
   your empire, coloured from red (0 %) through yellow (50 %) to green (75 % and up).
 - The planner shows how far each goal has come — research, focus rewards, queued builds on
   colonies and starbases, colonies being settled — in the same colours, and when it is due where
-  the upcoming events know it.
+  the upcoming events know it, as the time left: in months, under a month in days.
 - The first tradition goal in the planner shows the unity gathered for the next tradition and
   when it is due.
 
 ### Fixed
 
+- Research is due on the 2nd of a month, when the game adds the month's research, not on the day
+  of the month the save was made.
 - Build and ship queue dates in the upcoming events count your build speed bonuses: they are
   measured between the last two saves, so a build no longer reads up to twice as long as it takes.
   Without two saves to measure, the date is marked as estimated.

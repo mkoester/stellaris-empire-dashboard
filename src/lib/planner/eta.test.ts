@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { Snapshot } from '#lib/types.ts';
 import type { CostWorld } from './cost.ts';
-import { costRows, eta, formatMonths, incomeRates, parseIncomeWindow } from './eta.ts';
+import {
+	costRows,
+	eta,
+	formatMonths,
+	incomeRates,
+	parseIncomeWindow,
+	formatDuration
+} from './eta.ts';
 
 const snap = (date: string, balance: Record<string, number>) => ({ date, balance }) as Snapshot;
 
@@ -115,5 +122,16 @@ describe('formatMonths and parseIncomeWindow', () => {
 	});
 	it('defaults to six months', () => {
 		expect([6, 12, 0, 25, 1.5, undefined].map(parseIncomeWindow)).toEqual([6, 12, 6, 6, 6, 6]);
+	});
+});
+
+describe('formatDuration', () => {
+	it('days under a month, months from one on, now at or below 0', () => {
+		expect(formatDuration(0)).toBe('now');
+		expect(formatDuration(12)).toBe('12 d');
+		expect(formatDuration(29.2)).toBe('1 m'); // 30 days, rounded up
+		expect(formatDuration(30)).toBe('1 m');
+		expect(formatDuration(54)).toBe('2 m');
+		expect(formatDuration(400)).toBe('1 y 2 m');
 	});
 });

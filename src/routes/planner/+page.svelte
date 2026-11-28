@@ -11,7 +11,7 @@
 	import { moved, type Polarity, type Target } from '#lib/planner/replay.ts';
 	import { newGoalId, planAction } from '#lib/settings.ts';
 	import { fmt, pretty } from '#lib/format.ts';
-	import { formatMonths, type CostRow, type When } from '#lib/planner/eta.ts';
+	import { formatDuration, formatMonths, type CostRow, type When } from '#lib/planner/eta.ts';
 
 	let { data } = $props();
 	followGame(() => data.isHead);
@@ -289,9 +289,9 @@
 		</span>{/if}
 	{#if r.due}<span
 			class="text-xs text-gray-500 tabular-nums"
-			title={r.due.exact ? 'when it is done' : 'when it is done, estimated from the rate so far'}
+			title={`done ${r.due.date}${r.due.exact ? '' : ', estimated from the rate so far'}`}
 		>
-			{`due ${r.due.exact ? '' : '≈ '}${r.due.date}`}
+			{`due in ${r.due.exact ? '' : '≈ '}${formatDuration(r.due.days)}`}
 		</span>{/if}
 	{#if r.since}<span class="text-xs text-gray-500">{sinceText(r.since)}</span>{/if}
 	{#if r.cost}{@render costLine(r.cost)}{/if}

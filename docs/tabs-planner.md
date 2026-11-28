@@ -30,7 +30,7 @@ has come** (`Status.percent`, the user's ask 2026-11-28; rounded down, coloured 
 by `progressColor()`): a tech's points (queue, else kept) of `techCost`, also on an open tech that
 holds some; a focus reward's points; the first queued build of a building, district, starbase
 module, building or upgrade (`progress` of `needed`; `building_any`: the one furthest along); a
-colony's settlers of 100. **When it is done** (`Kind.due`, `dueOf()`): its entry among the
+colony's settlers of 100. **When it is done** (`Kind.due`, `dueOf()`; shown as a span from the save, `formatDuration()`: months, under one in days, the date on hover; research lands on a 2nd, `researchDue()`): its entry among the
 branch's `upcoming` events — research, planet builds (the earliest), colonies being settled;
 starbase queues have none yet — and the first open tradition goal in the list's order (`nextTradition()`: an adoption or a tradition, never a tree's finish, which is unpaid) takes the "Next tradition" unity and date. Anomalies, dig
 sites and situations count done once seen and gone (`seenAlong()`; the save cannot tell finished
