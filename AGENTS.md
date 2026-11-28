@@ -136,7 +136,9 @@ Check a change end to end against a copy of the dashboard DB, never the real one
 ingests saves and moves the head. Where the DB in use lives differs per machine (`docs/testing.md`):
 on mkTuxedoCachy the dev dashboard's (`sdash`, `scripts/dashboard.sh`'s default `--db-dir test`),
 `~/.local/share/stellaris-empire-dashboard-test/` — the current 4.6 campaign; the released zip's own
-(`~/.local/share/stellaris-empire-dashboard/`) stopped at 2026-11-22. When unsure, `sdb <campaign>
+(`~/.local/share/stellaris-empire-dashboard/`) stopped at 2026-11-22. The open-beta campaign runs
+on `~/.local/share/stellaris-empire-dashboard-beta-live/` (`sdash --beta --db-dir beta-live`,
+roamingcybergang, 4.6.1 beta, 2026-11-27). When unsure, `sdb <campaign>
 --db <file>` on each: the one with the newest "recorded" is in use. New save shapes come from
 throwaway games with console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
 

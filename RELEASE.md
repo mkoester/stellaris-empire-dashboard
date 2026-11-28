@@ -87,6 +87,14 @@ workflow accepts a tag on `main` or on any `maint/*` branch, and publishes a `ma
 regular release **never marked "Latest"** (`--latest=false`): the in-app update check offers
 "Latest" to everyone, and it must stay the current game's line (2026-11-28).
 
+A fix meant for both lines goes on `develop` as a commit of code and tests only: `CHANGELOG.md`
+and `AGENTS.md` differ between the lines, so they go in a commit of their own on each, and the
+cherry-pick (`-x`) applies cleanly. Check the patch beforehand on a copy, never in the worktree:
+`git archive maint/<game X.Y>` into `$TMPDIR` with the worktree's `node_modules` symlinked in,
+`git apply`, then vitest and eslint. svelte-check fails in such a copy with hundreds of
+"Cannot find module './$types.js'" errors, which come from the copy, not the patch (the live-stream
+fix, 2026-11-28).
+
 1. In the worktree, everything committed: `CHANGELOG.md`'s `## [X.Y.Z] - <date>`, `package.json`'s
    version X.Y.Z (the line's next patch; no bump after), the pinned extractor unchanged unless
    that game's data needs a fix (then an extractor maintenance tag first).

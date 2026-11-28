@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { techCost } from '#lib/events.ts';
 import { techOffers } from '#lib/techOffers.ts';
 import { repeatableLimit } from '#lib/techCard.ts';
 import { facts } from '#lib/government.ts';
@@ -21,7 +22,8 @@ export function load({ url }) {
 	// the cards alone: it repeats the last save, which would read as no progress for rates
 	const carded = rest.isHead ? withOptions(snaps, snaps.at(-1)?.campaign ?? '') : snaps;
 	const techs = getGameData().techs;
-	const progress = snaps.findLast((s) => s.progress !== null)?.progress ?? null;
+	const costed = snaps.findLast((s) => s.progress !== null);
+	const progress = costed?.progress ?? null;
 	const latest = carded.findLast((s) => s.techOptions !== null);
 	const options = latest?.techOptions ?? {};
 	// progress of every queued tech; the permanent options (null: a save read before 2026-10-22)
@@ -41,6 +43,12 @@ export function load({ url }) {
 	const researched = progress?.researched ?? [];
 	const onOffer = new Set(Object.values(options).flat());
 	const repeatables = getGameData().repeatables ?? {};
+	// progress as a share of what the tech costs this empire now (base cost where that is unknown)
+	const percent = (key: string, points: number) => {
+		const cost = (costed && techCost(key, costed, getGameData())) || techs[key]?.cost;
+		return cost ? (100 * points) / cost : null;
+	};
+	const researching = new Set((progress?.research ?? []).map((r) => r.tech));
 	const tech = (key: string) => ({
 		key,
 		name: techs[key]?.name ?? repeatables[key]?.name ?? key,
@@ -69,25 +77,43 @@ export function load({ url }) {
 				area,
 				list.map((k) => ({
 					...tech(k),
-					researching: (progress?.research ?? []).some((r) => r.tech === k),
+					researching: researching.has(k),
 					permanent: permanent?.includes(k) ?? false,
 					progress: queued[k] ?? kept?.[k] ?? null,
+					percent: percent(k, queued[k] ?? kept?.[k] ?? 0),
 					kept: queued[k] === undefined && kept?.[k] !== undefined
 				}))
 			])
 		),
 		permanentKnown: permanent !== null,
 		keptKnown: kept !== null,
-		// every tech holding kept progress, on offer now or not: a card that may come back
+		// every permanent option not yet researched, with what progress it has (queue or kept)
+		permanent: (permanent ?? [])
+			.filter((k) => !researched.includes(k))
+			.map((k) => {
+				const points = queued[k] ?? kept?.[k] ?? 0;
+				return {
+					...tech(k),
+					area: techs[k]?.area ?? '',
+					points,
+					percent: percent(k, points),
+					researching: researching.has(k),
+					onOffer: onOffer.has(k)
+				};
+			})
+			.sort(byProgress),
+		// progress kept by an interrupted tech, on offer now or not: a card that may come back. A
+		// permanent option keeps its progress the same way and is listed with those instead.
 		kept: Object.entries(kept ?? {})
-			.filter(([k]) => !researched.includes(k))
+			.filter(([k]) => !researched.includes(k) && !permanent?.includes(k))
 			.map(([k, points]) => ({
 				...tech(k),
 				area: techs[k]?.area ?? '',
 				points,
+				percent: percent(k, points),
 				onOffer: onOffer.has(k)
 			}))
-			.sort((a, b) => a.area.localeCompare(b.area) || b.points - a.points),
+			.sort(byProgress),
 		stored,
 		offers: offers.map((o) => ({ ...o, cards: o.cards.map(tech) })),
 		researched: researched.map(tech).map((t) => ({ ...t, area: techs[t.key]?.area ?? '' })),
@@ -101,11 +127,17 @@ export function load({ url }) {
 				...Object.values(options).flat(),
 				...offers.flatMap((o) => o.cards),
 				...Object.keys(kept ?? {}),
+				...(permanent ?? []),
 				...(progress?.research ?? []).map((r) => r.tech)
 			].map((k) => `tech:${k}`)
 		)
 	};
 }
+
+type Progressed = { area: string; points: number; percent: number | null };
+/** Per field, the most advanced first. */
+const byProgress = (a: Progressed, b: Progressed) =>
+	a.area.localeCompare(b.area) || (b.percent ?? 0) - (a.percent ?? 0) || b.points - a.points;
 
 /**
  * The tech tree's input (#lib/techTree.ts): every tech this empire can still get — one whose

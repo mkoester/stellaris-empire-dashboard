@@ -112,6 +112,16 @@ export function scaleColor(v: number, worst: number, best: number): string | nul
 }
 
 /**
+ * A research progress in percent: red at 0 through yellow at 50 to green from 75 on, a gradient
+ * between (the tech tab's permanent options and kept progress).
+ */
+export function progressColor(percent: number): string {
+	const p = Math.min(100, Math.max(0, percent));
+	const hue = p <= 50 ? (p / 50) * 60 : 60 + (Math.min(p, 75) - 50) * (60 / 25);
+	return `hsl(${Math.round(hue)} 70% 45%)`;
+}
+
+/**
  * A value against a baseline, higher better: null at the baseline (the text's own colour),
  * 'worse' below it (shown grey), else orange just above it to green at `best`.
  */

@@ -2,7 +2,7 @@
 	import AddGoal from '#lib/planner/AddGoal.svelte';
 	import SortTable from '#lib/SortTable.svelte';
 	import type { Column } from '#lib/sort.ts';
-	import { colorOf } from '#lib/colors.ts';
+	import { colorOf, progressColor } from '#lib/colors.ts';
 	import InfoPopup from '#lib/InfoPopup.svelte';
 	import WhatIfLine from '#lib/WhatIfLine.svelte';
 	import { followGame } from '#lib/live.ts';
@@ -37,6 +37,33 @@
 			class={o.picked === t.key ? 'font-semibold' : 'text-gray-500'}
 		>
 			<InfoPopup explanation={data.explain[`tech:${t.key}`]}>{t.name}</InfoPopup>
+		</span>{/each}{/snippet}
+
+{#snippet progressed(
+	list: {
+		key: string;
+		name: string;
+		area: string;
+		points: number;
+		cost: number | null;
+		percent: number | null;
+		onOffer: boolean;
+		researching?: boolean;
+	}[]
+)}{#each list as k, i (k.key)}{i ? ' · ' : ''}<span style:color={colorOf(`${k.area}_research`)}>
+			{k.researching ? '▶ ' : ''}<InfoPopup explanation={data.explain[`tech:${k.key}`]}>
+				{k.name}
+			</InfoPopup>
+		</span>{#if k.percent !== null}<span
+				class="tabular-nums"
+				style:color={progressColor(k.percent)}
+				title="{Math.round(k.points)} research points"
+			>
+				{` ${Math.round(k.percent)} %`}
+			</span>{:else}<span class="text-gray-500 tabular-nums">
+				{` ${Math.round(k.points)}`}
+			</span>{/if}<span class="text-gray-500">
+			{k.onOffer && !k.researching ? ' · on offer' : ''}
 		</span>{/each}{/snippet}
 
 <header class="mb-4 flex items-start gap-4">
@@ -79,20 +106,20 @@
 						: ''}{/each}
 			</p>
 		{/if}
+		{#if data.permanent.length}
+			<p class="mt-2 text-sm">
+				Permanent research options <span class="text-gray-500">
+					(stay on offer until researched)
+				</span>:
+				{@render progressed(data.permanent)}
+			</p>
+		{/if}
 		{#if data.kept.length}
 			<p class="mt-2 text-sm">
 				Kept progress <span class="text-gray-500">
-					(switched away from — it comes back with the tech, should a draw offer it again)
+					(interrupted — it comes back with the tech, should a draw offer it again)
 				</span>:
-				{#each data.kept as k, i (k.key)}{i ? ' · ' : ''}<span
-						style:color={colorOf(`${k.area}_research`)}
-					>
-						<InfoPopup explanation={data.explain[`tech:${k.key}`]}>{k.name}</InfoPopup>
-					</span><span class="text-gray-500">
-						{` ${Math.round(k.points)}${k.cost ? `/${k.cost}` : ''}`}{k.onOffer
-							? ' · on offer'
-							: ''}
-					</span>{/each}
+				{@render progressed(data.kept)}
 			</p>
 		{/if}
 	</Panel>
@@ -123,7 +150,7 @@
 									{t.tier !== null ? ` T${t.tier}` : ''}{t.repeats
 										? ` repeatable, ${t.repeats}`
 										: ''}{t.kept ? ' ↺' : ''}{t.progress !== null
-										? ` ${Math.round(t.progress)}${t.cost ? `/${t.cost} (${Math.round((100 * t.progress) / t.cost)} %)` : ''}`
+										? ` ${Math.round(t.progress)}${t.percent !== null ? ` (${Math.round(t.percent)} %)` : ''}`
 										: ''}
 								</span>{#if !t.researching}<AddGoal
 										kind="tech"
