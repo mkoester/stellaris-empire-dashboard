@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.2.2] - 2026-11-28
 
 ### Fixed
 
@@ -13,8 +13,8 @@ All notable changes to this project are documented here. The format follows
 - Costs follow your empire: a nomad's buildings cost rare crystals and other strategic resources
   where the game asks them (the Augmentation Center 80 rare crystals, not 800 minerals), and bio
   ships, wilderness empires and megacorp surcharges are counted too — in the planner, trade-offs,
-  produce, what-ifs, systems, influence, resources and the popups. Needs the extractor release
-  after 0.1.27; with game data from an older one, the regular empire's costs show, as before.
+  produce, what-ifs, systems, influence, resources and the popups. Needs the extractor 0.1.28;
+  with game data from an older one, the regular empire's costs show, as before.
 - A tech's popup lists only what it unlocks for your empire: Planetary Power Grid no longer
   shows the wilderness empire's Chloroplastic Cyst beside the Energy Nexus.
 
@@ -27,6 +27,14 @@ All notable changes to this project are documented here. The format follows
 - Planner: a building goal says how your empire gets the building ("comes with Cyberization,
   Stage II" for the Augmentation Center, or the tradition, tech or perk it needs), and one your
   empire can never build is flagged. The building's popup says the same.
+- Planner: an ascension path brings what finishing it needs. A planned ascension adds the techs
+  its adoption asks of your empire, and the techs, traditions and buildings its situation stops
+  without (needs the extractor 0.1.28's `situation_block`; without it, as before).
+- Planner: "Next up" skips goals that wait on a tech, and a tech out of reach waits on its
+  prerequisites. A planned arkship brings its class's tech into the plan; the nomads' station
+  capacity shortcuts show for nomads only.
+- Tech: repeatable techs get their names, a card and their level cap (most repeat without limit;
+  a few stop after 5 levels).
 
 ## [0.2.1] - 2026-11-26
 
