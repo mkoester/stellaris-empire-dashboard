@@ -16,6 +16,7 @@ import {
 	monthTicks,
 	scheduleQueue,
 	buildSpeed,
+	researchDue,
 	toDays,
 	traditionCost,
 	upcoming,
@@ -182,11 +183,9 @@ describe('upcoming', () => {
 	const of = (kind: string) => events.find((e) => e.kind === kind)!;
 
 	it('dates research from the measured rate and the scaled cost (game: 108 months)', () => {
-		expect(of('research')).toMatchObject({
-			what: 'Quantum Computing',
-			months: 108,
-			date: '2209.04.01'
-		});
+		// 108 chunks from 2200.04.01: the first on 04.02, the last 107 months later
+		expect(of('research')).toMatchObject({ what: 'Quantum Computing', date: '2209.03.02' });
+		expect(of('research')!.months).toBeCloseTo(107 + 1 / 30);
 	});
 
 	it('dates the next tradition (game: 153.79 missing, by 2200.09.01)', () => {
@@ -281,6 +280,20 @@ describe('upcoming', () => {
 			['2200.05.01', false, 1, false], // the next item takes over: information
 			['2200.07.01', false, 0, true] // the queue runs empty: act
 		]);
+	});
+});
+
+describe('researchDue', () => {
+	it('lands on the 2nd: the coming one first, one more a month per chunk', () => {
+		expect(researchDue('2236.01.08', 100, 50)?.date).toBe('2236.03.02'); // 02.02, 03.02
+		expect(researchDue('2236.01.01', 100, 50)?.date).toBe('2236.02.02'); // 01.02, 02.02
+		expect(researchDue('2236.01.02', 10, 50)?.date).toBe('2236.02.02'); // the 2nd's chunk is in
+		expect(researchDue('2236.12.15', 10, 50)?.date).toBe('2237.01.02');
+		expect(researchDue('2236.01.08', 100, 50)?.months).toBeCloseTo(54 / 30);
+	});
+	it('now when nothing is left, null without a rate', () => {
+		expect(researchDue('2236.01.08', 0, 50)).toEqual({ date: '2236.01.08', months: 0 });
+		expect(researchDue('2236.01.08', 10, 0)).toBeNull();
 	});
 });
 
