@@ -79,8 +79,9 @@ extractor work needs an extractor tag first.
 ## Maintenance release (an older game version)
 
 Players who stay on an older game (Steam's Betas list rolls it back) get a line of their own: a
-branch **`maint/<X.Y>`** cut from the last release built for that game (`maint/0.1` from v0.1.31:
-4.5), its worktree `worktrees/stellaris-empire-dashboard@maint-<X.Y>`. Fixes are cherry-picked
+branch **`maint/<game X.Y>`**, named after the game version it serves, not the dashboard's own
+(`maint/4.5`: the 0.1.x line, cut from v0.1.31, the last release for 4.5), its worktree
+`worktrees/stellaris-empire-dashboard@maint-<game X.Y>`. Fixes are cherry-picked
 from `develop`; nothing goes back. A release there is a plain `vX.Y.Z` tag like `main`'s: the
 workflow accepts a tag on `main` or on any `maint/*` branch, and publishes a `maint/*` one as a
 regular release **never marked "Latest"** (`--latest=false`): the in-app update check offers
@@ -89,7 +90,7 @@ regular release **never marked "Latest"** (`--latest=false`): the in-app update 
 1. In the worktree, everything committed: `CHANGELOG.md`'s `## [X.Y.Z] - <date>`, `package.json`'s
    version X.Y.Z (the line's next patch; no bump after), the pinned extractor unchanged unless
    that game's data needs a fix (then an extractor maintenance tag first).
-2. `git tag vX.Y.Z`, then publish (by hand): `git push origin maint/<X.Y>`, then
+2. `git tag vX.Y.Z`, then publish (by hand): `git push origin maint/<game X.Y>`, then
    `git push origin vX.Y.Z`.
 3. Check on GitHub that the current line's release is still "Latest". If not:
    `gh release edit <its tag> --latest`.

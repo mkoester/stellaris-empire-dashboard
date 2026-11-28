@@ -11,7 +11,7 @@ All notable changes to this project are documented here. The format follows
 - The update notice names the game a newer release is built for when it is not yours ("v0.2.2
   available, built for game 4.6 – you are still on 4.5.4"), and the warning for a newer game than
   this release's links the releases on GitHub.
-- Releases for an older game version: a maintenance line (`maint/0.1` for 4.5) publishes regular
+- Releases for an older game version: a maintenance line (`maint/4.5` for Stellaris 4.5) publishes regular
   releases that never become GitHub's "Latest".
 
 ## [0.2.2] - 2026-11-28
