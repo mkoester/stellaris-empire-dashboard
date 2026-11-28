@@ -139,7 +139,10 @@ on mkTuxedoCachy the dev dashboard's (`sdash`, `scripts/dashboard.sh`'s default 
 (`~/.local/share/stellaris-empire-dashboard/`) stopped at 2026-11-22. The open-beta campaign runs
 on `~/.local/share/stellaris-empire-dashboard-beta-live/` (`sdash --beta --db-dir beta-live`,
 roamingcybergang, 4.6.1 beta, 2026-11-27). When unsure, `sdb <campaign>
---db <file>` on each: the one with the newest "recorded" is in use. New save shapes come from
+--db <file>` on each: the one with the newest "recorded" is in use. **A dev run with `STELLARIS_DATA_DB` is unmodded**, so a mod's techs or buildings show as raw
+keys without cost: not a dashboard gap. To check mod content, point it at the campaign's own data
+DB, `<XDG data>/stellaris-empire-dashboard/data/stellaris-v<version>-<hash>.sqlite` (its `meta`
+row `mods` lists them; Ancient Highway's techs, 2026-11-28). New save shapes come from
 throwaway games with console cheats, never the real campaign, against a separate `DASHBOARD_DB`.
 
 **A reader test's fixture that names a save is copied from that save** (`grep -n -a` the key in
