@@ -787,6 +787,25 @@ export function check(kind: string, target: Target, checked: boolean, c: PlanCtx
 	return k.check(target, c);
 }
 
+/**
+ * The tradition goal the next tradition's unity goes to: the first open one in the list's order
+ * (`orderTraditions`) — an adoption or a tradition; a tree's finish comes by itself, unpaid.
+ * -1 for none.
+ */
+export function nextTradition(
+	rows: { kind: string; target: Target; state: State }[],
+	data: Pick<GameData, 'traditionTrees'>
+): number {
+	const finish = new Set(
+		Object.values(data.traditionTrees).flatMap((t) =>
+			t.traditions.filter((x) => x.role === 'finish').map((x) => x.key)
+		)
+	);
+	return rows.findIndex(
+		(r) => r.kind === 'tradition' && r.state === 'open' && !finish.has(String(r.target.tradition))
+	);
+}
+
 /** When a goal is done, where the upcoming events know it. */
 export const dueOf = (kind: string, target: Target, up: Upcoming[]) =>
 	KINDS[kind]?.due?.(target, up) ?? null;
